@@ -49,14 +49,6 @@ function getDeploymentDomain() {
     return stripProtocol(process.env.RAILWAY_PUBLIC_DOMAIN);
   }
 
-  // Legacy Replit support
-  if (process.env.REPLIT_INTERNAL_APP_DOMAIN) {
-    return stripProtocol(process.env.REPLIT_INTERNAL_APP_DOMAIN);
-  }
-  if (process.env.REPLIT_DEV_DOMAIN) {
-    return stripProtocol(process.env.REPLIT_DEV_DOMAIN);
-  }
-
   // Default to production domain
   return "logbook-api.drgladysz.com";
 }

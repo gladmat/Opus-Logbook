@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.surgicallogbook.app",
+      "bundleIdentifier": "app.replit.surgicallogbook",
       "buildNumber": "8",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -25,7 +25,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.surgicallogbook.app",
+      "package": "app.replit.surgicallogbook",
       "versionCode": 8,
       "permissions": [
         "android.permission.RECORD_AUDIO"

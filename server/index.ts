@@ -28,16 +28,6 @@ function setupCors(app: express.Application) {
       origins.add(`https://${process.env.RAILWAY_PUBLIC_DOMAIN}`);
     }
 
-    // Legacy Replit support (can be removed once fully migrated)
-    if (process.env.REPLIT_DEV_DOMAIN) {
-      origins.add(`https://${process.env.REPLIT_DEV_DOMAIN}`);
-    }
-    if (process.env.REPLIT_DOMAINS) {
-      process.env.REPLIT_DOMAINS.split(",").forEach((d: string) => {
-        origins.add(`https://${d.trim()}`);
-      });
-    }
-
     const origin = req.header("origin");
 
     // Allow localhost origins for Expo dev client (any port)
