@@ -11,7 +11,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { EncryptedImage } from "@/components/EncryptedImage";
 import { useTheme } from "@/hooks/useTheme";
 import { BorderRadius, Spacing, Shadows } from "@/constants/theme";
-import { Case, Specialty, SPECIALTY_LABELS, getPrimaryDiagnosisName, getPrimarySiteLabel } from "@/types/case";
+import { Case, Specialty, SPECIALTY_LABELS, getPrimaryDiagnosisName, getPrimarySiteLabel, isExcisionBiopsyDiagnosis } from "@/types/case";
 import { RoleBadge } from "@/components/RoleBadge";
 import { SpecialtyBadge } from "@/components/SpecialtyBadge";
 
@@ -111,6 +111,10 @@ export const CaseCard = React.memo(function CaseCard({ caseData, onPress }: Case
 
   const caseTitle = getPrimaryDiagnosisName(caseData) || caseData.procedureType;
 
+  const hasHistologyPending = caseData.diagnosisGroups?.some(
+    (g) => g.diagnosisCertainty === "clinical" || isExcisionBiopsyDiagnosis(g.diagnosisPicklistId)
+  );
+
   return (
     <AnimatedPressable
       onPress={handlePress}
@@ -128,6 +132,13 @@ export const CaseCard = React.memo(function CaseCard({ caseData, onPress }: Case
         <View style={styles.headerLeft}>
           <SpecialtyBadge specialty={caseData.specialty} size="small" />
           <RoleBadge role={userRole} size="small" />
+          {hasHistologyPending ? (
+            <View style={[chipStyles.chip, { backgroundColor: "#F59E0B20" }]}>
+              <ThemedText style={[chipStyles.chipText, { color: "#D97706" }]}>
+                Histology pending
+              </ThemedText>
+            </View>
+          ) : null}
         </View>
         <Feather name="chevron-right" size={20} color={theme.textTertiary} />
       </View>

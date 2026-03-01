@@ -812,6 +812,41 @@ export interface CaseProcedure {
   notes?: string;
 }
 
+// ─── Diagnosis Certainty ─────────────────────────────────────────────────────
+export type DiagnosisCertainty = "clinical" | "histological";
+
+export const DIAGNOSIS_CERTAINTY_LABELS: Record<DiagnosisCertainty, string> = {
+  clinical: "Clinical (awaiting histology)",
+  histological: "Histologically confirmed",
+};
+
+// ─── Clinical Suspicion (for excision biopsies) ─────────────────────────────
+export type ClinicalSuspicion =
+  | "suspect_bcc"
+  | "suspect_scc"
+  | "suspect_melanoma"
+  | "suspect_benign"
+  | "uncertain";
+
+export const CLINICAL_SUSPICION_LABELS: Record<ClinicalSuspicion, string> = {
+  suspect_bcc: "Suspect BCC",
+  suspect_scc: "Suspect SCC",
+  suspect_melanoma: "Suspect melanoma",
+  suspect_benign: "Suspect benign / naevus",
+  uncertain: "Uncertain",
+};
+
+/** IDs of diagnosis picklist entries that represent an excision biopsy awaiting histology */
+export const EXCISION_BIOPSY_DIAGNOSIS_IDS = [
+  "gen_dx_skin_lesion_excision_biopsy",
+  "hn_dx_skin_lesion_excision_biopsy",
+] as const;
+
+export function isExcisionBiopsyDiagnosis(diagnosisPicklistId?: string): boolean {
+  if (!diagnosisPicklistId) return false;
+  return (EXCISION_BIOPSY_DIAGNOSIS_IDS as readonly string[]).includes(diagnosisPicklistId);
+}
+
 export interface DiagnosisGroup {
   id: string;
   sequenceOrder: number;
@@ -826,6 +861,10 @@ export interface DiagnosisGroup {
   procedures: CaseProcedure[];
   isMultiLesion?: boolean;
   lesionInstances?: LesionInstance[];
+  /** Clinical vs histological certainty of the diagnosis */
+  diagnosisCertainty?: DiagnosisCertainty;
+  /** Pre-operative clinical impression (only for excision biopsy / awaiting histology cases) */
+  clinicalSuspicion?: ClinicalSuspicion;
 }
 
 export interface Case {

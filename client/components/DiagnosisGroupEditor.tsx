@@ -15,6 +15,9 @@ import {
   Role,
   FractureEntry,
   DiagnosisClinicalDetails,
+  ClinicalSuspicion,
+  CLINICAL_SUSPICION_LABELS,
+  isExcisionBiopsyDiagnosis,
 } from "@/types/case";
 import { PickerField } from "@/components/FormField";
 import { SnomedSearchPicker } from "@/components/SnomedSearchPicker";
@@ -71,6 +74,7 @@ export function DiagnosisGroupEditor({ group, index, isOnly, onChange, onDelete 
   const [isMultiLesion, setIsMultiLesion] = useState<boolean>(group.isMultiLesion ?? false);
   const [lesionInstances, setLesionInstances] = useState<LesionInstance[]>(group.lesionInstances ?? []);
   const [isExpanded, setIsExpanded] = useState<boolean>(!group.diagnosis?.displayName);
+  const [clinicalSuspicion, setClinicalSuspicion] = useState<ClinicalSuspicion | undefined>(group.clinicalSuspicion);
 
   // Feature 1: collapse diagnosis picklist after selection
   const [isDiagnosisPickerCollapsed, setIsDiagnosisPickerCollapsed] = useState<boolean>(!!group.diagnosisPicklistId);
@@ -140,6 +144,7 @@ export function DiagnosisGroupEditor({ group, index, isOnly, onChange, onDelete 
   useEffect(() => {
     if (!initializedRef.current) return;
 
+    const isExcBiopsy = isExcisionBiopsyDiagnosis(selectedDiagnosis?.id);
     const assembled: DiagnosisGroup = {
       id: group.id,
       sequenceOrder: group.sequenceOrder,
@@ -155,12 +160,14 @@ export function DiagnosisGroupEditor({ group, index, isOnly, onChange, onDelete 
       procedures,
       isMultiLesion,
       lesionInstances: isMultiLesion ? lesionInstances : undefined,
+      diagnosisCertainty: isExcBiopsy ? "clinical" : undefined,
+      clinicalSuspicion: isExcBiopsy ? clinicalSuspicion : undefined,
     };
     onChangeRef.current(assembled);
   }, [
     groupSpecialty, primaryDiagnosis, diagnosis, selectedDiagnosis,
     stagingValues, diagnosisClinicalDetails, fractures, procedures,
-    isMultiLesion, lesionInstances,
+    isMultiLesion, lesionInstances, clinicalSuspicion,
     group.id, group.sequenceOrder,
   ]);
 
@@ -795,6 +802,22 @@ export function DiagnosisGroupEditor({ group, index, isOnly, onChange, onDelete 
               placeholder={`Select ${system.name.toLowerCase()}...`}
             />
           ))}
+        </View>
+      ) : null}
+
+      {/* Clinical suspicion picker for excision biopsy diagnoses */}
+      {isExcisionBiopsyDiagnosis(selectedDiagnosis?.id) ? (
+        <View style={styles.stagingContainer}>
+          <PickerField
+            label="Clinical suspicion (optional)"
+            value={clinicalSuspicion || ""}
+            options={Object.entries(CLINICAL_SUSPICION_LABELS).map(([value, label]) => ({
+              value,
+              label,
+            }))}
+            onSelect={(val) => setClinicalSuspicion(val as ClinicalSuspicion)}
+            placeholder="Select clinical impression..."
+          />
         </View>
       ) : null}
 

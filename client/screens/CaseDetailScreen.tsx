@@ -50,8 +50,11 @@ import {
   FOLLOW_UP_INTERVAL_LABELS,
   getAllProcedures,
   getPrimaryDiagnosisName,
+  isExcisionBiopsyDiagnosis,
+  CLINICAL_SUSPICION_LABELS,
 } from "@/types/case";
-import { getCase, getTimelineEvents, deleteCase, updateCase, markNoComplications } from "@/lib/storage";
+import { getCase, getTimelineEvents, deleteCase, updateCase, markNoComplications, deleteTimelineEvent } from "@/lib/storage";
+import { deleteMultipleEncryptedMedia } from "@/lib/mediaStorage";
 import { SpecialtyBadge } from "@/components/SpecialtyBadge";
 import { RoleBadge } from "@/components/RoleBadge";
 import { LoadingState } from "@/components/LoadingState";
@@ -263,6 +266,38 @@ export default function CaseDetailScreen() {
     }
   };
 
+  const handleDeleteEvent = (event: TimelineEvent) => {
+    Alert.alert(
+      "Delete Event",
+      "Are you sure you want to delete this timeline event? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              if (event.mediaAttachments && event.mediaAttachments.length > 0) {
+                const uris = event.mediaAttachments
+                  .map((m) => m.localUri)
+                  .filter((uri): uri is string => !!uri);
+                if (uris.length > 0) {
+                  await deleteMultipleEncryptedMedia(uris);
+                }
+              }
+              await deleteTimelineEvent(event.id);
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              await loadData();
+            } catch (error) {
+              console.error("Error deleting timeline event:", error);
+              Alert.alert("Error", "Failed to delete the timeline event.");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleMarkNoComplications = async () => {
     if (!caseData) return;
     try {
@@ -367,6 +402,10 @@ export default function CaseDetailScreen() {
     }
   };
 
+  const hasHistologyPending = caseData.diagnosisGroups?.some(
+    (g) => g.diagnosisCertainty === "clinical" || isExcisionBiopsyDiagnosis(g.diagnosisPicklistId)
+  );
+
   const hasProcedures = caseData.diagnosisGroups?.some(g => g.procedures.length > 0);
   const hasPatientDemographics = caseData.gender || caseData.ethnicity;
   const hasAdmissionDetails = caseData.admissionDate || caseData.dischargeDate || caseData.admissionUrgency || (caseData.unplannedReadmission && caseData.unplannedReadmission !== "no");
@@ -431,6 +470,28 @@ export default function CaseDetailScreen() {
             </View>
           </View>
         </View>
+
+        {hasHistologyPending ? (
+          <View style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            backgroundColor: "#FEF3C7",
+            padding: 12,
+            borderRadius: 10,
+            marginBottom: 16,
+          }}>
+            <Feather name="clock" size={18} color="#D97706" />
+            <View style={{ flex: 1 }}>
+              <ThemedText style={{ fontWeight: "600", color: "#92400E", fontSize: 14 }}>
+                Histology pending
+              </ThemedText>
+              <ThemedText style={{ color: "#92400E", fontSize: 12, marginTop: 2 }}>
+                Edit this case to update diagnosis when results arrive
+              </ThemedText>
+            </View>
+          </View>
+        ) : null}
 
         {hasProcedures ? (
           <>
@@ -708,6 +769,11 @@ export default function CaseDetailScreen() {
                       {group.diagnosis.snomedCtCode ? (
                         <ThemedText style={[styles.snomedCode, { color: theme.textTertiary }]}>
                           SNOMED CT: {group.diagnosis.snomedCtCode}
+                        </ThemedText>
+                      ) : null}
+                      {group.clinicalSuspicion ? (
+                        <ThemedText style={[styles.snomedCode, { color: theme.textSecondary, marginTop: 4 }]}>
+                          Clinical suspicion: {CLINICAL_SUSPICION_LABELS[group.clinicalSuspicion]}
                         </ThemedText>
                       ) : null}
                     </View>
@@ -1172,9 +1238,12 @@ export default function CaseDetailScreen() {
               if (event.eventType === "wound_assessment" && event.woundAssessmentData) {
                 return (
                   <View key={event.id}>
-                    <View style={{ flexDirection: "row", justifyContent: "flex-end", paddingRight: Spacing.md, paddingTop: Spacing.sm }}>
+                    <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 8, paddingRight: Spacing.md, paddingTop: Spacing.sm }}>
                       <Pressable onPress={() => handleEditEvent(event)} hitSlop={8} style={{ padding: 4 }}>
                         <Feather name="edit-2" size={14} color={theme.textTertiary} />
+                      </Pressable>
+                      <Pressable onPress={() => handleDeleteEvent(event)} hitSlop={8} style={{ padding: 4 }}>
+                        <Feather name="trash-2" size={14} color={theme.error} />
                       </Pressable>
                     </View>
                     <WoundAssessmentCard
@@ -1218,13 +1287,22 @@ export default function CaseDetailScreen() {
                         </View>
                       ) : null}
                     </View>
-                    <Pressable
-                      onPress={() => handleEditEvent(event)}
-                      hitSlop={8}
-                      style={{ padding: 4 }}
-                    >
-                      <Feather name="edit-2" size={14} color={theme.textTertiary} />
-                    </Pressable>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      <Pressable
+                        onPress={() => handleEditEvent(event)}
+                        hitSlop={8}
+                        style={{ padding: 4 }}
+                      >
+                        <Feather name="edit-2" size={14} color={theme.textTertiary} />
+                      </Pressable>
+                      <Pressable
+                        onPress={() => handleDeleteEvent(event)}
+                        hitSlop={8}
+                        style={{ padding: 4 }}
+                      >
+                        <Feather name="trash-2" size={14} color={theme.error} />
+                      </Pressable>
+                    </View>
                   </View>
 
                   {(event.mediaAttachments?.length ?? 0) > 0 ? (
