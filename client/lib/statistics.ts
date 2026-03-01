@@ -320,21 +320,32 @@ export function calculateHandSurgeryStatistics(cases: Case[]): HandSurgeryStatis
   
   const procedureTypeMap = new Map<string, number>();
   handSurgeryCases.forEach(c => {
-    const procedureType = c.procedureType || "Unknown";
-    procedureTypeMap.set(procedureType, (procedureTypeMap.get(procedureType) || 0) + 1);
+    const procs = getAllProcedures(c);
+    if (procs.length > 0) {
+      // Derive procedure type from the actual procedure subcategory or name
+      const subcategory = procs[0].subcategory || procs[0].procedureName || "Unknown";
+      procedureTypeMap.set(subcategory, (procedureTypeMap.get(subcategory) || 0) + 1);
+    } else {
+      const pt = c.procedureType || "Unknown";
+      procedureTypeMap.set(pt, (procedureTypeMap.get(pt) || 0) + 1);
+    }
   });
   const casesByProcedureType = Array.from(procedureTypeMap.entries())
     .sort((a, b) => b[1] - a[1])
     .map(([procedureType, count]) => ({ procedureType, count }));
-  
-  const nerveRepairCount = handSurgeryCases.filter(c => 
-    c.procedureType?.toLowerCase().includes("nerve") ||
-    getAllProcedures(c).some(p => p.tags?.includes("nerve_repair"))
+
+  const nerveRepairCount = handSurgeryCases.filter(c =>
+    getAllProcedures(c).some(p =>
+      p.tags?.includes("nerve_repair") ||
+      p.subcategory?.toLowerCase().includes("nerve")
+    )
   ).length;
-  
-  const tendonRepairCount = handSurgeryCases.filter(c => 
-    c.procedureType?.toLowerCase().includes("tendon") ||
-    getAllProcedures(c).some(p => p.tags?.includes("tendon_repair"))
+
+  const tendonRepairCount = handSurgeryCases.filter(c =>
+    getAllProcedures(c).some(p =>
+      p.tags?.includes("tendon_repair") ||
+      p.subcategory?.toLowerCase().includes("tendon")
+    )
   ).length;
   
   return {
@@ -350,9 +361,11 @@ export function calculateOrthoplasticStatistics(cases: Case[]): OrthoplasticStat
   
   const orthoplasticCases = cases.filter(c => c.specialty === "orthoplastic");
   
-  const freeFlapCount = orthoplasticCases.filter(c => 
-    getAllProcedures(c).some(p => p.tags?.includes("free_flap")) ||
-    c.procedureType?.toLowerCase().includes("free flap")
+  const freeFlapCount = orthoplasticCases.filter(c =>
+    getAllProcedures(c).some(p =>
+      p.tags?.includes("free_flap") ||
+      p.subcategory?.toLowerCase().includes("free flap")
+    )
   ).length;
   
   const ischemiaTimesMinutes = orthoplasticCases
