@@ -39,6 +39,9 @@ yarn-error.*
 
 app-example
 
+# server build output
+server_dist/
+
 # generated native folders
 /ios
 /android
