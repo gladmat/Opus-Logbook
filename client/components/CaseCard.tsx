@@ -33,7 +33,7 @@ interface CaseCardProps {
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-function CaseThumbnail({ caseData }: { caseData: Case }) {
+const CaseThumbnail = React.memo(function CaseThumbnail({ caseData }: { caseData: Case }) {
   const { theme } = useTheme();
   const firstPhoto = caseData.operativeMedia?.[0];
 
@@ -44,6 +44,7 @@ function CaseThumbnail({ caseData }: { caseData: Case }) {
           uri={firstPhoto.localUri}
           style={thumbStyles.image}
           resizeMode="cover"
+          thumbnail
         />
       </View>
     );
@@ -58,7 +59,7 @@ function CaseThumbnail({ caseData }: { caseData: Case }) {
       />
     </View>
   );
-}
+});
 
 function SiteChip({ caseData }: { caseData: Case }) {
   const { theme } = useTheme();
@@ -74,7 +75,7 @@ function SiteChip({ caseData }: { caseData: Case }) {
   );
 }
 
-export function CaseCard({ caseData, onPress }: CaseCardProps) {
+export const CaseCard = React.memo(function CaseCard({ caseData, onPress }: CaseCardProps) {
   const { theme } = useTheme();
   const scale = useSharedValue(1);
 
@@ -165,7 +166,7 @@ export function CaseCard({ caseData, onPress }: CaseCardProps) {
       </View>
     </AnimatedPressable>
   );
-}
+});
 
 const thumbStyles = StyleSheet.create({
   container: {

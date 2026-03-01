@@ -89,7 +89,7 @@ export default function MediaManagementScreen() {
         const asset = result.assets[0];
         const mime = asset.mimeType || "image/jpeg";
         const encryptedUri = asset.base64
-          ? await saveEncryptedMedia(asset.base64, mime)
+          ? await saveEncryptedMedia(asset.base64, mime, asset.uri)
           : asset.uri;
         const newAttachment: MediaAttachment = {
           id: uuidv4(),
@@ -125,7 +125,7 @@ export default function MediaManagementScreen() {
             return {
               id: uuidv4(),
               localUri: asset.base64
-                ? await saveEncryptedMedia(asset.base64, mime)
+                ? await saveEncryptedMedia(asset.base64, mime, asset.uri)
                 : asset.uri,
               mimeType: mime,
               createdAt: new Date().toISOString(),

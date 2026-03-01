@@ -145,7 +145,7 @@ export default function AddOperativeMediaScreen() {
       let finalUri = currentUri;
       const pending = consumePendingBase64();
       if (pending) {
-        finalUri = await saveEncryptedMedia(pending.base64, pending.mimeType);
+        finalUri = await saveEncryptedMedia(pending.base64, pending.mimeType, currentUri);
       } else if (editMode && isEncryptedMediaUri(currentUri)) {
         finalUri = currentUri;
       }

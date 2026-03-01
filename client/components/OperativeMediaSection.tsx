@@ -125,7 +125,7 @@ export function OperativeMediaSection({
             result.assets.map(async (asset) => {
               const mime = asset.mimeType || "image/jpeg";
               const encryptedUri = asset.base64
-                ? await saveEncryptedMedia(asset.base64, mime)
+                ? await saveEncryptedMedia(asset.base64, mime, asset.uri)
                 : asset.uri;
               return {
                 id: uuidv4(),

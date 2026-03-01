@@ -7,7 +7,12 @@ import {
   ImageStyle,
   ViewStyle,
 } from "react-native";
-import { loadEncryptedMedia, isEncryptedMediaUri } from "@/lib/mediaStorage";
+import {
+  loadEncryptedMedia,
+  loadThumbnail,
+  generateAndSaveThumbnail,
+  isEncryptedMediaUri,
+} from "@/lib/mediaStorage";
 import { useTheme } from "@/hooks/useTheme";
 
 const MAX_CACHE_ENTRIES = 80;
@@ -61,6 +66,7 @@ interface EncryptedImageProps {
   style?: StyleProp<ImageStyle>;
   placeholderStyle?: StyleProp<ViewStyle>;
   resizeMode?: "cover" | "contain" | "stretch" | "center";
+  thumbnail?: boolean;
   onError?: () => void;
   onLoad?: () => void;
 }
@@ -70,6 +76,7 @@ export function EncryptedImage({
   style,
   placeholderStyle,
   resizeMode = "cover",
+  thumbnail = false,
   onError,
   onLoad,
 }: EncryptedImageProps) {
@@ -92,7 +99,9 @@ export function EncryptedImage({
       return;
     }
 
-    const cached = decryptedCache.get(uri);
+    // Check in-memory cache first (works for both thumbnail and full mode)
+    const cacheKey = thumbnail ? `thumb:${uri}` : uri;
+    const cached = decryptedCache.get(cacheKey);
     if (cached) {
       setDataUri(cached);
       setLoading(false);
@@ -102,23 +111,56 @@ export function EncryptedImage({
     setLoading(true);
     setDataUri(null);
 
-    queueDecryption(uri)
-      .then((result) => {
-        if (!mountedRef.current) return;
-        if (result) {
-          cacheSet(uri, result);
-          setDataUri(result);
-        } else {
-          onError?.();
-        }
-      })
-      .catch(() => {
-        if (mountedRef.current) onError?.();
-      })
-      .finally(() => {
-        if (mountedRef.current) setLoading(false);
-      });
-  }, [uri]);
+    if (thumbnail) {
+      // Thumbnail mode: try unencrypted thumbnail first (instant)
+      loadThumbnail(uri)
+        .then((thumbDataUri) => {
+          if (!mountedRef.current) return;
+          if (thumbDataUri) {
+            cacheSet(cacheKey, thumbDataUri);
+            setDataUri(thumbDataUri);
+            setLoading(false);
+            return;
+          }
+          // No thumbnail yet — fall back to full decrypt, then lazily generate thumbnail
+          return queueDecryption(uri).then((result) => {
+            if (!mountedRef.current) return;
+            if (result) {
+              cacheSet(cacheKey, result);
+              setDataUri(result);
+              // Lazily generate thumbnail for next time
+              generateAndSaveThumbnail(uri, result).catch(() => {});
+            } else {
+              onError?.();
+            }
+          });
+        })
+        .catch(() => {
+          if (mountedRef.current) onError?.();
+        })
+        .finally(() => {
+          if (mountedRef.current) setLoading(false);
+        });
+    } else {
+      // Full image mode: decrypt as before
+      queueDecryption(uri)
+        .then((result) => {
+          if (!mountedRef.current) return;
+          if (result) {
+            cacheSet(cacheKey, result);
+            setDataUri(result);
+          } else {
+            onError?.();
+          }
+        })
+        .catch(() => {
+          if (mountedRef.current) onError?.();
+        })
+        .finally(() => {
+          if (mountedRef.current) setLoading(false);
+        });
+    }
+  }, [uri, thumbnail]);
 
   if (loading) {
     return (
