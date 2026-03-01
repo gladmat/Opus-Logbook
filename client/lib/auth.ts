@@ -166,6 +166,20 @@ export async function createFacility(facilityName: string, isPrimary: boolean = 
   return res.json();
 }
 
+export async function updateFacility(id: string, data: { isPrimary?: boolean }): Promise<UserFacility> {
+  const res = await authFetch(`/api/facilities/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Failed to update facility");
+  }
+
+  return res.json();
+}
+
 export async function deleteFacility(id: string): Promise<void> {
   const res = await authFetch(`/api/facilities/${id}`, {
     method: "DELETE",

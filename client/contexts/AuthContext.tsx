@@ -12,6 +12,7 @@ import {
   getUserFacilities,
   createFacility as authCreateFacility,
   deleteFacility as authDeleteFacility,
+  updateFacility as authUpdateFacility,
   registerDeviceKey,
 } from "@/lib/auth";
 import { getOrCreateDeviceIdentity } from "@/lib/e2ee";
@@ -29,6 +30,7 @@ interface AuthContextType {
   updateProfile: (profile: Partial<UserProfile>) => Promise<void>;
   addFacility: (name: string, isPrimary?: boolean, facilityId?: string) => Promise<void>;
   removeFacility: (id: string) => Promise<void>;
+  setFacilityPrimary: (id: string) => Promise<void>;
   refreshUser: () => Promise<void>;
 }
 
@@ -124,6 +126,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setFacilities(prev => prev.filter(f => f.id !== id));
   };
 
+  const setFacilityPrimary = async (id: string) => {
+    await authUpdateFacility(id, { isPrimary: true });
+    setFacilities(prev =>
+      prev.map(f => ({ ...f, isPrimary: f.id === id }))
+    );
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -139,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updateProfile,
         addFacility,
         removeFacility,
+        setFacilityPrimary,
         refreshUser,
       }}
     >

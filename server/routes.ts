@@ -390,6 +390,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/facilities/:id", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { isPrimary } = req.body;
+
+      // If setting as primary, unset all other facilities first
+      if (isPrimary) {
+        const allFacilities = await storage.getUserFacilities(req.userId!);
+        for (const f of allFacilities) {
+          if (f.isPrimary && f.id !== req.params.id) {
+            await storage.updateUserFacility(f.id, { isPrimary: false });
+          }
+        }
+      }
+
+      const updated = await storage.updateUserFacility(req.params.id, { isPrimary: isPrimary ?? false });
+      if (!updated) {
+        return res.status(404).json({ error: "Facility not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error("Facility update error:", error);
+      res.status(500).json({ error: "Failed to update facility" });
+    }
+  });
+
   // IMPROVEMENT: IDOR fix — pass userId to enforce ownership at the query level
   app.delete("/api/facilities/:id", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {

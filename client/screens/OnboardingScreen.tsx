@@ -44,7 +44,7 @@ export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
-  const { updateProfile, addFacility, facilities } = useAuth();
+  const { updateProfile, addFacility, removeFacility, setFacilityPrimary, facilities } = useAuth();
 
   const [step, setStep] = useState<Step>("agreement");
   const [isLoading, setIsLoading] = useState(false);
@@ -408,16 +408,38 @@ export default function OnboardingScreen() {
                     key={facility.id}
                     style={[styles.facilityItem, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}
                   >
-                    <View style={styles.facilityInfo}>
+                    <Pressable
+                      style={styles.facilityInfo}
+                      onPress={async () => {
+                        if (!facility.isPrimary) {
+                          try {
+                            await setFacilityPrimary(facility.id);
+                          } catch (error: any) {
+                            Alert.alert("Error", error.message || "Failed to set primary facility");
+                          }
+                        }
+                      }}
+                    >
                       <Feather name="home" size={18} color={colors.textSecondary} />
-                      <Text style={[styles.facilityName, { color: colors.text }]}>{facility.facilityName}</Text>
-                      {facility.isPrimary && (
+                      <Text style={[styles.facilityName, { color: colors.text }]} numberOfLines={1}>{facility.facilityName}</Text>
+                      {facility.isPrimary ? (
                         <View style={[styles.primaryBadge, { backgroundColor: colors.link + "20" }]}>
                           <Text style={[styles.primaryBadgeText, { color: colors.link }]}>Primary</Text>
                         </View>
+                      ) : (
+                        <Text style={[styles.primaryBadgeText, { color: colors.textTertiary }]}>Tap to set primary</Text>
                       )}
-                    </View>
-                    <Pressable onPress={() => {}}>
+                    </Pressable>
+                    <Pressable
+                      onPress={async () => {
+                        try {
+                          await removeFacility(facility.id);
+                        } catch (error: any) {
+                          Alert.alert("Error", error.message || "Failed to remove facility");
+                        }
+                      }}
+                      hitSlop={8}
+                    >
                       <Feather name="x" size={18} color={colors.textTertiary} />
                     </Pressable>
                   </View>
