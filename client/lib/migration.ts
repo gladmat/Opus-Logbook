@@ -43,7 +43,11 @@ function migrateSnomedCodes(c: Case): Case {
 
 export function migrateCase(raw: any): Case {
   if (Array.isArray(raw.diagnosisGroups) && raw.diagnosisGroups.length > 0) {
-    return migrateSnomedCodes(raw as Case);
+    const migrated = migrateSnomedCodes(raw as Case);
+    if (!migrated.schemaVersion) {
+      return { ...migrated, schemaVersion: 2 };
+    }
+    return migrated;
   }
 
   const oldDiagnosis = raw.preManagementDiagnosis || raw.finalDiagnosis;
@@ -64,7 +68,7 @@ export function migrateCase(raw: any): Case {
     procedures: raw.procedures || [],
   };
 
-  const migrated: any = { ...raw, diagnosisGroups: [group] };
+  const migrated: any = { ...raw, diagnosisGroups: [group], schemaVersion: 2 };
   delete migrated.preManagementDiagnosis;
   delete migrated.finalDiagnosis;
   delete migrated.pathologicalDiagnosis;

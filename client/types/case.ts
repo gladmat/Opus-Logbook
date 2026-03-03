@@ -872,6 +872,14 @@ export interface DiagnosisGroup {
   clinicalSuspicion?: ClinicalSuspicion;
 }
 
+export interface SuggestionAcceptanceEntry {
+  diagnosisGroupId: string;
+  diagnosisPicklistId: string;
+  suggestedProcedureIds: string[];
+  acceptedProcedureIds: string[];
+  addedManuallyIds: string[];
+}
+
 export interface Case {
   id: string;
   patientIdentifier: string;
@@ -883,6 +891,13 @@ export interface Case {
   diagnosisGroups: DiagnosisGroup[];
   surgeryTiming?: SurgeryTiming;
   operatingTeam?: OperatingTeamMember[];
+
+  // Schema & entry tracking (Phase 4)
+  schemaVersion?: number;
+  formOpenedAt?: string;
+  formSavedAt?: string;
+  entryDurationSeconds?: number;
+  suggestionAcceptanceLog?: SuggestionAcceptanceEntry[];
   
   // Patient Demographics
   gender?: Gender;

@@ -1,4 +1,4 @@
-import { Case, Specialty, Role, FreeFlapDetails, ClavienDindoGrade, getAllProcedures, getCaseSpecialties } from "@/types/case";
+import { Case, Specialty, Role, FreeFlapDetails, ClavienDindoGrade, getAllProcedures, getCaseSpecialties, SPECIALTY_LABELS } from "@/types/case";
 import { INFECTION_SYNDROME_LABELS, InfectionSyndrome } from "@/types/infection";
 
 export type TimePeriod = "all_time" | "this_year" | "last_6_months" | "last_12_months" | "custom";
@@ -575,4 +575,165 @@ export function calculateInfectionStatistics(cases: Case[]): InfectionStatistics
     amputationCount,
     mortalityCount,
   };
+}
+
+// ─── Top Diagnosis-Procedure Combinations (Phase 4) ──────────────────────
+
+export interface DiagnosisProcedurePair {
+  diagnosisName: string;
+  diagnosisSnomedCode?: string;
+  procedureName: string;
+  procedureSnomedCode?: string;
+  count: number;
+}
+
+export function calculateTopDiagnosisProcedurePairs(
+  cases: Case[],
+  limit: number = 10,
+): DiagnosisProcedurePair[] {
+  const pairCounts = new Map<string, DiagnosisProcedurePair>();
+
+  for (const c of cases) {
+    for (const group of c.diagnosisGroups) {
+      const dxName = group.diagnosis?.displayName;
+      if (!dxName) continue;
+
+      for (const proc of group.procedures) {
+        if (!proc.procedureName.trim()) continue;
+        const key = `${dxName}|||${proc.procedureName}`;
+        const existing = pairCounts.get(key);
+        if (existing) {
+          existing.count++;
+        } else {
+          pairCounts.set(key, {
+            diagnosisName: dxName,
+            diagnosisSnomedCode: group.diagnosis?.snomedCtCode,
+            procedureName: proc.procedureName,
+            procedureSnomedCode: proc.snomedCtCode,
+            count: 1,
+          });
+        }
+      }
+    }
+  }
+
+  return Array.from(pairCounts.values())
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit);
+}
+
+// ─── Suggestion Acceptance Rate (Phase 4) ────────────────────────────────
+
+export interface SuggestionAcceptanceStats {
+  totalSuggestedGroups: number;
+  totalSuggestedProcedures: number;
+  totalAcceptedProcedures: number;
+  totalManuallyAdded: number;
+  acceptanceRate: number;
+}
+
+export function calculateSuggestionAcceptanceStats(
+  cases: Case[],
+): SuggestionAcceptanceStats {
+  let totalSuggestedGroups = 0;
+  let totalSuggestedProcedures = 0;
+  let totalAcceptedProcedures = 0;
+  let totalManuallyAdded = 0;
+
+  for (const c of cases) {
+    const log = c.suggestionAcceptanceLog;
+    if (!log) continue;
+
+    for (const entry of log) {
+      totalSuggestedGroups++;
+      totalSuggestedProcedures += entry.suggestedProcedureIds.length;
+      totalAcceptedProcedures += entry.acceptedProcedureIds.length;
+      totalManuallyAdded += entry.addedManuallyIds.length;
+    }
+  }
+
+  return {
+    totalSuggestedGroups,
+    totalSuggestedProcedures,
+    totalAcceptedProcedures,
+    totalManuallyAdded,
+    acceptanceRate:
+      totalSuggestedProcedures > 0
+        ? (totalAcceptedProcedures / totalSuggestedProcedures) * 100
+        : 0,
+  };
+}
+
+// ─── Case Entry Time Statistics (Phase 4) ────────────────────────────────
+
+export interface EntryTimeStats {
+  averageEntryTimeSeconds: number | null;
+  medianEntryTimeSeconds: number | null;
+  entryTimeBySpecialty: Array<{
+    specialty: string;
+    averageSeconds: number;
+    count: number;
+  }>;
+}
+
+export function calculateEntryTimeStats(cases: Case[]): EntryTimeStats {
+  const casesWithTime = cases.filter(
+    (c) =>
+      c.entryDurationSeconds != null &&
+      c.entryDurationSeconds > 0 &&
+      c.entryDurationSeconds < 7200,
+  );
+
+  if (casesWithTime.length === 0) {
+    return {
+      averageEntryTimeSeconds: null,
+      medianEntryTimeSeconds: null,
+      entryTimeBySpecialty: [],
+    };
+  }
+
+  const durations = casesWithTime
+    .map((c) => c.entryDurationSeconds!)
+    .sort((a, b) => a - b);
+
+  const averageEntryTimeSeconds = Math.round(
+    durations.reduce((a, b) => a + b, 0) / durations.length,
+  );
+
+  const mid = Math.floor(durations.length / 2);
+  const medianEntryTimeSeconds =
+    durations.length % 2 === 0
+      ? Math.round((durations[mid - 1] + durations[mid]) / 2)
+      : durations[mid];
+
+  const bySpecialty = new Map<string, { total: number; count: number }>();
+  for (const c of casesWithTime) {
+    const key = c.specialty;
+    const existing = bySpecialty.get(key) || { total: 0, count: 0 };
+    existing.total += c.entryDurationSeconds!;
+    existing.count++;
+    bySpecialty.set(key, existing);
+  }
+
+  const entryTimeBySpecialty = Array.from(bySpecialty.entries())
+    .map(([specialty, { total, count }]) => ({
+      specialty: SPECIALTY_LABELS[specialty as Specialty] || specialty,
+      averageSeconds: Math.round(total / count),
+      count,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  return {
+    averageEntryTimeSeconds,
+    medianEntryTimeSeconds,
+    entryTimeBySpecialty,
+  };
+}
+
+export function formatEntryTime(seconds: number | null): string {
+  if (seconds === null) return "\u2014";
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  if (mins === 0) return `${secs}s`;
+  return `${mins}m ${secs}s`;
 }
