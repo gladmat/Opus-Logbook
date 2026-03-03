@@ -37,6 +37,10 @@ import {
   filterCases,
   calculateStatistics,
   calculateInfectionStatistics,
+  calculateTopDiagnosisProcedurePairs,
+  calculateSuggestionAcceptanceStats,
+  calculateEntryTimeStats,
+  formatEntryTime,
   getUniqueFacilities,
   formatDuration,
   formatPercentage,
@@ -250,6 +254,9 @@ export default function DashboardScreen() {
   const infectionStats = useMemo(() => calculateInfectionStatistics(filteredCases), [filteredCases]);
   const recentCases = useMemo(() => filteredCases.slice(0, 5), [filteredCases]);
   const facilities = useMemo(() => getUniqueFacilities(cases), [cases]);
+  const topPairs = useMemo(() => calculateTopDiagnosisProcedurePairs(filteredCases, 5), [filteredCases]);
+  const suggestionStats = useMemo(() => calculateSuggestionAcceptanceStats(filteredCases), [filteredCases]);
+  const entryTimeStats = useMemo(() => calculateEntryTimeStats(filteredCases), [filteredCases]);
   
   const activeCases = useMemo(() => {
     return cases.filter(c => 
@@ -795,6 +802,80 @@ export default function DashboardScreen() {
                   );
                 })}
               </View>
+            </View>
+          ) : null}
+        </View>
+
+        {topPairs.length > 0 ? (
+          <View style={[styles.analyticsCard, { backgroundColor: theme.backgroundDefault }]}>
+            <View style={styles.analyticsCardHeader}>
+              <Feather name="bar-chart-2" size={16} color={theme.link} />
+              <ThemedText style={styles.analyticsCardTitle}>
+                Top Dx-Procedure Pairs
+              </ThemedText>
+            </View>
+            {topPairs.map((pair, idx) => {
+              const maxCount = topPairs[0].count;
+              const barWidth = maxCount > 0 ? (pair.count / maxCount) * 100 : 0;
+              return (
+                <View key={`${pair.diagnosisName}-${pair.procedureName}-${idx}`} style={styles.pairRow}>
+                  <View style={styles.pairLabels}>
+                    <ThemedText style={styles.pairDiagnosis} numberOfLines={1}>
+                      {pair.diagnosisName}
+                    </ThemedText>
+                    <ThemedText style={[styles.pairProcedure, { color: theme.textSecondary }]} numberOfLines={1}>
+                      {pair.procedureName}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.pairBarContainer}>
+                    <View
+                      style={[
+                        styles.pairBar,
+                        { backgroundColor: theme.link, width: `${barWidth}%` },
+                      ]}
+                    />
+                  </View>
+                  <ThemedText style={[styles.pairCount, { color: theme.textSecondary, fontFamily: "monospace" }]}>
+                    {pair.count}
+                  </ThemedText>
+                </View>
+              );
+            })}
+          </View>
+        ) : null}
+
+        <View style={styles.analyticsRow}>
+          {entryTimeStats.averageEntryTimeSeconds !== null ? (
+            <View style={[styles.analyticsSmallCard, { backgroundColor: theme.backgroundDefault }]}>
+              <View style={[styles.analyticsSmallIcon, { backgroundColor: theme.info + "20" }]}>
+                <Feather name="edit-3" size={16} color={theme.info} />
+              </View>
+              <ThemedText style={[styles.analyticsSmallValue, { fontFamily: "monospace" }]}>
+                {formatEntryTime(entryTimeStats.averageEntryTimeSeconds)}
+              </ThemedText>
+              <ThemedText style={[styles.analyticsSmallLabel, { color: theme.textSecondary }]}>
+                Avg Entry Time
+              </ThemedText>
+              <ThemedText style={[styles.analyticsSmallSub, { color: theme.textTertiary }]}>
+                median {formatEntryTime(entryTimeStats.medianEntryTimeSeconds)}
+              </ThemedText>
+            </View>
+          ) : null}
+
+          {suggestionStats.totalSuggestedGroups > 0 ? (
+            <View style={[styles.analyticsSmallCard, { backgroundColor: theme.backgroundDefault }]}>
+              <View style={[styles.analyticsSmallIcon, { backgroundColor: theme.success + "20" }]}>
+                <Feather name="check-square" size={16} color={theme.success} />
+              </View>
+              <ThemedText style={[styles.analyticsSmallValue, { fontFamily: "monospace" }]}>
+                {formatPercentage(suggestionStats.acceptanceRate)}
+              </ThemedText>
+              <ThemedText style={[styles.analyticsSmallLabel, { color: theme.textSecondary }]}>
+                Suggestion Accept
+              </ThemedText>
+              <ThemedText style={[styles.analyticsSmallSub, { color: theme.textTertiary }]}>
+                {suggestionStats.totalAcceptedProcedures}/{suggestionStats.totalSuggestedProcedures} procs
+              </ThemedText>
             </View>
           ) : null}
         </View>
@@ -1629,6 +1710,87 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 15,
     fontWeight: "600",
+  },
+  analyticsCard: {
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.lg,
+    ...Shadows.card,
+  },
+  analyticsCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    marginBottom: Spacing.md,
+  },
+  analyticsCardTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  pairRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  pairLabels: {
+    width: 120,
+  },
+  pairDiagnosis: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  pairProcedure: {
+    fontSize: 11,
+  },
+  pairBarContainer: {
+    flex: 1,
+    height: 8,
+    backgroundColor: "rgba(0,0,0,0.05)",
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  pairBar: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  pairCount: {
+    width: 28,
+    fontSize: 13,
+    fontWeight: "600",
+    textAlign: "right",
+  },
+  analyticsRow: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  analyticsSmallCard: {
+    flex: 1,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    alignItems: "center",
+    gap: 4,
+    ...Shadows.card,
+  },
+  analyticsSmallIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  analyticsSmallValue: {
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  analyticsSmallLabel: {
+    fontSize: 11,
+    fontWeight: "500",
+  },
+  analyticsSmallSub: {
+    fontSize: 10,
   },
   infectionStatsCard: {
     padding: Spacing.md,

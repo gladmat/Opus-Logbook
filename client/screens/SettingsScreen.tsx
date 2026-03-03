@@ -4,7 +4,7 @@ import {
   StyleSheet,
   Pressable,
   Alert,
-  Share,
+  ActionSheetIOS,
   Modal,
   Linking,
   TextInput,
@@ -22,7 +22,9 @@ import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollV
 import { FacilitySelector } from "@/components/FacilitySelector";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, Shadows } from "@/constants/theme";
-import { clearAllData, exportCasesAsJSON, getCases, getSettings, AppSettings } from "@/lib/storage";
+import { clearAllData, getCases, getSettings, AppSettings } from "@/lib/storage";
+import { exportCases, ExportFormat, EXPORT_FORMAT_LABELS } from "@/lib/export";
+import { validateMigrationCorpus } from "@/lib/migrationValidator";
 import { getCodingSystemForProfile } from "@/lib/snomedCt";
 import { useAuth } from "@/contexts/AuthContext";
 import { MasterFacility, getFacilityById, SUPPORTED_COUNTRIES } from "@/data/facilities";
@@ -166,18 +168,28 @@ export default function SettingsScreen() {
     getSettings().then(setSettings);
   }, []);
 
-  const handleExport = async () => {
+  const handleExport = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    try {
-      const json = await exportCasesAsJSON();
-      await Share.share({
-        message: json,
-        title: "Surgical Logbook Export",
-      });
-    } catch (error) {
-      console.error("Export error:", error);
-      Alert.alert("Export Error", "Failed to export cases");
-    }
+    const formats: ExportFormat[] = ["csv", "json", "fhir"];
+    const labels = formats.map((f) => EXPORT_FORMAT_LABELS[f]);
+
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: [...labels, "Cancel"],
+        cancelButtonIndex: labels.length,
+        title: "Export Format",
+      },
+      async (buttonIndex) => {
+        if (buttonIndex >= formats.length) return;
+        const format = formats[buttonIndex];
+        try {
+          await exportCases({ format, includePatientId: true });
+        } catch (error: any) {
+          console.error("Export error:", error);
+          Alert.alert("Export Error", error?.message || "Failed to export cases");
+        }
+      },
+    );
   };
 
   const handleClearData = () => {
@@ -199,6 +211,31 @@ export default function SettingsScreen() {
         },
       ]
     );
+  };
+
+  const handleValidateMigration = async () => {
+    try {
+      const result = await validateMigrationCorpus();
+      const warnings = result.warningCases.length;
+      const summary = [
+        `Total: ${result.totalCases}`,
+        `Passed: ${result.successCount}`,
+        `Failed: ${result.failedCases.length}`,
+        `Warnings: ${warnings}`,
+      ].join("\n");
+
+      if (result.failedCases.length > 0) {
+        const failDetails = result.failedCases
+          .slice(0, 3)
+          .map((f) => `${f.caseId.slice(0, 8)}: ${f.errors[0]}`)
+          .join("\n");
+        Alert.alert("Migration Issues", `${summary}\n\n${failDetails}`);
+      } else {
+        Alert.alert("Migration OK", summary);
+      }
+    } catch (error: any) {
+      Alert.alert("Validation Error", error?.message || "Unknown error");
+    }
   };
 
   const handleLogout = () => {
@@ -487,6 +524,14 @@ export default function SettingsScreen() {
               subtitle={caseCount !== null ? `${caseCount} cases` : undefined}
               onPress={handleExport}
             />
+            {__DEV__ ? (
+              <SettingsItem
+                icon="check-circle"
+                label="Validate Migration"
+                subtitle="DEV — checks all cases"
+                onPress={handleValidateMigration}
+              />
+            ) : null}
           </View>
         </View>
 

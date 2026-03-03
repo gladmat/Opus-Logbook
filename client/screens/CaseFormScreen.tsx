@@ -72,6 +72,7 @@ export default function CaseFormScreen() {
   const scrollViewRef = useRef<any>(null);
   const scrollPositionRef = useRef(0);
   const sectionLayoutsRef = useRef<Record<string, number>>({});
+  const formOpenedAtRef = useRef(new Date().toISOString());
 
   const [activeSection, setActiveSection] = useState("patient");
   const [reviewMode, setReviewMode] = useState(false);
@@ -205,7 +206,7 @@ export default function CaseFormScreen() {
   recordUsageRef.current = recordUsage;
 
   const onSave = useCallback(async () => {
-    const success = await handleSaveRef.current();
+    const success = await handleSaveRef.current(formOpenedAtRef.current);
     if (success) {
       // Record favourites/recents usage for all diagnoses and procedures
       for (const group of form.state.diagnosisGroups) {
@@ -336,7 +337,7 @@ export default function CaseFormScreen() {
             <Feather name="more-horizontal" size={22} color={theme.textSecondary} />
           </Pressable>
           <Pressable
-            onPress={() => handleSaveRef.current().then((success) => {
+            onPress={() => handleSaveRef.current(formOpenedAtRef.current).then((success) => {
               if (success) {
                 for (const group of form.state.diagnosisGroups) {
                   if (group.diagnosisPicklistId) {

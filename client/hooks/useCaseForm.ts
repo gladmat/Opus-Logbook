@@ -28,11 +28,13 @@ import {
   Prophylaxis,
   FreeFlapDetails,
   ProcedureCode,
+  SuggestionAcceptanceEntry,
 } from "@/types/case";
 import { InfectionOverlay } from "@/types/infection";
 import { saveCase, updateCase, getCase, CaseDraft } from "@/lib/storage";
 import { getDefaultClinicalDetails } from "@/lib/procedureConfig";
 import { findSnomedProcedure, getProcedureCodeForCountry, getCountryCodeFromProfile } from "@/lib/snomedCt";
+import { findDiagnosisById } from "@/lib/diagnosisPicklists";
 import { UserProfile } from "@/lib/auth";
 
 // ─── Default Donor Vessels ──────────────────────────────────────────────────
@@ -736,7 +738,7 @@ export function buildDuplicateState(
 export interface UseCaseFormReturn {
   state: CaseFormState;
   dispatch: React.Dispatch<CaseFormAction>;
-  handleSave: () => Promise<boolean>;
+  handleSave: (formOpenedAt?: string) => Promise<boolean>;
   isEditMode: boolean;
   existingCase: Case | null;
   specialty: Specialty;
@@ -1051,7 +1053,7 @@ export function useCaseForm({
 
   // ── Save ──────────────────────────────────────────────────────────────
 
-  const handleSave = useCallback(async (): Promise<boolean> => {
+  const handleSave = useCallback(async (formOpenedAt?: string): Promise<boolean> => {
     // Derive procedureType from the first diagnosis group's first procedure
     const derivedProcedureType =
       state.diagnosisGroups[0]?.procedures[0]?.procedureName ||
@@ -1089,6 +1091,40 @@ export function useCaseForm({
               ),
             }
           : undefined;
+
+      // Entry time tracking
+      // Note: entryDurationSeconds includes any time the app was backgrounded.
+      // Analytics caps at 7200s.
+      const formSavedAt = new Date().toISOString();
+      let entryDurationSeconds: number | undefined;
+      if (formOpenedAt) {
+        const elapsed = Math.round(
+          (new Date(formSavedAt).getTime() - new Date(formOpenedAt).getTime()) / 1000,
+        );
+        entryDurationSeconds = elapsed > 0 ? elapsed : undefined;
+      }
+
+      // Suggestion acceptance tracking
+      const suggestionAcceptanceLog: SuggestionAcceptanceEntry[] = [];
+      for (const group of state.diagnosisGroups) {
+        if (!group.diagnosisPicklistId || group.procedureSuggestionSource !== "picklist") continue;
+        const dx = findDiagnosisById(group.diagnosisPicklistId);
+        if (!dx) continue;
+        const suggestedIds = dx.suggestedProcedures.map((s) => s.procedurePicklistId);
+        const acceptedIds = group.procedures
+          .filter((p) => p.picklistEntryId && suggestedIds.includes(p.picklistEntryId))
+          .map((p) => p.picklistEntryId!);
+        const manualIds = group.procedures
+          .filter((p) => !p.picklistEntryId || !suggestedIds.includes(p.picklistEntryId))
+          .map((p) => p.picklistEntryId || p.procedureName);
+        suggestionAcceptanceLog.push({
+          diagnosisGroupId: group.id,
+          diagnosisPicklistId: group.diagnosisPicklistId,
+          suggestedProcedureIds: suggestedIds,
+          acceptedProcedureIds: acceptedIds,
+          addedManuallyIds: manualIds,
+        });
+      }
 
       const userId = uuidv4();
 
@@ -1182,6 +1218,12 @@ export function useCaseForm({
               ],
         ownerId:
           isEditMode && existingCase ? existingCase.ownerId : userId,
+        schemaVersion: 2,
+        formOpenedAt: formOpenedAt || undefined,
+        formSavedAt,
+        entryDurationSeconds,
+        suggestionAcceptanceLog:
+          suggestionAcceptanceLog.length > 0 ? suggestionAcceptanceLog : undefined,
         createdAt:
           isEditMode && existingCase
             ? existingCase.createdAt
