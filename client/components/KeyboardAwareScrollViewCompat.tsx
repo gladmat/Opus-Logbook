@@ -19,9 +19,10 @@ export const KeyboardAwareScrollViewCompat = forwardRef<ScrollView, Props>(
   ) {
     const scrollViewProps = {
       keyboardShouldPersistTaps,
+      keyboardDismissMode: "interactive" as const,
       // Prevent scroll jumping when content changes (iOS)
-      maintainVisibleContentPosition: Platform.OS === "ios" 
-        ? { minIndexForVisible: 0 } 
+      maintainVisibleContentPosition: Platform.OS === "ios"
+        ? { minIndexForVisible: 0 }
         : undefined,
       ...props,
     };

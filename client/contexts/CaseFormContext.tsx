@@ -44,6 +44,8 @@ export interface CaseFormDispatchContextValue {
   addDiagnosisGroup: () => void;
   reorderDiagnosisGroups: (groups: DiagnosisGroup[]) => void;
   updateClinicalDetail: (key: string, value: any) => void;
+  fieldErrors: Record<string, string>;
+  onFieldBlur: (field: string) => void;
 }
 
 const CaseFormDispatchContext = createContext<CaseFormDispatchContextValue | null>(null);
@@ -58,10 +60,12 @@ export function useCaseFormDispatch(): CaseFormDispatchContextValue {
 
 interface CaseFormProviderProps {
   form: UseCaseFormReturn;
+  fieldErrors: Record<string, string>;
+  onFieldBlur: (field: string) => void;
   children: React.ReactNode;
 }
 
-export function CaseFormProvider({ form, children }: CaseFormProviderProps) {
+export function CaseFormProvider({ form, fieldErrors, onFieldBlur, children }: CaseFormProviderProps) {
   const stateValue: CaseFormStateContextValue = useMemo(
     () => ({
       state: form.state,
@@ -94,6 +98,8 @@ export function CaseFormProvider({ form, children }: CaseFormProviderProps) {
       addDiagnosisGroup: form.addDiagnosisGroup,
       reorderDiagnosisGroups: form.reorderDiagnosisGroups,
       updateClinicalDetail: form.updateClinicalDetail,
+      fieldErrors,
+      onFieldBlur,
     }),
     [
       form.dispatch,
@@ -107,6 +113,8 @@ export function CaseFormProvider({ form, children }: CaseFormProviderProps) {
       form.addDiagnosisGroup,
       form.reorderDiagnosisGroups,
       form.updateClinicalDetail,
+      fieldErrors,
+      onFieldBlur,
     ],
   );
 

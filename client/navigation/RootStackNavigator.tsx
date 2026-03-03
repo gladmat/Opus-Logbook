@@ -12,7 +12,7 @@ import AuthScreen from "@/screens/AuthScreen";
 import OnboardingScreen from "@/screens/OnboardingScreen";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
 import { useAuth } from "@/contexts/AuthContext";
-import { Specialty, TimelineEventType, MediaAttachment } from "@/types/case";
+import { Specialty, TimelineEventType, MediaAttachment, Case } from "@/types/case";
 import { useTheme } from "@/hooks/useTheme";
 
 export type RootStackParamList = {
@@ -20,7 +20,7 @@ export type RootStackParamList = {
   Onboarding: undefined;
   Main: undefined;
   CaseDetail: { caseId: string; showComplicationForm?: boolean };
-  CaseForm: { specialty?: Specialty; caseId?: string };
+  CaseForm: { specialty?: Specialty; caseId?: string; duplicateFrom?: Case };
   AddCase: undefined;
   AddTimelineEvent: { caseId: string; initialEventType?: TimelineEventType; isSkinLesion?: boolean; caseDischargeDate?: string; editEventId?: string };
   MediaManagement: {

@@ -19,7 +19,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
   const { theme } = useTheme();
   const { facilities } = useAuth();
   const { state } = useCaseFormState();
-  const { dispatch } = useCaseFormDispatch();
+  const { dispatch, fieldErrors, onFieldBlur } = useCaseFormDispatch();
 
   return (
     <>
@@ -32,14 +32,21 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
         placeholder="e.g., MRN or initials"
         required
         autoCapitalize="characters"
+        onBlur={() => onFieldBlur("patientIdentifier")}
+        error={fieldErrors.patientIdentifier}
       />
 
       <DatePickerField
         label="Procedure Date"
         value={state.procedureDate}
-        onChange={(v: string) => dispatch(setField("procedureDate", v))}
+        onChange={(v: string) => {
+          dispatch(setField("procedureDate", v));
+          // Validate date immediately on change (picker, not blur)
+          onFieldBlur("procedureDate");
+        }}
         placeholder="Select date..."
         required
+        error={fieldErrors.procedureDate}
       />
 
       {facilities.length > 0 ? (
@@ -50,9 +57,13 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
             value: f.facilityName,
             label: f.facilityName,
           }))}
-          onSelect={(v: string) => dispatch(setField("facility", v))}
+          onSelect={(v: string) => {
+            dispatch(setField("facility", v));
+            onFieldBlur("facility");
+          }}
           placeholder="Select facility..."
           required
+          error={fieldErrors.facility}
         />
       ) : (
         <FormField
@@ -61,6 +72,8 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
           onChangeText={(v: string) => dispatch(setField("facility", v))}
           placeholder="Hospital or clinic name"
           required
+          onBlur={() => onFieldBlur("facility")}
+          error={fieldErrors.facility}
         />
       )}
 
@@ -89,7 +102,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
                       isSelected ? { backgroundColor: theme.link } : undefined,
                     ]}
                     onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      Haptics.selectionAsync();
                       dispatch(setField("gender", value));
                     }}
                   >
@@ -113,7 +126,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
             value={state.age}
             onChangeText={(v: string) => dispatch(setField("age", v))}
             placeholder="e.g. 51"
-            keyboardType="numeric"
+            keyboardType="number-pad"
           />
         </View>
       </View>

@@ -532,6 +532,36 @@ export interface ValidationError {
   message: string;
 }
 
+/** Per-field inline validation. Returns error message or null if valid. */
+export function validateField(
+  field: string,
+  state: CaseFormState,
+): string | null {
+  switch (field) {
+    case "patientIdentifier":
+      if (!state.patientIdentifier.trim()) return "Patient identifier is required";
+      return null;
+    case "procedureDate":
+      if (!state.procedureDate) return "Procedure date is required";
+      if (new Date(state.procedureDate) > new Date())
+        return "Procedure date cannot be in the future";
+      return null;
+    case "facility":
+      if (!state.facility.trim()) return "Facility is required";
+      return null;
+    case "diagnosisGroups": {
+      const hasComplete = state.diagnosisGroups.some(
+        (g) => g.diagnosis && g.procedures.some((p) => p.procedureName.trim()),
+      );
+      if (!hasComplete)
+        return "At least one diagnosis with a named procedure is required";
+      return null;
+    }
+    default:
+      return null;
+  }
+}
+
 export function validateRequiredFields(state: CaseFormState): {
   valid: boolean;
   errors: ValidationError[];
@@ -607,8 +637,100 @@ function caseFormReducer(
 interface UseCaseFormParams {
   specialty: Specialty;
   caseId?: string;
+  duplicateFrom?: Case;
   primaryFacility: string;
   profile: UserProfile | null;
+}
+
+// ─── Duplicate State Builder ────────────────────────────────────────────────
+
+export function buildDuplicateState(
+  source: Case,
+  specialty: Specialty,
+  primaryFacility: string,
+): CaseFormState {
+  // Deep clone diagnosis groups with new IDs
+  const clonedGroups: DiagnosisGroup[] = source.diagnosisGroups?.map((g) => ({
+    ...g,
+    id: uuidv4(),
+    procedures: g.procedures.map((p) => ({
+      ...p,
+      id: uuidv4(),
+      clinicalDetails: p.clinicalDetails ? { ...p.clinicalDetails } : undefined,
+    })),
+    diagnosisClinicalDetails: g.diagnosisClinicalDetails
+      ? { ...g.diagnosisClinicalDetails }
+      : undefined,
+    diagnosisStagingSelections: g.diagnosisStagingSelections
+      ? { ...g.diagnosisStagingSelections }
+      : undefined,
+    fractures: g.fractures?.map((f) => ({ ...f, id: uuidv4() })) ?? [],
+    lesionInstances: g.lesionInstances?.map((l) => ({ ...l, id: uuidv4() })) ?? [],
+  })) ?? [{
+    id: uuidv4(),
+    sequenceOrder: 1,
+    specialty,
+    procedures: [{
+      id: uuidv4(),
+      sequenceOrder: 1,
+      procedureName: "",
+      specialty,
+      surgeonRole: "PS",
+    }],
+  }];
+
+  // Deep clone anastomoses with new IDs
+  const clonedAnastomoses: AnastomosisEntry[] = (source.clinicalDetails as any)?.anastomoses?.map(
+    (a: AnastomosisEntry) => ({ ...a, id: uuidv4() }),
+  ) ?? [];
+
+  const defaults = getDefaultFormState(specialty, primaryFacility);
+
+  return {
+    ...defaults,
+    // ── Copied fields ────────────────────────────────────────
+    facility: source.facility || primaryFacility,
+    diagnosisGroups: clonedGroups,
+    role: (source.teamMembers?.find((m) => m.name === "You")?.role as Role) ?? "PS",
+    clinicalDetails: source.clinicalDetails
+      ? { ...(source.clinicalDetails as Record<string, any>) }
+      : defaults.clinicalDetails,
+    woundInfectionRisk: (source.woundInfectionRisk as WoundInfectionRisk) || "",
+    anaestheticType: (source.anaestheticType as AnaestheticType) || "",
+    antibioticProphylaxis: source.prophylaxis?.antibiotics ?? false,
+    dvtProphylaxis: source.prophylaxis?.dvtPrevention ?? false,
+    recipientSiteRegion: (source.clinicalDetails as any)?.recipientSiteRegion ?? undefined,
+    anastomoses: clonedAnastomoses,
+
+    // ── Cleared fields ───────────────────────────────────────
+    patientIdentifier: "",
+    procedureDate: new Date().toISOString().split("T")[0],
+    gender: "",
+    age: "",
+    ethnicity: "",
+    admissionDate: "",
+    dischargeDate: "",
+    injuryDate: "",
+    surgeryStartTime: "",
+    surgeryEndTime: "",
+    operatingTeam: [],
+    operativeMedia: [],
+    infectionOverlay: undefined,
+    infectionCollapsed: false,
+    asaScore: "",
+    heightCm: "",
+    weightKg: "",
+    smoker: "",
+    diabetes: null,
+    selectedComorbidities: [],
+    unplannedICU: "no",
+    returnToTheatre: false,
+    returnToTheatreReason: "",
+    outcome: "",
+    mortalityClassification: "",
+    discussedAtMDM: false,
+    saving: false,
+  };
 }
 
 export interface UseCaseFormReturn {
@@ -649,10 +771,12 @@ export interface UseCaseFormReturn {
 export function useCaseForm({
   specialty: routeSpecialty,
   caseId,
+  duplicateFrom,
   primaryFacility,
   profile,
 }: UseCaseFormParams): UseCaseFormReturn {
   const isEditMode = !!caseId;
+  const isDuplicate = !!duplicateFrom;
   const [existingCase, setExistingCase] = useState<Case | null>(null);
   const specialty = routeSpecialty || existingCase?.specialty || "general";
 
@@ -662,7 +786,9 @@ export function useCaseForm({
 
   const [state, dispatch] = useReducer(
     caseFormReducer,
-    getDefaultFormState(specialty, primaryFacility),
+    duplicateFrom
+      ? buildDuplicateState(duplicateFrom, specialty, primaryFacility)
+      : getDefaultFormState(specialty, primaryFacility),
   );
 
   // ── Derived values ──────────────────────────────────────────────────────
@@ -728,12 +854,12 @@ export function useCaseForm({
     loadExistingCase();
   }, [isEditMode, caseId, specialty]);
 
-  // Mark draft as loaded in edit mode (so useCaseDraft doesn't try to load a draft)
+  // Mark draft as loaded in edit/duplicate mode (so useCaseDraft doesn't try to load a draft)
   useEffect(() => {
-    if (isEditMode) {
+    if (isEditMode || isDuplicate) {
       draftLoadedRef.current = true;
     }
-  }, [isEditMode]);
+  }, [isEditMode, isDuplicate]);
 
   // ── Reset / Revert ────────────────────────────────────────────────────
 
@@ -790,7 +916,7 @@ export function useCaseForm({
   );
 
   const addDiagnosisGroup = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     dispatch({
       type: "SET_DIAGNOSIS_GROUPS",
       groups: [

@@ -1,9 +1,11 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { View, StyleSheet, Pressable, ScrollView, TextInput } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
+import { FavouritesRecentsChips } from "@/components/FavouritesRecentsChips";
 import { useTheme } from "@/hooks/useTheme";
+import { useFavouritesRecents } from "@/hooks/useFavouritesRecents";
 import { BorderRadius, Spacing } from "@/constants/theme";
 import {
   getDiagnosisSubcategories,
@@ -11,8 +13,9 @@ import {
   getDiagnosesForSpecialty,
   searchDiagnoses,
   hasDiagnosisPicklist,
-  type DiagnosisPicklistEntry,
+  findDiagnosisById,
 } from "@/lib/diagnosisPicklists";
+import type { DiagnosisPicklistEntry } from "@/types/diagnosis";
 import type { Specialty } from "@/types/case";
 
 interface DiagnosisPickerProps {
@@ -39,6 +42,19 @@ export function DiagnosisPicker({
 }: DiagnosisPickerProps) {
   const { theme } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
+
+  const {
+    favouriteDiagnoses,
+    recentDiagnoses,
+    isFavourite,
+    toggleFavourite,
+    loaded: favsLoaded,
+  } = useFavouritesRecents(specialty);
+
+  const favouriteDiagnosisIds = useMemo(
+    () => new Set(favouriteDiagnoses.map((d) => d.id)),
+    [favouriteDiagnoses],
+  );
 
   const allSubcategories = getDiagnosisSubcategories(specialty);
 
@@ -80,6 +96,33 @@ export function DiagnosisPicker({
       : raw;
   }, [isSearching, searchResults, specialty, activeSubcategory, clinicalGroupFilter]);
 
+  // Favourites/recents chip handlers
+  const handleChipSelect = useCallback(
+    (id: string) => {
+      const dx = findDiagnosisById(id);
+      if (dx) onSelect(dx);
+    },
+    [onSelect],
+  );
+
+  const handleToggleFavouriteDiagnosis = useCallback(
+    (id: string) => {
+      toggleFavourite("diagnosis", id);
+    },
+    [toggleFavourite],
+  );
+
+  // Filter favourites/recents by clinical group filter
+  const filteredFavourites = useMemo(
+    () => favouriteDiagnoses.filter((dx) => matchesGroupFilter(dx, clinicalGroupFilter)),
+    [favouriteDiagnoses, clinicalGroupFilter],
+  );
+
+  const filteredRecents = useMemo(
+    () => recentDiagnoses.filter((dx) => matchesGroupFilter(dx, clinicalGroupFilter)),
+    [recentDiagnoses, clinicalGroupFilter],
+  );
+
   if (!hasDiagnosisPicklist(specialty)) {
     return null;
   }
@@ -116,6 +159,17 @@ export function DiagnosisPicker({
           </Pressable>
         ) : null}
       </View>
+
+      {/* Favourites & Recents chips — only when not searching */}
+      {!isSearching && favsLoaded && (filteredFavourites.length > 0 || filteredRecents.length > 0) ? (
+        <FavouritesRecentsChips
+          favourites={filteredFavourites}
+          recents={filteredRecents}
+          favouriteIds={favouriteDiagnosisIds}
+          onSelect={handleChipSelect}
+          onToggleFavourite={handleToggleFavouriteDiagnosis}
+        />
+      ) : null}
 
       {!isSearching ? (
         <ScrollView
@@ -160,6 +214,7 @@ export function DiagnosisPicker({
         {diagnosesInSubcat.length > 0 ? (
           diagnosesInSubcat.map((dx) => {
             const isSelected = dx.id === selectedDiagnosisId;
+            const isFav = isFavourite("diagnosis", dx.id);
             return (
               <Pressable
                 key={dx.id}
@@ -196,9 +251,26 @@ export function DiagnosisPicker({
                     {dx.snomedCtCode}
                   </ThemedText>
                 </View>
-                {isSelected ? (
-                  <Feather name="check" size={18} color={theme.link} />
-                ) : null}
+                <View style={styles.diagnosisRowRight}>
+                  <Pressable
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      Haptics.selectionAsync();
+                      toggleFavourite("diagnosis", dx.id);
+                    }}
+                    hitSlop={6}
+                    style={styles.starButton}
+                  >
+                    <Feather
+                      name="star"
+                      size={16}
+                      color={isFav ? theme.link : theme.textTertiary}
+                    />
+                  </Pressable>
+                  {isSelected ? (
+                    <Feather name="check" size={18} color={theme.link} />
+                  ) : null}
+                </View>
               </Pressable>
             );
           })
@@ -264,6 +336,14 @@ const styles = StyleSheet.create({
   diagnosisRowLeft: {
     flex: 1,
     gap: 2,
+  },
+  diagnosisRowRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  starButton: {
+    padding: 4,
   },
   diagnosisName: {
     fontSize: 14,

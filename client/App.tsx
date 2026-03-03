@@ -1,8 +1,8 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { StyleSheet } from "react-native";
 import { NavigationContainer, DefaultTheme, DarkTheme, Theme } from "@react-navigation/native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { KeyboardProvider } from "react-native-keyboard-controller";
+import { KeyboardProvider, KeyboardController } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 
@@ -43,6 +43,10 @@ function ThemedNavigationContainer({ children }: { children: React.ReactNode }) 
 }
 
 export default function App() {
+  useEffect(() => {
+    KeyboardController.preload();
+  }, []);
+
   return (
     <ErrorBoundary>
       <ThemeProvider>

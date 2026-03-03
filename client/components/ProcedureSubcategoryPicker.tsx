@@ -1,14 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { View, StyleSheet, Pressable, ScrollView } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
+import { FavouritesRecentsChips } from "@/components/FavouritesRecentsChips";
 import { useTheme } from "@/hooks/useTheme";
+import { useFavouritesRecents } from "@/hooks/useFavouritesRecents";
 import { BorderRadius, Spacing } from "@/constants/theme";
 import {
   getProceduresForSpecialty,
   getSubcategoriesForSpecialty,
   getProceduresForSubcategory,
+  findPicklistEntry,
   type ProcedurePicklistEntry,
 } from "@/lib/procedurePicklist";
 import type { Specialty } from "@/types/case";
@@ -27,6 +30,14 @@ export function ProcedureSubcategoryPicker({
   const { theme } = useTheme();
   const subcategories = getSubcategoriesForSpecialty(specialty);
 
+  const {
+    recentProcedureIds,
+    favouriteProcedureIds,
+    isFavourite,
+    toggleFavourite,
+    loaded: favsLoaded,
+  } = useFavouritesRecents(specialty);
+
   const initialSubcat = () => {
     if (selectedEntryId) {
       const all = getProceduresForSpecialty(specialty);
@@ -40,8 +51,53 @@ export function ProcedureSubcategoryPicker({
 
   const proceduresInSubcat = getProceduresForSubcategory(specialty, activeSubcategory);
 
+  // Resolve procedure IDs to chip items
+  const favouriteChips = useMemo(() => {
+    const ids = [...favouriteProcedureIds];
+    return ids
+      .map((id) => findPicklistEntry(id))
+      .filter((e): e is ProcedurePicklistEntry => e !== undefined);
+  }, [favouriteProcedureIds]);
+
+  const recentChips = useMemo(() => {
+    return recentProcedureIds
+      .map((id) => findPicklistEntry(id))
+      .filter((e): e is ProcedurePicklistEntry => e !== undefined);
+  }, [recentProcedureIds]);
+
+  const favouriteIdSet = useMemo(
+    () => new Set(favouriteChips.map((p) => p.id)),
+    [favouriteChips],
+  );
+
+  const handleChipSelect = useCallback(
+    (id: string) => {
+      const entry = findPicklistEntry(id);
+      if (entry) onSelect(entry);
+    },
+    [onSelect],
+  );
+
+  const handleToggleFavouriteProcedure = useCallback(
+    (id: string) => {
+      toggleFavourite("procedure", id);
+    },
+    [toggleFavourite],
+  );
+
   return (
     <View style={styles.container}>
+      {/* Favourites & Recents chips */}
+      {favsLoaded && (favouriteChips.length > 0 || recentChips.length > 0) ? (
+        <FavouritesRecentsChips
+          favourites={favouriteChips}
+          recents={recentChips}
+          favouriteIds={favouriteIdSet}
+          onSelect={handleChipSelect}
+          onToggleFavourite={handleToggleFavouriteProcedure}
+        />
+      ) : null}
+
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -81,6 +137,7 @@ export function ProcedureSubcategoryPicker({
       <View style={styles.procedureList}>
         {proceduresInSubcat.map((entry) => {
           const isSelected = entry.id === selectedEntryId;
+          const isFav = isFavourite("procedure", entry.id);
           return (
             <Pressable
               key={entry.id}
@@ -134,9 +191,26 @@ export function ProcedureSubcategoryPicker({
                   ) : null}
                 </View>
               </View>
-              {isSelected ? (
-                <Feather name="check" size={18} color={theme.link} />
-              ) : null}
+              <View style={styles.procedureRowRight}>
+                <Pressable
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    Haptics.selectionAsync();
+                    toggleFavourite("procedure", entry.id);
+                  }}
+                  hitSlop={6}
+                  style={styles.starButton}
+                >
+                  <Feather
+                    name="star"
+                    size={16}
+                    color={isFav ? theme.link : theme.textTertiary}
+                  />
+                </Pressable>
+                {isSelected ? (
+                  <Feather name="check" size={18} color={theme.link} />
+                ) : null}
+              </View>
             </Pressable>
           );
         })}
@@ -182,6 +256,14 @@ const styles = StyleSheet.create({
   procedureRowLeft: {
     flex: 1,
     gap: 4,
+  },
+  procedureRowRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  starButton: {
+    padding: 4,
   },
   procedureName: {
     fontSize: 14,

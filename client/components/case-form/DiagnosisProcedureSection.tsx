@@ -24,6 +24,7 @@ export const DiagnosisProcedureSection = React.memo(function DiagnosisProcedureS
     handleDeleteDiagnosisGroup,
     addDiagnosisGroup,
     reorderDiagnosisGroups,
+    fieldErrors,
   } = useCaseFormDispatch();
 
   const onGroupChange = useCallback(
@@ -69,6 +70,15 @@ export const DiagnosisProcedureSection = React.memo(function DiagnosisProcedureS
         />
       ))}
 
+      {fieldErrors.diagnosisGroups ? (
+        <View style={[styles.diagnosisError, { backgroundColor: theme.error + "10", borderColor: theme.error + "40" }]}>
+          <Feather name="alert-circle" size={14} color={theme.error} />
+          <ThemedText style={[styles.diagnosisErrorText, { color: theme.error }]}>
+            {fieldErrors.diagnosisGroups}
+          </ThemedText>
+        </View>
+      ) : null}
+
       <Pressable
         style={[
           styles.addGroupButton,
@@ -100,5 +110,18 @@ const styles = StyleSheet.create({
   addGroupButtonText: {
     fontSize: 15,
     fontWeight: "600",
+  },
+  diagnosisError: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    marginBottom: Spacing.md,
+  },
+  diagnosisErrorText: {
+    fontSize: 13,
+    flex: 1,
   },
 });

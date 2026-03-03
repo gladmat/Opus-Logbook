@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { View, Pressable, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
@@ -126,7 +127,10 @@ function SuggestionChip({
       <Pressable
         testID={`chip-procedure-${suggestion.procedurePicklistId}`}
         style={chipStyle}
-        onPress={() => onToggle(suggestion.procedurePicklistId, !isSelected)}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onToggle(suggestion.procedurePicklistId, !isSelected);
+        }}
         disabled={!!suggestion.isConditional && !isActive && !isSelected}
       >
         <Feather

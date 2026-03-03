@@ -23,13 +23,16 @@ interface FormFieldProps {
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
-  keyboardType?: "default" | "numeric" | "decimal-pad" | "email-address";
+  keyboardType?: "default" | "numeric" | "decimal-pad" | "email-address" | "number-pad";
   unit?: string;
   required?: boolean;
   multiline?: boolean;
   error?: string;
   editable?: boolean;
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
+  onBlur?: () => void;
+  textContentType?: "none" | "name" | "givenName" | "familyName" | "emailAddress" | "telephoneNumber";
+  returnKeyType?: "done" | "next" | "go" | "search" | "default";
 }
 
 export function FormField({
@@ -44,6 +47,9 @@ export function FormField({
   error,
   editable = true,
   autoCapitalize,
+  onBlur,
+  textContentType,
+  returnKeyType,
 }: FormFieldProps) {
   const { theme } = useTheme();
 
@@ -69,12 +75,15 @@ export function FormField({
         <TextInput
           value={value}
           onChangeText={onChangeText}
+          onBlur={onBlur}
           placeholder={placeholder}
           placeholderTextColor={theme.textTertiary}
           keyboardType={keyboardType}
           multiline={multiline}
           editable={editable}
           autoCapitalize={autoCapitalize}
+          textContentType={textContentType}
+          returnKeyType={returnKeyType}
           style={[
             styles.input,
             {
@@ -90,9 +99,12 @@ export function FormField({
         ) : null}
       </View>
       {error ? (
-        <ThemedText style={[styles.error, { color: theme.error }]}>
-          {error}
-        </ThemedText>
+        <View style={styles.errorRow}>
+          <Feather name="alert-circle" size={14} color={theme.error} />
+          <ThemedText style={[styles.error, { color: theme.error }]}>
+            {error}
+          </ThemedText>
+        </View>
       ) : null}
     </View>
   );
@@ -132,7 +144,10 @@ export function SelectField({
         {options.map((option) => (
           <Pressable
             key={option.value}
-            onPress={() => onSelect(option.value)}
+            onPress={() => {
+              Haptics.selectionAsync();
+              onSelect(option.value);
+            }}
             style={[
               styles.optionButton,
               {
@@ -160,9 +175,12 @@ export function SelectField({
         ))}
       </View>
       {error ? (
-        <ThemedText style={[styles.error, { color: theme.error }]}>
-          {error}
-        </ThemedText>
+        <View style={styles.errorRow}>
+          <Feather name="alert-circle" size={14} color={theme.error} />
+          <ThemedText style={[styles.error, { color: theme.error }]}>
+            {error}
+          </ThemedText>
+        </View>
       ) : null}
     </View>
   );
@@ -205,9 +223,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginLeft: Spacing.sm,
   },
+  errorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: Spacing.xs,
+  },
   error: {
     fontSize: 12,
-    marginTop: Spacing.xs,
   },
   optionsRow: {
     flexDirection: "row",
@@ -354,6 +377,7 @@ export function PickerField({
   }, [onSelect]);
 
   const handleSelect = useCallback((itemValue: string) => {
+    Haptics.selectionAsync();
     pendingValueRef.current = itemValue;
     setModalVisible(false);
     if (timeoutRef.current !== null) {

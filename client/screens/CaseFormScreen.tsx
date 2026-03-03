@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { KeyboardToolbar } from "react-native-keyboard-controller";
 import { ThemedText } from "@/components/ThemedText";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { useTheme } from "@/hooks/useTheme";
@@ -17,7 +18,7 @@ import { OperativeMediaSection } from "@/components/OperativeMediaSection";
 import { InfectionOverlayForm } from "@/components/InfectionOverlayForm";
 import { useAuth } from "@/contexts/AuthContext";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
-import { useCaseForm, setField, validateRequiredFields } from "@/hooks/useCaseForm";
+import { useCaseForm, setField, validateRequiredFields, validateField } from "@/hooks/useCaseForm";
 import type { ValidationError } from "@/hooks/useCaseForm";
 import { useCaseDraft } from "@/hooks/useCaseDraft";
 import { CaseFormProvider } from "@/contexts/CaseFormContext";
@@ -30,9 +31,12 @@ import { OutcomesSection } from "@/components/case-form/OutcomesSection";
 import { SectionNavBar, NAV_BAR_HEIGHT, FORM_SECTIONS } from "@/components/case-form/SectionNavBar";
 import type { CompletionMap } from "@/components/case-form/SectionNavBar";
 import { CaseSummaryView } from "@/components/case-form/CaseSummaryView";
+import { useFavouritesRecents } from "@/hooks/useFavouritesRecents";
 
 type RouteParams = RouteProp<RootStackParamList, "CaseForm">;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+const REQUIRED_FIELDS = ["patientIdentifier", "procedureDate", "facility", "diagnosisGroups"];
 
 // ── SectionWrapper ────────────────────────────────────────────────────────
 
@@ -73,7 +77,12 @@ export default function CaseFormScreen() {
   const [reviewMode, setReviewMode] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
 
-  const { specialty: routeSpecialty, caseId } = route.params;
+  // ── Inline validation state ─────────────────────────────────────────────
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const touchedFieldsRef = useRef<Set<string>>(new Set());
+
+  const { specialty: routeSpecialty, caseId, duplicateFrom } = route.params;
+  const [showDuplicateBanner, setShowDuplicateBanner] = useState(!!duplicateFrom);
   const primaryFacility =
     facilities.find((f) => f.isPrimary)?.facilityName ||
     facilities[0]?.facilityName ||
@@ -82,9 +91,12 @@ export default function CaseFormScreen() {
   const form = useCaseForm({
     specialty: routeSpecialty || "general",
     caseId,
+    duplicateFrom,
     primaryFacility,
     profile,
   });
+
+  const { recordUsage } = useFavouritesRecents(form.specialty);
 
   const { clearDraft } = useCaseDraft({
     state: form.state,
@@ -95,6 +107,43 @@ export default function CaseFormScreen() {
     dispatch: form.dispatch,
     primaryFacility,
   });
+
+  // ── Inline validation handlers ──────────────────────────────────────────
+
+  const onFieldBlur = useCallback(
+    (field: string) => {
+      touchedFieldsRef.current.add(field);
+      const error = validateField(field, form.state);
+      setFieldErrors((prev) => {
+        if (error) return { ...prev, [field]: error };
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    },
+    [form.state],
+  );
+
+  // Re-validate touched fields on state change (clears errors on keystroke)
+  useEffect(() => {
+    const touched = touchedFieldsRef.current;
+    if (touched.size === 0) return;
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const field of touched) {
+        const error = validateField(field, form.state);
+        if (error && next[field] !== error) {
+          next[field] = error;
+          changed = true;
+        } else if (!error && field in next) {
+          delete next[field];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [form.state]);
 
   // ── Completion map ──────────────────────────────────────────────────────
 
@@ -152,15 +201,30 @@ export default function CaseFormScreen() {
   const clearDraftRef = useRef(clearDraft);
   clearDraftRef.current = clearDraft;
 
+  const recordUsageRef = useRef(recordUsage);
+  recordUsageRef.current = recordUsage;
+
   const onSave = useCallback(async () => {
     const success = await handleSaveRef.current();
     if (success) {
+      // Record favourites/recents usage for all diagnoses and procedures
+      for (const group of form.state.diagnosisGroups) {
+        if (group.diagnosisPicklistId) {
+          recordUsageRef.current("diagnosis", group.diagnosisPicklistId);
+        }
+        for (const proc of group.procedures) {
+          if (proc.picklistEntryId) {
+            recordUsageRef.current("procedure", proc.picklistEntryId);
+          }
+        }
+      }
+
       if (!form.isEditMode) {
         await clearDraftRef.current();
       }
       navigation.goBack();
     }
-  }, [form.isEditMode, navigation]);
+  }, [form.isEditMode, form.state.diagnosisGroups, navigation]);
 
   // ── Overflow menu ────────────────────────────────────────────────────
 
@@ -181,6 +245,9 @@ export default function CaseFormScreen() {
         resetFormRef.current();
         await clearDraftRef.current();
       }
+      // Clear inline validation state on reset
+      touchedFieldsRef.current.clear();
+      setFieldErrors({});
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     };
 
@@ -206,9 +273,21 @@ export default function CaseFormScreen() {
   // ── Review mode ─────────────────────────────────────────────────────────
 
   const handleReviewPress = useCallback(() => {
+    // Mark all required fields as touched so inline errors appear
+    for (const field of REQUIRED_FIELDS) {
+      touchedFieldsRef.current.add(field);
+    }
+
     const { valid, errors } = validateRequiredFields(form.state);
     if (!valid) {
       setValidationErrors(errors);
+      // Update inline field errors
+      const newErrors: Record<string, string> = {};
+      for (const field of REQUIRED_FIELDS) {
+        const err = validateField(field, form.state);
+        if (err) newErrors[field] = err;
+      }
+      setFieldErrors(newErrors);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
 
       // Scroll to first error section
@@ -259,6 +338,16 @@ export default function CaseFormScreen() {
           <Pressable
             onPress={() => handleSaveRef.current().then((success) => {
               if (success) {
+                for (const group of form.state.diagnosisGroups) {
+                  if (group.diagnosisPicklistId) {
+                    recordUsageRef.current("diagnosis", group.diagnosisPicklistId);
+                  }
+                  for (const proc of group.procedures) {
+                    if (proc.picklistEntryId) {
+                      recordUsageRef.current("procedure", proc.picklistEntryId);
+                    }
+                  }
+                }
                 if (!form.isEditMode) clearDraftRef.current();
                 navigation.goBack();
               }
@@ -307,7 +396,7 @@ export default function CaseFormScreen() {
   // ── Render ────────────────────────────────────────────────────────────
 
   return (
-    <CaseFormProvider form={form}>
+    <CaseFormProvider form={form} fieldErrors={fieldErrors} onFieldBlur={onFieldBlur}>
       {!reviewMode ? (
         <View
           style={[
@@ -348,6 +437,24 @@ export default function CaseFormScreen() {
           />
         ) : (
           <>
+            {showDuplicateBanner ? (
+              <View style={[styles.duplicateBanner, { backgroundColor: theme.info + "10", borderColor: theme.info + "40" }]}>
+                <View style={styles.duplicateBannerContent}>
+                  <Feather name="copy" size={16} color={theme.info} />
+                  <ThemedText style={[styles.duplicateBannerText, { color: theme.info }]}>
+                    Duplicated from case {duplicateFrom?.procedureDate ? new Date(duplicateFrom.procedureDate).toLocaleDateString() : ""}. Verify all fields.
+                  </ThemedText>
+                </View>
+                <Pressable
+                  onPress={() => setShowDuplicateBanner(false)}
+                  hitSlop={8}
+                  style={styles.duplicateBannerClose}
+                >
+                  <Feather name="x" size={16} color={theme.info} />
+                </Pressable>
+              </View>
+            ) : null}
+
             <SectionWrapper sectionId="patient" onLayout={handleSectionLayout}>
               <PatientInfoSection />
             </SectionWrapper>
@@ -421,6 +528,8 @@ export default function CaseFormScreen() {
           </>
         )}
       </KeyboardAwareScrollViewCompat>
+
+      {!reviewMode ? <KeyboardToolbar /> : null}
     </CaseFormProvider>
   );
 }
@@ -450,5 +559,27 @@ const styles = StyleSheet.create({
   },
   validationErrorText: {
     fontSize: 13,
+  },
+  duplicateBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: Spacing.md,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: Spacing.lg,
+  },
+  duplicateBannerContent: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  duplicateBannerText: {
+    fontSize: 13,
+    flex: 1,
+  },
+  duplicateBannerClose: {
+    padding: 4,
   },
 });

@@ -5,6 +5,8 @@ import {
   ScrollView,
   Pressable,
   Alert,
+  ActionSheetIOS,
+  Platform,
   TextInput,
 } from "react-native";
 import { v4 as uuidv4 } from "uuid";
@@ -183,18 +185,48 @@ export default function CaseDetailScreen() {
     }, [route.params.caseId])
   );
 
+  const showHeaderMenu = useCallback(() => {
+    if (!caseData) return;
+
+    const options = ["Edit Case", "Duplicate Case", "Cancel"];
+    const cancelIndex = 2;
+
+    const handleSelection = (index: number) => {
+      if (index === 0) {
+        navigation.navigate("CaseForm", { caseId: caseData.id });
+      } else if (index === 1) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        navigation.navigate("CaseForm", {
+          specialty: caseData.specialty,
+          duplicateFrom: caseData,
+        });
+      }
+    };
+
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options, cancelButtonIndex: cancelIndex },
+        handleSelection,
+      );
+    } else {
+      Alert.alert("Case Actions", undefined, [
+        { text: "Edit Case", onPress: () => handleSelection(0) },
+        { text: "Duplicate Case", onPress: () => handleSelection(1) },
+        { text: "Cancel", style: "cancel" },
+      ]);
+    }
+  }, [caseData, navigation]);
+
   useEffect(() => {
     navigation.setOptions({
       headerTitle: caseData?.patientIdentifier || "Case Details",
       headerRight: () => caseData ? (
-        <HeaderButton
-          onPress={() => navigation.navigate("CaseForm", { caseId: caseData.id })}
-        >
-          <Feather name="edit-2" size={20} color={theme.link} />
+        <HeaderButton onPress={showHeaderMenu}>
+          <Feather name="more-horizontal" size={22} color={theme.textSecondary} />
         </HeaderButton>
       ) : null,
     });
-  }, [caseData, theme]);
+  }, [caseData, theme, showHeaderMenu]);
 
   const handleDelete = () => {
     Alert.alert(
