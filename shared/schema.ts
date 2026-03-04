@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, boolean, integer, decimal, timestamp, serial, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, boolean, integer, decimal, timestamp, serial, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -61,7 +61,9 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   expiresAt: timestamp("expires_at").notNull(),
   used: boolean("used").default(false).notNull(),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-});
+}, (t) => [
+  index("password_reset_tokens_user_idx").on(t.userId),
+]);
 
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 
@@ -122,7 +124,9 @@ export const userFacilities = pgTable("user_facilities", {
   facilityId: text("facility_id"), // Reference to master facility list (optional for backwards compatibility)
   isPrimary: boolean("is_primary").default(false).notNull(),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-});
+}, (t) => [
+  index("user_facilities_user_idx").on(t.userId),
+]);
 
 export const userFacilitiesRelations = relations(userFacilities, ({ one }) => ({
   user: one(users, {
@@ -148,7 +152,9 @@ export const teams = pgTable("teams", {
   ownerId: varchar("owner_id").notNull().references(() => users.id),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-});
+}, (t) => [
+  index("teams_owner_idx").on(t.ownerId),
+]);
 
 export const teamsRelations = relations(teams, ({ one, many }) => ({
   owner: one(users, {
@@ -178,7 +184,10 @@ export const teamMembers = pgTable("team_members", {
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   role: varchar("role", { length: 20 }).default("member").notNull(),
   joinedAt: timestamp("joined_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-});
+}, (t) => [
+  index("team_members_team_idx").on(t.teamId),
+  index("team_members_user_idx").on(t.userId),
+]);
 
 export const teamMembersRelations = relations(teamMembers, ({ one }) => ({
   team: one(teams, {
@@ -211,7 +220,10 @@ export const snomedRef = pgTable("snomed_ref", {
   isActive: boolean("is_active").default(true).notNull(),
   sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-});
+}, (t) => [
+  index("snomed_ref_category_idx").on(t.category),
+  index("snomed_ref_code_idx").on(t.snomedCtCode),
+]);
 
 export const insertSnomedRefSchema = createInsertSchema(snomedRef).omit({
   id: true,
@@ -242,7 +254,10 @@ export const procedures = pgTable("procedures", {
   endTime: timestamp("end_time"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-});
+}, (t) => [
+  index("procedures_user_idx").on(t.userId),
+  index("procedures_user_date_idx").on(t.userId, t.createdAt),
+]);
 
 export const proceduresRelations = relations(procedures, ({ one, many }) => ({
   user: one(users, {
@@ -282,7 +297,9 @@ export const flaps = pgTable("flaps", {
   elevationPlane: varchar("elevation_plane", { length: 50 }),
   ischemiaTimeMinutes: integer("ischemia_time_minutes"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-});
+}, (t) => [
+  index("flaps_procedure_idx").on(t.procedureId),
+]);
 
 export const flapsRelations = relations(flaps, ({ one, many }) => ({
   procedure: one(procedures, {
@@ -318,7 +335,9 @@ export const anastomoses = pgTable("anastomoses", {
   outcomeCheck: boolean("outcome_check"),
   patencyConfirmed: boolean("patency_confirmed"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-});
+}, (t) => [
+  index("anastomoses_flap_idx").on(t.flapId),
+]);
 
 export const anastomosesRelations = relations(anastomoses, ({ one }) => ({
   flap: one(flaps, {
@@ -352,7 +371,9 @@ export const caseProcedures = pgTable("case_procedures", {
   notes: text("notes"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-});
+}, (t) => [
+  index("case_procedures_case_idx").on(t.caseId),
+]);
 
 export const caseProceduresRelations = relations(caseProcedures, ({ one }) => ({
   parentCase: one(procedures, {

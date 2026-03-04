@@ -8,7 +8,37 @@ import { getStagingForDiagnosis, getAllStagingConfigs } from "./diagnosisStaging
 import { sendPasswordResetEmail } from "./email";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { insertProfileSchema, insertFlapSchema, insertAnastomosisSchema } from "@shared/schema";
+import { insertProfileSchema, insertFlapSchema, insertAnastomosisSchema, insertUserFacilitySchema } from "@shared/schema";
+import { env } from "./env";
+import { z } from "zod";
+
+// ── Auth validation schemas ──────────────────────────────────────────────────
+
+const signupSchema = z.object({
+  email: z.string().email("Invalid email address").max(255),
+  password: z.string().min(8, "Password must be at least 8 characters").max(128),
+});
+
+const loginSchema = z.object({
+  email: z.string().email("Invalid email address").max(255),
+  password: z.string().min(1, "Password is required").max(128),
+});
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required").max(128),
+  newPassword: z.string().min(8, "New password must be at least 8 characters").max(128),
+});
+
+const requestPasswordResetSchema = z.object({
+  email: z.string().email("Invalid email address").max(255),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Token is required"),
+  newPassword: z.string().min(8, "Password must be at least 8 characters").max(128),
+});
+
+// ── Profile validation schemas ───────────────────────────────────────────────
 
 const profileUpdateSchema = insertProfileSchema
   .pick({
@@ -19,6 +49,36 @@ const profileUpdateSchema = insertProfileSchema
     onboardingComplete: true,
   })
   .partial();
+
+// ── Facility validation schemas ──────────────────────────────────────────────
+
+const facilityCreateSchema = insertUserFacilitySchema.pick({
+  facilityName: true,
+  facilityId: true,
+  isPrimary: true,
+}).required({ facilityName: true }).extend({
+  facilityId: z.string().nullable().optional(),
+  isPrimary: z.boolean().optional().default(false),
+});
+
+const facilityUpdateSchema = z.object({
+  isPrimary: z.boolean(),
+});
+
+// ── Device key validation schemas ────────────────────────────────────────────
+
+const deviceKeySchema = z.object({
+  deviceId: z.string().min(1).max(64),
+  publicKey: z.string().min(1),
+  label: z.string().nullable().optional(),
+});
+
+const revokeDeviceKeySchema = z.object({
+  deviceId: z.string().min(1).max(64),
+});
+
+// ── Flap/Anastomosis validation schemas ──────────────────────────────────────
+
 const flapCreateSchema = insertFlapSchema;
 const flapUpdateSchema = insertFlapSchema.partial().omit({ procedureId: true });
 const anastomosisCreateSchema = insertAnastomosisSchema;
@@ -57,11 +117,8 @@ function checkAuthRateLimit(ip: string): boolean {
   return true;
 }
 
-// JWT_SECRET must be set in environment - fail hard if missing for security
-if (!process.env.JWT_SECRET) {
-  throw new Error("JWT_SECRET environment variable must be set for secure token signing");
-}
-const JWT_SECRET = process.env.JWT_SECRET;
+// JWT_SECRET is validated by env.ts at startup (minimum 32 characters)
+const JWT_SECRET = env.JWT_SECRET;
 
 // Hash password reset tokens before storing in database
 const hashResetToken = (token: string) =>
@@ -80,7 +137,7 @@ const authenticateToken = async (req: AuthenticatedRequest, res: Response, next:
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; tokenVersion?: number };
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as { userId: string; tokenVersion?: number };
     const user = await storage.getUser(decoded.userId);
     if (!user) {
       return res.status(401).json({ error: "Authentication required" });
@@ -115,12 +172,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!checkAuthRateLimit(clientIp)) {
         return res.status(429).json({ error: "Too many requests. Please try again later." });
       }
-      
-      const { email, password } = req.body;
-      
-      if (!email || !password) {
-        return res.status(400).json({ error: "Email and password required" });
+
+      const parseResult = signupSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Invalid input", details: parseResult.error.flatten() });
       }
+      const { email, password } = parseResult.data;
 
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
@@ -135,9 +192,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = jwt.sign(
         { userId: user.id, tokenVersion: user.tokenVersion ?? 0 },
         JWT_SECRET,
-        { expiresIn: "30d" }
+        { algorithm: 'HS256', expiresIn: "30d" }
       );
-      
+
       res.json({ token, user: { id: user.id, email: user.email } });
     } catch (error) {
       console.error("Signup error:", error);
@@ -151,12 +208,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!checkAuthRateLimit(clientIp)) {
         return res.status(429).json({ error: "Too many requests. Please try again later." });
       }
-      
-      const { email, password } = req.body;
-      
-      if (!email || !password) {
-        return res.status(400).json({ error: "Email and password required" });
+
+      const parseResult = loginSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Invalid input", details: parseResult.error.flatten() });
       }
+      const { email, password } = parseResult.data;
 
       const user = await storage.getUserByEmail(email);
       if (!user) {
@@ -173,11 +230,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = jwt.sign(
         { userId: user.id, tokenVersion: user.tokenVersion ?? 0 },
         JWT_SECRET,
-        { expiresIn: "30d" }
+        { algorithm: 'HS256', expiresIn: "30d" }
       );
-      
-      res.json({ 
-        token, 
+
+      res.json({
+        token,
         user: { id: user.id, email: user.email },
         profile,
         facilities,
@@ -213,15 +270,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/auth/change-password", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const { currentPassword, newPassword } = req.body;
-      
-      if (!currentPassword || !newPassword) {
-        return res.status(400).json({ error: "Current password and new password are required" });
+      const parseResult = changePasswordSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Invalid input", details: parseResult.error.flatten() });
       }
-
-      if (newPassword.length < 8) {
-        return res.status(400).json({ error: "New password must be at least 8 characters" });
-      }
+      const { currentPassword, newPassword } = parseResult.data;
 
       const user = await storage.getUser(req.userId!);
       if (!user) {
@@ -250,11 +303,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(429).json({ error: "Too many requests. Please try again later." });
       }
 
-      const { email } = req.body;
-      
-      if (!email) {
-        return res.status(400).json({ error: "Email is required" });
+      const parseResult = requestPasswordResetSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Invalid input", details: parseResult.error.flatten() });
       }
+      const { email } = parseResult.data;
 
       const user = await storage.getUserByEmail(email);
       
@@ -289,15 +342,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/auth/reset-password", async (req: Request, res: Response) => {
     try {
-      const { token, newPassword } = req.body;
-      
-      if (!token || !newPassword) {
-        return res.status(400).json({ error: "Token and new password are required" });
+      const parseResult = resetPasswordSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Invalid input", details: parseResult.error.flatten() });
       }
-
-      if (newPassword.length < 8) {
-        return res.status(400).json({ error: "Password must be at least 8 characters" });
-      }
+      const { token, newPassword } = parseResult.data;
 
       // Hash the incoming token to match against stored hash
       const resetToken = await storage.getPasswordResetToken(hashResetToken(token));
@@ -372,16 +421,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/facilities", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const { facilityName, isPrimary, facilityId } = req.body;
-      if (!facilityName) {
-        return res.status(400).json({ error: "Facility name required" });
+      const parseResult = facilityCreateSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Invalid facility data", details: parseResult.error.flatten() });
       }
-      
-      const facility = await storage.createUserFacility({ 
-        userId: req.userId!, 
-        facilityName, 
-        facilityId: facilityId || null,
-        isPrimary: isPrimary ?? false 
+
+      const facility = await storage.createUserFacility({
+        userId: req.userId!,
+        facilityName: parseResult.data.facilityName,
+        facilityId: parseResult.data.facilityId ?? null,
+        isPrimary: parseResult.data.isPrimary,
       });
       res.json(facility);
     } catch (error) {
@@ -392,19 +441,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/facilities/:id", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const { isPrimary } = req.body;
+      const parseResult = facilityUpdateSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Invalid facility data", details: parseResult.error.flatten() });
+      }
+      const userId = req.userId!;
+      const { isPrimary } = parseResult.data;
 
-      // If setting as primary, unset all other facilities first
+      // If setting as primary, unset all other facilities in a single query
       if (isPrimary) {
-        const allFacilities = await storage.getUserFacilities(req.userId!);
-        for (const f of allFacilities) {
-          if (f.isPrimary && f.id !== req.params.id) {
-            await storage.updateUserFacility(f.id, { isPrimary: false });
-          }
-        }
+        await storage.clearPrimaryFacilities(userId, req.params.id);
       }
 
-      const updated = await storage.updateUserFacility(req.params.id, { isPrimary: isPrimary ?? false });
+      const updated = await storage.updateUserFacility(req.params.id, userId, { isPrimary: isPrimary ?? false });
       if (!updated) {
         return res.status(404).json({ error: "Facility not found" });
       }
@@ -436,21 +485,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ──────────────────────────────────────────────────────────────────────────
   app.post("/api/keys/device", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const { deviceId, publicKey, label } = req.body;
-
-      if (!deviceId || !publicKey) {
-        return res.status(400).json({ error: "deviceId and publicKey required" });
+      const parseResult = deviceKeySchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Invalid device key data", details: parseResult.error.flatten() });
       }
-
-      if (typeof deviceId !== "string" || typeof publicKey !== "string") {
-        return res.status(400).json({ error: "Invalid payload" });
-      }
+      const { deviceId, publicKey, label } = parseResult.data;
 
       const key = await storage.upsertUserDeviceKey(
         req.userId!,
         deviceId,
         publicKey,
-        typeof label === "string" ? label : null
+        label ?? null
       );
 
       res.json({ success: true, keyId: key.id });
@@ -476,12 +521,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Status: Active — E2EE scaffolding
   app.post("/api/keys/revoke", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const { deviceId } = req.body;
-      if (!deviceId || typeof deviceId !== "string") {
-        return res.status(400).json({ error: "deviceId required" });
+      const parseResult = revokeDeviceKeySchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Invalid request", details: parseResult.error.flatten() });
       }
 
-      await storage.revokeUserDeviceKey(req.userId!, deviceId);
+      await storage.revokeUserDeviceKey(req.userId!, parseResult.data.deviceId);
       res.json({ success: true });
     } catch (error) {
       console.error("Device key revoke error:", error);
@@ -593,12 +638,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Consumer: Developer-only (run once to populate SNOMED reference data)
   // IMPROVEMENT #1: Environment-gated — disabled entirely unless ENABLE_SEED=true
   // ──────────────────────────────────────────────────────────────────────────
-  if (process.env.ENABLE_SEED === "true") {
+  if (env.ENABLE_SEED === "true") {
     app.post("/api/seed-snomed-ref", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
       try {
         // Additional seed token protection
         const seedHeader = req.header("x-seed-token");
-        const seedToken = process.env.SEED_TOKEN;
+        const seedToken = env.SEED_TOKEN;
 
         if (seedToken && seedHeader !== seedToken) {
           return res.status(403).json({ error: "Forbidden" });

@@ -1,5 +1,6 @@
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
+import { env } from "./env";
 import { registerRoutes } from "./routes";
 import * as fs from "fs";
 import * as path from "path";
@@ -17,44 +18,36 @@ declare module "http" {
 
 function setupCors(app: express.Application) {
   app.use((req, res, next) => {
-    const origins = new Set<string>();
+    const allowedOrigins = new Set<string>();
 
     // Production domains
-    origins.add("https://logbook-api.drgladysz.com");
-    origins.add("https://drgladysz.com");
+    allowedOrigins.add("https://logbook-api.drgladysz.com");
+    allowedOrigins.add("https://drgladysz.com");
 
     // Railway auto-generated domain
-    if (process.env.RAILWAY_PUBLIC_DOMAIN) {
-      origins.add(`https://${process.env.RAILWAY_PUBLIC_DOMAIN}`);
+    if (env.RAILWAY_PUBLIC_DOMAIN) {
+      allowedOrigins.add(`https://${env.RAILWAY_PUBLIC_DOMAIN}`);
     }
 
     const origin = req.header("origin");
 
-    // Allow localhost origins for Expo dev client (any port)
-    const isLocalhost =
+    // Allow localhost origins for Expo dev client (any port) — development only
+    const isDev = env.NODE_ENV !== "production";
+    const isLocalhost = isDev && (
       origin?.startsWith("http://localhost:") ||
-      origin?.startsWith("http://127.0.0.1:");
+      origin?.startsWith("http://127.0.0.1:")
+    );
 
-    // Allow Expo Go dev client requests (no origin header, or exp:// scheme)
-    const isExpoClient = !origin || origin?.startsWith("exp://");
-
-    if (origin && (origins.has(origin) || isLocalhost)) {
+    if (origin && (allowedOrigins.has(origin) || isLocalhost)) {
       res.header("Access-Control-Allow-Origin", origin);
-      res.header(
-        "Access-Control-Allow-Methods",
-        "GET, POST, PUT, DELETE, OPTIONS",
-      );
+      res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
       res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
       res.header("Access-Control-Allow-Credentials", "true");
-    } else if (isExpoClient) {
-      // Mobile app requests typically have no origin — allow all methods
-      res.header("Access-Control-Allow-Origin", "*");
-      res.header(
-        "Access-Control-Allow-Methods",
-        "GET, POST, PUT, DELETE, OPTIONS",
-      );
-      res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
     }
+    // Mobile app requests (no origin header) are allowed through — CORS is
+    // a browser-only enforcement mechanism, so omitting the header is correct.
+    // Do NOT set Access-Control-Allow-Origin: * as it weakens security for
+    // any browser-based consumers.
 
     if (req.method === "OPTIONS") {
       return res.sendStatus(200);
@@ -265,8 +258,13 @@ function setupSecurityHeaders(app: express.Application) {
   app.use((_req: Request, res: Response, next: NextFunction) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
-    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader("X-XSS-Protection", "0"); // Disabled in favour of CSP; legacy header can cause issues
+    res.setHeader("X-Permitted-Cross-Domain-Policies", "none");
+    res.setHeader("X-Download-Options", "noopen");
+    res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'");
+    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
     next();
   });
 }
@@ -306,8 +304,7 @@ function setupErrorHandler(app: express.Application) {
 
   setupErrorHandler(app);
 
-  const port = parseInt(process.env.PORT || "5000", 10);
-  server.listen(port, "0.0.0.0", () => {
-    log(`express server serving on port ${port}`);
+  server.listen(env.PORT, "0.0.0.0", () => {
+    log(`express server serving on port ${env.PORT}`);
   });
 })();

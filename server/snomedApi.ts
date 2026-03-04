@@ -57,15 +57,51 @@ function extractSemanticTag(fsn: string): string | undefined {
   return match ? match[1] : undefined;
 }
 
+/** FHIR ValueSet expansion item */
+interface FhirExpansionItem {
+  code: string;
+  display: string;
+  system?: string;
+}
+
+/** FHIR ValueSet expansion response */
+interface FhirExpansionResponse {
+  expansion?: {
+    contains?: FhirExpansionItem[];
+  };
+}
+
+/** FHIR Parameters part element */
+interface FhirParameterPart {
+  name: string;
+  valueString?: string;
+  valueCode?: string;
+  valueCoding?: { code: string; display?: string };
+  valueBoolean?: boolean;
+}
+
+/** FHIR Parameters response element */
+interface FhirParameter {
+  name: string;
+  valueString?: string;
+  valueBoolean?: boolean;
+  part?: FhirParameterPart[];
+}
+
+/** FHIR Parameters response */
+interface FhirParametersResponse {
+  parameter?: FhirParameter[];
+}
+
 /**
  * Parse FHIR ValueSet expansion response into our format
  */
-function parseFhirExpansion(data: any): SnomedSearchResult[] {
+function parseFhirExpansion(data: FhirExpansionResponse): SnomedSearchResult[] {
   if (!data.expansion?.contains) {
     return [];
   }
 
-  return data.expansion.contains.map((item: any) => ({
+  return data.expansion.contains.map((item) => ({
     conceptId: item.code,
     term: item.display,
     fsn: item.display, // FHIR doesn't always include FSN separately
@@ -109,7 +145,7 @@ export async function searchProcedures(
       return [];
     }
 
-    const data = await response.json();
+    const data = await response.json() as FhirExpansionResponse;
     const results = parseFhirExpansion(data);
     
     console.log(`SNOMED procedures found: ${results.length}`);
@@ -159,7 +195,7 @@ export async function searchDiagnoses(
       return [];
     }
 
-    const data = await response.json();
+    const data = await response.json() as FhirExpansionResponse;
     const results = parseFhirExpansion(data);
     
     console.log(`SNOMED diagnoses found: ${results.length}`);
@@ -194,8 +230,8 @@ export async function getConceptDetails(conceptId: string): Promise<SnomedConcep
       return null;
     }
 
-    const data = await response.json();
-    
+    const data = await response.json() as FhirParametersResponse;
+
     // Parse FHIR Parameters response
     let display = "";
     let fsn = "";
@@ -205,13 +241,13 @@ export async function getConceptDetails(conceptId: string): Promise<SnomedConcep
 
     for (const param of data.parameter || []) {
       if (param.name === "display") {
-        display = param.valueString;
+        display = param.valueString ?? "";
       }
       if (param.name === "designation") {
         const parts = param.part || [];
-        const usePart = parts.find((p: any) => p.name === "use");
-        const valuePart = parts.find((p: any) => p.name === "value");
-        
+        const usePart = parts.find((p) => p.name === "use");
+        const valuePart = parts.find((p) => p.name === "value");
+
         if (valuePart?.valueString) {
           if (usePart?.valueCoding?.code === "900000000000003001") {
             fsn = valuePart.valueString;
@@ -222,9 +258,9 @@ export async function getConceptDetails(conceptId: string): Promise<SnomedConcep
       }
       if (param.name === "property") {
         const parts = param.part || [];
-        const codePart = parts.find((p: any) => p.name === "code");
-        const valuePart = parts.find((p: any) => p.name === "value");
-        
+        const codePart = parts.find((p) => p.name === "code");
+        const valuePart = parts.find((p) => p.name === "value");
+
         if (codePart?.valueCode === "parent" && valuePart?.valueCode) {
           parents.push({ conceptId: valuePart.valueCode, term: "" });
         }
@@ -267,10 +303,10 @@ export async function validateCode(conceptId: string): Promise<boolean> {
       return false;
     }
 
-    const data = await response.json();
-    
+    const data = await response.json() as FhirParametersResponse;
+
     // Find the "result" parameter
-    const resultParam = data.parameter?.find((p: any) => p.name === "result");
+    const resultParam = data.parameter?.find((p) => p.name === "result");
     return resultParam?.valueBoolean === true;
   } catch (error) {
     console.error("Error validating SNOMED code:", error);

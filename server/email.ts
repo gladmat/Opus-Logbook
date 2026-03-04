@@ -105,9 +105,10 @@ If you didn't request this password reset, you can safely ignore this email. You
 
     console.log('Password reset email sent successfully:', data?.id);
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Failed to send password reset email:', error);
-    return { success: false, error: error.message || 'Failed to send email' };
+    const message = error instanceof Error ? error.message : 'Failed to send email';
+    return { success: false, error: message };
   }
 }
 
@@ -177,8 +178,9 @@ If you have any questions, feel free to reach out to us.
 
     console.log('Welcome email sent successfully:', data?.id);
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Failed to send welcome email:', error);
-    return { success: false, error: error.message || 'Failed to send email' };
+    const message = error instanceof Error ? error.message : 'Failed to send email';
+    return { success: false, error: message };
   }
 }
