@@ -47,6 +47,7 @@ export default function MediaManagementScreen() {
   const [attachments, setAttachments] = useState<MediaAttachment[]>(existingAttachments || []);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [lastSelectedCategory, setLastSelectedCategory] = useState<MediaCategory | null>(null);
+  const [saving, setSaving] = useState(false);
   const [cameraPermission, requestCameraPermission] = ImagePicker.useCameraPermissions();
 
   const canAddMore = attachments.length < maxAttachments;
@@ -185,12 +186,14 @@ export default function MediaManagementScreen() {
   };
 
   const handleSave = useCallback(() => {
+    if (saving) return;
+    setSaving(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     if (callbackId) {
       executeCallback(callbackId, attachments);
     }
     navigation.goBack();
-  }, [attachments, callbackId, executeCallback, navigation]);
+  }, [attachments, callbackId, executeCallback, navigation, saving]);
 
   const selectedAttachment = attachments.find((a) => a.id === selectedId);
 
@@ -248,8 +251,8 @@ export default function MediaManagementScreen() {
           <Feather name="x" size={24} color={theme.text} />
         </Pressable>
         <ThemedText style={styles.headerTitle}>Manage Media</ThemedText>
-        <Pressable onPress={handleSave} style={styles.headerButton}>
-          <ThemedText style={[styles.saveText, { color: theme.link }]}>Done</ThemedText>
+        <Pressable onPress={handleSave} disabled={saving} style={styles.headerButton}>
+          <ThemedText style={[styles.saveText, { color: saving ? theme.textTertiary : theme.link }]}>Done</ThemedText>
         </Pressable>
       </View>
 
@@ -447,16 +450,16 @@ export default function MediaManagementScreen() {
         </ThemedText>
         <Pressable
           onPress={handleSave}
-          disabled={attachments.length === 0}
+          disabled={attachments.length === 0 || saving}
           style={[
             styles.saveButtonPressable,
-            { 
-              backgroundColor: attachments.length === 0 ? theme.textTertiary : theme.link,
-              opacity: attachments.length === 0 ? 0.5 : 1,
+            {
+              backgroundColor: attachments.length === 0 || saving ? theme.textTertiary : theme.link,
+              opacity: attachments.length === 0 || saving ? 0.5 : 1,
             }
           ]}
         >
-          <ThemedText style={styles.saveButtonText}>Save Photos</ThemedText>
+          <ThemedText style={styles.saveButtonText}>{saving ? "Saving..." : "Save Photos"}</ThemedText>
         </Pressable>
       </View>
       </KeyboardAvoidingView>

@@ -70,6 +70,7 @@ export default function AddOperativeMediaScreen() {
   const [cameraPermission, requestCameraPermission] = ImagePicker.useCameraPermissions();
   const [currentUri, setCurrentUri] = useState(imageUri);
   const [currentMimeType, setCurrentMimeType] = useState(mimeType);
+  const [saving, setSaving] = useState(false);
 
   const handleRetakeCamera = async () => {
     if (!cameraPermission?.granted) {
@@ -139,7 +140,8 @@ export default function AddOperativeMediaScreen() {
   };
 
   const handleConfirm = async () => {
-    if (!currentUri) return;
+    if (!currentUri || saving) return;
+    setSaving(true);
 
     try {
       let finalUri = currentUri;
@@ -165,6 +167,7 @@ export default function AddOperativeMediaScreen() {
       }
       navigation.goBack();
     } catch (error: any) {
+      setSaving(false);
       console.error("Error saving media:", error);
       Alert.alert("Error", `Failed to save media: ${error?.message || "Unknown error"}. Please try again.`);
     }
@@ -178,8 +181,8 @@ export default function AddOperativeMediaScreen() {
             <Feather name="x" size={24} color={theme.text} />
           </Pressable>
           <ThemedText style={styles.headerTitle}>{editMode ? "Edit Media" : "Add Media"}</ThemedText>
-          <Pressable onPress={handleConfirm} style={styles.headerButton}>
-            <ThemedText style={[styles.saveText, { color: theme.link }]}>{editMode ? "Save" : "Add"}</ThemedText>
+          <Pressable onPress={handleConfirm} disabled={saving} style={styles.headerButton}>
+            <ThemedText style={[styles.saveText, { color: saving ? theme.textTertiary : theme.link }]}>{saving ? "Saving..." : editMode ? "Save" : "Add"}</ThemedText>
           </Pressable>
         </View>
 
@@ -285,10 +288,11 @@ export default function AddOperativeMediaScreen() {
           <Pressable
             testID="button-confirm-media"
             onPress={handleConfirm}
-            style={[styles.confirmButton, { backgroundColor: theme.link }]}
+            disabled={saving}
+            style={[styles.confirmButton, { backgroundColor: saving ? theme.textTertiary : theme.link }]}
           >
             <Feather name="check" size={20} color="#fff" />
-            <ThemedText style={styles.confirmButtonText}>{editMode ? "Save Changes" : "Add Media"}</ThemedText>
+            <ThemedText style={styles.confirmButtonText}>{saving ? "Saving..." : editMode ? "Save Changes" : "Add Media"}</ThemedText>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>

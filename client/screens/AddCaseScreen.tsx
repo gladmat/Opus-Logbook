@@ -14,7 +14,8 @@ import { SpecialtyIcon } from "@/components/SpecialtyIcon";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, Shadows } from "@/constants/theme";
-import { Specialty, SPECIALTY_LABELS, PROCEDURE_TYPES } from "@/types/case";
+import { Specialty, SPECIALTY_LABELS } from "@/types/case";
+import { getProceduresForSpecialty } from "@/lib/procedurePicklist";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -70,7 +71,7 @@ export default function AddCaseScreen() {
               {SPECIALTY_LABELS[specialty]}
             </ThemedText>
             <ThemedText style={[styles.specialtyCount, { color: theme.textTertiary }]}>
-              {PROCEDURE_TYPES[specialty]?.length || 0} procedures
+              {getProceduresForSpecialty(specialty).length} procedures
             </ThemedText>
           </Pressable>
         ))}
