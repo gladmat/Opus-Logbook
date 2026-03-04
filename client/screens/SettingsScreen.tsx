@@ -26,20 +26,32 @@ import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollV
 import { FacilitySelector } from "@/components/FacilitySelector";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, Shadows } from "@/constants/theme";
-import { clearAllData, getCases, getSettings, AppSettings } from "@/lib/storage";
+import {
+  clearAllData,
+  getCases,
+  getSettings,
+  AppSettings,
+} from "@/lib/storage";
 import { exportCases, ExportFormat, EXPORT_FORMAT_LABELS } from "@/lib/export";
 import { validateMigrationCorpus } from "@/lib/migrationValidator";
 import { getCodingSystemForProfile } from "@/lib/snomedCt";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppLock } from "@/contexts/AppLockContext";
-import { MasterFacility, getFacilityById, SUPPORTED_COUNTRIES } from "@/data/facilities";
+import {
+  MasterFacility,
+  getFacilityById,
+  SUPPORTED_COUNTRIES,
+} from "@/data/facilities";
 import { getApiUrl } from "@/lib/query-client";
 
 const APP_VERSION = Constants.expoConfig?.version || "1.0.0";
-const BUILD_NUMBER = Constants.expoConfig?.ios?.buildNumber || Constants.expoConfig?.android?.versionCode || "1";
+const BUILD_NUMBER =
+  Constants.expoConfig?.ios?.buildNumber ||
+  Constants.expoConfig?.android?.versionCode ||
+  "1";
 
 const getLegalUrls = () => {
-  const baseUrl = getApiUrl().replace(/\/$/, '');
+  const baseUrl = getApiUrl().replace(/\/$/, "");
   return {
     privacyPolicy: `${baseUrl}/privacy`,
     termsOfService: `${baseUrl}/terms`,
@@ -102,7 +114,9 @@ function SettingsItem({
           {label}
         </ThemedText>
         {subtitle ? (
-          <ThemedText style={[styles.itemSubtitle, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.itemSubtitle, { color: theme.textSecondary }]}
+          >
             {subtitle}
           </ThemedText>
         ) : null}
@@ -140,9 +154,18 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
   const tabBarHeight = useBottomTabBarHeight();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { isAppLockConfigured } = useAppLock();
-  const { user, profile, facilities, logout, addFacility, removeFacility } = useAuth();
+  const {
+    user,
+    profile,
+    facilities,
+    logout,
+    deleteAccount,
+    addFacility,
+    removeFacility,
+  } = useAuth();
 
   const [caseCount, setCaseCount] = useState<number | null>(null);
   const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -153,6 +176,9 @@ export default function SettingsScreen() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [deleteAccountPassword, setDeleteAccountPassword] = useState("");
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   const countryCode = useMemo(() => {
     if (!profile?.countryOfPractice) return "NZ";
@@ -167,7 +193,7 @@ export default function SettingsScreen() {
   }, [profile?.countryOfPractice]);
 
   const selectedFacilityIds = useMemo(() => {
-    return facilities.map(f => f.facilityId).filter(Boolean) as string[];
+    return facilities.map((f) => f.facilityId).filter(Boolean) as string[];
   }, [facilities]);
 
   useEffect(() => {
@@ -188,12 +214,15 @@ export default function SettingsScreen() {
       },
       async (buttonIndex) => {
         if (buttonIndex >= formats.length) return;
-        const format = formats[buttonIndex];
+        const format = formats[buttonIndex] as ExportFormat;
         try {
           await exportCases({ format, includePatientId: true });
         } catch (error: any) {
           console.error("Export error:", error);
-          Alert.alert("Export Error", error?.message || "Failed to export cases");
+          Alert.alert(
+            "Export Error",
+            error?.message || "Failed to export cases",
+          );
         }
       },
     );
@@ -216,7 +245,7 @@ export default function SettingsScreen() {
             getSettings().then(setSettings);
           },
         },
-      ]
+      ],
     );
   };
 
@@ -246,26 +275,66 @@ export default function SettingsScreen() {
   };
 
   const handleLogout = () => {
+    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Sign Out",
+        style: "destructive",
+        onPress: async () => {
+          await logout();
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        },
+      },
+    ]);
+  };
+
+  const handleDeleteAccount = () => {
     Alert.alert(
-      "Sign Out",
-      "Are you sure you want to sign out?",
+      "Delete Account?",
+      "This will permanently delete your account, all server data, and all local data. This action cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Sign Out",
+          text: "Continue",
           style: "destructive",
-          onPress: async () => {
-            await logout();
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          onPress: () => {
+            setDeleteAccountPassword("");
+            setShowDeleteAccountModal(true);
           },
         },
-      ]
+      ],
     );
+  };
+
+  const handleConfirmDeleteAccount = async () => {
+    if (!deleteAccountPassword) {
+      Alert.alert(
+        "Password Required",
+        "Please enter your password to confirm account deletion.",
+      );
+      return;
+    }
+
+    setIsDeletingAccount(true);
+    try {
+      await deleteAccount(deleteAccountPassword);
+      setShowDeleteAccountModal(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error: any) {
+      Alert.alert(
+        "Deletion Failed",
+        error?.message || "Failed to delete account. Please try again.",
+      );
+    } finally {
+      setIsDeletingAccount(false);
+    }
   };
 
   const handleSelectFacility = async (facility: MasterFacility) => {
     if (selectedFacilityIds.includes(facility.id)) {
-      const existingFacility = facilities.find(f => f.facilityId === facility.id);
+      const existingFacility = facilities.find(
+        (f) => f.facilityId === facility.id,
+      );
       if (existingFacility) {
         await removeFacility(existingFacility.id);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -281,21 +350,17 @@ export default function SettingsScreen() {
   };
 
   const handleRemoveFacility = (id: string, name: string) => {
-    Alert.alert(
-      "Remove Facility",
-      `Remove "${name}" from your facilities?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: async () => {
-            await removeFacility(id);
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          },
+    Alert.alert("Remove Facility", `Remove "${name}" from your facilities?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: async () => {
+          await removeFacility(id);
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleOpenUrl = async (url: string) => {
@@ -321,11 +386,14 @@ export default function SettingsScreen() {
         "Email Not Available",
         `Please send feedback to ${SUPPORT_EMAIL}`,
         [
-          { text: "Copy Email", onPress: () => {
-            // Can't use Clipboard directly, but user can manually copy
-          }},
+          {
+            text: "Copy Email",
+            onPress: () => {
+              // Can't use Clipboard directly, but user can manually copy
+            },
+          },
           { text: "OK" },
-        ]
+        ],
       );
     }
   };
@@ -337,12 +405,18 @@ export default function SettingsScreen() {
     }
 
     if (newPassword.length < 8) {
-      Alert.alert("Weak Password", "New password must be at least 8 characters");
+      Alert.alert(
+        "Weak Password",
+        "New password must be at least 8 characters",
+      );
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert("Passwords Don't Match", "New password and confirmation must match");
+      Alert.alert(
+        "Passwords Don't Match",
+        "New password and confirmation must match",
+      );
       return;
     }
 
@@ -352,7 +426,7 @@ export default function SettingsScreen() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${await getAuthToken()}`,
+          Authorization: `Bearer ${await getAuthToken()}`,
         },
         body: JSON.stringify({
           currentPassword,
@@ -362,12 +436,17 @@ export default function SettingsScreen() {
 
       const responseText = await response.text();
       let data: any;
-      
+
       try {
         data = JSON.parse(responseText);
       } catch {
-        console.error("Change password response was not JSON:", responseText.substring(0, 200));
-        throw new Error("Server returned an unexpected response. Please try again.");
+        console.error(
+          "Change password response was not JSON:",
+          responseText.substring(0, 200),
+        );
+        throw new Error(
+          "Server returned an unexpected response. Please try again.",
+        );
       }
 
       if (!response.ok) {
@@ -388,8 +467,9 @@ export default function SettingsScreen() {
   };
 
   const getAuthToken = async (): Promise<string> => {
-    const AsyncStorage = require("@react-native-async-storage/async-storage").default;
-    return await AsyncStorage.getItem("authToken") || "";
+    const AsyncStorage =
+      require("@react-native-async-storage/async-storage").default;
+    return (await AsyncStorage.getItem("authToken")) || "";
   };
 
   return (
@@ -405,10 +485,17 @@ export default function SettingsScreen() {
         ]}
       >
         <View style={styles.section}>
-          <ThemedText style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.sectionTitle, { color: theme.textSecondary }]}
+          >
             ACCOUNT
           </ThemedText>
-          <View style={[styles.sectionCard, { backgroundColor: theme.backgroundDefault }]}>
+          <View
+            style={[
+              styles.sectionCard,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
             <Pressable
               style={styles.profileHeader}
               onPress={() => {
@@ -416,10 +503,17 @@ export default function SettingsScreen() {
                 navigation.navigate("EditProfile");
               }}
             >
-              <View style={[styles.avatarContainer, { backgroundColor: theme.link + "15", overflow: "hidden" }]}>
+              <View
+                style={[
+                  styles.avatarContainer,
+                  { backgroundColor: theme.link + "15", overflow: "hidden" },
+                ]}
+              >
                 {profile?.profilePictureUrl ? (
                   <Image
-                    source={{ uri: `${getApiUrl()}${profile.profilePictureUrl}` }}
+                    source={{
+                      uri: `${getApiUrl()}${profile.profilePictureUrl}`,
+                    }}
                     style={{ width: 56, height: 56, borderRadius: 28 }}
                   />
                 ) : (
@@ -432,39 +526,83 @@ export default function SettingsScreen() {
                     ? `${profile.firstName} ${profile.lastName}`
                     : profile?.fullName || "Surgeon"}
                 </ThemedText>
-                <ThemedText style={[styles.profileEmail, { color: theme.textSecondary }]}>
+                <ThemedText
+                  style={[styles.profileEmail, { color: theme.textSecondary }]}
+                >
                   {user?.email}
                 </ThemedText>
                 {profile?.careerStage ? (
-                  <ThemedText style={[styles.profileDetail, { color: theme.textTertiary }]}>
-                    {CAREER_STAGE_LABELS[profile.careerStage] || profile.careerStage}
+                  <ThemedText
+                    style={[
+                      styles.profileDetail,
+                      { color: theme.textTertiary },
+                    ]}
+                  >
+                    {CAREER_STAGE_LABELS[profile.careerStage] ||
+                      profile.careerStage}
                   </ThemedText>
                 ) : null}
               </View>
-              <Feather name="chevron-right" size={20} color={theme.textTertiary} />
+              <Feather
+                name="chevron-right"
+                size={20}
+                color={theme.textTertiary}
+              />
             </Pressable>
-            <View style={[styles.profileDetailsRow, { borderTopColor: theme.border }]}>
+            <View
+              style={[
+                styles.profileDetailsRow,
+                { borderTopColor: theme.border },
+              ]}
+            >
               <View style={styles.profileDetailItem}>
-                <ThemedText style={[styles.profileDetailLabel, { color: theme.textSecondary }]}>
+                <ThemedText
+                  style={[
+                    styles.profileDetailLabel,
+                    { color: theme.textSecondary },
+                  ]}
+                >
                   Country
                 </ThemedText>
                 <ThemedText style={styles.profileDetailValue}>
-                  {profile?.countryOfPractice ? COUNTRY_OF_PRACTICE_LABELS[profile.countryOfPractice] || profile.countryOfPractice : "Not set"}
+                  {profile?.countryOfPractice
+                    ? COUNTRY_OF_PRACTICE_LABELS[profile.countryOfPractice] ||
+                      profile.countryOfPractice
+                    : "Not set"}
                 </ThemedText>
               </View>
               <View style={styles.profileDetailItem}>
-                <ThemedText style={[styles.profileDetailLabel, { color: theme.textSecondary }]}>
+                <ThemedText
+                  style={[
+                    styles.profileDetailLabel,
+                    { color: theme.textSecondary },
+                  ]}
+                >
                   Coding System
                 </ThemedText>
                 <ThemedText style={styles.profileDetailValue} numberOfLines={1}>
-                  {getCodingSystemForProfile(profile?.countryOfPractice).split(' (')[0]}
+                  {
+                    getCodingSystemForProfile(profile?.countryOfPractice).split(
+                      " (",
+                    )[0]
+                  }
                 </ThemedText>
               </View>
             </View>
             {profile?.medicalCouncilNumber ? (
-              <View style={[styles.profileDetailsRow, { borderTopColor: theme.border }]}>
+              <View
+                style={[
+                  styles.profileDetailsRow,
+                  { borderTopColor: theme.border },
+                ]}
+              >
                 <View style={styles.profileDetailItem}>
-                  <ThemedText style={[styles.profileDetailLabel, { color: theme.textSecondary }]}>
+                  <ThemedText
+                    style={[
+                      styles.profileDetailLabel,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
                     Registration
                   </ThemedText>
                   <ThemedText style={styles.profileDetailValue}>
@@ -477,10 +615,17 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <ThemedText style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.sectionTitle, { color: theme.textSecondary }]}
+          >
             SECURITY
           </ThemedText>
-          <View style={[styles.sectionCard, { backgroundColor: theme.backgroundDefault }]}>
+          <View
+            style={[
+              styles.sectionCard,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
             <SettingsItem
               icon="shield"
               label="App Lock"
@@ -499,16 +644,43 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <ThemedText style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.sectionTitle, { color: theme.textSecondary }]}
+          >
             APPEARANCE
           </ThemedText>
-          <View style={[styles.sectionCard, { backgroundColor: theme.backgroundDefault, padding: Spacing.md }]}>
-            <View style={[styles.themeSegmented, { borderColor: theme.border, backgroundColor: theme.backgroundDefault }]}>
-              {([
-                { value: "light" as const, label: "Light", icon: "sun" as const },
-                { value: "dark" as const, label: "Dark", icon: "moon" as const },
-                { value: "system" as const, label: "System", icon: "smartphone" as const },
-              ]).map((opt) => {
+          <View
+            style={[
+              styles.sectionCard,
+              { backgroundColor: theme.backgroundDefault, padding: Spacing.md },
+            ]}
+          >
+            <View
+              style={[
+                styles.themeSegmented,
+                {
+                  borderColor: theme.border,
+                  backgroundColor: theme.backgroundDefault,
+                },
+              ]}
+            >
+              {[
+                {
+                  value: "light" as const,
+                  label: "Light",
+                  icon: "sun" as const,
+                },
+                {
+                  value: "dark" as const,
+                  label: "Dark",
+                  icon: "moon" as const,
+                },
+                {
+                  value: "system" as const,
+                  label: "System",
+                  icon: "smartphone" as const,
+                },
+              ].map((opt) => {
                 const isSelected = preference === opt.value;
                 return (
                   <Pressable
@@ -544,25 +716,38 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <ThemedText style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.sectionTitle, { color: theme.textSecondary }]}
+          >
             FACILITIES
           </ThemedText>
-          <View style={[styles.sectionCard, { backgroundColor: theme.backgroundDefault }]}>
+          <View
+            style={[
+              styles.sectionCard,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
             <SettingsItem
               icon="home"
               label="My Facilities"
-              subtitle={`${facilities.length} ${facilities.length === 1 ? 'hospital' : 'hospitals'}`}
+              subtitle={`${facilities.length} ${facilities.length === 1 ? "hospital" : "hospitals"}`}
               onPress={() => setShowFacilitiesModal(true)}
             />
           </View>
         </View>
 
-
         <View style={styles.section}>
-          <ThemedText style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.sectionTitle, { color: theme.textSecondary }]}
+          >
             DATA
           </ThemedText>
-          <View style={[styles.sectionCard, { backgroundColor: theme.backgroundDefault }]}>
+          <View
+            style={[
+              styles.sectionCard,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
             <SettingsItem
               icon="download"
               label="Export Cases"
@@ -581,18 +766,40 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <ThemedText style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.sectionTitle, { color: theme.textSecondary }]}
+          >
             PRIVACY
           </ThemedText>
-          <View style={[styles.sectionCard, { backgroundColor: theme.backgroundDefault }]}>
+          <View
+            style={[
+              styles.sectionCard,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
             <View style={styles.privacyInfo}>
-              <View style={[styles.privacyBadge, { backgroundColor: theme.success + "15" }]}>
+              <View
+                style={[
+                  styles.privacyBadge,
+                  { backgroundColor: theme.success + "15" },
+                ]}
+              >
                 <Feather name="shield" size={20} color={theme.success} />
               </View>
               <View style={styles.privacyText}>
-                <ThemedText style={styles.privacyTitle}>Local-First Privacy</ThemedText>
-                <ThemedText style={[styles.privacyDescription, { color: theme.textSecondary }]}>
-                  All your case data is stored locally on this device. Photos are processed on-device and never uploaded. Sensitive information like NHI numbers are automatically redacted before AI analysis.
+                <ThemedText style={styles.privacyTitle}>
+                  Local-First Privacy
+                </ThemedText>
+                <ThemedText
+                  style={[
+                    styles.privacyDescription,
+                    { color: theme.textSecondary },
+                  ]}
+                >
+                  All your case data is stored locally on this device. Photos
+                  are processed on-device and never uploaded. Sensitive
+                  information like NHI numbers are automatically redacted before
+                  AI analysis.
                 </ThemedText>
               </View>
             </View>
@@ -600,31 +807,48 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <ThemedText style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.sectionTitle, { color: theme.textSecondary }]}
+          >
             ABOUT
           </ThemedText>
-          <View style={[styles.sectionCard, { backgroundColor: theme.backgroundDefault }]}>
+          <View
+            style={[
+              styles.sectionCard,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
             <View style={styles.aboutItem}>
               <ThemedText style={styles.aboutLabel}>Version</ThemedText>
-              <ThemedText style={[styles.aboutValue, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[styles.aboutValue, { color: theme.textSecondary }]}
+              >
                 v{APP_VERSION} (Build {BUILD_NUMBER})
               </ThemedText>
             </View>
             <View style={styles.aboutItem}>
               <ThemedText style={styles.aboutLabel}>Developed by</ThemedText>
-              <ThemedText style={[styles.aboutValue, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[styles.aboutValue, { color: theme.textSecondary }]}
+              >
                 Dr. Mateusz Gladysz
               </ThemedText>
             </View>
             <View style={styles.aboutItem}>
               <ThemedText style={styles.aboutLabel}>Location</ThemedText>
-              <ThemedText style={[styles.aboutValue, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[styles.aboutValue, { color: theme.textSecondary }]}
+              >
                 New Zealand
               </ThemedText>
             </View>
             <View style={[styles.aboutItem, { borderBottomWidth: 0 }]}>
-              <ThemedText style={styles.aboutLabel}>Procedure Coding</ThemedText>
-              <ThemedText style={[styles.aboutValue, { color: theme.textSecondary }]}>
+              <ThemedText style={styles.aboutLabel}>
+                Procedure Coding
+              </ThemedText>
+              <ThemedText
+                style={[styles.aboutValue, { color: theme.textSecondary }]}
+              >
                 SNOMED CT
               </ThemedText>
             </View>
@@ -632,10 +856,17 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <ThemedText style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.sectionTitle, { color: theme.textSecondary }]}
+          >
             LEGAL
           </ThemedText>
-          <View style={[styles.sectionCard, { backgroundColor: theme.backgroundDefault }]}>
+          <View
+            style={[
+              styles.sectionCard,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
             <SettingsItem
               icon="shield"
               label="Privacy Policy"
@@ -660,10 +891,17 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <ThemedText style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.sectionTitle, { color: theme.textSecondary }]}
+          >
             SUPPORT
           </ThemedText>
-          <View style={[styles.sectionCard, { backgroundColor: theme.backgroundDefault }]}>
+          <View
+            style={[
+              styles.sectionCard,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
             <SettingsItem
               icon="mail"
               label="Send Feedback"
@@ -674,10 +912,17 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <ThemedText style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.sectionTitle, { color: theme.textSecondary }]}
+          >
             ACCOUNT
           </ThemedText>
-          <View style={[styles.sectionCard, { backgroundColor: theme.backgroundDefault }]}>
+          <View
+            style={[
+              styles.sectionCard,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
             <SettingsItem
               icon="log-out"
               label="Sign Out"
@@ -688,22 +933,41 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <ThemedText style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.sectionTitle, { color: theme.textSecondary }]}
+          >
             DANGER ZONE
           </ThemedText>
-          <View style={[styles.sectionCard, { backgroundColor: theme.backgroundDefault }]}>
+          <View
+            style={[
+              styles.sectionCard,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
             <SettingsItem
               icon="trash-2"
               label="Clear All Data"
               onPress={handleClearData}
               destructive
             />
+            <View style={[styles.divider, { backgroundColor: theme.border }]} />
+            <SettingsItem
+              icon="user-x"
+              label="Delete Account"
+              subtitle="Permanently delete your account and all data"
+              onPress={handleDeleteAccount}
+              destructive
+            />
           </View>
         </View>
 
         <View style={styles.disclaimerContainer}>
-          <ThemedText style={[styles.disclaimerText, { color: theme.textTertiary }]}>
-            Opus is a documentation tool. The treating surgeon remains solely responsible for patient care and clinical records. This app does not provide medical advice.
+          <ThemedText
+            style={[styles.disclaimerText, { color: theme.textTertiary }]}
+          >
+            Opus is a documentation tool. The treating surgeon remains solely
+            responsible for patient care and clinical records. This app does not
+            provide medical advice.
           </ThemedText>
         </View>
       </KeyboardAwareScrollViewCompat>
@@ -718,8 +982,11 @@ export default function SettingsScreen() {
           style={styles.modalOverlay}
           onPress={() => setShowFacilitiesModal(false)}
         >
-          <View 
-            style={[styles.facilitiesModalContent, { backgroundColor: theme.backgroundDefault }]}
+          <View
+            style={[
+              styles.facilitiesModalContent,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
             onStartShouldSetResponder={() => true}
           >
             <View style={styles.facilitiesModalHeader}>
@@ -728,59 +995,111 @@ export default function SettingsScreen() {
                 <Feather name="x" size={24} color={theme.textSecondary} />
               </Pressable>
             </View>
-            <ThemedText style={[styles.modalSubtitle, { color: theme.textSecondary }]}>
-              Select the hospitals where you operate. Only these will appear when logging cases.
+            <ThemedText
+              style={[styles.modalSubtitle, { color: theme.textSecondary }]}
+            >
+              Select the hospitals where you operate. Only these will appear
+              when logging cases.
             </ThemedText>
-            
+
             <Pressable
-              style={[styles.addFromListButton, { backgroundColor: theme.link }]}
+              style={[
+                styles.addFromListButton,
+                { backgroundColor: theme.link },
+              ]}
               onPress={() => {
                 setShowFacilitiesModal(false);
                 setShowFacilitySelector(true);
               }}
             >
               <Feather name="plus" size={18} color="#FFF" />
-              <ThemedText style={styles.addFromListButtonText}>Add from Hospital List</ThemedText>
+              <ThemedText style={styles.addFromListButtonText}>
+                Add from Hospital List
+              </ThemedText>
             </Pressable>
 
             {facilities.length > 0 ? (
               facilities.map((facility) => {
-                const displayName = facility.facilityName || (facility as any).facility_name || "Unknown Facility";
+                const displayName =
+                  facility.facilityName ||
+                  (facility as any).facility_name ||
+                  "Unknown Facility";
                 return (
-                <View
-                  key={facility.id}
-                  style={[styles.facilityItem, { backgroundColor: theme.backgroundSecondary }]}
-                >
-                  <View style={styles.facilityItemInfo}>
-                    <Feather name="home" size={16} color={theme.textSecondary} />
-                    <View style={styles.facilityItemTextContainer}>
-                      <ThemedText style={styles.facilityItemName}>{displayName}</ThemedText>
-                      {facility.facilityId || (facility as any).facility_id ? (
-                        <ThemedText style={[styles.facilityItemId, { color: theme.textTertiary }]}>
-                          Verified facility
+                  <View
+                    key={facility.id}
+                    style={[
+                      styles.facilityItem,
+                      { backgroundColor: theme.backgroundSecondary },
+                    ]}
+                  >
+                    <View style={styles.facilityItemInfo}>
+                      <Feather
+                        name="home"
+                        size={16}
+                        color={theme.textSecondary}
+                      />
+                      <View style={styles.facilityItemTextContainer}>
+                        <ThemedText style={styles.facilityItemName}>
+                          {displayName}
                         </ThemedText>
+                        {facility.facilityId ||
+                        (facility as any).facility_id ? (
+                          <ThemedText
+                            style={[
+                              styles.facilityItemId,
+                              { color: theme.textTertiary },
+                            ]}
+                          >
+                            Verified facility
+                          </ThemedText>
+                        ) : null}
+                      </View>
+                      {facility.isPrimary || (facility as any).is_primary ? (
+                        <View
+                          style={[
+                            styles.primaryBadge,
+                            { backgroundColor: theme.link + "20" },
+                          ]}
+                        >
+                          <ThemedText
+                            style={[
+                              styles.primaryBadgeText,
+                              { color: theme.link },
+                            ]}
+                          >
+                            Primary
+                          </ThemedText>
+                        </View>
                       ) : null}
                     </View>
-                    {facility.isPrimary || (facility as any).is_primary ? (
-                      <View style={[styles.primaryBadge, { backgroundColor: theme.link + "20" }]}>
-                        <ThemedText style={[styles.primaryBadgeText, { color: theme.link }]}>Primary</ThemedText>
-                      </View>
-                    ) : null}
+                    <Pressable
+                      onPress={() =>
+                        handleRemoveFacility(facility.id, displayName)
+                      }
+                    >
+                      <Feather name="x" size={18} color={theme.error} />
+                    </Pressable>
                   </View>
-                  <Pressable onPress={() => handleRemoveFacility(facility.id, displayName)}>
-                    <Feather name="x" size={18} color={theme.error} />
-                  </Pressable>
-                </View>
-              );
+                );
               })
             ) : (
               <View style={styles.emptyFacilities}>
                 <Feather name="home" size={32} color={theme.textTertiary} />
-                <ThemedText style={[styles.emptyFacilitiesText, { color: theme.textSecondary }]}>
+                <ThemedText
+                  style={[
+                    styles.emptyFacilitiesText,
+                    { color: theme.textSecondary },
+                  ]}
+                >
                   No hospitals selected yet
                 </ThemedText>
-                <ThemedText style={[styles.emptyFacilitiesHint, { color: theme.textTertiary }]}>
-                  Tap "Add from Hospital List" to get started
+                <ThemedText
+                  style={[
+                    styles.emptyFacilitiesHint,
+                    { color: theme.textTertiary },
+                  ]}
+                >
+                  {'Tap "Add from Hospital List" to get started'}
                 </ThemedText>
               </View>
             )}
@@ -807,8 +1126,11 @@ export default function SettingsScreen() {
           style={styles.modalOverlay}
           onPress={() => setShowChangePasswordModal(false)}
         >
-          <View 
-            style={[styles.passwordModalContent, { backgroundColor: theme.backgroundDefault }]}
+          <View
+            style={[
+              styles.passwordModalContent,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
             onStartShouldSetResponder={() => true}
           >
             <View style={styles.facilitiesModalHeader}>
@@ -817,22 +1139,26 @@ export default function SettingsScreen() {
                 <Feather name="x" size={24} color={theme.textSecondary} />
               </Pressable>
             </View>
-            <ThemedText style={[styles.modalSubtitle, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.modalSubtitle, { color: theme.textSecondary }]}
+            >
               Enter your current password and choose a new one.
             </ThemedText>
 
             <View style={styles.passwordInputContainer}>
-              <ThemedText style={[styles.inputLabel, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[styles.inputLabel, { color: theme.textSecondary }]}
+              >
                 Current Password
               </ThemedText>
               <TextInput
                 style={[
                   styles.passwordInput,
-                  { 
+                  {
                     backgroundColor: theme.backgroundSecondary,
                     color: theme.text,
                     borderColor: theme.border,
-                  }
+                  },
                 ]}
                 placeholder="Enter current password"
                 placeholderTextColor={theme.textTertiary}
@@ -845,17 +1171,19 @@ export default function SettingsScreen() {
             </View>
 
             <View style={styles.passwordInputContainer}>
-              <ThemedText style={[styles.inputLabel, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[styles.inputLabel, { color: theme.textSecondary }]}
+              >
                 New Password
               </ThemedText>
               <TextInput
                 style={[
                   styles.passwordInput,
-                  { 
+                  {
                     backgroundColor: theme.backgroundSecondary,
                     color: theme.text,
                     borderColor: theme.border,
-                  }
+                  },
                 ]}
                 placeholder="Enter new password (min 8 characters)"
                 placeholderTextColor={theme.textTertiary}
@@ -868,17 +1196,19 @@ export default function SettingsScreen() {
             </View>
 
             <View style={styles.passwordInputContainer}>
-              <ThemedText style={[styles.inputLabel, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[styles.inputLabel, { color: theme.textSecondary }]}
+              >
                 Confirm New Password
               </ThemedText>
               <TextInput
                 style={[
                   styles.passwordInput,
-                  { 
+                  {
                     backgroundColor: theme.backgroundSecondary,
                     color: theme.text,
                     borderColor: theme.border,
-                  }
+                  },
                 ]}
                 placeholder="Confirm new password"
                 placeholderTextColor={theme.textTertiary}
@@ -894,7 +1224,7 @@ export default function SettingsScreen() {
               style={[
                 styles.changePasswordButton,
                 { backgroundColor: theme.link },
-                isChangingPassword && { opacity: 0.7 }
+                isChangingPassword && { opacity: 0.7 },
               ]}
               onPress={handleChangePassword}
               disabled={isChangingPassword}
@@ -912,6 +1242,95 @@ export default function SettingsScreen() {
         </Pressable>
       </Modal>
 
+      <Modal
+        visible={showDeleteAccountModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => {
+          if (!isDeletingAccount) {
+            setShowDeleteAccountModal(false);
+          }
+        }}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => {
+            if (!isDeletingAccount) {
+              setShowDeleteAccountModal(false);
+            }
+          }}
+        >
+          <View
+            style={[
+              styles.passwordModalContent,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+            onStartShouldSetResponder={() => true}
+          >
+            <View style={styles.facilitiesModalHeader}>
+              <ThemedText style={styles.modalTitle}>Delete Account</ThemedText>
+              <Pressable
+                onPress={() => {
+                  if (!isDeletingAccount) {
+                    setShowDeleteAccountModal(false);
+                  }
+                }}
+              >
+                <Feather name="x" size={24} color={theme.textSecondary} />
+              </Pressable>
+            </View>
+            <ThemedText
+              style={[styles.modalSubtitle, { color: theme.textSecondary }]}
+            >
+              Enter your password to permanently delete your account. All server
+              data and local data will be erased. This cannot be undone.
+            </ThemedText>
+
+            <View style={styles.passwordInputContainer}>
+              <ThemedText
+                style={[styles.inputLabel, { color: theme.textSecondary }]}
+              >
+                Password
+              </ThemedText>
+              <TextInput
+                style={[
+                  styles.passwordInput,
+                  {
+                    backgroundColor: theme.backgroundSecondary,
+                    color: theme.text,
+                    borderColor: theme.border,
+                  },
+                ]}
+                placeholder="Enter your password"
+                placeholderTextColor={theme.textTertiary}
+                secureTextEntry
+                value={deleteAccountPassword}
+                onChangeText={setDeleteAccountPassword}
+                autoCapitalize="none"
+                editable={!isDeletingAccount}
+              />
+            </View>
+
+            <Pressable
+              style={[
+                styles.changePasswordButton,
+                { backgroundColor: theme.error },
+                isDeletingAccount && { opacity: 0.7 },
+              ]}
+              onPress={handleConfirmDeleteAccount}
+              disabled={isDeletingAccount}
+            >
+              {isDeletingAccount ? (
+                <ActivityIndicator color="#FFF" size="small" />
+              ) : (
+                <ThemedText style={styles.changePasswordButtonText}>
+                  Delete My Account
+                </ThemedText>
+              )}
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
     </>
   );
 }

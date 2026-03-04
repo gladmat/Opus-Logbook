@@ -5,7 +5,10 @@ import { ThemedText } from "@/components/ThemedText";
 import { FormField } from "@/components/FormField";
 import { useTheme } from "@/hooks/useTheme";
 import { BorderRadius, Spacing } from "@/constants/theme";
-import { FLAP_FIELD_CONFIG, type FlapFieldDefinition } from "@/data/flapFieldConfig";
+import {
+  FLAP_FIELD_CONFIG,
+  type FlapFieldDefinition,
+} from "@/data/flapFieldConfig";
 import type { FreeFlap, FlapSpecificDetails } from "@/types/case";
 
 interface FlapSpecificFieldsProps {
@@ -46,7 +49,9 @@ export function FlapSpecificFields({
       <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
         Flap-Specific Details
       </ThemedText>
-      <ThemedText style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>
+      <ThemedText
+        style={[styles.sectionSubtitle, { color: theme.textSecondary }]}
+      >
         Parameters specific to the selected flap type
       </ThemedText>
 
@@ -97,8 +102,12 @@ export function FlapSpecificFields({
               <FormField
                 key={field.key}
                 label={`${field.label}${field.required ? " *" : ""}`}
-                value={getValue(field.key) != null ? String(getValue(field.key)) : ""}
-                onChangeText={(v) => setValue(field.key, v ? parseFloat(v) : undefined)}
+                value={
+                  getValue(field.key) != null ? String(getValue(field.key)) : ""
+                }
+                onChangeText={(v) =>
+                  setValue(field.key, v ? parseFloat(v) : undefined)
+                }
                 placeholder={field.placeholder}
                 keyboardType="decimal-pad"
                 unit={field.unit}
@@ -136,7 +145,8 @@ function SelectField({
   return (
     <View style={styles.fieldContainer}>
       <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
-        {field.label}{field.required ? " *" : ""}
+        {field.label}
+        {field.required ? " *" : ""}
       </ThemedText>
       {field.hint ? (
         <ThemedText style={[styles.fieldHint, { color: theme.textSecondary }]}>
@@ -154,8 +164,7 @@ function SelectField({
                   value === option.value
                     ? theme.link + "20"
                     : theme.backgroundDefault,
-                borderColor:
-                  value === option.value ? theme.link : theme.border,
+                borderColor: value === option.value ? theme.link : theme.border,
               },
             ]}
             onPress={() => onSelect(option.value)}
@@ -192,7 +201,8 @@ function BooleanField({
   return (
     <View style={styles.booleanRow}>
       <ThemedText style={[styles.booleanLabel, { color: theme.text }]}>
-        {field.label}{field.required ? " *" : ""}
+        {field.label}
+        {field.required ? " *" : ""}
       </ThemedText>
       <Switch
         value={!!value}
@@ -218,7 +228,8 @@ function MultiSelectField({
   return (
     <View style={styles.fieldContainer}>
       <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
-        {field.label}{field.required ? " *" : ""} (select all that apply)
+        {field.label}
+        {field.required ? " *" : ""} (select all that apply)
       </ThemedText>
       {field.hint ? (
         <ThemedText style={[styles.fieldHint, { color: theme.textSecondary }]}>
@@ -251,7 +262,8 @@ function MultiSelectField({
                   },
                 ]}
               >
-                {selected ? "\u2713 " : ""}{option.label}
+                {selected ? "\u2713 " : ""}
+                {option.label}
               </ThemedText>
             </Pressable>
           );

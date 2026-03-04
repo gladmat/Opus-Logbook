@@ -12,7 +12,10 @@ import { FreeFlapPicker } from "@/components/FreeFlapPicker";
 import { FlapSpecificFields } from "@/components/FlapSpecificFields";
 import { SectionHeader } from "@/components/SectionHeader";
 import { v4 as uuidv4 } from "uuid";
-import { findPicklistEntry, PICKLIST_TO_FLAP_TYPE } from "@/lib/procedurePicklist";
+import {
+  findPicklistEntry,
+  PICKLIST_TO_FLAP_TYPE,
+} from "@/lib/procedurePicklist";
 import {
   type Specialty,
   type AnatomicalRegion,
@@ -45,7 +48,10 @@ interface FreeFlapClinicalFieldsProps {
   onUpdate: (details: FreeFlapDetails) => void;
 }
 
-const DEFAULT_DONOR_VESSELS: Record<FreeFlap, { artery: string; vein: string }> = {
+const DEFAULT_DONOR_VESSELS: Record<
+  FreeFlap,
+  { artery: string; vein: string }
+> = {
   alt: {
     artery: "Descending branch of lateral circumflex femoral artery",
     vein: "Venae comitantes of lateral circumflex femoral artery",
@@ -132,7 +138,7 @@ export function FreeFlapClinicalFields({
     ? PICKLIST_TO_FLAP_TYPE[picklistEntryId]
     : undefined;
   const flapIsLocked = !!presetFlapType;
-  
+
   const anastomoses = clinicalDetails.anastomoses || [];
   const recipientSiteRegion = clinicalDetails.recipientSiteRegion;
 
@@ -169,9 +175,15 @@ export function FreeFlapClinicalFields({
   const donorVessels = flapType ? DEFAULT_DONOR_VESSELS[flapType] : undefined;
 
   const FLAPS_WITH_SKIN_ISLAND: FreeFlap[] = [
-    "gracilis", "tug", "serratus_anterior", "pap", "latissimus_dorsi",
+    "gracilis",
+    "tug",
+    "serratus_anterior",
+    "pap",
+    "latissimus_dorsi",
   ];
-  const showSkinIsland = flapType ? FLAPS_WITH_SKIN_ISLAND.includes(flapType) : false;
+  const showSkinIsland = flapType
+    ? FLAPS_WITH_SKIN_ISLAND.includes(flapType)
+    : false;
 
   const handleFlapTypeChange = (flap: FreeFlap) => {
     const snomedEntry = FLAP_SNOMED_MAP[flap];
@@ -200,29 +212,44 @@ export function FreeFlapClinicalFields({
       {flapIsLocked && clinicalDetails.flapType ? (
         <View style={styles.lockedFlapSection}>
           <View style={styles.labelRow}>
-            <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.fieldLabel, { color: theme.textSecondary }]}
+            >
               Flap Type
             </ThemedText>
           </View>
-          <View style={[styles.lockedFlapBadge, {
-            backgroundColor: theme.link + "15",
-            borderColor: theme.link,
-          }]}>
+          <View
+            style={[
+              styles.lockedFlapBadge,
+              {
+                backgroundColor: theme.link + "15",
+                borderColor: theme.link,
+              },
+            ]}
+          >
             <Feather name="check-circle" size={16} color={theme.link} />
             <ThemedText style={[styles.lockedFlapText, { color: theme.link }]}>
               {FREE_FLAP_LABELS[clinicalDetails.flapType]}
             </ThemedText>
           </View>
-          {(FLAP_ELEVATION_PLANES[clinicalDetails.flapType] || []).length > 0 ? (
+          {(FLAP_ELEVATION_PLANES[clinicalDetails.flapType] || []).length >
+          0 ? (
             <View style={{ marginTop: Spacing.md }}>
               <PickerField
                 label="Elevation Plane"
                 value={clinicalDetails.elevationPlane || ""}
-                options={(FLAP_ELEVATION_PLANES[clinicalDetails.flapType] || []).map((plane) => ({
+                options={(
+                  FLAP_ELEVATION_PLANES[clinicalDetails.flapType] || []
+                ).map((plane) => ({
                   value: plane,
                   label: ELEVATION_PLANE_LABELS[plane],
                 }))}
-                onSelect={(value) => onUpdate({ ...clinicalDetails, elevationPlane: value as ElevationPlane })}
+                onSelect={(value) =>
+                  onUpdate({
+                    ...clinicalDetails,
+                    elevationPlane: value as ElevationPlane,
+                  })
+                }
               />
             </View>
           ) : null}
@@ -242,12 +269,20 @@ export function FreeFlapClinicalFields({
       {showSkinIsland ? (
         <SelectField
           label="Skin Island"
-          value={clinicalDetails.skinIsland === true ? "yes" : clinicalDetails.skinIsland === false ? "no" : ""}
+          value={
+            clinicalDetails.skinIsland === true
+              ? "yes"
+              : clinicalDetails.skinIsland === false
+                ? "no"
+                : ""
+          }
           options={[
             { value: "yes", label: "With skin island" },
             { value: "no", label: "Muscle only" },
           ]}
-          onSelect={(v) => onUpdate({ ...clinicalDetails, skinIsland: v === "yes" })}
+          onSelect={(v) =>
+            onUpdate({ ...clinicalDetails, skinIsland: v === "yes" })
+          }
           required
         />
       ) : null}
@@ -261,13 +296,17 @@ export function FreeFlapClinicalFields({
       <ThemedText style={[styles.subsectionTitle, { color: theme.text }]}>
         Anastomoses
       </ThemedText>
-      <ThemedText style={[styles.subsectionSubtitle, { color: theme.textSecondary }]}>
+      <ThemedText
+        style={[styles.subsectionSubtitle, { color: theme.textSecondary }]}
+      >
         Add arterial and venous connections
       </ThemedText>
 
       {anastomoses.map((entry, index) => {
         const defaultDonorVessel = donorVessels
-          ? (entry.vesselType === "artery" ? donorVessels.artery : donorVessels.vein)
+          ? entry.vesselType === "artery"
+            ? donorVessels.artery
+            : donorVessels.vein
           : undefined;
         return (
           <AnastomosisEntryCard
@@ -284,7 +323,13 @@ export function FreeFlapClinicalFields({
 
       <View style={styles.anastomosisButtons}>
         <Pressable
-          style={[styles.addButton, { backgroundColor: theme.error + "15", borderColor: theme.error + "30" }]}
+          style={[
+            styles.addButton,
+            {
+              backgroundColor: theme.error + "15",
+              borderColor: theme.error + "30",
+            },
+          ]}
           onPress={() => addAnastomosis("artery")}
         >
           <Feather name="plus" size={16} color={theme.error} />
@@ -293,7 +338,13 @@ export function FreeFlapClinicalFields({
           </ThemedText>
         </Pressable>
         <Pressable
-          style={[styles.addButton, { backgroundColor: theme.link + "15", borderColor: theme.link + "30" }]}
+          style={[
+            styles.addButton,
+            {
+              backgroundColor: theme.link + "15",
+              borderColor: theme.link + "30",
+            },
+          ]}
           onPress={() => addAnastomosis("vein")}
         >
           <Feather name="plus" size={16} color={theme.link} />
@@ -310,25 +361,38 @@ export function FreeFlapClinicalFields({
           { value: "left", label: "Left" },
           { value: "right", label: "Right" },
         ]}
-        onSelect={(v) => onUpdate({ ...clinicalDetails, harvestSide: v as HarvestSide })}
+        onSelect={(v) =>
+          onUpdate({ ...clinicalDetails, harvestSide: v as HarvestSide })
+        }
         required
       />
 
       <SelectField
         label="Indication"
         value={clinicalDetails.indication || ""}
-        options={Object.entries(INDICATION_LABELS).map(([value, label]) => ({ value, label }))}
-        onSelect={(v) => onUpdate({ ...clinicalDetails, indication: v as Indication })}
+        options={Object.entries(INDICATION_LABELS).map(([value, label]) => ({
+          value,
+          label,
+        }))}
+        onSelect={(v) =>
+          onUpdate({ ...clinicalDetails, indication: v as Indication })
+        }
         required
       />
 
       <FormField
         label="Ischemia Time"
-        value={clinicalDetails.ischemiaTimeMinutes ? String(clinicalDetails.ischemiaTimeMinutes) : ""}
-        onChangeText={(v) => onUpdate({ 
-          ...clinicalDetails, 
-          ischemiaTimeMinutes: v ? parseInt(v) : undefined 
-        })}
+        value={
+          clinicalDetails.ischemiaTimeMinutes
+            ? String(clinicalDetails.ischemiaTimeMinutes)
+            : ""
+        }
+        onChangeText={(v) =>
+          onUpdate({
+            ...clinicalDetails,
+            ischemiaTimeMinutes: v ? parseInt(v) : undefined,
+          })
+        }
         placeholder="60"
         keyboardType="numeric"
         unit="min"
@@ -339,11 +403,17 @@ export function FreeFlapClinicalFields({
         <View style={styles.halfField}>
           <FormField
             label="Flap Width"
-            value={clinicalDetails.flapWidthCm ? String(clinicalDetails.flapWidthCm) : ""}
-            onChangeText={(v) => onUpdate({ 
-              ...clinicalDetails, 
-              flapWidthCm: v ? parseFloat(v) : undefined 
-            })}
+            value={
+              clinicalDetails.flapWidthCm
+                ? String(clinicalDetails.flapWidthCm)
+                : ""
+            }
+            onChangeText={(v) =>
+              onUpdate({
+                ...clinicalDetails,
+                flapWidthCm: v ? parseFloat(v) : undefined,
+              })
+            }
             placeholder="8"
             keyboardType="decimal-pad"
             unit="cm"
@@ -352,11 +422,17 @@ export function FreeFlapClinicalFields({
         <View style={styles.halfField}>
           <FormField
             label="Flap Length"
-            value={clinicalDetails.flapLengthCm ? String(clinicalDetails.flapLengthCm) : ""}
-            onChangeText={(v) => onUpdate({ 
-              ...clinicalDetails, 
-              flapLengthCm: v ? parseFloat(v) : undefined 
-            })}
+            value={
+              clinicalDetails.flapLengthCm
+                ? String(clinicalDetails.flapLengthCm)
+                : ""
+            }
+            onChangeText={(v) =>
+              onUpdate({
+                ...clinicalDetails,
+                flapLengthCm: v ? parseFloat(v) : undefined,
+              })
+            }
             placeholder="15"
             keyboardType="decimal-pad"
             unit="cm"
@@ -385,13 +461,20 @@ interface SelectFieldProps {
   required?: boolean;
 }
 
-function SelectField({ label, value, options, onSelect, required }: SelectFieldProps) {
+function SelectField({
+  label,
+  value,
+  options,
+  onSelect,
+  required,
+}: SelectFieldProps) {
   const { theme } = useTheme();
-  
+
   return (
     <View style={styles.selectField}>
       <ThemedText style={[styles.selectLabel, { color: theme.textSecondary }]}>
-        {label}{required ? " *" : ""}
+        {label}
+        {required ? " *" : ""}
       </ThemedText>
       <View style={styles.selectOptions}>
         {options.map((option) => (
@@ -400,7 +483,10 @@ function SelectField({ label, value, options, onSelect, required }: SelectFieldP
             style={[
               styles.selectOption,
               {
-                backgroundColor: value === option.value ? theme.link + "20" : theme.backgroundDefault,
+                backgroundColor:
+                  value === option.value
+                    ? theme.link + "20"
+                    : theme.backgroundDefault,
                 borderColor: value === option.value ? theme.link : theme.border,
               },
             ]}
@@ -438,13 +524,17 @@ export function HandTraumaClinicalFields({
       <FormField
         label="Injury Mechanism"
         value={String(clinicalDetails.injuryMechanism || "")}
-        onChangeText={(v) => onUpdate({ ...clinicalDetails, injuryMechanism: v })}
+        onChangeText={(v) =>
+          onUpdate({ ...clinicalDetails, injuryMechanism: v })
+        }
         placeholder="e.g., Saw injury, crush injury"
       />
       <FormField
         label="Fixation Material"
         value={String(clinicalDetails.fixationMaterial || "")}
-        onChangeText={(v) => onUpdate({ ...clinicalDetails, fixationMaterial: v })}
+        onChangeText={(v) =>
+          onUpdate({ ...clinicalDetails, fixationMaterial: v })
+        }
         placeholder="e.g., K-wire 1.2mm, plate/screws"
       />
     </View>
@@ -487,22 +577,34 @@ export function BodyContouringClinicalFields({
     <View style={styles.container}>
       <FormField
         label="Resection Weight"
-        value={clinicalDetails.resectionWeightGrams ? String(clinicalDetails.resectionWeightGrams) : ""}
-        onChangeText={(v) => onUpdate({ 
-          ...clinicalDetails, 
-          resectionWeightGrams: v ? parseInt(v) : undefined 
-        })}
+        value={
+          clinicalDetails.resectionWeightGrams
+            ? String(clinicalDetails.resectionWeightGrams)
+            : ""
+        }
+        onChangeText={(v) =>
+          onUpdate({
+            ...clinicalDetails,
+            resectionWeightGrams: v ? parseInt(v) : undefined,
+          })
+        }
         placeholder="e.g., 500"
         keyboardType="numeric"
         unit="g"
       />
       <FormField
         label="Drain Output"
-        value={clinicalDetails.drainOutputMl ? String(clinicalDetails.drainOutputMl) : ""}
-        onChangeText={(v) => onUpdate({ 
-          ...clinicalDetails, 
-          drainOutputMl: v ? parseInt(v) : undefined 
-        })}
+        value={
+          clinicalDetails.drainOutputMl
+            ? String(clinicalDetails.drainOutputMl)
+            : ""
+        }
+        onChangeText={(v) =>
+          onUpdate({
+            ...clinicalDetails,
+            drainOutputMl: v ? parseInt(v) : undefined,
+          })
+        }
         placeholder="e.g., 100"
         keyboardType="numeric"
         unit="mL"
@@ -538,14 +640,25 @@ function SlnbBasinCard({ result, onUpdate, onRemove }: SlnbBasinCardProps) {
     <View
       style={[
         slnbStyles.basinCard,
-        { backgroundColor: theme.backgroundElevated, borderColor: theme.border },
+        {
+          backgroundColor: theme.backgroundElevated,
+          borderColor: theme.border,
+        },
       ]}
     >
       <View style={slnbStyles.basinCardHeader}>
         <View
-          style={[slnbStyles.basinBadge, { backgroundColor: theme.link + "18", borderColor: theme.link + "40" }]}
+          style={[
+            slnbStyles.basinBadge,
+            {
+              backgroundColor: theme.link + "18",
+              borderColor: theme.link + "40",
+            },
+          ]}
         >
-          <ThemedText style={[slnbStyles.basinBadgeText, { color: theme.link }]}>
+          <ThemedText
+            style={[slnbStyles.basinBadgeText, { color: theme.link }]}
+          >
             {SLNB_BASIN_LABELS[result.basin]}
           </ThemedText>
         </View>
@@ -565,8 +678,14 @@ function SlnbBasinCard({ result, onUpdate, onRemove }: SlnbBasinCardProps) {
         <View style={slnbStyles.basinHalf}>
           <FormField
             label="Nodes removed"
-            value={result.nodesRemoved !== undefined ? String(result.nodesRemoved) : ""}
-            onChangeText={(v) => onUpdate({ ...result, nodesRemoved: v ? parseInt(v) : undefined })}
+            value={
+              result.nodesRemoved !== undefined
+                ? String(result.nodesRemoved)
+                : ""
+            }
+            onChangeText={(v) =>
+              onUpdate({ ...result, nodesRemoved: v ? parseInt(v) : undefined })
+            }
             placeholder="0"
             keyboardType="numeric"
           />
@@ -574,8 +693,17 @@ function SlnbBasinCard({ result, onUpdate, onRemove }: SlnbBasinCardProps) {
         <View style={slnbStyles.basinHalf}>
           <FormField
             label="Nodes positive"
-            value={result.nodesPositive !== undefined ? String(result.nodesPositive) : ""}
-            onChangeText={(v) => onUpdate({ ...result, nodesPositive: v ? parseInt(v) : undefined })}
+            value={
+              result.nodesPositive !== undefined
+                ? String(result.nodesPositive)
+                : ""
+            }
+            onChangeText={(v) =>
+              onUpdate({
+                ...result,
+                nodesPositive: v ? parseInt(v) : undefined,
+              })
+            }
             placeholder="0"
             keyboardType="numeric"
           />
@@ -584,8 +712,17 @@ function SlnbBasinCard({ result, onUpdate, onRemove }: SlnbBasinCardProps) {
 
       <FormField
         label="Largest deposit"
-        value={result.largestDepositMm !== undefined ? String(result.largestDepositMm) : ""}
-        onChangeText={(v) => onUpdate({ ...result, largestDepositMm: v ? parseFloat(v) : undefined })}
+        value={
+          result.largestDepositMm !== undefined
+            ? String(result.largestDepositMm)
+            : ""
+        }
+        onChangeText={(v) =>
+          onUpdate({
+            ...result,
+            largestDepositMm: v ? parseFloat(v) : undefined,
+          })
+        }
         placeholder="e.g., 2.5"
         keyboardType="decimal-pad"
         unit="mm"
@@ -593,7 +730,9 @@ function SlnbBasinCard({ result, onUpdate, onRemove }: SlnbBasinCardProps) {
 
       {/* Extranodal extension toggle */}
       <View style={slnbStyles.toggleRow}>
-        <ThemedText style={[slnbStyles.toggleLabel, { color: theme.textSecondary }]}>
+        <ThemedText
+          style={[slnbStyles.toggleLabel, { color: theme.textSecondary }]}
+        >
           Extranodal extension
         </ThemedText>
         <View style={slnbStyles.toggleOptions}>
@@ -602,8 +741,8 @@ function SlnbBasinCard({ result, onUpdate, onRemove }: SlnbBasinCardProps) {
               result.extranodalExtension === true
                 ? "yes"
                 : result.extranodalExtension === false
-                ? "no"
-                : "unknown";
+                  ? "no"
+                  : "unknown";
             const isActive = current === opt;
             return (
               <Pressable
@@ -611,7 +750,9 @@ function SlnbBasinCard({ result, onUpdate, onRemove }: SlnbBasinCardProps) {
                 style={[
                   slnbStyles.toggleChip,
                   {
-                    backgroundColor: isActive ? theme.link + "20" : theme.backgroundDefault,
+                    backgroundColor: isActive
+                      ? theme.link + "20"
+                      : theme.backgroundDefault,
                     borderColor: isActive ? theme.link : theme.border,
                   },
                 ]}
@@ -655,15 +796,27 @@ interface SlnbClinicalFieldsProps {
   onUpdate: (details: SlnbDetails) => void;
 }
 
-const BASIN_GRID_ROWS: { label: string; left?: SlnbBasin; right?: SlnbBasin; single?: SlnbBasin }[] = [
-  { label: "Cervical / Parotid", left: "left_cervical_parotid", right: "right_cervical_parotid" },
+const BASIN_GRID_ROWS: {
+  label: string;
+  left?: SlnbBasin;
+  right?: SlnbBasin;
+  single?: SlnbBasin;
+}[] = [
+  {
+    label: "Cervical / Parotid",
+    left: "left_cervical_parotid",
+    right: "right_cervical_parotid",
+  },
   { label: "Axilla", left: "left_axilla", right: "right_axilla" },
   { label: "Groin", left: "left_groin", right: "right_groin" },
   { label: "Popliteal", left: "left_popliteal", right: "right_popliteal" },
   { label: "Other", single: "other" },
 ];
 
-export function SlnbClinicalFields({ clinicalDetails, onUpdate }: SlnbClinicalFieldsProps) {
+export function SlnbClinicalFields({
+  clinicalDetails,
+  onUpdate,
+}: SlnbClinicalFieldsProps) {
   const { theme } = useTheme();
 
   const basins = clinicalDetails.basins || [];
@@ -681,7 +834,10 @@ export function SlnbClinicalFields({ clinicalDetails, onUpdate }: SlnbClinicalFi
   };
 
   const removeBasin = (index: number) => {
-    onUpdate({ ...clinicalDetails, basins: basins.filter((_, i) => i !== index) });
+    onUpdate({
+      ...clinicalDetails,
+      basins: basins.filter((_, i) => i !== index),
+    });
   };
 
   const usedBasins = new Set(basins.map((b) => b.basin));
@@ -695,7 +851,12 @@ export function SlnbClinicalFields({ clinicalDetails, onUpdate }: SlnbClinicalFi
     }
   };
 
-  const toggleTechnique = (field: keyof Pick<SlnbDetails, "radioisotopeUsed" | "blueDyeUsed" | "gammaProbeUsed" | "spectCtPerformed">) => {
+  const toggleTechnique = (
+    field: keyof Pick<
+      SlnbDetails,
+      "radioisotopeUsed" | "blueDyeUsed" | "gammaProbeUsed" | "spectCtPerformed"
+    >,
+  ) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onUpdate({ ...clinicalDetails, [field]: !clinicalDetails[field] });
   };
@@ -710,7 +871,9 @@ export function SlnbClinicalFields({ clinicalDetails, onUpdate }: SlnbClinicalFi
   return (
     <View style={slnbStyles.container}>
       {/* Technique section */}
-      <ThemedText style={[slnbStyles.sectionLabel, { color: theme.textSecondary }]}>
+      <ThemedText
+        style={[slnbStyles.sectionLabel, { color: theme.textSecondary }]}
+      >
         Mapping technique
       </ThemedText>
       <View style={slnbStyles.techniqueGrid}>
@@ -722,17 +885,27 @@ export function SlnbClinicalFields({ clinicalDetails, onUpdate }: SlnbClinicalFi
               style={[
                 slnbStyles.techniqueChip,
                 {
-                  backgroundColor: active ? theme.link + "18" : theme.backgroundDefault,
+                  backgroundColor: active
+                    ? theme.link + "18"
+                    : theme.backgroundDefault,
                   borderColor: active ? theme.link : theme.border,
                 },
               ]}
               onPress={() => toggleTechnique(key as any)}
             >
               {active ? (
-                <Feather name="check" size={13} color={theme.link} style={{ marginRight: 4 }} />
+                <Feather
+                  name="check"
+                  size={13}
+                  color={theme.link}
+                  style={{ marginRight: 4 }}
+                />
               ) : null}
               <ThemedText
-                style={[slnbStyles.techniqueChipText, { color: active ? theme.link : theme.text }]}
+                style={[
+                  slnbStyles.techniqueChipText,
+                  { color: active ? theme.link : theme.text },
+                ]}
               >
                 {label}
               </ThemedText>
@@ -743,7 +916,9 @@ export function SlnbClinicalFields({ clinicalDetails, onUpdate }: SlnbClinicalFi
 
       {/* Basin section */}
       <View style={slnbStyles.basinHeader}>
-        <ThemedText style={[slnbStyles.sectionLabel, { color: theme.textSecondary }]}>
+        <ThemedText
+          style={[slnbStyles.sectionLabel, { color: theme.textSecondary }]}
+        >
           Basins sampled
         </ThemedText>
         {basins.length > 0 ? (
@@ -760,20 +935,32 @@ export function SlnbClinicalFields({ clinicalDetails, onUpdate }: SlnbClinicalFi
             const isActive = usedBasins.has(row.single);
             return (
               <View key={row.single} style={slnbStyles.basinGridRow}>
-                <ThemedText style={[slnbStyles.basinGridLabel, { color: theme.textSecondary }]}>
+                <ThemedText
+                  style={[
+                    slnbStyles.basinGridLabel,
+                    { color: theme.textSecondary },
+                  ]}
+                >
                   {row.label}
                 </ThemedText>
                 <Pressable
                   style={[
                     slnbStyles.basinOtherBtn,
                     {
-                      backgroundColor: isActive ? theme.link + "18" : theme.backgroundElevated,
+                      backgroundColor: isActive
+                        ? theme.link + "18"
+                        : theme.backgroundElevated,
                       borderColor: isActive ? theme.link : theme.border,
                     },
                   ]}
                   onPress={() => toggleBasin(row.single!)}
                 >
-                  <ThemedText style={[slnbStyles.basinSideBtnText, { color: isActive ? theme.link : theme.textSecondary }]}>
+                  <ThemedText
+                    style={[
+                      slnbStyles.basinSideBtnText,
+                      { color: isActive ? theme.link : theme.textSecondary },
+                    ]}
+                  >
                     Other
                   </ThemedText>
                 </Pressable>
@@ -784,7 +971,12 @@ export function SlnbClinicalFields({ clinicalDetails, onUpdate }: SlnbClinicalFi
           const rightActive = row.right ? usedBasins.has(row.right) : false;
           return (
             <View key={row.label} style={slnbStyles.basinGridRow}>
-              <ThemedText style={[slnbStyles.basinGridLabel, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[
+                  slnbStyles.basinGridLabel,
+                  { color: theme.textSecondary },
+                ]}
+              >
                 {row.label}
               </ThemedText>
               <View style={{ flexDirection: "row", gap: Spacing.xs }}>
@@ -792,13 +984,20 @@ export function SlnbClinicalFields({ clinicalDetails, onUpdate }: SlnbClinicalFi
                   style={[
                     slnbStyles.basinSideBtn,
                     {
-                      backgroundColor: leftActive ? theme.link + "18" : theme.backgroundElevated,
+                      backgroundColor: leftActive
+                        ? theme.link + "18"
+                        : theme.backgroundElevated,
                       borderColor: leftActive ? theme.link : theme.border,
                     },
                   ]}
                   onPress={() => row.left && toggleBasin(row.left)}
                 >
-                  <ThemedText style={[slnbStyles.basinSideBtnText, { color: leftActive ? theme.link : theme.textSecondary }]}>
+                  <ThemedText
+                    style={[
+                      slnbStyles.basinSideBtnText,
+                      { color: leftActive ? theme.link : theme.textSecondary },
+                    ]}
+                  >
                     Left
                   </ThemedText>
                 </Pressable>
@@ -806,13 +1005,20 @@ export function SlnbClinicalFields({ clinicalDetails, onUpdate }: SlnbClinicalFi
                   style={[
                     slnbStyles.basinSideBtn,
                     {
-                      backgroundColor: rightActive ? theme.link + "18" : theme.backgroundElevated,
+                      backgroundColor: rightActive
+                        ? theme.link + "18"
+                        : theme.backgroundElevated,
                       borderColor: rightActive ? theme.link : theme.border,
                     },
                   ]}
                   onPress={() => row.right && toggleBasin(row.right)}
                 >
-                  <ThemedText style={[slnbStyles.basinSideBtnText, { color: rightActive ? theme.link : theme.textSecondary }]}>
+                  <ThemedText
+                    style={[
+                      slnbStyles.basinSideBtnText,
+                      { color: rightActive ? theme.link : theme.textSecondary },
+                    ]}
+                  >
                     Right
                   </ThemedText>
                 </Pressable>
@@ -994,16 +1200,19 @@ export function ProcedureClinicalDetails({
   isSlnbProcedure,
 }: ProcedureClinicalDetailsProps) {
   const { theme } = useTheme();
-  
-  const picklistEntry = picklistEntryId ? findPicklistEntry(picklistEntryId) : undefined;
+
+  const picklistEntry = picklistEntryId
+    ? findPicklistEntry(picklistEntryId)
+    : undefined;
   const isFreeFlapProcedure = picklistEntry
     ? !!picklistEntry.hasFreeFlap
     : procedureType.toLowerCase().includes("free flap") ||
       procedureType.toLowerCase().includes("free tissue");
 
   // SLNB: triggered by hasSlnb flag on picklist entry, or explicit prop
-  const isSlnb = isSlnbProcedure || (picklistEntry ? !!picklistEntry.hasSlnb : false);
-  
+  const isSlnb =
+    isSlnbProcedure || (picklistEntry ? !!picklistEntry.hasSlnb : false);
+
   if (isSlnb) {
     const existing = clinicalDetails as Partial<SlnbDetails>;
     const slnbDetails: SlnbDetails = {
@@ -1014,15 +1223,12 @@ export function ProcedureClinicalDetails({
       spectCtPerformed: existing.spectCtPerformed,
     };
     return (
-      <SlnbClinicalFields
-        clinicalDetails={slnbDetails}
-        onUpdate={onUpdate}
-      />
+      <SlnbClinicalFields clinicalDetails={slnbDetails} onUpdate={onUpdate} />
     );
   }
-  
+
   if (isFreeFlapProcedure) {
-    const existingDetails = clinicalDetails as FreeFlapDetails || {};
+    const existingDetails = (clinicalDetails as FreeFlapDetails) || {};
     const freeFlapDetails: FreeFlapDetails = {
       ...existingDetails,
       harvestSide: existingDetails.harvestSide || "left",

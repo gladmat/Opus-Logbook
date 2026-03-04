@@ -22,7 +22,10 @@ interface WoundAssessmentCardProps {
   createdAt: string;
 }
 
-function getHealingTrendColor(trend: HealingTrend, theme: typeof import("@/constants/theme").Colors.light): string {
+function getHealingTrendColor(
+  trend: HealingTrend,
+  theme: typeof import("@/constants/theme").Colors.light,
+): string {
   switch (trend) {
     case "improving":
       return theme.success;
@@ -48,24 +51,32 @@ function getHealingTrendIcon(trend: HealingTrend): string {
   }
 }
 
-export function WoundAssessmentCard({ data, createdAt }: WoundAssessmentCardProps) {
+export function WoundAssessmentCard({
+  data,
+  createdAt,
+}: WoundAssessmentCardProps) {
   const { theme } = useTheme();
 
-  const hasDimensions = data.lengthCm != null || data.widthCm != null || data.depthCm != null;
+  const hasDimensions =
+    data.lengthCm != null || data.widthCm != null || data.depthCm != null;
   const hasInfectionSigns = (data.infectionSigns?.length ?? 0) > 0;
   const hasDressings = (data.dressings?.length ?? 0) > 0;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
       <View style={styles.headerRow}>
-        <View style={[styles.iconBadge, { backgroundColor: theme.info + "20" }]}>
+        <View
+          style={[styles.iconBadge, { backgroundColor: theme.info + "20" }]}
+        >
           <Feather name="thermometer" size={14} color={theme.info} />
         </View>
         <View style={styles.headerText}>
           <ThemedText style={[styles.headerTitle, { color: theme.info }]}>
             Wound Assessment
           </ThemedText>
-          <ThemedText style={[styles.headerDate, { color: theme.textTertiary }]}>
+          <ThemedText
+            style={[styles.headerDate, { color: theme.textTertiary }]}
+          >
             {new Date(createdAt).toLocaleDateString()}
           </ThemedText>
         </View>
@@ -89,7 +100,9 @@ export function WoundAssessmentCard({ data, createdAt }: WoundAssessmentCardProp
       <View style={styles.detailsGrid}>
         {data.tissueType ? (
           <View style={styles.detailItem}>
-            <ThemedText style={[styles.detailLabel, { color: theme.textTertiary }]}>
+            <ThemedText
+              style={[styles.detailLabel, { color: theme.textTertiary }]}
+            >
               Tissue
             </ThemedText>
             <ThemedText style={[styles.detailValue, { color: theme.text }]}>
@@ -100,19 +113,25 @@ export function WoundAssessmentCard({ data, createdAt }: WoundAssessmentCardProp
 
         {data.exudateAmount ? (
           <View style={styles.detailItem}>
-            <ThemedText style={[styles.detailLabel, { color: theme.textTertiary }]}>
+            <ThemedText
+              style={[styles.detailLabel, { color: theme.textTertiary }]}
+            >
               Exudate
             </ThemedText>
             <ThemedText style={[styles.detailValue, { color: theme.text }]}>
               {EXUDATE_AMOUNT_LABELS[data.exudateAmount]}
-              {data.exudateType ? ` (${EXUDATE_TYPE_LABELS[data.exudateType]})` : ""}
+              {data.exudateType
+                ? ` (${EXUDATE_TYPE_LABELS[data.exudateType]})`
+                : ""}
             </ThemedText>
           </View>
         ) : null}
 
         {data.edgeStatus ? (
           <View style={styles.detailItem}>
-            <ThemedText style={[styles.detailLabel, { color: theme.textTertiary }]}>
+            <ThemedText
+              style={[styles.detailLabel, { color: theme.textTertiary }]}
+            >
               Edge
             </ThemedText>
             <ThemedText style={[styles.detailValue, { color: theme.text }]}>
@@ -123,7 +142,9 @@ export function WoundAssessmentCard({ data, createdAt }: WoundAssessmentCardProp
 
         {data.surroundingSkin ? (
           <View style={styles.detailItem}>
-            <ThemedText style={[styles.detailLabel, { color: theme.textTertiary }]}>
+            <ThemedText
+              style={[styles.detailLabel, { color: theme.textTertiary }]}
+            >
               Skin
             </ThemedText>
             <ThemedText style={[styles.detailValue, { color: theme.text }]}>
@@ -134,17 +155,23 @@ export function WoundAssessmentCard({ data, createdAt }: WoundAssessmentCardProp
       </View>
 
       {hasInfectionSigns ? (
-        <View style={[styles.infectionRow, { backgroundColor: theme.error + "15" }]}>
+        <View
+          style={[styles.infectionRow, { backgroundColor: theme.error + "15" }]}
+        >
           <Feather name="alert-triangle" size={13} color={theme.error} />
           <ThemedText style={[styles.infectionText, { color: theme.error }]}>
-            {data.infectionSigns!.map((s) => INFECTION_SIGN_LABELS[s]).join(", ")}
+            {data
+              .infectionSigns!.map((s) => INFECTION_SIGN_LABELS[s])
+              .join(", ")}
           </ThemedText>
         </View>
       ) : null}
 
       {hasDressings ? (
         <View style={styles.dressingsSection}>
-          <ThemedText style={[styles.detailLabel, { color: theme.textTertiary }]}>
+          <ThemedText
+            style={[styles.detailLabel, { color: theme.textTertiary }]}
+          >
             Dressings
           </ThemedText>
           {data.dressings.map((d, idx) => (
@@ -153,7 +180,9 @@ export function WoundAssessmentCard({ data, createdAt }: WoundAssessmentCardProp
                 {d.productName}
                 {d.quantity != null && d.quantity > 1 ? ` x${d.quantity}` : ""}
               </ThemedText>
-              <ThemedText style={[styles.dressingCategory, { color: theme.textTertiary }]}>
+              <ThemedText
+                style={[styles.dressingCategory, { color: theme.textTertiary }]}
+              >
                 {DRESSING_CATEGORY_LABELS[d.category]}
               </ThemedText>
             </View>
@@ -180,7 +209,9 @@ export function WoundAssessmentCard({ data, createdAt }: WoundAssessmentCardProp
       ) : null}
 
       {data.clinicianNote ? (
-        <ThemedText style={[styles.clinicianNote, { color: theme.textSecondary }]}>
+        <ThemedText
+          style={[styles.clinicianNote, { color: theme.textSecondary }]}
+        >
           {data.clinicianNote}
         </ThemedText>
       ) : null}
@@ -188,7 +219,9 @@ export function WoundAssessmentCard({ data, createdAt }: WoundAssessmentCardProp
       {data.nextReviewDate ? (
         <View style={styles.reviewRow}>
           <Feather name="calendar" size={12} color={theme.textTertiary} />
-          <ThemedText style={[styles.reviewText, { color: theme.textTertiary }]}>
+          <ThemedText
+            style={[styles.reviewText, { color: theme.textTertiary }]}
+          >
             Next review: {new Date(data.nextReviewDate).toLocaleDateString()}
           </ThemedText>
         </View>

@@ -47,7 +47,7 @@ export interface DiagnosisStagingConfig {
 export async function searchSnomedProcedures(
   query: string,
   specialty?: Specialty,
-  limit: number = 20
+  limit: number = 20,
 ): Promise<SnomedSearchResult[]> {
   if (!query || query.length < 2) {
     return [];
@@ -76,7 +76,7 @@ export async function searchSnomedProcedures(
 export async function searchSnomedDiagnoses(
   query: string,
   specialty?: Specialty,
-  limit: number = 20
+  limit: number = 20,
 ): Promise<SnomedSearchResult[]> {
   if (!query || query.length < 2) {
     return [];
@@ -104,7 +104,7 @@ export async function searchSnomedDiagnoses(
  */
 export async function getDiagnosisStaging(
   snomedCode?: string,
-  diagnosisName?: string
+  diagnosisName?: string,
 ): Promise<DiagnosisStagingConfig | null> {
   const params = new URLSearchParams();
   if (snomedCode) {
@@ -127,7 +127,7 @@ export async function getDiagnosisStaging(
 export async function fetchSnomedRefs(
   category?: string,
   anatomicalRegion?: string,
-  specialty?: string
+  specialty?: string,
 ): Promise<SnomedRefItem[]> {
   const params = new URLSearchParams();
   if (category) params.set("category", category);
@@ -142,12 +142,15 @@ export async function fetchSnomedRefs(
 
 export async function fetchVesselsByRegion(
   region: AnatomicalRegion,
-  vesselType?: "artery" | "vein"
+  vesselType?: "artery" | "vein",
 ): Promise<SnomedRefItem[]> {
   const params = new URLSearchParams();
   if (vesselType) params.set("subcategory", vesselType);
 
-  const url = new URL(`/api/snomed-ref/vessels/${region}?${params.toString()}`, API_BASE);
+  const url = new URL(
+    `/api/snomed-ref/vessels/${region}?${params.toString()}`,
+    API_BASE,
+  );
   const response = await authedFetch(url.toString());
   if (!response.ok) throw new Error("Failed to fetch vessels");
   return response.json();
@@ -167,7 +170,9 @@ export async function fetchFlapTypes(): Promise<SnomedRefItem[]> {
   return response.json();
 }
 
-export async function fetchDonorVessels(flapType: string): Promise<SnomedRefItem[]> {
+export async function fetchDonorVessels(
+  flapType: string,
+): Promise<SnomedRefItem[]> {
   const url = new URL(`/api/snomed-ref/donor-vessels/${flapType}`, API_BASE);
   const response = await authedFetch(url.toString());
   if (!response.ok) throw new Error("Failed to fetch donor vessels");
@@ -196,7 +201,10 @@ export async function fetchAnastomosisConfigs(): Promise<SnomedRefItem[]> {
 }
 
 // Local recipient vessel presets by body region for fallback
-export const RECIPIENT_VESSEL_PRESETS: Record<AnatomicalRegion, { arteries: string[]; veins: string[] }> = {
+export const RECIPIENT_VESSEL_PRESETS: Record<
+  AnatomicalRegion,
+  { arteries: string[]; veins: string[] }
+> = {
   lower_leg: {
     arteries: [
       "Anterior tibial artery",
@@ -218,11 +226,7 @@ export const RECIPIENT_VESSEL_PRESETS: Record<AnatomicalRegion, { arteries: stri
       "Superior medial genicular artery",
       "Superior lateral genicular artery",
     ],
-    veins: [
-      "Popliteal vein",
-      "Great saphenous vein",
-      "Small saphenous vein",
-    ],
+    veins: ["Popliteal vein", "Great saphenous vein", "Small saphenous vein"],
   },
   foot: {
     arteries: [
@@ -243,11 +247,7 @@ export const RECIPIENT_VESSEL_PRESETS: Record<AnatomicalRegion, { arteries: stri
       "Profunda femoris artery",
       "Descending branch of lateral circumflex femoral artery",
     ],
-    veins: [
-      "Great saphenous vein",
-      "Femoral vein",
-      "Profunda femoris vein",
-    ],
+    veins: ["Great saphenous vein", "Femoral vein", "Profunda femoris vein"],
   },
   hand: {
     arteries: [
@@ -281,15 +281,8 @@ export const RECIPIENT_VESSEL_PRESETS: Record<AnatomicalRegion, { arteries: stri
     ],
   },
   upper_arm: {
-    arteries: [
-      "Brachial artery",
-      "Profunda brachii artery",
-    ],
-    veins: [
-      "Cephalic vein",
-      "Basilic vein",
-      "Brachial veins",
-    ],
+    arteries: ["Brachial artery", "Profunda brachii artery"],
+    veins: ["Cephalic vein", "Basilic vein", "Brachial veins"],
   },
   head_neck: {
     arteries: [
@@ -328,7 +321,7 @@ export const RECIPIENT_VESSEL_PRESETS: Record<AnatomicalRegion, { arteries: stri
  */
 export function getRecipientVesselPresets(
   region: AnatomicalRegion,
-  vesselType: "artery" | "vein"
+  vesselType: "artery" | "vein",
 ): string[] {
   const presets = RECIPIENT_VESSEL_PRESETS[region];
   if (!presets) return [];

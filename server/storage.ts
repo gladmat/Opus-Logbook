@@ -1,13 +1,29 @@
-import { 
-  users, type User, type InsertUser,
-  profiles, type Profile, type InsertProfile,
-  userFacilities, type UserFacility, type InsertUserFacility,
-  snomedRef, type SnomedRef, type InsertSnomedRef,
-  procedures, type Procedure, type InsertProcedure,
-  flaps, type Flap, type InsertFlap,
-  anastomoses, type Anastomosis, type InsertAnastomosis,
-  passwordResetTokens, type PasswordResetToken,
-  userDeviceKeys, type UserDeviceKey
+import {
+  users,
+  type User,
+  type InsertUser,
+  profiles,
+  type Profile,
+  type InsertProfile,
+  userFacilities,
+  type UserFacility,
+  type InsertUserFacility,
+  snomedRef,
+  type SnomedRef,
+  type InsertSnomedRef,
+  procedures,
+  type Procedure,
+  type InsertProcedure,
+  flaps,
+  type Flap,
+  type InsertFlap,
+  anastomoses,
+  type Anastomosis,
+  type InsertAnastomosis,
+  passwordResetTokens,
+  type PasswordResetToken,
+  userDeviceKeys,
+  type UserDeviceKey,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, ne, ilike, sql, lt, isNull, desc } from "drizzle-orm";
@@ -17,47 +33,78 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserPassword(userId: string, hashedPassword: string): Promise<boolean>;
-  
-  createPasswordResetToken(userId: string, token: string, expiresAt: Date): Promise<PasswordResetToken>;
+  deleteUserAccount(userId: string): Promise<void>;
+
+  createPasswordResetToken(
+    userId: string,
+    token: string,
+    expiresAt: Date,
+  ): Promise<PasswordResetToken>;
   getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined>;
   markPasswordResetTokenUsed(id: string): Promise<boolean>;
   deleteExpiredPasswordResetTokens(): Promise<void>;
-  
+
   getProfile(userId: string): Promise<Profile | undefined>;
   createProfile(profile: InsertProfile): Promise<Profile>;
-  updateProfile(userId: string, profile: Partial<InsertProfile>): Promise<Profile | undefined>;
-  
+  updateProfile(
+    userId: string,
+    profile: Partial<InsertProfile>,
+  ): Promise<Profile | undefined>;
+
   getUserFacilities(userId: string): Promise<UserFacility[]>;
   createUserFacility(facility: InsertUserFacility): Promise<UserFacility>;
-  updateUserFacility(id: string, userId: string, facility: Partial<InsertUserFacility>): Promise<UserFacility | undefined>;
+  updateUserFacility(
+    id: string,
+    userId: string,
+    facility: Partial<InsertUserFacility>,
+  ): Promise<UserFacility | undefined>;
   clearPrimaryFacilities(userId: string, excludeId: string): Promise<void>;
   // IMPROVEMENT: IDOR fix — requires userId to enforce ownership at query level
   deleteUserFacility(id: string, userId: string): Promise<boolean>;
-  
-  getSnomedRefs(category?: string, anatomicalRegion?: string, specialty?: string): Promise<SnomedRef[]>;
+
+  getSnomedRefs(
+    category?: string,
+    anatomicalRegion?: string,
+    specialty?: string,
+  ): Promise<SnomedRef[]>;
   getSnomedRefByCode(snomedCtCode: string): Promise<SnomedRef | undefined>;
   createSnomedRef(ref: InsertSnomedRef): Promise<SnomedRef>;
   bulkCreateSnomedRefs(refs: InsertSnomedRef[]): Promise<SnomedRef[]>;
-  
+
   getProcedure(id: string): Promise<Procedure | undefined>;
-  getProceduresByUser(userId: string, limit?: number, offset?: number): Promise<Procedure[]>;
+  getProceduresByUser(
+    userId: string,
+    limit?: number,
+    offset?: number,
+  ): Promise<Procedure[]>;
   createProcedure(procedure: InsertProcedure): Promise<Procedure>;
-  updateProcedure(id: string, procedure: Partial<InsertProcedure>): Promise<Procedure | undefined>;
-  
+  updateProcedure(
+    id: string,
+    procedure: Partial<InsertProcedure>,
+  ): Promise<Procedure | undefined>;
+
   getFlap(id: string): Promise<Flap | undefined>;
   getFlapsByProcedure(procedureId: string): Promise<Flap[]>;
   createFlap(flap: InsertFlap): Promise<Flap>;
   updateFlap(id: string, flap: Partial<InsertFlap>): Promise<Flap | undefined>;
   deleteFlap(id: string): Promise<boolean>;
-  
+
   getAnastomosis(id: string): Promise<Anastomosis | undefined>;
   getAnastomosesByFlap(flapId: string): Promise<Anastomosis[]>;
   createAnastomosis(anastomosis: InsertAnastomosis): Promise<Anastomosis>;
-  updateAnastomosis(id: string, anastomosis: Partial<InsertAnastomosis>): Promise<Anastomosis | undefined>;
+  updateAnastomosis(
+    id: string,
+    anastomosis: Partial<InsertAnastomosis>,
+  ): Promise<Anastomosis | undefined>;
   deleteAnastomosis(id: string): Promise<boolean>;
-  
+
   getUserDeviceKeys(userId: string): Promise<UserDeviceKey[]>;
-  upsertUserDeviceKey(userId: string, deviceId: string, publicKey: string, label?: string | null): Promise<UserDeviceKey>;
+  upsertUserDeviceKey(
+    userId: string,
+    deviceId: string,
+    publicKey: string,
+    label?: string | null,
+  ): Promise<UserDeviceKey>;
   revokeUserDeviceKey(userId: string, deviceId: string): Promise<boolean>;
 }
 
@@ -74,10 +121,13 @@ export class DatabaseStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db.insert(users).values(insertUser).returning();
-    return user;
+    return user!;
   }
 
-  async updateUserPassword(userId: string, hashedPassword: string): Promise<boolean> {
+  async updateUserPassword(
+    userId: string,
+    hashedPassword: string,
+  ): Promise<boolean> {
     await db
       .update(users)
       .set({
@@ -88,40 +138,70 @@ export class DatabaseStorage implements IStorage {
     return true;
   }
 
-  async createPasswordResetToken(userId: string, token: string, expiresAt: Date): Promise<PasswordResetToken> {
-    const [created] = await db.insert(passwordResetTokens).values({
-      userId,
-      token,
-      expiresAt,
-    }).returning();
-    return created;
+  async deleteUserAccount(userId: string): Promise<void> {
+    // With cascades configured, deleting the user row removes all related data:
+    // profiles, user_facilities, user_device_keys, password_reset_tokens,
+    // team_members, procedures (-> flaps -> anastomoses, case_procedures), teams
+    await db.delete(users).where(eq(users.id, userId));
   }
 
-  async getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined> {
-    const [resetToken] = await db.select().from(passwordResetTokens).where(eq(passwordResetTokens.token, token));
+  async createPasswordResetToken(
+    userId: string,
+    token: string,
+    expiresAt: Date,
+  ): Promise<PasswordResetToken> {
+    const [created] = await db
+      .insert(passwordResetTokens)
+      .values({
+        userId,
+        token,
+        expiresAt,
+      })
+      .returning();
+    return created!;
+  }
+
+  async getPasswordResetToken(
+    token: string,
+  ): Promise<PasswordResetToken | undefined> {
+    const [resetToken] = await db
+      .select()
+      .from(passwordResetTokens)
+      .where(eq(passwordResetTokens.token, token));
     return resetToken || undefined;
   }
 
   async markPasswordResetTokenUsed(id: string): Promise<boolean> {
-    await db.update(passwordResetTokens).set({ used: true }).where(eq(passwordResetTokens.id, id));
+    await db
+      .update(passwordResetTokens)
+      .set({ used: true })
+      .where(eq(passwordResetTokens.id, id));
     return true;
   }
 
   async deleteExpiredPasswordResetTokens(): Promise<void> {
-    await db.delete(passwordResetTokens).where(lt(passwordResetTokens.expiresAt, new Date()));
+    await db
+      .delete(passwordResetTokens)
+      .where(lt(passwordResetTokens.expiresAt, new Date()));
   }
 
   async getProfile(userId: string): Promise<Profile | undefined> {
-    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, userId));
+    const [profile] = await db
+      .select()
+      .from(profiles)
+      .where(eq(profiles.userId, userId));
     return profile || undefined;
   }
 
   async createProfile(profile: InsertProfile): Promise<Profile> {
     const [created] = await db.insert(profiles).values(profile).returning();
-    return created;
+    return created!;
   }
 
-  async updateProfile(userId: string, profile: Partial<InsertProfile>): Promise<Profile | undefined> {
+  async updateProfile(
+    userId: string,
+    profile: Partial<InsertProfile>,
+  ): Promise<Profile | undefined> {
     const [updated] = await db
       .update(profiles)
       .set({ ...profile, updatedAt: new Date() })
@@ -131,15 +211,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserFacilities(userId: string): Promise<UserFacility[]> {
-    return db.select().from(userFacilities).where(eq(userFacilities.userId, userId));
+    return db
+      .select()
+      .from(userFacilities)
+      .where(eq(userFacilities.userId, userId));
   }
 
-  async createUserFacility(facility: InsertUserFacility): Promise<UserFacility> {
-    const [created] = await db.insert(userFacilities).values(facility).returning();
-    return created;
+  async createUserFacility(
+    facility: InsertUserFacility,
+  ): Promise<UserFacility> {
+    const [created] = await db
+      .insert(userFacilities)
+      .values(facility)
+      .returning();
+    return created!;
   }
 
-  async updateUserFacility(id: string, userId: string, facility: Partial<InsertUserFacility>): Promise<UserFacility | undefined> {
+  async updateUserFacility(
+    id: string,
+    userId: string,
+    facility: Partial<InsertUserFacility>,
+  ): Promise<UserFacility | undefined> {
     const [updated] = await db
       .update(userFacilities)
       .set(facility)
@@ -149,7 +241,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Batch unset isPrimary for all user facilities except the one being set as primary
-  async clearPrimaryFacilities(userId: string, excludeId: string): Promise<void> {
+  async clearPrimaryFacilities(
+    userId: string,
+    excludeId: string,
+  ): Promise<void> {
     await db
       .update(userFacilities)
       .set({ isPrimary: false })
@@ -157,8 +252,8 @@ export class DatabaseStorage implements IStorage {
         and(
           eq(userFacilities.userId, userId),
           eq(userFacilities.isPrimary, true),
-          ne(userFacilities.id, excludeId)
-        )
+          ne(userFacilities.id, excludeId),
+        ),
       );
   }
 
@@ -172,9 +267,13 @@ export class DatabaseStorage implements IStorage {
     return result.length > 0;
   }
 
-  async getSnomedRefs(category?: string, anatomicalRegion?: string, specialty?: string): Promise<SnomedRef[]> {
+  async getSnomedRefs(
+    category?: string,
+    anatomicalRegion?: string,
+    specialty?: string,
+  ): Promise<SnomedRef[]> {
     const conditions = [eq(snomedRef.isActive, true)];
-    
+
     if (category) {
       conditions.push(eq(snomedRef.category, category));
     }
@@ -184,24 +283,29 @@ export class DatabaseStorage implements IStorage {
     if (specialty) {
       conditions.push(eq(snomedRef.specialty, specialty));
     }
-    
+
     const result = await db
       .select()
       .from(snomedRef)
       .where(and(...conditions))
       .orderBy(snomedRef.sortOrder, snomedRef.displayName);
-    
+
     return result;
   }
 
-  async getSnomedRefByCode(snomedCtCode: string): Promise<SnomedRef | undefined> {
-    const [ref] = await db.select().from(snomedRef).where(eq(snomedRef.snomedCtCode, snomedCtCode));
+  async getSnomedRefByCode(
+    snomedCtCode: string,
+  ): Promise<SnomedRef | undefined> {
+    const [ref] = await db
+      .select()
+      .from(snomedRef)
+      .where(eq(snomedRef.snomedCtCode, snomedCtCode));
     return ref || undefined;
   }
 
   async createSnomedRef(ref: InsertSnomedRef): Promise<SnomedRef> {
     const [created] = await db.insert(snomedRef).values(ref).returning();
-    return created;
+    return created!;
   }
 
   async bulkCreateSnomedRefs(refs: InsertSnomedRef[]): Promise<SnomedRef[]> {
@@ -211,11 +315,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProcedure(id: string): Promise<Procedure | undefined> {
-    const [procedure] = await db.select().from(procedures).where(eq(procedures.id, id));
+    const [procedure] = await db
+      .select()
+      .from(procedures)
+      .where(eq(procedures.id, id));
     return procedure || undefined;
   }
 
-  async getProceduresByUser(userId: string, limit: number = 50, offset: number = 0): Promise<Procedure[]> {
+  async getProceduresByUser(
+    userId: string,
+    limit: number = 50,
+    offset: number = 0,
+  ): Promise<Procedure[]> {
     return db
       .select()
       .from(procedures)
@@ -227,10 +338,13 @@ export class DatabaseStorage implements IStorage {
 
   async createProcedure(procedure: InsertProcedure): Promise<Procedure> {
     const [created] = await db.insert(procedures).values(procedure).returning();
-    return created;
+    return created!;
   }
 
-  async updateProcedure(id: string, procedure: Partial<InsertProcedure>): Promise<Procedure | undefined> {
+  async updateProcedure(
+    id: string,
+    procedure: Partial<InsertProcedure>,
+  ): Promise<Procedure | undefined> {
     const [updated] = await db
       .update(procedures)
       .set({ ...procedure, updatedAt: new Date() })
@@ -250,11 +364,18 @@ export class DatabaseStorage implements IStorage {
 
   async createFlap(flap: InsertFlap): Promise<Flap> {
     const [created] = await db.insert(flaps).values(flap).returning();
-    return created;
+    return created!;
   }
 
-  async updateFlap(id: string, flap: Partial<InsertFlap>): Promise<Flap | undefined> {
-    const [updated] = await db.update(flaps).set(flap).where(eq(flaps.id, id)).returning();
+  async updateFlap(
+    id: string,
+    flap: Partial<InsertFlap>,
+  ): Promise<Flap | undefined> {
+    const [updated] = await db
+      .update(flaps)
+      .set(flap)
+      .where(eq(flaps.id, id))
+      .returning();
     return updated || undefined;
   }
 
@@ -264,7 +385,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAnastomosis(id: string): Promise<Anastomosis | undefined> {
-    const [anastomosis] = await db.select().from(anastomoses).where(eq(anastomoses.id, id));
+    const [anastomosis] = await db
+      .select()
+      .from(anastomoses)
+      .where(eq(anastomoses.id, id));
     return anastomosis || undefined;
   }
 
@@ -272,13 +396,25 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(anastomoses).where(eq(anastomoses.flapId, flapId));
   }
 
-  async createAnastomosis(anastomosis: InsertAnastomosis): Promise<Anastomosis> {
-    const [created] = await db.insert(anastomoses).values(anastomosis).returning();
-    return created;
+  async createAnastomosis(
+    anastomosis: InsertAnastomosis,
+  ): Promise<Anastomosis> {
+    const [created] = await db
+      .insert(anastomoses)
+      .values(anastomosis)
+      .returning();
+    return created!;
   }
 
-  async updateAnastomosis(id: string, anastomosis: Partial<InsertAnastomosis>): Promise<Anastomosis | undefined> {
-    const [updated] = await db.update(anastomoses).set(anastomosis).where(eq(anastomoses.id, id)).returning();
+  async updateAnastomosis(
+    id: string,
+    anastomosis: Partial<InsertAnastomosis>,
+  ): Promise<Anastomosis | undefined> {
+    const [updated] = await db
+      .update(anastomoses)
+      .set(anastomosis)
+      .where(eq(anastomoses.id, id))
+      .returning();
     return updated || undefined;
   }
 
@@ -288,11 +424,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Ownership verification helpers — single query each (no N+1 chains)
-  async verifyProcedureOwnership(procedureId: string, userId: string): Promise<boolean> {
+  async verifyProcedureOwnership(
+    procedureId: string,
+    userId: string,
+  ): Promise<boolean> {
     const [result] = await db
       .select({ id: procedures.id })
       .from(procedures)
-      .where(and(eq(procedures.id, procedureId), eq(procedures.userId, userId)));
+      .where(
+        and(eq(procedures.id, procedureId), eq(procedures.userId, userId)),
+      );
     return !!result;
   }
 
@@ -305,13 +446,18 @@ export class DatabaseStorage implements IStorage {
     return !!result;
   }
 
-  async verifyAnastomosisOwnership(anastomosisId: string, userId: string): Promise<boolean> {
+  async verifyAnastomosisOwnership(
+    anastomosisId: string,
+    userId: string,
+  ): Promise<boolean> {
     const [result] = await db
       .select({ id: anastomoses.id })
       .from(anastomoses)
       .innerJoin(flaps, eq(anastomoses.flapId, flaps.id))
       .innerJoin(procedures, eq(flaps.procedureId, procedures.id))
-      .where(and(eq(anastomoses.id, anastomosisId), eq(procedures.userId, userId)));
+      .where(
+        and(eq(anastomoses.id, anastomosisId), eq(procedures.userId, userId)),
+      );
     return !!result;
   }
 
@@ -319,14 +465,29 @@ export class DatabaseStorage implements IStorage {
     return db
       .select()
       .from(userDeviceKeys)
-      .where(and(eq(userDeviceKeys.userId, userId), isNull(userDeviceKeys.revokedAt)));
+      .where(
+        and(
+          eq(userDeviceKeys.userId, userId),
+          isNull(userDeviceKeys.revokedAt),
+        ),
+      );
   }
 
-  async upsertUserDeviceKey(userId: string, deviceId: string, publicKey: string, label?: string | null): Promise<UserDeviceKey> {
+  async upsertUserDeviceKey(
+    userId: string,
+    deviceId: string,
+    publicKey: string,
+    label?: string | null,
+  ): Promise<UserDeviceKey> {
     const [existing] = await db
       .select()
       .from(userDeviceKeys)
-      .where(and(eq(userDeviceKeys.userId, userId), eq(userDeviceKeys.deviceId, deviceId)));
+      .where(
+        and(
+          eq(userDeviceKeys.userId, userId),
+          eq(userDeviceKeys.deviceId, deviceId),
+        ),
+      );
 
     if (existing) {
       const [updated] = await db
@@ -339,21 +500,29 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(userDeviceKeys.id, existing.id))
         .returning();
-      return updated;
+      return updated!;
     }
 
     const [created] = await db
       .insert(userDeviceKeys)
       .values({ userId, deviceId, publicKey, label: label ?? null })
       .returning();
-    return created;
+    return created!;
   }
 
-  async revokeUserDeviceKey(userId: string, deviceId: string): Promise<boolean> {
+  async revokeUserDeviceKey(
+    userId: string,
+    deviceId: string,
+  ): Promise<boolean> {
     await db
       .update(userDeviceKeys)
       .set({ revokedAt: new Date() })
-      .where(and(eq(userDeviceKeys.userId, userId), eq(userDeviceKeys.deviceId, deviceId)));
+      .where(
+        and(
+          eq(userDeviceKeys.userId, userId),
+          eq(userDeviceKeys.deviceId, deviceId),
+        ),
+      );
     return true;
   }
 }

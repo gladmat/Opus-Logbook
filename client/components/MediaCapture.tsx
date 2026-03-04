@@ -18,7 +18,11 @@ import { EncryptedImage } from "@/components/EncryptedImage";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
-import { MediaAttachment, MEDIA_CATEGORY_LABELS, TimelineEventType } from "@/types/case";
+import {
+  MediaAttachment,
+  MEDIA_CATEGORY_LABELS,
+  TimelineEventType,
+} from "@/types/case";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useMediaCallback } from "@/contexts/MediaCallbackContext";
 
@@ -38,7 +42,8 @@ export function MediaCapture({
   eventType,
 }: MediaCaptureProps) {
   const { theme } = useTheme();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { registerCallback } = useMediaCallback();
   const [cameraPermission, requestCameraPermission] =
     ImagePicker.useCameraPermissions();
@@ -83,7 +88,7 @@ export function MediaCapture({
                   },
                 ]
               : []),
-          ]
+          ],
         );
         return;
       }
@@ -100,6 +105,7 @@ export function MediaCapture({
 
       if (!result.canceled && result.assets.length > 0) {
         const asset = result.assets[0];
+        if (!asset) return;
         const mime = asset.mimeType || "image/jpeg";
         const encryptedUri = asset.base64
           ? await saveEncryptedMedia(asset.base64, mime, asset.uri)
@@ -142,7 +148,7 @@ export function MediaCapture({
               mimeType: mime,
               createdAt: new Date().toISOString(),
             };
-          })
+          }),
         );
         onAttachmentsChange([...attachments, ...encryptedAttachments]);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -177,15 +183,15 @@ export function MediaCapture({
             if (caption !== undefined) {
               onAttachmentsChange(
                 attachments.map((a) =>
-                  a.id === attachmentId ? { ...a, caption } : a
-                )
+                  a.id === attachmentId ? { ...a, caption } : a,
+                ),
               );
             }
           },
         },
       ],
       "plain-text",
-      attachment.caption
+      attachment.caption,
     );
   };
 
@@ -236,7 +242,10 @@ export function MediaCapture({
                     { backgroundColor: theme.link },
                   ]}
                 >
-                  <ThemedText style={styles.categoryBadgeText} numberOfLines={1}>
+                  <ThemedText
+                    style={styles.categoryBadgeText}
+                    numberOfLines={1}
+                  >
                     {MEDIA_CATEGORY_LABELS[attachment.category]}
                   </ThemedText>
                 </View>
@@ -247,7 +256,10 @@ export function MediaCapture({
                     { backgroundColor: theme.warning },
                   ]}
                 >
-                  <ThemedText style={styles.categoryBadgeText} numberOfLines={1}>
+                  <ThemedText
+                    style={styles.categoryBadgeText}
+                    numberOfLines={1}
+                  >
                     Uncategorized
                   </ThemedText>
                 </View>
@@ -257,13 +269,12 @@ export function MediaCapture({
           <View style={styles.addButtonsColumn}>
             <Pressable
               onPress={handleOpenMediaManager}
-              style={[
-                styles.manageButton,
-                { backgroundColor: theme.link },
-              ]}
+              style={[styles.manageButton, { backgroundColor: theme.link }]}
             >
               <Feather name="grid" size={16} color={theme.buttonText} />
-              <ThemedText style={[styles.manageButtonText, { color: theme.buttonText }]}>
+              <ThemedText
+                style={[styles.manageButtonText, { color: theme.buttonText }]}
+              >
                 Manage
               </ThemedText>
             </Pressable>

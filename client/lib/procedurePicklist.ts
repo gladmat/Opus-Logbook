@@ -189,7 +189,8 @@ const ORTHOPLASTIC_FREE_FLAP: ProcedurePicklistEntry[] = [
     id: "orth_ff_scip",
     displayName: "Free SCIP flap (Superficial Circumflex Iliac Perforator)",
     snomedCtCode: "234299000",
-    snomedCtDisplay: "Free superficial circumflex iliac artery flap (procedure)",
+    snomedCtDisplay:
+      "Free superficial circumflex iliac artery flap (procedure)",
     specialties: ["orthoplastic", "head_neck"],
     subcategory: "Free Flap Coverage",
     tags: ["free_flap", "microsurgery"],
@@ -527,7 +528,8 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
     id: "hand_fx_distal_radius_orif",
     displayName: "Distal radius ORIF (volar plate)",
     snomedCtCode: "73994004",
-    snomedCtDisplay: "Open reduction of fracture of radius with internal fixation (procedure)",
+    snomedCtDisplay:
+      "Open reduction of fracture of radius with internal fixation (procedure)",
     specialties: ["hand_surgery"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -537,7 +539,8 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
     id: "hand_fx_distal_radius_crif",
     displayName: "Distal radius CRIF (K-wires)",
     snomedCtCode: "179097006",
-    snomedCtDisplay: "Closed reduction of fracture of radius with internal fixation (procedure)",
+    snomedCtDisplay:
+      "Closed reduction of fracture of radius with internal fixation (procedure)",
     specialties: ["hand_surgery"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -557,7 +560,8 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
     id: "hand_fx_metacarpal_orif",
     displayName: "Metacarpal fracture ORIF",
     snomedCtCode: "263135001", // VERIFY
-    snomedCtDisplay: "Open reduction of fracture of metacarpal with internal fixation (procedure)",
+    snomedCtDisplay:
+      "Open reduction of fracture of metacarpal with internal fixation (procedure)",
     specialties: ["hand_surgery"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -567,7 +571,8 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
     id: "hand_fx_metacarpal_crif",
     displayName: "Metacarpal fracture CRIF (K-wires)",
     snomedCtCode: "263136000", // VERIFY
-    snomedCtDisplay: "Closed reduction of fracture of metacarpal with internal fixation (procedure)",
+    snomedCtDisplay:
+      "Closed reduction of fracture of metacarpal with internal fixation (procedure)",
     specialties: ["hand_surgery"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -577,7 +582,8 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
     id: "hand_fx_phalanx_orif",
     displayName: "Phalangeal fracture ORIF",
     snomedCtCode: "15257006",
-    snomedCtDisplay: "Open reduction of fracture of phalanx with internal fixation (procedure)",
+    snomedCtDisplay:
+      "Open reduction of fracture of phalanx with internal fixation (procedure)",
     specialties: ["hand_surgery"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -587,7 +593,8 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
     id: "hand_fx_phalanx_crif",
     displayName: "Phalangeal fracture CRIF (K-wires)",
     snomedCtCode: "179097006",
-    snomedCtDisplay: "Closed reduction of fracture with internal fixation (procedure)",
+    snomedCtDisplay:
+      "Closed reduction of fracture with internal fixation (procedure)",
     specialties: ["hand_surgery"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -597,7 +604,8 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
     id: "hand_fx_scaphoid_orif",
     displayName: "Scaphoid fracture ORIF (headless screw)",
     snomedCtCode: "41585002",
-    snomedCtDisplay: "Open reduction of fracture of carpal bone with internal fixation (procedure)",
+    snomedCtDisplay:
+      "Open reduction of fracture of carpal bone with internal fixation (procedure)",
     specialties: ["hand_surgery"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -637,7 +645,8 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
     id: "hand_fx_carpal_other",
     displayName: "Carpal fracture fixation — other",
     snomedCtCode: "41585002",
-    snomedCtDisplay: "Open reduction of fracture of carpal bone with internal fixation (procedure)",
+    snomedCtDisplay:
+      "Open reduction of fracture of carpal bone with internal fixation (procedure)",
     specialties: ["hand_surgery"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -647,7 +656,8 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
     id: "hand_fx_phalanx_crif_ccs",
     displayName: "Phalangeal fracture CRIF (headless compression screw)",
     snomedCtCode: "VERIFY",
-    snomedCtDisplay: "Closed reduction of fracture of phalanx with internal fixation using compression screw (procedure)",
+    snomedCtDisplay:
+      "Closed reduction of fracture of phalanx with internal fixation using compression screw (procedure)",
     specialties: ["hand_surgery"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -667,7 +677,8 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
     id: "hand_fx_metacarpal_crif_ccs",
     displayName: "Metacarpal fracture CRIF (headless compression screw)",
     snomedCtCode: "VERIFY",
-    snomedCtDisplay: "Closed reduction of fracture of metacarpal with internal fixation using compression screw (procedure)",
+    snomedCtDisplay:
+      "Closed reduction of fracture of metacarpal with internal fixation using compression screw (procedure)",
     specialties: ["hand_surgery"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -677,7 +688,8 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
     id: "hand_fx_metacarpal_exfix",
     displayName: "Metacarpal fracture external fixation",
     snomedCtCode: "VERIFY",
-    snomedCtDisplay: "Application of external fixation to metacarpal (procedure)",
+    snomedCtDisplay:
+      "Application of external fixation to metacarpal (procedure)",
     specialties: ["hand_surgery"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -687,7 +699,8 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
     id: "hand_fx_carpal_orif",
     displayName: "Carpal fracture ORIF",
     snomedCtCode: "VERIFY",
-    snomedCtDisplay: "Open reduction of fracture of carpal bone with internal fixation (procedure)",
+    snomedCtDisplay:
+      "Open reduction of fracture of carpal bone with internal fixation (procedure)",
     specialties: ["hand_surgery"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -697,7 +710,8 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
     id: "hand_fx_carpal_crif",
     displayName: "Carpal fracture CRIF (K-wires)",
     snomedCtCode: "VERIFY",
-    snomedCtDisplay: "Closed reduction of fracture of carpal bone with internal fixation (procedure)",
+    snomedCtDisplay:
+      "Closed reduction of fracture of carpal bone with internal fixation (procedure)",
     specialties: ["hand_surgery"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -770,7 +784,8 @@ const HAND_TENDON_SURGERY: ProcedurePicklistEntry[] = [
     id: "hand_tend_extensor_central_slip",
     displayName: "Central slip reconstruction",
     snomedCtCode: "41727003", // VERIFY
-    snomedCtDisplay: "Reconstruction of extensor mechanism of finger (procedure)",
+    snomedCtDisplay:
+      "Reconstruction of extensor mechanism of finger (procedure)",
     specialties: ["hand_surgery"],
     subcategory: "Tendon Surgery",
     tags: ["tendon_repair"],
@@ -790,7 +805,8 @@ const HAND_TENDON_SURGERY: ProcedurePicklistEntry[] = [
     id: "hand_tend_boutonniere_reconstruction",
     displayName: "Boutonnière reconstruction",
     snomedCtCode: "41727003", // VERIFY
-    snomedCtDisplay: "Reconstruction of extensor mechanism of finger (procedure)",
+    snomedCtDisplay:
+      "Reconstruction of extensor mechanism of finger (procedure)",
     specialties: ["hand_surgery"],
     subcategory: "Tendon Surgery",
     tags: ["tendon_repair"],
@@ -946,7 +962,8 @@ const HAND_JOINT_PROCEDURES: ProcedurePicklistEntry[] = [
     id: "hand_joint_cmc1_prosthesis",
     displayName: "CMC1 joint prosthesis (e.g., Ivory / Touch / Maïa)",
     snomedCtCode: "74589006", // VERIFY
-    snomedCtDisplay: "Arthroplasty of carpometacarpal joint of thumb (procedure)",
+    snomedCtDisplay:
+      "Arthroplasty of carpometacarpal joint of thumb (procedure)",
     specialties: ["hand_surgery"],
     subcategory: "Joint Procedures",
     tags: ["elective"],
@@ -956,7 +973,8 @@ const HAND_JOINT_PROCEDURES: ProcedurePicklistEntry[] = [
     id: "hand_joint_pip_arthroplasty",
     displayName: "PIP joint arthroplasty",
     snomedCtCode: "34380001", // VERIFY
-    snomedCtDisplay: "Arthroplasty of proximal interphalangeal joint (procedure)",
+    snomedCtDisplay:
+      "Arthroplasty of proximal interphalangeal joint (procedure)",
     specialties: ["hand_surgery"],
     subcategory: "Joint Procedures",
     tags: ["elective"],
@@ -986,7 +1004,8 @@ const HAND_JOINT_PROCEDURES: ProcedurePicklistEntry[] = [
     id: "hand_joint_pip_arthrodesis",
     displayName: "PIP joint arthrodesis",
     snomedCtCode: "51459001", // VERIFY
-    snomedCtDisplay: "Arthrodesis of proximal interphalangeal joint (procedure)",
+    snomedCtDisplay:
+      "Arthrodesis of proximal interphalangeal joint (procedure)",
     specialties: ["hand_surgery"],
     subcategory: "Joint Procedures",
     tags: ["elective"],
@@ -1066,7 +1085,8 @@ const HAND_JOINT_PROCEDURES: ProcedurePicklistEntry[] = [
     id: "hand_joint_mcp_collateral_repair",
     displayName: "MCP / UCL collateral ligament repair",
     snomedCtCode: "239227006", // VERIFY
-    snomedCtDisplay: "Repair of collateral ligament of finger joint (procedure)",
+    snomedCtDisplay:
+      "Repair of collateral ligament of finger joint (procedure)",
     specialties: ["hand_surgery"],
     subcategory: "Joint Procedures",
     tags: ["trauma"],
@@ -1076,7 +1096,8 @@ const HAND_JOINT_PROCEDURES: ProcedurePicklistEntry[] = [
     id: "hand_joint_pip_collateral_repair",
     displayName: "PIP collateral ligament repair",
     snomedCtCode: "239227006",
-    snomedCtDisplay: "Repair of collateral ligament of finger joint (procedure)",
+    snomedCtDisplay:
+      "Repair of collateral ligament of finger joint (procedure)",
     specialties: ["hand_surgery"],
     subcategory: "Joint Procedures",
     tags: ["trauma"],
@@ -1086,7 +1107,8 @@ const HAND_JOINT_PROCEDURES: ProcedurePicklistEntry[] = [
     id: "hand_joint_volar_plate_repair",
     displayName: "Volar plate repair (PIP)",
     snomedCtCode: "239227006",
-    snomedCtDisplay: "Repair of volar plate of proximal interphalangeal joint (procedure)",
+    snomedCtDisplay:
+      "Repair of volar plate of proximal interphalangeal joint (procedure)",
     specialties: ["hand_surgery"],
     subcategory: "Joint Procedures",
     tags: ["trauma"],
@@ -1245,7 +1267,8 @@ const HAND_DUPUYTREN: ProcedurePicklistEntry[] = [
     id: "hand_dup_needle_fasciotomy",
     displayName: "Needle aponeurotomy / fasciotomy",
     snomedCtCode: "446701009", // VERIFY
-    snomedCtDisplay: "Percutaneous needle fasciotomy for Dupuytren contracture (procedure)",
+    snomedCtDisplay:
+      "Percutaneous needle fasciotomy for Dupuytren contracture (procedure)",
     specialties: ["hand_surgery"],
     subcategory: "Dupuytren's Disease",
     tags: ["elective"],
@@ -1451,7 +1474,8 @@ const HAND_CONGENITAL: ProcedurePicklistEntry[] = [
   },
   {
     id: "hand_cong_radial_deficiency",
-    displayName: "Radial longitudinal deficiency — centralisation / radialisation",
+    displayName:
+      "Radial longitudinal deficiency — centralisation / radialisation",
     snomedCtCode: "178751001", // VERIFY
     snomedCtDisplay: "Reconstruction for radial deficiency (procedure)",
     specialties: ["hand_surgery"],
@@ -1865,7 +1889,8 @@ const HEAD_NECK_FREE_FLAPS: ProcedurePicklistEntry[] = [
     id: "hn_ff_vram",
     displayName: "Free VRAM flap (Vertical Rectus Abdominis Myocutaneous)",
     snomedCtCode: "446078000", // VERIFY — TRAM parent
-    snomedCtDisplay: "Free vertical rectus abdominis myocutaneous flap (procedure)",
+    snomedCtDisplay:
+      "Free vertical rectus abdominis myocutaneous flap (procedure)",
     specialties: ["head_neck", "general"],
     subcategory: "Free Flap — Head & Neck",
     tags: ["free_flap", "microsurgery"],
@@ -2201,7 +2226,8 @@ const HEAD_NECK_FACIAL_FRACTURES: ProcedurePicklistEntry[] = [
     id: "hn_fx_mandible_orif",
     displayName: "Mandible fracture ORIF",
     snomedCtCode: "24529004",
-    snomedCtDisplay: "Open reduction of fracture of mandible with internal fixation (procedure)",
+    snomedCtDisplay:
+      "Open reduction of fracture of mandible with internal fixation (procedure)",
     specialties: ["head_neck"],
     subcategory: "Facial Fractures",
     tags: ["trauma"],
@@ -2650,7 +2676,8 @@ const GENERAL_SCAR_WOUND: ProcedurePicklistEntry[] = [
 const GENERAL_PRESSURE_SORE: ProcedurePicklistEntry[] = [
   {
     id: "gen_ps_sacral_flap",
-    displayName: "Sacral pressure sore — flap closure (gluteal / fasciocutaneous)",
+    displayName:
+      "Sacral pressure sore — flap closure (gluteal / fasciocutaneous)",
     snomedCtCode: "122462001", // VERIFY
     snomedCtDisplay: "Flap reconstruction for pressure ulcer (procedure)",
     specialties: ["general"],
@@ -2969,7 +2996,8 @@ const BREAST_AUTOLOGOUS_RECON: ProcedurePicklistEntry[] = [
     id: "breast_recon_diep",
     displayName: "DIEP flap breast reconstruction",
     snomedCtCode: "234294006",
-    snomedCtDisplay: "Free deep inferior epigastric perforator flap (procedure)",
+    snomedCtDisplay:
+      "Free deep inferior epigastric perforator flap (procedure)",
     specialties: ["breast"],
     subcategory: "Autologous Reconstruction",
     tags: ["free_flap", "microsurgery", "oncological"],
@@ -2980,7 +3008,8 @@ const BREAST_AUTOLOGOUS_RECON: ProcedurePicklistEntry[] = [
     id: "breast_recon_tram_free",
     displayName: "Free TRAM flap breast reconstruction",
     snomedCtCode: "446078000",
-    snomedCtDisplay: "Free transverse rectus abdominis myocutaneous flap (procedure)",
+    snomedCtDisplay:
+      "Free transverse rectus abdominis myocutaneous flap (procedure)",
     specialties: ["breast"],
     subcategory: "Autologous Reconstruction",
     tags: ["free_flap", "microsurgery", "oncological"],
@@ -2991,7 +3020,8 @@ const BREAST_AUTOLOGOUS_RECON: ProcedurePicklistEntry[] = [
     id: "breast_recon_tram_pedicled",
     displayName: "Pedicled TRAM flap breast reconstruction",
     snomedCtCode: "446078000", // VERIFY — may have pedicled-specific code
-    snomedCtDisplay: "Pedicled transverse rectus abdominis myocutaneous flap (procedure)",
+    snomedCtDisplay:
+      "Pedicled transverse rectus abdominis myocutaneous flap (procedure)",
     specialties: ["breast"],
     subcategory: "Autologous Reconstruction",
     tags: ["pedicled_flap", "oncological"],
@@ -3033,7 +3063,8 @@ const BREAST_AUTOLOGOUS_RECON: ProcedurePicklistEntry[] = [
     id: "breast_recon_siea",
     displayName: "SIEA flap breast reconstruction",
     snomedCtCode: "234300002",
-    snomedCtDisplay: "Free superficial inferior epigastric artery flap (procedure)",
+    snomedCtDisplay:
+      "Free superficial inferior epigastric artery flap (procedure)",
     specialties: ["breast"],
     subcategory: "Autologous Reconstruction",
     tags: ["free_flap", "microsurgery", "oncological"],
@@ -3055,7 +3086,8 @@ const BREAST_AUTOLOGOUS_RECON: ProcedurePicklistEntry[] = [
     id: "breast_recon_scip",
     displayName: "SCIP flap breast reconstruction",
     snomedCtCode: "234299000",
-    snomedCtDisplay: "Free superficial circumflex iliac artery flap (procedure)",
+    snomedCtDisplay:
+      "Free superficial circumflex iliac artery flap (procedure)",
     specialties: ["breast"],
     subcategory: "Autologous Reconstruction",
     tags: ["free_flap", "microsurgery", "oncological"],
@@ -3089,7 +3121,8 @@ const BREAST_IMPLANT_RECON: ProcedurePicklistEntry[] = [
     id: "breast_impl_expander_to_implant",
     displayName: "Expander-to-implant exchange",
     snomedCtCode: "69031006", // VERIFY
-    snomedCtDisplay: "Exchange of tissue expander for permanent implant (procedure)",
+    snomedCtDisplay:
+      "Exchange of tissue expander for permanent implant (procedure)",
     specialties: ["breast"],
     subcategory: "Implant-Based Reconstruction",
     tags: ["oncological", "revision"],
@@ -3099,7 +3132,8 @@ const BREAST_IMPLANT_RECON: ProcedurePicklistEntry[] = [
     id: "breast_impl_adm_assisted",
     displayName: "ADM-assisted implant reconstruction",
     snomedCtCode: "69031006", // VERIFY
-    snomedCtDisplay: "Acellular dermal matrix assisted breast reconstruction (procedure)",
+    snomedCtDisplay:
+      "Acellular dermal matrix assisted breast reconstruction (procedure)",
     specialties: ["breast"],
     subcategory: "Implant-Based Reconstruction",
     tags: ["oncological"],
@@ -3109,7 +3143,8 @@ const BREAST_IMPLANT_RECON: ProcedurePicklistEntry[] = [
     id: "breast_impl_prepectoral",
     displayName: "Prepectoral implant reconstruction",
     snomedCtCode: "69031006", // VERIFY
-    snomedCtDisplay: "Prepectoral breast reconstruction with implant (procedure)",
+    snomedCtDisplay:
+      "Prepectoral breast reconstruction with implant (procedure)",
     specialties: ["breast"],
     subcategory: "Implant-Based Reconstruction",
     tags: ["oncological"],
@@ -3119,7 +3154,8 @@ const BREAST_IMPLANT_RECON: ProcedurePicklistEntry[] = [
     id: "breast_impl_combined_autologous",
     displayName: "Combined autologous + implant reconstruction",
     snomedCtCode: "69031006", // VERIFY
-    snomedCtDisplay: "Combined autologous and implant breast reconstruction (procedure)",
+    snomedCtDisplay:
+      "Combined autologous and implant breast reconstruction (procedure)",
     specialties: ["breast"],
     subcategory: "Implant-Based Reconstruction",
     tags: ["oncological", "pedicled_flap"],
@@ -3142,7 +3178,8 @@ const BREAST_ONCOPLASTIC: ProcedurePicklistEntry[] = [
     id: "breast_onco_volume_displacement",
     displayName: "Volume displacement technique",
     snomedCtCode: "392090004", // VERIFY
-    snomedCtDisplay: "Oncoplastic breast surgery — volume displacement (procedure)",
+    snomedCtDisplay:
+      "Oncoplastic breast surgery — volume displacement (procedure)",
     specialties: ["breast"],
     subcategory: "Oncoplastic Surgery",
     tags: ["oncological"],
@@ -3152,7 +3189,8 @@ const BREAST_ONCOPLASTIC: ProcedurePicklistEntry[] = [
     id: "breast_onco_volume_replacement",
     displayName: "Volume replacement technique (LD / local perforator flap)",
     snomedCtCode: "392090004", // VERIFY
-    snomedCtDisplay: "Oncoplastic breast surgery — volume replacement (procedure)",
+    snomedCtDisplay:
+      "Oncoplastic breast surgery — volume replacement (procedure)",
     specialties: ["breast"],
     subcategory: "Oncoplastic Surgery",
     tags: ["oncological", "pedicled_flap"],
@@ -3180,7 +3218,8 @@ const BREAST_ONCOPLASTIC: ProcedurePicklistEntry[] = [
   },
   {
     id: "breast_onco_contralateral_symmetrisation",
-    displayName: "Contralateral symmetrisation (reduction / mastopexy / augmentation)",
+    displayName:
+      "Contralateral symmetrisation (reduction / mastopexy / augmentation)",
     snomedCtCode: "64368001",
     snomedCtDisplay: "Reduction mammoplasty (procedure)",
     specialties: ["breast"],
@@ -3920,7 +3959,8 @@ const AESTHETICS_OTOPLASTY: ProcedurePicklistEntry[] = [
 const AESTHETICS_INJECTABLES: ProcedurePicklistEntry[] = [
   {
     id: "aes_inj_botox_upper_face",
-    displayName: "Botulinum toxin — upper face (glabella / forehead / crow's feet)",
+    displayName:
+      "Botulinum toxin — upper face (glabella / forehead / crow's feet)",
     snomedCtCode: "442695005",
     snomedCtDisplay: "Injection of botulinum toxin (procedure)",
     specialties: ["aesthetics"],
@@ -3930,7 +3970,8 @@ const AESTHETICS_INJECTABLES: ProcedurePicklistEntry[] = [
   },
   {
     id: "aes_inj_botox_lower_face",
-    displayName: "Botulinum toxin — lower face / neck (masseter / platysma / lip)",
+    displayName:
+      "Botulinum toxin — lower face / neck (masseter / platysma / lip)",
     snomedCtCode: "442695005",
     snomedCtDisplay: "Injection of botulinum toxin (procedure)",
     specialties: ["aesthetics"],
@@ -4629,7 +4670,7 @@ export const PROCEDURE_PICKLIST: ProcedurePicklistEntry[] = [
 ];
 
 export function getProceduresForSpecialty(
-  specialty: Specialty
+  specialty: Specialty,
 ): ProcedurePicklistEntry[] {
   return PROCEDURE_PICKLIST.filter((p) => p.specialties.includes(specialty));
 }
@@ -4649,14 +4690,16 @@ export function getSubcategoriesForSpecialty(specialty: Specialty): string[] {
 
 export function getProceduresForSubcategory(
   specialty: Specialty,
-  subcategory: string
+  subcategory: string,
 ): ProcedurePicklistEntry[] {
   return getProceduresForSpecialty(specialty).filter(
-    (p) => p.subcategory === subcategory
+    (p) => p.subcategory === subcategory,
   );
 }
 
-export function findPicklistEntry(id: string): ProcedurePicklistEntry | undefined {
+export function findPicklistEntry(
+  id: string,
+): ProcedurePicklistEntry | undefined {
   return PROCEDURE_PICKLIST.find((p) => p.id === id);
 }
 

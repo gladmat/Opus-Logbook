@@ -1,5 +1,11 @@
 import React, { useState, useMemo, useCallback } from "react";
-import { View, StyleSheet, Pressable, ScrollView, TextInput } from "react-native";
+import {
+  View,
+  StyleSheet,
+  Pressable,
+  ScrollView,
+  TextInput,
+} from "react-native";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
@@ -27,7 +33,7 @@ interface DiagnosisPickerProps {
 
 function matchesGroupFilter(
   dx: DiagnosisPicklistEntry,
-  filter: "trauma" | "non-trauma" | undefined
+  filter: "trauma" | "non-trauma" | undefined,
 ): boolean {
   if (!filter) return true;
   if (filter === "trauma") return dx.clinicalGroup === "trauma";
@@ -63,7 +69,9 @@ export function DiagnosisPicker({
     if (!clinicalGroupFilter) return allSubcategories;
     return allSubcategories.filter((subcat) => {
       const dxInSubcat = getDiagnosesForSubcategory(specialty, subcat);
-      return dxInSubcat.some((dx) => matchesGroupFilter(dx, clinicalGroupFilter));
+      return dxInSubcat.some((dx) =>
+        matchesGroupFilter(dx, clinicalGroupFilter),
+      );
     });
   }, [allSubcategories, clinicalGroupFilter, specialty]);
 
@@ -71,12 +79,14 @@ export function DiagnosisPicker({
     if (selectedDiagnosisId) {
       const all = getDiagnosesForSpecialty(specialty);
       const entry = all.find((e) => e.id === selectedDiagnosisId);
-      if (entry && subcategories.includes(entry.subcategory)) return entry.subcategory;
+      if (entry && subcategories.includes(entry.subcategory))
+        return entry.subcategory;
     }
     return subcategories[0] ?? "";
   };
 
-  const [activeSubcategory, setActiveSubcategory] = useState<string>(initialSubcat);
+  const [activeSubcategory, setActiveSubcategory] =
+    useState<string>(initialSubcat);
 
   const isSearching = searchQuery.length >= 2;
 
@@ -94,7 +104,13 @@ export function DiagnosisPicker({
     return clinicalGroupFilter
       ? raw.filter((dx) => matchesGroupFilter(dx, clinicalGroupFilter))
       : raw;
-  }, [isSearching, searchResults, specialty, activeSubcategory, clinicalGroupFilter]);
+  }, [
+    isSearching,
+    searchResults,
+    specialty,
+    activeSubcategory,
+    clinicalGroupFilter,
+  ]);
 
   // Favourites/recents chip handlers
   const handleChipSelect = useCallback(
@@ -114,12 +130,18 @@ export function DiagnosisPicker({
 
   // Filter favourites/recents by clinical group filter
   const filteredFavourites = useMemo(
-    () => favouriteDiagnoses.filter((dx) => matchesGroupFilter(dx, clinicalGroupFilter)),
+    () =>
+      favouriteDiagnoses.filter((dx) =>
+        matchesGroupFilter(dx, clinicalGroupFilter),
+      ),
     [favouriteDiagnoses, clinicalGroupFilter],
   );
 
   const filteredRecents = useMemo(
-    () => recentDiagnoses.filter((dx) => matchesGroupFilter(dx, clinicalGroupFilter)),
+    () =>
+      recentDiagnoses.filter((dx) =>
+        matchesGroupFilter(dx, clinicalGroupFilter),
+      ),
     [recentDiagnoses, clinicalGroupFilter],
   );
 
@@ -161,7 +183,9 @@ export function DiagnosisPicker({
       </View>
 
       {/* Favourites & Recents chips — only when not searching */}
-      {!isSearching && favsLoaded && (filteredFavourites.length > 0 || filteredRecents.length > 0) ? (
+      {!isSearching &&
+      favsLoaded &&
+      (filteredFavourites.length > 0 || filteredRecents.length > 0) ? (
         <FavouritesRecentsChips
           favourites={filteredFavourites}
           recents={filteredRecents}
@@ -190,7 +214,9 @@ export function DiagnosisPicker({
                 style={[
                   styles.subcatChip,
                   {
-                    backgroundColor: isActive ? theme.link : theme.backgroundDefault,
+                    backgroundColor: isActive
+                      ? theme.link
+                      : theme.backgroundDefault,
                     borderColor: isActive ? theme.link : theme.border,
                   },
                 ]}
@@ -199,7 +225,9 @@ export function DiagnosisPicker({
                 <ThemedText
                   style={[
                     styles.subcatChipText,
-                    { color: isActive ? theme.buttonText : theme.textSecondary },
+                    {
+                      color: isActive ? theme.buttonText : theme.textSecondary,
+                    },
                   ]}
                 >
                   {subcat}
@@ -275,7 +303,9 @@ export function DiagnosisPicker({
             );
           })
         ) : isSearching ? (
-          <ThemedText style={[styles.emptyText, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.emptyText, { color: theme.textSecondary }]}
+          >
             No matching diagnoses found
           </ThemedText>
         ) : null}

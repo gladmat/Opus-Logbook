@@ -4,7 +4,13 @@ import { Feather } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { useCaseFormState } from "@/contexts/CaseFormContext";
 import { useTheme } from "@/hooks/useTheme";
-import { Spacing, BorderRadius, Shadows, Typography, Fonts } from "@/constants/theme";
+import {
+  Spacing,
+  BorderRadius,
+  Shadows,
+  Typography,
+  Fonts,
+} from "@/constants/theme";
 import {
   SPECIALTY_LABELS,
   SLNB_BASIN_LABELS,
@@ -57,15 +63,21 @@ function SummaryCard({
       ]}
     >
       <View style={styles.cardHeader}>
-        <ThemedText style={[styles.cardTitle, { color: theme.text }]}>{title}</ThemedText>
+        <ThemedText style={[styles.cardTitle, { color: theme.text }]}>
+          {title}
+        </ThemedText>
         <Pressable onPress={() => onEdit(sectionId)} hitSlop={8}>
-          <ThemedText style={[styles.editLink, { color: theme.link }]}>Edit</ThemedText>
+          <ThemedText style={[styles.editLink, { color: theme.link }]}>
+            Edit
+          </ThemedText>
         </Pressable>
       </View>
       {warning ? (
         <View style={styles.warningRow}>
           <Feather name="alert-triangle" size={14} color={theme.warning} />
-          <ThemedText style={[styles.warningText, { color: theme.warning }]}>{warning}</ThemedText>
+          <ThemedText style={[styles.warningText, { color: theme.warning }]}>
+            {warning}
+          </ThemedText>
         </View>
       ) : null}
       {children}
@@ -88,7 +100,9 @@ function SummaryRow({
   if (!value) return null;
   return (
     <View style={styles.row}>
-      <ThemedText style={[styles.rowLabel, { color: theme.textTertiary }]}>{label}</ThemedText>
+      <ThemedText style={[styles.rowLabel, { color: theme.textTertiary }]}>
+        {label}
+      </ThemedText>
       <ThemedText
         style={[
           styles.rowValue,
@@ -115,13 +129,17 @@ function isFreeFlapDetails(d: ClinicalDetails): d is FreeFlapDetails {
 function isSlnbDetails(d: ClinicalDetails): d is SlnbDetails {
   return "basins" in d;
 }
-function isSkinLesionDetails(d: ClinicalDetails): d is SkinLesionExcisionDetails {
+function isSkinLesionDetails(
+  d: ClinicalDetails,
+): d is SkinLesionExcisionDetails {
   return "excisionCompleteness" in d;
 }
 function isHandSurgeryDetails(d: ClinicalDetails): d is HandSurgeryDetails {
   return "fractures" in d && Array.isArray((d as HandSurgeryDetails).fractures);
 }
-function isBodyContouringDetails(d: ClinicalDetails): d is BodyContouringDetails {
+function isBodyContouringDetails(
+  d: ClinicalDetails,
+): d is BodyContouringDetails {
   return "resectionWeightGrams" in d;
 }
 
@@ -130,18 +148,28 @@ function isBodyContouringDetails(d: ClinicalDetails): d is BodyContouringDetails
 function ProcedureClinicalSummary({ details }: { details: ClinicalDetails }) {
   if (isFreeFlapDetails(details)) {
     const parts: string[] = [];
-    if (details.flapDisplayName || details.flapType) parts.push(details.flapDisplayName || details.flapType || "");
+    if (details.flapDisplayName || details.flapType)
+      parts.push(details.flapDisplayName || details.flapType || "");
     if (details.harvestSide) parts.push(`${details.harvestSide} side`);
-    if (details.anastomoses?.length) parts.push(`${details.anastomoses.length} anastomos${details.anastomoses.length === 1 ? "is" : "es"}`);
-    if (details.ischemiaTimeMinutes) parts.push(`${details.ischemiaTimeMinutes} min ischaemia`);
-    return parts.length > 0 ? <SummaryRow label="Flap Details" value={parts.join(" · ")} /> : null;
+    if (details.anastomoses?.length)
+      parts.push(
+        `${details.anastomoses.length} anastomos${details.anastomoses.length === 1 ? "is" : "es"}`,
+      );
+    if (details.ischemiaTimeMinutes)
+      parts.push(`${details.ischemiaTimeMinutes} min ischaemia`);
+    return parts.length > 0 ? (
+      <SummaryRow label="Flap Details" value={parts.join(" · ")} />
+    ) : null;
   }
 
   if (isSlnbDetails(details)) {
     const basinSummary = details.basins
       ?.map((b) => {
         const name = SLNB_BASIN_LABELS[b.basin] || b.basin;
-        const nodes = b.nodesRemoved != null ? `${b.nodesPositive ?? 0}/${b.nodesRemoved}` : "";
+        const nodes =
+          b.nodesRemoved != null
+            ? `${b.nodesPositive ?? 0}/${b.nodesRemoved}`
+            : "";
         return nodes ? `${name} (${nodes})` : name;
       })
       .join(", ");
@@ -152,27 +180,44 @@ function ProcedureClinicalSummary({ details }: { details: ClinicalDetails }) {
     if (details.spectCtPerformed) techniques.push("SPECT-CT");
     return (
       <>
-        {basinSummary ? <SummaryRow label="SLNB Basins" value={basinSummary} /> : null}
-        {techniques.length > 0 ? <SummaryRow label="Technique" value={techniques.join(", ")} /> : null}
+        {basinSummary ? (
+          <SummaryRow label="SLNB Basins" value={basinSummary} />
+        ) : null}
+        {techniques.length > 0 ? (
+          <SummaryRow label="Technique" value={techniques.join(", ")} />
+        ) : null}
       </>
     );
   }
 
   if (isSkinLesionDetails(details)) {
     const parts: string[] = [];
-    if (details.peripheralMarginMm != null) parts.push(`${details.peripheralMarginMm}mm peripheral`);
-    if (details.deepMarginMm != null) parts.push(`${details.deepMarginMm}mm deep`);
-    if (details.excisionCompleteness) parts.push(EXCISION_COMPLETENESS_LABELS[details.excisionCompleteness]);
-    return parts.length > 0 ? <SummaryRow label="Excision" value={parts.join(" · ")} /> : null;
+    if (details.peripheralMarginMm != null)
+      parts.push(`${details.peripheralMarginMm}mm peripheral`);
+    if (details.deepMarginMm != null)
+      parts.push(`${details.deepMarginMm}mm deep`);
+    if (details.excisionCompleteness)
+      parts.push(EXCISION_COMPLETENESS_LABELS[details.excisionCompleteness]);
+    return parts.length > 0 ? (
+      <SummaryRow label="Excision" value={parts.join(" · ")} />
+    ) : null;
   }
 
   if (isHandSurgeryDetails(details) && details.fractures?.length) {
-    const fractureSummary = details.fractures.map((f) => `${f.boneName} (${f.aoCode})`).join(", ");
+    const fractureSummary = details.fractures
+      .map((f) => `${f.boneName} (${f.aoCode})`)
+      .join(", ");
     return <SummaryRow label="Fractures" value={fractureSummary} />;
   }
 
   if (isBodyContouringDetails(details) && details.resectionWeightGrams) {
-    return <SummaryRow label="Resection Weight" value={`${details.resectionWeightGrams}g`} mono />;
+    return (
+      <SummaryRow
+        label="Resection Weight"
+        value={`${details.resectionWeightGrams}g`}
+        mono
+      />
+    );
   }
 
   return null;
@@ -187,13 +232,19 @@ export function CaseSummaryView({
   saving,
 }: CaseSummaryViewProps) {
   const { theme } = useTheme();
-  const { state, calculatedBmi, durationDisplay, specialty } = useCaseFormState();
+  const { state, calculatedBmi, durationDisplay, specialty } =
+    useCaseFormState();
 
-  const { valid, errors } = useMemo(() => validateRequiredFields(state), [state]);
+  const { valid, errors } = useMemo(
+    () => validateRequiredFields(state),
+    [state],
+  );
 
   const hasWarnings = errors.length > 0;
   const patientWarning = errors.find((e) => e.sectionId === "patient")?.message;
-  const diagnosisWarning = errors.find((e) => e.sectionId === "diagnosis")?.message;
+  const diagnosisWarning = errors.find(
+    (e) => e.sectionId === "diagnosis",
+  )?.message;
 
   return (
     <View style={styles.container}>
@@ -208,14 +259,22 @@ export function CaseSummaryView({
         <SummaryRow label="Procedure Date" value={state.procedureDate} mono />
         <SummaryRow label="Facility" value={state.facility} />
         <SummaryRow label="Gender" value={state.gender || undefined} />
-        <SummaryRow label="Age" value={state.age ? `${state.age} years` : undefined} mono />
+        <SummaryRow
+          label="Age"
+          value={state.age ? `${state.age} years` : undefined}
+          mono
+        />
         <SummaryRow label="Ethnicity" value={state.ethnicity || undefined} />
       </SummaryCard>
 
       {/* Diagnosis Groups */}
       {state.diagnosisGroups.map((group, idx) => {
         const accentColor =
-          idx === 0 ? theme.link : idx === 1 ? theme.link + "99" : theme.link + "59";
+          idx === 0
+            ? theme.link
+            : idx === 1
+              ? theme.link + "99"
+              : theme.link + "59";
         return (
           <SummaryCard
             key={group.id}
@@ -225,7 +284,10 @@ export function CaseSummaryView({
             accentColor={accentColor}
             warning={idx === 0 ? diagnosisWarning : undefined}
           >
-            <SummaryRow label="Specialty" value={SPECIALTY_LABELS[group.specialty]} />
+            <SummaryRow
+              label="Specialty"
+              value={SPECIALTY_LABELS[group.specialty]}
+            />
             <SummaryRow
               label="Diagnosis"
               value={group.diagnosis?.displayName}
@@ -240,14 +302,20 @@ export function CaseSummaryView({
                     .join(" · ")}
                 />
               )}
-            {group.isMultiLesion && group.lesionInstances && group.lesionInstances.length > 0 && (
-              <SummaryRow
-                label="Lesions"
-                value={group.lesionInstances
-                  .map((l) => l.site + (l.pathologyType ? ` (${l.pathologyType})` : ""))
-                  .join(", ")}
-              />
-            )}
+            {group.isMultiLesion &&
+              group.lesionInstances &&
+              group.lesionInstances.length > 0 && (
+                <SummaryRow
+                  label="Lesions"
+                  value={group.lesionInstances
+                    .map(
+                      (l) =>
+                        l.site +
+                        (l.pathologyType ? ` (${l.pathologyType})` : ""),
+                    )
+                    .join(", ")}
+                />
+              )}
             {group.procedures.map((proc, pIdx) => (
               <View key={proc.id}>
                 <SummaryRow
@@ -266,11 +334,26 @@ export function CaseSummaryView({
 
       {/* Admission */}
       <SummaryCard title="Admission" sectionId="admission" onEdit={onEdit}>
-        <SummaryRow label="Urgency" value={state.admissionUrgency || undefined} />
+        <SummaryRow
+          label="Urgency"
+          value={state.admissionUrgency || undefined}
+        />
         <SummaryRow label="Stay Type" value={state.stayType || undefined} />
-        <SummaryRow label="Admission Date" value={state.admissionDate || undefined} mono />
-        <SummaryRow label="Discharge Date" value={state.dischargeDate || undefined} mono />
-        <SummaryRow label="Injury Date" value={state.injuryDate || undefined} mono />
+        <SummaryRow
+          label="Admission Date"
+          value={state.admissionDate || undefined}
+          mono
+        />
+        <SummaryRow
+          label="Discharge Date"
+          value={state.dischargeDate || undefined}
+          mono
+        />
+        <SummaryRow
+          label="Injury Date"
+          value={state.injuryDate || undefined}
+          mono
+        />
       </SummaryCard>
 
       {/* Media */}
@@ -288,14 +371,26 @@ export function CaseSummaryView({
 
       {/* Patient Factors */}
       <SummaryCard title="Patient Factors" sectionId="factors" onEdit={onEdit}>
-        <SummaryRow label="ASA Score" value={state.asaScore || undefined} mono />
+        <SummaryRow
+          label="ASA Score"
+          value={state.asaScore || undefined}
+          mono
+        />
         <SummaryRow
           label="BMI"
           value={calculatedBmi ? `${calculatedBmi}` : undefined}
           mono
         />
-        <SummaryRow label="Height" value={state.heightCm ? `${state.heightCm} cm` : undefined} mono />
-        <SummaryRow label="Weight" value={state.weightKg ? `${state.weightKg} kg` : undefined} mono />
+        <SummaryRow
+          label="Height"
+          value={state.heightCm ? `${state.heightCm} cm` : undefined}
+          mono
+        />
+        <SummaryRow
+          label="Weight"
+          value={state.weightKg ? `${state.weightKg} kg` : undefined}
+          mono
+        />
         <SummaryRow label="Smoking" value={state.smoker || undefined} />
         <SummaryRow
           label="Comorbidities"
@@ -308,11 +403,29 @@ export function CaseSummaryView({
       </SummaryCard>
 
       {/* Operative Factors */}
-      <SummaryCard title="Operative Factors" sectionId="operative" onEdit={onEdit}>
-        <SummaryRow label="Anaesthetic" value={state.anaestheticType || undefined} />
-        <SummaryRow label="Wound Risk" value={state.woundInfectionRisk || undefined} />
-        <SummaryRow label="Start Time" value={state.surgeryStartTime || undefined} mono />
-        <SummaryRow label="End Time" value={state.surgeryEndTime || undefined} mono />
+      <SummaryCard
+        title="Operative Factors"
+        sectionId="operative"
+        onEdit={onEdit}
+      >
+        <SummaryRow
+          label="Anaesthetic"
+          value={state.anaestheticType || undefined}
+        />
+        <SummaryRow
+          label="Wound Risk"
+          value={state.woundInfectionRisk || undefined}
+        />
+        <SummaryRow
+          label="Start Time"
+          value={state.surgeryStartTime || undefined}
+          mono
+        />
+        <SummaryRow
+          label="End Time"
+          value={state.surgeryEndTime || undefined}
+          mono
+        />
         <SummaryRow label="Duration" value={durationDisplay} mono />
         <SummaryRow label="Role" value={state.role} />
         <SummaryRow
@@ -326,7 +439,9 @@ export function CaseSummaryView({
         {state.operatingTeam.length > 0 ? (
           <SummaryRow
             label="Team"
-            value={state.operatingTeam.map((m) => `${m.name} (${m.role})`).join(", ")}
+            value={state.operatingTeam
+              .map((m) => `${m.name} (${m.role})`)
+              .join(", ")}
           />
         ) : null}
       </SummaryCard>
@@ -345,7 +460,10 @@ export function CaseSummaryView({
           label="Return to Theatre"
           value={state.returnToTheatre ? "Yes" : undefined}
         />
-        <SummaryRow label="Return Reason" value={state.returnToTheatreReason || undefined} />
+        <SummaryRow
+          label="Return Reason"
+          value={state.returnToTheatreReason || undefined}
+        />
         <SummaryRow
           label="Unplanned ICU"
           value={state.unplannedICU !== "no" ? state.unplannedICU : undefined}
@@ -369,9 +487,19 @@ export function CaseSummaryView({
       </View>
 
       {hasWarnings ? (
-        <View style={[styles.warningBanner, { backgroundColor: theme.warning + "10", borderColor: theme.warning + "40" }]}>
+        <View
+          style={[
+            styles.warningBanner,
+            {
+              backgroundColor: theme.warning + "10",
+              borderColor: theme.warning + "40",
+            },
+          ]}
+        >
           <Feather name="alert-triangle" size={16} color={theme.warning} />
-          <ThemedText style={[styles.warningBannerText, { color: theme.warning }]}>
+          <ThemedText
+            style={[styles.warningBannerText, { color: theme.warning }]}
+          >
             Complete all required fields to save
           </ThemedText>
         </View>

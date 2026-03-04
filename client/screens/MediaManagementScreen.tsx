@@ -32,8 +32,14 @@ import {
   MEDIA_CATEGORY_LABELS,
 } from "@/types/case";
 
-type MediaManagementRouteProp = RouteProp<RootStackParamList, "MediaManagement">;
-type MediaManagementNavigationProp = NativeStackNavigationProp<RootStackParamList, "MediaManagement">;
+type MediaManagementRouteProp = RouteProp<
+  RootStackParamList,
+  "MediaManagement"
+>;
+type MediaManagementNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  "MediaManagement"
+>;
 
 export default function MediaManagementScreen() {
   const navigation = useNavigation<MediaManagementNavigationProp>();
@@ -42,13 +48,23 @@ export default function MediaManagementScreen() {
   const insets = useSafeAreaInsets();
   const { executeCallback } = useMediaCallback();
 
-  const { existingAttachments, callbackId, maxAttachments = 20, context = "case", eventType } = route.params || {};
+  const {
+    existingAttachments,
+    callbackId,
+    maxAttachments = 20,
+    context = "case",
+    eventType,
+  } = route.params || {};
 
-  const [attachments, setAttachments] = useState<MediaAttachment[]>(existingAttachments || []);
+  const [attachments, setAttachments] = useState<MediaAttachment[]>(
+    existingAttachments || [],
+  );
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [lastSelectedCategory, setLastSelectedCategory] = useState<MediaCategory | null>(null);
+  const [lastSelectedCategory, setLastSelectedCategory] =
+    useState<MediaCategory | null>(null);
   const [saving, setSaving] = useState(false);
-  const [cameraPermission, requestCameraPermission] = ImagePicker.useCameraPermissions();
+  const [cameraPermission, requestCameraPermission] =
+    ImagePicker.useCameraPermissions();
 
   const canAddMore = attachments.length < maxAttachments;
 
@@ -64,14 +80,19 @@ export default function MediaManagementScreen() {
           [
             { text: "Cancel", style: "cancel" },
             ...(Platform.OS !== "web"
-              ? [{ text: "Open Settings", onPress: async () => {
-                  try {
-                    const { Linking } = await import("react-native");
-                    await Linking.openSettings();
-                  } catch (e) {}
-                }}]
+              ? [
+                  {
+                    text: "Open Settings",
+                    onPress: async () => {
+                      try {
+                        const { Linking } = await import("react-native");
+                        await Linking.openSettings();
+                      } catch (e) {}
+                    },
+                  },
+                ]
               : []),
-          ]
+          ],
         );
         return;
       }
@@ -88,6 +109,7 @@ export default function MediaManagementScreen() {
 
       if (!result.canceled && result.assets.length > 0) {
         const asset = result.assets[0];
+        if (!asset) return;
         const mime = asset.mimeType || "image/jpeg";
         const encryptedUri = asset.base64
           ? await saveEncryptedMedia(asset.base64, mime, asset.uri)
@@ -131,10 +153,10 @@ export default function MediaManagementScreen() {
               mimeType: mime,
               createdAt: new Date().toISOString(),
             };
-          })
+          }),
         );
         setAttachments((prev) => [...prev, ...encryptedAttachments]);
-        if (encryptedAttachments.length === 1) {
+        if (encryptedAttachments.length === 1 && encryptedAttachments[0]) {
           setSelectedId(encryptedAttachments[0].id);
         }
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -161,7 +183,7 @@ export default function MediaManagementScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setLastSelectedCategory(category);
     setAttachments((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, category } : a))
+      prev.map((a) => (a.id === id ? { ...a, category } : a)),
     );
   };
 
@@ -169,19 +191,21 @@ export default function MediaManagementScreen() {
     if (!lastSelectedCategory) {
       Alert.alert(
         "Select a category first",
-        "Tap a category on any photo, then use 'Tag all' to apply it to the rest."
+        "Tap a category on any photo, then use 'Tag all' to apply it to the rest.",
       );
       return;
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setAttachments((prev) =>
-      prev.map((a) => (!a.category ? { ...a, category: lastSelectedCategory } : a))
+      prev.map((a) =>
+        !a.category ? { ...a, category: lastSelectedCategory } : a,
+      ),
     );
   };
 
   const handleCaptionChange = (id: string, caption: string) => {
     setAttachments((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, caption } : a))
+      prev.map((a) => (a.id === id ? { ...a, caption } : a)),
     );
   };
 
@@ -198,14 +222,23 @@ export default function MediaManagementScreen() {
   const selectedAttachment = attachments.find((a) => a.id === selectedId);
 
   const sortedGroupedCategories = useMemo(() => {
-    const grouped = MEDIA_CATEGORY_OPTIONS.reduce((acc, option) => {
-      if (!acc[option.group]) acc[option.group] = [];
-      acc[option.group].push(option);
-      return acc;
-    }, {} as Record<string, typeof MEDIA_CATEGORY_OPTIONS>);
+    const grouped = MEDIA_CATEGORY_OPTIONS.reduce(
+      (acc, option) => {
+        if (!acc[option.group]) acc[option.group] = [];
+        acc[option.group]!.push(option);
+        return acc;
+      },
+      {} as Record<string, typeof MEDIA_CATEGORY_OPTIONS>,
+    );
 
     if (eventType === "discharge_photo") {
-      const order = ["Discharge", "Follow-up", "Imaging", "Operation Day", "Other"];
+      const order = [
+        "Discharge",
+        "Follow-up",
+        "Imaging",
+        "Operation Day",
+        "Other",
+      ];
       return order
         .filter((g) => grouped[g])
         .map((g) => [g, grouped[g]] as [string, typeof MEDIA_CATEGORY_OPTIONS]);
@@ -245,223 +278,304 @@ export default function MediaManagementScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <KeyboardAvoidingView style={styles.keyboardAvoidingView} behavior="padding" keyboardVerticalOffset={0}>
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.md }]}>
-        <Pressable onPress={() => navigation.goBack()} style={styles.headerButton}>
-          <Feather name="x" size={24} color={theme.text} />
-        </Pressable>
-        <ThemedText style={styles.headerTitle}>Manage Media</ThemedText>
-        <Pressable onPress={handleSave} disabled={saving} style={styles.headerButton}>
-          <ThemedText style={[styles.saveText, { color: saving ? theme.textTertiary : theme.link }]}>Done</ThemedText>
-        </Pressable>
-      </View>
-
-      {attachments.length > 1 ? (
-        <View style={{
-          flexDirection: "row",
-          justifyContent: "flex-end",
-          paddingHorizontal: Spacing.md,
-          paddingVertical: Spacing.sm,
-          borderBottomWidth: 1,
-          borderBottomColor: theme.border,
-        }}>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior="padding"
+        keyboardVerticalOffset={0}
+      >
+        <View style={[styles.header, { paddingTop: insets.top + Spacing.md }]}>
           <Pressable
-            onPress={handleTagAll}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: Spacing.xs,
-              paddingHorizontal: Spacing.md,
-              paddingVertical: Spacing.sm,
-              borderRadius: BorderRadius.sm,
-              backgroundColor: lastSelectedCategory ? theme.link + "15" : theme.backgroundElevated,
-              borderWidth: 1,
-              borderColor: lastSelectedCategory ? theme.link : theme.border,
-            }}
+            onPress={() => navigation.goBack()}
+            style={styles.headerButton}
           >
-            <Feather name="tag" size={14} color={lastSelectedCategory ? theme.link : theme.textTertiary} />
-            <ThemedText style={{
-              fontSize: 13,
-              color: lastSelectedCategory ? theme.link : theme.textSecondary,
-              fontWeight: "500",
-            }}>
-              {lastSelectedCategory
-                ? `Tag all untagged as: ${MEDIA_CATEGORY_LABELS[lastSelectedCategory]}`
-                : "Tag all untagged"}
+            <Feather name="x" size={24} color={theme.text} />
+          </Pressable>
+          <ThemedText style={styles.headerTitle}>Manage Media</ThemedText>
+          <Pressable
+            onPress={handleSave}
+            disabled={saving}
+            style={styles.headerButton}
+          >
+            <ThemedText
+              style={[
+                styles.saveText,
+                { color: saving ? theme.textTertiary : theme.link },
+              ]}
+            >
+              Done
             </ThemedText>
           </Pressable>
         </View>
-      ) : null}
 
-      <View style={styles.thumbnailStrip}>
-        <FlatList
-          data={attachments}
-          renderItem={renderThumbnail}
-          keyExtractor={(item) => item.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.thumbnailList}
-          ListFooterComponent={
-            canAddMore ? (
-              <View style={styles.addButtonsRow}>
-                <Pressable
-                  onPress={handleCameraCapture}
-                  style={[styles.addButton, { backgroundColor: theme.link }]}
-                >
-                  <Feather name="camera" size={20} color="#fff" />
-                </Pressable>
-                <Pressable
-                  onPress={handleGalleryPick}
-                  style={[styles.addButton, { backgroundColor: theme.backgroundElevated }]}
-                >
-                  <Feather name="image" size={20} color={theme.text} />
-                </Pressable>
-              </View>
-            ) : null
-          }
-        />
-      </View>
-
-      {selectedAttachment ? (
-        <ScrollView style={styles.detailSection} contentContainerStyle={styles.detailContent}>
-          <View style={styles.previewContainer}>
-            <EncryptedImage
-              uri={selectedAttachment.localUri}
-              style={styles.previewImage}
-              resizeMode="contain"
-            />
-          </View>
-
-          <TextInput
-            testID="input-caption"
-            style={[
-              styles.captionInput,
-              {
-                color: theme.text,
-                backgroundColor: theme.backgroundElevated,
-                borderColor: theme.border,
-              },
-            ]}
-            placeholder="Add a caption or note..."
-            placeholderTextColor={theme.textTertiary}
-            value={selectedAttachment.caption || ""}
-            onChangeText={(text) => handleCaptionChange(selectedAttachment.id, text)}
-            multiline
-            numberOfLines={3}
-            textAlignVertical="top"
-          />
-
-          <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
-            Select Category
-          </ThemedText>
-
-          {sortedGroupedCategories.map(([groupName, options]) => (
-            <View key={groupName} style={styles.categoryGroup}>
-              <ThemedText style={[styles.groupTitle, { color: theme.textSecondary }]}>
-                {groupName}
+        {attachments.length > 1 ? (
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "flex-end",
+              paddingHorizontal: Spacing.md,
+              paddingVertical: Spacing.sm,
+              borderBottomWidth: 1,
+              borderBottomColor: theme.border,
+            }}
+          >
+            <Pressable
+              onPress={handleTagAll}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: Spacing.xs,
+                paddingHorizontal: Spacing.md,
+                paddingVertical: Spacing.sm,
+                borderRadius: BorderRadius.sm,
+                backgroundColor: lastSelectedCategory
+                  ? theme.link + "15"
+                  : theme.backgroundElevated,
+                borderWidth: 1,
+                borderColor: lastSelectedCategory ? theme.link : theme.border,
+              }}
+            >
+              <Feather
+                name="tag"
+                size={14}
+                color={lastSelectedCategory ? theme.link : theme.textTertiary}
+              />
+              <ThemedText
+                style={{
+                  fontSize: 13,
+                  color: lastSelectedCategory
+                    ? theme.link
+                    : theme.textSecondary,
+                  fontWeight: "500",
+                }}
+              >
+                {lastSelectedCategory
+                  ? `Tag all untagged as: ${MEDIA_CATEGORY_LABELS[lastSelectedCategory]}`
+                  : "Tag all untagged"}
               </ThemedText>
-              <View style={styles.categoryGrid}>
-                {options.map((option) => (
+            </Pressable>
+          </View>
+        ) : null}
+
+        <View style={styles.thumbnailStrip}>
+          <FlatList
+            data={attachments}
+            renderItem={renderThumbnail}
+            keyExtractor={(item) => item.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.thumbnailList}
+            ListFooterComponent={
+              canAddMore ? (
+                <View style={styles.addButtonsRow}>
                   <Pressable
-                    key={option.value}
-                    onPress={() => handleSetCategory(selectedAttachment.id, option.value)}
+                    onPress={handleCameraCapture}
+                    style={[styles.addButton, { backgroundColor: theme.link }]}
+                  >
+                    <Feather name="camera" size={20} color="#fff" />
+                  </Pressable>
+                  <Pressable
+                    onPress={handleGalleryPick}
                     style={[
-                      styles.categoryOption,
-                      {
-                        backgroundColor:
-                          selectedAttachment.category === option.value
-                            ? theme.link + "20"
-                            : theme.backgroundElevated,
-                        borderColor:
-                          selectedAttachment.category === option.value
-                            ? theme.link
-                            : theme.border,
-                      },
+                      styles.addButton,
+                      { backgroundColor: theme.backgroundElevated },
                     ]}
                   >
-                    <ThemedText
+                    <Feather name="image" size={20} color={theme.text} />
+                  </Pressable>
+                </View>
+              ) : null
+            }
+          />
+        </View>
+
+        {selectedAttachment ? (
+          <ScrollView
+            style={styles.detailSection}
+            contentContainerStyle={styles.detailContent}
+          >
+            <View style={styles.previewContainer}>
+              <EncryptedImage
+                uri={selectedAttachment.localUri}
+                style={styles.previewImage}
+                resizeMode="contain"
+              />
+            </View>
+
+            <TextInput
+              testID="input-caption"
+              style={[
+                styles.captionInput,
+                {
+                  color: theme.text,
+                  backgroundColor: theme.backgroundElevated,
+                  borderColor: theme.border,
+                },
+              ]}
+              placeholder="Add a caption or note..."
+              placeholderTextColor={theme.textTertiary}
+              value={selectedAttachment.caption || ""}
+              onChangeText={(text) =>
+                handleCaptionChange(selectedAttachment.id, text)
+              }
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+            />
+
+            <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
+              Select Category
+            </ThemedText>
+
+            {sortedGroupedCategories.map(([groupName, options]) => (
+              <View key={groupName} style={styles.categoryGroup}>
+                <ThemedText
+                  style={[styles.groupTitle, { color: theme.textSecondary }]}
+                >
+                  {groupName}
+                </ThemedText>
+                <View style={styles.categoryGrid}>
+                  {options.map((option) => (
+                    <Pressable
+                      key={option.value}
+                      onPress={() =>
+                        handleSetCategory(selectedAttachment.id, option.value)
+                      }
                       style={[
-                        styles.categoryOptionText,
+                        styles.categoryOption,
                         {
-                          color:
+                          backgroundColor:
+                            selectedAttachment.category === option.value
+                              ? theme.link + "20"
+                              : theme.backgroundElevated,
+                          borderColor:
                             selectedAttachment.category === option.value
                               ? theme.link
-                              : theme.text,
-                          fontWeight:
-                            selectedAttachment.category === option.value ? "600" : "400",
+                              : theme.border,
                         },
                       ]}
                     >
-                      {option.label}
+                      <ThemedText
+                        style={[
+                          styles.categoryOptionText,
+                          {
+                            color:
+                              selectedAttachment.category === option.value
+                                ? theme.link
+                                : theme.text,
+                            fontWeight:
+                              selectedAttachment.category === option.value
+                                ? "600"
+                                : "400",
+                          },
+                        ]}
+                      >
+                        {option.label}
+                      </ThemedText>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        ) : (
+          <View style={styles.emptyState}>
+            {attachments.length === 0 ? (
+              <>
+                <Feather name="image" size={48} color={theme.textTertiary} />
+                <ThemedText
+                  style={[styles.emptyText, { color: theme.textSecondary }]}
+                >
+                  No photos added yet
+                </ThemedText>
+                <ThemedText
+                  style={[styles.emptySubtext, { color: theme.textTertiary }]}
+                >
+                  Tap camera or gallery to add photos
+                </ThemedText>
+                <View style={styles.emptyButtons}>
+                  <Pressable
+                    onPress={handleCameraCapture}
+                    style={[
+                      styles.emptyActionButton,
+                      { backgroundColor: theme.link },
+                    ]}
+                  >
+                    <Feather name="camera" size={20} color="#fff" />
+                    <ThemedText
+                      style={[styles.emptyActionText, { color: "#fff" }]}
+                    >
+                      Take Photo
                     </ThemedText>
                   </Pressable>
-                ))}
-              </View>
-            </View>
-          ))}
-        </ScrollView>
-      ) : (
-        <View style={styles.emptyState}>
-          {attachments.length === 0 ? (
-            <>
-              <Feather name="image" size={48} color={theme.textTertiary} />
-              <ThemedText style={[styles.emptyText, { color: theme.textSecondary }]}>
-                No photos added yet
-              </ThemedText>
-              <ThemedText style={[styles.emptySubtext, { color: theme.textTertiary }]}>
-                Tap camera or gallery to add photos
-              </ThemedText>
-              <View style={styles.emptyButtons}>
-                <Pressable
-                onPress={handleCameraCapture}
-                style={[styles.emptyActionButton, { backgroundColor: theme.link }]}
-              >
-                <Feather name="camera" size={20} color="#fff" />
-                <ThemedText style={[styles.emptyActionText, { color: "#fff" }]}>Take Photo</ThemedText>
-              </Pressable>
-              <Pressable
-                onPress={handleGalleryPick}
-                style={[styles.emptyActionButton, { backgroundColor: theme.backgroundElevated, borderWidth: 1, borderColor: theme.border }]}
-              >
-                <Feather name="image" size={20} color={theme.text} />
-                <ThemedText style={styles.emptyActionText}>From Gallery</ThemedText>
-              </Pressable>
-              </View>
-            </>
-          ) : (
-            <>
-              <Feather name="check-circle" size={48} color={theme.textTertiary} />
-              <ThemedText style={[styles.emptyText, { color: theme.textSecondary }]}>
-                Select a photo to categorize
-              </ThemedText>
-            </>
-          )}
-        </View>
-      )}
+                  <Pressable
+                    onPress={handleGalleryPick}
+                    style={[
+                      styles.emptyActionButton,
+                      {
+                        backgroundColor: theme.backgroundElevated,
+                        borderWidth: 1,
+                        borderColor: theme.border,
+                      },
+                    ]}
+                  >
+                    <Feather name="image" size={20} color={theme.text} />
+                    <ThemedText style={styles.emptyActionText}>
+                      From Gallery
+                    </ThemedText>
+                  </Pressable>
+                </View>
+              </>
+            ) : (
+              <>
+                <Feather
+                  name="check-circle"
+                  size={48}
+                  color={theme.textTertiary}
+                />
+                <ThemedText
+                  style={[styles.emptyText, { color: theme.textSecondary }]}
+                >
+                  Select a photo to categorize
+                </ThemedText>
+              </>
+            )}
+          </View>
+        )}
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.md }]}>
-        <ThemedText style={[styles.countText, { color: theme.textSecondary }]}>
-          {attachments.length} photo{attachments.length !== 1 ? "s" : ""} added
-          {attachments.filter((a) => !a.category).length > 0 && (
-            <ThemedText style={{ color: theme.warning }}>
-              {" "}({attachments.filter((a) => !a.category).length} uncategorized)
-            </ThemedText>
-          )}
-        </ThemedText>
-        <Pressable
-          onPress={handleSave}
-          disabled={attachments.length === 0 || saving}
-          style={[
-            styles.saveButtonPressable,
-            {
-              backgroundColor: attachments.length === 0 || saving ? theme.textTertiary : theme.link,
-              opacity: attachments.length === 0 || saving ? 0.5 : 1,
-            }
-          ]}
+        <View
+          style={[styles.footer, { paddingBottom: insets.bottom + Spacing.md }]}
         >
-          <ThemedText style={styles.saveButtonText}>{saving ? "Saving..." : "Save Photos"}</ThemedText>
-        </Pressable>
-      </View>
+          <ThemedText
+            style={[styles.countText, { color: theme.textSecondary }]}
+          >
+            {attachments.length} photo{attachments.length !== 1 ? "s" : ""}{" "}
+            added
+            {attachments.filter((a) => !a.category).length > 0 && (
+              <ThemedText style={{ color: theme.warning }}>
+                {" "}
+                ({attachments.filter((a) => !a.category).length} uncategorized)
+              </ThemedText>
+            )}
+          </ThemedText>
+          <Pressable
+            onPress={handleSave}
+            disabled={attachments.length === 0 || saving}
+            style={[
+              styles.saveButtonPressable,
+              {
+                backgroundColor:
+                  attachments.length === 0 || saving
+                    ? theme.textTertiary
+                    : theme.link,
+                opacity: attachments.length === 0 || saving ? 0.5 : 1,
+              },
+            ]}
+          >
+            <ThemedText style={styles.saveButtonText}>
+              {saving ? "Saving..." : "Save Photos"}
+            </ThemedText>
+          </Pressable>
+        </View>
       </KeyboardAvoidingView>
     </ThemedView>
   );

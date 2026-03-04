@@ -29,10 +29,22 @@ export const DIGIT_EXTENSOR_MAP: Record<DigitId, string[]> = {
 export const FLEXOR_ZONES_DIGIT = ["I", "II", "III", "IV", "V"] as const;
 export const FLEXOR_ZONES_THUMB = ["T1", "T2", "T3"] as const;
 
-export const EXTENSOR_ZONES_DIGIT = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"] as const;
+export const EXTENSOR_ZONES_DIGIT = [
+  "I",
+  "II",
+  "III",
+  "IV",
+  "V",
+  "VI",
+  "VII",
+  "VIII",
+] as const;
 export const EXTENSOR_ZONES_THUMB = ["TI", "TII", "TIII", "TIV", "TV"] as const;
 
-export const DIGIT_NERVE_MAP: Record<DigitId, { radial: string; ulnar: string }> = {
+export const DIGIT_NERVE_MAP: Record<
+  DigitId,
+  { radial: string; ulnar: string }
+> = {
   I: { radial: "N1", ulnar: "N2" },
   II: { radial: "N3", ulnar: "N4" },
   III: { radial: "N5", ulnar: "N6" },
@@ -40,7 +52,10 @@ export const DIGIT_NERVE_MAP: Record<DigitId, { radial: string; ulnar: string }>
   V: { radial: "N9", ulnar: "N10" },
 };
 
-export const DIGIT_ARTERY_MAP: Record<DigitId, { radial: string; ulnar: string }> = {
+export const DIGIT_ARTERY_MAP: Record<
+  DigitId,
+  { radial: string; ulnar: string }
+> = {
   I: { radial: "A1", ulnar: "A2" },
   II: { radial: "A3", ulnar: "A4" },
   III: { radial: "A5", ulnar: "A6" },
@@ -141,7 +156,13 @@ export const STRUCTURE_PROCEDURE_MAP: Record<string, string> = {
   volar_plate: "hand_joint_volar_plate_repair",
 };
 
-export type StructureCategory = "flexor_tendon" | "extensor_tendon" | "nerve" | "artery" | "ligament" | "other";
+export type StructureCategory =
+  | "flexor_tendon"
+  | "extensor_tendon"
+  | "nerve"
+  | "artery"
+  | "ligament"
+  | "other";
 
 export const SMART_DEFAULTS: Record<string, StructureCategory[]> = {
   hand_dx_flexor_tendon_lac: ["flexor_tendon"],
@@ -155,7 +176,13 @@ export const SMART_DEFAULTS: Record<string, StructureCategory[]> = {
   hand_dx_dbun_injury: ["nerve"],
   hand_dx_fingertip_injury: ["other"],
   hand_dx_nail_bed_injury: ["other"],
-  hand_dx_digital_amputation: ["flexor_tendon", "extensor_tendon", "nerve", "artery", "other"],
+  hand_dx_digital_amputation: [
+    "flexor_tendon",
+    "extensor_tendon",
+    "nerve",
+    "artery",
+    "other",
+  ],
   hand_dx_complex_laceration: ["flexor_tendon", "nerve", "artery"],
   hand_dx_hand_degloving: ["other"],
 };

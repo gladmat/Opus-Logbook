@@ -265,7 +265,13 @@ export const HN_DX_SKIN_CANCER: DiagnosisPicklistEntry[] = [
     clinicalGroup: "oncological",
     hasStaging: false,
     hasEnhancedHistology: true,
-    searchSynonyms: ["lip SCC", "lip BCC", "vermilion", "lower lip cancer", "upper lip cancer"],
+    searchSynonyms: [
+      "lip SCC",
+      "lip BCC",
+      "vermilion",
+      "lower lip cancer",
+      "upper lip cancer",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_skin_scc_excision",
@@ -305,7 +311,13 @@ export const HN_DX_SKIN_CANCER: DiagnosisPicklistEntry[] = [
     clinicalGroup: "oncological",
     hasStaging: false,
     hasEnhancedHistology: true,
-    searchSynonyms: ["eyelid BCC", "eyelid SCC", "periorbital", "lid margin", "medial canthus"],
+    searchSynonyms: [
+      "eyelid BCC",
+      "eyelid SCC",
+      "periorbital",
+      "lid margin",
+      "medial canthus",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_skin_bcc_excision",
@@ -384,7 +396,13 @@ const HN_DX_FACIAL_FRACTURES: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Fractures",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["mandible fracture", "jaw fracture", "angle fracture", "condylar fracture", "parasymphysis"],
+    searchSynonyms: [
+      "mandible fracture",
+      "jaw fracture",
+      "angle fracture",
+      "condylar fracture",
+      "parasymphysis",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_fx_mandible_orif",
@@ -411,7 +429,14 @@ const HN_DX_FACIAL_FRACTURES: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Fractures",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["zygoma", "zygomatic", "malar", "cheekbone", "ZMC", "tripod fracture"],
+    searchSynonyms: [
+      "zygoma",
+      "zygomatic",
+      "malar",
+      "cheekbone",
+      "ZMC",
+      "tripod fracture",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_fx_zygoma_orif",
@@ -438,7 +463,13 @@ const HN_DX_FACIAL_FRACTURES: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Fractures",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["orbital blowout", "blowout fracture", "orbit fracture", "diplopia", "enophthalmos"],
+    searchSynonyms: [
+      "orbital blowout",
+      "blowout fracture",
+      "orbit fracture",
+      "diplopia",
+      "enophthalmos",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_fx_orbital_floor",
@@ -459,7 +490,12 @@ const HN_DX_FACIAL_FRACTURES: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Fractures",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["nasal fracture", "broken nose", "nasal bone", "septal fracture"],
+    searchSynonyms: [
+      "nasal fracture",
+      "broken nose",
+      "nasal bone",
+      "septal fracture",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_fx_nasal",
@@ -480,7 +516,15 @@ const HN_DX_FACIAL_FRACTURES: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Fractures",
     clinicalGroup: "trauma",
     hasStaging: true, // Le Fort classification in staging config
-    searchSynonyms: ["Le Fort", "LeFort", "midface fracture", "maxillary fracture", "Le Fort I", "Le Fort II", "Le Fort III"],
+    searchSynonyms: [
+      "Le Fort",
+      "LeFort",
+      "midface fracture",
+      "maxillary fracture",
+      "Le Fort I",
+      "Le Fort II",
+      "Le Fort III",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_fx_lefort",
@@ -501,7 +545,12 @@ const HN_DX_FACIAL_FRACTURES: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Fractures",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["frontal bone", "frontal sinus", "anterior table", "posterior table"],
+    searchSynonyms: [
+      "frontal bone",
+      "frontal sinus",
+      "anterior table",
+      "posterior table",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_fx_frontal_sinus",
@@ -522,7 +571,12 @@ const HN_DX_FACIAL_FRACTURES: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Fractures",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["NOE", "naso-orbito-ethmoidal", "naso-ethmoid", "telecanthus"],
+    searchSynonyms: [
+      "NOE",
+      "naso-orbito-ethmoidal",
+      "naso-ethmoid",
+      "telecanthus",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_fx_noe",
@@ -543,7 +597,11 @@ const HN_DX_FACIAL_FRACTURES: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Fractures",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["panfacial", "multiple facial fractures", "complex facial trauma"],
+    searchSynonyms: [
+      "panfacial",
+      "multiple facial fractures",
+      "complex facial trauma",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_fx_panfacial",
@@ -571,7 +629,14 @@ const HN_DX_CLEFT_CRANIOFACIAL: DiagnosisPicklistEntry[] = [
     subcategory: "Cleft / Craniofacial",
     clinicalGroup: "congenital",
     hasStaging: false,
-    searchSynonyms: ["unilateral cleft", "cleft lip", "CL", "lip cleft", "Millard", "Mohler"],
+    searchSynonyms: [
+      "unilateral cleft",
+      "cleft lip",
+      "CL",
+      "lip cleft",
+      "Millard",
+      "Mohler",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_cleft_lip_unilateral",
@@ -613,7 +678,14 @@ const HN_DX_CLEFT_CRANIOFACIAL: DiagnosisPicklistEntry[] = [
     subcategory: "Cleft / Craniofacial",
     clinicalGroup: "congenital",
     hasStaging: false,
-    searchSynonyms: ["palate cleft", "CP", "palatoplasty", "Veau", "Furlow", "von Langenbeck"],
+    searchSynonyms: [
+      "palate cleft",
+      "CP",
+      "palatoplasty",
+      "Veau",
+      "Furlow",
+      "von Langenbeck",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_cleft_palate",
@@ -640,7 +712,12 @@ const HN_DX_CLEFT_CRANIOFACIAL: DiagnosisPicklistEntry[] = [
     subcategory: "Cleft / Craniofacial",
     clinicalGroup: "congenital",
     hasStaging: false,
-    searchSynonyms: ["alveolar bone graft", "ABG", "secondary bone graft", "alveolar cleft"],
+    searchSynonyms: [
+      "alveolar bone graft",
+      "ABG",
+      "secondary bone graft",
+      "alveolar cleft",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_cleft_alveolar_bone_graft",
@@ -669,7 +746,13 @@ const HN_DX_NERVE_ONCO_OTHER: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Nerve & Other",
     clinicalGroup: "trauma",
     hasStaging: true, // House-Brackmann in staging config
-    searchSynonyms: ["facial nerve injury", "Bell's palsy", "facial palsy", "VII nerve", "House-Brackmann"],
+    searchSynonyms: [
+      "facial nerve injury",
+      "Bell's palsy",
+      "facial palsy",
+      "VII nerve",
+      "House-Brackmann",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_fn_primary_repair",
@@ -696,7 +779,12 @@ const HN_DX_NERVE_ONCO_OTHER: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Nerve & Other",
     clinicalGroup: "reconstructive",
     hasStaging: true, // House-Brackmann in staging config
-    searchSynonyms: ["chronic facial palsy", "facial reanimation", "smile surgery", "longstanding palsy"],
+    searchSynonyms: [
+      "chronic facial palsy",
+      "facial reanimation",
+      "smile surgery",
+      "longstanding palsy",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_fn_masseteric_transfer",
@@ -741,7 +829,14 @@ const HN_DX_NERVE_ONCO_OTHER: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Nerve & Other",
     clinicalGroup: "oncological",
     hasStaging: false,
-    searchSynonyms: ["oral cancer", "tongue cancer", "floor of mouth", "buccal SCC", "oral SCC", "intraoral"],
+    searchSynonyms: [
+      "oral cancer",
+      "tongue cancer",
+      "floor of mouth",
+      "buccal SCC",
+      "oral SCC",
+      "intraoral",
+    ],
     suggestedProcedures: [
       // Suggestions loose — actual procedure depends on site/size/neck status
       {
@@ -793,7 +888,12 @@ const HN_DX_NERVE_ONCO_OTHER: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Nerve & Other",
     clinicalGroup: "oncological",
     hasStaging: false,
-    searchSynonyms: ["parotid", "salivary gland tumour", "pleomorphic adenoma", "Warthin"],
+    searchSynonyms: [
+      "parotid",
+      "salivary gland tumour",
+      "pleomorphic adenoma",
+      "Warthin",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_other_parotidectomy",
@@ -814,7 +914,13 @@ const HN_DX_NERVE_ONCO_OTHER: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Nerve & Other",
     clinicalGroup: "congenital",
     hasStaging: false,
-    searchSynonyms: ["microtia", "anotia", "ear reconstruction", "rib cartilage", "Medpor"],
+    searchSynonyms: [
+      "microtia",
+      "anotia",
+      "ear reconstruction",
+      "rib cartilage",
+      "Medpor",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_recon_ear_total",
@@ -844,7 +950,13 @@ const HN_DX_FACIAL_SOFT_TISSUE_TRAUMA: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Soft Tissue Trauma",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["facial laceration", "face cut", "forehead laceration", "cheek laceration", "chin laceration"],
+    searchSynonyms: [
+      "facial laceration",
+      "face cut",
+      "forehead laceration",
+      "cheek laceration",
+      "chin laceration",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_trauma_facial_lac_simple",
@@ -877,7 +989,12 @@ const HN_DX_FACIAL_SOFT_TISSUE_TRAUMA: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Soft Tissue Trauma",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["nose laceration", "nose cut", "nasal wound", "nose injury"],
+    searchSynonyms: [
+      "nose laceration",
+      "nose cut",
+      "nasal wound",
+      "nose injury",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_trauma_nasal_lac",
@@ -904,7 +1021,13 @@ const HN_DX_FACIAL_SOFT_TISSUE_TRAUMA: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Soft Tissue Trauma",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["lip laceration", "lip cut", "vermilion border", "lip injury", "through-and-through lip"],
+    searchSynonyms: [
+      "lip laceration",
+      "lip cut",
+      "vermilion border",
+      "lip injury",
+      "through-and-through lip",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_trauma_lip_lac",
@@ -931,7 +1054,13 @@ const HN_DX_FACIAL_SOFT_TISSUE_TRAUMA: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Soft Tissue Trauma",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["eyelid laceration", "periorbital laceration", "canalicular", "lid margin", "eyelid cut"],
+    searchSynonyms: [
+      "eyelid laceration",
+      "periorbital laceration",
+      "canalicular",
+      "lid margin",
+      "eyelid cut",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_trauma_eyelid_lac",
@@ -952,7 +1081,14 @@ const HN_DX_FACIAL_SOFT_TISSUE_TRAUMA: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Soft Tissue Trauma",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["ear laceration", "pinna laceration", "auricular laceration", "ear cartilage", "ear avulsion", "through-and-through ear"],
+    searchSynonyms: [
+      "ear laceration",
+      "pinna laceration",
+      "auricular laceration",
+      "ear cartilage",
+      "ear avulsion",
+      "through-and-through ear",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_trauma_ear_lac",
@@ -979,7 +1115,14 @@ const HN_DX_FACIAL_SOFT_TISSUE_TRAUMA: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Soft Tissue Trauma",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["scalp laceration", "scalp wound", "head laceration", "head cut", "scalp injury", "scalp staples"],
+    searchSynonyms: [
+      "scalp laceration",
+      "scalp wound",
+      "head laceration",
+      "head cut",
+      "scalp injury",
+      "scalp staples",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_trauma_scalp_lac",
@@ -1031,7 +1174,7 @@ export function getHeadNeckSubcategories(): string[] {
 
 /** Get H&N diagnoses for a specific subcategory */
 export function getHeadNeckDiagnosesForSubcategory(
-  subcategory: string
+  subcategory: string,
 ): DiagnosisPicklistEntry[] {
   return HEAD_NECK_DIAGNOSES.filter((dx) => dx.subcategory === subcategory);
 }

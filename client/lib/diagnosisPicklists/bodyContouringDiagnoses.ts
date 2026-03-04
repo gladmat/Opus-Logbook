@@ -25,7 +25,12 @@ const BC_DX_ABDOMEN: DiagnosisPicklistEntry[] = [
     subcategory: "Abdomen",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["tummy tuck", "abdominal skin", "apron", "abdominoplasty indication"],
+    searchSynonyms: [
+      "tummy tuck",
+      "abdominal skin",
+      "apron",
+      "abdominoplasty indication",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "bc_abdo_full",
@@ -70,7 +75,12 @@ const BC_DX_ABDOMEN: DiagnosisPicklistEntry[] = [
     subcategory: "Abdomen",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["pannus", "panniculectomy", "functional panniculus", "intertrigo"],
+    searchSynonyms: [
+      "pannus",
+      "panniculectomy",
+      "functional panniculus",
+      "intertrigo",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "bc_abdo_panniculectomy",
@@ -91,7 +101,12 @@ const BC_DX_ABDOMEN: DiagnosisPicklistEntry[] = [
     subcategory: "Abdomen",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["diastasis recti", "rectus separation", "plication", "abdominal wall laxity"],
+    searchSynonyms: [
+      "diastasis recti",
+      "rectus separation",
+      "plication",
+      "abdominal wall laxity",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "bc_abdo_diastasis_repair",
@@ -125,7 +140,12 @@ const BC_DX_UPPER: DiagnosisPicklistEntry[] = [
     subcategory: "Upper Body",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["arm lift", "bingo wings", "brachioplasty indication", "upper arm laxity"],
+    searchSynonyms: [
+      "arm lift",
+      "bingo wings",
+      "brachioplasty indication",
+      "upper arm laxity",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "bc_upper_brachioplasty",
@@ -180,7 +200,12 @@ const BC_DX_LOWER: DiagnosisPicklistEntry[] = [
     subcategory: "Lower Body",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["thigh lift", "inner thigh", "medial thigh", "lateral thigh"],
+    searchSynonyms: [
+      "thigh lift",
+      "inner thigh",
+      "medial thigh",
+      "lateral thigh",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "bc_lower_medial_thigh",
@@ -262,7 +287,13 @@ const BC_DX_POST_BARIATRIC: DiagnosisPicklistEntry[] = [
     subcategory: "Post-Bariatric",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["post-bariatric", "massive weight loss", "MWL", "body lift", "belt lipectomy"],
+    searchSynonyms: [
+      "post-bariatric",
+      "massive weight loss",
+      "MWL",
+      "body lift",
+      "belt lipectomy",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "bc_postbar_circumferential_body_lift",
@@ -290,7 +321,8 @@ const BC_DX_POST_BARIATRIC: DiagnosisPicklistEntry[] = [
     displayName: "Post-bariatric arm excess",
     shortName: "Post-bariatric arms",
     snomedCtCode: "419459005",
-    snomedCtDisplay: "Excess skin of upper arm following weight loss (disorder)",
+    snomedCtDisplay:
+      "Excess skin of upper arm following weight loss (disorder)",
     specialty: "body_contouring",
     subcategory: "Post-Bariatric",
     clinicalGroup: "elective",
@@ -344,7 +376,12 @@ const BC_DX_LIPODYSTROPHY: DiagnosisPicklistEntry[] = [
     subcategory: "Lipodystrophy",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["lipodystrophy", "localised fat", "liposuction indication", "stubborn fat"],
+    searchSynonyms: [
+      "lipodystrophy",
+      "localised fat",
+      "liposuction indication",
+      "stubborn fat",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "aes_body_liposuction",
@@ -390,7 +427,9 @@ export function getBodyContouringSubcategories(): string[] {
 
 /** Get body contouring diagnoses for a specific subcategory */
 export function getBodyContouringDiagnosesForSubcategory(
-  subcategory: string
+  subcategory: string,
 ): DiagnosisPicklistEntry[] {
-  return BODY_CONTOURING_DIAGNOSES.filter((dx) => dx.subcategory === subcategory);
+  return BODY_CONTOURING_DIAGNOSES.filter(
+    (dx) => dx.subcategory === subcategory,
+  );
 }

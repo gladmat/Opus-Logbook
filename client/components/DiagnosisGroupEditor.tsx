@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import { View, StyleSheet, Pressable, Animated } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -35,7 +41,10 @@ import {
   findDiagnosisById,
 } from "@/lib/diagnosisPicklists";
 import type { DiagnosisPicklistEntry } from "@/types/diagnosis";
-import { findPicklistEntry, PICKLIST_TO_FLAP_TYPE } from "@/lib/procedurePicklist";
+import {
+  findPicklistEntry,
+  PICKLIST_TO_FLAP_TYPE,
+} from "@/lib/procedurePicklist";
 import { FLAP_SNOMED_MAP, type FreeFlapDetails } from "@/types/case";
 import { SectionHeader } from "@/components/SectionHeader";
 import { DiagnosisSuggestions } from "@/components/DiagnosisSuggestions";
@@ -43,7 +52,11 @@ import { HandTraumaStructurePicker } from "@/components/hand-trauma/HandTraumaSt
 import { MultiLesionEditor } from "@/components/MultiLesionEditor";
 import type { LesionInstance, LesionPathologyType } from "@/types/case";
 import { SelectedDiagnosisCard } from "@/components/SelectedDiagnosisCard";
-import { resolveAOToDiagnosis, applyProcedureHints, type AOProcedureHint } from "@/lib/aoToDiagnosisMapping";
+import {
+  resolveAOToDiagnosis,
+  applyProcedureHints,
+  type AOProcedureHint,
+} from "@/lib/aoToDiagnosisMapping";
 
 interface DiagnosisGroupEditorProps {
   group: DiagnosisGroup;
@@ -56,46 +69,95 @@ interface DiagnosisGroupEditorProps {
   onMoveDown?: () => void;
 }
 
-export function DiagnosisGroupEditor({ group, index, isOnly, totalGroups, onChange, onDelete, onMoveUp, onMoveDown }: DiagnosisGroupEditorProps) {
+export function DiagnosisGroupEditor({
+  group,
+  index,
+  isOnly,
+  totalGroups,
+  onChange,
+  onDelete,
+  onMoveUp,
+  onMoveDown,
+}: DiagnosisGroupEditorProps) {
   const { theme } = useTheme();
 
   // Accent color: monochromatic amber — primary full, then fading
-  const accentColor = index === 0 ? theme.link : index === 1 ? theme.link + "99" : theme.link + "59";
+  const accentColor =
+    index === 0
+      ? theme.link
+      : index === 1
+        ? theme.link + "99"
+        : theme.link + "59";
 
   // Completion check: group has diagnosis + at least one named procedure
-  const isComplete = !!(group.diagnosis?.displayName && group.procedures.some(p => p.procedureName.trim()));
+  const isComplete = !!(
+    group.diagnosis?.displayName &&
+    group.procedures.some((p) => p.procedureName.trim())
+  );
 
   const initializedRef = useRef(false);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
-  const [groupSpecialty, setGroupSpecialty] = useState<Specialty>(group.specialty);
-  const [primaryDiagnosis, setPrimaryDiagnosis] = useState<{ conceptId: string; term: string } | null>(null);
+  const [groupSpecialty, setGroupSpecialty] = useState<Specialty>(
+    group.specialty,
+  );
+  const [primaryDiagnosis, setPrimaryDiagnosis] = useState<{
+    conceptId: string;
+    term: string;
+  } | null>(null);
   const [diagnosis, setDiagnosis] = useState("");
-  const [diagnosisStaging, setDiagnosisStaging] = useState<DiagnosisStagingConfig | null>(null);
-  const [stagingValues, setStagingValues] = useState<Record<string, string>>(group.diagnosisStagingSelections || {});
-  const [diagnosisClinicalDetails, setDiagnosisClinicalDetails] = useState<DiagnosisClinicalDetails>(group.diagnosisClinicalDetails || {});
-  const [selectedDiagnosis, setSelectedDiagnosis] = useState<DiagnosisPicklistEntry | null>(null);
-  const [selectedSuggestionIds, setSelectedSuggestionIds] = useState<Set<string>>(new Set());
-  const [procedures, setProcedures] = useState<CaseProcedure[]>(group.procedures);
-  const [fractures, setFractures] = useState<FractureEntry[]>(group.fractures || []);
+  const [diagnosisStaging, setDiagnosisStaging] =
+    useState<DiagnosisStagingConfig | null>(null);
+  const [stagingValues, setStagingValues] = useState<Record<string, string>>(
+    group.diagnosisStagingSelections || {},
+  );
+  const [diagnosisClinicalDetails, setDiagnosisClinicalDetails] =
+    useState<DiagnosisClinicalDetails>(group.diagnosisClinicalDetails || {});
+  const [selectedDiagnosis, setSelectedDiagnosis] =
+    useState<DiagnosisPicklistEntry | null>(null);
+  const [selectedSuggestionIds, setSelectedSuggestionIds] = useState<
+    Set<string>
+  >(new Set());
+  const [procedures, setProcedures] = useState<CaseProcedure[]>(
+    group.procedures,
+  );
+  const [fractures, setFractures] = useState<FractureEntry[]>(
+    group.fractures || [],
+  );
   const [showFractureWizard, setShowFractureWizard] = useState(false);
-  const [snomedSuggestion, setSnomedSuggestion] = useState<{ searchTerm: string; displayName: string } | null>(null);
-  const [isMultiLesion, setIsMultiLesion] = useState<boolean>(group.isMultiLesion ?? false);
-  const [lesionInstances, setLesionInstances] = useState<LesionInstance[]>(group.lesionInstances ?? []);
-  const [isExpanded, setIsExpanded] = useState<boolean>(!group.diagnosis?.displayName);
-  const [clinicalSuspicion, setClinicalSuspicion] = useState<ClinicalSuspicion | undefined>(group.clinicalSuspicion);
+  const [snomedSuggestion, setSnomedSuggestion] = useState<{
+    searchTerm: string;
+    displayName: string;
+  } | null>(null);
+  const [isMultiLesion, setIsMultiLesion] = useState<boolean>(
+    group.isMultiLesion ?? false,
+  );
+  const [lesionInstances, setLesionInstances] = useState<LesionInstance[]>(
+    group.lesionInstances ?? [],
+  );
+  const [isExpanded, setIsExpanded] = useState<boolean>(
+    !group.diagnosis?.displayName,
+  );
+  const [clinicalSuspicion, setClinicalSuspicion] = useState<
+    ClinicalSuspicion | undefined
+  >(group.clinicalSuspicion);
 
   // Feature 1: collapse diagnosis picklist after selection
-  const [isDiagnosisPickerCollapsed, setIsDiagnosisPickerCollapsed] = useState<boolean>(!!group.diagnosisPicklistId);
+  const [isDiagnosisPickerCollapsed, setIsDiagnosisPickerCollapsed] =
+    useState<boolean>(!!group.diagnosisPicklistId);
 
   // Feature 2: procedure filtering
   const [showAllProcedures, setShowAllProcedures] = useState<boolean>(false);
 
   // Feature 3: hand surgery trauma/elective branching
-  const [handCaseType, setHandCaseType] = useState<"trauma" | "elective" | null>(null);
+  const [handCaseType, setHandCaseType] = useState<
+    "trauma" | "elective" | null
+  >(null);
   const [isDiagnosisFromAO, setIsDiagnosisFromAO] = useState<boolean>(false);
-  const [aoSourceLabel, setAoSourceLabel] = useState<string | undefined>(undefined);
+  const [aoSourceLabel, setAoSourceLabel] = useState<string | undefined>(
+    undefined,
+  );
   const [aoHints, setAoHints] = useState<AOProcedureHint[]>([]);
 
   useEffect(() => {
@@ -103,7 +165,10 @@ export function DiagnosisGroupEditor({ group, index, isOnly, totalGroups, onChan
     initializedRef.current = true;
 
     if (group.diagnosis?.snomedCtCode) {
-      setPrimaryDiagnosis({ conceptId: group.diagnosis.snomedCtCode, term: group.diagnosis.displayName });
+      setPrimaryDiagnosis({
+        conceptId: group.diagnosis.snomedCtCode,
+        term: group.diagnosis.displayName,
+      });
     } else if (group.diagnosis?.displayName) {
       setDiagnosis(group.diagnosis.displayName);
     }
@@ -113,21 +178,23 @@ export function DiagnosisGroupEditor({ group, index, isOnly, totalGroups, onChan
       if (dx) {
         setSelectedDiagnosis(dx);
         const procIds = group.procedures
-          .map(p => p.picklistEntryId)
+          .map((p) => p.picklistEntryId)
           .filter(Boolean) as string[];
         setSelectedSuggestionIds(new Set(procIds));
 
         // Infer hand case type from loaded diagnosis
         if (group.specialty === "hand_surgery") {
-          setHandCaseType(dx.clinicalGroup === "trauma" ? "trauma" : "elective");
+          setHandCaseType(
+            dx.clinicalGroup === "trauma" ? "trauma" : "elective",
+          );
         }
       }
     }
   }, [group]);
 
-  const hasFractureSubcategory = groupSpecialty === "hand_surgery" && procedures.some(
-    (p) => p.subcategory === "Fracture & Joint Fixation"
-  );
+  const hasFractureSubcategory =
+    groupSpecialty === "hand_surgery" &&
+    procedures.some((p) => p.subcategory === "Fracture & Joint Fixation");
 
   useEffect(() => {
     if (!hasFractureSubcategory) {
@@ -138,7 +205,10 @@ export function DiagnosisGroupEditor({ group, index, isOnly, totalGroups, onChan
   useEffect(() => {
     const fetchStaging = async () => {
       if (primaryDiagnosis) {
-        const staging = await getDiagnosisStaging(primaryDiagnosis.conceptId, primaryDiagnosis.term);
+        const staging = await getDiagnosisStaging(
+          primaryDiagnosis.conceptId,
+          primaryDiagnosis.term,
+        );
         setDiagnosisStaging(staging);
         if (!initializedRef.current) {
           setStagingValues({});
@@ -160,11 +230,20 @@ export function DiagnosisGroupEditor({ group, index, isOnly, totalGroups, onChan
       sequenceOrder: group.sequenceOrder,
       specialty: groupSpecialty,
       diagnosis: primaryDiagnosis
-        ? { snomedCtCode: primaryDiagnosis.conceptId, displayName: primaryDiagnosis.term }
-        : (diagnosis.trim() ? { displayName: diagnosis.trim() } : undefined),
+        ? {
+            snomedCtCode: primaryDiagnosis.conceptId,
+            displayName: primaryDiagnosis.term,
+          }
+        : diagnosis.trim()
+          ? { displayName: diagnosis.trim() }
+          : undefined,
       diagnosisPicklistId: selectedDiagnosis?.id || undefined,
-      diagnosisStagingSelections: Object.keys(stagingValues).length > 0 ? stagingValues : undefined,
-      diagnosisClinicalDetails: Object.keys(diagnosisClinicalDetails).length > 0 ? diagnosisClinicalDetails : undefined,
+      diagnosisStagingSelections:
+        Object.keys(stagingValues).length > 0 ? stagingValues : undefined,
+      diagnosisClinicalDetails:
+        Object.keys(diagnosisClinicalDetails).length > 0
+          ? diagnosisClinicalDetails
+          : undefined,
       procedureSuggestionSource: selectedDiagnosis ? "picklist" : "manual",
       fractures: fractures.length > 0 ? fractures : undefined,
       procedures,
@@ -175,222 +254,277 @@ export function DiagnosisGroupEditor({ group, index, isOnly, totalGroups, onChan
     };
     onChangeRef.current(assembled);
   }, [
-    groupSpecialty, primaryDiagnosis, diagnosis, selectedDiagnosis,
-    stagingValues, diagnosisClinicalDetails, fractures, procedures,
-    isMultiLesion, lesionInstances, clinicalSuspicion,
-    group.id, group.sequenceOrder,
+    groupSpecialty,
+    primaryDiagnosis,
+    diagnosis,
+    selectedDiagnosis,
+    stagingValues,
+    diagnosisClinicalDetails,
+    fractures,
+    procedures,
+    isMultiLesion,
+    lesionInstances,
+    clinicalSuspicion,
+    group.id,
+    group.sequenceOrder,
   ]);
 
-  const buildDefaultProcedures = useCallback((): CaseProcedure[] => ([
-    {
-      id: uuidv4(),
-      sequenceOrder: 1,
-      procedureName: PROCEDURE_TYPES[groupSpecialty]?.[0] || "",
-      specialty: groupSpecialty,
-      surgeonRole: "PS",
-    },
-  ]), [groupSpecialty]);
-
-  const handleDiagnosisSelect = useCallback((dx: DiagnosisPicklistEntry, hints: AOProcedureHint[] = []) => {
-    setSelectedDiagnosis(dx);
-    setPrimaryDiagnosis({ conceptId: dx.snomedCtCode, term: dx.displayName });
-    setDiagnosis(dx.displayName);
-    setStagingValues({});
-    setIsDiagnosisPickerCollapsed(true);
-    setShowAllProcedures(false);
-
-    // Apply AO procedure hints if provided (promote/demote defaults)
-    const effectiveSuggestions = hints.length > 0 && dx.suggestedProcedures
-      ? applyProcedureHints(dx.suggestedProcedures, hints)
-      : dx.suggestedProcedures;
-    const effectiveDx = hints.length > 0
-      ? { ...dx, suggestedProcedures: effectiveSuggestions }
-      : dx;
-    const activeIds = getActiveProcedureIds(effectiveDx, {});
-    setSelectedSuggestionIds(new Set(activeIds));
-
-    const newProcedures: CaseProcedure[] = activeIds.map((picklistId, idx) => {
-      const entry = findPicklistEntry(picklistId);
-      let clinicalDetails: FreeFlapDetails | undefined = undefined;
-      if (entry?.hasFreeFlap) {
-        const mappedFlapType = PICKLIST_TO_FLAP_TYPE[picklistId];
-        if (mappedFlapType) {
-          const snomedEntry = FLAP_SNOMED_MAP[mappedFlapType];
-          clinicalDetails = {
-            flapType: mappedFlapType,
-            flapSnomedCode: snomedEntry?.code,
-            flapSnomedDisplay: snomedEntry?.display,
-            harvestSide: "left",
-            indication: "trauma",
-            anastomoses: [],
-          } as FreeFlapDetails;
-        }
-      }
-      return {
+  const buildDefaultProcedures = useCallback(
+    (): CaseProcedure[] => [
+      {
         id: uuidv4(),
-        sequenceOrder: idx + 1,
-        procedureName: entry?.displayName || "",
+        sequenceOrder: 1,
+        procedureName: PROCEDURE_TYPES[groupSpecialty]?.[0] || "",
         specialty: groupSpecialty,
-        surgeonRole: "PS" as Role,
-        picklistEntryId: picklistId,
-        snomedCtCode: entry?.snomedCtCode,
-        snomedCtDisplay: entry?.snomedCtDisplay,
-        subcategory: entry?.subcategory,
-        tags: entry?.tags,
-        clinicalDetails,
-      };
-    });
-    setProcedures(newProcedures.length > 0 ? newProcedures : buildDefaultProcedures());
-  }, [groupSpecialty, buildDefaultProcedures]);
+        surgeonRole: "PS",
+      },
+    ],
+    [groupSpecialty],
+  );
 
-  const handleStagingChangeForSuggestions = useCallback((systemName: string, value: string) => {
-    const newStagingValues = { ...stagingValues, [systemName]: value };
-    setStagingValues(newStagingValues);
+  const handleDiagnosisSelect = useCallback(
+    (dx: DiagnosisPicklistEntry, hints: AOProcedureHint[] = []) => {
+      setSelectedDiagnosis(dx);
+      setPrimaryDiagnosis({ conceptId: dx.snomedCtCode, term: dx.displayName });
+      setDiagnosis(dx.displayName);
+      setStagingValues({});
+      setIsDiagnosisPickerCollapsed(true);
+      setShowAllProcedures(false);
 
-    if (selectedDiagnosis) {
-      const evaluated = evaluateSuggestions(selectedDiagnosis, newStagingValues);
-      const activeIds = new Set(evaluated.filter((s) => s.isActive).map((s) => s.procedurePicklistId));
-      const allSuggestionIds = new Set(evaluated.map((s) => s.procedurePicklistId));
+      // Apply AO procedure hints if provided (promote/demote defaults)
+      const effectiveSuggestions =
+        hints.length > 0 && dx.suggestedProcedures
+          ? applyProcedureHints(dx.suggestedProcedures, hints)
+          : dx.suggestedProcedures;
+      const effectiveDx =
+        hints.length > 0
+          ? { ...dx, suggestedProcedures: effectiveSuggestions }
+          : dx;
+      const activeIds = getActiveProcedureIds(effectiveDx, {});
+      setSelectedSuggestionIds(new Set(activeIds));
 
-      const manuallySelected = new Set<string>();
-      selectedSuggestionIds.forEach((id) => {
-        if (!allSuggestionIds.has(id) || activeIds.has(id)) {
-          manuallySelected.add(id);
-        }
-      });
-      const newSelected = new Set([...activeIds, ...manuallySelected]);
-
-      const idsToAdd = [...activeIds].filter(
-        (id) => !procedures.some((p) => p.picklistEntryId === id)
+      const newProcedures: CaseProcedure[] = activeIds.map(
+        (picklistId, idx) => {
+          const entry = findPicklistEntry(picklistId);
+          let clinicalDetails: FreeFlapDetails | undefined = undefined;
+          if (entry?.hasFreeFlap) {
+            const mappedFlapType = PICKLIST_TO_FLAP_TYPE[picklistId];
+            if (mappedFlapType) {
+              const snomedEntry = FLAP_SNOMED_MAP[mappedFlapType];
+              clinicalDetails = {
+                flapType: mappedFlapType,
+                flapSnomedCode: snomedEntry?.code,
+                flapSnomedDisplay: snomedEntry?.display,
+                harvestSide: "left",
+                indication: "trauma",
+                anastomoses: [],
+              } as FreeFlapDetails;
+            }
+          }
+          return {
+            id: uuidv4(),
+            sequenceOrder: idx + 1,
+            procedureName: entry?.displayName || "",
+            specialty: groupSpecialty,
+            surgeonRole: "PS" as Role,
+            picklistEntryId: picklistId,
+            snomedCtCode: entry?.snomedCtCode,
+            snomedCtDisplay: entry?.snomedCtDisplay,
+            subcategory: entry?.subcategory,
+            tags: entry?.tags,
+            clinicalDetails,
+          };
+        },
       );
-
-      const conditionalIds = new Set(
-        evaluated.filter((s) => s.isConditional).map((s) => s.procedurePicklistId)
+      setProcedures(
+        newProcedures.length > 0 ? newProcedures : buildDefaultProcedures(),
       );
-      const idsToRemove = new Set(
-        [...conditionalIds].filter((id) => !activeIds.has(id) && !manuallySelected.has(id))
-      );
+    },
+    [groupSpecialty, buildDefaultProcedures],
+  );
 
-      setProcedures((prev) => {
-        let updated = prev.filter((p) => !p.picklistEntryId || !idsToRemove.has(p.picklistEntryId));
-        if (idsToAdd.length > 0) {
-          const addedProcedures: CaseProcedure[] = idsToAdd.map((picklistId) => {
-            const entry = findPicklistEntry(picklistId);
-            return {
-              id: uuidv4(),
-              sequenceOrder: 1,
-              procedureName: entry?.displayName || "",
-              specialty: groupSpecialty,
-              surgeonRole: "PS" as Role,
-              picklistEntryId: picklistId,
-              snomedCtCode: entry?.snomedCtCode,
-              snomedCtDisplay: entry?.snomedCtDisplay,
-              subcategory: entry?.subcategory,
-              tags: entry?.tags,
-            };
-          });
-          updated = [...updated, ...addedProcedures];
-        }
-        return updated.map((p, i) => ({ ...p, sequenceOrder: i + 1 }));
-      });
-      setSelectedSuggestionIds(newSelected);
-    }
-  }, [stagingValues, selectedDiagnosis, selectedSuggestionIds, procedures, groupSpecialty]);
+  const handleStagingChangeForSuggestions = useCallback(
+    (systemName: string, value: string) => {
+      const newStagingValues = { ...stagingValues, [systemName]: value };
+      setStagingValues(newStagingValues);
 
-  const handleToggleProcedureSuggestion = useCallback((procedurePicklistId: string, isSelected: boolean) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (isSelected) {
-      setSelectedSuggestionIds((prev) => new Set([...prev, procedurePicklistId]));
-      const entry = findPicklistEntry(procedurePicklistId);
-      if (entry && !procedures.some((p) => p.picklistEntryId === procedurePicklistId)) {
-        const newProc: CaseProcedure = {
-          id: uuidv4(),
-          sequenceOrder: procedures.length + 1,
-          procedureName: entry.displayName,
-          specialty: groupSpecialty,
-          surgeonRole: "PS" as Role,
-          picklistEntryId: procedurePicklistId,
-          snomedCtCode: entry.snomedCtCode,
-          snomedCtDisplay: entry.snomedCtDisplay,
-          subcategory: entry.subcategory,
-          tags: entry.tags,
-        };
-        setProcedures((prev) => [...prev, newProc]);
+      if (selectedDiagnosis) {
+        const evaluated = evaluateSuggestions(
+          selectedDiagnosis,
+          newStagingValues,
+        );
+        const activeIds = new Set(
+          evaluated.filter((s) => s.isActive).map((s) => s.procedurePicklistId),
+        );
+        const allSuggestionIds = new Set(
+          evaluated.map((s) => s.procedurePicklistId),
+        );
+
+        const manuallySelected = new Set<string>();
+        selectedSuggestionIds.forEach((id) => {
+          if (!allSuggestionIds.has(id) || activeIds.has(id)) {
+            manuallySelected.add(id);
+          }
+        });
+        const newSelected = new Set([...activeIds, ...manuallySelected]);
+
+        const idsToAdd = [...activeIds].filter(
+          (id) => !procedures.some((p) => p.picklistEntryId === id),
+        );
+
+        const conditionalIds = new Set(
+          evaluated
+            .filter((s) => s.isConditional)
+            .map((s) => s.procedurePicklistId),
+        );
+        const idsToRemove = new Set(
+          [...conditionalIds].filter(
+            (id) => !activeIds.has(id) && !manuallySelected.has(id),
+          ),
+        );
+
+        setProcedures((prev) => {
+          let updated = prev.filter(
+            (p) => !p.picklistEntryId || !idsToRemove.has(p.picklistEntryId),
+          );
+          if (idsToAdd.length > 0) {
+            const addedProcedures: CaseProcedure[] = idsToAdd.map(
+              (picklistId) => {
+                const entry = findPicklistEntry(picklistId);
+                return {
+                  id: uuidv4(),
+                  sequenceOrder: 1,
+                  procedureName: entry?.displayName || "",
+                  specialty: groupSpecialty,
+                  surgeonRole: "PS" as Role,
+                  picklistEntryId: picklistId,
+                  snomedCtCode: entry?.snomedCtCode,
+                  snomedCtDisplay: entry?.snomedCtDisplay,
+                  subcategory: entry?.subcategory,
+                  tags: entry?.tags,
+                };
+              },
+            );
+            updated = [...updated, ...addedProcedures];
+          }
+          return updated.map((p, i) => ({ ...p, sequenceOrder: i + 1 }));
+        });
+        setSelectedSuggestionIds(newSelected);
       }
-    } else {
-      setSelectedSuggestionIds((prev) => {
-        const next = new Set(prev);
-        next.delete(procedurePicklistId);
-        return next;
-      });
-      setProcedures((prev) => {
-        const filtered = prev.filter((p) => p.picklistEntryId !== procedurePicklistId);
-        return filtered.map((p, i) => ({ ...p, sequenceOrder: i + 1 }));
-      });
-    }
-  }, [procedures, groupSpecialty]);
+    },
+    [
+      stagingValues,
+      selectedDiagnosis,
+      selectedSuggestionIds,
+      procedures,
+      groupSpecialty,
+    ],
+  );
+
+  const handleToggleProcedureSuggestion = useCallback(
+    (procedurePicklistId: string, isSelected: boolean) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      if (isSelected) {
+        setSelectedSuggestionIds(
+          (prev) => new Set([...prev, procedurePicklistId]),
+        );
+        const entry = findPicklistEntry(procedurePicklistId);
+        if (
+          entry &&
+          !procedures.some((p) => p.picklistEntryId === procedurePicklistId)
+        ) {
+          const newProc: CaseProcedure = {
+            id: uuidv4(),
+            sequenceOrder: procedures.length + 1,
+            procedureName: entry.displayName,
+            specialty: groupSpecialty,
+            surgeonRole: "PS" as Role,
+            picklistEntryId: procedurePicklistId,
+            snomedCtCode: entry.snomedCtCode,
+            snomedCtDisplay: entry.snomedCtDisplay,
+            subcategory: entry.subcategory,
+            tags: entry.tags,
+          };
+          setProcedures((prev) => [...prev, newProc]);
+        }
+      } else {
+        setSelectedSuggestionIds((prev) => {
+          const next = new Set(prev);
+          next.delete(procedurePicklistId);
+          return next;
+        });
+        setProcedures((prev) => {
+          const filtered = prev.filter(
+            (p) => p.picklistEntryId !== procedurePicklistId,
+          );
+          return filtered.map((p, i) => ({ ...p, sequenceOrder: i + 1 }));
+        });
+      }
+    },
+    [procedures, groupSpecialty],
+  );
 
   const procedurePicklistIds = useMemo(
-    () => procedures
-      .map((p) => p.picklistEntryId)
-      .filter((id): id is string => !!id),
-    [procedures]
+    () =>
+      procedures
+        .map((p) => p.picklistEntryId)
+        .filter((id): id is string => !!id),
+    [procedures],
   );
 
   const showDiagnosisSuggestions =
-    procedurePicklistIds.length > 0 &&
-    !selectedDiagnosis &&
-    !primaryDiagnosis;
+    procedurePicklistIds.length > 0 && !selectedDiagnosis && !primaryDiagnosis;
 
-  const handleReverseDiagnosisSelect = useCallback((dx: DiagnosisPicklistEntry) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  const handleReverseDiagnosisSelect = useCallback(
+    (dx: DiagnosisPicklistEntry) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    setSelectedDiagnosis(dx);
-    setPrimaryDiagnosis({ conceptId: dx.snomedCtCode, term: dx.displayName });
-    setDiagnosis(dx.displayName);
-    setStagingValues({});
-    setIsDiagnosisPickerCollapsed(true);
-    setShowAllProcedures(false);
+      setSelectedDiagnosis(dx);
+      setPrimaryDiagnosis({ conceptId: dx.snomedCtCode, term: dx.displayName });
+      setDiagnosis(dx.displayName);
+      setStagingValues({});
+      setIsDiagnosisPickerCollapsed(true);
+      setShowAllProcedures(false);
 
-    const activeIds = getActiveProcedureIds(dx, {});
+      const activeIds = getActiveProcedureIds(dx, {});
 
-    setProcedures((prev) => {
-      const existingPicklistIds = new Set(
-        prev
-          .map((p) => p.picklistEntryId)
-          .filter((id): id is string => !!id)
-      );
+      setProcedures((prev) => {
+        const existingPicklistIds = new Set(
+          prev.map((p) => p.picklistEntryId).filter((id): id is string => !!id),
+        );
 
-      const newProcedures: CaseProcedure[] = [];
-      for (const picklistId of activeIds) {
-        if (!existingPicklistIds.has(picklistId)) {
-          const entry = findPicklistEntry(picklistId);
-          if (entry) {
-            newProcedures.push({
-              id: uuidv4(),
-              sequenceOrder: prev.length + newProcedures.length + 1,
-              procedureName: entry.displayName,
-              specialty: groupSpecialty,
-              surgeonRole: "PS" as Role,
-              picklistEntryId: picklistId,
-              snomedCtCode: entry.snomedCtCode,
-              snomedCtDisplay: entry.snomedCtDisplay,
-              subcategory: entry.subcategory,
-              tags: entry.tags,
-            });
+        const newProcedures: CaseProcedure[] = [];
+        for (const picklistId of activeIds) {
+          if (!existingPicklistIds.has(picklistId)) {
+            const entry = findPicklistEntry(picklistId);
+            if (entry) {
+              newProcedures.push({
+                id: uuidv4(),
+                sequenceOrder: prev.length + newProcedures.length + 1,
+                procedureName: entry.displayName,
+                specialty: groupSpecialty,
+                surgeonRole: "PS" as Role,
+                picklistEntryId: picklistId,
+                snomedCtCode: entry.snomedCtCode,
+                snomedCtDisplay: entry.snomedCtDisplay,
+                subcategory: entry.subcategory,
+                tags: entry.tags,
+              });
+            }
           }
         }
-      }
 
-      const allIds = new Set([...existingPicklistIds, ...activeIds]);
-      setSelectedSuggestionIds(allIds);
+        const allIds = new Set([...existingPicklistIds, ...activeIds]);
+        setSelectedSuggestionIds(allIds);
 
-      if (newProcedures.length > 0) {
-        return [...prev, ...newProcedures];
-      }
-      return prev;
-    });
-  }, [groupSpecialty]);
+        if (newProcedures.length > 0) {
+          return [...prev, ...newProcedures];
+        }
+        return prev;
+      });
+    },
+    [groupSpecialty],
+  );
 
   const addProcedure = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -405,7 +539,9 @@ export function DiagnosisGroupEditor({ group, index, isOnly, totalGroups, onChan
   };
 
   const updateProcedure = (updated: CaseProcedure) => {
-    setProcedures((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+    setProcedures((prev) =>
+      prev.map((p) => (p.id === updated.id ? updated : p)),
+    );
   };
 
   const removeProcedure = (id: string) => {
@@ -422,7 +558,10 @@ export function DiagnosisGroupEditor({ group, index, isOnly, totalGroups, onChan
       const idx = prev.findIndex((p) => p.id === id);
       if (idx <= 0) return prev;
       const newArr = [...prev];
-      [newArr[idx - 1], newArr[idx]] = [newArr[idx], newArr[idx - 1]];
+      const a = newArr[idx - 1]!;
+      const b = newArr[idx]!;
+      newArr[idx - 1] = b;
+      newArr[idx] = a;
       return newArr.map((p, i) => ({ ...p, sequenceOrder: i + 1 }));
     });
   };
@@ -433,11 +572,13 @@ export function DiagnosisGroupEditor({ group, index, isOnly, totalGroups, onChan
       const idx = prev.findIndex((p) => p.id === id);
       if (idx < 0 || idx >= prev.length - 1) return prev;
       const newArr = [...prev];
-      [newArr[idx], newArr[idx + 1]] = [newArr[idx + 1], newArr[idx]];
+      const a = newArr[idx]!;
+      const b = newArr[idx + 1]!;
+      newArr[idx] = b;
+      newArr[idx + 1] = a;
       return newArr.map((p, i) => ({ ...p, sequenceOrder: i + 1 }));
     });
   };
-
 
   const handleFractureWizardSave = async (newFractures: FractureEntry[]) => {
     setFractures(newFractures);
@@ -445,10 +586,12 @@ export function DiagnosisGroupEditor({ group, index, isOnly, totalGroups, onChan
 
     if (newFractures.length > 0) {
       const firstFracture = newFractures[0];
+      if (!firstFracture) return;
 
       // Try new AO → diagnosis mapping first (hand surgery)
       if (groupSpecialty === "hand_surgery" && firstFracture.aoCode) {
-        const familyCode = firstFracture.details?.familyCode ?? firstFracture.aoCode.slice(0, 2);
+        const familyCode =
+          firstFracture.details?.familyCode ?? firstFracture.aoCode.slice(0, 2);
         const resolution = resolveAOToDiagnosis({
           familyCode,
           finger: firstFracture.details?.finger,
@@ -460,7 +603,9 @@ export function DiagnosisGroupEditor({ group, index, isOnly, totalGroups, onChan
           const dx = findDiagnosisById(resolution.diagnosisPicklistId);
           if (dx) {
             setIsDiagnosisFromAO(true);
-            setAoSourceLabel(resolution.matchedRefinement ?? "AO classification");
+            setAoSourceLabel(
+              resolution.matchedRefinement ?? "AO classification",
+            );
             setAoHints(resolution.procedureHints);
             handleDiagnosisSelect(dx, resolution.procedureHints);
             return;
@@ -501,13 +646,15 @@ export function DiagnosisGroupEditor({ group, index, isOnly, totalGroups, onChan
     setIsDiagnosisFromAO(false);
     setAoSourceLabel(undefined);
     setAoHints([]);
-    setProcedures([{
-      id: uuidv4(),
-      sequenceOrder: 1,
-      procedureName: PROCEDURE_TYPES[s]?.[0] || "",
-      specialty: s,
-      surgeonRole: "PS",
-    }]);
+    setProcedures([
+      {
+        id: uuidv4(),
+        sequenceOrder: 1,
+        procedureName: PROCEDURE_TYPES[s]?.[0] || "",
+        specialty: s,
+        surgeonRole: "PS",
+      },
+    ]);
   };
 
   const clearDiagnosis = useCallback(() => {
@@ -523,10 +670,12 @@ export function DiagnosisGroupEditor({ group, index, isOnly, totalGroups, onChan
     setSnomedSuggestion(null);
   }, []);
 
-  const specialtyOptions = Object.entries(SPECIALTY_LABELS).map(([value, label]) => ({
-    value,
-    label,
-  }));
+  const specialtyOptions = Object.entries(SPECIALTY_LABELS).map(
+    ([value, label]) => ({
+      value,
+      label,
+    }),
+  );
 
   function deriveDefaultPathologyType(
     dx: DiagnosisPicklistEntry | null,
@@ -536,7 +685,8 @@ export function DiagnosisGroupEditor({ group, index, isOnly, totalGroups, onChan
     if (id.includes("melanoma")) return "melanoma";
     if (id.includes("scc")) return "scc";
     if (id.includes("bcc")) return "bcc";
-    if (id.includes("benign") || id.includes("naevus") || id.includes("cyst")) return "benign";
+    if (id.includes("benign") || id.includes("naevus") || id.includes("cyst"))
+      return "benign";
     return "bcc";
   }
 
@@ -560,52 +710,104 @@ export function DiagnosisGroupEditor({ group, index, isOnly, totalGroups, onChan
           style={styles.collapsedGroupCardInner}
         >
           <View style={styles.collapsedGroupHeader}>
-            <View style={[styles.orderBadge, { backgroundColor: accentColor + "20" }]}>
+            <View
+              style={[
+                styles.orderBadge,
+                { backgroundColor: accentColor + "20" },
+              ]}
+            >
               <ThemedText style={[styles.orderText, { color: accentColor }]}>
                 {index + 1}
               </ThemedText>
             </View>
             <View style={{ flex: 1 }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.sm }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: Spacing.sm,
+                }}
+              >
                 <ThemedText style={{ fontWeight: "600", fontSize: 15 }}>
                   {SPECIALTY_LABELS[groupSpecialty]}
                 </ThemedText>
                 {index === 0 && !isOnly ? (
-                  <View style={[styles.primaryBadge, { backgroundColor: theme.link }]}>
-                    <ThemedText style={[styles.primaryBadgeText, { color: theme.buttonText }]}>
+                  <View
+                    style={[
+                      styles.primaryBadge,
+                      { backgroundColor: theme.link },
+                    ]}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.primaryBadgeText,
+                        { color: theme.buttonText },
+                      ]}
+                    >
                       Primary
                     </ThemedText>
                   </View>
                 ) : null}
               </View>
-              <ThemedText style={{ color: theme.textSecondary, fontSize: 13, marginTop: 2 }}>
-                {group.diagnosis?.displayName || "No diagnosis"} · {procedures.length} procedure{procedures.length !== 1 ? "s" : ""}
+              <ThemedText
+                style={{
+                  color: theme.textSecondary,
+                  fontSize: 13,
+                  marginTop: 2,
+                }}
+              >
+                {group.diagnosis?.displayName || "No diagnosis"} ·{" "}
+                {procedures.length} procedure
+                {procedures.length !== 1 ? "s" : ""}
               </ThemedText>
             </View>
             {isComplete ? (
-              <Feather name="check-circle" size={16} color={theme.success} style={{ marginRight: Spacing.sm }} />
+              <Feather
+                name="check-circle"
+                size={16}
+                color={theme.success}
+                style={{ marginRight: Spacing.sm }}
+              />
             ) : null}
             {totalGroups > 1 ? (
               <View style={styles.reorderButtons}>
                 {onMoveUp && index > 0 ? (
                   <Pressable
-                    onPress={(e) => { e.stopPropagation(); onMoveUp(); }}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      onMoveUp();
+                    }}
                     hitSlop={8}
                   >
-                    <Feather name="chevron-up" size={18} color={theme.textTertiary} />
+                    <Feather
+                      name="chevron-up"
+                      size={18}
+                      color={theme.textTertiary}
+                    />
                   </Pressable>
                 ) : null}
                 {onMoveDown && index < totalGroups - 1 ? (
                   <Pressable
-                    onPress={(e) => { e.stopPropagation(); onMoveDown(); }}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      onMoveDown();
+                    }}
                     hitSlop={8}
                   >
-                    <Feather name="chevron-down" size={18} color={theme.textTertiary} />
+                    <Feather
+                      name="chevron-down"
+                      size={18}
+                      color={theme.textTertiary}
+                    />
                   </Pressable>
                 ) : null}
               </View>
             ) : null}
-            <Feather name="chevron-right" size={20} color={theme.textSecondary} />
+            <Feather
+              name="chevron-right"
+              size={20}
+              color={theme.textSecondary}
+            />
           </View>
         </Pressable>
       </View>
@@ -625,8 +827,20 @@ export function DiagnosisGroupEditor({ group, index, isOnly, totalGroups, onChan
     >
       {!isOnly ? (
         <View style={[styles.groupHeader, { borderBottomColor: theme.border }]}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.sm, flex: 1 }}>
-            <View style={[styles.orderBadge, { backgroundColor: accentColor + "20" }]}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: Spacing.sm,
+              flex: 1,
+            }}
+          >
+            <View
+              style={[
+                styles.orderBadge,
+                { backgroundColor: accentColor + "20" },
+              ]}
+            >
               <ThemedText style={[styles.orderText, { color: accentColor }]}>
                 {index + 1}
               </ThemedText>
@@ -635,14 +849,24 @@ export function DiagnosisGroupEditor({ group, index, isOnly, totalGroups, onChan
               Diagnosis Group {index + 1}
             </ThemedText>
             {index === 0 ? (
-              <View style={[styles.primaryBadge, { backgroundColor: theme.link }]}>
-                <ThemedText style={[styles.primaryBadgeText, { color: theme.buttonText }]}>
+              <View
+                style={[styles.primaryBadge, { backgroundColor: theme.link }]}
+              >
+                <ThemedText
+                  style={[styles.primaryBadgeText, { color: theme.buttonText }]}
+                >
                   Primary
                 </ThemedText>
               </View>
             ) : null}
           </View>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.sm }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: Spacing.sm,
+            }}
+          >
             <Pressable
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -668,147 +892,195 @@ export function DiagnosisGroupEditor({ group, index, isOnly, totalGroups, onChan
       ) : null}
 
       <View style={!isOnly ? styles.cardContent : undefined}>
+        {index > 0 ? (
+          <PickerField
+            label="Specialty"
+            value={groupSpecialty}
+            options={specialtyOptions}
+            onSelect={handleSpecialtyChange}
+          />
+        ) : null}
 
-      {index > 0 ? (
-        <PickerField
-          label="Specialty"
-          value={groupSpecialty}
-          options={specialtyOptions}
-          onSelect={handleSpecialtyChange}
-        />
-      ) : null}
-
-      {/* Feature 3: Hand surgery case type selector */}
-      {groupSpecialty === "hand_surgery" ? (
-        <View style={styles.caseTypeSelectorContainer}>
-          <ThemedText style={[styles.caseTypeLabel, { color: theme.textSecondary }]}>
-            Case Type
-          </ThemedText>
-          <View style={styles.caseTypeButtons}>
-            {(["trauma", "elective"] as const).map((type) => {
-              const isActive = handCaseType === type;
-              return (
-                <Pressable
-                  key={type}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    if (handCaseType !== type) {
-                      clearDiagnosis();
-                      setAoHints([]);
-                    }
-                    setHandCaseType(type);
-                  }}
-                  style={[
-                    styles.caseTypeButton,
-                    {
-                      backgroundColor: isActive ? theme.link : theme.backgroundDefault,
-                      borderColor: isActive ? theme.link : theme.border,
-                    },
-                  ]}
-                  testID={`button-case-type-${type}`}
-                >
-                  <ThemedText
-                    style={[
-                      styles.caseTypeButtonText,
-                      { color: isActive ? theme.buttonText : theme.textSecondary },
-                    ]}
-                  >
-                    {type === "trauma" ? "Trauma" : "Elective"}
-                  </ThemedText>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-      ) : null}
-
-      {/* Feature 3: HandTraumaStructurePicker — trauma pathway (shown first) */}
-      {groupSpecialty === "hand_surgery" && handCaseType === "trauma" ? (
-        <HandTraumaStructurePicker
-          value={diagnosisClinicalDetails.handTrauma || {}}
-          onChange={(handTrauma) =>
-            setDiagnosisClinicalDetails((prev) => ({ ...prev, handTrauma }))
-          }
-          selectedDiagnosis={selectedDiagnosis ?? undefined}
-          procedures={procedures}
-          onProceduresChange={setProcedures}
-        />
-      ) : null}
-
-      {/* Feature 3: AO Classification section (trauma pathway only) */}
-      {groupSpecialty === "hand_surgery" && handCaseType === "trauma" ? (
-        <View style={[styles.aoSection, { borderColor: theme.border }]}>
-          <ThemedText style={[styles.aoSectionLabel, { color: theme.textSecondary }]}>
-            AO Classification{" "}
-            <ThemedText style={{ color: theme.textTertiary, fontWeight: "400" }}>(optional)</ThemedText>
-          </ThemedText>
-          {fractures.length > 0 ? (
-            <View style={styles.aoSummaryRow}>
-              <Feather name="check-circle" size={14} color={theme.link} />
-              <ThemedText style={[styles.aoSummaryText, { color: theme.textSecondary }]}>
-                {fractures.length} fracture{fractures.length !== 1 ? "s" : ""} classified
-              </ThemedText>
-              <Pressable
-                onPress={() => {
-                  setFractures([]);
-                  if (isDiagnosisFromAO) {
-                    clearDiagnosis();
-                  }
-                }}
-                hitSlop={8}
-              >
-                <Feather name="x" size={16} color={theme.textTertiary} />
-              </Pressable>
-            </View>
-          ) : (
-            <Pressable
-              style={[styles.aoOpenButton, { borderColor: theme.link + "60" }]}
-              onPress={() => setShowFractureWizard(true)}
-              testID="button-open-ao-classifier"
+        {/* Feature 3: Hand surgery case type selector */}
+        {groupSpecialty === "hand_surgery" ? (
+          <View style={styles.caseTypeSelectorContainer}>
+            <ThemedText
+              style={[styles.caseTypeLabel, { color: theme.textSecondary }]}
             >
-              <Feather name="layers" size={16} color={theme.link} />
-              <ThemedText style={[styles.aoOpenButtonText, { color: theme.link }]}>
-                Open AO Classifier
-              </ThemedText>
-            </Pressable>
-          )}
-        </View>
-      ) : null}
+              Case Type
+            </ThemedText>
+            <View style={styles.caseTypeButtons}>
+              {(["trauma", "elective"] as const).map((type) => {
+                const isActive = handCaseType === type;
+                return (
+                  <Pressable
+                    key={type}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      if (handCaseType !== type) {
+                        clearDiagnosis();
+                        setAoHints([]);
+                      }
+                      setHandCaseType(type);
+                    }}
+                    style={[
+                      styles.caseTypeButton,
+                      {
+                        backgroundColor: isActive
+                          ? theme.link
+                          : theme.backgroundDefault,
+                        borderColor: isActive ? theme.link : theme.border,
+                      },
+                    ]}
+                    testID={`button-case-type-${type}`}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.caseTypeButtonText,
+                        {
+                          color: isActive
+                            ? theme.buttonText
+                            : theme.textSecondary,
+                        },
+                      ]}
+                    >
+                      {type === "trauma" ? "Trauma" : "Elective"}
+                    </ThemedText>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
 
-      <SectionHeader title="Primary Diagnosis" subtitle={hasDiagnosisPicklist(groupSpecialty) ? "Select from structured list or search SNOMED CT" : "SNOMED CT coded diagnosis"} />
-
-      {/* Feature 1: collapsed card OR full picker */}
-      {hasDiagnosisPicklist(groupSpecialty) ? (
-        isDiagnosisPickerCollapsed && selectedDiagnosis ? (
-          <SelectedDiagnosisCard
-            diagnosis={selectedDiagnosis}
-            onClear={clearDiagnosis}
-            sourceLabel={isDiagnosisFromAO ? aoSourceLabel : undefined}
-          />
-        ) : (
-          <DiagnosisPicker
-            specialty={groupSpecialty}
-            selectedDiagnosisId={selectedDiagnosis?.id}
-            onSelect={handleDiagnosisSelect}
-            clinicalGroupFilter={
-              groupSpecialty === "hand_surgery" && handCaseType === "trauma"
-                ? "trauma"
-                : groupSpecialty === "hand_surgery" && handCaseType === "elective"
-                ? "non-trauma"
-                : undefined
+        {/* Feature 3: HandTraumaStructurePicker — trauma pathway (shown first) */}
+        {groupSpecialty === "hand_surgery" && handCaseType === "trauma" ? (
+          <HandTraumaStructurePicker
+            value={diagnosisClinicalDetails.handTrauma || {}}
+            onChange={(handTrauma) =>
+              setDiagnosisClinicalDetails((prev) => ({ ...prev, handTrauma }))
             }
+            selectedDiagnosis={selectedDiagnosis ?? undefined}
+            procedures={procedures}
+            onProceduresChange={setProcedures}
           />
-        )
-      ) : null}
+        ) : null}
 
-      {/* SNOMED-only specialties: collapse when selected */}
-      {!hasDiagnosisPicklist(groupSpecialty) ? (
-        isDiagnosisPickerCollapsed && primaryDiagnosis ? (
-          <SelectedDiagnosisCard
-            diagnosis={{ displayName: primaryDiagnosis.term, snomedCtCode: primaryDiagnosis.conceptId }}
-            onClear={clearDiagnosis}
-          />
-        ) : (
+        {/* Feature 3: AO Classification section (trauma pathway only) */}
+        {groupSpecialty === "hand_surgery" && handCaseType === "trauma" ? (
+          <View style={[styles.aoSection, { borderColor: theme.border }]}>
+            <ThemedText
+              style={[styles.aoSectionLabel, { color: theme.textSecondary }]}
+            >
+              AO Classification{" "}
+              <ThemedText
+                style={{ color: theme.textTertiary, fontWeight: "400" }}
+              >
+                (optional)
+              </ThemedText>
+            </ThemedText>
+            {fractures.length > 0 ? (
+              <View style={styles.aoSummaryRow}>
+                <Feather name="check-circle" size={14} color={theme.link} />
+                <ThemedText
+                  style={[styles.aoSummaryText, { color: theme.textSecondary }]}
+                >
+                  {fractures.length} fracture{fractures.length !== 1 ? "s" : ""}{" "}
+                  classified
+                </ThemedText>
+                <Pressable
+                  onPress={() => {
+                    setFractures([]);
+                    if (isDiagnosisFromAO) {
+                      clearDiagnosis();
+                    }
+                  }}
+                  hitSlop={8}
+                >
+                  <Feather name="x" size={16} color={theme.textTertiary} />
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable
+                style={[
+                  styles.aoOpenButton,
+                  { borderColor: theme.link + "60" },
+                ]}
+                onPress={() => setShowFractureWizard(true)}
+                testID="button-open-ao-classifier"
+              >
+                <Feather name="layers" size={16} color={theme.link} />
+                <ThemedText
+                  style={[styles.aoOpenButtonText, { color: theme.link }]}
+                >
+                  Open AO Classifier
+                </ThemedText>
+              </Pressable>
+            )}
+          </View>
+        ) : null}
+
+        <SectionHeader
+          title="Primary Diagnosis"
+          subtitle={
+            hasDiagnosisPicklist(groupSpecialty)
+              ? "Select from structured list or search SNOMED CT"
+              : "SNOMED CT coded diagnosis"
+          }
+        />
+
+        {/* Feature 1: collapsed card OR full picker */}
+        {hasDiagnosisPicklist(groupSpecialty) ? (
+          isDiagnosisPickerCollapsed && selectedDiagnosis ? (
+            <SelectedDiagnosisCard
+              diagnosis={selectedDiagnosis}
+              onClear={clearDiagnosis}
+              sourceLabel={isDiagnosisFromAO ? aoSourceLabel : undefined}
+            />
+          ) : (
+            <DiagnosisPicker
+              specialty={groupSpecialty}
+              selectedDiagnosisId={selectedDiagnosis?.id}
+              onSelect={handleDiagnosisSelect}
+              clinicalGroupFilter={
+                groupSpecialty === "hand_surgery" && handCaseType === "trauma"
+                  ? "trauma"
+                  : groupSpecialty === "hand_surgery" &&
+                      handCaseType === "elective"
+                    ? "non-trauma"
+                    : undefined
+              }
+            />
+          )
+        ) : null}
+
+        {/* SNOMED-only specialties: collapse when selected */}
+        {!hasDiagnosisPicklist(groupSpecialty) ? (
+          isDiagnosisPickerCollapsed && primaryDiagnosis ? (
+            <SelectedDiagnosisCard
+              diagnosis={{
+                displayName: primaryDiagnosis.term,
+                snomedCtCode: primaryDiagnosis.conceptId,
+              }}
+              onClear={clearDiagnosis}
+            />
+          ) : (
+            <SnomedSearchPicker
+              label="Search Diagnosis"
+              value={primaryDiagnosis || undefined}
+              onSelect={(val) => {
+                setPrimaryDiagnosis(val);
+                if (val) setIsDiagnosisPickerCollapsed(true);
+              }}
+              searchType="diagnosis"
+              specialty={groupSpecialty}
+              placeholder="Search for diagnosis (e.g., fracture, Dupuytren)..."
+            />
+          )
+        ) : null}
+
+        {/* For specialties with picklist: still show SNOMED search below picker (unless collapsed) */}
+        {hasDiagnosisPicklist(groupSpecialty) && !isDiagnosisPickerCollapsed ? (
           <SnomedSearchPicker
             label="Search Diagnosis"
             value={primaryDiagnosis || undefined}
@@ -820,77 +1092,84 @@ export function DiagnosisGroupEditor({ group, index, isOnly, totalGroups, onChan
             specialty={groupSpecialty}
             placeholder="Search for diagnosis (e.g., fracture, Dupuytren)..."
           />
-        )
-      ) : null}
+        ) : null}
 
-      {/* For specialties with picklist: still show SNOMED search below picker (unless collapsed) */}
-      {hasDiagnosisPicklist(groupSpecialty) && !isDiagnosisPickerCollapsed ? (
-        <SnomedSearchPicker
-          label="Search Diagnosis"
-          value={primaryDiagnosis || undefined}
-          onSelect={(val) => {
-            setPrimaryDiagnosis(val);
-            if (val) setIsDiagnosisPickerCollapsed(true);
-          }}
-          searchType="diagnosis"
-          specialty={groupSpecialty}
-          placeholder="Search for diagnosis (e.g., fracture, Dupuytren)..."
-        />
-      ) : null}
+        {hasFractureSubcategory &&
+        snomedSuggestion &&
+        primaryDiagnosis &&
+        !isDiagnosisFromAO ? (
+          <View
+            style={[
+              styles.suggestionBanner,
+              { backgroundColor: theme.backgroundSecondary },
+            ]}
+          >
+            <Feather name="zap" size={16} color={theme.link} />
+            <ThemedText
+              style={[styles.suggestionText, { color: theme.textSecondary }]}
+            >
+              Auto-suggested from AO code
+            </ThemedText>
+          </View>
+        ) : null}
 
-      {hasFractureSubcategory && snomedSuggestion && primaryDiagnosis && !isDiagnosisFromAO ? (
-        <View style={[styles.suggestionBanner, { backgroundColor: theme.backgroundSecondary }]}>
-          <Feather name="zap" size={16} color={theme.link} />
-          <ThemedText style={[styles.suggestionText, { color: theme.textSecondary }]}>
-            Auto-suggested from AO code
-          </ThemedText>
-        </View>
-      ) : null}
+        {showDiagnosisSuggestions ? (
+          <DiagnosisSuggestions
+            procedurePicklistIds={procedurePicklistIds}
+            specialty={groupSpecialty}
+            onSelect={handleReverseDiagnosisSelect}
+          />
+        ) : null}
 
-      {showDiagnosisSuggestions ? (
-        <DiagnosisSuggestions
-          procedurePicklistIds={procedurePicklistIds}
-          specialty={groupSpecialty}
-          onSelect={handleReverseDiagnosisSelect}
-        />
-      ) : null}
+        {diagnosisStaging && diagnosisStaging.stagingSystems.length > 0 ? (
+          <View style={styles.stagingContainer}>
+            <ThemedText
+              style={[styles.stagingTitle, { color: theme.textSecondary }]}
+            >
+              Classification / Staging
+            </ThemedText>
+            {diagnosisStaging.stagingSystems.map((system) => (
+              <PickerField
+                key={system.name}
+                label={system.name}
+                value={stagingValues[system.name] || ""}
+                options={system.options.map((opt) => ({
+                  value: opt.value,
+                  label: opt.description
+                    ? `${opt.label} - ${opt.description}`
+                    : opt.label,
+                }))}
+                onSelect={(value) => {
+                  if (selectedDiagnosis) {
+                    handleStagingChangeForSuggestions(system.name, value);
+                  } else {
+                    setStagingValues((prev) => ({
+                      ...prev,
+                      [system.name]: value,
+                    }));
+                  }
+                }}
+                placeholder={`Select ${system.name.toLowerCase()}...`}
+              />
+            ))}
+          </View>
+        ) : null}
 
-      {diagnosisStaging && diagnosisStaging.stagingSystems.length > 0 ? (
-        <View style={styles.stagingContainer}>
-          <ThemedText style={[styles.stagingTitle, { color: theme.textSecondary }]}>
-            Classification / Staging
-          </ThemedText>
-          {diagnosisStaging.stagingSystems.map((system) => (
-            <PickerField
-              key={system.name}
-              label={system.name}
-              value={stagingValues[system.name] || ""}
-              options={system.options.map((opt) => ({
-                value: opt.value,
-                label: opt.description ? `${opt.label} - ${opt.description}` : opt.label,
-              }))}
-              onSelect={(value) => {
-                if (selectedDiagnosis) {
-                  handleStagingChangeForSuggestions(system.name, value);
-                } else {
-                  setStagingValues((prev) => ({ ...prev, [system.name]: value }));
-                }
-              }}
-              placeholder={`Select ${system.name.toLowerCase()}...`}
-            />
-          ))}
-        </View>
-      ) : null}
-
-      {/* Clinical suspicion buttons for excision biopsy diagnoses */}
-      {isExcisionBiopsyDiagnosis(selectedDiagnosis?.id) ? (
-        <View style={styles.stagingContainer}>
-          <ThemedText style={[styles.clinicalSuspicionLabel, { color: theme.text }]}>
-            Clinical suspicion (optional)
-          </ThemedText>
-          <View style={styles.clinicalSuspicionOptions}>
-            {(Object.entries(CLINICAL_SUSPICION_LABELS) as [ClinicalSuspicion, string][]).map(
-              ([value, label]) => {
+        {/* Clinical suspicion buttons for excision biopsy diagnoses */}
+        {isExcisionBiopsyDiagnosis(selectedDiagnosis?.id) ? (
+          <View style={styles.stagingContainer}>
+            <ThemedText
+              style={[styles.clinicalSuspicionLabel, { color: theme.text }]}
+            >
+              Clinical suspicion (optional)
+            </ThemedText>
+            <View style={styles.clinicalSuspicionOptions}>
+              {(
+                Object.entries(CLINICAL_SUSPICION_LABELS) as [
+                  ClinicalSuspicion,
+                  string,
+                ][]
+              ).map(([value, label]) => {
                 const isSelected = clinicalSuspicion === value;
                 return (
                   <Pressable
@@ -898,13 +1177,17 @@ export function DiagnosisGroupEditor({ group, index, isOnly, totalGroups, onChan
                     style={[
                       styles.clinicalSuspicionButton,
                       {
-                        backgroundColor: isSelected ? theme.link : theme.backgroundSecondary,
+                        backgroundColor: isSelected
+                          ? theme.link
+                          : theme.backgroundSecondary,
                         borderColor: isSelected ? theme.link : theme.border,
                       },
                     ]}
                     onPress={() => {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setClinicalSuspicion(isSelected ? undefined : (value as ClinicalSuspicion));
+                      setClinicalSuspicion(
+                        isSelected ? undefined : (value as ClinicalSuspicion),
+                      );
                     }}
                   >
                     <ThemedText
@@ -917,179 +1200,213 @@ export function DiagnosisGroupEditor({ group, index, isOnly, totalGroups, onChan
                     </ThemedText>
                   </Pressable>
                 );
-              },
-            )}
-          </View>
-        </View>
-      ) : null}
-
-      {primaryDiagnosis ? (
-        <DiagnosisClinicalFields
-          diagnosis={{
-            snomedCtCode: primaryDiagnosis.conceptId,
-            displayName: primaryDiagnosis.term,
-            clinicalDetails: diagnosisClinicalDetails,
-          }}
-          onDiagnosisChange={(updatedDiagnosis) => {
-            setDiagnosisClinicalDetails(updatedDiagnosis.clinicalDetails || {});
-          }}
-          specialty={groupSpecialty}
-          fractures={fractures}
-          onFracturesChange={setFractures}
-          showFractureClassification={hasFractureSubcategory}
-          onOpenFractureWizard={() => setShowFractureWizard(true)}
-        />
-      ) : null}
-
-      {/* Visual connector between diagnosis and procedures */}
-      <View style={styles.connector}>
-        <Feather name="arrow-down" size={16} color={theme.textTertiary} />
-      </View>
-
-      <SectionHeader title="Procedures Performed" />
-
-      <ThemedText style={[styles.sectionDescription, { color: theme.textSecondary }]}>
-        Add all procedures performed during this surgery. Each procedure can have its own specialty and SNOMED CT code.
-      </ThemedText>
-
-      {(selectedDiagnosis?.hasEnhancedHistology || groupSpecialty === "general" || groupSpecialty === "head_neck") ? (
-        <View style={{ marginBottom: Spacing.md }}>
-          <Pressable
-            onPress={() => {
-              const newValue = !isMultiLesion;
-              setIsMultiLesion(newValue);
-              if (newValue && lesionInstances.length === 0) {
-                setLesionInstances([
-                  {
-                    id: uuidv4(),
-                    site: "",
-                    pathologyType: deriveDefaultPathologyType(selectedDiagnosis),
-                    reconstruction: "primary_closure",
-                    marginStatus: "pending",
-                    histologyConfirmed: false,
-                  },
-                ]);
-              }
-            }}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 10,
-              paddingVertical: 10,
-              paddingHorizontal: 14,
-              borderRadius: BorderRadius.sm,
-              borderWidth: 1,
-              borderColor: isMultiLesion ? theme.link : theme.border,
-              backgroundColor: isMultiLesion ? theme.link + "10" : theme.backgroundDefault,
-            }}
-          >
-            <Feather
-              name={isMultiLesion ? "check-square" : "square"}
-              size={18}
-              color={isMultiLesion ? theme.link : theme.textSecondary}
-            />
-            <View style={{ flex: 1 }}>
-              <ThemedText
-                style={{
-                  fontSize: 14,
-                  fontWeight: "600",
-                  color: isMultiLesion ? theme.link : theme.text,
-                }}
-              >
-                Multiple lesions in this session
-              </ThemedText>
-              <ThemedText style={{ fontSize: 12, color: theme.textSecondary, marginTop: 2 }}>
-                Log each excision site separately
-              </ThemedText>
+              })}
             </View>
-          </Pressable>
+          </View>
+        ) : null}
+
+        {primaryDiagnosis ? (
+          <DiagnosisClinicalFields
+            diagnosis={{
+              snomedCtCode: primaryDiagnosis.conceptId,
+              displayName: primaryDiagnosis.term,
+              clinicalDetails: diagnosisClinicalDetails,
+            }}
+            onDiagnosisChange={(updatedDiagnosis) => {
+              setDiagnosisClinicalDetails(
+                updatedDiagnosis.clinicalDetails || {},
+              );
+            }}
+            specialty={groupSpecialty}
+            fractures={fractures}
+            onFracturesChange={setFractures}
+            showFractureClassification={hasFractureSubcategory}
+            onOpenFractureWizard={() => setShowFractureWizard(true)}
+          />
+        ) : null}
+
+        {/* Visual connector between diagnosis and procedures */}
+        <View style={styles.connector}>
+          <Feather name="arrow-down" size={16} color={theme.textTertiary} />
         </View>
-      ) : null}
 
-      {isMultiLesion ? (
-        <MultiLesionEditor
-          lesions={lesionInstances}
-          onChange={setLesionInstances}
-          defaultPathologyType={deriveDefaultPathologyType(selectedDiagnosis)}
-        />
-      ) : (() => {
-        // Feature 2: procedure filtering
-        const hasSuggestedProcedures = (selectedDiagnosis?.suggestedProcedures?.length ?? 0) > 0;
-        const showFiltered = hasSuggestedProcedures && !showAllProcedures;
+        <SectionHeader title="Procedures Performed" />
 
-        return (
-          <>
-            {selectedDiagnosis ? (
-              <ProcedureSuggestions
-                diagnosis={selectedDiagnosis}
-                stagingSelections={stagingValues}
-                selectedProcedureIds={selectedSuggestionIds}
-                onToggle={handleToggleProcedureSuggestion}
+        <ThemedText
+          style={[styles.sectionDescription, { color: theme.textSecondary }]}
+        >
+          Add all procedures performed during this surgery. Each procedure can
+          have its own specialty and SNOMED CT code.
+        </ThemedText>
+
+        {selectedDiagnosis?.hasEnhancedHistology ||
+        groupSpecialty === "general" ||
+        groupSpecialty === "head_neck" ? (
+          <View style={{ marginBottom: Spacing.md }}>
+            <Pressable
+              onPress={() => {
+                const newValue = !isMultiLesion;
+                setIsMultiLesion(newValue);
+                if (newValue && lesionInstances.length === 0) {
+                  setLesionInstances([
+                    {
+                      id: uuidv4(),
+                      site: "",
+                      pathologyType:
+                        deriveDefaultPathologyType(selectedDiagnosis),
+                      reconstruction: "primary_closure",
+                      marginStatus: "pending",
+                      histologyConfirmed: false,
+                    },
+                  ]);
+                }
+              }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+                paddingVertical: 10,
+                paddingHorizontal: 14,
+                borderRadius: BorderRadius.sm,
+                borderWidth: 1,
+                borderColor: isMultiLesion ? theme.link : theme.border,
+                backgroundColor: isMultiLesion
+                  ? theme.link + "10"
+                  : theme.backgroundDefault,
+              }}
+            >
+              <Feather
+                name={isMultiLesion ? "check-square" : "square"}
+                size={18}
+                color={isMultiLesion ? theme.link : theme.textSecondary}
               />
-            ) : null}
-
-            {showFiltered ? (
-              <Pressable
-                style={styles.showAllProceduresLink}
-                onPress={() => setShowAllProcedures(true)}
-                testID="button-show-all-procedures"
-              >
-                <Feather name="chevron-down" size={16} color={theme.link} />
-                <ThemedText style={[styles.showAllProceduresText, { color: theme.link }]}>
-                  Show all procedures
+              <View style={{ flex: 1 }}>
+                <ThemedText
+                  style={{
+                    fontSize: 14,
+                    fontWeight: "600",
+                    color: isMultiLesion ? theme.link : theme.text,
+                  }}
+                >
+                  Multiple lesions in this session
                 </ThemedText>
-              </Pressable>
-            ) : (
+                <ThemedText
+                  style={{
+                    fontSize: 12,
+                    color: theme.textSecondary,
+                    marginTop: 2,
+                  }}
+                >
+                  Log each excision site separately
+                </ThemedText>
+              </View>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {isMultiLesion ? (
+          <MultiLesionEditor
+            lesions={lesionInstances}
+            onChange={setLesionInstances}
+            defaultPathologyType={deriveDefaultPathologyType(selectedDiagnosis)}
+          />
+        ) : (
+          (() => {
+            // Feature 2: procedure filtering
+            const hasSuggestedProcedures =
+              (selectedDiagnosis?.suggestedProcedures?.length ?? 0) > 0;
+            const showFiltered = hasSuggestedProcedures && !showAllProcedures;
+
+            return (
               <>
-                {showAllProcedures ? (
-                  <Pressable
-                    style={styles.showAllProceduresLink}
-                    onPress={() => setShowAllProcedures(false)}
-                    testID="button-show-fewer-procedures"
-                  >
-                    <Feather name="chevron-up" size={16} color={theme.textSecondary} />
-                    <ThemedText style={[styles.showAllProceduresText, { color: theme.textSecondary }]}>
-                      Show fewer procedures
-                    </ThemedText>
-                  </Pressable>
+                {selectedDiagnosis ? (
+                  <ProcedureSuggestions
+                    diagnosis={selectedDiagnosis}
+                    stagingSelections={stagingValues}
+                    selectedProcedureIds={selectedSuggestionIds}
+                    onToggle={handleToggleProcedureSuggestion}
+                  />
                 ) : null}
 
-                {procedures.map((proc, idx) => (
-                  <ProcedureEntryCard
-                    key={proc.id}
-                    procedure={proc}
-                    index={idx}
-                    isOnlyProcedure={procedures.length === 1}
-                    onUpdate={updateProcedure}
-                    onDelete={() => removeProcedure(proc.id)}
-                    onMoveUp={() => moveProcedureUp(proc.id)}
-                    onMoveDown={() => moveProcedureDown(proc.id)}
-                    canMoveUp={idx > 0}
-                    canMoveDown={idx < procedures.length - 1}
-                  />
-                ))}
+                {showFiltered ? (
+                  <Pressable
+                    style={styles.showAllProceduresLink}
+                    onPress={() => setShowAllProcedures(true)}
+                    testID="button-show-all-procedures"
+                  >
+                    <Feather name="chevron-down" size={16} color={theme.link} />
+                    <ThemedText
+                      style={[
+                        styles.showAllProceduresText,
+                        { color: theme.link },
+                      ]}
+                    >
+                      Show all procedures
+                    </ThemedText>
+                  </Pressable>
+                ) : (
+                  <>
+                    {showAllProcedures ? (
+                      <Pressable
+                        style={styles.showAllProceduresLink}
+                        onPress={() => setShowAllProcedures(false)}
+                        testID="button-show-fewer-procedures"
+                      >
+                        <Feather
+                          name="chevron-up"
+                          size={16}
+                          color={theme.textSecondary}
+                        />
+                        <ThemedText
+                          style={[
+                            styles.showAllProceduresText,
+                            { color: theme.textSecondary },
+                          ]}
+                        >
+                          Show fewer procedures
+                        </ThemedText>
+                      </Pressable>
+                    ) : null}
 
-                <Pressable
-                  style={[styles.addButton, { borderColor: theme.link }]}
-                  onPress={addProcedure}
-                >
-                  <Feather name="plus" size={18} color={theme.link} />
-                  <ThemedText style={[styles.addButtonText, { color: theme.link }]}>
-                    Add Another Procedure
-                  </ThemedText>
-                </Pressable>
+                    {procedures.map((proc, idx) => (
+                      <ProcedureEntryCard
+                        key={proc.id}
+                        procedure={proc}
+                        index={idx}
+                        isOnlyProcedure={procedures.length === 1}
+                        onUpdate={updateProcedure}
+                        onDelete={() => removeProcedure(proc.id)}
+                        onMoveUp={() => moveProcedureUp(proc.id)}
+                        onMoveDown={() => moveProcedureDown(proc.id)}
+                        canMoveUp={idx > 0}
+                        canMoveDown={idx < procedures.length - 1}
+                      />
+                    ))}
+
+                    <Pressable
+                      style={[styles.addButton, { borderColor: theme.link }]}
+                      onPress={addProcedure}
+                    >
+                      <Feather name="plus" size={18} color={theme.link} />
+                      <ThemedText
+                        style={[styles.addButtonText, { color: theme.link }]}
+                      >
+                        Add Another Procedure
+                      </ThemedText>
+                    </Pressable>
+                  </>
+                )}
               </>
-            )}
-          </>
-        );
-      })()}
+            );
+          })()
+        )}
 
-      <FractureClassificationWizard
-        visible={showFractureWizard}
-        onClose={handleFractureWizardClose}
-        onSave={handleFractureWizardSave}
-        initialFractures={fractures}
-      />
+        <FractureClassificationWizard
+          visible={showFractureWizard}
+          onClose={handleFractureWizardClose}
+          onSave={handleFractureWizardSave}
+          initialFractures={fractures}
+        />
       </View>
     </View>
   );

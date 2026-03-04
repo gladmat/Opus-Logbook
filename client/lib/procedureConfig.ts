@@ -264,14 +264,18 @@ export const PROCEDURE_CONFIGS: Record<Specialty, ProcedureModuleConfig> = {
   head_neck: HEAD_NECK_CONFIG,
 };
 
-export function getConfigForSpecialty(specialty: Specialty): ProcedureModuleConfig {
+export function getConfigForSpecialty(
+  specialty: Specialty,
+): ProcedureModuleConfig {
   return PROCEDURE_CONFIGS[specialty];
 }
 
-export function getDefaultClinicalDetails(specialty: Specialty): Record<string, unknown> {
+export function getDefaultClinicalDetails(
+  specialty: Specialty,
+): Record<string, unknown> {
   const config = PROCEDURE_CONFIGS[specialty];
   const defaults: Record<string, unknown> = {};
-  
+
   config.fields.forEach((field) => {
     if (field.type === "boolean") {
       defaults[field.key] = false;
@@ -281,6 +285,6 @@ export function getDefaultClinicalDetails(specialty: Specialty): Record<string, 
       defaults[field.key] = "";
     }
   });
-  
+
   return defaults;
 }

@@ -25,7 +25,14 @@ const HAND_DX_FRACTURES: DiagnosisPicklistEntry[] = [
     subcategory: "Fractures",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["Colles", "Smith", "Barton", "distal radius", "wrist fracture", "DRF"],
+    searchSynonyms: [
+      "Colles",
+      "Smith",
+      "Barton",
+      "distal radius",
+      "wrist fracture",
+      "DRF",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hand_fx_distal_radius_orif",
@@ -52,7 +59,12 @@ const HAND_DX_FRACTURES: DiagnosisPicklistEntry[] = [
     subcategory: "Fractures",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["MC fracture", "boxer's fracture", "5th metacarpal", "metacarpal neck"],
+    searchSynonyms: [
+      "MC fracture",
+      "boxer's fracture",
+      "5th metacarpal",
+      "metacarpal neck",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hand_fx_metacarpal_orif",
@@ -91,7 +103,14 @@ const HAND_DX_FRACTURES: DiagnosisPicklistEntry[] = [
     subcategory: "Fractures",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["finger fracture", "P1", "P2", "P3", "proximal phalanx", "middle phalanx"],
+    searchSynonyms: [
+      "finger fracture",
+      "P1",
+      "P2",
+      "P3",
+      "proximal phalanx",
+      "middle phalanx",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hand_fx_phalanx_orif",
@@ -157,7 +176,11 @@ const HAND_DX_FRACTURES: DiagnosisPicklistEntry[] = [
     subcategory: "Fractures",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["Bennett", "1st metacarpal base fracture", "thumb metacarpal"],
+    searchSynonyms: [
+      "Bennett",
+      "1st metacarpal base fracture",
+      "thumb metacarpal",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hand_fx_bennett",
@@ -245,7 +268,15 @@ const HAND_DX_FRACTURES: DiagnosisPicklistEntry[] = [
     subcategory: "Fractures",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["lunate", "capitate", "hamate", "trapezium", "triquetrum", "pisiform", "carpal fracture"],
+    searchSynonyms: [
+      "lunate",
+      "capitate",
+      "hamate",
+      "trapezium",
+      "triquetrum",
+      "pisiform",
+      "carpal fracture",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hand_fx_carpal_orif",
@@ -272,7 +303,13 @@ const HAND_DX_FRACTURES: DiagnosisPicklistEntry[] = [
     subcategory: "Soft Tissue Injuries",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["crush", "degloving", "mangled hand", "press injury", "industrial"],
+    searchSynonyms: [
+      "crush",
+      "degloving",
+      "mangled hand",
+      "press injury",
+      "industrial",
+    ],
     suggestedProcedures: [],
     sortOrder: 10,
   },
@@ -356,7 +393,12 @@ const HAND_DX_TENDON_INJURIES: DiagnosisPicklistEntry[] = [
     subcategory: "Tendon Injuries",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["EPL", "extensor pollicis longus", "thumb extension loss", "EIP transfer"],
+    searchSynonyms: [
+      "EPL",
+      "extensor pollicis longus",
+      "thumb extension loss",
+      "EIP transfer",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hand_tend_epl_rupture_repair",
@@ -376,7 +418,12 @@ const HAND_DX_TENDON_INJURIES: DiagnosisPicklistEntry[] = [
     subcategory: "Tendon Injuries",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["mallet", "DIP extensor", "baseball finger", "drop finger"],
+    searchSynonyms: [
+      "mallet",
+      "DIP extensor",
+      "baseball finger",
+      "drop finger",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hand_tend_mallet_finger",
@@ -519,7 +566,13 @@ const HAND_DX_NERVE_INJURIES: DiagnosisPicklistEntry[] = [
     subcategory: "Nerve Injuries",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["radial nerve", "PIN", "posterior interosseous nerve", "SRN", "wrist drop"],
+    searchSynonyms: [
+      "radial nerve",
+      "PIN",
+      "posterior interosseous nerve",
+      "SRN",
+      "wrist drop",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hand_nerve_radial_repair",
@@ -546,7 +599,12 @@ const HAND_DX_NERVE_INJURIES: DiagnosisPicklistEntry[] = [
     subcategory: "Nerve Injuries",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["DBUN", "dorsal ulnar", "dorsal branch", "dorsal sensory ulnar"],
+    searchSynonyms: [
+      "DBUN",
+      "dorsal ulnar",
+      "dorsal branch",
+      "dorsal sensory ulnar",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hand_nerve_ulnar_repair",
@@ -581,9 +639,15 @@ const HAND_DX_SOFT_TISSUE: DiagnosisPicklistEntry[] = [
     clinicalGroup: "trauma",
     hasStaging: false,
     searchSynonyms: [
-      "spaghetti wrist", "complex laceration", "multiple tendon",
-      "multiple structure", "glass injury", "knife wound",
-      "saw injury", "skill saw", "table saw",
+      "spaghetti wrist",
+      "complex laceration",
+      "multiple tendon",
+      "multiple structure",
+      "glass injury",
+      "knife wound",
+      "saw injury",
+      "skill saw",
+      "table saw",
     ],
     suggestedProcedures: [],
     sortOrder: 0,
@@ -598,7 +662,12 @@ const HAND_DX_SOFT_TISSUE: DiagnosisPicklistEntry[] = [
     subcategory: "Soft Tissue Injuries",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["fingertip", "pulp loss", "tip amputation", "Allen classification"],
+    searchSynonyms: [
+      "fingertip",
+      "pulp loss",
+      "tip amputation",
+      "Allen classification",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hand_cov_vy_advancement",
@@ -637,7 +706,12 @@ const HAND_DX_SOFT_TISSUE: DiagnosisPicklistEntry[] = [
     subcategory: "Soft Tissue Injuries",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["replantation", "amputated finger", "severed finger", "ring avulsion"],
+    searchSynonyms: [
+      "replantation",
+      "amputated finger",
+      "severed finger",
+      "ring avulsion",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hand_cov_replantation",
@@ -723,7 +797,12 @@ const HAND_DX_COMPRESSION: DiagnosisPicklistEntry[] = [
     subcategory: "Compression Neuropathies",
     clinicalGroup: "elective",
     hasStaging: true, // Severity + EMG grade in diagnosisStagingConfig
-    searchSynonyms: ["CTS", "median nerve compression", "carpal tunnel", "tingling fingers"],
+    searchSynonyms: [
+      "CTS",
+      "median nerve compression",
+      "carpal tunnel",
+      "tingling fingers",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hand_comp_ctr_open",
@@ -750,7 +829,12 @@ const HAND_DX_COMPRESSION: DiagnosisPicklistEntry[] = [
     subcategory: "Compression Neuropathies",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["cubital tunnel", "ulnar nerve elbow", "ulnar neuropathy", "CuTS"],
+    searchSynonyms: [
+      "cubital tunnel",
+      "ulnar nerve elbow",
+      "ulnar neuropathy",
+      "CuTS",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hand_comp_cubital_insitu",
@@ -777,7 +861,12 @@ const HAND_DX_COMPRESSION: DiagnosisPicklistEntry[] = [
     subcategory: "Compression Neuropathies",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["de Quervain", "first compartment", "radial styloid", "Finkelstein"],
+    searchSynonyms: [
+      "de Quervain",
+      "first compartment",
+      "radial styloid",
+      "Finkelstein",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hand_comp_dequervain",
@@ -797,7 +886,12 @@ const HAND_DX_COMPRESSION: DiagnosisPicklistEntry[] = [
     subcategory: "Compression Neuropathies",
     clinicalGroup: "elective",
     hasStaging: true, // Quinnell grade in diagnosisStagingConfig
-    searchSynonyms: ["trigger finger", "stenosing tenosynovitis", "locked finger", "A1 pulley"],
+    searchSynonyms: [
+      "trigger finger",
+      "stenosing tenosynovitis",
+      "locked finger",
+      "A1 pulley",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hand_comp_trigger_finger",
@@ -865,7 +959,12 @@ const HAND_DX_DUPUYTREN: DiagnosisPicklistEntry[] = [
     subcategory: "Dupuytren's Disease",
     clinicalGroup: "elective",
     hasStaging: true, // Tubiana stage in diagnosisStagingConfig
-    searchSynonyms: ["Dupuytren", "palmar fibromatosis", "palmar contracture", "cord"],
+    searchSynonyms: [
+      "Dupuytren",
+      "palmar fibromatosis",
+      "palmar contracture",
+      "cord",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hand_dup_limited_fasciectomy",
@@ -923,7 +1022,13 @@ const HAND_DX_JOINT: DiagnosisPicklistEntry[] = [
     subcategory: "Joint & Degenerative",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["thumb base", "CMC1", "trapezium", "Eaton", "basal joint arthritis"],
+    searchSynonyms: [
+      "thumb base",
+      "CMC1",
+      "trapezium",
+      "Eaton",
+      "basal joint arthritis",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hand_joint_trapeziectomy",
@@ -950,7 +1055,12 @@ const HAND_DX_JOINT: DiagnosisPicklistEntry[] = [
     subcategory: "Joint & Degenerative",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["SL ligament", "scapholunate", "DISI", "Terry Thomas sign"],
+    searchSynonyms: [
+      "SL ligament",
+      "scapholunate",
+      "DISI",
+      "Terry Thomas sign",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hand_joint_sl_ligament_repair",
@@ -977,7 +1087,12 @@ const HAND_DX_JOINT: DiagnosisPicklistEntry[] = [
     subcategory: "Joint & Degenerative",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["TFCC", "triangular fibrocartilage", "ulnar wrist pain", "Palmer"],
+    searchSynonyms: [
+      "TFCC",
+      "triangular fibrocartilage",
+      "ulnar wrist pain",
+      "Palmer",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hand_joint_tfcc_repair",
@@ -1113,7 +1228,12 @@ const HAND_DX_OTHER: DiagnosisPicklistEntry[] = [
     subcategory: "Tumours & Other",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["GCTTS", "PVNS", "giant cell tumour", "tendon sheath tumour"],
+    searchSynonyms: [
+      "GCTTS",
+      "PVNS",
+      "giant cell tumour",
+      "tendon sheath tumour",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hand_other_gctts",
@@ -1133,7 +1253,12 @@ const HAND_DX_OTHER: DiagnosisPicklistEntry[] = [
     subcategory: "Tumours & Other",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["enchondroma", "glomus tumour", "lipoma hand", "schwannoma hand"],
+    searchSynonyms: [
+      "enchondroma",
+      "glomus tumour",
+      "lipoma hand",
+      "schwannoma hand",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hand_other_tumour",
@@ -1180,7 +1305,12 @@ const HAND_DX_CONGENITAL: DiagnosisPicklistEntry[] = [
     subcategory: "Congenital",
     clinicalGroup: "congenital",
     hasStaging: false,
-    searchSynonyms: ["syndactyly", "webbed fingers", "simple syndactyly", "complex syndactyly"],
+    searchSynonyms: [
+      "syndactyly",
+      "webbed fingers",
+      "simple syndactyly",
+      "complex syndactyly",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hand_cong_syndactyly",
@@ -1200,7 +1330,13 @@ const HAND_DX_CONGENITAL: DiagnosisPicklistEntry[] = [
     subcategory: "Congenital",
     clinicalGroup: "congenital",
     hasStaging: false,
-    searchSynonyms: ["polydactyly", "extra digit", "supernumerary digit", "preaxial", "postaxial"],
+    searchSynonyms: [
+      "polydactyly",
+      "extra digit",
+      "supernumerary digit",
+      "preaxial",
+      "postaxial",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hand_cong_polydactyly",
@@ -1270,7 +1406,7 @@ export function getHandSurgerySubcategories(): string[] {
 
 /** Get hand surgery diagnoses for a specific subcategory */
 export function getHandSurgeryDiagnosesForSubcategory(
-  subcategory: string
+  subcategory: string,
 ): DiagnosisPicklistEntry[] {
   return HAND_SURGERY_DIAGNOSES.filter((dx) => dx.subcategory === subcategory);
 }

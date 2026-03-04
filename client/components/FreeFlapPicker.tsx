@@ -55,7 +55,7 @@ export function FreeFlapPicker({
   const handleFlapSelect = (flap: FreeFlap) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onFlapTypeChange(flap);
-    
+
     const newPlanes = FLAP_ELEVATION_PLANES[flap];
     if (newPlanes && elevationPlane && !newPlanes.includes(elevationPlane)) {
       onElevationPlaneChange("subfascial" as ElevationPlane);
@@ -64,7 +64,7 @@ export function FreeFlapPicker({
 
   const elevationOptions = flapType
     ? (FLAP_ELEVATION_PLANES[flapType] || []).map(
-        (plane) => plane as ElevationPlane
+        (plane) => plane as ElevationPlane,
       )
     : [];
 
@@ -75,7 +75,9 @@ export function FreeFlapPicker({
           Flap Type
         </ThemedText>
         {required ? (
-          <ThemedText style={[styles.required, { color: theme.error }]}>*</ThemedText>
+          <ThemedText style={[styles.required, { color: theme.error }]}>
+            *
+          </ThemedText>
         ) : null}
       </View>
 
@@ -107,7 +109,12 @@ export function FreeFlapPicker({
               {FREE_FLAP_LABELS[flap]}
             </ThemedText>
             {flapType === flap ? (
-              <Feather name="check" size={14} color={theme.link} style={styles.checkIcon} />
+              <Feather
+                name="check"
+                size={14}
+                color={theme.link}
+                style={styles.checkIcon}
+              />
             ) : null}
           </Pressable>
         ))}
@@ -122,7 +129,9 @@ export function FreeFlapPicker({
               value: plane,
               label: ELEVATION_PLANE_LABELS[plane],
             }))}
-            onSelect={(value) => onElevationPlaneChange(value as ElevationPlane)}
+            onSelect={(value) =>
+              onElevationPlaneChange(value as ElevationPlane)
+            }
           />
           {flapType === "alt" ? (
             <ThemedText style={[styles.hint, { color: theme.textSecondary }]}>

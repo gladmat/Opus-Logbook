@@ -176,7 +176,9 @@ export function useFavouritesRecents(specialty: Specialty) {
   }, [recentsData, specialty]);
 
   const recentProcedureIds: string[] = useMemo(() => {
-    return pruneRecents(recentsData.procedures[specialty] ?? []).map((e) => e.id);
+    return pruneRecents(recentsData.procedures[specialty] ?? []).map(
+      (e) => e.id,
+    );
   }, [recentsData, specialty]);
 
   const recordUsage = useCallback(

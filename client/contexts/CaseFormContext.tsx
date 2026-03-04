@@ -17,11 +17,14 @@ export interface CaseFormStateContextValue {
   specialty: Specialty;
 }
 
-const CaseFormStateContext = createContext<CaseFormStateContextValue | null>(null);
+const CaseFormStateContext = createContext<CaseFormStateContextValue | null>(
+  null,
+);
 
 export function useCaseFormState(): CaseFormStateContextValue {
   const ctx = useContext(CaseFormStateContext);
-  if (!ctx) throw new Error("useCaseFormState must be used within CaseFormProvider");
+  if (!ctx)
+    throw new Error("useCaseFormState must be used within CaseFormProvider");
   return ctx;
 }
 
@@ -48,11 +51,13 @@ export interface CaseFormDispatchContextValue {
   onFieldBlur: (field: string) => void;
 }
 
-const CaseFormDispatchContext = createContext<CaseFormDispatchContextValue | null>(null);
+const CaseFormDispatchContext =
+  createContext<CaseFormDispatchContextValue | null>(null);
 
 export function useCaseFormDispatch(): CaseFormDispatchContextValue {
   const ctx = useContext(CaseFormDispatchContext);
-  if (!ctx) throw new Error("useCaseFormDispatch must be used within CaseFormProvider");
+  if (!ctx)
+    throw new Error("useCaseFormDispatch must be used within CaseFormProvider");
   return ctx;
 }
 
@@ -65,7 +70,12 @@ interface CaseFormProviderProps {
   children: React.ReactNode;
 }
 
-export function CaseFormProvider({ form, fieldErrors, onFieldBlur, children }: CaseFormProviderProps) {
+export function CaseFormProvider({
+  form,
+  fieldErrors,
+  onFieldBlur,
+  children,
+}: CaseFormProviderProps) {
   const stateValue: CaseFormStateContextValue = useMemo(
     () => ({
       state: form.state,

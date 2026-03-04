@@ -29,27 +29,37 @@ export function DiagnosisSuggestions({
 
   const suggestions: ReverseDiagnosisSuggestion[] = useMemo(
     () => getDiagnosesForProcedures(procedurePicklistIds, specialty),
-    [procedurePicklistIds, specialty]
+    [procedurePicklistIds, specialty],
   );
 
   if (suggestions.length === 0) return null;
 
   const sameSpecialty = suggestions.filter(
-    (s) => s.diagnosis.specialty === specialty
+    (s) => s.diagnosis.specialty === specialty,
   );
   const crossSpecialty = suggestions.filter(
-    (s) => s.diagnosis.specialty !== specialty
+    (s) => s.diagnosis.specialty !== specialty,
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.backgroundSecondary,
+          borderColor: theme.border,
+        },
+      ]}
+    >
       <View style={styles.headerRow}>
-        <View style={[styles.iconBadge, { backgroundColor: theme.warning + "20" }]}>
+        <View
+          style={[styles.iconBadge, { backgroundColor: theme.warning + "20" }]}
+        >
           <Feather name="help-circle" size={18} color={theme.warning} />
         </View>
         <View style={styles.headerText}>
           <ThemedText type="h4" style={styles.title}>
-            What's the diagnosis?
+            {"What's the diagnosis?"}
           </ThemedText>
           <ThemedText
             type="small"
@@ -116,9 +126,7 @@ function DiagnosisChip({
     ? theme.backgroundTertiary
     : theme.backgroundDefault;
 
-  const chipBorder = isCrossSpecialty
-    ? theme.border
-    : theme.link + "40";
+  const chipBorder = isCrossSpecialty ? theme.border : theme.link + "40";
 
   return (
     <Pressable
@@ -131,18 +139,33 @@ function DiagnosisChip({
         onSelect(suggestion.diagnosis);
       }}
     >
-      <Feather name="arrow-right" size={14} color={theme.link} style={styles.chipIcon} />
+      <Feather
+        name="arrow-right"
+        size={14}
+        color={theme.link}
+        style={styles.chipIcon}
+      />
       <View style={styles.chipContent}>
-        <ThemedText type="small" style={[styles.chipText, { color: theme.text }]}>
+        <ThemedText
+          type="small"
+          style={[styles.chipText, { color: theme.text }]}
+        >
           {suggestion.diagnosis.displayName}
         </ThemedText>
         {isCrossSpecialty ? (
-          <ThemedText type="small" style={[styles.chipSpecialty, { color: theme.textTertiary }]}>
+          <ThemedText
+            type="small"
+            style={[styles.chipSpecialty, { color: theme.textTertiary }]}
+          >
             {SPECIALTY_LABELS[suggestion.diagnosis.specialty]}
           </ThemedText>
         ) : null}
-        {suggestion.isConditionalForDiagnosis && suggestion.conditionDescription ? (
-          <ThemedText type="small" style={[styles.chipCondition, { color: theme.textTertiary }]}>
+        {suggestion.isConditionalForDiagnosis &&
+        suggestion.conditionDescription ? (
+          <ThemedText
+            type="small"
+            style={[styles.chipCondition, { color: theme.textTertiary }]}
+          >
             {suggestion.conditionDescription}
           </ThemedText>
         ) : null}

@@ -34,16 +34,20 @@ export function OperativeMediaSection({
   maxItems = 20,
 }: OperativeMediaSectionProps) {
   const { theme } = useTheme();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { registerGenericCallback } = useMediaCallback();
-  const [cameraPermission, requestCameraPermission] = ImagePicker.useCameraPermissions();
+  const [cameraPermission, requestCameraPermission] =
+    ImagePicker.useCameraPermissions();
 
   const canAddMore = media.length < maxItems;
 
   const navigateToAddMedia = (uri: string, mimeType: string) => {
-    const callbackId = registerGenericCallback((newMedia: OperativeMediaItem) => {
-      onMediaChange([...media, newMedia]);
-    });
+    const callbackId = registerGenericCallback(
+      (newMedia: OperativeMediaItem) => {
+        onMediaChange([...media, newMedia]);
+      },
+    );
     navigation.navigate("AddOperativeMedia", {
       imageUri: uri,
       mimeType,
@@ -63,14 +67,19 @@ export function OperativeMediaSection({
           [
             { text: "Cancel", style: "cancel" },
             ...(Platform.OS !== "web"
-              ? [{ text: "Open Settings", onPress: async () => {
-                  try {
-                    const { Linking } = await import("react-native");
-                    await Linking.openSettings();
-                  } catch (e) {}
-                }}]
+              ? [
+                  {
+                    text: "Open Settings",
+                    onPress: async () => {
+                      try {
+                        const { Linking } = await import("react-native");
+                        await Linking.openSettings();
+                      } catch (e) {}
+                    },
+                  },
+                ]
               : []),
-          ]
+          ],
         );
         return;
       }
@@ -87,6 +96,7 @@ export function OperativeMediaSection({
 
       if (!result.canceled && result.assets.length > 0) {
         const asset = result.assets[0];
+        if (!asset) return;
         const mime = asset.mimeType || "image/jpeg";
         if (asset.base64) {
           setPendingBase64(asset.base64, mime);
@@ -95,7 +105,10 @@ export function OperativeMediaSection({
       }
     } catch (error: any) {
       console.error("Error capturing image:", error);
-      Alert.alert("Error", `Failed to capture image: ${error?.message || "Unknown error"}`);
+      Alert.alert(
+        "Error",
+        `Failed to capture image: ${error?.message || "Unknown error"}`,
+      );
     }
   };
 
@@ -115,6 +128,7 @@ export function OperativeMediaSection({
       if (!result.canceled && result.assets.length > 0) {
         if (result.assets.length === 1) {
           const asset = result.assets[0];
+          if (!asset) return;
           const mime = asset.mimeType || "image/jpeg";
           if (asset.base64) {
             setPendingBase64(asset.base64, mime);
@@ -134,7 +148,7 @@ export function OperativeMediaSection({
                 mediaType: "intraoperative_photo" as const,
                 createdAt: new Date().toISOString(),
               };
-            })
+            }),
           );
           onMediaChange([...media, ...encryptedItems]);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -142,15 +156,22 @@ export function OperativeMediaSection({
       }
     } catch (error: any) {
       console.error("Error picking image:", error);
-      Alert.alert("Error", `Failed to select images: ${error?.message || "Unknown error"}`);
+      Alert.alert(
+        "Error",
+        `Failed to select images: ${error?.message || "Unknown error"}`,
+      );
     }
   };
 
   const handleEditMedia = (item: OperativeMediaItem) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const callbackId = registerGenericCallback((updatedMedia: OperativeMediaItem) => {
-      onMediaChange(media.map((m) => (m.id === updatedMedia.id ? updatedMedia : m)));
-    });
+    const callbackId = registerGenericCallback(
+      (updatedMedia: OperativeMediaItem) => {
+        onMediaChange(
+          media.map((m) => (m.id === updatedMedia.id ? updatedMedia : m)),
+        );
+      },
+    );
     navigation.navigate("AddOperativeMedia", {
       imageUri: item.localUri,
       mimeType: item.mimeType,
@@ -186,9 +207,7 @@ export function OperativeMediaSection({
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Feather name="image" size={18} color={theme.link} />
-          <ThemedText style={styles.headerTitle}>
-            Operative Media
-          </ThemedText>
+          <ThemedText style={styles.headerTitle}>Operative Media</ThemedText>
         </View>
         <ThemedText style={[styles.countBadge, { color: theme.textSecondary }]}>
           {media.length} / {maxItems}
@@ -205,13 +224,18 @@ export function OperativeMediaSection({
             <Pressable
               key={item.id}
               onPress={() => handleEditMedia(item)}
-              style={[styles.previewItem, { backgroundColor: theme.backgroundDefault }]}
+              style={[
+                styles.previewItem,
+                { backgroundColor: theme.backgroundDefault },
+              ]}
             >
               <EncryptedImage
                 uri={item.localUri}
                 style={styles.previewImage}
                 resizeMode="cover"
-                onError={() => console.warn("Media file missing:", item.localUri)}
+                onError={() =>
+                  console.warn("Media file missing:", item.localUri)
+                }
               />
               <View style={[styles.typeBadge, { backgroundColor: theme.link }]}>
                 <ThemedText style={styles.typeBadgeText}>
@@ -225,11 +249,21 @@ export function OperativeMediaSection({
               >
                 <Feather name="x" size={12} color="#fff" />
               </Pressable>
-              <View style={[styles.editBadge, { backgroundColor: "rgba(0,0,0,0.5)" }]}>
+              <View
+                style={[
+                  styles.editBadge,
+                  { backgroundColor: "rgba(0,0,0,0.5)" },
+                ]}
+              >
                 <Feather name="edit-2" size={10} color="#fff" />
               </View>
               {item.caption ? (
-                <View style={[styles.captionOverlay, { backgroundColor: "rgba(0,0,0,0.6)" }]}>
+                <View
+                  style={[
+                    styles.captionOverlay,
+                    { backgroundColor: "rgba(0,0,0,0.6)" },
+                  ]}
+                >
                   <ThemedText style={styles.captionText} numberOfLines={2}>
                     {item.caption}
                   </ThemedText>
@@ -247,7 +281,10 @@ export function OperativeMediaSection({
               </Pressable>
               <Pressable
                 onPress={handleGalleryPick}
-                style={[styles.smallAddButton, { backgroundColor: theme.backgroundDefault }]}
+                style={[
+                  styles.smallAddButton,
+                  { backgroundColor: theme.backgroundDefault },
+                ]}
               >
                 <Feather name="image" size={18} color={theme.text} />
               </Pressable>
@@ -268,13 +305,18 @@ export function OperativeMediaSection({
             </Pressable>
             <Pressable
               onPress={handleGalleryPick}
-              style={[styles.addButton, { backgroundColor: theme.backgroundDefault }]}
+              style={[
+                styles.addButton,
+                { backgroundColor: theme.backgroundDefault },
+              ]}
             >
               <Feather name="image" size={20} color={theme.text} />
               <ThemedText style={styles.addButtonText}>From Gallery</ThemedText>
             </Pressable>
           </View>
-          <ThemedText style={[styles.placeholderText, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.placeholderText, { color: theme.textSecondary }]}
+          >
             Add intraoperative photos, X-rays, or other imaging
           </ThemedText>
         </View>

@@ -1,9 +1,5 @@
 import React from "react";
-import {
-  View,
-  StyleSheet,
-  Pressable,
-} from "react-native";
+import { View, StyleSheet, Pressable } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -70,7 +66,9 @@ export default function AddCaseScreen() {
             <ThemedText style={styles.specialtyName}>
               {SPECIALTY_LABELS[specialty]}
             </ThemedText>
-            <ThemedText style={[styles.specialtyCount, { color: theme.textTertiary }]}>
+            <ThemedText
+              style={[styles.specialtyCount, { color: theme.textTertiary }]}
+            >
               {getProceduresForSpecialty(specialty).length} procedures
             </ThemedText>
           </Pressable>

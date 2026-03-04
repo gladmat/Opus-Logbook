@@ -42,7 +42,9 @@ export function SelectedDiagnosisCard({
           <ThemedText style={[styles.diagnosisName, { color: theme.text }]}>
             {diagnosis.displayName}
           </ThemedText>
-          <ThemedText style={[styles.snomedCode, { color: theme.textTertiary }]}>
+          <ThemedText
+            style={[styles.snomedCode, { color: theme.textTertiary }]}
+          >
             SNOMED CT: {diagnosis.snomedCtCode}
           </ThemedText>
         </View>

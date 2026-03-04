@@ -90,9 +90,7 @@ export function PROMEntryForm({
       </View>
 
       {promData.questionnaire === "dash" ? (
-        <View
-          style={[styles.infoCard, { backgroundColor: theme.info + "15" }]}
-        >
+        <View style={[styles.infoCard, { backgroundColor: theme.info + "15" }]}>
           <ThemedText style={[styles.infoText, { color: theme.info }]}>
             DASH measures disabilities of the arm, shoulder, and hand. Lower
             scores indicate less disability.
@@ -101,9 +99,7 @@ export function PROMEntryForm({
       ) : null}
 
       {promData.questionnaire === "michigan_hand" ? (
-        <View
-          style={[styles.infoCard, { backgroundColor: theme.info + "15" }]}
-        >
+        <View style={[styles.infoCard, { backgroundColor: theme.info + "15" }]}>
           <ThemedText style={[styles.infoText, { color: theme.info }]}>
             Michigan Hand Questionnaire evaluates hand function, aesthetics,
             satisfaction, and pain. Higher scores indicate better outcomes.
@@ -112,12 +108,10 @@ export function PROMEntryForm({
       ) : null}
 
       {promData.questionnaire === "eq5d" ? (
-        <View
-          style={[styles.infoCard, { backgroundColor: theme.info + "15" }]}
-        >
+        <View style={[styles.infoCard, { backgroundColor: theme.info + "15" }]}>
           <ThemedText style={[styles.infoText, { color: theme.info }]}>
             EQ-5D index value ranges from -0.59 (worse than death) to 1.0
-            (perfect health). Use your country's value set for calculation.
+            {"(perfect health). Use your country's value set for calculation."}
           </ThemedText>
         </View>
       ) : null}

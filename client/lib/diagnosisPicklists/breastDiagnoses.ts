@@ -25,7 +25,14 @@ const BREAST_DX_ONCOLOGICAL: DiagnosisPicklistEntry[] = [
     subcategory: "Oncological",
     clinicalGroup: "oncological",
     hasStaging: true, // TNM staging
-    searchSynonyms: ["IDC", "ILC", "invasive ductal", "invasive lobular", "breast cancer", "breast carcinoma"],
+    searchSynonyms: [
+      "IDC",
+      "ILC",
+      "invasive ductal",
+      "invasive lobular",
+      "breast cancer",
+      "breast carcinoma",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "breast_onco_ssm",
@@ -76,7 +83,12 @@ const BREAST_DX_ONCOLOGICAL: DiagnosisPicklistEntry[] = [
     subcategory: "Oncological",
     clinicalGroup: "oncological",
     hasStaging: false,
-    searchSynonyms: ["DCIS", "ductal carcinoma in situ", "pre-invasive", "intraductal"],
+    searchSynonyms: [
+      "DCIS",
+      "ductal carcinoma in situ",
+      "pre-invasive",
+      "intraductal",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "breast_onco_therapeutic_mammoplasty",
@@ -103,7 +115,14 @@ const BREAST_DX_ONCOLOGICAL: DiagnosisPicklistEntry[] = [
     subcategory: "Oncological",
     clinicalGroup: "oncological",
     hasStaging: false,
-    searchSynonyms: ["BRCA", "BRCA1", "BRCA2", "prophylactic", "risk-reducing", "bilateral mastectomy"],
+    searchSynonyms: [
+      "BRCA",
+      "BRCA1",
+      "BRCA2",
+      "prophylactic",
+      "risk-reducing",
+      "bilateral mastectomy",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "breast_onco_nsm",
@@ -169,7 +188,12 @@ const BREAST_DX_RECONSTRUCTION: DiagnosisPicklistEntry[] = [
     subcategory: "Reconstruction",
     clinicalGroup: "reconstructive",
     hasStaging: false,
-    searchSynonyms: ["delayed reconstruction", "post-mastectomy", "breast absence", "DIEP delayed"],
+    searchSynonyms: [
+      "delayed reconstruction",
+      "post-mastectomy",
+      "breast absence",
+      "DIEP delayed",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "breast_recon_diep",
@@ -208,7 +232,11 @@ const BREAST_DX_RECONSTRUCTION: DiagnosisPicklistEntry[] = [
     subcategory: "Reconstruction",
     clinicalGroup: "reconstructive",
     hasStaging: false,
-    searchSynonyms: ["expander exchange", "second stage", "expander to implant"],
+    searchSynonyms: [
+      "expander exchange",
+      "second stage",
+      "expander to implant",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "breast_impl_expander_to_implant",
@@ -229,7 +257,12 @@ const BREAST_DX_RECONSTRUCTION: DiagnosisPicklistEntry[] = [
     subcategory: "Reconstruction",
     clinicalGroup: "reconstructive",
     hasStaging: false,
-    searchSynonyms: ["reconstruction failure", "flap revision", "breast revision", "fat necrosis flap"],
+    searchSynonyms: [
+      "reconstruction failure",
+      "flap revision",
+      "breast revision",
+      "fat necrosis flap",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "breast_rev_flap_revision",
@@ -263,7 +296,12 @@ const BREAST_DX_IMPLANT_COMPLICATIONS: DiagnosisPicklistEntry[] = [
     subcategory: "Implant Complications",
     clinicalGroup: "reconstructive",
     hasStaging: true, // Baker classification — NEW staging config needed
-    searchSynonyms: ["capsular contracture", "Baker", "hard breast", "implant contracture"],
+    searchSynonyms: [
+      "capsular contracture",
+      "Baker",
+      "hard breast",
+      "implant contracture",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "breast_rev_capsulectomy_total",
@@ -314,7 +352,12 @@ const BREAST_DX_IMPLANT_COMPLICATIONS: DiagnosisPicklistEntry[] = [
     subcategory: "Implant Complications",
     clinicalGroup: "reconstructive",
     hasStaging: false,
-    searchSynonyms: ["implant rupture", "ruptured implant", "silicone leak", "deflation"],
+    searchSynonyms: [
+      "implant rupture",
+      "ruptured implant",
+      "silicone leak",
+      "deflation",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "breast_rev_implant_removal",
@@ -336,7 +379,8 @@ const BREAST_DX_IMPLANT_COMPLICATIONS: DiagnosisPicklistEntry[] = [
     displayName: "BIA-ALCL (breast implant-associated ALCL)",
     shortName: "BIA-ALCL",
     snomedCtCode: "254837009",
-    snomedCtDisplay: "Breast implant-associated anaplastic large cell lymphoma (disorder)",
+    snomedCtDisplay:
+      "Breast implant-associated anaplastic large cell lymphoma (disorder)",
     specialty: "breast",
     subcategory: "Implant Complications",
     clinicalGroup: "oncological",
@@ -368,7 +412,12 @@ const BREAST_DX_IMPLANT_COMPLICATIONS: DiagnosisPicklistEntry[] = [
     subcategory: "Implant Complications",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["BII", "breast implant illness", "explant", "implant removal request"],
+    searchSynonyms: [
+      "BII",
+      "breast implant illness",
+      "explant",
+      "implant removal request",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "breast_rev_implant_removal",
@@ -402,7 +451,12 @@ const BREAST_DX_AESTHETIC: DiagnosisPicklistEntry[] = [
     subcategory: "Aesthetic / Functional",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["small breasts", "micromastia", "augmentation indication", "breast hypoplasia"],
+    searchSynonyms: [
+      "small breasts",
+      "micromastia",
+      "augmentation indication",
+      "breast hypoplasia",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "breast_aes_augmentation_implant",
@@ -429,7 +483,13 @@ const BREAST_DX_AESTHETIC: DiagnosisPicklistEntry[] = [
     subcategory: "Aesthetic / Functional",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["large breasts", "macromastia", "breast hypertrophy", "reduction indication", "back pain breasts"],
+    searchSynonyms: [
+      "large breasts",
+      "macromastia",
+      "breast hypertrophy",
+      "reduction indication",
+      "back pain breasts",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "breast_aes_reduction_wise",
@@ -462,7 +522,12 @@ const BREAST_DX_AESTHETIC: DiagnosisPicklistEntry[] = [
     subcategory: "Aesthetic / Functional",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["ptosis", "sagging breasts", "mastopexy indication", "breast lift"],
+    searchSynonyms: [
+      "ptosis",
+      "sagging breasts",
+      "mastopexy indication",
+      "breast lift",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "breast_aes_mastopexy_vertical",
@@ -501,7 +566,11 @@ const BREAST_DX_AESTHETIC: DiagnosisPicklistEntry[] = [
     subcategory: "Aesthetic / Functional",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["asymmetry", "uneven breasts", "contralateral symmetrisation"],
+    searchSynonyms: [
+      "asymmetry",
+      "uneven breasts",
+      "contralateral symmetrisation",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "breast_onco_contralateral_symmetrisation",
@@ -522,7 +591,12 @@ const BREAST_DX_AESTHETIC: DiagnosisPicklistEntry[] = [
     subcategory: "Aesthetic / Functional",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["tuberous breast", "tubular breast", "constricted breast", "Grolleau"],
+    searchSynonyms: [
+      "tuberous breast",
+      "tubular breast",
+      "constricted breast",
+      "Grolleau",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "breast_rev_tuberous_correction",
@@ -564,7 +638,12 @@ const BREAST_DX_AESTHETIC: DiagnosisPicklistEntry[] = [
     subcategory: "Aesthetic / Functional",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["gynaecomastia", "gynecomastia", "male breast", "man boobs"],
+    searchSynonyms: [
+      "gynaecomastia",
+      "gynecomastia",
+      "male breast",
+      "man boobs",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "breast_aes_gynaecomastia",
@@ -585,7 +664,12 @@ const BREAST_DX_AESTHETIC: DiagnosisPicklistEntry[] = [
     subcategory: "Aesthetic / Functional",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["inverted nipple", "retracted nipple", "nipple absence", "nipple reconstruction"],
+    searchSynonyms: [
+      "inverted nipple",
+      "retracted nipple",
+      "nipple absence",
+      "nipple reconstruction",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "breast_nipple_inverted_correction",
@@ -655,7 +739,7 @@ export function getBreastSubcategories(): string[] {
 }
 
 export function getBreastDiagnosesForSubcategory(
-  subcategory: string
+  subcategory: string,
 ): DiagnosisPicklistEntry[] {
   return BREAST_DIAGNOSES.filter((dx) => dx.subcategory === subcategory);
 }

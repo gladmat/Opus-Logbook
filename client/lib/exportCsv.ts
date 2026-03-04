@@ -46,7 +46,9 @@ const CSV_HEADERS = [
   "entry_duration_seconds",
 ] as const;
 
-function escapeCsvField(value: string | number | boolean | undefined | null): string {
+function escapeCsvField(
+  value: string | number | boolean | undefined | null,
+): string {
   if (value === undefined || value === null) return "";
   const str = String(value);
   if (str.includes(",") || str.includes('"') || str.includes("\n")) {

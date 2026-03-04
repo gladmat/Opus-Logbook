@@ -1,4 +1,11 @@
-import { useReducer, useCallback, useMemo, useRef, useState, useEffect } from "react";
+import {
+  useReducer,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  useEffect,
+} from "react";
 import { Alert } from "react-native";
 import * as Haptics from "expo-haptics";
 import { v4 as uuidv4 } from "uuid";
@@ -33,94 +40,99 @@ import {
 import { InfectionOverlay } from "@/types/infection";
 import { saveCase, updateCase, getCase, CaseDraft } from "@/lib/storage";
 import { getDefaultClinicalDetails } from "@/lib/procedureConfig";
-import { findSnomedProcedure, getProcedureCodeForCountry, getCountryCodeFromProfile } from "@/lib/snomedCt";
+import {
+  findSnomedProcedure,
+  getProcedureCodeForCountry,
+  getCountryCodeFromProfile,
+} from "@/lib/snomedCt";
 import { findDiagnosisById } from "@/lib/diagnosisPicklists";
 import { UserProfile } from "@/lib/auth";
 
 // ─── Default Donor Vessels ──────────────────────────────────────────────────
 
-const DEFAULT_DONOR_VESSELS: Record<string, { artery: string; vein: string }> = {
-  "Anterolateral thigh free flap": {
-    artery: "Descending branch of lateral circumflex femoral artery (LCFA)",
-    vein: "Venae comitantes of LCFA",
-  },
-  "ALT Flap": {
-    artery: "Descending branch of lateral circumflex femoral artery (LCFA)",
-    vein: "Venae comitantes of LCFA",
-  },
-  "Deep inferior epigastric perforator flap": {
-    artery: "Deep inferior epigastric artery (DIEA)",
-    vein: "Deep inferior epigastric vein (DIEV)",
-  },
-  "DIEP Flap": {
-    artery: "Deep inferior epigastric artery (DIEA)",
-    vein: "Deep inferior epigastric vein (DIEV)",
-  },
-  "Free fibula flap": {
-    artery: "Peroneal artery",
-    vein: "Peroneal veins",
-  },
-  "Fibula Flap": {
-    artery: "Peroneal artery",
-    vein: "Peroneal veins",
-  },
-  "Free radial forearm flap": {
-    artery: "Radial artery",
-    vein: "Radial venae comitantes / Cephalic vein",
-  },
-  "RFFF": {
-    artery: "Radial artery",
-    vein: "Radial venae comitantes / Cephalic vein",
-  },
-  "Free latissimus dorsi flap": {
-    artery: "Thoracodorsal artery",
-    vein: "Thoracodorsal vein",
-  },
-  "LD Flap": {
-    artery: "Thoracodorsal artery",
-    vein: "Thoracodorsal vein",
-  },
-  "Free gracilis flap": {
-    artery: "Medial circumflex femoral artery (MCFA)",
-    vein: "Venae comitantes of MCFA",
-  },
-  "Gracilis": {
-    artery: "Medial circumflex femoral artery (MCFA)",
-    vein: "Venae comitantes of MCFA",
-  },
-  "Free superior gluteal artery perforator flap": {
-    artery: "Superior gluteal artery",
-    vein: "Superior gluteal vein",
-  },
-  "SGAP Flap": {
-    artery: "Superior gluteal artery",
-    vein: "Superior gluteal vein",
-  },
-  "Free inferior gluteal artery perforator flap": {
-    artery: "Inferior gluteal artery",
-    vein: "Inferior gluteal vein",
-  },
-  "IGAP Flap": {
-    artery: "Inferior gluteal artery",
-    vein: "Inferior gluteal vein",
-  },
-  "Free scapular flap": {
-    artery: "Circumflex scapular artery",
-    vein: "Circumflex scapular vein",
-  },
-  "Scapular Flap": {
-    artery: "Circumflex scapular artery",
-    vein: "Circumflex scapular vein",
-  },
-  "Free medial sural artery perforator flap": {
-    artery: "Medial sural artery",
-    vein: "Medial sural veins",
-  },
-  "MSAP Flap": {
-    artery: "Medial sural artery",
-    vein: "Medial sural veins",
-  },
-};
+const DEFAULT_DONOR_VESSELS: Record<string, { artery: string; vein: string }> =
+  {
+    "Anterolateral thigh free flap": {
+      artery: "Descending branch of lateral circumflex femoral artery (LCFA)",
+      vein: "Venae comitantes of LCFA",
+    },
+    "ALT Flap": {
+      artery: "Descending branch of lateral circumflex femoral artery (LCFA)",
+      vein: "Venae comitantes of LCFA",
+    },
+    "Deep inferior epigastric perforator flap": {
+      artery: "Deep inferior epigastric artery (DIEA)",
+      vein: "Deep inferior epigastric vein (DIEV)",
+    },
+    "DIEP Flap": {
+      artery: "Deep inferior epigastric artery (DIEA)",
+      vein: "Deep inferior epigastric vein (DIEV)",
+    },
+    "Free fibula flap": {
+      artery: "Peroneal artery",
+      vein: "Peroneal veins",
+    },
+    "Fibula Flap": {
+      artery: "Peroneal artery",
+      vein: "Peroneal veins",
+    },
+    "Free radial forearm flap": {
+      artery: "Radial artery",
+      vein: "Radial venae comitantes / Cephalic vein",
+    },
+    RFFF: {
+      artery: "Radial artery",
+      vein: "Radial venae comitantes / Cephalic vein",
+    },
+    "Free latissimus dorsi flap": {
+      artery: "Thoracodorsal artery",
+      vein: "Thoracodorsal vein",
+    },
+    "LD Flap": {
+      artery: "Thoracodorsal artery",
+      vein: "Thoracodorsal vein",
+    },
+    "Free gracilis flap": {
+      artery: "Medial circumflex femoral artery (MCFA)",
+      vein: "Venae comitantes of MCFA",
+    },
+    Gracilis: {
+      artery: "Medial circumflex femoral artery (MCFA)",
+      vein: "Venae comitantes of MCFA",
+    },
+    "Free superior gluteal artery perforator flap": {
+      artery: "Superior gluteal artery",
+      vein: "Superior gluteal vein",
+    },
+    "SGAP Flap": {
+      artery: "Superior gluteal artery",
+      vein: "Superior gluteal vein",
+    },
+    "Free inferior gluteal artery perforator flap": {
+      artery: "Inferior gluteal artery",
+      vein: "Inferior gluteal vein",
+    },
+    "IGAP Flap": {
+      artery: "Inferior gluteal artery",
+      vein: "Inferior gluteal vein",
+    },
+    "Free scapular flap": {
+      artery: "Circumflex scapular artery",
+      vein: "Circumflex scapular vein",
+    },
+    "Scapular Flap": {
+      artery: "Circumflex scapular artery",
+      vein: "Circumflex scapular vein",
+    },
+    "Free medial sural artery perforator flap": {
+      artery: "Medial sural artery",
+      vein: "Medial sural veins",
+    },
+    "MSAP Flap": {
+      artery: "Medial sural artery",
+      vein: "Medial sural veins",
+    },
+  };
 
 // ─── Form State ─────────────────────────────────────────────────────────────
 
@@ -214,7 +226,7 @@ export function getDefaultFormState(
 ): CaseFormState {
   return {
     patientIdentifier: "",
-    procedureDate: new Date().toISOString().split("T")[0],
+    procedureDate: new Date().toISOString().split("T")[0] ?? "",
     facility: primaryFacility,
     procedureType: "",
     gender: "",
@@ -277,11 +289,15 @@ export function getDefaultFormState(
 
 // ─── Case → FormState conversion ───────────────────────────────────────────
 
-function loadCaseIntoFormState(caseData: Case, specialty: Specialty): CaseFormState {
+function loadCaseIntoFormState(
+  caseData: Case,
+  specialty: Specialty,
+): CaseFormState {
   const userMember = caseData.teamMembers?.find((m) => m.name === "You");
   const role = (userMember?.role as Role | undefined) ?? "PS";
 
-  let clinicalDetails: Record<string, any> = getDefaultClinicalDetails(specialty);
+  let clinicalDetails: Record<string, any> =
+    getDefaultClinicalDetails(specialty);
   let recipientSiteRegion: AnatomicalRegion | undefined;
   let anastomoses: AnastomosisEntry[] = [];
 
@@ -359,7 +375,10 @@ function loadCaseIntoFormState(caseData: Case, specialty: Specialty): CaseFormSt
 
 // ─── FormState → CaseDraft conversion ───────────────────────────────────────
 
-export function formStateToDraft(state: CaseFormState, specialty: Specialty): CaseDraft {
+export function formStateToDraft(
+  state: CaseFormState,
+  specialty: Specialty,
+): CaseDraft {
   const showInjuryDate =
     state.admissionUrgency === "acute" ||
     state.diagnosisGroups.some(
@@ -391,7 +410,8 @@ export function formStateToDraft(state: CaseFormState, specialty: Specialty): Ca
     dischargeDate: state.dischargeDate || undefined,
     admissionUrgency: state.admissionUrgency || undefined,
     stayType: state.stayType || undefined,
-    injuryDate: showInjuryDate && state.injuryDate ? state.injuryDate : undefined,
+    injuryDate:
+      showInjuryDate && state.injuryDate ? state.injuryDate : undefined,
     unplannedReadmission:
       state.unplannedReadmission !== "no" ? state.unplannedReadmission : "no",
     comorbidities:
@@ -405,9 +425,9 @@ export function formStateToDraft(state: CaseFormState, specialty: Specialty): Ca
     weightKg: state.weightKg ? parseFloat(state.weightKg) : undefined,
     bmi: calculateBmi(state.heightCm, state.weightKg),
     smoker: state.smoker || undefined,
-    diabetes: state.selectedComorbidities.some(
-      (c) => c.snomedCtCode === "73211009",
-    ) || undefined,
+    diabetes:
+      state.selectedComorbidities.some((c) => c.snomedCtCode === "73211009") ||
+      undefined,
     woundInfectionRisk: state.woundInfectionRisk || undefined,
     anaestheticType: state.anaestheticType || undefined,
     prophylaxis:
@@ -417,8 +437,7 @@ export function formStateToDraft(state: CaseFormState, specialty: Specialty): Ca
             dvtPrevention: state.dvtProphylaxis,
           }
         : undefined,
-    unplannedICU:
-      state.unplannedICU !== "no" ? state.unplannedICU : "no",
+    unplannedICU: state.unplannedICU !== "no" ? state.unplannedICU : "no",
     returnToTheatre: state.returnToTheatre || undefined,
     returnToTheatreReason: state.returnToTheatreReason.trim() || undefined,
     outcome: state.outcome || undefined,
@@ -457,7 +476,8 @@ export function draftToFormState(
 ): Partial<CaseFormState> {
   const result: Partial<CaseFormState> = {};
 
-  if (draft.patientIdentifier != null) result.patientIdentifier = draft.patientIdentifier;
+  if (draft.patientIdentifier != null)
+    result.patientIdentifier = draft.patientIdentifier;
   if (draft.procedureDate != null) result.procedureDate = draft.procedureDate;
   result.facility = draft.facility ?? primaryFacility;
   if (draft.procedureType != null) result.procedureType = draft.procedureType;
@@ -516,9 +536,22 @@ function calculateBmi(heightCm: string, weightKg: string): number | undefined {
 
 function calculateDuration(start: string, end: string): number | undefined {
   if (!start || !end) return undefined;
-  const [startHour, startMin] = start.split(":").map(Number);
-  const [endHour, endMin] = end.split(":").map(Number);
-  if (isNaN(startHour) || isNaN(startMin) || isNaN(endHour) || isNaN(endMin)) {
+  const startParts = start.split(":").map(Number);
+  const endParts = end.split(":").map(Number);
+  const startHour = startParts[0];
+  const startMin = startParts[1];
+  const endHour = endParts[0];
+  const endMin = endParts[1];
+  if (
+    startHour == null ||
+    startMin == null ||
+    endHour == null ||
+    endMin == null ||
+    isNaN(startHour) ||
+    isNaN(startMin) ||
+    isNaN(endHour) ||
+    isNaN(endMin)
+  ) {
     return undefined;
   }
   let durationMins = endHour * 60 + endMin - (startHour * 60 + startMin);
@@ -541,7 +574,8 @@ export function validateField(
 ): string | null {
   switch (field) {
     case "patientIdentifier":
-      if (!state.patientIdentifier.trim()) return "Patient identifier is required";
+      if (!state.patientIdentifier.trim())
+        return "Patient identifier is required";
       return null;
     case "procedureDate":
       if (!state.procedureDate) return "Procedure date is required";
@@ -593,9 +627,7 @@ export function validateRequiredFields(state: CaseFormState): {
   }
 
   const hasCompleteDiagnosisGroup = state.diagnosisGroups.some(
-    (g) =>
-      g.diagnosis &&
-      g.procedures.some((p) => p.procedureName.trim()),
+    (g) => g.diagnosis && g.procedures.some((p) => p.procedureName.trim()),
   );
   if (!hasCompleteDiagnosisGroup) {
     errors.push({
@@ -667,24 +699,30 @@ export function buildDuplicateState(
       ? { ...g.diagnosisStagingSelections }
       : undefined,
     fractures: g.fractures?.map((f) => ({ ...f, id: uuidv4() })) ?? [],
-    lesionInstances: g.lesionInstances?.map((l) => ({ ...l, id: uuidv4() })) ?? [],
-  })) ?? [{
-    id: uuidv4(),
-    sequenceOrder: 1,
-    specialty,
-    procedures: [{
+    lesionInstances:
+      g.lesionInstances?.map((l) => ({ ...l, id: uuidv4() })) ?? [],
+  })) ?? [
+    {
       id: uuidv4(),
       sequenceOrder: 1,
-      procedureName: "",
       specialty,
-      surgeonRole: "PS",
-    }],
-  }];
+      procedures: [
+        {
+          id: uuidv4(),
+          sequenceOrder: 1,
+          procedureName: "",
+          specialty,
+          surgeonRole: "PS",
+        },
+      ],
+    },
+  ];
 
   // Deep clone anastomoses with new IDs
-  const clonedAnastomoses: AnastomosisEntry[] = (source.clinicalDetails as any)?.anastomoses?.map(
-    (a: AnastomosisEntry) => ({ ...a, id: uuidv4() }),
-  ) ?? [];
+  const clonedAnastomoses: AnastomosisEntry[] =
+    (source.clinicalDetails as any)?.anastomoses?.map(
+      (a: AnastomosisEntry) => ({ ...a, id: uuidv4() }),
+    ) ?? [];
 
   const defaults = getDefaultFormState(specialty, primaryFacility);
 
@@ -693,7 +731,8 @@ export function buildDuplicateState(
     // ── Copied fields ────────────────────────────────────────
     facility: source.facility || primaryFacility,
     diagnosisGroups: clonedGroups,
-    role: (source.teamMembers?.find((m) => m.name === "You")?.role as Role) ?? "PS",
+    role:
+      (source.teamMembers?.find((m) => m.name === "You")?.role as Role) ?? "PS",
     clinicalDetails: source.clinicalDetails
       ? { ...(source.clinicalDetails as Record<string, any>) }
       : defaults.clinicalDetails,
@@ -701,12 +740,13 @@ export function buildDuplicateState(
     anaestheticType: (source.anaestheticType as AnaestheticType) || "",
     antibioticProphylaxis: source.prophylaxis?.antibiotics ?? false,
     dvtProphylaxis: source.prophylaxis?.dvtPrevention ?? false,
-    recipientSiteRegion: (source.clinicalDetails as any)?.recipientSiteRegion ?? undefined,
+    recipientSiteRegion:
+      (source.clinicalDetails as any)?.recipientSiteRegion ?? undefined,
     anastomoses: clonedAnastomoses,
 
     // ── Cleared fields ───────────────────────────────────────
     patientIdentifier: "",
-    procedureDate: new Date().toISOString().split("T")[0],
+    procedureDate: new Date().toISOString().split("T")[0] ?? "",
     gender: "",
     age: "",
     ethnicity: "",
@@ -801,7 +841,10 @@ export function useCaseForm({
   );
 
   const durationDisplay = useMemo(() => {
-    const mins = calculateDuration(state.surgeryStartTime, state.surgeryEndTime);
+    const mins = calculateDuration(
+      state.surgeryStartTime,
+      state.surgeryEndTime,
+    );
     if (mins === undefined) return null;
     return `${Math.floor(mins / 60)}h ${mins % 60}m`;
   }, [state.surgeryStartTime, state.surgeryEndTime]);
@@ -941,16 +984,13 @@ export function useCaseForm({
     });
   }, [state.diagnosisGroups, specialty]);
 
-  const reorderDiagnosisGroups = useCallback(
-    (groups: DiagnosisGroup[]) => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      dispatch({
-        type: "REORDER_DIAGNOSIS_GROUPS",
-        groups: groups.map((g, i) => ({ ...g, sequenceOrder: i + 1 })),
-      });
-    },
-    [],
-  );
+  const reorderDiagnosisGroups = useCallback((groups: DiagnosisGroup[]) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    dispatch({
+      type: "REORDER_DIAGNOSIS_GROUPS",
+      groups: groups.map((g, i) => ({ ...g, sequenceOrder: i + 1 })),
+    });
+  }, []);
 
   // ── Team callbacks ────────────────────────────────────────────────────
 
@@ -1053,208 +1093,227 @@ export function useCaseForm({
 
   // ── Save ──────────────────────────────────────────────────────────────
 
-  const handleSave = useCallback(async (formOpenedAt?: string): Promise<boolean> => {
-    // Derive procedureType from the first diagnosis group's first procedure
-    const derivedProcedureType =
-      state.diagnosisGroups[0]?.procedures[0]?.procedureName ||
-      state.procedureType;
+  const handleSave = useCallback(
+    async (formOpenedAt?: string): Promise<boolean> => {
+      // Derive procedureType from the first diagnosis group's first procedure
+      const derivedProcedureType =
+        state.diagnosisGroups[0]?.procedures[0]?.procedureName ||
+        state.procedureType;
 
-    // Determine if the case has enough data to be considered complete
-    const hasDiagnosis = state.diagnosisGroups.some(
-      (g) => g.diagnosis || g.procedures.length > 0,
-    );
-    const isIncomplete = !derivedProcedureType.trim() || !hasDiagnosis;
-
-    dispatch(setField("saving", true));
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    try {
-      const countryCode = getCountryCodeFromProfile(
-        profile?.countryOfPractice,
+      // Determine if the case has enough data to be considered complete
+      const hasDiagnosis = state.diagnosisGroups.some(
+        (g) => g.diagnosis || g.procedures.length > 0,
       );
-      const snomedProcedure = findSnomedProcedure(
-        derivedProcedureType,
-        specialty,
-      );
-      const procedureCode: ProcedureCode | undefined = snomedProcedure
-        ? getProcedureCodeForCountry(snomedProcedure, countryCode)
-        : undefined;
+      const isIncomplete = !derivedProcedureType.trim() || !hasDiagnosis;
 
-      const surgeryTiming: SurgeryTiming | undefined =
-        state.surgeryStartTime || state.surgeryEndTime
-          ? {
-              startTime: state.surgeryStartTime || undefined,
-              endTime: state.surgeryEndTime || undefined,
-              durationMinutes: calculateDuration(
-                state.surgeryStartTime,
-                state.surgeryEndTime,
-              ),
-            }
-          : undefined;
+      dispatch(setField("saving", true));
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-      // Entry time tracking
-      // Note: entryDurationSeconds includes any time the app was backgrounded.
-      // Analytics caps at 7200s.
-      const formSavedAt = new Date().toISOString();
-      let entryDurationSeconds: number | undefined;
-      if (formOpenedAt) {
-        const elapsed = Math.round(
-          (new Date(formSavedAt).getTime() - new Date(formOpenedAt).getTime()) / 1000,
+      try {
+        const countryCode = getCountryCodeFromProfile(
+          profile?.countryOfPractice,
         );
-        entryDurationSeconds = elapsed > 0 ? elapsed : undefined;
-      }
-
-      // Suggestion acceptance tracking
-      const suggestionAcceptanceLog: SuggestionAcceptanceEntry[] = [];
-      for (const group of state.diagnosisGroups) {
-        if (!group.diagnosisPicklistId || group.procedureSuggestionSource !== "picklist") continue;
-        const dx = findDiagnosisById(group.diagnosisPicklistId);
-        if (!dx) continue;
-        const suggestedIds = dx.suggestedProcedures.map((s) => s.procedurePicklistId);
-        const acceptedIds = group.procedures
-          .filter((p) => p.picklistEntryId && suggestedIds.includes(p.picklistEntryId))
-          .map((p) => p.picklistEntryId!);
-        const manualIds = group.procedures
-          .filter((p) => !p.picklistEntryId || !suggestedIds.includes(p.picklistEntryId))
-          .map((p) => p.picklistEntryId || p.procedureName);
-        suggestionAcceptanceLog.push({
-          diagnosisGroupId: group.id,
-          diagnosisPicklistId: group.diagnosisPicklistId,
-          suggestedProcedureIds: suggestedIds,
-          acceptedProcedureIds: acceptedIds,
-          addedManuallyIds: manualIds,
-        });
-      }
-
-      const userId = uuidv4();
-
-      const prophylaxis: Prophylaxis | undefined =
-        state.antibioticProphylaxis || state.dvtProphylaxis
-          ? {
-              antibiotics: state.antibioticProphylaxis,
-              dvtPrevention: state.dvtProphylaxis,
-            }
+        const snomedProcedure = findSnomedProcedure(
+          derivedProcedureType,
+          specialty,
+        );
+        const procedureCode: ProcedureCode | undefined = snomedProcedure
+          ? getProcedureCodeForCountry(snomedProcedure, countryCode)
           : undefined;
 
-      const casePayload: Case = {
-        id: isEditMode && existingCase ? existingCase.id : uuidv4(),
-        patientIdentifier: state.patientIdentifier.trim(),
-        procedureDate: state.procedureDate,
-        facility: state.facility.trim(),
-        specialty,
-        procedureType: derivedProcedureType,
-        procedureCode,
-        diagnosisGroups: state.diagnosisGroups,
-        surgeryTiming,
-        operatingTeam:
-          state.operatingTeam.length > 0 ? state.operatingTeam : undefined,
-        gender: state.gender || undefined,
-        age: state.age ? parseInt(state.age) : undefined,
-        ethnicity: state.ethnicity.trim() || undefined,
-        admissionDate: state.admissionDate || undefined,
-        dischargeDate: state.dischargeDate || undefined,
-        admissionUrgency: state.admissionUrgency || undefined,
-        stayType: state.stayType || undefined,
-        injuryDate:
-          showInjuryDate && state.injuryDate ? state.injuryDate : undefined,
-        unplannedReadmission:
-          state.unplannedReadmission !== "no"
-            ? state.unplannedReadmission
-            : undefined,
-        comorbidities:
-          state.selectedComorbidities.length > 0
-            ? state.selectedComorbidities
-            : undefined,
-        operativeMedia:
-          state.operativeMedia.length > 0 ? state.operativeMedia : undefined,
-        asaScore: state.asaScore
-          ? (parseInt(state.asaScore) as ASAScore)
-          : undefined,
-        heightCm: state.heightCm ? parseFloat(state.heightCm) : undefined,
-        weightKg: state.weightKg ? parseFloat(state.weightKg) : undefined,
-        bmi: calculatedBmi || undefined,
-        smoker: state.smoker || undefined,
-        diabetes: state.selectedComorbidities.some(
-          (c) => c.snomedCtCode === "73211009",
-        ) || undefined,
-        woundInfectionRisk: state.woundInfectionRisk || undefined,
-        anaestheticType: state.anaestheticType || undefined,
-        prophylaxis,
-        unplannedICU:
-          state.unplannedICU !== "no" ? state.unplannedICU : undefined,
-        returnToTheatre: state.returnToTheatre || undefined,
-        returnToTheatreReason:
-          state.returnToTheatreReason.trim() || undefined,
-        outcome: state.outcome || undefined,
-        mortalityClassification: state.mortalityClassification || undefined,
-        discussedAtMDM: state.discussedAtMDM || undefined,
-        infectionOverlay: state.infectionOverlay || undefined,
-        caseStatus: isIncomplete
-          ? "incomplete"
-          : state.dischargeDate
-            ? "discharged"
-            : "active",
-        clinicalDetails: {
-          ...state.clinicalDetails,
-          ...(state.recipientSiteRegion
-            ? { recipientSiteRegion: state.recipientSiteRegion }
-            : {}),
-          ...(state.anastomoses.length > 0
-            ? { anastomoses: state.anastomoses }
-            : {}),
-        },
-        teamMembers:
-          isEditMode && existingCase?.teamMembers
-            ? existingCase.teamMembers
-            : [
-                {
-                  id: uuidv4(),
-                  userId,
-                  name: "You",
-                  role: state.role,
-                  confirmed: true,
-                  addedAt: new Date().toISOString(),
-                },
-              ],
-        ownerId:
-          isEditMode && existingCase ? existingCase.ownerId : userId,
-        schemaVersion: 2,
-        formOpenedAt: formOpenedAt || undefined,
-        formSavedAt,
-        entryDurationSeconds,
-        suggestionAcceptanceLog:
-          suggestionAcceptanceLog.length > 0 ? suggestionAcceptanceLog : undefined,
-        createdAt:
-          isEditMode && existingCase
-            ? existingCase.createdAt
-            : new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+        const surgeryTiming: SurgeryTiming | undefined =
+          state.surgeryStartTime || state.surgeryEndTime
+            ? {
+                startTime: state.surgeryStartTime || undefined,
+                endTime: state.surgeryEndTime || undefined,
+                durationMinutes: calculateDuration(
+                  state.surgeryStartTime,
+                  state.surgeryEndTime,
+                ),
+              }
+            : undefined;
 
-      if (isEditMode && existingCase) {
-        await updateCase(existingCase.id, casePayload);
-      } else {
-        await saveCase(casePayload);
-        savedRef.current = true;
+        // Entry time tracking
+        // Note: entryDurationSeconds includes any time the app was backgrounded.
+        // Analytics caps at 7200s.
+        const formSavedAt = new Date().toISOString();
+        let entryDurationSeconds: number | undefined;
+        if (formOpenedAt) {
+          const elapsed = Math.round(
+            (new Date(formSavedAt).getTime() -
+              new Date(formOpenedAt).getTime()) /
+              1000,
+          );
+          entryDurationSeconds = elapsed > 0 ? elapsed : undefined;
+        }
+
+        // Suggestion acceptance tracking
+        const suggestionAcceptanceLog: SuggestionAcceptanceEntry[] = [];
+        for (const group of state.diagnosisGroups) {
+          if (
+            !group.diagnosisPicklistId ||
+            group.procedureSuggestionSource !== "picklist"
+          )
+            continue;
+          const dx = findDiagnosisById(group.diagnosisPicklistId);
+          if (!dx) continue;
+          const suggestedIds = dx.suggestedProcedures.map(
+            (s) => s.procedurePicklistId,
+          );
+          const acceptedIds = group.procedures
+            .filter(
+              (p) =>
+                p.picklistEntryId && suggestedIds.includes(p.picklistEntryId),
+            )
+            .map((p) => p.picklistEntryId!);
+          const manualIds = group.procedures
+            .filter(
+              (p) =>
+                !p.picklistEntryId || !suggestedIds.includes(p.picklistEntryId),
+            )
+            .map((p) => p.picklistEntryId || p.procedureName);
+          suggestionAcceptanceLog.push({
+            diagnosisGroupId: group.id,
+            diagnosisPicklistId: group.diagnosisPicklistId,
+            suggestedProcedureIds: suggestedIds,
+            acceptedProcedureIds: acceptedIds,
+            addedManuallyIds: manualIds,
+          });
+        }
+
+        const userId = uuidv4();
+
+        const prophylaxis: Prophylaxis | undefined =
+          state.antibioticProphylaxis || state.dvtProphylaxis
+            ? {
+                antibiotics: state.antibioticProphylaxis,
+                dvtPrevention: state.dvtProphylaxis,
+              }
+            : undefined;
+
+        const casePayload: Case = {
+          id: isEditMode && existingCase ? existingCase.id : uuidv4(),
+          patientIdentifier: state.patientIdentifier.trim(),
+          procedureDate: state.procedureDate,
+          facility: state.facility.trim(),
+          specialty,
+          procedureType: derivedProcedureType,
+          procedureCode,
+          diagnosisGroups: state.diagnosisGroups,
+          surgeryTiming,
+          operatingTeam:
+            state.operatingTeam.length > 0 ? state.operatingTeam : undefined,
+          gender: state.gender || undefined,
+          age: state.age ? parseInt(state.age) : undefined,
+          ethnicity: state.ethnicity.trim() || undefined,
+          admissionDate: state.admissionDate || undefined,
+          dischargeDate: state.dischargeDate || undefined,
+          admissionUrgency: state.admissionUrgency || undefined,
+          stayType: state.stayType || undefined,
+          injuryDate:
+            showInjuryDate && state.injuryDate ? state.injuryDate : undefined,
+          unplannedReadmission:
+            state.unplannedReadmission !== "no"
+              ? state.unplannedReadmission
+              : undefined,
+          comorbidities:
+            state.selectedComorbidities.length > 0
+              ? state.selectedComorbidities
+              : undefined,
+          operativeMedia:
+            state.operativeMedia.length > 0 ? state.operativeMedia : undefined,
+          asaScore: state.asaScore
+            ? (parseInt(state.asaScore) as ASAScore)
+            : undefined,
+          heightCm: state.heightCm ? parseFloat(state.heightCm) : undefined,
+          weightKg: state.weightKg ? parseFloat(state.weightKg) : undefined,
+          bmi: calculatedBmi || undefined,
+          smoker: state.smoker || undefined,
+          diabetes:
+            state.selectedComorbidities.some(
+              (c) => c.snomedCtCode === "73211009",
+            ) || undefined,
+          woundInfectionRisk: state.woundInfectionRisk || undefined,
+          anaestheticType: state.anaestheticType || undefined,
+          prophylaxis,
+          unplannedICU:
+            state.unplannedICU !== "no" ? state.unplannedICU : undefined,
+          returnToTheatre: state.returnToTheatre || undefined,
+          returnToTheatreReason:
+            state.returnToTheatreReason.trim() || undefined,
+          outcome: state.outcome || undefined,
+          mortalityClassification: state.mortalityClassification || undefined,
+          discussedAtMDM: state.discussedAtMDM || undefined,
+          infectionOverlay: state.infectionOverlay || undefined,
+          caseStatus: isIncomplete
+            ? "incomplete"
+            : state.dischargeDate
+              ? "discharged"
+              : "active",
+          clinicalDetails: {
+            ...state.clinicalDetails,
+            ...(state.recipientSiteRegion
+              ? { recipientSiteRegion: state.recipientSiteRegion }
+              : {}),
+            ...(state.anastomoses.length > 0
+              ? { anastomoses: state.anastomoses }
+              : {}),
+          },
+          teamMembers:
+            isEditMode && existingCase?.teamMembers
+              ? existingCase.teamMembers
+              : [
+                  {
+                    id: uuidv4(),
+                    userId,
+                    name: "You",
+                    role: state.role,
+                    confirmed: true,
+                    addedAt: new Date().toISOString(),
+                  },
+                ],
+          ownerId: isEditMode && existingCase ? existingCase.ownerId : userId,
+          schemaVersion: 2,
+          formOpenedAt: formOpenedAt || undefined,
+          formSavedAt,
+          entryDurationSeconds,
+          suggestionAcceptanceLog:
+            suggestionAcceptanceLog.length > 0
+              ? suggestionAcceptanceLog
+              : undefined,
+          createdAt:
+            isEditMode && existingCase
+              ? existingCase.createdAt
+              : new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        if (isEditMode && existingCase) {
+          await updateCase(existingCase.id, casePayload);
+        } else {
+          await saveCase(casePayload);
+          savedRef.current = true;
+        }
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        return true;
+      } catch (error) {
+        console.error("Error saving case:", error);
+        Alert.alert("Error", "Failed to save case. Please try again.");
+        return false;
+      } finally {
+        dispatch(setField("saving", false));
       }
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      return true;
-    } catch (error) {
-      console.error("Error saving case:", error);
-      Alert.alert("Error", "Failed to save case. Please try again.");
-      return false;
-    } finally {
-      dispatch(setField("saving", false));
-    }
-  }, [
-    state,
-    isEditMode,
-    existingCase,
-    specialty,
-    profile,
-    calculatedBmi,
-    showInjuryDate,
-  ]);
+    },
+    [
+      state,
+      isEditMode,
+      existingCase,
+      specialty,
+      profile,
+      calculatedBmi,
+      showInjuryDate,
+    ],
+  );
 
   return {
     state,

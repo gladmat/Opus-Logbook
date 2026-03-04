@@ -37,7 +37,9 @@ export function FavouritesRecentsChips({
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Feather name="star" size={12} color={theme.link} />
-            <ThemedText style={[styles.sectionLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.sectionLabel, { color: theme.textSecondary }]}
+            >
               Favourites
             </ThemedText>
           </View>
@@ -65,11 +67,7 @@ export function FavouritesRecentsChips({
                     hitSlop={4}
                     style={styles.starButton}
                   >
-                    <Feather
-                      name="star"
-                      size={14}
-                      color={theme.link}
-                    />
+                    <Feather name="star" size={14} color={theme.link} />
                   </Pressable>
                   <ThemedText
                     style={[styles.chipText, { color: theme.text }]}
@@ -88,7 +86,9 @@ export function FavouritesRecentsChips({
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Feather name="clock" size={12} color={theme.textTertiary} />
-            <ThemedText style={[styles.sectionLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.sectionLabel, { color: theme.textSecondary }]}
+            >
               Recent
             </ThemedText>
           </View>

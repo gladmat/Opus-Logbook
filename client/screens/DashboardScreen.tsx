@@ -1142,7 +1142,7 @@ export default function DashboardScreen() {
               </ThemedText>
             </View>
             {topPairs.map((pair, idx) => {
-              const maxCount = topPairs[0].count;
+              const maxCount = topPairs[0]?.count ?? 0;
               const barWidth = maxCount > 0 ? (pair.count / maxCount) * 100 : 0;
               return (
                 <View

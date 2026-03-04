@@ -17,21 +17,21 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 export interface MelanomaTStageResult {
-  tStage: string;       // e.g., "T1", "T2", "T3", "T4", "Tis"
-  tSubstage: string;    // e.g., "T1a", "T1b", "T2a"
+  tStage: string; // e.g., "T1", "T2", "T3", "T4", "Tis"
+  tSubstage: string; // e.g., "T1a", "T1b", "T2a"
   description: string;
   breslowMm: number;
 }
 
 export interface MelanomaNStageResult {
-  nStage: string;       // e.g., "N0", "N1", "N2", "N3"
-  nSubstage?: string;   // e.g., "N1a", "N1b", "N1c"
+  nStage: string; // e.g., "N0", "N1", "N2", "N3"
+  nSubstage?: string; // e.g., "N1a", "N1b", "N1c"
   description: string;
   hasSatelliteInTransit: boolean;
 }
 
 export interface MelanomaOverallStageResult {
-  stage: string;        // e.g., "0", "IA", "IB", "IIA", "IIIC", "IV"
+  stage: string; // e.g., "0", "IA", "IB", "IIA", "IIIC", "IV"
   description: string;
   fiveYearSurvivalApprox: string;
   mStage?: string;
@@ -68,7 +68,7 @@ export interface MelanomaStagingResult {
 
 export function calculateTStage(
   breslow: number,
-  ulceration: boolean
+  ulceration: boolean,
 ): MelanomaTStageResult {
   if (breslow === 0) {
     return {
@@ -134,9 +134,13 @@ export function calculateNStage(
   lnStatus: string = "not_assessed",
   positiveNodes: number = 0,
   positiveNodesMicrometastases: number = 0,
-  satelliteInTransit: boolean = false
+  satelliteInTransit: boolean = false,
 ): MelanomaNStageResult {
-  if (lnStatus === "negative" || lnStatus === "not_assessed" || lnStatus === "unknown") {
+  if (
+    lnStatus === "negative" ||
+    lnStatus === "not_assessed" ||
+    lnStatus === "unknown"
+  ) {
     if (!satelliteInTransit) {
       return {
         nStage: "N0",
@@ -147,7 +151,8 @@ export function calculateNStage(
     return {
       nStage: "N1c",
       nSubstage: "N1c",
-      description: "N1c: Satellite/in-transit metastases without nodal involvement",
+      description:
+        "N1c: Satellite/in-transit metastases without nodal involvement",
       hasSatelliteInTransit: true,
     };
   }
@@ -158,9 +163,10 @@ export function calculateNStage(
       return {
         nStage: "N1",
         nSubstage: sub,
-        description: sub === "N1a"
-          ? "N1a: 1 node with micrometastases"
-          : "N1b: 1 node with macrometastases",
+        description:
+          sub === "N1a"
+            ? "N1a: 1 node with micrometastases"
+            : "N1b: 1 node with macrometastases",
         hasSatelliteInTransit: satelliteInTransit,
       };
     }
@@ -170,9 +176,10 @@ export function calculateNStage(
       return {
         nStage: "N2",
         nSubstage: sub,
-        description: sub === "N2a"
-          ? `N2a: ${positiveNodes} nodes with micrometastases`
-          : `N2b: ${positiveNodes} nodes with macrometastases`,
+        description:
+          sub === "N2a"
+            ? `N2a: ${positiveNodes} nodes with micrometastases`
+            : `N2b: ${positiveNodes} nodes with macrometastases`,
         hasSatelliteInTransit: satelliteInTransit,
       };
     }
@@ -208,7 +215,7 @@ export function calculateNStage(
 export function calculateOverallStage(
   tSubstage: string,
   nStageOrSubstage: string,
-  mStage: string = "M0"
+  mStage: string = "M0",
 ): MelanomaOverallStageResult {
   const t = tSubstage.toUpperCase();
   const n = nStageOrSubstage.toUpperCase();
@@ -235,11 +242,36 @@ export function calculateOverallStage(
 
   // Stages I–II: N0 only
   if (n === "N0") {
-    if (t === "T1A") return { stage: "IA", description: "Stage IA: T1a N0", fiveYearSurvivalApprox: "95–97%" };
-    if (t === "T1B" || t === "T2A") return { stage: "IB", description: `Stage IB: ${t} N0`, fiveYearSurvivalApprox: "91–94%" };
-    if (t === "T2B" || t === "T3A") return { stage: "IIA", description: `Stage IIA: ${t} N0`, fiveYearSurvivalApprox: "87–91%" };
-    if (t === "T3B" || t === "T4A") return { stage: "IIB", description: `Stage IIB: ${t} N0`, fiveYearSurvivalApprox: "79–87%" };
-    if (t === "T4B") return { stage: "IIC", description: "Stage IIC: T4b N0", fiveYearSurvivalApprox: "67–79%" };
+    if (t === "T1A")
+      return {
+        stage: "IA",
+        description: "Stage IA: T1a N0",
+        fiveYearSurvivalApprox: "95–97%",
+      };
+    if (t === "T1B" || t === "T2A")
+      return {
+        stage: "IB",
+        description: `Stage IB: ${t} N0`,
+        fiveYearSurvivalApprox: "91–94%",
+      };
+    if (t === "T2B" || t === "T3A")
+      return {
+        stage: "IIA",
+        description: `Stage IIA: ${t} N0`,
+        fiveYearSurvivalApprox: "87–91%",
+      };
+    if (t === "T3B" || t === "T4A")
+      return {
+        stage: "IIB",
+        description: `Stage IIB: ${t} N0`,
+        fiveYearSurvivalApprox: "79–87%",
+      };
+    if (t === "T4B")
+      return {
+        stage: "IIC",
+        description: "Stage IIC: T4b N0",
+        fiveYearSurvivalApprox: "67–79%",
+      };
   }
 
   // Stage III: any N+
@@ -248,28 +280,52 @@ export function calculateOverallStage(
 
   // IIIA: thin non-ulcerated + micrometastases only
   if ((t === "T1A" || t === "T2A") && (n === "N1A" || n === "N2A")) {
-    return { stage: "IIIA", description: `Stage IIIA: ${t} ${n}`, fiveYearSurvivalApprox: "74–87%" };
+    return {
+      stage: "IIIA",
+      description: `Stage IIIA: ${t} ${n}`,
+      fiveYearSurvivalApprox: "74–87%",
+    };
   }
 
   // IIIB: thin T + macrometastases/satellite
   if (thinT && (n === "N1B" || n === "N1C" || n === "N2B")) {
-    return { stage: "IIIB", description: `Stage IIIB: ${t} ${n}`, fiveYearSurvivalApprox: "62–74%" };
+    return {
+      stage: "IIIB",
+      description: `Stage IIIB: ${t} ${n}`,
+      fiveYearSurvivalApprox: "62–74%",
+    };
   }
   if ((t === "T1B" || t === "T2B") && (n === "N1A" || n === "N2A")) {
-    return { stage: "IIIB", description: `Stage IIIB: ${t} ${n}`, fiveYearSurvivalApprox: "62–74%" };
+    return {
+      stage: "IIIB",
+      description: `Stage IIIB: ${t} ${n}`,
+      fiveYearSurvivalApprox: "62–74%",
+    };
   }
 
   // IIID: T4b + N3 (worst Stage III prognosis — check before generic IIIC)
   if (t === "T4B" && n === "N3") {
-    return { stage: "IIID", description: "Stage IIID: T4b N3", fiveYearSurvivalApprox: "26–40%" };
+    return {
+      stage: "IIID",
+      description: "Stage IIID: T4b N3",
+      fiveYearSurvivalApprox: "26–40%",
+    };
   }
 
   // IIIC: catch-all for remaining Stage III
   if (thinT && (n === "N2C" || n === "N3")) {
-    return { stage: "IIIC", description: `Stage IIIC: ${t} ${n}`, fiveYearSurvivalApprox: "40–62%" };
+    return {
+      stage: "IIIC",
+      description: `Stage IIIC: ${t} ${n}`,
+      fiveYearSurvivalApprox: "40–62%",
+    };
   }
   if (thickT && n !== "N0" && !n.startsWith("NX")) {
-    return { stage: "IIIC", description: `Stage IIIC: ${t} ${n}`, fiveYearSurvivalApprox: "40–62%" };
+    return {
+      stage: "IIIC",
+      description: `Stage IIIC: ${t} ${n}`,
+      fiveYearSurvivalApprox: "40–62%",
+    };
   }
 
   // Generic Stage III
@@ -297,7 +353,7 @@ export function calculateOverallStage(
  * This is the main function to call from the UI.
  */
 export function calculateMelanomaStaging(
-  input: MelanomaStagingInput
+  input: MelanomaStagingInput,
 ): MelanomaStagingResult {
   const tStage = calculateTStage(input.breslowThicknessMm, input.ulceration);
 
@@ -305,13 +361,13 @@ export function calculateMelanomaStaging(
     input.lnStatus || "not_assessed",
     input.positiveNodes || 0,
     input.positiveNodesMicrometastases || 0,
-    input.satelliteInTransit || false
+    input.satelliteInTransit || false,
   );
 
   const overallStage = calculateOverallStage(
     tStage.tSubstage,
     nStage.nSubstage || nStage.nStage,
-    input.mStage || "M0"
+    input.mStage || "M0",
   );
 
   const summary = `Stage ${overallStage.stage} (${tStage.tSubstage} ${nStage.nSubstage || nStage.nStage} ${input.mStage || "M0"})`;
@@ -328,10 +384,7 @@ export function calculateMelanomaStaging(
  * Quick T-stage only calculation — for display when only Breslow + ulceration known.
  * This is useful at initial case entry before full staging data is available.
  */
-export function quickTStage(
-  breslowMm: number,
-  ulceration: boolean
-): string {
+export function quickTStage(breslowMm: number, ulceration: boolean): string {
   const result = calculateTStage(breslowMm, ulceration);
   return result.tSubstage;
 }
@@ -342,7 +395,7 @@ export function quickTStage(
  */
 export function getSLNBRecommendation(
   breslowMm: number,
-  ulceration: boolean
+  ulceration: boolean,
 ): { recommended: boolean; reason: string } {
   if (breslowMm === 0) {
     return { recommended: false, reason: "MIS — SLNB not indicated" };

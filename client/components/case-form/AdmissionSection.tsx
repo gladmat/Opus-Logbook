@@ -5,7 +5,10 @@ import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
 import { SelectField, DatePickerField } from "@/components/FormField";
 import { SectionHeader } from "@/components/SectionHeader";
-import { useCaseFormState, useCaseFormDispatch } from "@/contexts/CaseFormContext";
+import {
+  useCaseFormState,
+  useCaseFormDispatch,
+} from "@/contexts/CaseFormContext";
 import { setField } from "@/hooks/useCaseForm";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
@@ -29,53 +32,66 @@ export const AdmissionSection = React.memo(function AdmissionSection() {
 
       <View style={styles.row}>
         <View style={styles.halfField}>
-          <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
             Urgency
           </ThemedText>
           <View
             style={[
               styles.segmentedControl,
-              { borderColor: theme.border, backgroundColor: theme.backgroundDefault },
+              {
+                borderColor: theme.border,
+                backgroundColor: theme.backgroundDefault,
+              },
             ]}
           >
-            {(Object.entries(ADMISSION_URGENCY_LABELS) as [AdmissionUrgency, string][]).map(
-              ([value, label]) => {
-                const isSelected = state.admissionUrgency === value;
-                return (
-                  <Pressable
-                    key={value}
-                    testID={`toggle-urgency-${value}`}
+            {(
+              Object.entries(ADMISSION_URGENCY_LABELS) as [
+                AdmissionUrgency,
+                string,
+              ][]
+            ).map(([value, label]) => {
+              const isSelected = state.admissionUrgency === value;
+              return (
+                <Pressable
+                  key={value}
+                  testID={`toggle-urgency-${value}`}
+                  style={[
+                    styles.segmentedButton,
+                    isSelected ? { backgroundColor: theme.link } : undefined,
+                  ]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    dispatch(setField("admissionUrgency", value));
+                  }}
+                >
+                  <ThemedText
                     style={[
-                      styles.segmentedButton,
-                      isSelected ? { backgroundColor: theme.link } : undefined,
+                      styles.segmentedButtonText,
+                      { color: isSelected ? "#FFFFFF" : theme.textSecondary },
                     ]}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      dispatch(setField("admissionUrgency", value));
-                    }}
                   >
-                    <ThemedText
-                      style={[
-                        styles.segmentedButtonText,
-                        { color: isSelected ? "#FFFFFF" : theme.textSecondary },
-                      ]}
-                    >
-                      {label}
-                    </ThemedText>
-                  </Pressable>
-                );
-              },
-            )}
+                    {label}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
         <View style={styles.halfField}>
-          <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
             Stay Type
           </ThemedText>
           <View
             style={[
               styles.segmentedControl,
-              { borderColor: theme.border, backgroundColor: theme.backgroundDefault },
+              {
+                borderColor: theme.border,
+                backgroundColor: theme.backgroundDefault,
+              },
             ]}
           >
             {(Object.entries(STAY_TYPE_LABELS) as [StayType, string][]).map(
@@ -188,7 +204,9 @@ export const AdmissionSection = React.memo(function AdmissionSection() {
               label: label.replace("Yes - ", ""),
             }))}
           onSelect={(v: string) =>
-            dispatch(setField("unplannedReadmission", v as UnplannedReadmissionReason))
+            dispatch(
+              setField("unplannedReadmission", v as UnplannedReadmissionReason),
+            )
           }
         />
       ) : null}

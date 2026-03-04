@@ -1,5 +1,19 @@
-import React, { useEffect, useRef, useCallback, useMemo, useState } from "react";
-import { View, Pressable, StyleSheet, ActionSheetIOS, Platform, Alert, LayoutChangeEvent } from "react-native";
+import React, {
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
+import {
+  View,
+  Pressable,
+  StyleSheet,
+  ActionSheetIOS,
+  Platform,
+  Alert,
+  LayoutChangeEvent,
+} from "react-native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,7 +32,12 @@ import { OperativeMediaSection } from "@/components/OperativeMediaSection";
 import { InfectionOverlayForm } from "@/components/InfectionOverlayForm";
 import { useAuth } from "@/contexts/AuthContext";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
-import { useCaseForm, setField, validateRequiredFields, validateField } from "@/hooks/useCaseForm";
+import {
+  useCaseForm,
+  setField,
+  validateRequiredFields,
+  validateField,
+} from "@/hooks/useCaseForm";
 import type { ValidationError } from "@/hooks/useCaseForm";
 import { useCaseDraft } from "@/hooks/useCaseDraft";
 import { CaseFormProvider } from "@/contexts/CaseFormContext";
@@ -28,7 +47,11 @@ import { AdmissionSection } from "@/components/case-form/AdmissionSection";
 import { PatientFactorsSection } from "@/components/case-form/PatientFactorsSection";
 import { OperativeFactorsSection } from "@/components/case-form/OperativeFactorsSection";
 import { OutcomesSection } from "@/components/case-form/OutcomesSection";
-import { SectionNavBar, NAV_BAR_HEIGHT, FORM_SECTIONS } from "@/components/case-form/SectionNavBar";
+import {
+  SectionNavBar,
+  NAV_BAR_HEIGHT,
+  FORM_SECTIONS,
+} from "@/components/case-form/SectionNavBar";
 import type { CompletionMap } from "@/components/case-form/SectionNavBar";
 import { CaseSummaryView } from "@/components/case-form/CaseSummaryView";
 import { useFavouritesRecents } from "@/hooks/useFavouritesRecents";
@@ -36,7 +59,12 @@ import { useFavouritesRecents } from "@/hooks/useFavouritesRecents";
 type RouteParams = RouteProp<RootStackParamList, "CaseForm">;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-const REQUIRED_FIELDS = ["patientIdentifier", "procedureDate", "facility", "diagnosisGroups"];
+const REQUIRED_FIELDS = [
+  "patientIdentifier",
+  "procedureDate",
+  "facility",
+  "diagnosisGroups",
+];
 
 // ── SectionWrapper ────────────────────────────────────────────────────────
 
@@ -76,14 +104,17 @@ export default function CaseFormScreen() {
 
   const [activeSection, setActiveSection] = useState("patient");
   const [reviewMode, setReviewMode] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
+    [],
+  );
 
   // ── Inline validation state ─────────────────────────────────────────────
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const touchedFieldsRef = useRef<Set<string>>(new Set());
 
   const { specialty: routeSpecialty, caseId, duplicateFrom } = route.params;
-  const [showDuplicateBanner, setShowDuplicateBanner] = useState(!!duplicateFrom);
+  const [showDuplicateBanner, setShowDuplicateBanner] =
+    useState(!!duplicateFrom);
   const primaryFacility =
     facilities.find((f) => f.isPrimary)?.facilityName ||
     facilities[0]?.facilityName ||
@@ -152,17 +183,24 @@ export default function CaseFormScreen() {
     const s = form.state;
     return {
       patient: {
-        filled: [s.patientIdentifier.trim(), s.procedureDate, s.facility.trim()].filter(Boolean).length,
+        filled: [
+          s.patientIdentifier.trim(),
+          s.procedureDate,
+          s.facility.trim(),
+        ].filter(Boolean).length,
         total: 3,
       },
       diagnosis: {
         filled: s.diagnosisGroups.filter(
-          (g) => g.diagnosis && g.procedures.some((p) => p.procedureName.trim()),
+          (g) =>
+            g.diagnosis && g.procedures.some((p) => p.procedureName.trim()),
         ).length,
         total: s.diagnosisGroups.length,
       },
       admission: {
-        filled: [s.admissionUrgency, s.stayType, s.admissionDate].filter(Boolean).length,
+        filled: [s.admissionUrgency, s.stayType, s.admissionDate].filter(
+          Boolean,
+        ).length,
         total: 3,
       },
       media: {
@@ -174,7 +212,11 @@ export default function CaseFormScreen() {
         total: 2,
       },
       operative: {
-        filled: [s.anaestheticType, s.woundInfectionRisk, s.surgeryStartTime].filter(Boolean).length,
+        filled: [
+          s.anaestheticType,
+          s.woundInfectionRisk,
+          s.surgeryStartTime,
+        ].filter(Boolean).length,
         total: 3,
       },
       infection: {
@@ -264,10 +306,14 @@ export default function CaseFormScreen() {
         },
       );
     } else {
-      Alert.alert(actionLabel, `Are you sure you want to ${actionLabel.toLowerCase()}?`, [
-        { text: "Cancel", style: "cancel" },
-        { text: actionLabel, style: "destructive", onPress: execute },
-      ]);
+      Alert.alert(
+        actionLabel,
+        `Are you sure you want to ${actionLabel.toLowerCase()}?`,
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: actionLabel, style: "destructive", onPress: execute },
+        ],
+      );
     }
   }, [form.isEditMode]);
 
@@ -296,7 +342,10 @@ export default function CaseFormScreen() {
       if (firstErrorSection) {
         const y = sectionLayoutsRef.current[firstErrorSection];
         if (y !== undefined && scrollViewRef.current) {
-          scrollViewRef.current.scrollTo({ y: Math.max(0, y - 20), animated: true });
+          scrollViewRef.current.scrollTo({
+            y: Math.max(0, y - 20),
+            animated: true,
+          });
         }
       }
       return;
@@ -312,7 +361,10 @@ export default function CaseFormScreen() {
       requestAnimationFrame(() => {
         const y = sectionLayoutsRef.current[sectionId];
         if (y !== undefined && scrollViewRef.current) {
-          scrollViewRef.current.scrollTo({ y: Math.max(0, y - 20), animated: true });
+          scrollViewRef.current.scrollTo({
+            y: Math.max(0, y - 20),
+            animated: true,
+          });
         }
       });
     });
@@ -333,38 +385,68 @@ export default function CaseFormScreen() {
           : `${SPECIALTY_LABELS[form.specialty]} Case`,
       headerRight: () => (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <Pressable onPress={showOverflowMenu} hitSlop={8} style={{ padding: 6 }}>
-            <Feather name="more-horizontal" size={22} color={theme.textSecondary} />
+          <Pressable
+            onPress={showOverflowMenu}
+            hitSlop={8}
+            style={{ padding: 6 }}
+          >
+            <Feather
+              name="more-horizontal"
+              size={22}
+              color={theme.textSecondary}
+            />
           </Pressable>
           <Pressable
-            onPress={() => handleSaveRef.current(formOpenedAtRef.current).then((success) => {
-              if (success) {
-                for (const group of form.state.diagnosisGroups) {
-                  if (group.diagnosisPicklistId) {
-                    recordUsageRef.current("diagnosis", group.diagnosisPicklistId);
-                  }
-                  for (const proc of group.procedures) {
-                    if (proc.picklistEntryId) {
-                      recordUsageRef.current("procedure", proc.picklistEntryId);
+            onPress={() =>
+              handleSaveRef.current(formOpenedAtRef.current).then((success) => {
+                if (success) {
+                  for (const group of form.state.diagnosisGroups) {
+                    if (group.diagnosisPicklistId) {
+                      recordUsageRef.current(
+                        "diagnosis",
+                        group.diagnosisPicklistId,
+                      );
+                    }
+                    for (const proc of group.procedures) {
+                      if (proc.picklistEntryId) {
+                        recordUsageRef.current(
+                          "procedure",
+                          proc.picklistEntryId,
+                        );
+                      }
                     }
                   }
+                  if (!form.isEditMode) clearDraftRef.current();
+                  navigation.goBack();
                 }
-                if (!form.isEditMode) clearDraftRef.current();
-                navigation.goBack();
-              }
-            })}
+              })
+            }
             disabled={form.state.saving}
             hitSlop={8}
             style={{ padding: 6 }}
           >
-            <ThemedText style={{ color: form.state.saving ? theme.textTertiary : theme.link, fontWeight: "600" }}>
+            <ThemedText
+              style={{
+                color: form.state.saving ? theme.textTertiary : theme.link,
+                fontWeight: "600",
+              }}
+            >
               {form.state.saving ? "Saving..." : "Save"}
             </ThemedText>
           </Pressable>
         </View>
       ),
     });
-  }, [form.state.saving, form.isEditMode, form.specialty, theme.link, theme.textSecondary, navigation, showOverflowMenu, reviewMode]);
+  }, [
+    form.state.saving,
+    form.isEditMode,
+    form.specialty,
+    theme.link,
+    theme.textSecondary,
+    navigation,
+    showOverflowMenu,
+    reviewMode,
+  ]);
 
   // ── Section nav press ─────────────────────────────────────────────────
 
@@ -372,7 +454,10 @@ export default function CaseFormScreen() {
     setActiveSection(sectionId);
     const y = sectionLayoutsRef.current[sectionId];
     if (y !== undefined && scrollViewRef.current) {
-      scrollViewRef.current.scrollTo({ y: Math.max(0, y - NAV_BAR_HEIGHT - 10), animated: true });
+      scrollViewRef.current.scrollTo({
+        y: Math.max(0, y - NAV_BAR_HEIGHT - 10),
+        animated: true,
+      });
     }
   }, []);
 
@@ -397,7 +482,11 @@ export default function CaseFormScreen() {
   // ── Render ────────────────────────────────────────────────────────────
 
   return (
-    <CaseFormProvider form={form} fieldErrors={fieldErrors} onFieldBlur={onFieldBlur}>
+    <CaseFormProvider
+      form={form}
+      fieldErrors={fieldErrors}
+      onFieldBlur={onFieldBlur}
+    >
       {!reviewMode ? (
         <View
           style={[
@@ -422,7 +511,9 @@ export default function CaseFormScreen() {
         contentContainerStyle={[
           styles.content,
           {
-            paddingTop: headerHeight + (reviewMode ? Spacing.lg : NAV_BAR_HEIGHT + Spacing.lg),
+            paddingTop:
+              headerHeight +
+              (reviewMode ? Spacing.lg : NAV_BAR_HEIGHT + Spacing.lg),
             paddingBottom: insets.bottom + Spacing["3xl"],
           },
         ]}
@@ -439,11 +530,27 @@ export default function CaseFormScreen() {
         ) : (
           <>
             {showDuplicateBanner ? (
-              <View style={[styles.duplicateBanner, { backgroundColor: theme.info + "10", borderColor: theme.info + "40" }]}>
+              <View
+                style={[
+                  styles.duplicateBanner,
+                  {
+                    backgroundColor: theme.info + "10",
+                    borderColor: theme.info + "40",
+                  },
+                ]}
+              >
                 <View style={styles.duplicateBannerContent}>
                   <Feather name="copy" size={16} color={theme.info} />
-                  <ThemedText style={[styles.duplicateBannerText, { color: theme.info }]}>
-                    Duplicated from case {duplicateFrom?.procedureDate ? new Date(duplicateFrom.procedureDate).toLocaleDateString() : ""}. Verify all fields.
+                  <ThemedText
+                    style={[styles.duplicateBannerText, { color: theme.info }]}
+                  >
+                    Duplicated from case{" "}
+                    {duplicateFrom?.procedureDate
+                      ? new Date(
+                          duplicateFrom.procedureDate,
+                        ).toLocaleDateString()
+                      : ""}
+                    . Verify all fields.
                   </ThemedText>
                 </View>
                 <Pressable
@@ -460,19 +567,28 @@ export default function CaseFormScreen() {
               <PatientInfoSection />
             </SectionWrapper>
 
-            <SectionWrapper sectionId="diagnosis" onLayout={handleSectionLayout}>
+            <SectionWrapper
+              sectionId="diagnosis"
+              onLayout={handleSectionLayout}
+            >
               <DiagnosisProcedureSection
                 scrollViewRef={scrollViewRef}
                 scrollPositionRef={scrollPositionRef}
               />
             </SectionWrapper>
 
-            <SectionWrapper sectionId="admission" onLayout={handleSectionLayout}>
+            <SectionWrapper
+              sectionId="admission"
+              onLayout={handleSectionLayout}
+            >
               <AdmissionSection />
             </SectionWrapper>
 
             <SectionWrapper sectionId="media" onLayout={handleSectionLayout}>
-              <SectionHeader title="Operative Media" subtitle="Photos, X-rays, and imaging" />
+              <SectionHeader
+                title="Operative Media"
+                subtitle="Photos, X-rays, and imaging"
+              />
               <OperativeMediaSection
                 media={form.state.operativeMedia}
                 onMediaChange={(media) =>
@@ -486,11 +602,17 @@ export default function CaseFormScreen() {
               <PatientFactorsSection />
             </SectionWrapper>
 
-            <SectionWrapper sectionId="operative" onLayout={handleSectionLayout}>
+            <SectionWrapper
+              sectionId="operative"
+              onLayout={handleSectionLayout}
+            >
               <OperativeFactorsSection />
             </SectionWrapper>
 
-            <SectionWrapper sectionId="infection" onLayout={handleSectionLayout}>
+            <SectionWrapper
+              sectionId="infection"
+              onLayout={handleSectionLayout}
+            >
               <SectionHeader
                 title="Infection Documentation"
                 subtitle="Add if this case involves infection"
@@ -501,7 +623,10 @@ export default function CaseFormScreen() {
                 collapsed={form.state.infectionCollapsed}
                 onToggleCollapse={() =>
                   form.dispatch(
-                    setField("infectionCollapsed", !form.state.infectionCollapsed),
+                    setField(
+                      "infectionCollapsed",
+                      !form.state.infectionCollapsed,
+                    ),
                   )
                 }
               />
@@ -518,9 +643,20 @@ export default function CaseFormScreen() {
             </View>
 
             {validationErrors.length > 0 ? (
-              <View style={[styles.validationErrors, { backgroundColor: theme.error + "10", borderColor: theme.error + "40" }]}>
+              <View
+                style={[
+                  styles.validationErrors,
+                  {
+                    backgroundColor: theme.error + "10",
+                    borderColor: theme.error + "40",
+                  },
+                ]}
+              >
                 {validationErrors.map((err, i) => (
-                  <ThemedText key={i} style={[styles.validationErrorText, { color: theme.error }]}>
+                  <ThemedText
+                    key={i}
+                    style={[styles.validationErrorText, { color: theme.error }]}
+                  >
                     {err.message}
                   </ThemedText>
                 ))}

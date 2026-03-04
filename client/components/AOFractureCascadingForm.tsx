@@ -11,7 +11,7 @@ import {
   FINGER_NAMES,
   PHALANX_NAMES,
   SEGMENT_NAMES,
-  getFractureTypeLabel
+  getFractureTypeLabel,
 } from "@/data/aoHandClassification";
 
 type BoneCategory = "carpal" | "metacarpal" | "phalanx" | "crush" | null;
@@ -72,16 +72,21 @@ interface AOFractureCascadingFormProps {
   onCancel: () => void;
 }
 
-export function AOFractureCascadingForm({ onComplete, onCancel }: AOFractureCascadingFormProps) {
+export function AOFractureCascadingForm({
+  onComplete,
+  onCancel,
+}: AOFractureCascadingFormProps) {
   const { theme } = useTheme();
-  
+
   const [boneCategory, setBoneCategory] = useState<BoneCategory>(null);
   const [selectedCarpal, setSelectedCarpal] = useState<BoneOption | null>(null);
   const [selectedFinger, setSelectedFinger] = useState<string>("");
   const [selectedPhalanx, setSelectedPhalanx] = useState<string>("");
   const [selectedSegment, setSelectedSegment] = useState<string>("");
   const [selectedType, setSelectedType] = useState<string>("");
-  const [selectedQualifications, setSelectedQualifications] = useState<string[]>([]);
+  const [selectedQualifications, setSelectedQualifications] = useState<
+    string[]
+  >([]);
 
   const resetFrom = (field: string) => {
     if (field === "category") {
@@ -118,15 +123,18 @@ export function AOFractureCascadingForm({ onComplete, onCancel }: AOFractureCasc
   };
 
   const showCarpalSelector = boneCategory === "carpal";
-  const showFingerSelector = boneCategory === "metacarpal" || boneCategory === "phalanx";
-  const showPhalanxSelector = boneCategory === "phalanx" && selectedFinger !== "";
-  const showSegmentSelector = (boneCategory === "metacarpal" && selectedFinger !== "") ||
+  const showFingerSelector =
+    boneCategory === "metacarpal" || boneCategory === "phalanx";
+  const showPhalanxSelector =
+    boneCategory === "phalanx" && selectedFinger !== "";
+  const showSegmentSelector =
+    (boneCategory === "metacarpal" && selectedFinger !== "") ||
     (boneCategory === "phalanx" && selectedPhalanx !== "");
-  const showTypeSelector = 
-    (selectedCarpal !== null) ||
-    (showSegmentSelector && selectedSegment !== "");
-  
-  const needsQualifications = selectedCarpal?.familyCode === "72" && 
+  const showTypeSelector =
+    selectedCarpal !== null || (showSegmentSelector && selectedSegment !== "");
+
+  const needsQualifications =
+    selectedCarpal?.familyCode === "72" &&
     (selectedType === "B" || selectedType === "C");
 
   const currentAOCode = useMemo(() => {
@@ -138,7 +146,10 @@ export function AOFractureCascadingForm({ onComplete, onCancel }: AOFractureCasc
         familyCode: selectedCarpal.familyCode,
         type: selectedType,
         subBoneId: selectedCarpal.subBoneId,
-        qualifications: selectedQualifications.length > 0 ? selectedQualifications : undefined
+        qualifications:
+          selectedQualifications.length > 0
+            ? selectedQualifications
+            : undefined,
       });
     }
 
@@ -147,28 +158,46 @@ export function AOFractureCascadingForm({ onComplete, onCancel }: AOFractureCasc
         familyCode: "77",
         finger: selectedFinger,
         segment: selectedSegment,
-        type: selectedType
+        type: selectedType,
       });
     }
 
-    if (boneCategory === "phalanx" && selectedFinger && selectedPhalanx && selectedSegment) {
+    if (
+      boneCategory === "phalanx" &&
+      selectedFinger &&
+      selectedPhalanx &&
+      selectedSegment
+    ) {
       return generateAOCode({
         familyCode: "78",
         finger: selectedFinger,
         phalanx: selectedPhalanx,
         segment: selectedSegment,
-        type: selectedType
+        type: selectedType,
       });
     }
 
     return "";
-  }, [boneCategory, selectedCarpal, selectedFinger, selectedPhalanx, selectedSegment, selectedType, selectedQualifications]);
+  }, [
+    boneCategory,
+    selectedCarpal,
+    selectedFinger,
+    selectedPhalanx,
+    selectedSegment,
+    selectedType,
+    selectedQualifications,
+  ]);
 
-  const isComplete = boneCategory === "crush" || 
-    (currentAOCode !== "" && validateAOCode(currentAOCode).valid && 
-     (!needsQualifications || selectedQualifications.length > 0 || !["B", "C"].includes(selectedType)));
+  const isComplete =
+    boneCategory === "crush" ||
+    (currentAOCode !== "" &&
+      validateAOCode(currentAOCode).valid &&
+      (!needsQualifications ||
+        selectedQualifications.length > 0 ||
+        !["B", "C"].includes(selectedType)));
 
-  const canSubmit = boneCategory === "crush" || 
+  const canSubmit =
+    boneCategory === "crush" ||
     (currentAOCode !== "" && validateAOCode(currentAOCode).valid);
 
   const _ = isComplete;
@@ -189,60 +218,87 @@ export function AOFractureCascadingForm({ onComplete, onCancel }: AOFractureCasc
     if (!canSubmit) return;
 
     const boneName = getBoneName();
-    const boneId = boneCategory === "crush" ? "crush" : 
-      boneCategory === "carpal" ? selectedCarpal?.id || "" :
-      boneCategory === "metacarpal" ? `mc${selectedFinger}` :
-      `${selectedPhalanx === "1" ? "pp" : selectedPhalanx === "2" ? "mp" : "dp"}${selectedFinger}`;
+    const boneId =
+      boneCategory === "crush"
+        ? "crush"
+        : boneCategory === "carpal"
+          ? selectedCarpal?.id || ""
+          : boneCategory === "metacarpal"
+            ? `mc${selectedFinger}`
+            : `${selectedPhalanx === "1" ? "pp" : selectedPhalanx === "2" ? "mp" : "dp"}${selectedFinger}`;
 
     onComplete({
       boneId,
       boneName,
       aoCode: currentAOCode || "79",
       details: {
-        familyCode: boneCategory === "crush" ? "79" :
-          boneCategory === "carpal" ? selectedCarpal?.familyCode || "" :
-          boneCategory === "metacarpal" ? "77" : "78",
+        familyCode:
+          boneCategory === "crush"
+            ? "79"
+            : boneCategory === "carpal"
+              ? selectedCarpal?.familyCode || ""
+              : boneCategory === "metacarpal"
+                ? "77"
+                : "78",
         type: selectedType || undefined,
         subBoneId: selectedCarpal?.subBoneId,
         finger: selectedFinger || undefined,
         phalanx: selectedPhalanx || undefined,
         segment: selectedSegment || undefined,
-        qualifications: selectedQualifications.length > 0 ? selectedQualifications : undefined
-      }
+        qualifications:
+          selectedQualifications.length > 0
+            ? selectedQualifications
+            : undefined,
+      },
     });
   };
 
   const getTypeOptions = () => {
     if (boneCategory === "carpal" && selectedCarpal) {
-      const boneConfig = AO_HAND_CLASSIFICATION.bones.find(b => b.familyCode === selectedCarpal.familyCode);
+      const boneConfig = AO_HAND_CLASSIFICATION.bones.find(
+        (b) => b.familyCode === selectedCarpal.familyCode,
+      );
       if (!boneConfig) return [];
-      
+
       if (boneConfig.kind === "carpal_single") {
         return Object.entries(boneConfig.types).map(([key, val]) => ({
           key,
-          label: val.label
+          label: val.label,
         }));
       }
-      
-      if (boneConfig.kind === "carpal_other_with_subbone" && selectedCarpal.subBoneId) {
+
+      if (
+        boneConfig.kind === "carpal_other_with_subbone" &&
+        selectedCarpal.subBoneId
+      ) {
         const subBone = boneConfig.subBones[selectedCarpal.subBoneId];
         if (subBone) {
           return Object.entries(subBone.typeLabels).map(([key, label]) => ({
             key,
-            label: label as string
+            label: label as string,
           }));
         }
       }
     }
 
-    if ((boneCategory === "metacarpal" || boneCategory === "phalanx") && selectedSegment) {
+    if (
+      (boneCategory === "metacarpal" || boneCategory === "phalanx") &&
+      selectedSegment
+    ) {
       const familyCode = boneCategory === "metacarpal" ? "77" : "78";
-      const boneConfig = AO_HAND_CLASSIFICATION.bones.find(b => b.familyCode === familyCode);
-      if (boneConfig && (boneConfig.kind === "metacarpal_long_bone" || boneConfig.kind === "phalanx_long_bone")) {
+      const boneConfig = AO_HAND_CLASSIFICATION.bones.find(
+        (b) => b.familyCode === familyCode,
+      );
+      if (
+        boneConfig &&
+        (boneConfig.kind === "metacarpal_long_bone" ||
+          boneConfig.kind === "phalanx_long_bone")
+      ) {
         const typeRules = boneConfig.typeRulesBySegment[selectedSegment];
+        if (!typeRules) return [];
         return Object.entries(typeRules).map(([key, label]) => ({
           key,
-          label: label as string
+          label: label as string,
         }));
       }
     }
@@ -253,7 +309,7 @@ export function AOFractureCascadingForm({ onComplete, onCancel }: AOFractureCasc
   const renderFieldRow = (
     label: string,
     value: string,
-    onClear?: () => void
+    onClear?: () => void,
   ) => (
     <View style={[styles.fieldRow, { borderBottomColor: theme.border }]}>
       <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
@@ -276,26 +332,29 @@ export function AOFractureCascadingForm({ onComplete, onCancel }: AOFractureCasc
     options: { key: NonNullable<T>; label: string }[],
     selected: T,
     onSelect: (key: NonNullable<T>) => void,
-    columns: number = 2
+    columns: number = 2,
   ) => (
     <View style={[styles.optionsGrid, { gap: Spacing.sm }]}>
-      {options.map(opt => (
+      {options.map((opt) => (
         <Pressable
           key={opt.key}
           style={[
             styles.optionButton,
-            { 
+            {
               width: columns === 2 ? "48%" : columns === 3 ? "31%" : "100%",
-              backgroundColor: selected === opt.key ? theme.link : theme.backgroundTertiary,
-              borderColor: selected === opt.key ? theme.link : theme.border
-            }
+              backgroundColor:
+                selected === opt.key ? theme.link : theme.backgroundTertiary,
+              borderColor: selected === opt.key ? theme.link : theme.border,
+            },
           ]}
           onPress={() => onSelect(opt.key)}
         >
-          <ThemedText style={[
-            styles.optionText,
-            { color: selected === opt.key ? "#FFF" : theme.text }
-          ]}>
+          <ThemedText
+            style={[
+              styles.optionText,
+              { color: selected === opt.key ? "#FFF" : theme.text },
+            ]}
+          >
             {opt.label}
           </ThemedText>
         </Pressable>
@@ -304,12 +363,17 @@ export function AOFractureCascadingForm({ onComplete, onCancel }: AOFractureCasc
   );
 
   return (
-    <ScrollView 
+    <ScrollView
       style={[styles.container, { backgroundColor: theme.backgroundDefault }]}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <View style={[styles.codePreview, { backgroundColor: theme.backgroundSecondary }]}>
+      <View
+        style={[
+          styles.codePreview,
+          { backgroundColor: theme.backgroundSecondary },
+        ]}
+      >
         <ThemedText style={[styles.codeLabel, { color: theme.textSecondary }]}>
           AO Code
         </ThemedText>
@@ -317,11 +381,18 @@ export function AOFractureCascadingForm({ onComplete, onCancel }: AOFractureCasc
           {currentAOCode || "—"}
         </ThemedText>
         {currentAOCode && validateAOCode(currentAOCode).valid ? (
-          <Feather name="check-circle" size={18} color={theme.success} style={styles.codeCheck} />
+          <Feather
+            name="check-circle"
+            size={18}
+            color={theme.success}
+            style={styles.codeCheck}
+          />
         ) : null}
       </View>
 
-      <View style={[styles.section, { backgroundColor: theme.backgroundSecondary }]}>
+      <View
+        style={[styles.section, { backgroundColor: theme.backgroundSecondary }]}
+      >
         <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
           Bone Category
         </ThemedText>
@@ -331,23 +402,29 @@ export function AOFractureCascadingForm({ onComplete, onCancel }: AOFractureCasc
             { key: "metacarpal", label: "Metacarpal (77)" },
             { key: "phalanx", label: "Phalanx (78)" },
             { key: "crush", label: "Crush/Multiple (79)" },
-          ].map(opt => (
+          ].map((opt) => (
             <Pressable
               key={opt.key}
               style={[
                 styles.optionButton,
-                { 
+                {
                   width: "48%",
-                  backgroundColor: boneCategory === opt.key ? theme.link : theme.backgroundTertiary,
-                  borderColor: boneCategory === opt.key ? theme.link : theme.border
-                }
+                  backgroundColor:
+                    boneCategory === opt.key
+                      ? theme.link
+                      : theme.backgroundTertiary,
+                  borderColor:
+                    boneCategory === opt.key ? theme.link : theme.border,
+                },
               ]}
               onPress={() => handleCategorySelect(opt.key as BoneCategory)}
             >
-              <ThemedText style={[
-                styles.optionText,
-                { color: boneCategory === opt.key ? "#FFF" : theme.text }
-              ]}>
+              <ThemedText
+                style={[
+                  styles.optionText,
+                  { color: boneCategory === opt.key ? "#FFF" : theme.text },
+                ]}
+              >
                 {opt.label}
               </ThemedText>
             </Pressable>
@@ -356,25 +433,35 @@ export function AOFractureCascadingForm({ onComplete, onCancel }: AOFractureCasc
       </View>
 
       {showCarpalSelector ? (
-        <View style={[styles.section, { backgroundColor: theme.backgroundSecondary }]}>
+        <View
+          style={[
+            styles.section,
+            { backgroundColor: theme.backgroundSecondary },
+          ]}
+        >
           <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
             Select Carpal Bone
           </ThemedText>
           {renderOptions(
-            CARPAL_BONES.map(b => ({ key: b.id, label: b.name })),
+            CARPAL_BONES.map((b) => ({ key: b.id, label: b.name })),
             selectedCarpal?.id ?? "",
             (id) => {
-              const bone = CARPAL_BONES.find(b => b.id === id);
+              const bone = CARPAL_BONES.find((b) => b.id === id);
               setSelectedCarpal(bone || null);
               resetFrom("bone");
             },
-            2
+            2,
           )}
         </View>
       ) : null}
 
       {showFingerSelector ? (
-        <View style={[styles.section, { backgroundColor: theme.backgroundSecondary }]}>
+        <View
+          style={[
+            styles.section,
+            { backgroundColor: theme.backgroundSecondary },
+          ]}
+        >
           <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
             Select Finger
           </ThemedText>
@@ -385,35 +472,47 @@ export function AOFractureCascadingForm({ onComplete, onCancel }: AOFractureCasc
               setSelectedFinger(finger);
               resetFrom("finger");
             },
-            3
+            3,
           )}
         </View>
       ) : null}
 
       {showPhalanxSelector ? (
-        <View style={[styles.section, { backgroundColor: theme.backgroundSecondary }]}>
+        <View
+          style={[
+            styles.section,
+            { backgroundColor: theme.backgroundSecondary },
+          ]}
+        >
           <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
             Select Phalanx
           </ThemedText>
-          <ThemedText style={[styles.sectionHint, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.sectionHint, { color: theme.textSecondary }]}
+          >
             {selectedFinger === "1" ? "Thumb has no middle phalanx" : ""}
           </ThemedText>
           {renderOptions(
-            selectedFinger === "1" 
-              ? PHALANX_OPTIONS.filter(p => p.key !== "2")
+            selectedFinger === "1"
+              ? PHALANX_OPTIONS.filter((p) => p.key !== "2")
               : PHALANX_OPTIONS,
             selectedPhalanx,
             (phalanx) => {
               setSelectedPhalanx(phalanx);
               resetFrom("phalanx");
             },
-            3
+            3,
           )}
         </View>
       ) : null}
 
       {showSegmentSelector ? (
-        <View style={[styles.section, { backgroundColor: theme.backgroundSecondary }]}>
+        <View
+          style={[
+            styles.section,
+            { backgroundColor: theme.backgroundSecondary },
+          ]}
+        >
           <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
             Fracture Location
           </ThemedText>
@@ -424,13 +523,18 @@ export function AOFractureCascadingForm({ onComplete, onCancel }: AOFractureCasc
               setSelectedSegment(segment);
               resetFrom("segment");
             },
-            1
+            1,
           )}
         </View>
       ) : null}
 
       {showTypeSelector ? (
-        <View style={[styles.section, { backgroundColor: theme.backgroundSecondary }]}>
+        <View
+          style={[
+            styles.section,
+            { backgroundColor: theme.backgroundSecondary },
+          ]}
+        >
           <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
             Fracture Type
           </ThemedText>
@@ -441,17 +545,24 @@ export function AOFractureCascadingForm({ onComplete, onCancel }: AOFractureCasc
               setSelectedType(type);
               resetFrom("type");
             },
-            1
+            1,
           )}
         </View>
       ) : null}
 
       {needsQualifications ? (
-        <View style={[styles.section, { backgroundColor: theme.backgroundSecondary }]}>
+        <View
+          style={[
+            styles.section,
+            { backgroundColor: theme.backgroundSecondary },
+          ]}
+        >
           <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
             Scaphoid Location
           </ThemedText>
-          <ThemedText style={[styles.sectionHint, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.sectionHint, { color: theme.textSecondary }]}
+          >
             Optional - select one or more
           </ThemedText>
           <View style={[styles.optionsGrid, { gap: Spacing.sm }]}>
@@ -459,37 +570,53 @@ export function AOFractureCascadingForm({ onComplete, onCancel }: AOFractureCasc
               { key: "a", label: "Proximal pole" },
               { key: "b", label: "Waist" },
               { key: "c", label: "Distal pole" },
-            ].map(opt => (
+            ].map((opt) => (
               <Pressable
                 key={opt.key}
                 style={[
                   styles.optionButton,
                   styles.checkOption,
-                  { 
-                    backgroundColor: selectedQualifications.includes(opt.key) ? theme.link : theme.backgroundTertiary,
-                    borderColor: selectedQualifications.includes(opt.key) ? theme.link : theme.border
-                  }
+                  {
+                    backgroundColor: selectedQualifications.includes(opt.key)
+                      ? theme.link
+                      : theme.backgroundTertiary,
+                    borderColor: selectedQualifications.includes(opt.key)
+                      ? theme.link
+                      : theme.border,
+                  },
                 ]}
                 onPress={() => {
-                  setSelectedQualifications(prev => 
-                    prev.includes(opt.key) 
-                      ? prev.filter(q => q !== opt.key)
-                      : [...prev, opt.key]
+                  setSelectedQualifications((prev) =>
+                    prev.includes(opt.key)
+                      ? prev.filter((q) => q !== opt.key)
+                      : [...prev, opt.key],
                   );
                 }}
               >
-                <View style={[
-                  styles.checkbox,
-                  { borderColor: selectedQualifications.includes(opt.key) ? "#FFF" : theme.border }
-                ]}>
+                <View
+                  style={[
+                    styles.checkbox,
+                    {
+                      borderColor: selectedQualifications.includes(opt.key)
+                        ? "#FFF"
+                        : theme.border,
+                    },
+                  ]}
+                >
                   {selectedQualifications.includes(opt.key) ? (
                     <Feather name="check" size={12} color="#FFF" />
                   ) : null}
                 </View>
-                <ThemedText style={[
-                  styles.optionText,
-                  { color: selectedQualifications.includes(opt.key) ? "#FFF" : theme.text }
-                ]}>
+                <ThemedText
+                  style={[
+                    styles.optionText,
+                    {
+                      color: selectedQualifications.includes(opt.key)
+                        ? "#FFF"
+                        : theme.text,
+                    },
+                  ]}
+                >
                   ({opt.key}) {opt.label}
                 </ThemedText>
               </Pressable>
@@ -499,13 +626,20 @@ export function AOFractureCascadingForm({ onComplete, onCancel }: AOFractureCasc
       ) : null}
 
       {boneCategory === "crush" || canSubmit ? (
-        <View style={[styles.summarySection, { backgroundColor: theme.backgroundElevated }]}>
+        <View
+          style={[
+            styles.summarySection,
+            { backgroundColor: theme.backgroundElevated },
+          ]}
+        >
           <ThemedText style={[styles.summaryTitle, { color: theme.text }]}>
             Summary
           </ThemedText>
           <View style={styles.summaryContent}>
             <View style={styles.summaryRow}>
-              <ThemedText style={[styles.summaryLabel, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[styles.summaryLabel, { color: theme.textSecondary }]}
+              >
                 Bone:
               </ThemedText>
               <ThemedText style={[styles.summaryValue, { color: theme.text }]}>
@@ -514,39 +648,60 @@ export function AOFractureCascadingForm({ onComplete, onCancel }: AOFractureCasc
             </View>
             {selectedSegment ? (
               <View style={styles.summaryRow}>
-                <ThemedText style={[styles.summaryLabel, { color: theme.textSecondary }]}>
+                <ThemedText
+                  style={[styles.summaryLabel, { color: theme.textSecondary }]}
+                >
                   Location:
                 </ThemedText>
-                <ThemedText style={[styles.summaryValue, { color: theme.text }]}>
+                <ThemedText
+                  style={[styles.summaryValue, { color: theme.text }]}
+                >
                   {SEGMENT_NAMES[selectedSegment]}
                 </ThemedText>
               </View>
             ) : null}
             {selectedType ? (
               <View style={styles.summaryRow}>
-                <ThemedText style={[styles.summaryLabel, { color: theme.textSecondary }]}>
+                <ThemedText
+                  style={[styles.summaryLabel, { color: theme.textSecondary }]}
+                >
                   Type:
                 </ThemedText>
-                <ThemedText style={[styles.summaryValue, { color: theme.text }]}>
-                  {selectedSegment 
+                <ThemedText
+                  style={[styles.summaryValue, { color: theme.text }]}
+                >
+                  {selectedSegment
                     ? getFractureTypeLabel(selectedSegment, selectedType)
-                    : getTypeOptions().find(t => t.key === selectedType)?.label || `Type ${selectedType}`}
+                    : getTypeOptions().find((t) => t.key === selectedType)
+                        ?.label || `Type ${selectedType}`}
                 </ThemedText>
               </View>
             ) : null}
             {selectedQualifications.length > 0 ? (
               <View style={styles.summaryRow}>
-                <ThemedText style={[styles.summaryLabel, { color: theme.textSecondary }]}>
+                <ThemedText
+                  style={[styles.summaryLabel, { color: theme.textSecondary }]}
+                >
                   Qualification:
                 </ThemedText>
-                <ThemedText style={[styles.summaryValue, { color: theme.text }]}>
-                  {selectedQualifications.map(q => 
-                    q === "a" ? "Proximal pole" : q === "b" ? "Waist" : "Distal pole"
-                  ).join(", ")}
+                <ThemedText
+                  style={[styles.summaryValue, { color: theme.text }]}
+                >
+                  {selectedQualifications
+                    .map((q) =>
+                      q === "a"
+                        ? "Proximal pole"
+                        : q === "b"
+                          ? "Waist"
+                          : "Distal pole",
+                    )
+                    .join(", ")}
                 </ThemedText>
               </View>
             ) : null}
-            <View style={[styles.aoCodeDisplay, { backgroundColor: theme.link }]}>
+            <View
+              style={[styles.aoCodeDisplay, { backgroundColor: theme.link }]}
+            >
               <ThemedText style={styles.aoCodeDisplayText}>
                 {currentAOCode || "79"}
               </ThemedText>
@@ -556,30 +711,40 @@ export function AOFractureCascadingForm({ onComplete, onCancel }: AOFractureCasc
       ) : null}
 
       <View style={styles.actions}>
-        <Pressable 
+        <Pressable
           style={[styles.cancelButton, { borderColor: theme.border }]}
           onPress={onCancel}
         >
-          <ThemedText style={[styles.cancelButtonText, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.cancelButtonText, { color: theme.textSecondary }]}
+          >
             Cancel
           </ThemedText>
         </Pressable>
-        <Pressable 
+        <Pressable
           style={[
-            styles.submitButton, 
-            { 
-              backgroundColor: canSubmit ? theme.link : theme.backgroundTertiary,
-              opacity: canSubmit ? 1 : 0.5
-            }
+            styles.submitButton,
+            {
+              backgroundColor: canSubmit
+                ? theme.link
+                : theme.backgroundTertiary,
+              opacity: canSubmit ? 1 : 0.5,
+            },
           ]}
           onPress={handleSubmit}
           disabled={!canSubmit}
         >
-          <Feather name="plus" size={18} color={canSubmit ? "#FFF" : theme.textSecondary} />
-          <ThemedText style={[
-            styles.submitButtonText, 
-            { color: canSubmit ? "#FFF" : theme.textSecondary }
-          ]}>
+          <Feather
+            name="plus"
+            size={18}
+            color={canSubmit ? "#FFF" : theme.textSecondary}
+          />
+          <ThemedText
+            style={[
+              styles.submitButtonText,
+              { color: canSubmit ? "#FFF" : theme.textSecondary },
+            ]}
+          >
             Add Fracture
           </ThemedText>
         </Pressable>

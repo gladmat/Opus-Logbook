@@ -1,36 +1,39 @@
 /**
  * AO Fracture → Diagnosis & Procedure Auto-Mapping
- * 
+ *
  * When a surgeon classifies a fracture using the AO picker, this module
  * automatically resolves the correct DiagnosisPicklistEntry and filters
  * procedure suggestions based on the specific bone/fracture type.
- * 
+ *
  * This is OPTIONAL — if the surgeon skips AO classification, they use
  * the normal diagnosis picker pathway unchanged.
- * 
+ *
  * Flow: AO Code → bone familyCode → mapped diagnosis ID → filtered procedures
  */
 
-import type { DiagnosisPicklistEntry, ProcedureSuggestion } from "@/types/diagnosis";
+import type {
+  DiagnosisPicklistEntry,
+  ProcedureSuggestion,
+} from "@/types/diagnosis";
 
 // ─── AO Family Code → Diagnosis Mapping ──────────────────────────────────────
 
 export interface AODiagnosisMapping {
   /** AO bone familyCode (e.g., "77" = Metacarpal, "78" = Phalanx) */
   aoFamilyCode: string;
-  
+
   /** Human-readable bone name for display */
   boneName: string;
-  
+
   /** The diagnosis picklist ID this maps to */
   diagnosisPicklistId: string;
-  
+
   /**
    * Optional: if a specific finger/subBone further narrows the diagnosis.
    * e.g., Thumb metacarpal base fracture → Bennett's or Rolando's
    */
   refinements?: AODiagnosisRefinement[];
-  
+
   /**
    * Procedure overrides: when AO classification provides enough info
    * to narrow procedures beyond what the diagnosis alone suggests.
@@ -44,7 +47,7 @@ export interface AODiagnosisRefinement {
   condition: {
     finger?: string;
     segment?: string;
-    type?: string;      // A, B, or C
+    type?: string; // A, B, or C
     phalanx?: string;
     subBoneId?: string;
   };
@@ -57,8 +60,8 @@ export interface AODiagnosisRefinement {
 export interface AOProcedureHint {
   /** Condition from AO classification */
   condition: {
-    segment?: string;   // "1" = proximal, "2" = shaft, "3" = distal
-    type?: string;      // "A" = simple/extra-articular, "B" = partial articular, "C" = complete articular
+    segment?: string; // "1" = proximal, "2" = shaft, "3" = distal
+    type?: string; // "A" = simple/extra-articular, "B" = partial articular, "C" = complete articular
   };
   /** Procedure IDs to promote as default (override isDefault) */
   promoteToDefault: string[];
@@ -105,7 +108,7 @@ export const AO_DIAGNOSIS_MAPPINGS: AODiagnosisMapping[] = [
     boneName: "Other Carpal",
     diagnosisPicklistId: "hand_dx_carpal_fracture_other",
   },
-  
+
   // ── Metacarpal ──
   {
     aoFamilyCode: "77",
@@ -142,12 +145,15 @@ export const AO_DIAGNOSIS_MAPPINGS: AODiagnosisMapping[] = [
       {
         // Simple shaft fractures → K-wire or ORIF both reasonable
         condition: { segment: "2", type: "A" },
-        promoteToDefault: ["hand_fx_metacarpal_crif", "hand_fx_metacarpal_orif"],
+        promoteToDefault: [
+          "hand_fx_metacarpal_crif",
+          "hand_fx_metacarpal_orif",
+        ],
         description: "Simple shaft → K-wire and ORIF both options",
       },
     ],
   },
-  
+
   // ── Phalanx ──
   {
     aoFamilyCode: "78",
@@ -187,7 +193,7 @@ export const AO_DIAGNOSIS_MAPPINGS: AODiagnosisMapping[] = [
       },
     ],
   },
-  
+
   // ── Crush / Multiple ──
   {
     aoFamilyCode: "79",
@@ -215,12 +221,14 @@ export function resolveAOToDiagnosis(params: {
   procedureHints: AOProcedureHint[];
   matchedRefinement?: string;
 } | null {
-  const mapping = AO_DIAGNOSIS_MAPPINGS.find(m => m.aoFamilyCode === params.familyCode);
+  const mapping = AO_DIAGNOSIS_MAPPINGS.find(
+    (m) => m.aoFamilyCode === params.familyCode,
+  );
   if (!mapping) return null;
-  
+
   let diagnosisId = mapping.diagnosisPicklistId;
   let matchedRefinement: string | undefined;
-  
+
   // Check refinements (e.g., Bennett's, Rolando's)
   if (mapping.refinements) {
     for (const ref of mapping.refinements) {
@@ -234,7 +242,7 @@ export function resolveAOToDiagnosis(params: {
       }
     }
   }
-  
+
   // Collect applicable procedure hints
   const applicableHints: AOProcedureHint[] = [];
   if (mapping.procedureHints) {
@@ -247,7 +255,7 @@ export function resolveAOToDiagnosis(params: {
       }
     }
   }
-  
+
   return {
     diagnosisPicklistId: diagnosisId,
     procedureHints: applicableHints,
@@ -261,20 +269,20 @@ export function resolveAOToDiagnosis(params: {
  */
 export function applyProcedureHints(
   suggestions: ProcedureSuggestion[],
-  hints: AOProcedureHint[]
+  hints: AOProcedureHint[],
 ): ProcedureSuggestion[] {
   if (hints.length === 0) return suggestions;
-  
+
   // Collect all promote/demote IDs
   const promoteSet = new Set<string>();
   const demoteSet = new Set<string>();
-  
+
   for (const hint of hints) {
-    hint.promoteToDefault.forEach(id => promoteSet.add(id));
-    hint.demoteFromDefault?.forEach(id => demoteSet.add(id));
+    hint.promoteToDefault.forEach((id) => promoteSet.add(id));
+    hint.demoteFromDefault?.forEach((id) => demoteSet.add(id));
   }
-  
-  return suggestions.map(s => {
+
+  return suggestions.map((s) => {
     if (promoteSet.has(s.procedurePicklistId)) {
       return { ...s, isDefault: true };
     }

@@ -1,11 +1,5 @@
 import React, { useState } from "react";
-import {
-  View,
-  StyleSheet,
-  Pressable,
-  Switch,
-  ScrollView,
-} from "react-native";
+import { View, StyleSheet, Pressable, Switch, ScrollView } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { v4 as uuidv4 } from "uuid";
@@ -50,55 +44,75 @@ interface InfectionOverlayFormProps {
   onToggleCollapse?: () => void;
 }
 
-const SYNDROME_OPTIONS = Object.entries(INFECTION_SYNDROME_LABELS).map(([value, label]) => ({
-  value,
-  label,
-}));
+const SYNDROME_OPTIONS = Object.entries(INFECTION_SYNDROME_LABELS).map(
+  ([value, label]) => ({
+    value,
+    label,
+  }),
+);
 
-const REGION_OPTIONS = Object.entries(INFECTION_REGION_LABELS).map(([value, label]) => ({
-  value,
-  label,
-}));
+const REGION_OPTIONS = Object.entries(INFECTION_REGION_LABELS).map(
+  ([value, label]) => ({
+    value,
+    label,
+  }),
+);
 
-const LATERALITY_OPTIONS = Object.entries(INFECTION_LATERALITY_LABELS).map(([value, label]) => ({
-  value,
-  label,
-}));
+const LATERALITY_OPTIONS = Object.entries(INFECTION_LATERALITY_LABELS).map(
+  ([value, label]) => ({
+    value,
+    label,
+  }),
+);
 
-const EXTENT_OPTIONS = Object.entries(INFECTION_EXTENT_LABELS).map(([value, label]) => ({
-  value,
-  label,
-}));
+const EXTENT_OPTIONS = Object.entries(INFECTION_EXTENT_LABELS).map(
+  ([value, label]) => ({
+    value,
+    label,
+  }),
+);
 
-const SEVERITY_OPTIONS = Object.entries(INFECTION_SEVERITY_LABELS).map(([value, label]) => ({
-  value,
-  label,
-}));
+const SEVERITY_OPTIONS = Object.entries(INFECTION_SEVERITY_LABELS).map(
+  ([value, label]) => ({
+    value,
+    label,
+  }),
+);
 
-const SOURCE_CONTROL_OPTIONS = Object.entries(SOURCE_CONTROL_LABELS).map(([value, label]) => ({
-  value,
-  label,
-}));
+const SOURCE_CONTROL_OPTIONS = Object.entries(SOURCE_CONTROL_LABELS).map(
+  ([value, label]) => ({
+    value,
+    label,
+  }),
+);
 
-const TEMPLATE_OPTIONS = Object.entries(INFECTION_TEMPLATE_LABELS).map(([value, label]) => ({
-  value,
-  label,
-}));
+const TEMPLATE_OPTIONS = Object.entries(INFECTION_TEMPLATE_LABELS).map(
+  ([value, label]) => ({
+    value,
+    label,
+  }),
+);
 
-const CULTURE_STATUS_OPTIONS = Object.entries(CULTURE_STATUS_LABELS).map(([value, label]) => ({
-  value,
-  label,
-}));
+const CULTURE_STATUS_OPTIONS = Object.entries(CULTURE_STATUS_LABELS).map(
+  ([value, label]) => ({
+    value,
+    label,
+  }),
+);
 
-const BLOOD_CULTURE_OPTIONS = Object.entries(BLOOD_CULTURE_LABELS).map(([value, label]) => ({
-  value,
-  label,
-}));
+const BLOOD_CULTURE_OPTIONS = Object.entries(BLOOD_CULTURE_LABELS).map(
+  ([value, label]) => ({
+    value,
+    label,
+  }),
+);
 
-const SCORE_TYPE_OPTIONS = Object.entries(SCORE_TYPE_LABELS).map(([value, label]) => ({
-  value,
-  label,
-}));
+const SCORE_TYPE_OPTIONS = Object.entries(SCORE_TYPE_LABELS).map(
+  ([value, label]) => ({
+    value,
+    label,
+  }),
+);
 
 function createDefaultOverlay(): InfectionOverlay {
   const now = new Date().toISOString();
@@ -125,7 +139,9 @@ export function InfectionOverlayForm({
   onToggleCollapse,
 }: InfectionOverlayFormProps) {
   const { theme } = useTheme();
-  const [showMicrobiology, setShowMicrobiology] = useState(!!value?.microbiology);
+  const [showMicrobiology, setShowMicrobiology] = useState(
+    !!value?.microbiology,
+  );
   const [showScores, setShowScores] = useState(!!value?.scores?.length);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
 
@@ -143,7 +159,7 @@ export function InfectionOverlayForm({
     if (!templateId) return;
     const template = INFECTION_TEMPLATES[templateId as InfectionTemplate];
     if (!template) return;
-    
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const overlay = value || createDefaultOverlay();
     onChange({
@@ -184,7 +200,9 @@ export function InfectionOverlayForm({
           style={[styles.addButton, { backgroundColor: theme.link }]}
         >
           <Feather name="plus-circle" size={20} color={theme.buttonText} />
-          <ThemedText style={[styles.addButtonText, { color: theme.buttonText }]}>
+          <ThemedText
+            style={[styles.addButtonText, { color: theme.buttonText }]}
+          >
             Add Infection Documentation
           </ThemedText>
         </Pressable>
@@ -203,7 +221,15 @@ export function InfectionOverlayForm({
           <ThemedText style={[styles.headerTitle, { color: theme.text }]}>
             Infection Documentation
           </ThemedText>
-          <View style={[styles.statusBadge, { backgroundColor: value.status === "active" ? theme.error : theme.success }]}>
+          <View
+            style={[
+              styles.statusBadge,
+              {
+                backgroundColor:
+                  value.status === "active" ? theme.error : theme.success,
+              },
+            ]}
+          >
             <ThemedText style={styles.statusBadgeText}>
               {value.status === "active" ? "Active" : "Resolved"}
             </ThemedText>
@@ -222,12 +248,20 @@ export function InfectionOverlayForm({
       </Pressable>
 
       {!collapsed ? (
-        <View style={[styles.content, { backgroundColor: theme.backgroundDefault }]}>
+        <View
+          style={[styles.content, { backgroundColor: theme.backgroundDefault }]}
+        >
           <View style={styles.templateRow}>
-            <ThemedText style={[styles.templateLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.templateLabel, { color: theme.textSecondary }]}
+            >
               Quick Template:
             </ThemedText>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.templateScroll}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.templateScroll}
+            >
               {TEMPLATE_OPTIONS.map((option) => (
                 <Pressable
                   key={option.value}
@@ -235,9 +269,10 @@ export function InfectionOverlayForm({
                   style={[
                     styles.templateChip,
                     {
-                      backgroundColor: selectedTemplate === option.value
-                        ? theme.link
-                        : theme.backgroundRoot,
+                      backgroundColor:
+                        selectedTemplate === option.value
+                          ? theme.link
+                          : theme.backgroundRoot,
                       borderColor: theme.border,
                     },
                   ]}
@@ -245,7 +280,12 @@ export function InfectionOverlayForm({
                   <ThemedText
                     style={[
                       styles.templateChipText,
-                      { color: selectedTemplate === option.value ? theme.buttonText : theme.text },
+                      {
+                        color:
+                          selectedTemplate === option.value
+                            ? theme.buttonText
+                            : theme.text,
+                      },
                     ]}
                   >
                     {option.label}
@@ -259,7 +299,9 @@ export function InfectionOverlayForm({
             label="Primary Syndrome"
             value={value.syndromePrimary}
             options={SYNDROME_OPTIONS}
-            onSelect={(v) => updateOverlay({ syndromePrimary: v as InfectionSyndrome })}
+            onSelect={(v) =>
+              updateOverlay({ syndromePrimary: v as InfectionSyndrome })
+            }
             required
           />
 
@@ -269,7 +311,9 @@ export function InfectionOverlayForm({
                 label="Region"
                 value={value.region}
                 options={REGION_OPTIONS}
-                onSelect={(v) => updateOverlay({ region: v as InfectionRegion })}
+                onSelect={(v) =>
+                  updateOverlay({ region: v as InfectionRegion })
+                }
                 required
               />
             </View>
@@ -278,7 +322,9 @@ export function InfectionOverlayForm({
                 label="Laterality"
                 value={value.laterality}
                 options={LATERALITY_OPTIONS}
-                onSelect={(v) => updateOverlay({ laterality: v as InfectionLaterality })}
+                onSelect={(v) =>
+                  updateOverlay({ laterality: v as InfectionLaterality })
+                }
               />
             </View>
           </View>
@@ -296,7 +342,9 @@ export function InfectionOverlayForm({
                 label="Extent"
                 value={value.extent}
                 options={EXTENT_OPTIONS}
-                onSelect={(v) => updateOverlay({ extent: v as InfectionExtent })}
+                onSelect={(v) =>
+                  updateOverlay({ extent: v as InfectionExtent })
+                }
                 required
               />
             </View>
@@ -305,7 +353,9 @@ export function InfectionOverlayForm({
                 label="Severity"
                 value={value.severity}
                 options={SEVERITY_OPTIONS}
-                onSelect={(v) => updateOverlay({ severity: v as InfectionSeverity })}
+                onSelect={(v) =>
+                  updateOverlay({ severity: v as InfectionSeverity })
+                }
                 required
               />
             </View>
@@ -337,8 +387,16 @@ export function InfectionOverlayForm({
           <SelectField
             label="Source Control Achieved at Index Op"
             value={value.sourceControlAchievedIndexOp || ""}
-            options={[{ value: "", label: "Not recorded" }, ...SOURCE_CONTROL_OPTIONS]}
-            onSelect={(v) => updateOverlay({ sourceControlAchievedIndexOp: v as SourceControlStatus || undefined })}
+            options={[
+              { value: "", label: "Not recorded" },
+              ...SOURCE_CONTROL_OPTIONS,
+            ]}
+            onSelect={(v) =>
+              updateOverlay({
+                sourceControlAchievedIndexOp:
+                  (v as SourceControlStatus) || undefined,
+              })
+            }
           />
 
           <View style={styles.disclosureSection}>
@@ -346,7 +404,9 @@ export function InfectionOverlayForm({
               onPress={() => setShowMicrobiology(!showMicrobiology)}
               style={[styles.disclosureHeader, { borderColor: theme.border }]}
             >
-              <ThemedText style={[styles.disclosureTitle, { color: theme.text }]}>
+              <ThemedText
+                style={[styles.disclosureTitle, { color: theme.text }]}
+              >
                 Microbiology
               </ThemedText>
               <Feather
@@ -358,12 +418,16 @@ export function InfectionOverlayForm({
             {showMicrobiology ? (
               <View style={styles.disclosureContent}>
                 <View style={styles.toggleRow}>
-                  <ThemedText style={[styles.toggleLabel, { color: theme.text }]}>
+                  <ThemedText
+                    style={[styles.toggleLabel, { color: theme.text }]}
+                  >
                     Cultures Taken
                   </ThemedText>
                   <Switch
                     value={value.microbiology?.culturesTaken ?? false}
-                    onValueChange={(v) => updateMicrobiology({ culturesTaken: v })}
+                    onValueChange={(v) =>
+                      updateMicrobiology({ culturesTaken: v })
+                    }
                     trackColor={{ false: theme.border, true: theme.link }}
                   />
                 </View>
@@ -372,14 +436,28 @@ export function InfectionOverlayForm({
                     <SelectField
                       label="Culture Status"
                       value={value.microbiology?.cultureStatus || ""}
-                      options={[{ value: "", label: "Select..." }, ...CULTURE_STATUS_OPTIONS]}
-                      onSelect={(v) => updateMicrobiology({ cultureStatus: v as CultureStatus || undefined })}
+                      options={[
+                        { value: "", label: "Select..." },
+                        ...CULTURE_STATUS_OPTIONS,
+                      ]}
+                      onSelect={(v) =>
+                        updateMicrobiology({
+                          cultureStatus: (v as CultureStatus) || undefined,
+                        })
+                      }
                     />
                     <SelectField
                       label="Blood Cultures"
                       value={value.microbiology?.bloodCultures || ""}
-                      options={[{ value: "", label: "Select..." }, ...BLOOD_CULTURE_OPTIONS]}
-                      onSelect={(v) => updateMicrobiology({ bloodCultures: v as BloodCultureStatus || undefined })}
+                      options={[
+                        { value: "", label: "Select..." },
+                        ...BLOOD_CULTURE_OPTIONS,
+                      ]}
+                      onSelect={(v) =>
+                        updateMicrobiology({
+                          bloodCultures: (v as BloodCultureStatus) || undefined,
+                        })
+                      }
                     />
                   </>
                 ) : null}
@@ -392,7 +470,9 @@ export function InfectionOverlayForm({
               onPress={() => setShowScores(!showScores)}
               style={[styles.disclosureHeader, { borderColor: theme.border }]}
             >
-              <ThemedText style={[styles.disclosureTitle, { color: theme.text }]}>
+              <ThemedText
+                style={[styles.disclosureTitle, { color: theme.text }]}
+              >
                 Clinical Scores (LRINEC, qSOFA)
               </ThemedText>
               <Feather
@@ -403,7 +483,9 @@ export function InfectionOverlayForm({
             </Pressable>
             {showScores ? (
               <View style={styles.disclosureContent}>
-                <ThemedText style={[styles.hint, { color: theme.textSecondary }]}>
+                <ThemedText
+                  style={[styles.hint, { color: theme.textSecondary }]}
+                >
                   Score tracking coming soon
                 </ThemedText>
               </View>

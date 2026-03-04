@@ -48,7 +48,9 @@ export function SnomedSearchPicker({
   const [searchQuery, setSearchQuery] = useState("");
   const [results, setResults] = useState<SnomedSearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+  const [debounceTimer, setDebounceTimer] = useState<ReturnType<
+    typeof setTimeout
+  > | null>(null);
 
   const performSearch = useCallback(
     async (query: string) => {
@@ -60,7 +62,9 @@ export function SnomedSearchPicker({
       setIsLoading(true);
       try {
         const searchFn =
-          searchType === "procedure" ? searchSnomedProcedures : searchSnomedDiagnoses;
+          searchType === "procedure"
+            ? searchSnomedProcedures
+            : searchSnomedDiagnoses;
         const searchResults = await searchFn(query, specialty, 25);
         setResults(searchResults);
       } catch (err) {
@@ -70,7 +74,7 @@ export function SnomedSearchPicker({
         setIsLoading(false);
       }
     },
-    [searchType, specialty]
+    [searchType, specialty],
   );
 
   const handleSearchChange = useCallback(
@@ -87,7 +91,7 @@ export function SnomedSearchPicker({
 
       setDebounceTimer(timer);
     },
-    [debounceTimer, performSearch]
+    [debounceTimer, performSearch],
   );
 
   useEffect(() => {
@@ -122,7 +126,9 @@ export function SnomedSearchPicker({
           {label}
         </ThemedText>
         {required ? (
-          <ThemedText style={[styles.required, { color: theme.error }]}>*</ThemedText>
+          <ThemedText style={[styles.required, { color: theme.error }]}>
+            *
+          </ThemedText>
         ) : null}
       </View>
 
@@ -145,17 +151,24 @@ export function SnomedSearchPicker({
               >
                 {value.term}
               </ThemedText>
-              <ThemedText style={[styles.snomedCode, { color: theme.textTertiary }]}>
+              <ThemedText
+                style={[styles.snomedCode, { color: theme.textTertiary }]}
+              >
                 SNOMED CT: {value.conceptId}
               </ThemedText>
             </View>
-            <TouchableOpacity onPress={handleClear} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <TouchableOpacity
+              onPress={handleClear}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
               <Feather name="x-circle" size={20} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
         ) : (
           <>
-            <ThemedText style={[styles.placeholder, { color: theme.textTertiary }]}>
+            <ThemedText
+              style={[styles.placeholder, { color: theme.textTertiary }]}
+            >
               {placeholder}
             </ThemedText>
             <Feather name="search" size={20} color={theme.textSecondary} />
@@ -164,7 +177,9 @@ export function SnomedSearchPicker({
       </Pressable>
 
       {error ? (
-        <ThemedText style={[styles.error, { color: theme.error }]}>{error}</ThemedText>
+        <ThemedText style={[styles.error, { color: theme.error }]}>
+          {error}
+        </ThemedText>
       ) : null}
 
       <Modal
@@ -173,7 +188,12 @@ export function SnomedSearchPicker({
         presentationStyle="pageSheet"
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={[styles.modalContainer, { backgroundColor: theme.backgroundDefault }]}>
+        <View
+          style={[
+            styles.modalContainer,
+            { backgroundColor: theme.backgroundDefault },
+          ]}
+        >
           <View
             style={[
               styles.modalHeader,
@@ -194,7 +214,12 @@ export function SnomedSearchPicker({
             <View style={styles.cancelButton} />
           </View>
 
-          <View style={[styles.searchContainer, { backgroundColor: theme.backgroundRoot }]}>
+          <View
+            style={[
+              styles.searchContainer,
+              { backgroundColor: theme.backgroundRoot },
+            ]}
+          >
             <Feather name="search" size={20} color={theme.textTertiary} />
             <TextInput
               style={[styles.searchInput, { color: theme.text }]}
@@ -217,7 +242,9 @@ export function SnomedSearchPicker({
 
           {searchQuery.length > 0 && searchQuery.length < 2 ? (
             <View style={styles.hintContainer}>
-              <ThemedText style={[styles.hintText, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[styles.hintText, { color: theme.textSecondary }]}
+              >
                 Type at least 2 characters to search
               </ThemedText>
             </View>
@@ -226,16 +253,23 @@ export function SnomedSearchPicker({
           <FlatList
             data={results}
             keyExtractor={(item, index) => `${item.conceptId}-${index}`}
-            contentContainerStyle={[styles.resultsList, { paddingBottom: insets.bottom + Spacing.lg }]}
+            contentContainerStyle={[
+              styles.resultsList,
+              { paddingBottom: insets.bottom + Spacing.lg },
+            ]}
             keyboardShouldPersistTaps="handled"
             ListEmptyComponent={
               searchQuery.length >= 2 && !isLoading ? (
                 <View style={styles.emptyContainer}>
                   <Feather name="inbox" size={48} color={theme.textTertiary} />
-                  <ThemedText style={[styles.emptyText, { color: theme.textSecondary }]}>
-                    No results found for "{searchQuery}"
+                  <ThemedText
+                    style={[styles.emptyText, { color: theme.textSecondary }]}
+                  >
+                    {`No results found for "${searchQuery}"`}
                   </ThemedText>
-                  <ThemedText style={[styles.emptyHint, { color: theme.textTertiary }]}>
+                  <ThemedText
+                    style={[styles.emptyHint, { color: theme.textTertiary }]}
+                  >
                     Try a different search term
                   </ThemedText>
                 </View>
@@ -247,23 +281,41 @@ export function SnomedSearchPicker({
                 onPress={() => handleSelect(item)}
               >
                 <View style={styles.resultContent}>
-                  <ThemedText style={[styles.resultTerm, { color: theme.text }]}>
+                  <ThemedText
+                    style={[styles.resultTerm, { color: theme.text }]}
+                  >
                     {item.term}
                   </ThemedText>
                   <View style={styles.resultMeta}>
-                    <ThemedText style={[styles.resultCode, { color: theme.textTertiary }]}>
+                    <ThemedText
+                      style={[styles.resultCode, { color: theme.textTertiary }]}
+                    >
                       {item.conceptId}
                     </ThemedText>
                     {item.semanticTag ? (
-                      <View style={[styles.semanticTag, { backgroundColor: theme.link + "20" }]}>
-                        <ThemedText style={[styles.semanticTagText, { color: theme.link }]}>
+                      <View
+                        style={[
+                          styles.semanticTag,
+                          { backgroundColor: theme.link + "20" },
+                        ]}
+                      >
+                        <ThemedText
+                          style={[
+                            styles.semanticTagText,
+                            { color: theme.link },
+                          ]}
+                        >
                           {item.semanticTag}
                         </ThemedText>
                       </View>
                     ) : null}
                   </View>
                 </View>
-                <Feather name="chevron-right" size={20} color={theme.textTertiary} />
+                <Feather
+                  name="chevron-right"
+                  size={20}
+                  color={theme.textTertiary}
+                />
               </TouchableOpacity>
             )}
           />

@@ -14,16 +14,32 @@ import {
 interface NerveSectionProps {
   selectedDigits: DigitId[];
   checkedStructures: HandTraumaStructure[];
-  onToggleStructure: (structureId: string, category: "nerve", displayName: string, digit?: DigitId, side?: "radial" | "ulnar") => void;
+  onToggleStructure: (
+    structureId: string,
+    category: "nerve",
+    displayName: string,
+    digit?: DigitId,
+    side?: "radial" | "ulnar",
+  ) => void;
 }
 
-export function NerveSection({ selectedDigits, checkedStructures, onToggleStructure }: NerveSectionProps) {
+export function NerveSection({
+  selectedDigits,
+  checkedStructures,
+  onToggleStructure,
+}: NerveSectionProps) {
   const { theme } = useTheme();
 
   const isChecked = (structureId: string) =>
-    checkedStructures.some((s) => s.structureId === structureId && s.category === "nerve");
+    checkedStructures.some(
+      (s) => s.structureId === structureId && s.category === "nerve",
+    );
 
-  const digitalNerves: { id: string; digit: DigitId; side: "radial" | "ulnar" }[] = [];
+  const digitalNerves: {
+    id: string;
+    digit: DigitId;
+    side: "radial" | "ulnar";
+  }[] = [];
   for (const digit of selectedDigits) {
     const map = DIGIT_NERVE_MAP[digit];
     digitalNerves.push({ id: map.radial, digit, side: "radial" });
@@ -34,7 +50,10 @@ export function NerveSection({ selectedDigits, checkedStructures, onToggleStruct
     <View style={styles.container}>
       {digitalNerves.length > 0 ? (
         <View style={styles.group}>
-          <ThemedText type="small" style={[styles.groupLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            type="small"
+            style={[styles.groupLabel, { color: theme.textSecondary }]}
+          >
             Digital nerves
           </ThemedText>
           {digitalNerves.map((nerve) => {
@@ -44,14 +63,25 @@ export function NerveSection({ selectedDigits, checkedStructures, onToggleStruct
                 key={nerve.id}
                 testID={`nerve-${nerve.id}`}
                 style={[styles.checkRow, { borderColor: theme.border }]}
-                onPress={() => onToggleStructure(nerve.id, "nerve", NERVE_LABELS[nerve.id], nerve.digit, nerve.side)}
+                onPress={() =>
+                  onToggleStructure(
+                    nerve.id,
+                    "nerve",
+                    NERVE_LABELS[nerve.id] ?? nerve.id,
+                    nerve.digit,
+                    nerve.side,
+                  )
+                }
               >
                 <Feather
                   name={checked ? "check-square" : "square"}
                   size={20}
                   color={checked ? theme.link : theme.textTertiary}
                 />
-                <ThemedText type="small" style={[styles.checkLabel, { color: theme.text }]}>
+                <ThemedText
+                  type="small"
+                  style={[styles.checkLabel, { color: theme.text }]}
+                >
                   {NERVE_LABELS[nerve.id]}
                 </ThemedText>
               </Pressable>
@@ -61,7 +91,10 @@ export function NerveSection({ selectedDigits, checkedStructures, onToggleStruct
       ) : null}
 
       <View style={styles.group}>
-        <ThemedText type="small" style={[styles.groupLabel, { color: theme.textSecondary }]}>
+        <ThemedText
+          type="small"
+          style={[styles.groupLabel, { color: theme.textSecondary }]}
+        >
           Proximal nerves
         </ThemedText>
         {PROXIMAL_NERVES.map((nerve) => {
@@ -78,7 +111,10 @@ export function NerveSection({ selectedDigits, checkedStructures, onToggleStruct
                 size={20}
                 color={checked ? theme.link : theme.textTertiary}
               />
-              <ThemedText type="small" style={[styles.checkLabel, { color: theme.text }]}>
+              <ThemedText
+                type="small"
+                style={[styles.checkLabel, { color: theme.text }]}
+              >
                 {nerve.label}
               </ThemedText>
             </Pressable>

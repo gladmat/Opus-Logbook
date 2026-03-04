@@ -1,9 +1,5 @@
 import React, { useState, useCallback } from "react";
-import {
-  View,
-  TextInput,
-  StyleSheet,
-} from "react-native";
+import { View, TextInput, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
@@ -20,9 +16,9 @@ interface TimeFieldProps {
 
 function formatTimeInput(input: string): string {
   const digits = input.replace(/\D/g, "");
-  
+
   if (digits.length === 0) return "";
-  
+
   if (digits.length <= 2) {
     const hours = parseInt(digits, 10);
     if (hours >= 0 && hours <= 23) {
@@ -30,9 +26,9 @@ function formatTimeInput(input: string): string {
     }
     return digits.slice(0, 1);
   }
-  
+
   if (digits.length === 3) {
-    const firstDigit = parseInt(digits[0], 10);
+    const firstDigit = parseInt(digits[0] ?? "0", 10);
     if (firstDigit <= 2) {
       const hours = digits.slice(0, 2);
       const mins = digits.slice(2);
@@ -49,11 +45,11 @@ function formatTimeInput(input: string): string {
     }
     return `0${hours}:${mins.slice(0, 1)}`;
   }
-  
+
   if (digits.length >= 4) {
     let hours: string;
     let mins: string;
-    
+
     const firstTwo = parseInt(digits.slice(0, 2), 10);
     if (firstTwo <= 23) {
       hours = digits.slice(0, 2);
@@ -62,15 +58,15 @@ function formatTimeInput(input: string): string {
       hours = `0${digits[0]}`;
       mins = digits.slice(1, 3);
     }
-    
+
     const minsNum = parseInt(mins, 10);
     if (minsNum > 59) {
       mins = "59";
     }
-    
+
     return `${hours}:${mins}`;
   }
-  
+
   return input;
 }
 
@@ -85,22 +81,27 @@ export function TimeField({
   const { theme } = useTheme();
   const [displayValue, setDisplayValue] = useState(value);
 
-  const handleChangeText = useCallback((text: string) => {
-    if (text.length < displayValue.length) {
-      const newText = text.replace(":", "");
-      setDisplayValue(newText);
-      onChangeText(newText);
-      return;
-    }
-    
-    const formatted = formatTimeInput(text);
-    setDisplayValue(formatted);
-    onChangeText(formatted);
-  }, [displayValue, onChangeText]);
+  const handleChangeText = useCallback(
+    (text: string) => {
+      if (text.length < displayValue.length) {
+        const newText = text.replace(":", "");
+        setDisplayValue(newText);
+        onChangeText(newText);
+        return;
+      }
+
+      const formatted = formatTimeInput(text);
+      setDisplayValue(formatted);
+      onChangeText(formatted);
+    },
+    [displayValue, onChangeText],
+  );
 
   const handleBlur = useCallback(() => {
     if (displayValue && !displayValue.includes(":")) {
-      const formatted = formatTimeInput(displayValue + "00".slice(0, 4 - displayValue.length));
+      const formatted = formatTimeInput(
+        displayValue + "00".slice(0, 4 - displayValue.length),
+      );
       setDisplayValue(formatted);
       onChangeText(formatted);
     }
@@ -119,7 +120,9 @@ export function TimeField({
           {label}
         </ThemedText>
         {required ? (
-          <ThemedText style={[styles.required, { color: theme.error }]}>*</ThemedText>
+          <ThemedText style={[styles.required, { color: theme.error }]}>
+            *
+          </ThemedText>
         ) : null}
       </View>
       <View
@@ -131,7 +134,12 @@ export function TimeField({
           },
         ]}
       >
-        <Feather name="clock" size={18} color={theme.textSecondary} style={styles.icon} />
+        <Feather
+          name="clock"
+          size={18}
+          color={theme.textSecondary}
+          style={styles.icon}
+        />
         <TextInput
           value={displayValue}
           onChangeText={handleChangeText}
@@ -140,10 +148,7 @@ export function TimeField({
           placeholderTextColor={theme.textTertiary}
           keyboardType="numeric"
           maxLength={5}
-          style={[
-            styles.input,
-            { color: theme.text },
-          ]}
+          style={[styles.input, { color: theme.text }]}
         />
       </View>
       {error ? (

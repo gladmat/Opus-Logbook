@@ -2,18 +2,21 @@ import React from "react";
 import { View, Pressable, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
-import { FormField, PickerField, DatePickerField } from "@/components/FormField";
+import {
+  FormField,
+  PickerField,
+  DatePickerField,
+} from "@/components/FormField";
 import { SectionHeader } from "@/components/SectionHeader";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCaseFormState, useCaseFormDispatch } from "@/contexts/CaseFormContext";
+import {
+  useCaseFormState,
+  useCaseFormDispatch,
+} from "@/contexts/CaseFormContext";
 import { setField } from "@/hooks/useCaseForm";
 import { Spacing } from "@/constants/theme";
-import {
-  Gender,
-  GENDER_LABELS,
-  ETHNICITY_OPTIONS,
-} from "@/types/case";
+import { Gender, GENDER_LABELS, ETHNICITY_OPTIONS } from "@/types/case";
 
 export const PatientInfoSection = React.memo(function PatientInfoSection() {
   const { theme } = useTheme();
@@ -28,7 +31,9 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
       <FormField
         label="Patient Identifier"
         value={state.patientIdentifier}
-        onChangeText={(text: string) => dispatch(setField("patientIdentifier", text.toUpperCase()))}
+        onChangeText={(text: string) =>
+          dispatch(setField("patientIdentifier", text.toUpperCase()))
+        }
         placeholder="e.g., MRN or initials"
         required
         autoCapitalize="characters"
@@ -81,13 +86,18 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
 
       <View style={styles.row}>
         <View style={styles.halfField}>
-          <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
             Gender
           </ThemedText>
           <View
             style={[
               styles.segmentedControl,
-              { borderColor: theme.border, backgroundColor: theme.backgroundDefault },
+              {
+                borderColor: theme.border,
+                backgroundColor: theme.backgroundDefault,
+              },
             ]}
           >
             {(Object.entries(GENDER_LABELS) as [Gender, string][]).map(

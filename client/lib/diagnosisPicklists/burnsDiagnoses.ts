@@ -80,7 +80,8 @@ const BURNS_DX_ACUTE: DiagnosisPicklistEntry[] = [
         displayName: "Dermal substitute (Integra / Matriderm / BTM)",
         isDefault: false,
         isConditional: true,
-        conditionDescription: "For full thickness burns — staged reconstruction",
+        conditionDescription:
+          "For full thickness burns — staged reconstruction",
         conditionStagingMatch: {
           stagingSystemName: "Depth",
           matchValues: ["full_thickness"],
@@ -240,7 +241,13 @@ const BURNS_DX_ACUTE: DiagnosisPicklistEntry[] = [
     subcategory: "Acute Burns",
     clinicalGroup: "trauma",
     hasStaging: true,
-    searchSynonyms: ["acid burn", "alkali burn", "chemical injury", "HF", "hydrofluoric"],
+    searchSynonyms: [
+      "acid burn",
+      "alkali burn",
+      "chemical injury",
+      "HF",
+      "hydrofluoric",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "burns_site_chemical",
@@ -291,7 +298,12 @@ const BURNS_DX_ACUTE: DiagnosisPicklistEntry[] = [
     subcategory: "Acute Burns",
     clinicalGroup: "trauma",
     hasStaging: true,
-    searchSynonyms: ["electrical burn", "high voltage", "arc burn", "flash burn electrical"],
+    searchSynonyms: [
+      "electrical burn",
+      "high voltage",
+      "arc burn",
+      "flash burn electrical",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "burns_site_electrical",
@@ -336,7 +348,11 @@ const BURNS_DX_ACUTE: DiagnosisPicklistEntry[] = [
     subcategory: "Acute Burns",
     clinicalGroup: "trauma",
     hasStaging: true,
-    searchSynonyms: ["circumferential", "escharotomy", "compartment syndrome burn"],
+    searchSynonyms: [
+      "circumferential",
+      "escharotomy",
+      "compartment syndrome burn",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "burns_acute_escharotomy",
@@ -376,7 +392,12 @@ const BURNS_DX_RECONSTRUCTION: DiagnosisPicklistEntry[] = [
     subcategory: "Burns Reconstruction",
     clinicalGroup: "reconstructive",
     hasStaging: false,
-    searchSynonyms: ["burn contracture", "hand contracture", "web space", "first web"],
+    searchSynonyms: [
+      "burn contracture",
+      "hand contracture",
+      "web space",
+      "first web",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "burns_recon_contracture_zplasty",
@@ -454,7 +475,12 @@ const BURNS_DX_RECONSTRUCTION: DiagnosisPicklistEntry[] = [
     subcategory: "Burns Reconstruction",
     clinicalGroup: "reconstructive",
     hasStaging: false,
-    searchSynonyms: ["axilla contracture", "elbow contracture", "knee contracture", "burn scar contracture"],
+    searchSynonyms: [
+      "axilla contracture",
+      "elbow contracture",
+      "knee contracture",
+      "burn scar contracture",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "burns_recon_contracture_graft",
@@ -533,7 +559,12 @@ const BURNS_DX_SCAR: DiagnosisPicklistEntry[] = [
     subcategory: "Burn Scar",
     clinicalGroup: "reconstructive",
     hasStaging: false,
-    searchSynonyms: ["hypertrophic scar", "burn scar", "raised scar", "scar management"],
+    searchSynonyms: [
+      "hypertrophic scar",
+      "burn scar",
+      "raised scar",
+      "scar management",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "burns_scar_laser",
@@ -589,7 +620,7 @@ export function getBurnsSubcategories(): string[] {
 
 /** Get burns diagnoses for a specific subcategory */
 export function getBurnsDiagnosesForSubcategory(
-  subcategory: string
+  subcategory: string,
 ): DiagnosisPicklistEntry[] {
   return BURNS_DIAGNOSES.filter((dx) => dx.subcategory === subcategory);
 }

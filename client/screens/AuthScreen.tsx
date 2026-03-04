@@ -84,22 +84,30 @@ export default function AuthScreen() {
 
     setIsRequestingReset(true);
     try {
-      const response = await fetch(`${getApiUrl()}/api/auth/request-password-reset`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `${getApiUrl()}/api/auth/request-password-reset`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email: resetEmail.trim() }),
         },
-        body: JSON.stringify({ email: resetEmail.trim() }),
-      });
+      );
 
       const responseText = await response.text();
       let data: any;
-      
+
       try {
         data = JSON.parse(responseText);
       } catch {
-        console.error("Password reset response was not JSON:", responseText.substring(0, 200));
-        throw new Error("Server returned an unexpected response. Please try again.");
+        console.error(
+          "Password reset response was not JSON:",
+          responseText.substring(0, 200),
+        );
+        throw new Error(
+          "Server returned an unexpected response. Please try again.",
+        );
       }
 
       if (!response.ok) {
@@ -109,7 +117,7 @@ export default function AuthScreen() {
       Alert.alert(
         "Check Your Email",
         "If an account exists with that email, you will receive password reset instructions shortly.",
-        [{ text: "OK", onPress: () => setShowForgotPasswordModal(false) }]
+        [{ text: "OK", onPress: () => setShowForgotPasswordModal(false) }],
       );
       setResetEmail("");
     } catch (error: any) {
@@ -124,19 +132,38 @@ export default function AuthScreen() {
       style={[styles.container, { backgroundColor: colors.backgroundRoot }]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <View style={[styles.content, { paddingTop: insets.top + Spacing["4xl"], paddingBottom: insets.bottom + Spacing.lg }]}>
+      <View
+        style={[
+          styles.content,
+          {
+            paddingTop: insets.top + Spacing["4xl"],
+            paddingBottom: insets.bottom + Spacing.lg,
+          },
+        ]}
+      >
         <View style={styles.header}>
           <OpusLogo size="lg" showSubtitle color="#E5A00D" />
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            {mode === "login" ? "Sign in to your account" : "Create your account"}
+            {mode === "login"
+              ? "Sign in to your account"
+              : "Create your account"}
           </Text>
         </View>
 
         <View style={styles.form}>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Email</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Email
+            </Text>
             <TextInput
-              style={[styles.input, { backgroundColor: colors.backgroundSecondary, color: colors.text, borderColor: colors.border }]}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.backgroundSecondary,
+                  color: colors.text,
+                  borderColor: colors.border,
+                },
+              ]}
               value={email}
               onChangeText={setEmail}
               placeholder="you@hospital.org"
@@ -148,32 +175,59 @@ export default function AuthScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Password</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Password
+            </Text>
             <View style={styles.passwordContainer}>
               <TextInput
-                style={[styles.passwordInput, { backgroundColor: colors.backgroundSecondary, color: colors.text, borderColor: colors.border }]}
+                style={[
+                  styles.passwordInput,
+                  {
+                    backgroundColor: colors.backgroundSecondary,
+                    color: colors.text,
+                    borderColor: colors.border,
+                  },
+                ]}
                 value={password}
                 onChangeText={setPassword}
-                placeholder={mode === "signup" ? "Min 8 characters" : "Your password"}
+                placeholder={
+                  mode === "signup" ? "Min 8 characters" : "Your password"
+                }
                 placeholderTextColor={colors.textTertiary}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
               <Pressable
-                style={[styles.showPasswordButton, { borderColor: colors.border }]}
+                style={[
+                  styles.showPasswordButton,
+                  { borderColor: colors.border },
+                ]}
                 onPress={() => setShowPassword(!showPassword)}
               >
-                <Feather name={showPassword ? "eye-off" : "eye"} size={20} color={colors.textSecondary} />
+                <Feather
+                  name={showPassword ? "eye-off" : "eye"}
+                  size={20}
+                  color={colors.textSecondary}
+                />
               </Pressable>
             </View>
           </View>
 
           {mode === "signup" && (
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Confirm Password</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>
+                Confirm Password
+              </Text>
               <TextInput
-                style={[styles.input, { backgroundColor: colors.backgroundSecondary, color: colors.text, borderColor: colors.border }]}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colors.backgroundSecondary,
+                    color: colors.text,
+                    borderColor: colors.border,
+                  },
+                ]}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 placeholder="Re-enter password"
@@ -186,7 +240,7 @@ export default function AuthScreen() {
           )}
 
           {mode === "login" && (
-            <Pressable 
+            <Pressable
               onPress={() => {
                 setResetEmail(email);
                 setShowForgotPasswordModal(true);
@@ -200,7 +254,10 @@ export default function AuthScreen() {
           )}
 
           <Pressable
-            style={[styles.submitButton, { backgroundColor: colors.link, opacity: isLoading ? 0.7 : 1 }]}
+            style={[
+              styles.submitButton,
+              { backgroundColor: colors.link, opacity: isLoading ? 0.7 : 1 },
+            ]}
             onPress={handleSubmit}
             disabled={isLoading}
           >
@@ -216,7 +273,9 @@ export default function AuthScreen() {
 
         <View style={styles.footer}>
           <Text style={[styles.footerText, { color: colors.textSecondary }]}>
-            {mode === "login" ? "Don't have an account?" : "Already have an account?"}
+            {mode === "login"
+              ? "Don't have an account?"
+              : "Already have an account?"}
           </Text>
           <Pressable onPress={toggleMode}>
             <Text style={[styles.footerLink, { color: colors.link }]}>
@@ -236,24 +295,42 @@ export default function AuthScreen() {
           style={styles.modalOverlay}
           onPress={() => setShowForgotPasswordModal(false)}
         >
-          <View 
-            style={[styles.modalContent, { backgroundColor: colors.backgroundDefault }]}
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: colors.backgroundDefault },
+            ]}
             onStartShouldSetResponder={() => true}
           >
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Reset Password</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
+                Reset Password
+              </Text>
               <Pressable onPress={() => setShowForgotPasswordModal(false)}>
                 <Feather name="x" size={24} color={colors.textSecondary} />
               </Pressable>
             </View>
-            <Text style={[styles.modalDescription, { color: colors.textSecondary }]}>
-              Enter your email address and we'll send you instructions to reset your password.
+            <Text
+              style={[styles.modalDescription, { color: colors.textSecondary }]}
+            >
+              {
+                "Enter your email address and we'll send you instructions to reset your password."
+              }
             </Text>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Email</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>
+                Email
+              </Text>
               <TextInput
-                style={[styles.input, { backgroundColor: colors.backgroundSecondary, color: colors.text, borderColor: colors.border }]}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colors.backgroundSecondary,
+                    color: colors.text,
+                    borderColor: colors.border,
+                  },
+                ]}
                 value={resetEmail}
                 onChangeText={setResetEmail}
                 placeholder="you@hospital.org"
@@ -266,7 +343,13 @@ export default function AuthScreen() {
             </View>
 
             <Pressable
-              style={[styles.submitButton, { backgroundColor: colors.link, opacity: isRequestingReset ? 0.7 : 1 }]}
+              style={[
+                styles.submitButton,
+                {
+                  backgroundColor: colors.link,
+                  opacity: isRequestingReset ? 0.7 : 1,
+                },
+              ]}
               onPress={handleForgotPassword}
               disabled={isRequestingReset}
               testID="button-request-reset"
@@ -274,7 +357,9 @@ export default function AuthScreen() {
               {isRequestingReset ? (
                 <ActivityIndicator color="#FFF" size="small" />
               ) : (
-                <Text style={styles.submitButtonText}>Send Reset Instructions</Text>
+                <Text style={styles.submitButtonText}>
+                  Send Reset Instructions
+                </Text>
               )}
             </Pressable>
           </View>

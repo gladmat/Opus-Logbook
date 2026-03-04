@@ -1,6 +1,13 @@
 import React from "react";
 import { View, StyleSheet, Dimensions } from "react-native";
-import Svg, { Line, Circle, Text as SvgText, G, Polyline, Rect } from "react-native-svg";
+import Svg, {
+  Line,
+  Circle,
+  Text as SvgText,
+  G,
+  Polyline,
+  Rect,
+} from "react-native-svg";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, Typography } from "@/constants/theme";
@@ -31,9 +38,12 @@ export function WoundDimensionChart({ events }: WoundDimensionChartProps) {
         e.eventType === "wound_assessment" &&
         e.woundAssessmentData &&
         typeof e.woundAssessmentData.areaCm2 === "number" &&
-        e.woundAssessmentData.areaCm2 > 0
+        e.woundAssessmentData.areaCm2 > 0,
     )
-    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+    .sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    )
     .map((e) => ({
       date: new Date(e.createdAt),
       area: e.woundAssessmentData!.areaCm2!,
@@ -63,7 +73,9 @@ export function WoundDimensionChart({ events }: WoundDimensionChartProps) {
     paddingLeft + (index / (dataPoints.length - 1)) * plotWidth;
 
   const getY = (area: number) =>
-    paddingTop + plotHeight - ((area - minArea) / (maxArea - minArea)) * plotHeight;
+    paddingTop +
+    plotHeight -
+    ((area - minArea) / (maxArea - minArea)) * plotHeight;
 
   const yTicks = 4;
   const yTickValues: number[] = [];
@@ -84,7 +96,11 @@ export function WoundDimensionChart({ events }: WoundDimensionChartProps) {
     <View
       style={[
         styles.container,
-        { backgroundColor: isDark ? theme.backgroundSecondary : theme.backgroundDefault },
+        {
+          backgroundColor: isDark
+            ? theme.backgroundSecondary
+            : theme.backgroundDefault,
+        },
       ]}
     >
       <ThemedText type="h4" style={styles.title}>
@@ -146,7 +162,9 @@ export function WoundDimensionChart({ events }: WoundDimensionChartProps) {
               cy={getY(d.area)}
               r={4}
               fill={lineColor}
-              stroke={isDark ? theme.backgroundSecondary : theme.backgroundDefault}
+              stroke={
+                isDark ? theme.backgroundSecondary : theme.backgroundDefault
+              }
               strokeWidth={2}
             />
             <SvgText

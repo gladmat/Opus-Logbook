@@ -46,9 +46,7 @@ describe("Auth endpoints", () => {
 
   describe("POST /api/auth/login", () => {
     it("returns 400 with missing fields", async () => {
-      const res = await request(app)
-        .post("/api/auth/login")
-        .send({});
+      const res = await request(app).post("/api/auth/login").send({});
       expect(res.status).toBe(400);
       expect(res.body.error).toBeDefined();
     });
@@ -121,9 +119,11 @@ describe("Protected endpoints require auth", () => {
   });
 
   it("POST /api/anastomoses returns 401 without token", async () => {
-    const res = await request(app)
-      .post("/api/anastomoses")
-      .send({ flapId: "fake-id", vesselType: "artery", recipientVesselName: "test" });
+    const res = await request(app).post("/api/anastomoses").send({
+      flapId: "fake-id",
+      vesselType: "artery",
+      recipientVesselName: "test",
+    });
     expect(res.status).toBe(401);
   });
 

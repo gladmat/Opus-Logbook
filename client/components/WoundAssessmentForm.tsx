@@ -4,7 +4,11 @@ import { Feather } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { BorderRadius, Spacing, Typography } from "@/constants/theme";
-import { FormField, PickerField, DatePickerField } from "@/components/FormField";
+import {
+  FormField,
+  PickerField,
+  DatePickerField,
+} from "@/components/FormField";
 import {
   WoundAssessment,
   WoundBedTissue,
@@ -42,11 +46,22 @@ interface AccordionSectionProps {
   children: React.ReactNode;
 }
 
-function AccordionSection({ title, icon, expanded, onToggle, children }: AccordionSectionProps) {
+function AccordionSection({
+  title,
+  icon,
+  expanded,
+  onToggle,
+  children,
+}: AccordionSectionProps) {
   const { theme } = useTheme();
 
   return (
-    <View style={[accordionStyles.container, { backgroundColor: theme.backgroundDefault, borderColor: theme.border }]}>
+    <View
+      style={[
+        accordionStyles.container,
+        { backgroundColor: theme.backgroundDefault, borderColor: theme.border },
+      ]}
+    >
       <Pressable
         style={accordionStyles.header}
         onPress={onToggle}
@@ -54,7 +69,9 @@ function AccordionSection({ title, icon, expanded, onToggle, children }: Accordi
       >
         <View style={accordionStyles.headerLeft}>
           <Feather name={icon} size={18} color={theme.link} />
-          <ThemedText style={[accordionStyles.headerTitle, { color: theme.text }]}>
+          <ThemedText
+            style={[accordionStyles.headerTitle, { color: theme.text }]}
+          >
             {title}
           </ThemedText>
         </View>
@@ -65,9 +82,7 @@ function AccordionSection({ title, icon, expanded, onToggle, children }: Accordi
         />
       </Pressable>
       {expanded ? (
-        <View style={accordionStyles.content}>
-          {children}
-        </View>
+        <View style={accordionStyles.content}>{children}</View>
       ) : null}
     </View>
   );
@@ -104,16 +119,23 @@ const accordionStyles = StyleSheet.create({
   },
 });
 
-function toPickerOptions<T extends string>(labels: Record<T, string>): { value: string; label: string }[] {
+function toPickerOptions<T extends string>(
+  labels: Record<T, string>,
+): { value: string; label: string }[] {
   return Object.entries(labels).map(([value, label]) => ({
     value,
     label: label as string,
   }));
 }
 
-export function WoundAssessmentForm({ value, onChange }: WoundAssessmentFormProps) {
+export function WoundAssessmentForm({
+  value,
+  onChange,
+}: WoundAssessmentFormProps) {
   const { theme } = useTheme();
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+  const [expandedSections, setExpandedSections] = useState<
+    Record<string, boolean>
+  >({
     dimensions: true,
   });
 
@@ -166,7 +188,9 @@ export function WoundAssessmentForm({ value, onChange }: WoundAssessmentFormProp
 
   const removeDressing = useCallback(
     (productId: string) => {
-      update({ dressings: value.dressings.filter((d) => d.productId !== productId) });
+      update({
+        dressings: value.dressings.filter((d) => d.productId !== productId),
+      });
     },
     [value.dressings, update],
   );
@@ -231,7 +255,12 @@ export function WoundAssessmentForm({ value, onChange }: WoundAssessmentFormProp
           </View>
         </View>
         {value.areaCm2 !== undefined ? (
-          <View style={[styles.areaDisplay, { backgroundColor: theme.backgroundSecondary }]}>
+          <View
+            style={[
+              styles.areaDisplay,
+              { backgroundColor: theme.backgroundSecondary },
+            ]}
+          >
             <Feather name="grid" size={16} color={theme.link} />
             <ThemedText style={[styles.areaText, { color: theme.text }]}>
               Area: {value.areaCm2} cm{"\u00B2"}
@@ -302,7 +331,9 @@ export function WoundAssessmentForm({ value, onChange }: WoundAssessmentFormProp
           label="Skin Status"
           value={value.surroundingSkin ?? ""}
           options={toPickerOptions(SURROUNDING_SKIN_LABELS)}
-          onSelect={(v) => update({ surroundingSkin: v as WoundSurroundingSkin })}
+          onSelect={(v) =>
+            update({ surroundingSkin: v as WoundSurroundingSkin })
+          }
           placeholder="Select skin status..."
         />
       </AccordionSection>
@@ -314,39 +345,41 @@ export function WoundAssessmentForm({ value, onChange }: WoundAssessmentFormProp
         onToggle={() => toggleSection("infection")}
       >
         <View style={styles.checkboxGrid}>
-          {(Object.entries(INFECTION_SIGN_LABELS) as [InfectionSign, string][]).map(
-            ([sign, label]) => {
-              const checked = (value.infectionSigns ?? []).includes(sign);
-              return (
-                <Pressable
-                  key={sign}
+          {(
+            Object.entries(INFECTION_SIGN_LABELS) as [InfectionSign, string][]
+          ).map(([sign, label]) => {
+            const checked = (value.infectionSigns ?? []).includes(sign);
+            return (
+              <Pressable
+                key={sign}
+                style={[
+                  styles.checkboxItem,
+                  {
+                    backgroundColor: checked
+                      ? theme.error + "15"
+                      : theme.backgroundRoot,
+                    borderColor: checked ? theme.error : theme.border,
+                  },
+                ]}
+                onPress={() => toggleInfectionSign(sign)}
+                testID={`checkbox-infection-${sign}`}
+              >
+                <Feather
+                  name={checked ? "check-square" : "square"}
+                  size={18}
+                  color={checked ? theme.error : theme.textSecondary}
+                />
+                <ThemedText
                   style={[
-                    styles.checkboxItem,
-                    {
-                      backgroundColor: checked ? theme.error + "15" : theme.backgroundRoot,
-                      borderColor: checked ? theme.error : theme.border,
-                    },
+                    styles.checkboxLabel,
+                    { color: checked ? theme.error : theme.text },
                   ]}
-                  onPress={() => toggleInfectionSign(sign)}
-                  testID={`checkbox-infection-${sign}`}
                 >
-                  <Feather
-                    name={checked ? "check-square" : "square"}
-                    size={18}
-                    color={checked ? theme.error : theme.textSecondary}
-                  />
-                  <ThemedText
-                    style={[
-                      styles.checkboxLabel,
-                      { color: checked ? theme.error : theme.text },
-                    ]}
-                  >
-                    {label}
-                  </ThemedText>
-                </Pressable>
-              );
-            },
-          )}
+                  {label}
+                </ThemedText>
+              </Pressable>
+            );
+          })}
         </View>
       </AccordionSection>
 
@@ -361,14 +394,27 @@ export function WoundAssessmentForm({ value, onChange }: WoundAssessmentFormProp
             {value.dressings.map((entry) => (
               <View
                 key={entry.productId}
-                style={[styles.dressingEntry, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}
+                style={[
+                  styles.dressingEntry,
+                  {
+                    backgroundColor: theme.backgroundSecondary,
+                    borderColor: theme.border,
+                  },
+                ]}
               >
                 <View style={styles.dressingEntryHeader}>
                   <View style={styles.dressingEntryInfo}>
-                    <ThemedText style={[styles.dressingName, { color: theme.text }]}>
+                    <ThemedText
+                      style={[styles.dressingName, { color: theme.text }]}
+                    >
                       {entry.productName}
                     </ThemedText>
-                    <ThemedText style={[styles.dressingCategory, { color: theme.textSecondary }]}>
+                    <ThemedText
+                      style={[
+                        styles.dressingCategory,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
                       {DRESSING_CATEGORY_LABELS[entry.category]}
                     </ThemedText>
                   </View>
@@ -382,34 +428,62 @@ export function WoundAssessmentForm({ value, onChange }: WoundAssessmentFormProp
                 </View>
                 <View style={styles.dressingFields}>
                   <View style={styles.dressingQty}>
-                    <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+                    <ThemedText
+                      style={[
+                        styles.fieldLabel,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
                       Qty
                     </ThemedText>
                     <TextInput
-                      value={entry.quantity !== undefined ? String(entry.quantity) : ""}
+                      value={
+                        entry.quantity !== undefined
+                          ? String(entry.quantity)
+                          : ""
+                      }
                       onChangeText={(t) => {
                         const q = parseInt(t, 10);
-                        updateDressing(entry.productId, { quantity: isNaN(q) ? undefined : q });
+                        updateDressing(entry.productId, {
+                          quantity: isNaN(q) ? undefined : q,
+                        });
                       }}
                       keyboardType="numeric"
                       style={[
                         styles.qtyInput,
-                        { color: theme.text, backgroundColor: theme.backgroundRoot, borderColor: theme.border },
+                        {
+                          color: theme.text,
+                          backgroundColor: theme.backgroundRoot,
+                          borderColor: theme.border,
+                        },
                       ]}
                       placeholder="1"
                       placeholderTextColor={theme.textTertiary}
                     />
                   </View>
                   <View style={styles.dressingNotes}>
-                    <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+                    <ThemedText
+                      style={[
+                        styles.fieldLabel,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
                       Notes
                     </ThemedText>
                     <TextInput
                       value={entry.notes ?? ""}
-                      onChangeText={(t) => updateDressing(entry.productId, { notes: t || undefined })}
+                      onChangeText={(t) =>
+                        updateDressing(entry.productId, {
+                          notes: t || undefined,
+                        })
+                      }
                       style={[
                         styles.notesInput,
-                        { color: theme.text, backgroundColor: theme.backgroundRoot, borderColor: theme.border },
+                        {
+                          color: theme.text,
+                          backgroundColor: theme.backgroundRoot,
+                          borderColor: theme.border,
+                        },
                       ]}
                       placeholder="Optional notes..."
                       placeholderTextColor={theme.textTertiary}
@@ -421,7 +495,9 @@ export function WoundAssessmentForm({ value, onChange }: WoundAssessmentFormProp
           </View>
         ) : null}
 
-        <ThemedText style={[styles.dressingPrompt, { color: theme.textSecondary }]}>
+        <ThemedText
+          style={[styles.dressingPrompt, { color: theme.textSecondary }]}
+        >
           Select dressings by category:
         </ThemedText>
         {getDressingCategories().map((cat) => (
@@ -441,51 +517,56 @@ export function WoundAssessmentForm({ value, onChange }: WoundAssessmentFormProp
         onToggle={() => toggleSection("healing")}
       >
         <View style={styles.trendRow}>
-          {(Object.entries(HEALING_TREND_LABELS) as [HealingTrend, string][]).map(
-            ([trend, label]) => {
-              const selected = value.healingTrend === trend;
-              const trendColor =
-                trend === "improving"
-                  ? theme.success
-                  : trend === "deteriorating"
-                    ? theme.error
-                    : theme.warning;
-              return (
-                <Pressable
-                  key={trend}
+          {(
+            Object.entries(HEALING_TREND_LABELS) as [HealingTrend, string][]
+          ).map(([trend, label]) => {
+            const selected = value.healingTrend === trend;
+            const trendColor =
+              trend === "improving"
+                ? theme.success
+                : trend === "deteriorating"
+                  ? theme.error
+                  : theme.warning;
+            return (
+              <Pressable
+                key={trend}
+                style={[
+                  styles.trendButton,
+                  {
+                    backgroundColor: selected
+                      ? trendColor + "15"
+                      : theme.backgroundRoot,
+                    borderColor: selected ? trendColor : theme.border,
+                  },
+                ]}
+                onPress={() => update({ healingTrend: trend })}
+                testID={`trend-${trend}`}
+              >
+                <Feather
+                  name={
+                    trend === "improving"
+                      ? "trending-up"
+                      : trend === "deteriorating"
+                        ? "trending-down"
+                        : "minus"
+                  }
+                  size={18}
+                  color={selected ? trendColor : theme.textSecondary}
+                />
+                <ThemedText
                   style={[
-                    styles.trendButton,
+                    styles.trendLabel,
                     {
-                      backgroundColor: selected ? trendColor + "15" : theme.backgroundRoot,
-                      borderColor: selected ? trendColor : theme.border,
+                      color: selected ? trendColor : theme.text,
+                      fontWeight: selected ? "600" : "400",
                     },
                   ]}
-                  onPress={() => update({ healingTrend: trend })}
-                  testID={`trend-${trend}`}
                 >
-                  <Feather
-                    name={
-                      trend === "improving"
-                        ? "trending-up"
-                        : trend === "deteriorating"
-                          ? "trending-down"
-                          : "minus"
-                    }
-                    size={18}
-                    color={selected ? trendColor : theme.textSecondary}
-                  />
-                  <ThemedText
-                    style={[
-                      styles.trendLabel,
-                      { color: selected ? trendColor : theme.text, fontWeight: selected ? "600" : "400" },
-                    ]}
-                  >
-                    {label}
-                  </ThemedText>
-                </Pressable>
-              );
-            },
-          )}
+                  {label}
+                </ThemedText>
+              </Pressable>
+            );
+          })}
         </View>
       </AccordionSection>
 
@@ -539,10 +620,18 @@ export function WoundAssessmentForm({ value, onChange }: WoundAssessmentFormProp
 interface DressingCategorySectionProps {
   category: DressingCategory;
   selectedIds: string[];
-  onAdd: (productId: string, productName: string, category: DressingCategory) => void;
+  onAdd: (
+    productId: string,
+    productName: string,
+    category: DressingCategory,
+  ) => void;
 }
 
-function DressingCategorySection({ category, selectedIds, onAdd }: DressingCategorySectionProps) {
+function DressingCategorySection({
+  category,
+  selectedIds,
+  onAdd,
+}: DressingCategorySectionProps) {
   const { theme } = useTheme();
   const [expanded, setExpanded] = useState(false);
   const products = getDressingsByCategory(category);
@@ -572,7 +661,9 @@ function DressingCategorySection({ category, selectedIds, onAdd }: DressingCateg
                 style={[
                   styles.productItem,
                   {
-                    backgroundColor: isSelected ? theme.link + "10" : theme.backgroundRoot,
+                    backgroundColor: isSelected
+                      ? theme.link + "10"
+                      : theme.backgroundRoot,
                     borderColor: isSelected ? theme.link : theme.border,
                   },
                 ]}
@@ -594,7 +685,12 @@ function DressingCategorySection({ category, selectedIds, onAdd }: DressingCateg
                     {product.name}
                   </ThemedText>
                   {product.manufacturer ? (
-                    <ThemedText style={[styles.productManufacturer, { color: theme.textTertiary }]}>
+                    <ThemedText
+                      style={[
+                        styles.productManufacturer,
+                        { color: theme.textTertiary },
+                      ]}
+                    >
                       {product.manufacturer}
                     </ThemedText>
                   ) : null}

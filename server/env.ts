@@ -11,8 +11,13 @@ const envSchema = z.object({
     .string()
     .default("5000")
     .transform((val) => parseInt(val, 10))
-    .refine((val) => !isNaN(val) && val > 0 && val < 65536, "PORT must be a valid port number"),
-  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+    .refine(
+      (val) => !isNaN(val) && val > 0 && val < 65536,
+      "PORT must be a valid port number",
+    ),
+  NODE_ENV: z
+    .enum(["development", "production", "test"])
+    .default("development"),
 
   // Optional variables
   RESEND_API_KEY: z.string().optional(),

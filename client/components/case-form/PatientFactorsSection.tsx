@@ -6,7 +6,10 @@ import { ThemedText } from "@/components/ThemedText";
 import { FormField } from "@/components/FormField";
 import { SectionHeader } from "@/components/SectionHeader";
 import { CollapsibleFormSection } from "./CollapsibleFormSection";
-import { useCaseFormState, useCaseFormDispatch } from "@/contexts/CaseFormContext";
+import {
+  useCaseFormState,
+  useCaseFormDispatch,
+} from "@/contexts/CaseFormContext";
 import { setField } from "@/hooks/useCaseForm";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
@@ -37,97 +40,114 @@ const ASA_DESCRIPTIONS: Record<ASAScore, string> = {
   6: "A declared brain-dead patient whose organs are being removed for donor purposes",
 };
 
-export const PatientFactorsSection = React.memo(function PatientFactorsSection() {
-  const { theme } = useTheme();
-  const insets = useSafeAreaInsets();
-  const { state, calculatedBmi } = useCaseFormState();
-  const { dispatch } = useCaseFormDispatch();
-  const [showAsaInfo, setShowAsaInfo] = useState(false);
+export const PatientFactorsSection = React.memo(
+  function PatientFactorsSection() {
+    const { theme } = useTheme();
+    const insets = useSafeAreaInsets();
+    const { state, calculatedBmi } = useCaseFormState();
+    const { dispatch } = useCaseFormDispatch();
+    const [showAsaInfo, setShowAsaInfo] = useState(false);
 
-  const asaNum = state.asaScore ? parseInt(state.asaScore) : 0;
-  const showComorbidities = asaNum >= 2;
+    const asaNum = state.asaScore ? parseInt(state.asaScore) : 0;
+    const showComorbidities = asaNum >= 2;
 
-  const filledCount = useMemo(() => {
-    let count = 0;
-    if (state.asaScore) count++;
-    if (state.smoker) count++;
-    if (showComorbidities && state.selectedComorbidities.length > 0) count++;
-    return count;
-  }, [state.asaScore, state.smoker, state.selectedComorbidities, showComorbidities]);
+    const filledCount = useMemo(() => {
+      let count = 0;
+      if (state.asaScore) count++;
+      if (state.smoker) count++;
+      if (showComorbidities && state.selectedComorbidities.length > 0) count++;
+      return count;
+    }, [
+      state.asaScore,
+      state.smoker,
+      state.selectedComorbidities,
+      showComorbidities,
+    ]);
 
-  const totalCount = showComorbidities ? 3 : 2;
+    const totalCount = showComorbidities ? 3 : 2;
 
-  return (
-    <CollapsibleFormSection
-      title="Patient Factors"
-      subtitle="Risk factors and co-morbidities"
-      filledCount={filledCount}
-      totalCount={totalCount}
-    >
-      <SectionHeader title="Risk Assessment" />
+    return (
+      <CollapsibleFormSection
+        title="Patient Factors"
+        subtitle="Risk factors and co-morbidities"
+        filledCount={filledCount}
+        totalCount={totalCount}
+      >
+        <SectionHeader title="Risk Assessment" />
 
-      <View style={styles.labelRow}>
-        <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
-          ASA Score
-        </ThemedText>
-        <Pressable
-          onPress={() => setShowAsaInfo(true)}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        <View style={styles.labelRow}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
+            ASA Score
+          </ThemedText>
+          <Pressable
+            onPress={() => setShowAsaInfo(true)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Feather name="info" size={16} color={theme.textTertiary} />
+          </Pressable>
+        </View>
+        <View
+          style={[
+            styles.segmentedControl,
+            {
+              borderColor: theme.border,
+              backgroundColor: theme.backgroundDefault,
+            },
+          ]}
         >
-          <Feather name="info" size={16} color={theme.textTertiary} />
-        </Pressable>
-      </View>
-      <View
-        style={[
-          styles.segmentedControl,
-          { borderColor: theme.border, backgroundColor: theme.backgroundDefault },
-        ]}
-      >
-        {(Object.entries(ASA_SHORT_LABELS) as [string, string][]).map(
-          ([value, label]) => {
-            const isSelected = state.asaScore === value;
-            return (
-              <Pressable
-                key={value}
-                style={[
-                  styles.segmentedButton,
-                  isSelected ? { backgroundColor: theme.link } : undefined,
-                ]}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  dispatch(setField("asaScore", value));
-                }}
-              >
-                <ThemedText
+          {(Object.entries(ASA_SHORT_LABELS) as [string, string][]).map(
+            ([value, label]) => {
+              const isSelected = state.asaScore === value;
+              return (
+                <Pressable
+                  key={value}
                   style={[
-                    styles.segmentedButtonText,
-                    { color: isSelected ? "#FFFFFF" : theme.textSecondary },
+                    styles.segmentedButton,
+                    isSelected ? { backgroundColor: theme.link } : undefined,
                   ]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    dispatch(setField("asaScore", value));
+                  }}
                 >
-                  {label}
-                </ThemedText>
-              </Pressable>
-            );
-          },
-        )}
-      </View>
-      {state.asaScore ? (
-        <ThemedText style={[styles.asaDescription, { color: theme.textTertiary }]}>
-          {ASA_GRADE_LABELS[parseInt(state.asaScore) as ASAScore]}
-        </ThemedText>
-      ) : null}
+                  <ThemedText
+                    style={[
+                      styles.segmentedButtonText,
+                      { color: isSelected ? "#FFFFFF" : theme.textSecondary },
+                    ]}
+                  >
+                    {label}
+                  </ThemedText>
+                </Pressable>
+              );
+            },
+          )}
+        </View>
+        {state.asaScore ? (
+          <ThemedText
+            style={[styles.asaDescription, { color: theme.textTertiary }]}
+          >
+            {ASA_GRADE_LABELS[parseInt(state.asaScore) as ASAScore]}
+          </ThemedText>
+        ) : null}
 
-      <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
-        Smoking Status
-      </ThemedText>
-      <View
-        style={[
-          styles.segmentedControl,
-          { borderColor: theme.border, backgroundColor: theme.backgroundDefault },
-        ]}
-      >
-        {(Object.entries(SMOKING_STATUS_LABELS) as [SmokingStatus, string][]).map(
-          ([value, label]) => {
+        <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          Smoking Status
+        </ThemedText>
+        <View
+          style={[
+            styles.segmentedControl,
+            {
+              borderColor: theme.border,
+              backgroundColor: theme.backgroundDefault,
+            },
+          ]}
+        >
+          {(
+            Object.entries(SMOKING_STATUS_LABELS) as [SmokingStatus, string][]
+          ).map(([value, label]) => {
             const isSelected = state.smoker === value;
             return (
               <Pressable
@@ -151,176 +171,196 @@ export const PatientFactorsSection = React.memo(function PatientFactorsSection()
                 </ThemedText>
               </Pressable>
             );
-          },
-        )}
-      </View>
+          })}
+        </View>
 
-      <View style={styles.row}>
-        <View style={styles.thirdField}>
-          <FormField
-            label="Height"
-            value={state.heightCm}
-            onChangeText={(v: string) => dispatch(setField("heightCm", v))}
-            placeholder="170"
-            keyboardType="decimal-pad"
-            unit="cm"
-          />
-        </View>
-        <View style={styles.thirdField}>
-          <FormField
-            label="Weight"
-            value={state.weightKg}
-            onChangeText={(v: string) => dispatch(setField("weightKg", v))}
-            placeholder="70"
-            keyboardType="decimal-pad"
-            unit="kg"
-          />
-        </View>
-        <View style={styles.thirdField}>
-          <View style={styles.bmiDisplay}>
-            <ThemedText
-              style={[styles.bmiLabel, { color: theme.textSecondary }]}
-            >
-              BMI
-            </ThemedText>
-            <ThemedText
-              style={[
-                styles.bmiValue,
-                { color: calculatedBmi ? theme.text : theme.textTertiary },
-              ]}
-            >
-              {calculatedBmi ? calculatedBmi.toFixed(1) : "--"}
-            </ThemedText>
+        <View style={styles.row}>
+          <View style={styles.thirdField}>
+            <FormField
+              label="Height"
+              value={state.heightCm}
+              onChangeText={(v: string) => dispatch(setField("heightCm", v))}
+              placeholder="170"
+              keyboardType="decimal-pad"
+              unit="cm"
+            />
           </View>
-        </View>
-      </View>
-
-      {showComorbidities ? (
-        <>
-          <SectionHeader
-            title="Co-morbidities"
-            subtitle="Select all that apply"
-          />
-
-          <View style={styles.comorbidityGrid}>
-            {COMMON_COMORBIDITIES.slice(0, 20).map((comorbidity) => {
-              const isSelected = state.selectedComorbidities.some(
-                (c) => c.snomedCtCode === comorbidity.snomedCtCode,
-              );
-              return (
-                <Pressable
-                  key={comorbidity.snomedCtCode}
-                  style={[
-                    styles.comorbidityChip,
-                    {
-                      backgroundColor: isSelected
-                        ? theme.link + "20"
-                        : theme.backgroundDefault,
-                      borderColor: isSelected ? theme.link : theme.border,
-                    },
-                  ]}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    if (isSelected) {
-                      dispatch(
-                        setField(
-                          "selectedComorbidities",
-                          state.selectedComorbidities.filter(
-                            (c) =>
-                              c.snomedCtCode !== comorbidity.snomedCtCode,
-                          ),
-                        ),
-                      );
-                    } else {
-                      dispatch(
-                        setField("selectedComorbidities", [
-                          ...state.selectedComorbidities,
-                          comorbidity,
-                        ]),
-                      );
-                    }
-                  }}
-                >
-                  <ThemedText
-                    style={[
-                      styles.comorbidityText,
-                      { color: isSelected ? theme.link : theme.text },
-                    ]}
-                  >
-                    {comorbidity.commonName || comorbidity.displayName}
-                  </ThemedText>
-                </Pressable>
-              );
-            })}
+          <View style={styles.thirdField}>
+            <FormField
+              label="Weight"
+              value={state.weightKg}
+              onChangeText={(v: string) => dispatch(setField("weightKg", v))}
+              placeholder="70"
+              keyboardType="decimal-pad"
+              unit="kg"
+            />
           </View>
-        </>
-      ) : null}
-
-      <Modal
-        visible={showAsaInfo}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowAsaInfo(false)}
-      >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setShowAsaInfo(false)}
-        >
-          <Pressable
-            style={[
-              styles.modalContent,
-              {
-                backgroundColor: theme.backgroundElevated,
-                paddingBottom: insets.bottom,
-              },
-            ]}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
-              <ThemedText style={[styles.modalTitle, { color: theme.text }]}>
-                ASA Physical Status Classification
-              </ThemedText>
-              <Pressable
-                onPress={() => setShowAsaInfo(false)}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          <View style={styles.thirdField}>
+            <View style={styles.bmiDisplay}>
+              <ThemedText
+                style={[styles.bmiLabel, { color: theme.textSecondary }]}
               >
-                <Feather name="x" size={22} color={theme.textSecondary} />
-              </Pressable>
+                BMI
+              </ThemedText>
+              <ThemedText
+                style={[
+                  styles.bmiValue,
+                  { color: calculatedBmi ? theme.text : theme.textTertiary },
+                ]}
+              >
+                {calculatedBmi ? calculatedBmi.toFixed(1) : "--"}
+              </ThemedText>
             </View>
-            <ScrollView style={styles.modalBody}>
-              {(Object.entries(ASA_SHORT_LABELS) as [string, string][]).map(
-                ([value, roman]) => (
-                  <View key={value} style={[styles.asaRow, { borderBottomColor: theme.border }]}>
-                    <View
+          </View>
+        </View>
+
+        {showComorbidities ? (
+          <>
+            <SectionHeader
+              title="Co-morbidities"
+              subtitle="Select all that apply"
+            />
+
+            <View style={styles.comorbidityGrid}>
+              {COMMON_COMORBIDITIES.slice(0, 20).map((comorbidity) => {
+                const isSelected = state.selectedComorbidities.some(
+                  (c) => c.snomedCtCode === comorbidity.snomedCtCode,
+                );
+                return (
+                  <Pressable
+                    key={comorbidity.snomedCtCode}
+                    style={[
+                      styles.comorbidityChip,
+                      {
+                        backgroundColor: isSelected
+                          ? theme.link + "20"
+                          : theme.backgroundDefault,
+                        borderColor: isSelected ? theme.link : theme.border,
+                      },
+                    ]}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      if (isSelected) {
+                        dispatch(
+                          setField(
+                            "selectedComorbidities",
+                            state.selectedComorbidities.filter(
+                              (c) =>
+                                c.snomedCtCode !== comorbidity.snomedCtCode,
+                            ),
+                          ),
+                        );
+                      } else {
+                        dispatch(
+                          setField("selectedComorbidities", [
+                            ...state.selectedComorbidities,
+                            comorbidity,
+                          ]),
+                        );
+                      }
+                    }}
+                  >
+                    <ThemedText
                       style={[
-                        styles.asaBadge,
-                        {
-                          backgroundColor: theme.link + "15",
-                        },
+                        styles.comorbidityText,
+                        { color: isSelected ? theme.link : theme.text },
                       ]}
                     >
-                      <ThemedText style={[styles.asaBadgeText, { color: theme.link }]}>
-                        {roman}
-                      </ThemedText>
+                      {comorbidity.commonName || comorbidity.displayName}
+                    </ThemedText>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </>
+        ) : null}
+
+        <Modal
+          visible={showAsaInfo}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowAsaInfo(false)}
+        >
+          <Pressable
+            style={styles.modalOverlay}
+            onPress={() => setShowAsaInfo(false)}
+          >
+            <Pressable
+              style={[
+                styles.modalContent,
+                {
+                  backgroundColor: theme.backgroundElevated,
+                  paddingBottom: insets.bottom,
+                },
+              ]}
+              onPress={(e) => e.stopPropagation()}
+            >
+              <View
+                style={[
+                  styles.modalHeader,
+                  { borderBottomColor: theme.border },
+                ]}
+              >
+                <ThemedText style={[styles.modalTitle, { color: theme.text }]}>
+                  ASA Physical Status Classification
+                </ThemedText>
+                <Pressable
+                  onPress={() => setShowAsaInfo(false)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Feather name="x" size={22} color={theme.textSecondary} />
+                </Pressable>
+              </View>
+              <ScrollView style={styles.modalBody}>
+                {(Object.entries(ASA_SHORT_LABELS) as [string, string][]).map(
+                  ([value, roman]) => (
+                    <View
+                      key={value}
+                      style={[
+                        styles.asaRow,
+                        { borderBottomColor: theme.border },
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.asaBadge,
+                          {
+                            backgroundColor: theme.link + "15",
+                          },
+                        ]}
+                      >
+                        <ThemedText
+                          style={[styles.asaBadgeText, { color: theme.link }]}
+                        >
+                          {roman}
+                        </ThemedText>
+                      </View>
+                      <View style={styles.asaTextContainer}>
+                        <ThemedText
+                          style={[styles.asaGradeLabel, { color: theme.text }]}
+                        >
+                          {ASA_GRADE_LABELS[parseInt(value) as ASAScore]}
+                        </ThemedText>
+                        <ThemedText
+                          style={[
+                            styles.asaGradeDesc,
+                            { color: theme.textSecondary },
+                          ]}
+                        >
+                          {ASA_DESCRIPTIONS[parseInt(value) as ASAScore]}
+                        </ThemedText>
+                      </View>
                     </View>
-                    <View style={styles.asaTextContainer}>
-                      <ThemedText style={[styles.asaGradeLabel, { color: theme.text }]}>
-                        {ASA_GRADE_LABELS[parseInt(value) as ASAScore]}
-                      </ThemedText>
-                      <ThemedText style={[styles.asaGradeDesc, { color: theme.textSecondary }]}>
-                        {ASA_DESCRIPTIONS[parseInt(value) as ASAScore]}
-                      </ThemedText>
-                    </View>
-                  </View>
-                ),
-              )}
-            </ScrollView>
+                  ),
+                )}
+              </ScrollView>
+            </Pressable>
           </Pressable>
-        </Pressable>
-      </Modal>
-    </CollapsibleFormSection>
-  );
-});
+        </Modal>
+      </CollapsibleFormSection>
+    );
+  },
+);
 
 const styles = StyleSheet.create({
   row: {

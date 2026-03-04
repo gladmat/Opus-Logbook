@@ -6,12 +6,12 @@ import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { FractureClassificationWizard } from "@/components/FractureClassificationWizard";
-import { 
-  type Diagnosis, 
-  type DiagnosisClinicalDetails, 
+import {
+  type Diagnosis,
+  type DiagnosisClinicalDetails,
   type Laterality,
   type FractureEntry,
-  type Specialty 
+  type Specialty,
 } from "@/types/case";
 
 const LATERALITY_OPTIONS: { value: Laterality; label: string }[] = [
@@ -38,10 +38,14 @@ interface AOTAClassificationCardProps {
   onClear: () => void;
 }
 
-function AOTAClassificationCard({ fractures, onPress, onClear }: AOTAClassificationCardProps) {
+function AOTAClassificationCard({
+  fractures,
+  onPress,
+  onClear,
+}: AOTAClassificationCardProps) {
   const { theme } = useTheme();
-  const hasClassification = fractures.length > 0;
   const firstFracture = fractures[0];
+  const hasClassification = fractures.length > 0 && firstFracture != null;
 
   return (
     <TouchableOpacity
@@ -51,14 +55,22 @@ function AOTAClassificationCard({ fractures, onPress, onClear }: AOTAClassificat
         styles.aotaCard,
         {
           borderColor: hasClassification ? theme.link : theme.border,
-          backgroundColor: hasClassification ? theme.link + "08" : theme.backgroundDefault,
+          backgroundColor: hasClassification
+            ? theme.link + "08"
+            : theme.backgroundDefault,
         },
       ]}
     >
-      <View style={[
-        styles.aotaIconContainer,
-        { backgroundColor: hasClassification ? theme.link : theme.backgroundSecondary },
-      ]}>
+      <View
+        style={[
+          styles.aotaIconContainer,
+          {
+            backgroundColor: hasClassification
+              ? theme.link
+              : theme.backgroundSecondary,
+          },
+        ]}
+      >
         <Feather
           name={hasClassification ? "check" : "layers"}
           size={16}
@@ -74,14 +86,21 @@ function AOTAClassificationCard({ fractures, onPress, onClear }: AOTAClassificat
                 {firstFracture.aoCode}
               </ThemedText>
               {fractures.length > 1 ? (
-                <ThemedText style={[styles.aotaExtra, { color: theme.textSecondary }]}>
+                <ThemedText
+                  style={[styles.aotaExtra, { color: theme.textSecondary }]}
+                >
                   +{fractures.length - 1} more
                 </ThemedText>
               ) : null}
             </View>
-            <ThemedText style={[styles.aotaDescription, { color: theme.textSecondary }]} numberOfLines={1}>
+            <ThemedText
+              style={[styles.aotaDescription, { color: theme.textSecondary }]}
+              numberOfLines={1}
+            >
               {firstFracture.boneName}
-              {firstFracture.details?.type ? ` · Type ${firstFracture.details.type}` : ""}
+              {firstFracture.details?.type
+                ? ` · Type ${firstFracture.details.type}`
+                : ""}
             </ThemedText>
           </>
         ) : (
@@ -89,7 +108,9 @@ function AOTAClassificationCard({ fractures, onPress, onClear }: AOTAClassificat
             <ThemedText style={[styles.aotaTitle, { color: theme.text }]}>
               AO/OTA Classification
             </ThemedText>
-            <ThemedText style={[styles.aotaSubtitle, { color: theme.textTertiary }]}>
+            <ThemedText
+              style={[styles.aotaSubtitle, { color: theme.textTertiary }]}
+            >
               Tap to classify this fracture
             </ThemedText>
           </>
@@ -140,7 +161,9 @@ export function DiagnosisClinicalFields({
   const clinicalDetails = diagnosis.clinicalDetails || {};
   const isHandSurgery = specialty === "hand_surgery";
 
-  const updateClinicalDetails = (updates: Partial<DiagnosisClinicalDetails>) => {
+  const updateClinicalDetails = (
+    updates: Partial<DiagnosisClinicalDetails>,
+  ) => {
     onDiagnosisChange({
       ...diagnosis,
       clinicalDetails: { ...clinicalDetails, ...updates },
@@ -176,13 +199,17 @@ export function DiagnosisClinicalFields({
                 style={[
                   styles.lateralityOption,
                   {
-                    backgroundColor: isSelected ? theme.link : theme.backgroundSecondary,
+                    backgroundColor: isSelected
+                      ? theme.link
+                      : theme.backgroundSecondary,
                     borderColor: isSelected ? theme.link : theme.border,
                   },
                 ]}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  updateClinicalDetails({ laterality: isSelected ? undefined : option.value });
+                  updateClinicalDetails({
+                    laterality: isSelected ? undefined : option.value,
+                  });
                 }}
               >
                 <ThemedText
@@ -228,14 +255,17 @@ export function DiagnosisClinicalFields({
           </ThemedText>
           <View style={styles.pickerOptions}>
             {INJURY_MECHANISM_OPTIONS.map((option) => {
-              const isSelected = clinicalDetails.injuryMechanism === option.value;
+              const isSelected =
+                clinicalDetails.injuryMechanism === option.value;
               return (
                 <Pressable
                   key={option.value}
                   style={[
                     styles.pickerOption,
                     {
-                      backgroundColor: isSelected ? theme.link : theme.backgroundSecondary,
+                      backgroundColor: isSelected
+                        ? theme.link
+                        : theme.backgroundSecondary,
                       borderColor: isSelected ? theme.link : theme.border,
                     },
                   ]}

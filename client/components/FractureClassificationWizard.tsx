@@ -34,21 +34,21 @@ export function FractureClassificationWizard({
   visible,
   onClose,
   onSave,
-  initialFractures = []
+  initialFractures = [],
 }: FractureClassificationWizardProps) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  
+
   const [fractures, setFractures] = useState<FractureEntry[]>(initialFractures);
   const [showAddForm, setShowAddForm] = useState(false);
-  
+
   useEffect(() => {
     if (visible) {
       setFractures(initialFractures);
       setShowAddForm(initialFractures.length === 0);
     }
   }, [visible, initialFractures]);
-  
+
   const handleAddFracture = (data: {
     boneId: string;
     boneName: string;
@@ -65,38 +65,49 @@ export function FractureClassificationWizard({
   }) => {
     const newFracture: FractureEntry = {
       id: Date.now().toString(),
-      ...data
+      ...data,
     };
-    setFractures(prev => [...prev, newFracture]);
+    setFractures((prev) => [...prev, newFracture]);
     setShowAddForm(false);
   };
-  
+
   const removeFracture = (id: string) => {
-    setFractures(prev => prev.filter(f => f.id !== id));
+    setFractures((prev) => prev.filter((f) => f.id !== id));
   };
-  
+
   const handleSave = () => {
     onSave(fractures);
     onClose();
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <View style={[styles.container, { backgroundColor: theme.backgroundDefault, paddingTop: insets.top }]}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
+      <View
+        style={[
+          styles.container,
+          { backgroundColor: theme.backgroundDefault, paddingTop: insets.top },
+        ]}
+      >
         <View style={[styles.header, { borderBottomColor: theme.border }]}>
           <Pressable onPress={onClose} style={styles.headerButton}>
             <Feather name="x" size={24} color={theme.text} />
           </Pressable>
-          
+
           <View style={styles.headerCenter}>
             <ThemedText style={[styles.headerTitle, { color: theme.text }]}>
               AO Fracture Classification
             </ThemedText>
-            <ThemedText style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.headerSubtitle, { color: theme.textSecondary }]}
+            >
               Hand & Carpus (Region 7)
             </ThemedText>
           </View>
-          
+
           {fractures.length > 0 ? (
             <Pressable onPress={handleSave} style={styles.headerButton}>
               <ThemedText style={[styles.saveText, { color: theme.link }]}>
@@ -107,7 +118,7 @@ export function FractureClassificationWizard({
             <View style={styles.headerButton} />
           )}
         </View>
-        
+
         {showAddForm ? (
           <AOFractureCascadingForm
             onComplete={handleAddFracture}
@@ -120,31 +131,44 @@ export function FractureClassificationWizard({
             }}
           />
         ) : (
-          <ScrollView 
+          <ScrollView
             style={styles.fracturesList}
             contentContainerStyle={[
               styles.fracturesListContent,
-              { paddingBottom: insets.bottom + Spacing.xl }
+              { paddingBottom: insets.bottom + Spacing.xl },
             ]}
           >
             <ThemedText style={[styles.listTitle, { color: theme.text }]}>
               Classified Fractures ({fractures.length})
             </ThemedText>
-            
-            {fractures.map(f => (
-              <View key={f.id} style={[styles.fractureCard, { backgroundColor: theme.backgroundSecondary }]}>
+
+            {fractures.map((f) => (
+              <View
+                key={f.id}
+                style={[
+                  styles.fractureCard,
+                  { backgroundColor: theme.backgroundSecondary },
+                ]}
+              >
                 <View style={styles.fractureInfo}>
-                  <ThemedText style={[styles.fractureBone, { color: theme.text }]}>
+                  <ThemedText
+                    style={[styles.fractureBone, { color: theme.text }]}
+                  >
                     {f.boneName}
                   </ThemedText>
-                  <View style={[styles.aoCodeBadge, { backgroundColor: theme.link }]}>
+                  <View
+                    style={[
+                      styles.aoCodeBadge,
+                      { backgroundColor: theme.link },
+                    ]}
+                  >
                     <ThemedText style={styles.aoCodeText}>
                       {f.aoCode}
                     </ThemedText>
                   </View>
                 </View>
-                <Pressable 
-                  onPress={() => removeFracture(f.id)} 
+                <Pressable
+                  onPress={() => removeFracture(f.id)}
                   hitSlop={8}
                   style={styles.removeButton}
                 >
@@ -152,7 +176,7 @@ export function FractureClassificationWizard({
                 </Pressable>
               </View>
             ))}
-            
+
             <Pressable
               style={[styles.addButton, { borderColor: theme.link }]}
               onPress={() => setShowAddForm(true)}
@@ -162,7 +186,7 @@ export function FractureClassificationWizard({
                 Add Another Fracture
               </ThemedText>
             </Pressable>
-            
+
             <Pressable
               style={[styles.saveButton, { backgroundColor: theme.link }]}
               onPress={handleSave}

@@ -16,7 +16,12 @@ import EditProfileScreen from "@/screens/EditProfileScreen";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppLock } from "@/contexts/AppLockContext";
-import { Specialty, TimelineEventType, MediaAttachment, Case } from "@/types/case";
+import {
+  Specialty,
+  TimelineEventType,
+  MediaAttachment,
+  Case,
+} from "@/types/case";
 import { useTheme } from "@/hooks/useTheme";
 
 export type RootStackParamList = {
@@ -26,7 +31,13 @@ export type RootStackParamList = {
   CaseDetail: { caseId: string; showComplicationForm?: boolean };
   CaseForm: { specialty?: Specialty; caseId?: string; duplicateFrom?: Case };
   AddCase: undefined;
-  AddTimelineEvent: { caseId: string; initialEventType?: TimelineEventType; isSkinLesion?: boolean; caseDischargeDate?: string; editEventId?: string };
+  AddTimelineEvent: {
+    caseId: string;
+    initialEventType?: TimelineEventType;
+    isSkinLesion?: boolean;
+    caseDischargeDate?: string;
+    editEventId?: string;
+  };
   MediaManagement: {
     existingAttachments?: MediaAttachment[];
     callbackId?: string;
@@ -57,7 +68,12 @@ export default function RootStackNavigator() {
 
   if (isLoading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.backgroundRoot }]}>
+      <View
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: colors.backgroundRoot },
+        ]}
+      >
         <ActivityIndicator size="large" color={colors.link} />
       </View>
     );

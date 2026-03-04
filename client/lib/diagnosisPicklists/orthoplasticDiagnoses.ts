@@ -33,7 +33,13 @@ const ORTH_DX_TRAUMA: DiagnosisPicklistEntry[] = [
     subcategory: "Trauma / Open Fractures",
     clinicalGroup: "trauma",
     hasStaging: true, // Gustilo-Anderson in diagnosisStagingConfig
-    searchSynonyms: ["open tibia", "compound fracture", "tibial fracture", "open leg fracture", "Gustilo"],
+    searchSynonyms: [
+      "open tibia",
+      "compound fracture",
+      "tibial fracture",
+      "open leg fracture",
+      "Gustilo",
+    ],
     suggestedProcedures: [
       // === ALWAYS for open fractures ===
       {
@@ -136,7 +142,12 @@ const ORTH_DX_TRAUMA: DiagnosisPicklistEntry[] = [
     subcategory: "Trauma / Open Fractures",
     clinicalGroup: "trauma",
     hasStaging: true, // Gustilo-Anderson
-    searchSynonyms: ["open arm fracture", "open humerus", "open forearm", "compound upper limb"],
+    searchSynonyms: [
+      "open arm fracture",
+      "open humerus",
+      "open forearm",
+      "compound upper limb",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "orth_debride_surgical",
@@ -187,7 +198,13 @@ const ORTH_DX_TRAUMA: DiagnosisPicklistEntry[] = [
     subcategory: "Trauma / Open Fractures",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["exposed bone", "exposed tendon", "exposed hardware", "traumatic tissue loss", "degloving"],
+    searchSynonyms: [
+      "exposed bone",
+      "exposed tendon",
+      "exposed hardware",
+      "traumatic tissue loss",
+      "degloving",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "orth_debride_surgical",
@@ -232,7 +249,12 @@ const ORTH_DX_TRAUMA: DiagnosisPicklistEntry[] = [
     subcategory: "Trauma / Open Fractures",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["degloving", "avulsion injury", "Morel-Lavallée", "shearing injury"],
+    searchSynonyms: [
+      "degloving",
+      "avulsion injury",
+      "Morel-Lavallée",
+      "shearing injury",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "orth_debride_surgical",
@@ -272,7 +294,12 @@ const ORTH_DX_CHRONIC: DiagnosisPicklistEntry[] = [
     subcategory: "Chronic Wounds / Infection",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["non-healing wound", "chronic leg ulcer", "surgical wound breakdown", "wound dehiscence"],
+    searchSynonyms: [
+      "non-healing wound",
+      "chronic leg ulcer",
+      "surgical wound breakdown",
+      "wound dehiscence",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "orth_debride_surgical",
@@ -305,7 +332,12 @@ const ORTH_DX_CHRONIC: DiagnosisPicklistEntry[] = [
     subcategory: "Chronic Wounds / Infection",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["osteomyelitis", "bone infection", "chronic osteomyelitis", "Cierny-Mader"],
+    searchSynonyms: [
+      "osteomyelitis",
+      "bone infection",
+      "chronic osteomyelitis",
+      "Cierny-Mader",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "orth_debride_surgical",
@@ -344,7 +376,13 @@ const ORTH_DX_CHRONIC: DiagnosisPicklistEntry[] = [
     subcategory: "Chronic Wounds / Infection",
     clinicalGroup: "elective",
     hasStaging: true, // Wagner classification — new staging to add
-    searchSynonyms: ["diabetic foot", "diabetic ulcer", "Wagner", "neuropathic ulcer", "Charcot"],
+    searchSynonyms: [
+      "diabetic foot",
+      "diabetic ulcer",
+      "Wagner",
+      "neuropathic ulcer",
+      "Charcot",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "orth_debride_surgical",
@@ -419,7 +457,12 @@ const ORTH_DX_CHRONIC: DiagnosisPicklistEntry[] = [
     subcategory: "Chronic Wounds / Infection",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["pretibial", "shin laceration", "pretibial flap", "degloving shin"],
+    searchSynonyms: [
+      "pretibial",
+      "shin laceration",
+      "pretibial flap",
+      "degloving shin",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "gen_trauma_pretibial_repair",
@@ -458,7 +501,13 @@ const ORTH_DX_CHRONIC: DiagnosisPicklistEntry[] = [
     subcategory: "Chronic Wounds / Infection",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["necrotising fasciitis", "necrotizing fasciitis", "nec fasc", "NF", "soft tissue infection"],
+    searchSynonyms: [
+      "necrotising fasciitis",
+      "necrotizing fasciitis",
+      "nec fasc",
+      "NF",
+      "soft tissue infection",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "orth_debride_surgical",
@@ -504,7 +553,13 @@ const ORTH_DX_RECONSTRUCTION: DiagnosisPicklistEntry[] = [
     subcategory: "Complex Reconstruction",
     clinicalGroup: "reconstructive",
     hasStaging: false,
-    searchSynonyms: ["sternal", "sternotomy wound", "deep sternal infection", "mediastinitis", "DSWI"],
+    searchSynonyms: [
+      "sternal",
+      "sternotomy wound",
+      "deep sternal infection",
+      "mediastinitis",
+      "DSWI",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "orth_debride_surgical",
@@ -543,7 +598,12 @@ const ORTH_DX_RECONSTRUCTION: DiagnosisPicklistEntry[] = [
     subcategory: "Complex Reconstruction",
     clinicalGroup: "reconstructive",
     hasStaging: false,
-    searchSynonyms: ["tissue loss", "soft tissue defect", "flap coverage needed", "wound coverage"],
+    searchSynonyms: [
+      "tissue loss",
+      "soft tissue defect",
+      "flap coverage needed",
+      "wound coverage",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "orth_debride_surgical",
@@ -594,7 +654,12 @@ const ORTH_DX_RECONSTRUCTION: DiagnosisPicklistEntry[] = [
     subcategory: "Complex Reconstruction",
     clinicalGroup: "reconstructive",
     hasStaging: false,
-    searchSynonyms: ["stump revision", "stump breakdown", "amputation wound", "stump ulcer"],
+    searchSynonyms: [
+      "stump revision",
+      "stump breakdown",
+      "amputation wound",
+      "stump ulcer",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "orth_stump_revision",
@@ -627,7 +692,13 @@ const ORTH_DX_RECONSTRUCTION: DiagnosisPicklistEntry[] = [
     subcategory: "Complex Reconstruction",
     clinicalGroup: "reconstructive",
     hasStaging: false,
-    searchSynonyms: ["non-union", "nonunion", "bone graft", "vascularised bone", "pseudoarthrosis"],
+    searchSynonyms: [
+      "non-union",
+      "nonunion",
+      "bone graft",
+      "vascularised bone",
+      "pseudoarthrosis",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "orth_ff_fibula",
@@ -660,7 +731,14 @@ const ORTH_DX_RECONSTRUCTION: DiagnosisPicklistEntry[] = [
     subcategory: "Complex Reconstruction",
     clinicalGroup: "reconstructive",
     hasStaging: true, // NPUAP in diagnosisStagingConfig
-    searchSynonyms: ["pressure ulcer", "pressure sore", "decubitus", "sacral", "ischial", "trochanteric"],
+    searchSynonyms: [
+      "pressure ulcer",
+      "pressure sore",
+      "decubitus",
+      "sacral",
+      "ischial",
+      "trochanteric",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "orth_debride_surgical",
@@ -716,7 +794,7 @@ export function getOrthoplasticSubcategories(): string[] {
 
 /** Get orthoplastic diagnoses for a specific subcategory */
 export function getOrthoplasticDiagnosesForSubcategory(
-  subcategory: string
+  subcategory: string,
 ): DiagnosisPicklistEntry[] {
   return ORTHOPLASTIC_DIAGNOSES.filter((dx) => dx.subcategory === subcategory);
 }

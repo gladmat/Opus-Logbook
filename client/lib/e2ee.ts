@@ -6,11 +6,7 @@ import { x25519 } from "@noble/curves/ed25519.js";
 import { hkdf } from "@noble/hashes/hkdf.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { xchacha20poly1305 } from "@noble/ciphers/chacha.js";
-import {
-  bytesToHex,
-  hexToBytes,
-  utf8ToBytes,
-} from "@noble/hashes/utils.js";
+import { bytesToHex, hexToBytes, utf8ToBytes } from "@noble/hashes/utils.js";
 
 function bytesToUtf8(bytes: Uint8Array): string {
   return new TextDecoder().decode(bytes);
@@ -79,9 +75,7 @@ async function getDeviceKeyPair(): Promise<{
 }> {
   const deviceId = await getOrCreateDeviceId();
   const privateKey = await getOrCreateDevicePrivateKeyHex();
-  const publicKey = bytesToHex(
-    x25519.getPublicKey(hexToBytes(privateKey)),
-  );
+  const publicKey = bytesToHex(x25519.getPublicKey(hexToBytes(privateKey)));
 
   return { deviceId, privateKey, publicKey };
 }
@@ -94,7 +88,13 @@ function deriveSharedKey(
     hexToBytes(privateKeyHex),
     hexToBytes(publicKeyHex),
   );
-  return hkdf(sha256, sharedSecret, undefined, utf8ToBytes(CASE_KEY_CONTEXT), KEY_BYTES);
+  return hkdf(
+    sha256,
+    sharedSecret,
+    undefined,
+    utf8ToBytes(CASE_KEY_CONTEXT),
+    KEY_BYTES,
+  );
 }
 
 export async function getOrCreateDeviceIdentity(): Promise<{
@@ -151,8 +151,8 @@ export function decryptPayloadWithCaseKey(
   const parts = envelope.split(":");
   if (parts.length !== 4) return envelope;
 
-  const nonceHex = parts[2];
-  const cipherHex = parts[3];
+  const nonceHex = parts[2]!;
+  const cipherHex = parts[3]!;
 
   const nonce = hexToBytes(nonceHex);
   const cipher = xchacha20poly1305(hexToBytes(caseKeyHex), nonce);

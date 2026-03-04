@@ -40,7 +40,9 @@ export function FacilitySelector({
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRegion, setSelectedRegion] = useState<string | undefined>();
-  const [selectedType, setSelectedType] = useState<"public" | "private" | undefined>();
+  const [selectedType, setSelectedType] = useState<
+    "public" | "private" | undefined
+  >();
 
   const filteredFacilities = useMemo(() => {
     return searchFacilities(searchQuery, countryCode, {
@@ -55,7 +57,7 @@ export function FacilitySelector({
       if (!groups[facility.region]) {
         groups[facility.region] = [];
       }
-      groups[facility.region].push(facility);
+      groups[facility.region]!.push(facility);
     });
     return groups;
   }, [filteredFacilities]);
@@ -122,7 +124,11 @@ export function FacilitySelector({
               />
               {searchQuery.length > 0 ? (
                 <TouchableOpacity onPress={() => setSearchQuery("")}>
-                  <Feather name="x-circle" size={18} color={theme.textTertiary} />
+                  <Feather
+                    name="x-circle"
+                    size={18}
+                    color={theme.textTertiary}
+                  />
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -148,7 +154,9 @@ export function FacilitySelector({
                           ? theme.link + "20"
                           : theme.backgroundDefault,
                       borderColor:
-                        selectedRegion === item.value ? theme.link : theme.border,
+                        selectedRegion === item.value
+                          ? theme.link
+                          : theme.border,
                     },
                   ]}
                 >
@@ -157,7 +165,9 @@ export function FacilitySelector({
                       styles.filterChipText,
                       {
                         color:
-                          selectedRegion === item.value ? theme.link : theme.text,
+                          selectedRegion === item.value
+                            ? theme.link
+                            : theme.text,
                       },
                     ]}
                   >
@@ -187,7 +197,8 @@ export function FacilitySelector({
                   style={[
                     styles.typeChipText,
                     {
-                      color: selectedType === undefined ? theme.link : theme.text,
+                      color:
+                        selectedType === undefined ? theme.link : theme.text,
                     },
                   ]}
                 >
@@ -212,7 +223,8 @@ export function FacilitySelector({
                   style={[
                     styles.typeChipText,
                     {
-                      color: selectedType === "public" ? theme.link : theme.text,
+                      color:
+                        selectedType === "public" ? theme.link : theme.text,
                     },
                   ]}
                 >
@@ -237,7 +249,8 @@ export function FacilitySelector({
                   style={[
                     styles.typeChipText,
                     {
-                      color: selectedType === "private" ? theme.link : theme.text,
+                      color:
+                        selectedType === "private" ? theme.link : theme.text,
                     },
                   ]}
                 >
@@ -302,7 +315,9 @@ export function FacilitySelector({
                                 },
                               ]}
                             >
-                              {facility.type === "public" ? "Public" : "Private"}
+                              {facility.type === "public"
+                                ? "Public"
+                                : "Private"}
                             </ThemedText>
                           </View>
                         </View>
@@ -310,7 +325,11 @@ export function FacilitySelector({
                       {isSelected ? (
                         <Feather name="check" size={20} color={theme.link} />
                       ) : (
-                        <Feather name="plus" size={20} color={theme.textTertiary} />
+                        <Feather
+                          name="plus"
+                          size={20}
+                          color={theme.textTertiary}
+                        />
                       )}
                     </TouchableOpacity>
                   );

@@ -1,6 +1,11 @@
 import type { FreeFlap, ElevationPlane } from "@/types/case";
 
-export type FlapFieldType = "select" | "boolean" | "number" | "text" | "multi_select";
+export type FlapFieldType =
+  | "select"
+  | "boolean"
+  | "number"
+  | "text"
+  | "multi_select";
 
 export interface FlapFieldOption {
   value: string;
@@ -19,8 +24,9 @@ export interface FlapFieldDefinition {
   showWhen?: { key: string; values: string[] };
 }
 
-export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>> = {
-
+export const FLAP_FIELD_CONFIG: Partial<
+  Record<FreeFlap, FlapFieldDefinition[]>
+> = {
   alt: [
     {
       key: "altTissueComposition",
@@ -52,9 +58,18 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
       label: "Pedicle Source Vessel (Shieh)",
       type: "select",
       options: [
-        { value: "type_i_descending", label: "Type I \u2014 Descending branch LCFA (~90%)" },
-        { value: "type_ii_transverse", label: "Type II \u2014 Transverse branch (~4\u20139%)" },
-        { value: "type_iii_profunda", label: "Type III \u2014 Direct from profunda (~4\u20136%)" },
+        {
+          value: "type_i_descending",
+          label: "Type I \u2014 Descending branch LCFA (~90%)",
+        },
+        {
+          value: "type_ii_transverse",
+          label: "Type II \u2014 Transverse branch (~4\u20139%)",
+        },
+        {
+          value: "type_iii_profunda",
+          label: "Type III \u2014 Direct from profunda (~4\u20136%)",
+        },
       ],
     },
     {
@@ -62,7 +77,10 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
       label: "Perforator Location (Yu ABC)",
       type: "select",
       options: [
-        { value: "a_proximal", label: "A \u2014 Proximal (~5 cm above midpoint)" },
+        {
+          value: "a_proximal",
+          label: "A \u2014 Proximal (~5 cm above midpoint)",
+        },
         { value: "b_midpoint", label: "B \u2014 Midpoint (most consistent)" },
         { value: "c_distal", label: "C \u2014 Distal (~5 cm below)" },
       ],
@@ -126,7 +144,10 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
         { value: "ms_0", label: "MS-0 \u2014 Full rectus harvested" },
         { value: "ms_1", label: "MS-1 \u2014 Lateral muscle preserved" },
         { value: "ms_2", label: "MS-2 \u2014 Medial + lateral preserved" },
-        { value: "ms_3", label: "MS-3 \u2014 Entire rectus preserved (true DIEP)" },
+        {
+          value: "ms_3",
+          label: "MS-3 \u2014 Entire rectus preserved (true DIEP)",
+        },
       ],
     },
     {
@@ -157,8 +178,14 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
       options: [
         { value: "standard_unilateral", label: "Standard unilateral" },
         { value: "hemi_diep", label: "Hemi-DIEP (ipsilateral only)" },
-        { value: "stacked", label: "Stacked (bilateral \u2192 unilateral breast)" },
-        { value: "conjoined_double_pedicle", label: "Conjoined double-pedicle" },
+        {
+          value: "stacked",
+          label: "Stacked (bilateral \u2192 unilateral breast)",
+        },
+        {
+          value: "conjoined_double_pedicle",
+          label: "Conjoined double-pedicle",
+        },
         { value: "bipedicled", label: "Bipedicled (both DIEAs)" },
       ],
     },
@@ -208,7 +235,10 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
       type: "select",
       required: true,
       options: [
-        { value: "present_adequate", label: "Present + adequate (\u22651.5 mm)" },
+        {
+          value: "present_adequate",
+          label: "Present + adequate (\u22651.5 mm)",
+        },
         { value: "present_inadequate", label: "Present + inadequate" },
         { value: "absent", label: "Absent" },
       ],
@@ -261,7 +291,10 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
         { value: "muscle_only", label: "Muscle only" },
         { value: "myocutaneous", label: "Myocutaneous" },
         { value: "myofasciocutaneous", label: "Myofasciocutaneous" },
-        { value: "perforator_only", label: "Perforator only (MCFG perforator)" },
+        {
+          value: "perforator_only",
+          label: "Perforator only (MCFG perforator)",
+        },
       ],
     },
     {
@@ -347,7 +380,10 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
       label: "Perforator Type",
       type: "select",
       options: [
-        { value: "musculocutaneous", label: "Musculocutaneous (through adductor magnus)" },
+        {
+          value: "musculocutaneous",
+          label: "Musculocutaneous (through adductor magnus)",
+        },
         { value: "septocutaneous", label: "Septocutaneous" },
       ],
     },
@@ -363,7 +399,10 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
       showWhen: { key: "papSensate", values: ["true"] },
       options: [
         { value: "pfcn", label: "Posterior femoral cutaneous nerve (PFCN)" },
-        { value: "anterior_obturator", label: "Anterior obturator nerve branch" },
+        {
+          value: "anterior_obturator",
+          label: "Anterior obturator nerve branch",
+        },
       ],
     },
     {
@@ -387,8 +426,14 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
       required: true,
       hint: "Most important SCIP field \u2014 determines pedicle length and angiosome size",
       options: [
-        { value: "superficial_scias", label: "Superficial (SCIAs) \u2014 shorter pedicle ~6.6 cm" },
-        { value: "deep_sciad", label: "Deep (SCIAd) \u2014 longer pedicle ~9.1 cm" },
+        {
+          value: "superficial_scias",
+          label: "Superficial (SCIAs) \u2014 shorter pedicle ~6.6 cm",
+        },
+        {
+          value: "deep_sciad",
+          label: "Deep (SCIAd) \u2014 longer pedicle ~9.1 cm",
+        },
         { value: "both", label: "Both branches" },
       ],
     },
@@ -456,9 +501,18 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
       required: true,
       options: [
         { value: "tdap", label: "TDAP (no muscle)" },
-        { value: "msld_i", label: "MSLD Type I (small cuff, both nerves preserved)" },
-        { value: "msld_ii", label: "MSLD Type II (larger strip, nerve preserved)" },
-        { value: "msld_iii", label: "MSLD Type III (descending branch sacrificed)" },
+        {
+          value: "msld_i",
+          label: "MSLD Type I (small cuff, both nerves preserved)",
+        },
+        {
+          value: "msld_ii",
+          label: "MSLD Type II (larger strip, nerve preserved)",
+        },
+        {
+          value: "msld_iii",
+          label: "MSLD Type III (descending branch sacrificed)",
+        },
         { value: "complete_ld", label: "Complete LD (total muscle harvest)" },
         { value: "extended_ld", label: "Extended LD" },
       ],
@@ -472,7 +526,10 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
         { value: "myocutaneous", label: "Myocutaneous (with skin paddle)" },
         { value: "fasciocutaneous_tdap", label: "Fasciocutaneous (TDAP)" },
         { value: "osteomyocutaneous_rib", label: "Osteomyocutaneous with rib" },
-        { value: "osteomyocutaneous_scapular_tip", label: "Osteomyocutaneous with scapular tip" },
+        {
+          value: "osteomyocutaneous_scapular_tip",
+          label: "Osteomyocutaneous with scapular tip",
+        },
       ],
     },
     {
@@ -553,7 +610,10 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
         { value: "fasciocutaneous", label: "Fasciocutaneous" },
         { value: "adipofascial", label: "Adipofascial" },
         { value: "chimeric_ld_cuff", label: "Chimeric with LD muscle cuff" },
-        { value: "chimeric_serratus", label: "Chimeric with serratus anterior" },
+        {
+          value: "chimeric_serratus",
+          label: "Chimeric with serratus anterior",
+        },
       ],
     },
     {
@@ -562,7 +622,10 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
       type: "select",
       required: true,
       options: [
-        { value: "descending_branch", label: "Descending branch (Angrigiani landmark)" },
+        {
+          value: "descending_branch",
+          label: "Descending branch (Angrigiani landmark)",
+        },
         { value: "transverse_branch", label: "Transverse branch" },
         { value: "main_tda_trunk", label: "Main TDA trunk" },
       ],
@@ -620,7 +683,10 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
       options: [
         { value: "bone_only", label: "Bone only" },
         { value: "osteocutaneous", label: "Osteocutaneous (with skin paddle)" },
-        { value: "osteomyocutaneous", label: "Osteomyocutaneous (with FHL/soleus)" },
+        {
+          value: "osteomyocutaneous",
+          label: "Osteomyocutaneous (with FHL/soleus)",
+        },
       ],
     },
     {
@@ -646,7 +712,10 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
         { value: "single", label: "Single-barrel" },
         { value: "double", label: "Double-barrel" },
         { value: "hybrid_1_2_1", label: "Hybrid 1-2-1" },
-        { value: "biaxial_double", label: "Biaxial double-barrel (for maxilla)" },
+        {
+          value: "biaxial_double",
+          label: "Biaxial double-barrel (for maxilla)",
+        },
       ],
     },
     {
@@ -654,10 +723,22 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
       label: "Skin Paddle Perforator Type (Yadav)",
       type: "select",
       options: [
-        { value: "type_a_septocutaneous", label: "Type A \u2014 Septocutaneous (most common)" },
-        { value: "type_b_septo_musculo", label: "Type B \u2014 Septo + musculocutaneous" },
-        { value: "type_c_musculocutaneous", label: "Type C \u2014 Musculocutaneous only" },
-        { value: "type_d_popliteal", label: "Type D \u2014 Popliteal artery supply (rare)" },
+        {
+          value: "type_a_septocutaneous",
+          label: "Type A \u2014 Septocutaneous (most common)",
+        },
+        {
+          value: "type_b_septo_musculo",
+          label: "Type B \u2014 Septo + musculocutaneous",
+        },
+        {
+          value: "type_c_musculocutaneous",
+          label: "Type C \u2014 Musculocutaneous only",
+        },
+        {
+          value: "type_d_popliteal",
+          label: "Type D \u2014 Popliteal artery supply (rare)",
+        },
       ],
     },
     {
@@ -730,8 +811,14 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
       type: "select",
       required: true,
       options: [
-        { value: "scapular", label: "Scapular (transverse, CSA transverse branch)" },
-        { value: "parascapular", label: "Parascapular (vertical, CSA descending branch)" },
+        {
+          value: "scapular",
+          label: "Scapular (transverse, CSA transverse branch)",
+        },
+        {
+          value: "parascapular",
+          label: "Parascapular (vertical, CSA descending branch)",
+        },
         { value: "both_boomerang", label: "Both \u2014 boomerang" },
         { value: "none", label: "None" },
       ],
@@ -742,8 +829,14 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
       type: "select",
       options: [
         { value: "none", label: "None" },
-        { value: "lateral_border", label: "Lateral scapular border (CSA periosteal)" },
-        { value: "scapular_tip", label: "Scapular tip/angle (angular branch from TDA)" },
+        {
+          value: "lateral_border",
+          label: "Lateral scapular border (CSA periosteal)",
+        },
+        {
+          value: "scapular_tip",
+          label: "Scapular tip/angle (angular branch from TDA)",
+        },
         { value: "both", label: "Both (bipedicled bone)" },
       ],
     },
@@ -753,7 +846,10 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
       type: "select",
       options: [
         { value: "csa_only", label: "CSA only" },
-        { value: "subscapular_extended", label: "Subscapular artery (extended)" },
+        {
+          value: "subscapular_extended",
+          label: "Subscapular artery (extended)",
+        },
         { value: "tda_for_tip", label: "TDA (for scapular tip)" },
       ],
     },
@@ -788,8 +884,14 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
       type: "select",
       required: true,
       options: [
-        { value: "scapular", label: "Scapular (transverse, CSA transverse branch)" },
-        { value: "parascapular", label: "Parascapular (vertical, CSA descending branch)" },
+        {
+          value: "scapular",
+          label: "Scapular (transverse, CSA transverse branch)",
+        },
+        {
+          value: "parascapular",
+          label: "Parascapular (vertical, CSA descending branch)",
+        },
         { value: "both_boomerang", label: "Both \u2014 boomerang" },
         { value: "none", label: "None" },
       ],
@@ -811,7 +913,10 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
       type: "select",
       options: [
         { value: "csa_only", label: "CSA only" },
-        { value: "subscapular_extended", label: "Subscapular artery (extended)" },
+        {
+          value: "subscapular_extended",
+          label: "Subscapular artery (extended)",
+        },
         { value: "tda_for_tip", label: "TDA (for scapular tip)" },
       ],
     },
@@ -846,7 +951,10 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
       type: "select",
       options: [
         { value: "sgap", label: "SGAP (standard)" },
-        { value: "sc_gap", label: "sc-GAP (septocutaneous, between glut max + medius)" },
+        {
+          value: "sc_gap",
+          label: "sc-GAP (septocutaneous, between glut max + medius)",
+        },
       ],
     },
     {
@@ -893,7 +1001,10 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
       type: "select",
       required: true,
       options: [
-        { value: "in_the_crease", label: "In-the-crease (scar in gluteal fold)" },
+        {
+          value: "in_the_crease",
+          label: "In-the-crease (scar in gluteal fold)",
+        },
         { value: "oblique", label: "Oblique" },
         { value: "transverse", label: "Transverse" },
       ],
@@ -934,8 +1045,14 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
         { value: "fasciocutaneous", label: "Fasciocutaneous" },
         { value: "osteocutaneous", label: "Osteocutaneous (with radius)" },
         { value: "adipofascial", label: "Adipofascial (no skin)" },
-        { value: "composite_palmaris", label: "Composite with palmaris longus" },
-        { value: "composite_neuroteno", label: "Composite neuro-teno-cutaneous" },
+        {
+          value: "composite_palmaris",
+          label: "Composite with palmaris longus",
+        },
+        {
+          value: "composite_neuroteno",
+          label: "Composite neuro-teno-cutaneous",
+        },
       ],
     },
     {
@@ -955,7 +1072,10 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
       type: "select",
       options: [
         { value: "subfascial", label: "Subfascial (standard)" },
-        { value: "suprafascial", label: "Suprafascial (preserves fascia over tendons)" },
+        {
+          value: "suprafascial",
+          label: "Suprafascial (preserves fascia over tendons)",
+        },
       ],
     },
     {
@@ -1040,7 +1160,10 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
       options: [
         { value: "fasciocutaneous", label: "Fasciocutaneous" },
         { value: "adipofascial", label: "Adipofascial" },
-        { value: "chimeric_gastrocnemius", label: "Chimeric with medial gastrocnemius" },
+        {
+          value: "chimeric_gastrocnemius",
+          label: "Chimeric with medial gastrocnemius",
+        },
       ],
     },
     {
@@ -1050,9 +1173,18 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
       required: true,
       options: [
         { value: "type_i_single", label: "Type I \u2014 Single branch (31%)" },
-        { value: "type_iia_dual_superior", label: "Type IIa \u2014 Dual, takeoff superior (35%, best)" },
-        { value: "type_iib_dual_inferior", label: "Type IIb \u2014 Dual, takeoff inferior (24%)" },
-        { value: "type_iii_triple", label: "Type III \u2014 3+ branches (10%)" },
+        {
+          value: "type_iia_dual_superior",
+          label: "Type IIa \u2014 Dual, takeoff superior (35%, best)",
+        },
+        {
+          value: "type_iib_dual_inferior",
+          label: "Type IIb \u2014 Dual, takeoff inferior (24%)",
+        },
+        {
+          value: "type_iii_triple",
+          label: "Type III \u2014 3+ branches (10%)",
+        },
       ],
     },
     {
@@ -1060,8 +1192,14 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
       label: "Subcutaneous Perforator Course",
       type: "select",
       options: [
-        { value: "type_1_direct", label: "Type 1 \u2014 Direct vertical (31%)" },
-        { value: "type_2_oblique", label: "Type 2 \u2014 Oblique (57%, most common)" },
+        {
+          value: "type_1_direct",
+          label: "Type 1 \u2014 Direct vertical (31%)",
+        },
+        {
+          value: "type_2_oblique",
+          label: "Type 2 \u2014 Oblique (57%, most common)",
+        },
         { value: "type_3_tortuous", label: "Type 3 \u2014 Tortuous (12%)" },
       ],
     },
@@ -1071,7 +1209,10 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
       type: "select",
       options: [
         { value: "non_sensate", label: "Non-sensate" },
-        { value: "medial_sural_cutaneous", label: "Medial sural cutaneous nerve" },
+        {
+          value: "medial_sural_cutaneous",
+          label: "Medial sural cutaneous nerve",
+        },
         { value: "sural_nerve", label: "Sural nerve (nerve-through-flap)" },
       ],
     },
@@ -1090,7 +1231,10 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
       type: "select",
       options: [
         { value: "none", label: "None" },
-        { value: "medial_gastrocnemius", label: "Medial gastrocnemius segment" },
+        {
+          value: "medial_gastrocnemius",
+          label: "Medial gastrocnemius segment",
+        },
       ],
     },
     {
@@ -1133,7 +1277,10 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
         { value: "myocutaneous", label: "Myocutaneous (+ skin paddle)" },
         { value: "fascia_only", label: "Fascia only (carpaccio technique)" },
         { value: "osteomuscular", label: "Osteomuscular (+ rib)" },
-        { value: "osteomyocutaneous", label: "Osteomyocutaneous (+ rib + skin)" },
+        {
+          value: "osteomyocutaneous",
+          label: "Osteomyocutaneous (+ rib + skin)",
+        },
       ],
     },
     {
@@ -1219,8 +1366,17 @@ export const FLAP_FIELD_CONFIG: Partial<Record<FreeFlap, FlapFieldDefinition[]>>
   ],
 };
 
-export const FLAP_ELEVATION_PLANES: Partial<Record<FreeFlap, ElevationPlane[]>> = {
-  alt: ["subfascial", "epifascial", "thin", "superthin", "ultrathin", "subdermal"],
+export const FLAP_ELEVATION_PLANES: Partial<
+  Record<FreeFlap, ElevationPlane[]>
+> = {
+  alt: [
+    "subfascial",
+    "epifascial",
+    "thin",
+    "superthin",
+    "ultrathin",
+    "subdermal",
+  ],
   scip: ["subfascial", "suprafascial"],
   tdap: ["subfascial", "suprafascial"],
   latissimus_dorsi: ["subfascial", "suprafascial"],

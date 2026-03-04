@@ -13,11 +13,11 @@ export const CASE_STATUS_LABELS: Record<CaseStatus, string> = {
 // RACS MALT Supervision Levels (role in theatre)
 export type Role = "PS" | "PP" | "AS" | "ONS" | "SS" | "SNS" | "A";
 
-export type OperatingTeamRole = 
+export type OperatingTeamRole =
   | "primary_surgeon"
-  | "scrub_nurse" 
-  | "circulating_nurse" 
-  | "anaesthetist" 
+  | "scrub_nurse"
+  | "circulating_nurse"
+  | "anaesthetist"
   | "anaesthetic_registrar"
   | "surgical_assistant"
   | "surgical_registrar"
@@ -25,25 +25,59 @@ export type OperatingTeamRole =
   | "unassigned";
 
 // Procedure categories by specialty (high-level classification)
-export type HandSurgeryCategory = "trauma" | "degenerative" | "peripheral_nerve" | "congenital" | "tumour" | "infection" | "vascular" | "other";
-export type OrthoplasticCategory = "trauma" | "oncological" | "infection" | "pressure_sore" | "other";
-export type BreastCategory = "reconstruction" | "reduction" | "augmentation" | "oncoplastic" | "revision" | "other";
-export type BodyContouringCategory = "post_bariatric" | "cosmetic" | "reconstruction" | "other";
-export type BurnsCategory = "acute" | "reconstruction" | "contracture_release" | "other";
-export type HeadNeckCategory = "oncological" | "trauma" | "congenital" | "other";
+export type HandSurgeryCategory =
+  | "trauma"
+  | "degenerative"
+  | "peripheral_nerve"
+  | "congenital"
+  | "tumour"
+  | "infection"
+  | "vascular"
+  | "other";
+export type OrthoplasticCategory =
+  | "trauma"
+  | "oncological"
+  | "infection"
+  | "pressure_sore"
+  | "other";
+export type BreastCategory =
+  | "reconstruction"
+  | "reduction"
+  | "augmentation"
+  | "oncoplastic"
+  | "revision"
+  | "other";
+export type BodyContouringCategory =
+  | "post_bariatric"
+  | "cosmetic"
+  | "reconstruction"
+  | "other";
+export type BurnsCategory =
+  | "acute"
+  | "reconstruction"
+  | "contracture_release"
+  | "other";
+export type HeadNeckCategory =
+  | "oncological"
+  | "trauma"
+  | "congenital"
+  | "other";
 export type GeneralCategory = "other";
 
-export type ProcedureCategory = 
-  | HandSurgeryCategory 
-  | OrthoplasticCategory 
-  | BreastCategory 
-  | BodyContouringCategory 
-  | BurnsCategory 
-  | HeadNeckCategory 
+export type ProcedureCategory =
+  | HandSurgeryCategory
+  | OrthoplasticCategory
+  | BreastCategory
+  | BodyContouringCategory
+  | BurnsCategory
+  | HeadNeckCategory
   | GeneralCategory;
 
 // Procedure category options by specialty
-export const PROCEDURE_CATEGORY_OPTIONS: Record<Specialty, { value: string; label: string }[]> = {
+export const PROCEDURE_CATEGORY_OPTIONS: Record<
+  Specialty,
+  { value: string; label: string }[]
+> = {
   hand_surgery: [
     { value: "trauma", label: "Trauma" },
     { value: "degenerative", label: "Degenerative" },
@@ -93,15 +127,21 @@ export const PROCEDURE_CATEGORY_OPTIONS: Record<Specialty, { value: string; labe
     { value: "breast", label: "Breast" },
     { value: "other", label: "Other" },
   ],
-  general: [
-    { value: "other", label: "Other" },
-  ],
+  general: [{ value: "other", label: "Other" }],
 };
 
-export type Specialty = "breast" | "body_contouring" | "aesthetics" | "hand_surgery" | "orthoplastic" | "burns" | "general" | "head_neck";
+export type Specialty =
+  | "breast"
+  | "body_contouring"
+  | "aesthetics"
+  | "hand_surgery"
+  | "orthoplastic"
+  | "burns"
+  | "general"
+  | "head_neck";
 
 // Procedure tags for cross-specialty categorization
-export type ProcedureTag = 
+export type ProcedureTag =
   | "free_flap"
   | "pedicled_flap"
   | "local_flap"
@@ -132,7 +172,7 @@ export type AdmissionUrgency = "elective" | "acute";
 
 export type StayType = "day_case" | "inpatient";
 
-export type UnplannedReadmissionReason = 
+export type UnplannedReadmissionReason =
   | "no"
   | "pain"
   | "bleeding"
@@ -143,24 +183,24 @@ export type UnplannedReadmissionReason =
   | "organ_failure"
   | "other";
 
-export type WoundInfectionRisk = 
-  | "clean" 
-  | "clean_contaminated" 
-  | "contaminated" 
-  | "dirty" 
+export type WoundInfectionRisk =
+  | "clean"
+  | "clean_contaminated"
+  | "contaminated"
+  | "dirty"
   | "na";
 
-export type AnaestheticType = 
-  | "general" 
-  | "local" 
-  | "regional_block" 
-  | "spinal" 
-  | "epidural" 
+export type AnaestheticType =
+  | "general"
+  | "local"
+  | "regional_block"
+  | "spinal"
+  | "epidural"
   | "sedation"
   | "sedation_local"
   | "walant";
 
-export type UnplannedICUReason = 
+export type UnplannedICUReason =
   | "no"
   | "localised_sepsis"
   | "generalised_sepsis"
@@ -171,7 +211,7 @@ export type UnplannedICUReason =
   | "pulmonary_embolism"
   | "other";
 
-export type DischargeOutcome = 
+export type DischargeOutcome =
   | "died"
   | "discharged_home"
   | "discharged_care"
@@ -179,12 +219,12 @@ export type DischargeOutcome =
   | "absconded"
   | "referred_other_services";
 
-export type MortalityClassification = 
+export type MortalityClassification =
   | "expected"
   | "unexpected"
   | "not_applicable";
 
-export type ClavienDindoGrade = 
+export type ClavienDindoGrade =
   | "none"
   | "I"
   | "II"
@@ -212,31 +252,31 @@ export type VesselType = "artery" | "vein";
 
 export type CouplingMethod = "hand_sewn" | "coupler" | "hybrid";
 
-export type AnatomicalRegion = 
-  | "lower_leg" 
+export type AnatomicalRegion =
+  | "lower_leg"
   | "knee"
-  | "foot" 
-  | "thigh" 
-  | "hand" 
-  | "forearm" 
-  | "upper_arm" 
+  | "foot"
+  | "thigh"
+  | "hand"
+  | "forearm"
+  | "upper_arm"
   | "head_neck"
   | "breast_chest";
 
 export type HarvestSide = "left" | "right";
 
-export type ElevationPlane = 
-  | "subfascial" 
-  | "suprafascial" 
-  | "epifascial" 
+export type ElevationPlane =
+  | "subfascial"
+  | "suprafascial"
+  | "epifascial"
   | "thin"
   | "superthin"
   | "ultrathin"
   | "subdermal";
 
-export type FreeFlap = 
+export type FreeFlap =
   | "alt"
-  | "latissimus_dorsi" 
+  | "latissimus_dorsi"
   | "gracilis"
   | "tug"
   | "scip"
@@ -285,86 +325,245 @@ export const ELEVATION_PLANE_LABELS: Record<ElevationPlane, string> = {
   subdermal: "Subdermal / Pure Skin",
 };
 
-export type ALTPerforatorType = "musculocutaneous" | "septocutaneous" | "oblique_branch";
-export type ALTPedicleSource = "type_i_descending" | "type_ii_transverse" | "type_iii_profunda";
+export type ALTPerforatorType =
+  | "musculocutaneous"
+  | "septocutaneous"
+  | "oblique_branch";
+export type ALTPedicleSource =
+  | "type_i_descending"
+  | "type_ii_transverse"
+  | "type_iii_profunda";
 export type ALTPerforatorLocation = "a_proximal" | "b_midpoint" | "c_distal";
-export type ALTTissueComposition = "fasciocutaneous" | "myocutaneous" | "chimeric" | "adipofascial" | "fascial_only" | "de_epithelialized";
-export type ALTExtendedVariant = "standard" | "extended" | "bipedicled" | "conjoined_alt_tfl";
+export type ALTTissueComposition =
+  | "fasciocutaneous"
+  | "myocutaneous"
+  | "chimeric"
+  | "adipofascial"
+  | "fascial_only"
+  | "de_epithelialized";
+export type ALTExtendedVariant =
+  | "standard"
+  | "extended"
+  | "bipedicled"
+  | "conjoined_alt_tfl";
 
-export type DIEPPerfusionZones = "zone_i_only" | "zone_i_iii" | "zone_i_ii_iii" | "zone_i_ii_iii_iv";
+export type DIEPPerfusionZones =
+  | "zone_i_only"
+  | "zone_i_iii"
+  | "zone_i_ii_iii"
+  | "zone_i_ii_iii_iv";
 export type DIEPPerforatorRow = "medial" | "lateral" | "both";
 export type MSTRAMClassification = "ms_0" | "ms_1" | "ms_2" | "ms_3";
 export type GillDIEPSubtype = "diep_1" | "diep_2" | "diep_3";
-export type DIEPFlapConfiguration = "standard_unilateral" | "hemi_diep" | "stacked" | "conjoined_double_pedicle" | "bipedicled";
-export type DIEPVenousSupercharge = "none" | "siev_ipsilateral" | "siev_contralateral" | "bipedicled" | "turbocharged";
+export type DIEPFlapConfiguration =
+  | "standard_unilateral"
+  | "hemi_diep"
+  | "stacked"
+  | "conjoined_double_pedicle"
+  | "bipedicled";
+export type DIEPVenousSupercharge =
+  | "none"
+  | "siev_ipsilateral"
+  | "siev_contralateral"
+  | "bipedicled"
+  | "turbocharged";
 export type DIEPFlapExtent = "hemi_diep" | "full_diep";
 
-export type SIEAVesselStatus = "present_adequate" | "present_inadequate" | "absent";
+export type SIEAVesselStatus =
+  | "present_adequate"
+  | "present_inadequate"
+  | "absent";
 export type SIEAOriginPattern = "independent" | "common_trunk_scia" | "absent";
 export type SIEAFlapExtent = "hemi_abdominal" | "full_abdominal";
 
-export type GracilisTissueComposition = "muscle_only" | "myocutaneous" | "myofasciocutaneous" | "perforator_only";
-export type GracilisSkinPaddle = "none" | "transverse_tug" | "vertical" | "oblique_dug" | "l_shaped";
-export type GracilisNerveTarget = "cfng" | "masseteric" | "dual" | "hypoglossal" | "spinal_accessory";
+export type GracilisTissueComposition =
+  | "muscle_only"
+  | "myocutaneous"
+  | "myofasciocutaneous"
+  | "perforator_only";
+export type GracilisSkinPaddle =
+  | "none"
+  | "transverse_tug"
+  | "vertical"
+  | "oblique_dug"
+  | "l_shaped";
+export type GracilisNerveTarget =
+  | "cfng"
+  | "masseteric"
+  | "dual"
+  | "hypoglossal"
+  | "spinal_accessory";
 export type GracilisCoaptation = "end_to_end" | "end_to_side" | "dual";
-export type GracilisHarvestExtent = "complete" | "partial_proximal" | "segmental";
+export type GracilisHarvestExtent =
+  | "complete"
+  | "partial_proximal"
+  | "segmental";
 
-export type PAPSkinPaddle = "transverse_tpap" | "vertical_vpap" | "diagonal_dpap" | "fleur_de_lis" | "s_shaped";
+export type PAPSkinPaddle =
+  | "transverse_tpap"
+  | "vertical_vpap"
+  | "diagonal_dpap"
+  | "fleur_de_lis"
+  | "s_shaped";
 export type PAPPerforatorType = "musculocutaneous" | "septocutaneous";
-export type PAPStacking = "single" | "stacked_bilateral" | "stacked_diep_pap" | "tug_pap";
+export type PAPStacking =
+  | "single"
+  | "stacked_bilateral"
+  | "stacked_diep_pap"
+  | "tug_pap";
 
 export type SCIPPedicleBranch = "superficial_scias" | "deep_sciad" | "both";
 export type SCIPThickness = "standard" | "thin" | "superthin" | "subdermal";
 export type SCIPLymphatic = "none" | "vlnt" | "vlvt" | "lyst";
-export type SCIPTissueComposition = "cutaneous" | "adipofascial" | "fasciocutaneous";
+export type SCIPTissueComposition =
+  | "cutaneous"
+  | "adipofascial"
+  | "fasciocutaneous";
 
-export type LDHarvestExtent = "tdap" | "msld_i" | "msld_ii" | "msld_iii" | "complete_ld" | "extended_ld";
-export type LDTissueComposition = "muscle_only" | "myocutaneous" | "fasciocutaneous_tdap" | "osteomyocutaneous_rib" | "osteomyocutaneous_scapular_tip";
+export type LDHarvestExtent =
+  | "tdap"
+  | "msld_i"
+  | "msld_ii"
+  | "msld_iii"
+  | "complete_ld"
+  | "extended_ld";
+export type LDTissueComposition =
+  | "muscle_only"
+  | "myocutaneous"
+  | "fasciocutaneous_tdap"
+  | "osteomyocutaneous_rib"
+  | "osteomyocutaneous_scapular_tip";
 export type LDNerveStatus = "divided" | "preserved";
-export type LDExtensionArea = "scapular_fat" | "parascapular_fat" | "lumbar_fat" | "combined";
-export type LDSkinPaddle = "transverse" | "vertical" | "oblique" | "fleur_de_lis" | "none";
-export type LDMuscleBranch = "whole_muscle" | "descending" | "transverse" | "bilobed";
+export type LDExtensionArea =
+  | "scapular_fat"
+  | "parascapular_fat"
+  | "lumbar_fat"
+  | "combined";
+export type LDSkinPaddle =
+  | "transverse"
+  | "vertical"
+  | "oblique"
+  | "fleur_de_lis"
+  | "none";
+export type LDMuscleBranch =
+  | "whole_muscle"
+  | "descending"
+  | "transverse"
+  | "bilobed";
 
-export type TDAPTissueComposition = "fasciocutaneous" | "adipofascial" | "chimeric_ld_cuff" | "chimeric_serratus";
-export type TDAPPerforatorSource = "descending_branch" | "transverse_branch" | "main_tda_trunk";
+export type TDAPTissueComposition =
+  | "fasciocutaneous"
+  | "adipofascial"
+  | "chimeric_ld_cuff"
+  | "chimeric_serratus";
+export type TDAPPerforatorSource =
+  | "descending_branch"
+  | "transverse_branch"
+  | "main_tda_trunk";
 export type TDAPThinning = "standard" | "primary_thinned" | "superthin";
-export type TDAPConversion = "completed_tdap" | "converted_msld" | "converted_full_ld";
-export type TDAPSkinPaddle = "transverse" | "vertical" | "oblique" | "propeller";
+export type TDAPConversion =
+  | "completed_tdap"
+  | "converted_msld"
+  | "converted_full_ld";
+export type TDAPSkinPaddle =
+  | "transverse"
+  | "vertical"
+  | "oblique"
+  | "propeller";
 
-export type FibulaTissueComposition = "bone_only" | "osteocutaneous" | "osteomyocutaneous";
-export type FibulaSkinPaddleType = "type_a_septocutaneous" | "type_b_septo_musculo" | "type_c_musculocutaneous" | "type_d_popliteal";
-export type FibulaBarrel = "single" | "double" | "hybrid_1_2_1" | "biaxial_double";
-export type FibulaPlanningMethod = "freehand" | "vsp_models" | "vsp_cutting_guides" | "vsp_psi" | "in_house_vsp";
-export type FibulaFixation = "reconstruction_plate" | "miniplates" | "patient_specific_plate" | "combination";
+export type FibulaTissueComposition =
+  | "bone_only"
+  | "osteocutaneous"
+  | "osteomyocutaneous";
+export type FibulaSkinPaddleType =
+  | "type_a_septocutaneous"
+  | "type_b_septo_musculo"
+  | "type_c_musculocutaneous"
+  | "type_d_popliteal";
+export type FibulaBarrel =
+  | "single"
+  | "double"
+  | "hybrid_1_2_1"
+  | "biaxial_double";
+export type FibulaPlanningMethod =
+  | "freehand"
+  | "vsp_models"
+  | "vsp_cutting_guides"
+  | "vsp_psi"
+  | "in_house_vsp";
+export type FibulaFixation =
+  | "reconstruction_plate"
+  | "miniplates"
+  | "patient_specific_plate"
+  | "combination";
 export type FibulaDentalImplant = "immediate" | "delayed" | "not_planned";
 export type FibulaReconSite = "mandible" | "maxilla" | "long_bone";
 
-export type ScapularSkinPaddle = "scapular" | "parascapular" | "both_boomerang" | "none";
-export type ScapularBoneComponent = "none" | "lateral_border" | "scapular_tip" | "both";
-export type ScapularVascularPedicle = "csa_only" | "subscapular_extended" | "tda_for_tip";
+export type ScapularSkinPaddle =
+  | "scapular"
+  | "parascapular"
+  | "both_boomerang"
+  | "none";
+export type ScapularBoneComponent =
+  | "none"
+  | "lateral_border"
+  | "scapular_tip"
+  | "both";
+export type ScapularVascularPedicle =
+  | "csa_only"
+  | "subscapular_extended"
+  | "tda_for_tip";
 
 export type GAPSubtype = "sgap" | "igap" | "sc_gap";
 export type SGAPSkinPaddle = "oblique" | "transverse" | "modified_lateral";
 export type IGAPSkinPaddle = "in_the_crease" | "oblique" | "transverse";
 export type GAPPerforatorType = "musculocutaneous" | "septocutaneous";
 
-export type RFFFTissueComposition = "fasciocutaneous" | "osteocutaneous" | "adipofascial" | "composite_palmaris" | "composite_neuroteno";
+export type RFFFTissueComposition =
+  | "fasciocutaneous"
+  | "osteocutaneous"
+  | "adipofascial"
+  | "composite_palmaris"
+  | "composite_neuroteno";
 export type RFFFSensateNerve = "non_sensate" | "labcn" | "mabcn" | "both";
 export type RFFFDissectionPlane = "subfascial" | "suprafascial";
 export type RFFFVenousDrainage = "venae_comitantes" | "cephalic_vein" | "both";
 export type RFFFVariant = "radial" | "ulnar";
 export type RFFFConfiguration = "standard" | "folded" | "tubed";
 
-export type MSAPTissueComposition = "fasciocutaneous" | "adipofascial" | "chimeric_gastrocnemius";
-export type MSAPBranchingPattern = "type_i_single" | "type_iia_dual_superior" | "type_iib_dual_inferior" | "type_iii_triple";
-export type MSAPPerforatorCourse = "type_1_direct" | "type_2_oblique" | "type_3_tortuous";
-export type MSAPSensate = "non_sensate" | "medial_sural_cutaneous" | "sural_nerve";
+export type MSAPTissueComposition =
+  | "fasciocutaneous"
+  | "adipofascial"
+  | "chimeric_gastrocnemius";
+export type MSAPBranchingPattern =
+  | "type_i_single"
+  | "type_iia_dual_superior"
+  | "type_iib_dual_inferior"
+  | "type_iii_triple";
+export type MSAPPerforatorCourse =
+  | "type_1_direct"
+  | "type_2_oblique"
+  | "type_3_tortuous";
+export type MSAPSensate =
+  | "non_sensate"
+  | "medial_sural_cutaneous"
+  | "sural_nerve";
 export type MSAPThinning = "standard" | "thinned";
 
-export type SerratusTissueComposition = "muscle_only" | "myocutaneous" | "fascia_only" | "osteomuscular" | "osteomyocutaneous";
+export type SerratusTissueComposition =
+  | "muscle_only"
+  | "myocutaneous"
+  | "fascia_only"
+  | "osteomuscular"
+  | "osteomyocutaneous";
 export type SerratusNerveStatus = "preserved" | "divided";
 export type SerratusNerveTarget = "masseteric" | "facial_nerve" | "cfng";
-export type SerratusChimeric = "serratus_alone" | "plus_ld" | "plus_ld_rib" | "plus_ld_scapular_bone" | "mega_flap";
+export type SerratusChimeric =
+  | "serratus_alone"
+  | "plus_ld"
+  | "plus_ld_rib"
+  | "plus_ld_scapular_bone"
+  | "mega_flap";
 
 export interface FlapSpecificDetails {
   altTissueComposition?: ALTTissueComposition;
@@ -488,36 +687,94 @@ export interface FlapSpecificDetails {
   serratusChimeric?: SerratusChimeric;
 }
 
-export const FLAP_SNOMED_MAP: Partial<Record<FreeFlap, { code: string; display: string }>> = {
-  alt:               { code: "234298008", display: "Anterolateral thigh free flap (procedure)" },
-  diep:              { code: "234294006", display: "Deep inferior epigastric perforator flap (procedure)" },
-  radial_forearm:    { code: "234295007", display: "Free radial forearm flap (procedure)" },
-  fibula:            { code: "234289000", display: "Free fibula osteocutaneous flap (procedure)" },
-  latissimus_dorsi:  { code: "234296008", display: "Free latissimus dorsi flap (procedure)" },
-  gracilis:          { code: "234297004", display: "Free gracilis flap (procedure)" },
-  tug:               { code: "234297004", display: "Free gracilis flap (procedure)" },
-  scip:              { code: "234299000", display: "Free superficial circumflex iliac artery flap (procedure)" },
-  siea:              { code: "234300002", display: "Free superficial inferior epigastric artery flap (procedure)" },
-  medial_sural:      { code: "234306008", display: "Free medial sural artery perforator flap (procedure)" },
-  sgap:              { code: "234301003", display: "Free superior gluteal artery perforator flap (procedure)" },
-  igap:              { code: "234302005", display: "Free inferior gluteal artery perforator flap (procedure)" },
-  pap:               { code: "234308009", display: "Free profunda artery perforator flap (procedure)" },
-  tdap:              { code: "234307004", display: "Free thoracodorsal artery perforator flap (procedure)" },
-  parascapular:      { code: "234304006", display: "Free parascapular flap (procedure)" },
-  serratus_anterior: { code: "234305007", display: "Free serratus anterior flap (procedure)" },
+export const FLAP_SNOMED_MAP: Partial<
+  Record<FreeFlap, { code: string; display: string }>
+> = {
+  alt: {
+    code: "234298008",
+    display: "Anterolateral thigh free flap (procedure)",
+  },
+  diep: {
+    code: "234294006",
+    display: "Deep inferior epigastric perforator flap (procedure)",
+  },
+  radial_forearm: {
+    code: "234295007",
+    display: "Free radial forearm flap (procedure)",
+  },
+  fibula: {
+    code: "234289000",
+    display: "Free fibula osteocutaneous flap (procedure)",
+  },
+  latissimus_dorsi: {
+    code: "234296008",
+    display: "Free latissimus dorsi flap (procedure)",
+  },
+  gracilis: { code: "234297004", display: "Free gracilis flap (procedure)" },
+  tug: { code: "234297004", display: "Free gracilis flap (procedure)" },
+  scip: {
+    code: "234299000",
+    display: "Free superficial circumflex iliac artery flap (procedure)",
+  },
+  siea: {
+    code: "234300002",
+    display: "Free superficial inferior epigastric artery flap (procedure)",
+  },
+  medial_sural: {
+    code: "234306008",
+    display: "Free medial sural artery perforator flap (procedure)",
+  },
+  sgap: {
+    code: "234301003",
+    display: "Free superior gluteal artery perforator flap (procedure)",
+  },
+  igap: {
+    code: "234302005",
+    display: "Free inferior gluteal artery perforator flap (procedure)",
+  },
+  pap: {
+    code: "234308009",
+    display: "Free profunda artery perforator flap (procedure)",
+  },
+  tdap: {
+    code: "234307004",
+    display: "Free thoracodorsal artery perforator flap (procedure)",
+  },
+  parascapular: {
+    code: "234304006",
+    display: "Free parascapular flap (procedure)",
+  },
+  serratus_anterior: {
+    code: "234305007",
+    display: "Free serratus anterior flap (procedure)",
+  },
   scapular: { code: "234303000", display: "Free scapular flap (procedure)" },
 };
 
-export const RECIPIENT_SITE_SNOMED_MAP: Partial<Record<AnatomicalRegion, { code: string; display: string }>> = {
-  lower_leg:    { code: "30021000",  display: "Lower leg structure (body structure)" },
-  knee:         { code: "72696002",  display: "Knee region structure (body structure)" },
-  foot:         { code: "56459004",  display: "Foot structure (body structure)" },
-  thigh:        { code: "68367000",  display: "Thigh structure (body structure)" },
-  hand:         { code: "85562004",  display: "Hand structure (body structure)" },
-  forearm:      { code: "14975008",  display: "Forearm structure (body structure)" },
-  upper_arm:    { code: "40983000",  display: "Upper arm structure (body structure)" },
-  head_neck:    { code: "774007",    display: "Head and neck structure (body structure)" },
-  breast_chest: { code: "80248007",  display: "Breast structure (body structure)" },
+export const RECIPIENT_SITE_SNOMED_MAP: Partial<
+  Record<AnatomicalRegion, { code: string; display: string }>
+> = {
+  lower_leg: {
+    code: "30021000",
+    display: "Lower leg structure (body structure)",
+  },
+  knee: { code: "72696002", display: "Knee region structure (body structure)" },
+  foot: { code: "56459004", display: "Foot structure (body structure)" },
+  thigh: { code: "68367000", display: "Thigh structure (body structure)" },
+  hand: { code: "85562004", display: "Hand structure (body structure)" },
+  forearm: { code: "14975008", display: "Forearm structure (body structure)" },
+  upper_arm: {
+    code: "40983000",
+    display: "Upper arm structure (body structure)",
+  },
+  head_neck: {
+    code: "774007",
+    display: "Head and neck structure (body structure)",
+  },
+  breast_chest: {
+    code: "80248007",
+    display: "Breast structure (body structure)",
+  },
 };
 
 export type CountryCode = "CH" | "GB" | "PL" | "AU" | "NZ" | "US";
@@ -556,7 +813,13 @@ export type Laterality = "left" | "right" | "bilateral" | "not_applicable";
 export type DigitId = "I" | "II" | "III" | "IV" | "V";
 
 export interface HandTraumaStructure {
-  category: "flexor_tendon" | "extensor_tendon" | "nerve" | "artery" | "ligament" | "other";
+  category:
+    | "flexor_tendon"
+    | "extensor_tendon"
+    | "nerve"
+    | "artery"
+    | "ligament"
+    | "other";
   structureId: string;
   displayName: string;
   digit?: DigitId;
@@ -664,10 +927,6 @@ export interface FractureEntry {
   };
 }
 
-export interface HandTraumaDetails {
-  injuryMechanism?: string;
-}
-
 export interface HandSurgeryDetails {
   injuryMechanism?: string;
   fractures?: FractureEntry[];
@@ -682,7 +941,10 @@ export interface BodyContouringDetails {
 
 export type ExcisionCompleteness = "complete" | "incomplete" | "uncertain";
 
-export const EXCISION_COMPLETENESS_LABELS: Record<ExcisionCompleteness, string> = {
+export const EXCISION_COMPLETENESS_LABELS: Record<
+  ExcisionCompleteness,
+  string
+> = {
   complete: "Complete",
   incomplete: "Incomplete",
   uncertain: "Uncertain",
@@ -764,11 +1026,23 @@ export interface SlnbDetails {
   spectCtPerformed?: boolean;
 }
 
-export type ClinicalDetails = FreeFlapDetails | HandTraumaDetails | HandSurgeryDetails | BodyContouringDetails | SkinLesionExcisionDetails | SlnbDetails | Record<string, unknown>;
+export type ClinicalDetails =
+  | FreeFlapDetails
+  | HandTraumaDetails
+  | HandSurgeryDetails
+  | BodyContouringDetails
+  | SkinLesionExcisionDetails
+  | SlnbDetails
+  | Record<string, unknown>;
 
 // ─── Multi-Lesion Session Types ─────────────────────────────────────────────
 
-export type LesionPathologyType = "bcc" | "scc" | "melanoma" | "benign" | "other";
+export type LesionPathologyType =
+  | "bcc"
+  | "scc"
+  | "melanoma"
+  | "benign"
+  | "other";
 
 export type LesionReconstruction =
   | "primary_closure"
@@ -847,9 +1121,13 @@ export const EXCISION_BIOPSY_DIAGNOSIS_IDS = [
   "hn_dx_skin_lesion_excision_biopsy",
 ] as const;
 
-export function isExcisionBiopsyDiagnosis(diagnosisPicklistId?: string): boolean {
+export function isExcisionBiopsyDiagnosis(
+  diagnosisPicklistId?: string,
+): boolean {
   if (!diagnosisPicklistId) return false;
-  return (EXCISION_BIOPSY_DIAGNOSIS_IDS as readonly string[]).includes(diagnosisPicklistId);
+  return (EXCISION_BIOPSY_DIAGNOSIS_IDS as readonly string[]).includes(
+    diagnosisPicklistId,
+  );
 }
 
 export interface DiagnosisGroup {
@@ -898,12 +1176,12 @@ export interface Case {
   formSavedAt?: string;
   entryDurationSeconds?: number;
   suggestionAcceptanceLog?: SuggestionAcceptanceEntry[];
-  
+
   // Patient Demographics
   gender?: Gender;
   age?: number;
   ethnicity?: string;
-  
+
   // Admission Details
   admissionDate?: string;
   dischargeDate?: string;
@@ -911,10 +1189,10 @@ export interface Case {
   stayType?: StayType;
   unplannedReadmission?: UnplannedReadmissionReason;
   injuryDate?: string;
-  
+
   // Co-morbidities (SNOMED CT coded)
   comorbidities?: SnomedCodedItem[];
-  
+
   // Risk Factors
   asaScore?: ASAScore;
   heightCm?: number;
@@ -922,12 +1200,12 @@ export interface Case {
   bmi?: number;
   smoker?: SmokingStatus;
   diabetes?: boolean;
-  
+
   // Operative Factors
   woundInfectionRisk?: WoundInfectionRisk;
   anaestheticType?: AnaestheticType;
   prophylaxis?: Prophylaxis;
-  
+
   // Outcomes
   unplannedICU?: UnplannedICUReason;
   returnToTheatre?: boolean;
@@ -936,22 +1214,22 @@ export interface Case {
   mortalityClassification?: MortalityClassification;
   recurrenceDate?: string;
   discussedAtMDM?: boolean;
-  
+
   // 30-Day Complication Follow-up
   complicationsReviewed?: boolean;
   complicationsReviewedAt?: string;
   hasComplications?: boolean;
   complications?: ComplicationEntry[];
-  
+
   // Operative Media (photos/files attached during case documentation)
   operativeMedia?: OperativeMediaItem[];
-  
+
   // Infection Overlay (can be attached to any case as primary or secondary pathology)
   infectionOverlay?: InfectionOverlay;
-  
+
   // Case Status (active until discharge note recorded)
   caseStatus?: CaseStatus;
-  
+
   clinicalDetails: ClinicalDetails;
   teamMembers: TeamMember[];
   ownerId: string;
@@ -960,7 +1238,7 @@ export interface Case {
   updatedAt: string;
 }
 
-export type TimelineEventType = 
+export type TimelineEventType =
   | "note"
   | "photo"
   | "imaging"
@@ -970,7 +1248,7 @@ export type TimelineEventType =
   | "wound_assessment"
   | "discharge_photo";
 
-export type FollowUpInterval = 
+export type FollowUpInterval =
   | "2_weeks"
   | "6_weeks"
   | "3_months"
@@ -978,7 +1256,7 @@ export type FollowUpInterval =
   | "1_year"
   | "custom";
 
-export type PROMQuestionnaire = 
+export type PROMQuestionnaire =
   | "dash"
   | "michigan_hand"
   | "sf36"
@@ -993,7 +1271,7 @@ export interface PROMData {
   responses?: Record<string, string | number>;
 }
 
-export type MediaCategory = 
+export type MediaCategory =
   | "preop"
   | "flap_harvest"
   | "flap_inset"
@@ -1015,13 +1293,21 @@ export type MediaCategory =
   | "revision"
   | "other";
 
-export const MEDIA_CATEGORY_OPTIONS: { value: MediaCategory; label: string; group: string }[] = [
+export const MEDIA_CATEGORY_OPTIONS: {
+  value: MediaCategory;
+  label: string;
+  group: string;
+}[] = [
   { value: "preop", label: "Pre-op", group: "Operation Day" },
   { value: "flap_harvest", label: "Flap Harvest", group: "Operation Day" },
   { value: "flap_inset", label: "Flap Inset", group: "Operation Day" },
   { value: "anastomosis", label: "Anastomosis", group: "Operation Day" },
   { value: "closure", label: "Closure", group: "Operation Day" },
-  { value: "immediate_postop", label: "Immediate Post-op", group: "Operation Day" },
+  {
+    value: "immediate_postop",
+    label: "Immediate Post-op",
+    group: "Operation Day",
+  },
   { value: "flap_planning", label: "Flap Planning", group: "Operation Day" },
   { value: "xray", label: "X-ray (generic)", group: "Imaging" },
   { value: "preop_xray", label: "Pre-op X-ray", group: "Imaging" },
@@ -1072,7 +1358,15 @@ export interface MediaAttachment {
 }
 
 // Operative media for photos/files attached directly to case record
-export type OperativeMediaType = "preoperative_photo" | "intraoperative_photo" | "xray" | "ct_scan" | "mri" | "diagram" | "document" | "other";
+export type OperativeMediaType =
+  | "preoperative_photo"
+  | "intraoperative_photo"
+  | "xray"
+  | "ct_scan"
+  | "mri"
+  | "diagram"
+  | "document"
+  | "other";
 
 export interface OperativeMediaItem {
   id: string;
@@ -1232,7 +1526,10 @@ export const COUPLING_METHOD_LABELS: Record<CouplingMethod, string> = {
 };
 
 // For venous anastomosis - only coupler or hand-sewn (no hybrid)
-export const VEIN_COUPLING_METHOD_OPTIONS: { value: CouplingMethod; label: string }[] = [
+export const VEIN_COUPLING_METHOD_OPTIONS: {
+  value: CouplingMethod;
+  label: string;
+}[] = [
   { value: "hand_sewn", label: "Hand-sewn" },
   { value: "coupler", label: "Coupler" },
 ];
@@ -1361,7 +1658,10 @@ export const STAY_TYPE_LABELS: Record<StayType, string> = {
   inpatient: "Inpatient",
 };
 
-export const UNPLANNED_READMISSION_LABELS: Record<UnplannedReadmissionReason, string> = {
+export const UNPLANNED_READMISSION_LABELS: Record<
+  UnplannedReadmissionReason,
+  string
+> = {
   no: "No",
   pain: "Yes - Pain",
   bleeding: "Yes - Bleeding",
@@ -1413,7 +1713,10 @@ export const DISCHARGE_OUTCOME_LABELS: Record<DischargeOutcome, string> = {
   referred_other_services: "Referred to Other Services",
 };
 
-export const MORTALITY_CLASSIFICATION_LABELS: Record<MortalityClassification, string> = {
+export const MORTALITY_CLASSIFICATION_LABELS: Record<
+  MortalityClassification,
+  string
+> = {
   expected: "Expected",
   unexpected: "Unexpected",
   not_applicable: "Not Applicable",
@@ -1456,43 +1759,48 @@ export const ASA_GRADE_LABELS: Record<ASAScore, string> = {
 };
 
 export function getAllProcedures(c: Case): CaseProcedure[] {
-  return c.diagnosisGroups.flatMap(g => g.procedures);
+  return (c.diagnosisGroups ?? []).flatMap((g) => g.procedures ?? []);
 }
 
 export function getCaseSpecialties(c: Case): Specialty[] {
-  const specialties = new Set(c.diagnosisGroups.map(g => g.specialty));
+  const specialties = new Set(
+    (c.diagnosisGroups ?? []).map((g) => g.specialty),
+  );
   return Array.from(specialties);
 }
 
 export function getPrimaryDiagnosisName(c: Case): string | undefined {
-  return c.diagnosisGroups[0]?.diagnosis?.displayName;
+  return (c.diagnosisGroups ?? [])[0]?.diagnosis?.displayName;
 }
 
 export function getAllLesionInstances(c: Case): LesionInstance[] {
-  return c.diagnosisGroups.flatMap(g => g.lesionInstances ?? []);
+  return (c.diagnosisGroups ?? []).flatMap((g) => g.lesionInstances ?? []);
 }
 
 export function getExcisionCount(c: Case): number {
   const lesionCount = getAllLesionInstances(c).length;
-  const nonLesionProcedures = c.diagnosisGroups
-    .filter(g => !g.isMultiLesion)
-    .flatMap(g => g.procedures).length;
+  const nonLesionProcedures = (c.diagnosisGroups ?? [])
+    .filter((g) => !g.isMultiLesion)
+    .flatMap((g) => g.procedures ?? []).length;
   return lesionCount + nonLesionProcedures;
 }
 
 export function getPrimaryLaterality(c: Case): Laterality | undefined {
-  return c.diagnosisGroups[0]?.diagnosisClinicalDetails?.laterality;
+  return (c.diagnosisGroups ?? [])[0]?.diagnosisClinicalDetails?.laterality;
 }
 
 export function getPrimarySiteLabel(c: Case): string | null {
-  const group = c.diagnosisGroups[0];
+  const group = (c.diagnosisGroups ?? [])[0];
   if (!group) return null;
   const laterality = group.diagnosisClinicalDetails?.laterality;
   const side =
-    laterality === "left" ? "Left" :
-    laterality === "right" ? "Right" :
-    laterality === "bilateral" ? "Bilateral" :
-    null;
+    laterality === "left"
+      ? "Left"
+      : laterality === "right"
+        ? "Right"
+        : laterality === "bilateral"
+          ? "Bilateral"
+          : null;
   const lesionSite = group.lesionInstances?.[0]?.site;
   if (side && lesionSite) return `${side} ${lesionSite}`;
   if (lesionSite) return lesionSite;

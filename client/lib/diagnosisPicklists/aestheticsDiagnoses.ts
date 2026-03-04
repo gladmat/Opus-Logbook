@@ -25,7 +25,14 @@ const AES_DX_FACIAL_AGEING: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Ageing",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["facelift", "jowls", "lower face", "neck laxity", "rhytidectomy", "SMAS"],
+    searchSynonyms: [
+      "facelift",
+      "jowls",
+      "lower face",
+      "neck laxity",
+      "rhytidectomy",
+      "SMAS",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "aes_face_smas_facelift",
@@ -58,7 +65,12 @@ const AES_DX_FACIAL_AGEING: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Ageing",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["neck lift", "turkey neck", "platysma bands", "submentoplasty"],
+    searchSynonyms: [
+      "neck lift",
+      "turkey neck",
+      "platysma bands",
+      "submentoplasty",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "aes_face_neck_lift",
@@ -79,7 +91,12 @@ const AES_DX_FACIAL_AGEING: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Ageing",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["upper bleph", "blepharoplasty", "hooded eyelids", "excess upper eyelid skin"],
+    searchSynonyms: [
+      "upper bleph",
+      "blepharoplasty",
+      "hooded eyelids",
+      "excess upper eyelid skin",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "aes_face_upper_bleph",
@@ -100,7 +117,13 @@ const AES_DX_FACIAL_AGEING: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Ageing",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["lower bleph", "eye bags", "lower lid", "transconjunctival", "tear trough"],
+    searchSynonyms: [
+      "lower bleph",
+      "eye bags",
+      "lower lid",
+      "transconjunctival",
+      "tear trough",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "aes_face_lower_bleph",
@@ -155,7 +178,13 @@ const AES_DX_NOSE_EAR: DiagnosisPicklistEntry[] = [
     subcategory: "Nose & Ear",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["rhinoplasty", "nose job", "dorsal hump", "wide tip", "crooked nose"],
+    searchSynonyms: [
+      "rhinoplasty",
+      "nose job",
+      "dorsal hump",
+      "wide tip",
+      "crooked nose",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "aes_rhino_open",
@@ -188,7 +217,12 @@ const AES_DX_NOSE_EAR: DiagnosisPicklistEntry[] = [
     subcategory: "Nose & Ear",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["septorhinoplasty", "deviated septum", "nasal obstruction", "breathing"],
+    searchSynonyms: [
+      "septorhinoplasty",
+      "deviated septum",
+      "nasal obstruction",
+      "breathing",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "aes_rhino_septorhinoplasty",
@@ -209,7 +243,11 @@ const AES_DX_NOSE_EAR: DiagnosisPicklistEntry[] = [
     subcategory: "Nose & Ear",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["revision rhinoplasty", "secondary rhinoplasty", "redo nose"],
+    searchSynonyms: [
+      "revision rhinoplasty",
+      "secondary rhinoplasty",
+      "redo nose",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "aes_rhino_revision",
@@ -230,7 +268,13 @@ const AES_DX_NOSE_EAR: DiagnosisPicklistEntry[] = [
     subcategory: "Nose & Ear",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["prominent ears", "bat ears", "otoplasty", "pinnaplasty", "ear pinning"],
+    searchSynonyms: [
+      "prominent ears",
+      "bat ears",
+      "otoplasty",
+      "pinnaplasty",
+      "ear pinning",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "aes_oto_prominent_ear",
@@ -251,7 +295,12 @@ const AES_DX_NOSE_EAR: DiagnosisPicklistEntry[] = [
     subcategory: "Nose & Ear",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["split earlobe", "stretched earlobe", "torn ear", "gauge repair"],
+    searchSynonyms: [
+      "split earlobe",
+      "stretched earlobe",
+      "torn ear",
+      "gauge repair",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "aes_oto_earlobe_reduction",
@@ -279,7 +328,13 @@ const AES_DX_SKIN_VOLUME: DiagnosisPicklistEntry[] = [
     subcategory: "Skin & Volume",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["hollow cheeks", "volume loss", "fat transfer face", "filler face", "temple hollowing"],
+    searchSynonyms: [
+      "hollow cheeks",
+      "volume loss",
+      "fat transfer face",
+      "filler face",
+      "temple hollowing",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "aes_inj_filler_midface",
@@ -312,7 +367,14 @@ const AES_DX_SKIN_VOLUME: DiagnosisPicklistEntry[] = [
     subcategory: "Skin & Volume",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["Botox", "botulinum toxin", "frown lines", "crow's feet", "forehead lines", "wrinkles"],
+    searchSynonyms: [
+      "Botox",
+      "botulinum toxin",
+      "frown lines",
+      "crow's feet",
+      "forehead lines",
+      "wrinkles",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "aes_inj_botox_upper_face",
@@ -339,7 +401,14 @@ const AES_DX_SKIN_VOLUME: DiagnosisPicklistEntry[] = [
     subcategory: "Skin & Volume",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["photodamage", "sun damage", "skin texture", "resurfacing", "chemical peel", "laser skin"],
+    searchSynonyms: [
+      "photodamage",
+      "sun damage",
+      "skin texture",
+      "resurfacing",
+      "chemical peel",
+      "laser skin",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "aes_skin_chemical_peel_medium",
@@ -378,7 +447,14 @@ const AES_DX_SKIN_VOLUME: DiagnosisPicklistEntry[] = [
     subcategory: "Skin & Volume",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["alopecia", "hair loss", "male pattern baldness", "hair transplant", "FUE", "FUT"],
+    searchSynonyms: [
+      "alopecia",
+      "hair loss",
+      "male pattern baldness",
+      "hair transplant",
+      "FUE",
+      "FUT",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "aes_hair_fue",
@@ -481,7 +557,12 @@ const AES_DX_BODY: DiagnosisPicklistEntry[] = [
     subcategory: "Body Aesthetics",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["tattoo removal", "laser tattoo", "unwanted tattoo", "Q-switched"],
+    searchSynonyms: [
+      "tattoo removal",
+      "laser tattoo",
+      "unwanted tattoo",
+      "Q-switched",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "aes_skin_laser_pigment",
@@ -502,7 +583,13 @@ const AES_DX_BODY: DiagnosisPicklistEntry[] = [
     subcategory: "Body Aesthetics",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["hyperhidrosis", "excessive sweating", "sweaty palms", "sweaty armpits", "Botox sweating"],
+    searchSynonyms: [
+      "hyperhidrosis",
+      "excessive sweating",
+      "sweaty palms",
+      "sweaty armpits",
+      "Botox sweating",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "aes_inj_botox_hyperhidrosis",
@@ -539,7 +626,7 @@ export function getAestheticsSubcategories(): string[] {
 }
 
 export function getAestheticsDiagnosesForSubcategory(
-  subcategory: string
+  subcategory: string,
 ): DiagnosisPicklistEntry[] {
   return AESTHETICS_DIAGNOSES.filter((dx) => dx.subcategory === subcategory);
 }

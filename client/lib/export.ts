@@ -30,15 +30,15 @@ export async function exportCases(options: ExportOptions): Promise<void> {
       content = exportCasesAsCsv(cases, {
         includePatientId: options.includePatientId ?? true,
       });
-      title = "Surgical Logbook Export (CSV)";
+      title = "Opus Export (CSV)";
       break;
     case "fhir":
       content = exportCasesAsFhir(cases);
-      title = "Surgical Logbook Export (FHIR R4)";
+      title = "Opus Export (FHIR R4)";
       break;
     default:
       content = JSON.stringify(cases, null, 2);
-      title = "Surgical Logbook Export (JSON)";
+      title = "Opus Export (JSON)";
       break;
   }
 

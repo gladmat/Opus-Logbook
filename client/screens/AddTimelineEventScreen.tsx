@@ -30,18 +30,21 @@ import { MediaCapture } from "@/components/MediaCapture";
 import { PROMEntryForm } from "@/components/PROMEntryForm";
 import { WoundAssessment } from "@/types/wound";
 import { WoundAssessmentForm } from "@/components/WoundAssessmentForm";
-import { saveTimelineEvent, getTimelineEvents, updateTimelineEvent } from "@/lib/storage";
+import {
+  saveTimelineEvent,
+  getTimelineEvents,
+  updateTimelineEvent,
+} from "@/lib/storage";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 
 type RouteParams = RouteProp<RootStackParamList, "AddTimelineEvent">;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-const EVENT_TYPES: { value: TimelineEventType; label: string }[] = Object.entries(
-  TIMELINE_EVENT_TYPE_LABELS
-).map(([value, label]) => ({
-  value: value as TimelineEventType,
-  label,
-}));
+const EVENT_TYPES: { value: TimelineEventType; label: string }[] =
+  Object.entries(TIMELINE_EVENT_TYPE_LABELS).map(([value, label]) => ({
+    value: value as TimelineEventType,
+    label,
+  }));
 
 const SKIN_LESION_PROCEDURE_NAMES = [
   "skin lesion excision",
@@ -71,20 +74,26 @@ export default function AddTimelineEventScreen() {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
 
-  const { caseId, initialEventType, isSkinLesion, caseDischargeDate, editEventId } = route.params;
+  const {
+    caseId,
+    initialEventType,
+    isSkinLesion,
+    caseDischargeDate,
+    editEventId,
+  } = route.params;
 
   const isEditMode = !!editEventId;
 
   const [saving, setSaving] = useState(false);
   const [eventType, setEventType] = useState<TimelineEventType | "">(
-    initialEventType || ""
+    initialEventType || "",
   );
   const [note, setNote] = useState("");
-  const [followUpInterval, setFollowUpInterval] = useState<FollowUpInterval | "">(
-    ""
-  );
+  const [followUpInterval, setFollowUpInterval] = useState<
+    FollowUpInterval | ""
+  >("");
   const [mediaAttachments, setMediaAttachments] = useState<MediaAttachment[]>(
-    []
+    [],
   );
   const [promData, setPromData] = useState<PROMData>({
     questionnaire: "dash",
@@ -93,9 +102,10 @@ export default function AddTimelineEventScreen() {
   const [complicationGrade, setComplicationGrade] =
     useState<ClavienDindoGrade>("none");
   const [complicationManagement, setComplicationManagement] = useState("");
-  const [woundAssessmentData, setWoundAssessmentData] = useState<WoundAssessment>({
-    dressings: [],
-  });
+  const [woundAssessmentData, setWoundAssessmentData] =
+    useState<WoundAssessment>({
+      dressings: [],
+    });
   const [dischargeWoundStatus, setDischargeWoundStatus] = useState<
     "dry_healing" | "moist" | "redness" | "breakdown" | ""
   >("");
@@ -119,15 +129,24 @@ export default function AddTimelineEventScreen() {
         setEditingEvent(existing);
         setEventType(existing.eventType);
         setNote(existing.note || "");
-        if (existing.followUpInterval) setFollowUpInterval(existing.followUpInterval);
-        if (existing.mediaAttachments) setMediaAttachments(existing.mediaAttachments);
+        if (existing.followUpInterval)
+          setFollowUpInterval(existing.followUpInterval);
+        if (existing.mediaAttachments)
+          setMediaAttachments(existing.mediaAttachments);
         if (existing.promData) setPromData(existing.promData);
         if (existing.complicationData) {
-          setComplicationDescription(existing.complicationData.description || "");
-          setComplicationGrade(existing.complicationData.clavienDindoGrade || "none");
-          setComplicationManagement(existing.complicationData.managementNotes || "");
+          setComplicationDescription(
+            existing.complicationData.description || "",
+          );
+          setComplicationGrade(
+            existing.complicationData.clavienDindoGrade || "none",
+          );
+          setComplicationManagement(
+            existing.complicationData.managementNotes || "",
+          );
         }
-        if (existing.woundAssessmentData) setWoundAssessmentData(existing.woundAssessmentData);
+        if (existing.woundAssessmentData)
+          setWoundAssessmentData(existing.woundAssessmentData);
       } catch (error) {
         console.error("Error loading event for editing:", error);
       }
@@ -170,7 +189,7 @@ export default function AddTimelineEventScreen() {
           "Required Field",
           eventType === "photo"
             ? "Please add at least one photo"
-            : "Please add at least one image"
+            : "Please add at least one image",
         );
         return false;
       }
@@ -221,9 +240,10 @@ export default function AddTimelineEventScreen() {
         breakdown: "Wound breakdown",
       };
 
-      const dischargeNote = eventType === "discharge_photo" && dischargeWoundStatus
-        ? `Wound status: ${WOUND_STATUS_LABELS[dischargeWoundStatus]}${note.trim() ? " — " + note.trim() : ""}`
-        : note.trim();
+      const dischargeNote =
+        eventType === "discharge_photo" && dischargeWoundStatus
+          ? `Wound status: ${WOUND_STATUS_LABELS[dischargeWoundStatus]}${note.trim() ? " — " + note.trim() : ""}`
+          : note.trim();
 
       // Build the updates object (shared by create and update paths)
       const updates: Partial<TimelineEvent> = {
@@ -231,7 +251,11 @@ export default function AddTimelineEventScreen() {
         note: dischargeNote,
       };
 
-      if (eventType === "photo" || eventType === "imaging" || eventType === "discharge_photo") {
+      if (
+        eventType === "photo" ||
+        eventType === "imaging" ||
+        eventType === "discharge_photo"
+      ) {
         updates.mediaAttachments = mediaAttachments;
       }
 
@@ -244,7 +268,9 @@ export default function AddTimelineEventScreen() {
           id: editingEvent?.complicationData?.id || uuidv4(),
           description: complicationDescription.trim(),
           clavienDindoGrade: complicationGrade,
-          dateIdentified: editingEvent?.complicationData?.dateIdentified || new Date().toISOString(),
+          dateIdentified:
+            editingEvent?.complicationData?.dateIdentified ||
+            new Date().toISOString(),
           managementNotes: complicationManagement.trim() || undefined,
           resolved: editingEvent?.complicationData?.resolved ?? false,
         };
@@ -322,7 +348,9 @@ export default function AddTimelineEventScreen() {
     </View>
   );
 
-  const getEventTypeIcon = (type: TimelineEventType): keyof typeof Feather.glyphMap => {
+  const getEventTypeIcon = (
+    type: TimelineEventType,
+  ): keyof typeof Feather.glyphMap => {
     switch (type) {
       case "photo":
         return "camera";
@@ -356,7 +384,10 @@ export default function AddTimelineEventScreen() {
         },
       ]}
     >
-      <SectionHeader title={isEditMode ? "Edit Event" : "Add to Timeline"} subtitle={getSubtitle()} />
+      <SectionHeader
+        title={isEditMode ? "Edit Event" : "Add to Timeline"}
+        subtitle={getSubtitle()}
+      />
 
       {isDischargeDay ? (
         <View
@@ -372,13 +403,23 @@ export default function AddTimelineEventScreen() {
             borderLeftColor: "#F57F17",
           }}
         >
-          <Feather name="log-out" size={18} color="#F57F17" style={{ marginTop: 2 }} />
+          <Feather
+            name="log-out"
+            size={18}
+            color="#F57F17"
+            style={{ marginTop: 2 }}
+          />
           <View style={{ flex: 1 }}>
-            <ThemedText style={{ fontWeight: "600", fontSize: 14, color: "#E65100" }}>
+            <ThemedText
+              style={{ fontWeight: "600", fontSize: 14, color: "#E65100" }}
+            >
               Discharge day
             </ThemedText>
-            <ThemedText style={{ fontSize: 13, color: "#795548", marginTop: 2 }}>
-              This event will be tagged to discharge. Use Discharge Photo for a quick wound record.
+            <ThemedText
+              style={{ fontSize: 13, color: "#795548", marginTop: 2 }}
+            >
+              This event will be tagged to discharge. Use Discharge Photo for a
+              quick wound record.
             </ThemedText>
           </View>
         </View>
@@ -498,13 +539,35 @@ export default function AddTimelineEventScreen() {
           <ThemedText style={[styles.label, { color: theme.textSecondary }]}>
             Wound Status
           </ThemedText>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm }}>
+          <View
+            style={{ flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm }}
+          >
             {(
               [
-                { value: "dry_healing", label: "Dry & healing", color: "#2E7D32", bg: "#E8F5E9" },
-                { value: "moist", label: "Moist / exudate", color: "#F57F17", bg: "#FFF3E0" },
-                { value: "redness", label: "Redness / concern", color: "#E65100", bg: "#FBE9E7" },
-                { value: "breakdown", label: "Wound breakdown", color: "#B71C1C", bg: "#FFEBEE" },
+                {
+                  value: "dry_healing",
+                  label: "Dry & healing",
+                  color: "#2E7D32",
+                  bg: "#E8F5E9",
+                },
+                {
+                  value: "moist",
+                  label: "Moist / exudate",
+                  color: "#F57F17",
+                  bg: "#FFF3E0",
+                },
+                {
+                  value: "redness",
+                  label: "Redness / concern",
+                  color: "#E65100",
+                  bg: "#FBE9E7",
+                },
+                {
+                  value: "breakdown",
+                  label: "Wound breakdown",
+                  color: "#B71C1C",
+                  bg: "#FFEBEE",
+                },
               ] as const
             ).map((opt) => (
               <Pressable
@@ -518,15 +581,25 @@ export default function AddTimelineEventScreen() {
                   paddingVertical: Spacing.sm,
                   borderRadius: BorderRadius.sm,
                   borderWidth: 1.5,
-                  borderColor: dischargeWoundStatus === opt.value ? opt.color : theme.border,
-                  backgroundColor: dischargeWoundStatus === opt.value ? opt.bg : theme.backgroundElevated,
+                  borderColor:
+                    dischargeWoundStatus === opt.value
+                      ? opt.color
+                      : theme.border,
+                  backgroundColor:
+                    dischargeWoundStatus === opt.value
+                      ? opt.bg
+                      : theme.backgroundElevated,
                 }}
               >
                 <ThemedText
                   style={{
                     fontSize: 14,
-                    fontWeight: dischargeWoundStatus === opt.value ? "600" : "400",
-                    color: dischargeWoundStatus === opt.value ? opt.color : theme.text,
+                    fontWeight:
+                      dischargeWoundStatus === opt.value ? "600" : "400",
+                    color:
+                      dischargeWoundStatus === opt.value
+                        ? opt.color
+                        : theme.text,
                   }}
                 >
                   {opt.label}
@@ -561,7 +634,11 @@ export default function AddTimelineEventScreen() {
       {eventType ? (
         <View style={styles.buttonContainer}>
           <Button onPress={handleSave} disabled={saving}>
-            {saving ? "Saving..." : isEditMode ? "Save Changes" : "Add to Timeline"}
+            {saving
+              ? "Saving..."
+              : isEditMode
+                ? "Save Changes"
+                : "Add to Timeline"}
           </Button>
         </View>
       ) : null}

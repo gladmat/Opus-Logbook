@@ -89,7 +89,12 @@ export const GEN_DX_SKIN_CANCER: DiagnosisPicklistEntry[] = [
     clinicalGroup: "oncological",
     hasStaging: false,
     hasEnhancedHistology: true,
-    searchSynonyms: ["BCC", "basal cell", "rodent ulcer", "basal cell carcinoma"],
+    searchSynonyms: [
+      "BCC",
+      "basal cell",
+      "rodent ulcer",
+      "basal cell carcinoma",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "gen_skin_bcc_excision_body",
@@ -157,7 +162,13 @@ export const GEN_DX_SKIN_CANCER: DiagnosisPicklistEntry[] = [
     clinicalGroup: "oncological",
     hasStaging: true,
     hasEnhancedHistology: true,
-    searchSynonyms: ["melanoma", "malignant melanoma", "MM", "WLE", "wide local excision"],
+    searchSynonyms: [
+      "melanoma",
+      "malignant melanoma",
+      "MM",
+      "WLE",
+      "wide local excision",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "gen_mel_wle_body",
@@ -203,7 +214,11 @@ export const GEN_DX_SKIN_CANCER: DiagnosisPicklistEntry[] = [
     clinicalGroup: "oncological",
     hasStaging: false,
     hasEnhancedHistology: true,
-    searchSynonyms: ["melanoma excision biopsy", "suspicious mole excision", "pigmented lesion"],
+    searchSynonyms: [
+      "melanoma excision biopsy",
+      "suspicious mole excision",
+      "pigmented lesion",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "gen_mel_excision_body",
@@ -253,7 +268,12 @@ export const GEN_DX_SKIN_CANCER: DiagnosisPicklistEntry[] = [
     clinicalGroup: "oncological",
     hasStaging: false,
     hasEnhancedHistology: true,
-    searchSynonyms: ["Bowen's", "Bowen disease", "SCC in situ", "intraepidermal SCC"],
+    searchSynonyms: [
+      "Bowen's",
+      "Bowen disease",
+      "SCC in situ",
+      "intraepidermal SCC",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "gen_skin_scc_excision_body",
@@ -378,7 +398,12 @@ const GEN_DX_BENIGN: DiagnosisPicklistEntry[] = [
     subcategory: "Benign Lesions",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["sebaceous cyst", "epidermoid cyst", "pilar cyst", "trichilemmal"],
+    searchSynonyms: [
+      "sebaceous cyst",
+      "epidermoid cyst",
+      "pilar cyst",
+      "trichilemmal",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "gen_skin_sebaceous_cyst",
@@ -399,7 +424,13 @@ const GEN_DX_BENIGN: DiagnosisPicklistEntry[] = [
     subcategory: "Benign Lesions",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["mole", "naevus", "seborrhoeic keratosis", "dermatofibroma", "benign lesion"],
+    searchSynonyms: [
+      "mole",
+      "naevus",
+      "seborrhoeic keratosis",
+      "dermatofibroma",
+      "benign lesion",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "gen_skin_benign_lesion",
@@ -432,7 +463,12 @@ const GEN_DX_BENIGN: DiagnosisPicklistEntry[] = [
     subcategory: "Benign Lesions",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["mole excision", "atypical naevus", "dysplastic naevus", "changing mole"],
+    searchSynonyms: [
+      "mole excision",
+      "atypical naevus",
+      "dysplastic naevus",
+      "changing mole",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "gen_skin_benign_lesion",
@@ -466,7 +502,12 @@ const GEN_DX_SCAR_WOUND: DiagnosisPicklistEntry[] = [
     subcategory: "Scar & Wound",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["hypertrophic scar", "raised scar", "red scar", "scar revision"],
+    searchSynonyms: [
+      "hypertrophic scar",
+      "raised scar",
+      "red scar",
+      "scar revision",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "gen_scar_revision",
@@ -520,7 +561,13 @@ const GEN_DX_SCAR_WOUND: DiagnosisPicklistEntry[] = [
     subcategory: "Scar & Wound",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["chronic wound", "non-healing", "leg ulcer", "venous ulcer", "wound"],
+    searchSynonyms: [
+      "chronic wound",
+      "non-healing",
+      "leg ulcer",
+      "venous ulcer",
+      "wound",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "orth_debride_surgical",
@@ -553,7 +600,12 @@ const GEN_DX_SCAR_WOUND: DiagnosisPicklistEntry[] = [
     subcategory: "Scar & Wound",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["pilonidal", "sacral sinus", "natal cleft", "pilonidal cyst"],
+    searchSynonyms: [
+      "pilonidal",
+      "sacral sinus",
+      "natal cleft",
+      "pilonidal cyst",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "gen_other_pilonidal_excision",
@@ -602,7 +654,12 @@ const GEN_DX_PRESSURE: DiagnosisPicklistEntry[] = [
     subcategory: "Pressure Injury",
     clinicalGroup: "reconstructive",
     hasStaging: true, // NPUAP staging in diagnosisStagingConfig
-    searchSynonyms: ["sacral pressure sore", "sacral pressure ulcer", "bed sore sacrum", "decubitus sacral"],
+    searchSynonyms: [
+      "sacral pressure sore",
+      "sacral pressure ulcer",
+      "bed sore sacrum",
+      "decubitus sacral",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "orth_debride_surgical",
@@ -641,7 +698,11 @@ const GEN_DX_PRESSURE: DiagnosisPicklistEntry[] = [
     subcategory: "Pressure Injury",
     clinicalGroup: "reconstructive",
     hasStaging: true,
-    searchSynonyms: ["ischial pressure sore", "ischial tuberosity", "sitting sore"],
+    searchSynonyms: [
+      "ischial pressure sore",
+      "ischial tuberosity",
+      "sitting sore",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "orth_debride_surgical",
@@ -680,7 +741,11 @@ const GEN_DX_PRESSURE: DiagnosisPicklistEntry[] = [
     subcategory: "Pressure Injury",
     clinicalGroup: "reconstructive",
     hasStaging: true,
-    searchSynonyms: ["trochanteric pressure sore", "hip sore", "lateral hip pressure"],
+    searchSynonyms: [
+      "trochanteric pressure sore",
+      "hip sore",
+      "lateral hip pressure",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "orth_debride_surgical",
@@ -765,7 +830,13 @@ const GEN_DX_SPECIALIST: DiagnosisPicklistEntry[] = [
     subcategory: "Specialist Conditions",
     clinicalGroup: "elective",
     hasStaging: true, // Hurley staging — NEW staging config needed
-    searchSynonyms: ["HS", "hidradenitis", "acne inversa", "axilla abscess recurrent", "groin abscess recurrent"],
+    searchSynonyms: [
+      "HS",
+      "hidradenitis",
+      "acne inversa",
+      "axilla abscess recurrent",
+      "groin abscess recurrent",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "gen_hs_deroofing",
@@ -816,7 +887,14 @@ const GEN_DX_SPECIALIST: DiagnosisPicklistEntry[] = [
     subcategory: "Specialist Conditions",
     clinicalGroup: "elective",
     hasStaging: true, // ISL staging — NEW staging config needed
-    searchSynonyms: ["lymphoedema", "lymphedema", "arm swelling post-cancer", "leg swelling", "LVA", "VLNT"],
+    searchSynonyms: [
+      "lymphoedema",
+      "lymphedema",
+      "arm swelling post-cancer",
+      "leg swelling",
+      "LVA",
+      "VLNT",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "gen_lymph_lva",
@@ -867,7 +945,13 @@ const GEN_DX_SPECIALIST: DiagnosisPicklistEntry[] = [
     subcategory: "Specialist Conditions",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["venous malformation", "lymphatic malformation", "low flow", "VM", "cystic hygroma"],
+    searchSynonyms: [
+      "venous malformation",
+      "lymphatic malformation",
+      "low flow",
+      "VM",
+      "cystic hygroma",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "gen_vasc_excision",
@@ -900,7 +984,12 @@ const GEN_DX_SPECIALIST: DiagnosisPicklistEntry[] = [
     subcategory: "Specialist Conditions",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["AVM", "arteriovenous malformation", "high flow", "pulsatile"],
+    searchSynonyms: [
+      "AVM",
+      "arteriovenous malformation",
+      "high flow",
+      "pulsatile",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "gen_vasc_excision",
@@ -921,7 +1010,13 @@ const GEN_DX_SPECIALIST: DiagnosisPicklistEntry[] = [
     subcategory: "Specialist Conditions",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: ["top surgery", "FTM", "chest masculinisation", "transgender", "gender affirming"],
+    searchSynonyms: [
+      "top surgery",
+      "FTM",
+      "chest masculinisation",
+      "transgender",
+      "gender affirming",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "gen_ga_chest_masculinisation",
@@ -945,7 +1040,15 @@ const GEN_DX_SOFT_TISSUE_TRAUMA: DiagnosisPicklistEntry[] = [
     subcategory: "Soft Tissue Trauma",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["laceration", "cut", "wound", "skin laceration", "leg laceration", "arm laceration", "body laceration"],
+    searchSynonyms: [
+      "laceration",
+      "cut",
+      "wound",
+      "skin laceration",
+      "leg laceration",
+      "arm laceration",
+      "body laceration",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "gen_trauma_lac_simple",
@@ -978,7 +1081,13 @@ const GEN_DX_SOFT_TISSUE_TRAUMA: DiagnosisPicklistEntry[] = [
     subcategory: "Soft Tissue Trauma",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["pretibial", "shin laceration", "pretibial flap", "shin wound", "lower leg laceration"],
+    searchSynonyms: [
+      "pretibial",
+      "shin laceration",
+      "pretibial flap",
+      "shin wound",
+      "lower leg laceration",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "gen_trauma_pretibial_repair",
@@ -1017,7 +1126,13 @@ const GEN_DX_SOFT_TISSUE_TRAUMA: DiagnosisPicklistEntry[] = [
     subcategory: "Soft Tissue Trauma",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["degloving", "avulsion", "skin avulsion", "degloved", "roller injury"],
+    searchSynonyms: [
+      "degloving",
+      "avulsion",
+      "skin avulsion",
+      "degloved",
+      "roller injury",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "gen_trauma_degloving",
@@ -1056,7 +1171,13 @@ const GEN_DX_SOFT_TISSUE_TRAUMA: DiagnosisPicklistEntry[] = [
     subcategory: "Soft Tissue Trauma",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["skin loss", "tissue loss", "traumatic wound", "traumatic defect", "crush injury skin"],
+    searchSynonyms: [
+      "skin loss",
+      "tissue loss",
+      "traumatic wound",
+      "traumatic defect",
+      "crush injury skin",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "gen_trauma_skin_loss_closure",
@@ -1113,7 +1234,7 @@ export function getGeneralSubcategories(): string[] {
 }
 
 export function getGeneralDiagnosesForSubcategory(
-  subcategory: string
+  subcategory: string,
 ): DiagnosisPicklistEntry[] {
   return GENERAL_DIAGNOSES.filter((dx) => dx.subcategory === subcategory);
 }

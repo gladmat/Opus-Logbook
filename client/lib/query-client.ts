@@ -10,13 +10,25 @@ export function getApiUrl(): string {
   // Allow override via env var for local development
   const override = process.env.EXPO_PUBLIC_API_URL;
   if (override) {
-    return override.replace(/\/$/, '');
+    const url = override.replace(/\/$/, "");
+    // Block HTTP in production builds
+    if (
+      typeof __DEV__ !== "undefined" &&
+      !__DEV__ &&
+      url.startsWith("http://")
+    ) {
+      console.error(
+        "HTTP URLs are not allowed in production builds, falling back to production URL",
+      );
+      return PRODUCTION_API_URL;
+    }
+    return url;
   }
 
   // Legacy support: EXPO_PUBLIC_DOMAIN (used by Replit/Expo dev builds)
   const host = process.env.EXPO_PUBLIC_DOMAIN;
   if (host) {
-    return new URL(`https://${host}`).href.replace(/\/$/, '');
+    return new URL(`https://${host}`).href.replace(/\/$/, "");
   }
 
   return PRODUCTION_API_URL;

@@ -1,7 +1,7 @@
 /**
  * Diagnosis Staging Configuration System
  * Maps SNOMED CT diagnosis codes to their staging/classification options
- * 
+ *
  * This file is designed to be easily extensible as new diagnoses are encountered
  */
 
@@ -40,12 +40,32 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
         name: "Tubiana Stage",
         description: "Total passive extension deficit across all joints",
         options: [
-          { value: "0", label: "Stage 0", description: "Nodule or cord, no contracture" },
+          {
+            value: "0",
+            label: "Stage 0",
+            description: "Nodule or cord, no contracture",
+          },
           { value: "N", label: "Stage N", description: "Nodule only" },
-          { value: "1", label: "Stage 1", description: "0-45° total extension deficit" },
-          { value: "2", label: "Stage 2", description: "45-90° total extension deficit" },
-          { value: "3", label: "Stage 3", description: "90-135° total extension deficit" },
-          { value: "4", label: "Stage 4", description: ">135° total extension deficit" },
+          {
+            value: "1",
+            label: "Stage 1",
+            description: "0-45° total extension deficit",
+          },
+          {
+            value: "2",
+            label: "Stage 2",
+            description: "45-90° total extension deficit",
+          },
+          {
+            value: "3",
+            label: "Stage 3",
+            description: "90-135° total extension deficit",
+          },
+          {
+            value: "4",
+            label: "Stage 4",
+            description: ">135° total extension deficit",
+          },
         ],
       },
       {
@@ -79,11 +99,34 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
         name: "Gustilo-Anderson Classification",
         description: "Classification of open fractures",
         options: [
-          { value: "I", label: "Type I", description: "Wound <1cm, minimal contamination, simple fracture" },
-          { value: "II", label: "Type II", description: "Wound 1-10cm, moderate soft tissue damage, adequate bone coverage" },
-          { value: "IIIa", label: "Type IIIa", description: "Wound >10cm, high-energy, adequate soft tissue coverage" },
-          { value: "IIIb", label: "Type IIIb", description: "Extensive soft tissue loss, periosteal stripping, requires flap" },
-          { value: "IIIc", label: "Type IIIc", description: "Arterial injury requiring repair" },
+          {
+            value: "I",
+            label: "Type I",
+            description: "Wound <1cm, minimal contamination, simple fracture",
+          },
+          {
+            value: "II",
+            label: "Type II",
+            description:
+              "Wound 1-10cm, moderate soft tissue damage, adequate bone coverage",
+          },
+          {
+            value: "IIIa",
+            label: "Type IIIa",
+            description:
+              "Wound >10cm, high-energy, adequate soft tissue coverage",
+          },
+          {
+            value: "IIIb",
+            label: "Type IIIb",
+            description:
+              "Extensive soft tissue loss, periosteal stripping, requires flap",
+          },
+          {
+            value: "IIIc",
+            label: "Type IIIc",
+            description: "Arterial injury requiring repair",
+          },
         ],
       },
     ],
@@ -101,9 +144,17 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
         name: "Breslow Thickness",
         description: "Depth of invasion in millimeters",
         options: [
-          { value: "in_situ", label: "In situ", description: "Confined to epidermis" },
+          {
+            value: "in_situ",
+            label: "In situ",
+            description: "Confined to epidermis",
+          },
           { value: "≤1.0", label: "≤1.0 mm", description: "Thin melanoma" },
-          { value: "1.01-2.0", label: "1.01-2.0 mm", description: "Intermediate" },
+          {
+            value: "1.01-2.0",
+            label: "1.01-2.0 mm",
+            description: "Intermediate",
+          },
           { value: "2.01-4.0", label: "2.01-4.0 mm", description: "Thick" },
           { value: ">4.0", label: ">4.0 mm", description: "Very thick" },
         ],
@@ -130,9 +181,21 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
         name: "Severity",
         description: "Clinical severity grading",
         options: [
-          { value: "mild", label: "Mild", description: "Intermittent symptoms, normal sensation" },
-          { value: "moderate", label: "Moderate", description: "Persistent symptoms, reduced sensation" },
-          { value: "severe", label: "Severe", description: "Constant numbness, thenar atrophy" },
+          {
+            value: "mild",
+            label: "Mild",
+            description: "Intermittent symptoms, normal sensation",
+          },
+          {
+            value: "moderate",
+            label: "Moderate",
+            description: "Persistent symptoms, reduced sensation",
+          },
+          {
+            value: "severe",
+            label: "Severe",
+            description: "Constant numbness, thenar atrophy",
+          },
         ],
       },
       {
@@ -140,10 +203,26 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
         description: "Electrodiagnostic severity (if performed)",
         options: [
           { value: "normal", label: "Normal", description: "No abnormality" },
-          { value: "mild", label: "Mild", description: "Prolonged sensory latency only" },
-          { value: "moderate", label: "Moderate", description: "Prolonged motor and sensory latencies" },
-          { value: "severe", label: "Severe", description: "Absent sensory response, reduced motor amplitude" },
-          { value: "very_severe", label: "Very Severe", description: "Absent motor and sensory responses" },
+          {
+            value: "mild",
+            label: "Mild",
+            description: "Prolonged sensory latency only",
+          },
+          {
+            value: "moderate",
+            label: "Moderate",
+            description: "Prolonged motor and sensory latencies",
+          },
+          {
+            value: "severe",
+            label: "Severe",
+            description: "Absent sensory response, reduced motor amplitude",
+          },
+          {
+            value: "very_severe",
+            label: "Very Severe",
+            description: "Absent motor and sensory responses",
+          },
         ],
       },
     ],
@@ -163,9 +242,21 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
         options: [
           { value: "0", label: "Grade 0", description: "Normal movement" },
           { value: "1", label: "Grade I", description: "Uneven movement" },
-          { value: "2", label: "Grade II", description: "Actively correctable triggering" },
-          { value: "3", label: "Grade III", description: "Passively correctable triggering" },
-          { value: "4", label: "Grade IV", description: "Fixed flexion contracture" },
+          {
+            value: "2",
+            label: "Grade II",
+            description: "Actively correctable triggering",
+          },
+          {
+            value: "3",
+            label: "Grade III",
+            description: "Passively correctable triggering",
+          },
+          {
+            value: "4",
+            label: "Grade IV",
+            description: "Fixed flexion contracture",
+          },
         ],
       },
     ],
@@ -187,17 +278,29 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
           { value: "T1", label: "T1", description: "≤2 cm" },
           { value: "T2", label: "T2", description: ">2 cm to ≤5 cm" },
           { value: "T3", label: "T3", description: ">5 cm" },
-          { value: "T4", label: "T4", description: "Chest wall or skin involvement" },
+          {
+            value: "T4",
+            label: "T4",
+            description: "Chest wall or skin involvement",
+          },
         ],
       },
       {
         name: "TNM N Stage",
         description: "Nodal involvement",
         options: [
-          { value: "N0", label: "N0", description: "No regional lymph node metastasis" },
+          {
+            value: "N0",
+            label: "N0",
+            description: "No regional lymph node metastasis",
+          },
           { value: "N1", label: "N1", description: "1-3 axillary nodes" },
           { value: "N2", label: "N2", description: "4-9 axillary nodes" },
-          { value: "N3", label: "N3", description: "≥10 axillary or infraclavicular nodes" },
+          {
+            value: "N3",
+            label: "N3",
+            description: "≥10 axillary or infraclavicular nodes",
+          },
         ],
       },
     ],
@@ -209,18 +312,47 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
       "399912005", // Pressure ulcer
       "420324007", // Pressure injury
     ],
-    keywords: ["pressure ulcer", "pressure injury", "pressure sore", "decubitus"],
+    keywords: [
+      "pressure ulcer",
+      "pressure injury",
+      "pressure sore",
+      "decubitus",
+    ],
     stagingSystems: [
       {
         name: "NPUAP Stage",
         description: "National Pressure Ulcer Advisory Panel staging",
         options: [
-          { value: "1", label: "Stage 1", description: "Non-blanchable erythema of intact skin" },
-          { value: "2", label: "Stage 2", description: "Partial thickness skin loss with dermis exposed" },
-          { value: "3", label: "Stage 3", description: "Full thickness skin loss" },
-          { value: "4", label: "Stage 4", description: "Full thickness skin and tissue loss" },
-          { value: "unstageable", label: "Unstageable", description: "Obscured by slough/eschar" },
-          { value: "deep_tissue", label: "Deep Tissue", description: "Persistent non-blanchable deep red/purple" },
+          {
+            value: "1",
+            label: "Stage 1",
+            description: "Non-blanchable erythema of intact skin",
+          },
+          {
+            value: "2",
+            label: "Stage 2",
+            description: "Partial thickness skin loss with dermis exposed",
+          },
+          {
+            value: "3",
+            label: "Stage 3",
+            description: "Full thickness skin loss",
+          },
+          {
+            value: "4",
+            label: "Stage 4",
+            description: "Full thickness skin and tissue loss",
+          },
+          {
+            value: "unstageable",
+            label: "Unstageable",
+            description: "Obscured by slough/eschar",
+          },
+          {
+            value: "deep_tissue",
+            label: "Deep Tissue",
+            description: "Persistent non-blanchable deep red/purple",
+          },
         ],
       },
     ],
@@ -238,10 +370,26 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
         name: "Depth",
         description: "Burn depth classification",
         options: [
-          { value: "superficial", label: "Superficial", description: "Epidermis only, erythema, painful" },
-          { value: "superficial_partial", label: "Superficial Partial", description: "Epidermis + superficial dermis, blisters" },
-          { value: "deep_partial", label: "Deep Partial", description: "Epidermis + deep dermis, less painful" },
-          { value: "full_thickness", label: "Full Thickness", description: "All skin layers, painless, waxy" },
+          {
+            value: "superficial",
+            label: "Superficial",
+            description: "Epidermis only, erythema, painful",
+          },
+          {
+            value: "superficial_partial",
+            label: "Superficial Partial",
+            description: "Epidermis + superficial dermis, blisters",
+          },
+          {
+            value: "deep_partial",
+            label: "Deep Partial",
+            description: "Epidermis + deep dermis, less painful",
+          },
+          {
+            value: "full_thickness",
+            label: "Full Thickness",
+            description: "All skin layers, painless, waxy",
+          },
         ],
       },
       {
@@ -269,10 +417,29 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
         name: "Baker Classification",
         description: "Baker grading of capsular contracture severity",
         options: [
-          { value: "I", label: "Grade I", description: "Breast looks and feels natural" },
-          { value: "II", label: "Grade II", description: "Minimal contracture; breast feels slightly firm but looks normal" },
-          { value: "III", label: "Grade III", description: "Moderate contracture; breast feels firm and looks abnormal" },
-          { value: "IV", label: "Grade IV", description: "Severe contracture; breast is hard, painful, and looks abnormal" },
+          {
+            value: "I",
+            label: "Grade I",
+            description: "Breast looks and feels natural",
+          },
+          {
+            value: "II",
+            label: "Grade II",
+            description:
+              "Minimal contracture; breast feels slightly firm but looks normal",
+          },
+          {
+            value: "III",
+            label: "Grade III",
+            description:
+              "Moderate contracture; breast feels firm and looks abnormal",
+          },
+          {
+            value: "IV",
+            label: "Grade IV",
+            description:
+              "Severe contracture; breast is hard, painful, and looks abnormal",
+          },
         ],
       },
     ],
@@ -289,9 +456,24 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
         name: "Hurley Stage",
         description: "Hurley clinical staging of hidradenitis suppurativa",
         options: [
-          { value: "I", label: "Stage I", description: "Abscess formation (single or multiple) without sinus tracts or scarring" },
-          { value: "II", label: "Stage II", description: "Recurrent abscesses with sinus tracts and scarring; single or multiple widely separated lesions" },
-          { value: "III", label: "Stage III", description: "Diffuse involvement with multiple interconnected sinus tracts and abscesses across entire area" },
+          {
+            value: "I",
+            label: "Stage I",
+            description:
+              "Abscess formation (single or multiple) without sinus tracts or scarring",
+          },
+          {
+            value: "II",
+            label: "Stage II",
+            description:
+              "Recurrent abscesses with sinus tracts and scarring; single or multiple widely separated lesions",
+          },
+          {
+            value: "III",
+            label: "Stage III",
+            description:
+              "Diffuse involvement with multiple interconnected sinus tracts and abscesses across entire area",
+          },
         ],
       },
     ],
@@ -308,10 +490,29 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
         name: "ISL Stage",
         description: "International Society of Lymphology staging",
         options: [
-          { value: "I", label: "Stage I", description: "Reversible; pitting oedema that subsides with elevation" },
-          { value: "II", label: "Stage II", description: "Spontaneously irreversible; pitting oedema that does not resolve with elevation alone" },
-          { value: "IIb", label: "Stage IIb (late II)", description: "Non-pitting; tissue fibrosis evident" },
-          { value: "III", label: "Stage III", description: "Lymphostatic elephantiasis; non-pitting with skin changes (acanthosis, fat deposits)" },
+          {
+            value: "I",
+            label: "Stage I",
+            description:
+              "Reversible; pitting oedema that subsides with elevation",
+          },
+          {
+            value: "II",
+            label: "Stage II",
+            description:
+              "Spontaneously irreversible; pitting oedema that does not resolve with elevation alone",
+          },
+          {
+            value: "IIb",
+            label: "Stage IIb (late II)",
+            description: "Non-pitting; tissue fibrosis evident",
+          },
+          {
+            value: "III",
+            label: "Stage III",
+            description:
+              "Lymphostatic elephantiasis; non-pitting with skin changes (acanthosis, fat deposits)",
+          },
         ],
       },
     ],
@@ -319,21 +520,49 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
 
   // Wagner Classification — Diabetic Foot
   {
-    snomedCtCodes: [
-      "280137006",
+    snomedCtCodes: ["280137006"],
+    keywords: [
+      "diabetic foot",
+      "diabetic ulcer",
+      "Wagner",
+      "neuropathic ulcer",
     ],
-    keywords: ["diabetic foot", "diabetic ulcer", "Wagner", "neuropathic ulcer"],
     stagingSystems: [
       {
         name: "Wagner Grade",
-        description: "Diabetic foot ulcer classification — guides surgical management",
+        description:
+          "Diabetic foot ulcer classification — guides surgical management",
         options: [
-          { value: "0", label: "Grade 0", description: "Intact skin; bony deformity (pre-ulcerative)" },
-          { value: "1", label: "Grade 1", description: "Superficial ulcer (epidermis + dermis)" },
-          { value: "2", label: "Grade 2", description: "Deep ulcer to tendon / bone / joint" },
-          { value: "3", label: "Grade 3", description: "Deep ulcer + abscess / osteomyelitis" },
-          { value: "4", label: "Grade 4", description: "Partial foot gangrene (toe / forefoot)" },
-          { value: "5", label: "Grade 5", description: "Whole foot gangrene — amputation usually required" },
+          {
+            value: "0",
+            label: "Grade 0",
+            description: "Intact skin; bony deformity (pre-ulcerative)",
+          },
+          {
+            value: "1",
+            label: "Grade 1",
+            description: "Superficial ulcer (epidermis + dermis)",
+          },
+          {
+            value: "2",
+            label: "Grade 2",
+            description: "Deep ulcer to tendon / bone / joint",
+          },
+          {
+            value: "3",
+            label: "Grade 3",
+            description: "Deep ulcer + abscess / osteomyelitis",
+          },
+          {
+            value: "4",
+            label: "Grade 4",
+            description: "Partial foot gangrene (toe / forefoot)",
+          },
+          {
+            value: "5",
+            label: "Grade 5",
+            description: "Whole foot gangrene — amputation usually required",
+          },
         ],
       },
     ],
@@ -341,18 +570,30 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
 
   // Le Fort Classification — Midface Fractures
   {
-    snomedCtCodes: [
-      "263175007",
-    ],
+    snomedCtCodes: ["263175007"],
     keywords: ["Le Fort", "LeFort", "midface fracture", "maxillary fracture"],
     stagingSystems: [
       {
         name: "Le Fort Classification",
         description: "Midface fracture pattern classification",
         options: [
-          { value: "I", label: "Le Fort I", description: "Horizontal maxillary — alveolar process separation" },
-          { value: "II", label: "Le Fort II", description: "Pyramidal — maxilla + nasal bones; infraorbital involvement" },
-          { value: "III", label: "Le Fort III", description: "Craniofacial disjunction — complete separation of facial skeleton from cranial base" },
+          {
+            value: "I",
+            label: "Le Fort I",
+            description: "Horizontal maxillary — alveolar process separation",
+          },
+          {
+            value: "II",
+            label: "Le Fort II",
+            description:
+              "Pyramidal — maxilla + nasal bones; infraorbital involvement",
+          },
+          {
+            value: "III",
+            label: "Le Fort III",
+            description:
+              "Craniofacial disjunction — complete separation of facial skeleton from cranial base",
+          },
         ],
       },
     ],
@@ -364,18 +605,51 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
       "280816001", // Facial nerve palsy
       "95666003", // Bell's palsy
     ],
-    keywords: ["facial nerve palsy", "bell's palsy", "facial palsy", "house-brackmann"],
+    keywords: [
+      "facial nerve palsy",
+      "bell's palsy",
+      "facial palsy",
+      "house-brackmann",
+    ],
     stagingSystems: [
       {
         name: "House-Brackmann Grade",
         description: "House-Brackmann facial nerve grading system",
         options: [
-          { value: "I", label: "Grade I", description: "Normal; normal facial function in all areas" },
-          { value: "II", label: "Grade II", description: "Mild dysfunction; slight weakness noticeable on close inspection" },
-          { value: "III", label: "Grade III", description: "Moderate dysfunction; obvious but not disfiguring difference; complete eye closure with effort" },
-          { value: "IV", label: "Grade IV", description: "Moderately severe dysfunction; obvious weakness and/or disfiguring asymmetry; incomplete eye closure" },
-          { value: "V", label: "Grade V", description: "Severe dysfunction; barely perceptible motion; incomplete eye closure" },
-          { value: "VI", label: "Grade VI", description: "Total paralysis; no movement" },
+          {
+            value: "I",
+            label: "Grade I",
+            description: "Normal; normal facial function in all areas",
+          },
+          {
+            value: "II",
+            label: "Grade II",
+            description:
+              "Mild dysfunction; slight weakness noticeable on close inspection",
+          },
+          {
+            value: "III",
+            label: "Grade III",
+            description:
+              "Moderate dysfunction; obvious but not disfiguring difference; complete eye closure with effort",
+          },
+          {
+            value: "IV",
+            label: "Grade IV",
+            description:
+              "Moderately severe dysfunction; obvious weakness and/or disfiguring asymmetry; incomplete eye closure",
+          },
+          {
+            value: "V",
+            label: "Grade V",
+            description:
+              "Severe dysfunction; barely perceptible motion; incomplete eye closure",
+          },
+          {
+            value: "VI",
+            label: "Grade VI",
+            description: "Total paralysis; no movement",
+          },
         ],
       },
     ],
@@ -388,12 +662,12 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
  */
 export function getStagingForDiagnosis(
   snomedCode?: string,
-  diagnosisName?: string
+  diagnosisName?: string,
 ): DiagnosisStagingConfig | null {
   // First try exact SNOMED code match
   if (snomedCode) {
     const exactMatch = diagnosisStagingConfigs.find((config) =>
-      config.snomedCtCodes.includes(snomedCode)
+      config.snomedCtCodes.includes(snomedCode),
     );
     if (exactMatch) {
       return exactMatch;
@@ -404,7 +678,9 @@ export function getStagingForDiagnosis(
   if (diagnosisName) {
     const lowerName = diagnosisName.toLowerCase();
     const keywordMatch = diagnosisStagingConfigs.find((config) =>
-      config.keywords.some((keyword) => lowerName.includes(keyword.toLowerCase()))
+      config.keywords.some((keyword) =>
+        lowerName.includes(keyword.toLowerCase()),
+      ),
     );
     if (keywordMatch) {
       return keywordMatch;

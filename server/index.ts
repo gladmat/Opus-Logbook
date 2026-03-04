@@ -33,14 +33,17 @@ function setupCors(app: express.Application) {
 
     // Allow localhost origins for Expo dev client (any port) — development only
     const isDev = env.NODE_ENV !== "production";
-    const isLocalhost = isDev && (
-      origin?.startsWith("http://localhost:") ||
-      origin?.startsWith("http://127.0.0.1:")
-    );
+    const isLocalhost =
+      isDev &&
+      (origin?.startsWith("http://localhost:") ||
+        origin?.startsWith("http://127.0.0.1:"));
 
     if (origin && (allowedOrigins.has(origin) || isLocalhost)) {
       res.header("Access-Control-Allow-Origin", origin);
-      res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+      res.header(
+        "Access-Control-Allow-Methods",
+        "GET, POST, PUT, DELETE, OPTIONS",
+      );
       res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
       res.header("Access-Control-Allow-Credentials", "true");
     }
@@ -50,7 +53,8 @@ function setupCors(app: express.Application) {
     // any browser-based consumers.
 
     if (req.method === "OPTIONS") {
-      return res.sendStatus(200);
+      res.sendStatus(200);
+      return;
     }
 
     next();
@@ -63,11 +67,17 @@ function setupCors(app: express.Application) {
 function setupBodyParsing(app: express.Application) {
   // Strict limit for auth routes (login, signup, password reset) — no reason for large payloads
   const authJsonParser = express.json({ limit: "1kb" });
-  const authUrlencodedParser = express.urlencoded({ extended: false, limit: "1kb" });
+  const authUrlencodedParser = express.urlencoded({
+    extended: false,
+    limit: "1kb",
+  });
 
   // Moderate limit for profile/facility/general API routes
   const apiJsonParser = express.json({ limit: "256kb" });
-  const apiUrlencodedParser = express.urlencoded({ extended: false, limit: "256kb" });
+  const apiUrlencodedParser = express.urlencoded({
+    extended: false,
+    limit: "256kb",
+  });
 
   // Larger limit for seed data and any future bulk import endpoints
   const bulkJsonParser = express.json({
@@ -76,7 +86,10 @@ function setupBodyParsing(app: express.Application) {
       req.rawBody = buf;
     },
   });
-  const bulkUrlencodedParser = express.urlencoded({ extended: false, limit: "5mb" });
+  const bulkUrlencodedParser = express.urlencoded({
+    extended: false,
+    limit: "5mb",
+  });
 
   // Apply route-specific limits (most restrictive first, fallback last)
   app.use("/api/auth", authJsonParser, authUrlencodedParser);
@@ -135,9 +148,10 @@ function serveExpoManifest(platform: string, res: Response) {
   );
 
   if (!fs.existsSync(manifestPath)) {
-    return res
+    res
       .status(404)
       .json({ error: `Manifest not found for platform: ${platform}` });
+    return;
   }
 
   res.setHeader("expo-protocol-version", "1");
@@ -185,11 +199,12 @@ function serveLegalPage(templateName: string, res: Response) {
     "templates",
     templateName,
   );
-  
+
   if (!fs.existsSync(templatePath)) {
-    return res.status(404).send("Page not found");
+    res.status(404).send("Page not found");
+    return;
   }
-  
+
   const html = fs.readFileSync(templatePath, "utf-8");
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.status(200).send(html);
@@ -260,13 +275,22 @@ function setupSecurityHeaders(app: express.Application) {
   app.use((_req: Request, res: Response, next: NextFunction) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
-    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+    res.setHeader(
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains; preload",
+    );
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
     res.setHeader("X-XSS-Protection", "0"); // Disabled in favour of CSP; legacy header can cause issues
     res.setHeader("X-Permitted-Cross-Domain-Policies", "none");
     res.setHeader("X-Download-Options", "noopen");
-    res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'");
-    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    res.setHeader(
+      "Content-Security-Policy",
+      "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'",
+    );
+    res.setHeader(
+      "Permissions-Policy",
+      "camera=(), microphone=(), geolocation=()",
+    );
     next();
   });
 }
@@ -282,9 +306,8 @@ function setupErrorHandler(app: express.Application) {
     const status = error.status || error.statusCode || 500;
 
     // Only expose error messages for client errors (4xx), never for server errors (5xx)
-    const message = status < 500
-      ? (error.message || "Request error")
-      : "Internal Server Error";
+    const message =
+      status < 500 ? error.message || "Request error" : "Internal Server Error";
 
     if (status >= 500) {
       console.error("Server error:", err);

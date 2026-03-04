@@ -1,15 +1,31 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import { View, Pressable, StyleSheet, LayoutAnimation, Platform, UIManager } from "react-native";
+import {
+  View,
+  Pressable,
+  StyleSheet,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+} from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { v4 as uuidv4 } from "uuid";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
-import type { DigitId, HandTraumaDetails, HandTraumaStructure, CaseProcedure } from "@/types/case";
+import type {
+  DigitId,
+  HandTraumaDetails,
+  HandTraumaStructure,
+  CaseProcedure,
+} from "@/types/case";
 import type { DiagnosisPicklistEntry } from "@/lib/diagnosisPicklists";
 import { findPicklistEntry } from "@/lib/procedurePicklist";
-import { STRUCTURE_PROCEDURE_MAP, SMART_DEFAULTS, type StructureCategory } from "./structureConfig";
+import {
+  STRUCTURE_PROCEDURE_MAP,
+  SMART_DEFAULTS,
+  type StructureCategory,
+} from "./structureConfig";
 import { DigitSelector } from "./DigitSelector";
 import { FlexorTendonSection } from "./FlexorTendonSection";
 import { ExtensorTendonSection } from "./ExtensorTendonSection";
@@ -18,7 +34,10 @@ import { ArterySection } from "./ArterySection";
 import { LigamentSection } from "./LigamentSection";
 import { OtherStructuresSection } from "./OtherStructuresSection";
 
-if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
@@ -27,24 +46,55 @@ interface HandTraumaStructurePickerProps {
   onChange: (details: HandTraumaDetails) => void;
   selectedDiagnosis?: DiagnosisPicklistEntry;
   procedures: CaseProcedure[];
-  onProceduresChange: (updater: (prev: CaseProcedure[]) => CaseProcedure[]) => void;
+  onProceduresChange: (
+    updater: (prev: CaseProcedure[]) => CaseProcedure[],
+  ) => void;
 }
 
-type AccordionSection = "flexor" | "extensor" | "nerve" | "artery" | "ligament" | "other";
+type AccordionSection =
+  | "flexor"
+  | "extensor"
+  | "nerve"
+  | "artery"
+  | "ligament"
+  | "other";
 
-const SECTION_CONFIG: { key: AccordionSection; label: string; icon: string; category: StructureCategory }[] = [
-  { key: "flexor", label: "Flexor Tendons", icon: "trending-down", category: "flexor_tendon" },
-  { key: "extensor", label: "Extensor Tendons", icon: "trending-up", category: "extensor_tendon" },
+const SECTION_CONFIG: {
+  key: AccordionSection;
+  label: string;
+  icon: string;
+  category: StructureCategory;
+}[] = [
+  {
+    key: "flexor",
+    label: "Flexor Tendons",
+    icon: "trending-down",
+    category: "flexor_tendon",
+  },
+  {
+    key: "extensor",
+    label: "Extensor Tendons",
+    icon: "trending-up",
+    category: "extensor_tendon",
+  },
   { key: "nerve", label: "Nerves", icon: "zap", category: "nerve" },
   { key: "artery", label: "Arteries", icon: "activity", category: "artery" },
   { key: "ligament", label: "Ligaments", icon: "link", category: "ligament" },
-  { key: "other", label: "Other Structures", icon: "layers", category: "other" },
+  {
+    key: "other",
+    label: "Other Structures",
+    icon: "layers",
+    category: "other",
+  },
 ];
 
 function lookupProcedureMap(structureId: string): string | undefined {
-  if (STRUCTURE_PROCEDURE_MAP[structureId]) return STRUCTURE_PROCEDURE_MAP[structureId];
-  if (structureId.startsWith("pip_collateral_")) return STRUCTURE_PROCEDURE_MAP["pip_collateral"];
-  if (structureId.startsWith("volar_plate_")) return STRUCTURE_PROCEDURE_MAP["volar_plate"];
+  if (STRUCTURE_PROCEDURE_MAP[structureId])
+    return STRUCTURE_PROCEDURE_MAP[structureId];
+  if (structureId.startsWith("pip_collateral_"))
+    return STRUCTURE_PROCEDURE_MAP["pip_collateral"];
+  if (structureId.startsWith("volar_plate_"))
+    return STRUCTURE_PROCEDURE_MAP["volar_plate"];
   return undefined;
 }
 
@@ -56,7 +106,9 @@ export function HandTraumaStructurePicker({
   onProceduresChange,
 }: HandTraumaStructurePickerProps) {
   const { theme } = useTheme();
-  const [openSections, setOpenSections] = useState<Set<AccordionSection>>(new Set());
+  const [openSections, setOpenSections] = useState<Set<AccordionSection>>(
+    new Set(),
+  );
   const [flexorZone, setFlexorZone] = useState("");
   const [extensorZone, setExtensorZone] = useState("");
   const initializedRef = useRef(false);
@@ -97,7 +149,7 @@ export function HandTraumaStructurePicker({
 
       if (removedDigits.length > 0) {
         const structuresToRemove = injuredStructures.filter(
-          (s) => s.digit && removedDigits.includes(s.digit)
+          (s) => s.digit && removedDigits.includes(s.digit),
         );
         const procIdsToRemove = structuresToRemove
           .map((s) => s.generatedProcedureId)
@@ -105,12 +157,12 @@ export function HandTraumaStructurePicker({
 
         if (procIdsToRemove.length > 0) {
           onProceduresChange((prev) =>
-            prev.filter((p) => !procIdsToRemove.includes(p.id))
+            prev.filter((p) => !procIdsToRemove.includes(p.id)),
           );
         }
 
         const remainingStructures = injuredStructures.filter(
-          (s) => !s.digit || !removedDigits.includes(s.digit)
+          (s) => !s.digit || !removedDigits.includes(s.digit),
         );
         onChange({
           ...value,
@@ -121,7 +173,7 @@ export function HandTraumaStructurePicker({
         onChange({ ...value, affectedDigits: digits });
       }
     },
-    [value, injuredStructures, selectedDigits, onChange, onProceduresChange]
+    [value, injuredStructures, selectedDigits, onChange, onProceduresChange],
   );
 
   const createProcedure = useCallback(
@@ -158,16 +210,16 @@ export function HandTraumaStructurePicker({
 
       return procId;
     },
-    [onProceduresChange]
+    [onProceduresChange],
   );
 
   const removeProcedure = useCallback(
     (generatedProcedureId: string) => {
       onProceduresChange((prev) =>
-        prev.filter((p) => p.id !== generatedProcedureId)
+        prev.filter((p) => p.id !== generatedProcedureId),
       );
     },
-    [onProceduresChange]
+    [onProceduresChange],
   );
 
   const handleToggleTendonStructure = useCallback(
@@ -177,7 +229,7 @@ export function HandTraumaStructurePicker({
         (s) =>
           s.category === structure.category &&
           s.structureId === structure.structureId &&
-          s.digit === structure.digit
+          s.digit === structure.digit,
       );
 
       if (existing) {
@@ -190,13 +242,18 @@ export function HandTraumaStructurePicker({
         const procId = createProcedure(structure);
         const newStructure: HandTraumaStructure = {
           ...structure,
-          generatedProcedurePicklistId: lookupProcedureMap(structure.structureId),
+          generatedProcedurePicklistId: lookupProcedureMap(
+            structure.structureId,
+          ),
           generatedProcedureId: procId,
         };
-        onChange({ ...value, injuredStructures: [...injuredStructures, newStructure] });
+        onChange({
+          ...value,
+          injuredStructures: [...injuredStructures, newStructure],
+        });
       }
     },
-    [value, injuredStructures, onChange, createProcedure, removeProcedure]
+    [value, injuredStructures, onChange, createProcedure, removeProcedure],
   );
 
   const handleToggleParamStructure = useCallback(
@@ -205,11 +262,11 @@ export function HandTraumaStructurePicker({
       category: StructureCategory,
       displayName: string,
       digit?: DigitId,
-      side?: "radial" | "ulnar"
+      side?: "radial" | "ulnar",
     ) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       const existing = injuredStructures.find(
-        (s) => s.category === category && s.structureId === structureId
+        (s) => s.category === category && s.structureId === structureId,
       );
 
       if (existing) {
@@ -232,42 +289,74 @@ export function HandTraumaStructurePicker({
           generatedProcedurePicklistId: lookupProcedureMap(structureId),
           generatedProcedureId: procId,
         };
-        onChange({ ...value, injuredStructures: [...injuredStructures, newStructure] });
+        onChange({
+          ...value,
+          injuredStructures: [...injuredStructures, newStructure],
+        });
       }
     },
-    [value, injuredStructures, onChange, createProcedure, removeProcedure]
+    [value, injuredStructures, onChange, createProcedure, removeProcedure],
   );
 
   const structureCount = injuredStructures.length;
-  const procedureCount = injuredStructures.filter((s) => s.generatedProcedureId).length;
+  const procedureCount = injuredStructures.filter(
+    (s) => s.generatedProcedureId,
+  ).length;
 
   const getCategoryCount = (category: StructureCategory) =>
     injuredStructures.filter((s) => s.category === category).length;
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.backgroundSecondary,
+          borderColor: theme.border,
+        },
+      ]}
+    >
       <View style={styles.header}>
         <Feather name="clipboard" size={18} color={theme.link} />
-        <ThemedText style={{ color: theme.text, marginLeft: Spacing.sm, fontWeight: "600" }}>
+        <ThemedText
+          style={{
+            color: theme.text,
+            marginLeft: Spacing.sm,
+            fontWeight: "600",
+          }}
+        >
           Injured Structures
         </ThemedText>
       </View>
 
-      <DigitSelector selectedDigits={selectedDigits} onChange={handleDigitsChange} />
+      <DigitSelector
+        selectedDigits={selectedDigits}
+        onChange={handleDigitsChange}
+      />
 
       <View style={styles.sections}>
         {SECTION_CONFIG.map(({ key, label, icon, category }) => {
           const isOpen = openSections.has(key);
           const count = getCategoryCount(category);
           return (
-            <View key={key} style={[styles.sectionWrapper, { borderColor: theme.border }]}>
+            <View
+              key={key}
+              style={[styles.sectionWrapper, { borderColor: theme.border }]}
+            >
               <Pressable
                 testID={`section-${key}`}
                 style={styles.sectionHeader}
                 onPress={() => toggleSection(key)}
               >
-                <Feather name={icon as any} size={16} color={theme.textSecondary} />
-                <ThemedText type="small" style={[styles.sectionLabel, { color: theme.text }]}>
+                <Feather
+                  name={icon as any}
+                  size={16}
+                  color={theme.textSecondary}
+                />
+                <ThemedText
+                  type="small"
+                  style={[styles.sectionLabel, { color: theme.text }]}
+                >
                   {label}
                 </ThemedText>
                 {count > 0 ? (
@@ -339,9 +428,20 @@ export function HandTraumaStructurePicker({
       </View>
 
       {structureCount > 0 ? (
-        <View style={[styles.summary, { backgroundColor: theme.link + "10", borderColor: theme.link + "30" }]}>
+        <View
+          style={[
+            styles.summary,
+            {
+              backgroundColor: theme.link + "10",
+              borderColor: theme.link + "30",
+            },
+          ]}
+        >
           <Feather name="info" size={14} color={theme.link} />
-          <ThemedText type="small" style={{ color: theme.link, marginLeft: Spacing.sm }}>
+          <ThemedText
+            type="small"
+            style={{ color: theme.link, marginLeft: Spacing.sm }}
+          >
             {structureCount} structure{structureCount !== 1 ? "s" : ""} selected
             {procedureCount > 0
               ? ` \u2192 ${procedureCount} procedure${procedureCount !== 1 ? "s" : ""} generated`

@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import { useColorScheme as useSystemColorScheme } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Colors } from "@/constants/theme";
@@ -20,7 +26,9 @@ const STORAGE_KEY = "@theme_preference";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemScheme = useSystemColorScheme();
-  const [userPreference, setUserPreference] = useState<ThemePreference | null>(null);
+  const [userPreference, setUserPreference] = useState<ThemePreference | null>(
+    null,
+  );
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then((v) => {
@@ -54,7 +62,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       toggleColorScheme,
       setColorScheme: setColorSchemeValue,
     }),
-    [theme, isDark, colorScheme, preference, toggleColorScheme, setColorSchemeValue],
+    [
+      theme,
+      isDark,
+      colorScheme,
+      preference,
+      toggleColorScheme,
+      setColorSchemeValue,
+    ],
   );
 
   return React.createElement(ThemeContext.Provider, { value }, children);

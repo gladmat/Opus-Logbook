@@ -74,10 +74,13 @@ export async function clearAuthToken(): Promise<void> {
   }
 }
 
-async function authFetch(path: string, options: RequestInit = {}): Promise<Response> {
+async function authFetch(
+  path: string,
+  options: RequestInit = {},
+): Promise<Response> {
   const baseUrl = getApiUrl();
   const token = await getAuthToken();
-  
+
   return fetch(new URL(path, baseUrl).href, {
     ...options,
     headers: {
@@ -88,33 +91,39 @@ async function authFetch(path: string, options: RequestInit = {}): Promise<Respo
   });
 }
 
-export async function signup(email: string, password: string): Promise<AuthResponse> {
+export async function signup(
+  email: string,
+  password: string,
+): Promise<AuthResponse> {
   const res = await authFetch("/api/auth/signup", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
-  
+
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.error || "Failed to create account");
   }
-  
+
   const data: AuthResponse = await res.json();
   await setAuthToken(data.token);
   return data;
 }
 
-export async function login(email: string, password: string): Promise<AuthResponse> {
+export async function login(
+  email: string,
+  password: string,
+): Promise<AuthResponse> {
   const res = await authFetch("/api/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
-  
+
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.error || "Invalid email or password");
   }
-  
+
   const data: AuthResponse = await res.json();
   await setAuthToken(data.token);
   return data;
@@ -123,31 +132,64 @@ export async function login(email: string, password: string): Promise<AuthRespon
 export async function getCurrentUser(): Promise<AuthResponse | null> {
   const token = await getAuthToken();
   if (!token) return null;
-  
-  const res = await authFetch("/api/auth/me");
-  if (!res.ok) {
-    await clearAuthToken();
+
+  try {
+    const res = await authFetch("/api/auth/me");
+    if (res.status === 401 || res.status === 403) {
+      // Token is invalid or revoked — clear it
+      await clearAuthToken();
+      return null;
+    }
+    if (!res.ok) {
+      // Server error (5xx) or other — keep token, treat as offline
+      return null;
+    }
+    return res.json();
+  } catch {
+    // Network error — keep token, treat as offline
     return null;
   }
-  
-  return res.json();
+}
+
+export async function refreshToken(): Promise<boolean> {
+  try {
+    const token = await getAuthToken();
+    if (!token) return false;
+
+    const res = await authFetch("/api/auth/refresh", {
+      method: "POST",
+    });
+
+    if (!res.ok) return false;
+
+    const data = await res.json();
+    if (data.token) {
+      await setAuthToken(data.token);
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 export async function logout(): Promise<void> {
   await clearAuthToken();
 }
 
-export async function updateProfile(profile: Partial<UserProfile>): Promise<UserProfile> {
+export async function updateProfile(
+  profile: Partial<UserProfile>,
+): Promise<UserProfile> {
   const res = await authFetch("/api/profile", {
     method: "PUT",
     body: JSON.stringify(profile),
   });
-  
+
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.error || "Failed to update profile");
   }
-  
+
   return res.json();
 }
 
@@ -157,21 +199,28 @@ export async function getUserFacilities(): Promise<UserFacility[]> {
   return res.json();
 }
 
-export async function createFacility(facilityName: string, isPrimary: boolean = false, facilityId?: string): Promise<UserFacility> {
+export async function createFacility(
+  facilityName: string,
+  isPrimary: boolean = false,
+  facilityId?: string,
+): Promise<UserFacility> {
   const res = await authFetch("/api/facilities", {
     method: "POST",
     body: JSON.stringify({ facilityName, isPrimary, facilityId }),
   });
-  
+
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.error || "Failed to add facility");
   }
-  
+
   return res.json();
 }
 
-export async function updateFacility(id: string, data: { isPrimary?: boolean }): Promise<UserFacility> {
+export async function updateFacility(
+  id: string,
+  data: { isPrimary?: boolean },
+): Promise<UserFacility> {
   const res = await authFetch(`/api/facilities/${id}`, {
     method: "PUT",
     body: JSON.stringify(data),
@@ -189,14 +238,16 @@ export async function deleteFacility(id: string): Promise<void> {
   const res = await authFetch(`/api/facilities/${id}`, {
     method: "DELETE",
   });
-  
+
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.error || "Failed to delete facility");
   }
 }
 
-export async function uploadProfilePicture(imageUri: string): Promise<UserProfile> {
+export async function uploadProfilePicture(
+  imageUri: string,
+): Promise<UserProfile> {
   const baseUrl = getApiUrl();
   const token = await getAuthToken();
 
@@ -236,7 +287,7 @@ export async function deleteProfilePicture(): Promise<UserProfile> {
 export async function registerDeviceKey(
   deviceId: string,
   publicKey: string,
-  label?: string
+  label?: string,
 ): Promise<void> {
   const res = await authFetch("/api/keys/device", {
     method: "POST",
@@ -247,4 +298,16 @@ export async function registerDeviceKey(
     const error = await res.json();
     throw new Error(error.error || "Failed to register device key");
   }
+}
+
+export async function deleteAccount(password: string): Promise<void> {
+  const res = await authFetch("/api/auth/account", {
+    method: "DELETE",
+    body: JSON.stringify({ password }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Failed to delete account");
+  }
+  await clearAuthToken();
 }

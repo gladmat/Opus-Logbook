@@ -75,10 +75,10 @@
     <a href="/" class="back-link">Back to Home</a>
     
     <h1>Privacy Policy</h1>
-    <p class="last-updated">Last updated: January 2026</p>
+    <p class="last-updated">Last updated: March 2026</p>
 
     <div class="highlight">
-      <p>Opus utilizes a Local-First architecture. Clinical data is stored on your device and is not transmitted to our servers unless you explicitly use sync features. We do not sell your data.</p>
+      <p>Opus utilizes a Local-First architecture. Clinical data is encrypted and stored exclusively on your device. Only your account and profile information is stored on our servers. We do not sell your data.</p>
     </div>
 
     <h2>1. Introduction</h2>
@@ -97,17 +97,17 @@
       <li>Surgical procedure records</li>
       <li>Patient identifiers (stored only on your device)</li>
       <li>Operation notes and clinical documentation</li>
-      <li>Photos of operation notes (processed on-device, never uploaded)</li>
+      <li>Intraoperative photos (encrypted and stored on your device only)</li>
     </ul>
 
     <h2>3. How We Process Your Data</h2>
     <h3>Local-First Architecture</h3>
     <p>Opus is designed with privacy as a core principle:</p>
     <ul>
-      <li><strong>On-Device OCR:</strong> On web platforms, operation note images are processed using Tesseract.js directly on your device. The images never leave your device.</li>
-      <li><strong>Mobile OCR:</strong> On mobile devices using Expo Go, images are sent to our server for OCR processing only, then immediately discarded. The extracted text is processed locally.</li>
-      <li><strong>No Cloud AI:</strong> We do not use external AI services (such as OpenAI, Gemini, or similar) to process your clinical data. All document parsing uses local pattern matching.</li>
-      <li><strong>Automatic Redaction:</strong> Patient identifiers (NHI numbers, names) are automatically redacted before any processing.</li>
+      <li><strong>On-Device Encryption:</strong> All clinical data is encrypted on your device using XChaCha20-Poly1305 authenticated encryption before storage. Your encryption key is derived from your passphrase and never leaves your device.</li>
+      <li><strong>Patient Identifier Hashing:</strong> Patient identifiers used for indexing and search are hashed with SHA-256 before storage, so they cannot be read even from local data.</li>
+      <li><strong>No Cloud Processing:</strong> We do not use external AI services, cloud OCR, or any remote processing for your clinical data. All data processing happens entirely on your device.</li>
+      <li><strong>Media Encryption:</strong> Intraoperative photos are encrypted with the same authenticated encryption and stored on your device. They are never uploaded to our servers.</li>
     </ul>
 
     <h2>4. Data Storage and Security</h2>
@@ -123,7 +123,7 @@
     <ul>
       <li>Access your personal data</li>
       <li>Correct inaccurate data</li>
-      <li>Delete your account and associated data</li>
+      <li>Delete your account and associated data (available in Settings within the app)</li>
       <li>Export your data in a portable format</li>
       <li>Withdraw consent at any time</li>
     </ul>

@@ -12,9 +12,15 @@ interface MediaCallbackContextType {
   executeGenericCallback: (callbackId: string, ...args: any[]) => void;
 }
 
-const MediaCallbackContext = createContext<MediaCallbackContextType | null>(null);
+const MediaCallbackContext = createContext<MediaCallbackContextType | null>(
+  null,
+);
 
-export function MediaCallbackProvider({ children }: { children: React.ReactNode }) {
+export function MediaCallbackProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const callbacksRef = useRef<Map<string, MediaCallback>>(new Map());
   const genericCallbacksRef = useRef<Map<string, GenericCallback>>(new Map());
   const idCounterRef = useRef(0);
@@ -25,41 +31,58 @@ export function MediaCallbackProvider({ children }: { children: React.ReactNode 
     return id;
   }, []);
 
-  const executeCallback = useCallback((callbackId: string, attachments: MediaAttachment[]) => {
-    const callback = callbacksRef.current.get(callbackId);
-    if (callback) {
-      callback(attachments);
-      callbacksRef.current.delete(callbackId);
-    }
-  }, []);
+  const executeCallback = useCallback(
+    (callbackId: string, attachments: MediaAttachment[]) => {
+      const callback = callbacksRef.current.get(callbackId);
+      if (callback) {
+        callback(attachments);
+        callbacksRef.current.delete(callbackId);
+      }
+    },
+    [],
+  );
 
   const clearCallback = useCallback((callbackId: string) => {
     callbacksRef.current.delete(callbackId);
     genericCallbacksRef.current.delete(callbackId);
   }, []);
 
-  const registerGenericCallback = useCallback((callback: GenericCallback): string => {
-    const id = `generic_callback_${++idCounterRef.current}`;
-    genericCallbacksRef.current.set(id, callback);
-    return id;
-  }, []);
+  const registerGenericCallback = useCallback(
+    (callback: GenericCallback): string => {
+      const id = `generic_callback_${++idCounterRef.current}`;
+      genericCallbacksRef.current.set(id, callback);
+      return id;
+    },
+    [],
+  );
 
-  const executeGenericCallback = useCallback((callbackId: string, ...args: any[]) => {
-    const callback = genericCallbacksRef.current.get(callbackId);
-    if (callback) {
-      try {
-        callback(...args);
-      } catch (error) {
-        console.error("Media callback error:", error);
+  const executeGenericCallback = useCallback(
+    (callbackId: string, ...args: any[]) => {
+      const callback = genericCallbacksRef.current.get(callbackId);
+      if (callback) {
+        try {
+          callback(...args);
+        } catch (error) {
+          console.error("Media callback error:", error);
+        }
+        genericCallbacksRef.current.delete(callbackId);
+      } else {
+        console.warn("Media callback not found for id:", callbackId);
       }
-      genericCallbacksRef.current.delete(callbackId);
-    } else {
-      console.warn("Media callback not found for id:", callbackId);
-    }
-  }, []);
+    },
+    [],
+  );
 
   return (
-    <MediaCallbackContext.Provider value={{ registerCallback, executeCallback, clearCallback, registerGenericCallback, executeGenericCallback }}>
+    <MediaCallbackContext.Provider
+      value={{
+        registerCallback,
+        executeCallback,
+        clearCallback,
+        registerGenericCallback,
+        executeGenericCallback,
+      }}
+    >
       {children}
     </MediaCallbackContext.Provider>
   );
@@ -68,7 +91,9 @@ export function MediaCallbackProvider({ children }: { children: React.ReactNode 
 export function useMediaCallback() {
   const context = useContext(MediaCallbackContext);
   if (!context) {
-    throw new Error("useMediaCallback must be used within a MediaCallbackProvider");
+    throw new Error(
+      "useMediaCallback must be used within a MediaCallbackProvider",
+    );
   }
   return context;
 }

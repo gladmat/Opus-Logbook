@@ -1,11 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  Animated,
-} from "react-native";
+import { View, Text, StyleSheet, Pressable, Animated } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -175,9 +169,7 @@ export default function LockScreen() {
       style={({ pressed }) => [
         styles.key,
         {
-          backgroundColor: pressed
-            ? colors.backgroundTertiary
-            : "transparent",
+          backgroundColor: pressed ? colors.backgroundTertiary : "transparent",
         },
       ]}
     >
@@ -257,7 +249,10 @@ export default function LockScreen() {
       </View>
 
       {showBiometricButton && (
-        <Pressable onPress={handleBiometricUnlock} style={styles.biometricLabel}>
+        <Pressable
+          onPress={handleBiometricUnlock}
+          style={styles.biometricLabel}
+        >
           <Text style={[Typography.small, { color: colors.link }]}>
             Use {biometricType}
           </Text>

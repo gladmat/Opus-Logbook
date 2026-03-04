@@ -1,9 +1,5 @@
 import React, { useState } from "react";
-import {
-  View,
-  StyleSheet,
-  Pressable,
-} from "react-native";
+import { View, StyleSheet, Pressable } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
@@ -33,30 +29,40 @@ interface InfectionEpisodeCardProps {
   onToggleExpand?: () => void;
 }
 
-const INTENT_OPTIONS = Object.entries(EPISODE_INTENT_LABELS).map(([value, label]) => ({
+const INTENT_OPTIONS = Object.entries(EPISODE_INTENT_LABELS).map(
+  ([value, label]) => ({
+    value,
+    label,
+  }),
+);
+
+const DEBRIDEMENT_EXTENT_OPTIONS = Object.entries(
+  DEBRIDEMENT_EXTENT_LABELS,
+).map(([value, label]) => ({
   value,
   label,
 }));
 
-const DEBRIDEMENT_EXTENT_OPTIONS = Object.entries(DEBRIDEMENT_EXTENT_LABELS).map(([value, label]) => ({
-  value,
-  label,
-}));
+const COMPARTMENTS_OPTIONS = Object.entries(COMPARTMENTS_INVOLVED_LABELS).map(
+  ([value, label]) => ({
+    value,
+    label,
+  }),
+);
 
-const COMPARTMENTS_OPTIONS = Object.entries(COMPARTMENTS_INVOLVED_LABELS).map(([value, label]) => ({
-  value,
-  label,
-}));
+const RECONSTRUCTION_OPTIONS = Object.entries(RECONSTRUCTION_TYPE_LABELS).map(
+  ([value, label]) => ({
+    value,
+    label,
+  }),
+);
 
-const RECONSTRUCTION_OPTIONS = Object.entries(RECONSTRUCTION_TYPE_LABELS).map(([value, label]) => ({
-  value,
-  label,
-}));
-
-const AMPUTATION_OPTIONS = Object.entries(AMPUTATION_LEVEL_LABELS).map(([value, label]) => ({
-  value,
-  label,
-}));
+const AMPUTATION_OPTIONS = Object.entries(AMPUTATION_LEVEL_LABELS).map(
+  ([value, label]) => ({
+    value,
+    label,
+  }),
+);
 
 export function InfectionEpisodeCard({
   episode,
@@ -79,7 +85,7 @@ export function InfectionEpisodeCard({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const currentIntents = episode.intents || [];
     const hasIntent = currentIntents.includes(intent);
-    
+
     if (hasIntent) {
       updateEpisode({ intents: currentIntents.filter((i) => i !== intent) });
     } else {
@@ -88,7 +94,9 @@ export function InfectionEpisodeCard({
   };
 
   const showDebridementExtent = episode.intents?.includes("debridement");
-  const showReconstruction = episode.intents?.includes("reconstruction_coverage");
+  const showReconstruction = episode.intents?.includes(
+    "reconstruction_coverage",
+  );
   const showAmputation = episode.intents?.includes("amputation");
 
   const formatDate = (dateStr: string) => {
@@ -112,7 +120,12 @@ export function InfectionEpisodeCard({
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundDefault, borderColor: theme.border }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: theme.backgroundDefault, borderColor: theme.border },
+      ]}
+    >
       <Pressable onPress={onToggleExpand} style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={[styles.episodeBadge, { backgroundColor: theme.link }]}>
@@ -124,7 +137,10 @@ export function InfectionEpisodeCard({
             <ThemedText style={[styles.dateText, { color: theme.text }]}>
               {formatDate(episode.episodeDatetime)}
             </ThemedText>
-            <ThemedText style={[styles.summaryText, { color: theme.textSecondary }]} numberOfLines={1}>
+            <ThemedText
+              style={[styles.summaryText, { color: theme.textSecondary }]}
+              numberOfLines={1}
+            >
               {getIntentSummary()}
             </ThemedText>
           </View>
@@ -143,12 +159,16 @@ export function InfectionEpisodeCard({
 
       {isExpanded ? (
         <View style={styles.content}>
-          <ThemedText style={[styles.sectionLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.sectionLabel, { color: theme.textSecondary }]}
+          >
             Procedure Intent (select all that apply)
           </ThemedText>
           <View style={styles.intentGrid}>
             {INTENT_OPTIONS.map((option) => {
-              const isSelected = episode.intents?.includes(option.value as EpisodeIntent);
+              const isSelected = episode.intents?.includes(
+                option.value as EpisodeIntent,
+              );
               return (
                 <Pressable
                   key={option.value}
@@ -156,7 +176,9 @@ export function InfectionEpisodeCard({
                   style={[
                     styles.intentChip,
                     {
-                      backgroundColor: isSelected ? theme.link : theme.backgroundRoot,
+                      backgroundColor: isSelected
+                        ? theme.link
+                        : theme.backgroundRoot,
                       borderColor: isSelected ? theme.link : theme.border,
                     },
                   ]}
@@ -179,12 +201,29 @@ export function InfectionEpisodeCard({
               <SelectField
                 label="Debridement Extent"
                 value={episode.debridementExtent || ""}
-                options={[{ value: "", label: "Select extent..." }, ...DEBRIDEMENT_EXTENT_OPTIONS]}
-                onSelect={(v) => updateEpisode({ debridementExtent: v as DebridementExtent || undefined })}
+                options={[
+                  { value: "", label: "Select extent..." },
+                  ...DEBRIDEMENT_EXTENT_OPTIONS,
+                ]}
+                onSelect={(v) =>
+                  updateEpisode({
+                    debridementExtent: (v as DebridementExtent) || undefined,
+                  })
+                }
               />
               {episode.debridementExtent ? (
-                <View style={[styles.extentDescription, { backgroundColor: theme.backgroundRoot }]}>
-                  <ThemedText style={[styles.extentDescriptionText, { color: theme.textSecondary }]}>
+                <View
+                  style={[
+                    styles.extentDescription,
+                    { backgroundColor: theme.backgroundRoot },
+                  ]}
+                >
+                  <ThemedText
+                    style={[
+                      styles.extentDescriptionText,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
                     {DEBRIDEMENT_EXTENT_DESCRIPTIONS[episode.debridementExtent]}
                   </ThemedText>
                 </View>
@@ -192,8 +231,16 @@ export function InfectionEpisodeCard({
               <SelectField
                 label="Compartments Involved"
                 value={episode.compartmentsInvolved || ""}
-                options={[{ value: "", label: "Select..." }, ...COMPARTMENTS_OPTIONS]}
-                onSelect={(v) => updateEpisode({ compartmentsInvolved: v as CompartmentsInvolved || undefined })}
+                options={[
+                  { value: "", label: "Select..." },
+                  ...COMPARTMENTS_OPTIONS,
+                ]}
+                onSelect={(v) =>
+                  updateEpisode({
+                    compartmentsInvolved:
+                      (v as CompartmentsInvolved) || undefined,
+                  })
+                }
               />
             </View>
           ) : null}
@@ -203,8 +250,15 @@ export function InfectionEpisodeCard({
               <SelectField
                 label="Reconstruction Type"
                 value={episode.reconstructionType || ""}
-                options={[{ value: "", label: "Select type..." }, ...RECONSTRUCTION_OPTIONS]}
-                onSelect={(v) => updateEpisode({ reconstructionType: v as ReconstructionType || undefined })}
+                options={[
+                  { value: "", label: "Select type..." },
+                  ...RECONSTRUCTION_OPTIONS,
+                ]}
+                onSelect={(v) =>
+                  updateEpisode({
+                    reconstructionType: (v as ReconstructionType) || undefined,
+                  })
+                }
               />
             </View>
           ) : null}
@@ -214,8 +268,15 @@ export function InfectionEpisodeCard({
               <SelectField
                 label="Amputation Level"
                 value={episode.amputationLevel || ""}
-                options={[{ value: "", label: "Select level..." }, ...AMPUTATION_OPTIONS]}
-                onSelect={(v) => updateEpisode({ amputationLevel: v as AmputationLevel || undefined })}
+                options={[
+                  { value: "", label: "Select level..." },
+                  ...AMPUTATION_OPTIONS,
+                ]}
+                onSelect={(v) =>
+                  updateEpisode({
+                    amputationLevel: (v as AmputationLevel) || undefined,
+                  })
+                }
               />
             </View>
           ) : null}

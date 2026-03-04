@@ -84,7 +84,12 @@ export interface DiagnosisPicklistEntry {
    * - "congenital": birth defects
    * - "reconstructive": secondary/delayed reconstruction
    */
-  clinicalGroup?: "trauma" | "elective" | "oncological" | "congenital" | "reconstructive";
+  clinicalGroup?:
+    | "trauma"
+    | "elective"
+    | "oncological"
+    | "congenital"
+    | "reconstructive";
 
   /** Whether this diagnosis has staging/grading in diagnosisStagingConfig */
   hasStaging: boolean;

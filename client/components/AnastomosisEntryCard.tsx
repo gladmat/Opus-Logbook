@@ -15,7 +15,10 @@ import {
   VEIN_COUPLING_METHOD_OPTIONS,
   ANASTOMOSIS_LABELS,
 } from "@/types/case";
-import { fetchVesselsByRegion, getRecipientVesselPresets } from "@/lib/snomedApi";
+import {
+  fetchVesselsByRegion,
+  getRecipientVesselPresets,
+} from "@/lib/snomedApi";
 
 interface AnastomosisEntryCardProps {
   entry: AnastomosisEntry;
@@ -42,7 +45,10 @@ export function AnastomosisEntryCard({
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (entry.couplingMethod === "coupler" && entry.configuration !== "end_to_end") {
+    if (
+      entry.couplingMethod === "coupler" &&
+      entry.configuration !== "end_to_end"
+    ) {
       onUpdate({ ...entry, configuration: "end_to_end" });
     }
   }, []);
@@ -58,39 +64,68 @@ export function AnastomosisEntryCard({
           if (arteriesData.length > 0) {
             setArteries(arteriesData);
           } else {
-            const localArteries = getRecipientVesselPresets(recipientRegion, "artery");
-            setArteries(localArteries.map((name) => ({
-              snomedCtCode: name.toLowerCase().replace(/\s+/g, "_"),
-              displayName: name,
-              commonName: name,
-            } as SnomedRefItem)));
+            const localArteries = getRecipientVesselPresets(
+              recipientRegion,
+              "artery",
+            );
+            setArteries(
+              localArteries.map(
+                (name) =>
+                  ({
+                    snomedCtCode: name.toLowerCase().replace(/\s+/g, "_"),
+                    displayName: name,
+                    commonName: name,
+                  }) as SnomedRefItem,
+              ),
+            );
           }
-          
+
           if (veinsData.length > 0) {
             setVeins(veinsData);
           } else {
-            const localVeins = getRecipientVesselPresets(recipientRegion, "vein");
-            setVeins(localVeins.map((name) => ({
-              snomedCtCode: name.toLowerCase().replace(/\s+/g, "_"),
-              displayName: name,
-              commonName: name,
-            } as SnomedRefItem)));
+            const localVeins = getRecipientVesselPresets(
+              recipientRegion,
+              "vein",
+            );
+            setVeins(
+              localVeins.map(
+                (name) =>
+                  ({
+                    snomedCtCode: name.toLowerCase().replace(/\s+/g, "_"),
+                    displayName: name,
+                    commonName: name,
+                  }) as SnomedRefItem,
+              ),
+            );
           }
         })
         .catch((err) => {
           console.error("Error fetching vessels:", err);
-          const localArteries = getRecipientVesselPresets(recipientRegion, "artery");
+          const localArteries = getRecipientVesselPresets(
+            recipientRegion,
+            "artery",
+          );
           const localVeins = getRecipientVesselPresets(recipientRegion, "vein");
-          setArteries(localArteries.map((name) => ({
-            snomedCtCode: name.toLowerCase().replace(/\s+/g, "_"),
-            displayName: name,
-            commonName: name,
-          } as SnomedRefItem)));
-          setVeins(localVeins.map((name) => ({
-            snomedCtCode: name.toLowerCase().replace(/\s+/g, "_"),
-            displayName: name,
-            commonName: name,
-          } as SnomedRefItem)));
+          setArteries(
+            localArteries.map(
+              (name) =>
+                ({
+                  snomedCtCode: name.toLowerCase().replace(/\s+/g, "_"),
+                  displayName: name,
+                  commonName: name,
+                }) as SnomedRefItem,
+            ),
+          );
+          setVeins(
+            localVeins.map(
+              (name) =>
+                ({
+                  snomedCtCode: name.toLowerCase().replace(/\s+/g, "_"),
+                  displayName: name,
+                  commonName: name,
+                }) as SnomedRefItem,
+            ),
+          );
         })
         .finally(() => setIsLoading(false));
     }
@@ -138,7 +173,10 @@ export function AnastomosisEntryCard({
     <View
       style={[
         styles.card,
-        { backgroundColor: theme.backgroundElevated, borderColor: theme.border },
+        {
+          backgroundColor: theme.backgroundElevated,
+          borderColor: theme.border,
+        },
       ]}
     >
       <View style={styles.headerRow}>
@@ -164,7 +202,9 @@ export function AnastomosisEntryCard({
 
       {recipientRegion ? (
         isLoading ? (
-          <ThemedText style={{ color: theme.textSecondary, marginBottom: Spacing.md }}>
+          <ThemedText
+            style={{ color: theme.textSecondary, marginBottom: Spacing.md }}
+          >
             Loading vessels...
           </ThemedText>
         ) : vesselOptions.length > 0 ? (
@@ -254,7 +294,15 @@ export function AnastomosisEntryCard({
           <ThemedText style={[styles.label, { color: theme.textSecondary }]}>
             Technique
           </ThemedText>
-          <View style={[styles.segmentedControl, { borderColor: theme.border, backgroundColor: theme.backgroundDefault }]}>
+          <View
+            style={[
+              styles.segmentedControl,
+              {
+                borderColor: theme.border,
+                backgroundColor: theme.backgroundDefault,
+              },
+            ]}
+          >
             {VEIN_COUPLING_METHOD_OPTIONS.map((option) => {
               const isSelected = entry.couplingMethod === option.value;
               return (
@@ -266,11 +314,23 @@ export function AnastomosisEntryCard({
                   ]}
                   onPress={() => {
                     const newMethod = option.value as CouplingMethod;
-                    const configUpdate = newMethod === "coupler" ? { configuration: "end_to_end" as AnastomosisType } : {};
-                    onUpdate({ ...entry, couplingMethod: newMethod, ...configUpdate });
+                    const configUpdate =
+                      newMethod === "coupler"
+                        ? { configuration: "end_to_end" as AnastomosisType }
+                        : {};
+                    onUpdate({
+                      ...entry,
+                      couplingMethod: newMethod,
+                      ...configUpdate,
+                    });
                   }}
                 >
-                  <ThemedText style={[styles.segmentedButtonText, { color: isSelected ? "#fff" : theme.textSecondary }]}>
+                  <ThemedText
+                    style={[
+                      styles.segmentedButtonText,
+                      { color: isSelected ? "#fff" : theme.textSecondary },
+                    ]}
+                  >
                     {option.label}
                   </ThemedText>
                 </Pressable>
@@ -295,10 +355,21 @@ export function AnastomosisEntryCard({
         <ThemedText style={[styles.label, { color: theme.textSecondary }]}>
           Configuration
         </ThemedText>
-        <View style={[styles.segmentedControl, { borderColor: theme.border, backgroundColor: theme.backgroundDefault }]}>
-          {(Object.entries(ANASTOMOSIS_LABELS) as [AnastomosisType, string][]).map(([value, label]) => {
+        <View
+          style={[
+            styles.segmentedControl,
+            {
+              borderColor: theme.border,
+              backgroundColor: theme.backgroundDefault,
+            },
+          ]}
+        >
+          {(
+            Object.entries(ANASTOMOSIS_LABELS) as [AnastomosisType, string][]
+          ).map(([value, label]) => {
             const isSelected = entry.configuration === value;
-            const isLocked = entry.couplingMethod === "coupler" && value !== "end_to_end";
+            const isLocked =
+              entry.couplingMethod === "coupler" && value !== "end_to_end";
             return (
               <Pressable
                 key={value}
@@ -312,7 +383,12 @@ export function AnastomosisEntryCard({
                   onUpdate({ ...entry, configuration: value });
                 }}
               >
-                <ThemedText style={[styles.segmentedButtonText, { color: isSelected ? "#fff" : theme.textSecondary }]}>
+                <ThemedText
+                  style={[
+                    styles.segmentedButtonText,
+                    { color: isSelected ? "#fff" : theme.textSecondary },
+                  ]}
+                >
                   {label}
                 </ThemedText>
               </Pressable>

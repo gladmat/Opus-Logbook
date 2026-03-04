@@ -6,7 +6,10 @@ import { ThemedText } from "@/components/ThemedText";
 import { FormField, PickerField } from "@/components/FormField";
 import { SectionHeader } from "@/components/SectionHeader";
 import { CollapsibleFormSection } from "./CollapsibleFormSection";
-import { useCaseFormState, useCaseFormDispatch } from "@/contexts/CaseFormContext";
+import {
+  useCaseFormState,
+  useCaseFormDispatch,
+} from "@/contexts/CaseFormContext";
 import { setField } from "@/hooks/useCaseForm";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
@@ -59,9 +62,7 @@ export const OutcomesSection = React.memo(function OutcomesSection() {
               backgroundColor: state.returnToTheatre
                 ? theme.error + "20"
                 : theme.backgroundDefault,
-              borderColor: state.returnToTheatre
-                ? theme.error
-                : theme.border,
+              borderColor: state.returnToTheatre ? theme.error : theme.border,
             },
           ]}
           onPress={() => {
@@ -109,10 +110,7 @@ export const OutcomesSection = React.memo(function OutcomesSection() {
           )}
           onSelect={(v: string) =>
             dispatch(
-              setField(
-                "mortalityClassification",
-                v as MortalityClassification,
-              ),
+              setField("mortalityClassification", v as MortalityClassification),
             )
           }
         />
@@ -126,9 +124,7 @@ export const OutcomesSection = React.memo(function OutcomesSection() {
               backgroundColor: state.discussedAtMDM
                 ? theme.link + "20"
                 : theme.backgroundDefault,
-              borderColor: state.discussedAtMDM
-                ? theme.link
-                : theme.border,
+              borderColor: state.discussedAtMDM ? theme.link : theme.border,
             },
           ]}
           onPress={() => {

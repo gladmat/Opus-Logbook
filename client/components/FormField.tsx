@@ -592,13 +592,14 @@ export function DatePickerField({
       if (Platform.OS === "android") {
         setShowPicker(false);
         if (selectedDate) {
-          const isoDate = selectedDate.toISOString().split("T")[0];
+          const isoDate = selectedDate.toISOString().split("T")[0] ?? "";
           onChange(isoDate);
         }
         return;
       }
       if (selectedDate) {
-        pendingDateRef.current = selectedDate.toISOString().split("T")[0];
+        pendingDateRef.current =
+          selectedDate.toISOString().split("T")[0] ?? null;
       }
     },
     [onChange],

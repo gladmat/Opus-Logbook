@@ -12,9 +12,7 @@ beforeAll(async () => {
 describe("Input validation", () => {
   describe("POST /api/auth/signup", () => {
     it("rejects empty body", async () => {
-      const res = await request(app)
-        .post("/api/auth/signup")
-        .send({});
+      const res = await request(app).post("/api/auth/signup").send({});
       expect(res.status).toBe(400);
     });
 
@@ -51,9 +49,7 @@ describe("Input validation", () => {
 
   describe("POST /api/auth/reset-password", () => {
     it("rejects empty body", async () => {
-      const res = await request(app)
-        .post("/api/auth/reset-password")
-        .send({});
+      const res = await request(app).post("/api/auth/reset-password").send({});
       expect(res.status).toBe(400);
     });
 

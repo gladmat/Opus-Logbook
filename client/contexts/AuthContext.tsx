@@ -1,13 +1,22 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useCallback,
+} from "react";
 import { Platform } from "react-native";
 import {
   AuthUser,
   UserProfile,
   UserFacility,
   getCurrentUser,
+  getAuthToken,
   login as authLogin,
   signup as authSignup,
   logout as authLogout,
+  deleteAccount as authDeleteAccount,
   updateProfile as authUpdateProfile,
   uploadProfilePicture as authUploadProfilePicture,
   deleteProfilePicture as authDeleteProfilePicture,
@@ -17,6 +26,7 @@ import {
   updateFacility as authUpdateFacility,
   registerDeviceKey,
 } from "@/lib/auth";
+import { clearAllData } from "@/lib/storage";
 import { getOrCreateDeviceIdentity } from "@/lib/e2ee";
 import { clearAllAppLockData } from "@/lib/appLockStorage";
 
@@ -30,10 +40,15 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  deleteAccount: (password: string) => Promise<void>;
   updateProfile: (profile: Partial<UserProfile>) => Promise<void>;
   uploadProfilePicture: (imageUri: string) => Promise<void>;
   deleteProfilePicture: () => Promise<void>;
-  addFacility: (name: string, isPrimary?: boolean, facilityId?: string) => Promise<void>;
+  addFacility: (
+    name: string,
+    isPrimary?: boolean,
+    facilityId?: string,
+  ) => Promise<void>;
   removeFacility: (id: string) => Promise<void>;
   setFacilityPrimary: (id: string) => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -54,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(data.user);
         setProfile(data.profile || null);
         setFacilities(data.facilities || []);
-        
+
         try {
           const { deviceId, publicKey } = await getOrCreateDeviceIdentity();
           await registerDeviceKey(deviceId, publicKey, Platform.OS);
@@ -62,14 +77,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.warn("Device key registration failed:", error);
         }
       } else {
-        setUser(null);
-        setProfile(null);
-        setFacilities([]);
+        // getCurrentUser returned null — could be offline or token cleared
+        // Only clear state if token was actually cleared (auth failure)
+        const token = await getAuthToken();
+        if (!token) {
+          setUser(null);
+          setProfile(null);
+          setFacilities([]);
+        }
+        // If token still exists, user is offline — keep cached state
       }
     } catch {
-      setUser(null);
-      setProfile(null);
-      setFacilities([]);
+      // Network error — don't clear auth state
     }
   }, []);
 
@@ -86,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(data.user);
     setProfile(data.profile || null);
     setFacilities(data.facilities || []);
-    
+
     try {
       const { deviceId, publicKey } = await getOrCreateDeviceIdentity();
       await registerDeviceKey(deviceId, publicKey, Platform.OS);
@@ -100,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(data.user);
     setProfile(data.profile || null);
     setFacilities([]);
-    
+
     try {
       const { deviceId, publicKey } = await getOrCreateDeviceIdentity();
       await registerDeviceKey(deviceId, publicKey, Platform.OS);
@@ -111,6 +130,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     await authLogout();
+    await clearAllAppLockData();
+    setUser(null);
+    setProfile(null);
+    setFacilities([]);
+  };
+
+  const deleteAccount = async (password: string) => {
+    await authDeleteAccount(password);
+    await clearAllData();
     await clearAllAppLockData();
     setUser(null);
     setProfile(null);
@@ -132,20 +160,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(updated);
   };
 
-  const addFacility = async (name: string, isPrimary: boolean = false, facilityId?: string) => {
+  const addFacility = async (
+    name: string,
+    isPrimary: boolean = false,
+    facilityId?: string,
+  ) => {
     const facility = await authCreateFacility(name, isPrimary, facilityId);
-    setFacilities(prev => [...prev, facility]);
+    setFacilities((prev) => [...prev, facility]);
   };
 
   const removeFacility = async (id: string) => {
     await authDeleteFacility(id);
-    setFacilities(prev => prev.filter(f => f.id !== id));
+    setFacilities((prev) => prev.filter((f) => f.id !== id));
   };
 
   const setFacilityPrimary = async (id: string) => {
     await authUpdateFacility(id, { isPrimary: true });
-    setFacilities(prev =>
-      prev.map(f => ({ ...f, isPrimary: f.id === id }))
+    setFacilities((prev) =>
+      prev.map((f) => ({ ...f, isPrimary: f.id === id })),
     );
   };
 
@@ -161,6 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         signup,
         logout,
+        deleteAccount,
         updateProfile,
         uploadProfilePicture,
         deleteProfilePicture,

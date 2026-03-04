@@ -1,6 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { InteractionManager } from "react-native";
-import { Case, TimelineEvent, CountryCode, ComplicationEntry } from "@/types/case";
+import {
+  Case,
+  TimelineEvent,
+  CountryCode,
+  ComplicationEntry,
+} from "@/types/case";
 import { encryptData, decryptData } from "./encryption";
 import { deleteMultipleEncryptedMedia } from "./mediaStorage";
 import * as Crypto from "expo-crypto";
@@ -37,25 +42,33 @@ interface CaseIndexEntry {
   updatedAt: string;
 }
 
-async function hashPatientIdentifier(patientIdentifier?: string): Promise<string | undefined> {
+async function hashPatientIdentifier(
+  patientIdentifier?: string,
+): Promise<string | undefined> {
   if (!patientIdentifier) return undefined;
   const normalized = patientIdentifier.toUpperCase().replace(/\s/g, "");
   return Crypto.digestStringAsync(
     Crypto.CryptoDigestAlgorithm.SHA256,
     normalized,
-    { encoding: Crypto.CryptoEncoding.HEX }
+    { encoding: Crypto.CryptoEncoding.HEX },
   );
 }
 
 let indexMigrated = false;
 
-async function migrateCaseIndexIfNeeded(entries: CaseIndexEntry[]): Promise<CaseIndexEntry[]> {
+async function migrateCaseIndexIfNeeded(
+  entries: CaseIndexEntry[],
+): Promise<CaseIndexEntry[]> {
   let changed = false;
   const migrated: CaseIndexEntry[] = [];
 
   for (const entry of entries) {
-    const rawIdentifier = (entry as any).patientIdentifier as string | undefined;
-    let patientIdentifierHash = (entry as any).patientIdentifierHash as string | undefined;
+    const rawIdentifier = (entry as any).patientIdentifier as
+      | string
+      | undefined;
+    let patientIdentifierHash = (entry as any).patientIdentifierHash as
+      | string
+      | undefined;
 
     if (!patientIdentifierHash && rawIdentifier) {
       patientIdentifierHash = await hashPatientIdentifier(rawIdentifier);
@@ -106,55 +119,75 @@ async function saveCaseIndex(index: CaseIndexEntry[]): Promise<void> {
 
 async function migrateLegacyData(): Promise<boolean> {
   try {
-    const legacyEncrypted = await AsyncStorage.getItem(LEGACY_ENCRYPTED_CASES_KEY);
+    const legacyEncrypted = await AsyncStorage.getItem(
+      LEGACY_ENCRYPTED_CASES_KEY,
+    );
     if (legacyEncrypted) {
       const decrypted = await decryptData(legacyEncrypted);
       const cases: Case[] = JSON.parse(decrypted);
-      
+
       const index: CaseIndexEntry[] = [];
       for (const caseData of cases) {
         const encrypted = await encryptData(JSON.stringify(caseData));
         await AsyncStorage.setItem(`${CASE_PREFIX}${caseData.id}`, encrypted);
-        const patientIdentifierHash = await hashPatientIdentifier(caseData.patientIdentifier);
+        const patientIdentifierHash = await hashPatientIdentifier(
+          caseData.patientIdentifier,
+        );
         index.push({
           id: caseData.id,
           procedureDate: caseData.procedureDate,
           patientIdentifierHash,
-          updatedAt: caseData.updatedAt || caseData.createdAt || new Date().toISOString(),
+          updatedAt:
+            caseData.updatedAt ||
+            caseData.createdAt ||
+            new Date().toISOString(),
         });
       }
-      
-      index.sort((a, b) => new Date(b.procedureDate).getTime() - new Date(a.procedureDate).getTime());
+
+      index.sort(
+        (a, b) =>
+          new Date(b.procedureDate).getTime() -
+          new Date(a.procedureDate).getTime(),
+      );
       await saveCaseIndex(index);
       await AsyncStorage.removeItem(LEGACY_ENCRYPTED_CASES_KEY);
       console.log(`Migrated ${cases.length} cases to per-case storage`);
       return true;
     }
-    
+
     const legacyPlain = await AsyncStorage.getItem(LEGACY_CASES_KEY);
     if (legacyPlain) {
       const cases: Case[] = JSON.parse(legacyPlain);
-      
+
       const index: CaseIndexEntry[] = [];
       for (const caseData of cases) {
         const encrypted = await encryptData(JSON.stringify(caseData));
         await AsyncStorage.setItem(`${CASE_PREFIX}${caseData.id}`, encrypted);
-        const patientIdentifierHash = await hashPatientIdentifier(caseData.patientIdentifier);
+        const patientIdentifierHash = await hashPatientIdentifier(
+          caseData.patientIdentifier,
+        );
         index.push({
           id: caseData.id,
           procedureDate: caseData.procedureDate,
           patientIdentifierHash,
-          updatedAt: caseData.updatedAt || caseData.createdAt || new Date().toISOString(),
+          updatedAt:
+            caseData.updatedAt ||
+            caseData.createdAt ||
+            new Date().toISOString(),
         });
       }
-      
-      index.sort((a, b) => new Date(b.procedureDate).getTime() - new Date(a.procedureDate).getTime());
+
+      index.sort(
+        (a, b) =>
+          new Date(b.procedureDate).getTime() -
+          new Date(a.procedureDate).getTime(),
+      );
       await saveCaseIndex(index);
       await AsyncStorage.removeItem(LEGACY_CASES_KEY);
       console.log(`Migrated ${cases.length} legacy cases to per-case storage`);
       return true;
     }
-    
+
     return false;
   } catch (error) {
     console.error("Error migrating legacy data:", error);
@@ -186,7 +219,9 @@ export async function getCases(): Promise<Case[]> {
     const results: (Case | null)[] = [];
     for (let i = 0; i < index.length; i += BATCH_SIZE) {
       const batch = index.slice(i, i + BATCH_SIZE);
-      const batchResults = await Promise.all(batch.map((entry) => getCase(entry.id)));
+      const batchResults = await Promise.all(
+        batch.map((entry) => getCase(entry.id)),
+      );
       results.push(...batchResults);
       // Yield to the UI thread between batches so navigation/touches are processed
       if (i + BATCH_SIZE < index.length) {
@@ -204,7 +239,7 @@ export async function getCase(id: string): Promise<Case | null> {
   try {
     const encrypted = await AsyncStorage.getItem(`${CASE_PREFIX}${id}`);
     if (!encrypted) return null;
-    
+
     const decrypted = await decryptData(encrypted);
     return migrateCase(JSON.parse(decrypted));
   } catch (error) {
@@ -217,28 +252,34 @@ export async function saveCase(caseData: Case): Promise<void> {
   try {
     const now = new Date().toISOString();
     const updatedCase = { ...caseData, updatedAt: now };
-    
+
     const encrypted = await encryptData(JSON.stringify(updatedCase));
     await AsyncStorage.setItem(`${CASE_PREFIX}${caseData.id}`, encrypted);
-    const patientIdentifierHash = await hashPatientIdentifier(caseData.patientIdentifier);
-    
+    const patientIdentifierHash = await hashPatientIdentifier(
+      caseData.patientIdentifier,
+    );
+
     const index = await getCaseIndex();
     const existingIdx = index.findIndex((e) => e.id === caseData.id);
-    
+
     const indexEntry: CaseIndexEntry = {
       id: caseData.id,
       procedureDate: caseData.procedureDate,
       patientIdentifierHash,
       updatedAt: now,
     };
-    
+
     if (existingIdx >= 0) {
       index[existingIdx] = indexEntry;
     } else {
       index.unshift(indexEntry);
     }
-    
-    index.sort((a, b) => new Date(b.procedureDate).getTime() - new Date(a.procedureDate).getTime());
+
+    index.sort(
+      (a, b) =>
+        new Date(b.procedureDate).getTime() -
+        new Date(a.procedureDate).getTime(),
+    );
     await saveCaseIndex(index);
   } catch (error) {
     console.error("Error saving case:", error);
@@ -250,7 +291,9 @@ function getCaseDraftKey(specialty: Case["specialty"]): string {
   return `${CASE_DRAFT_KEY_PREFIX}${specialty}`;
 }
 
-export async function getCaseDraft(specialty: Case["specialty"]): Promise<CaseDraft | null> {
+export async function getCaseDraft(
+  specialty: Case["specialty"],
+): Promise<CaseDraft | null> {
   try {
     const data = await AsyncStorage.getItem(getCaseDraftKey(specialty));
     if (!data) return null;
@@ -264,7 +307,7 @@ export async function getCaseDraft(specialty: Case["specialty"]): Promise<CaseDr
 
 export async function saveCaseDraft(
   specialty: Case["specialty"],
-  draft: CaseDraft
+  draft: CaseDraft,
 ): Promise<void> {
   try {
     const encrypted = await encryptData(JSON.stringify(draft));
@@ -275,7 +318,9 @@ export async function saveCaseDraft(
   }
 }
 
-export async function clearCaseDraft(specialty: Case["specialty"]): Promise<void> {
+export async function clearCaseDraft(
+  specialty: Case["specialty"],
+): Promise<void> {
   try {
     await AsyncStorage.removeItem(getCaseDraftKey(specialty));
   } catch (error) {
@@ -284,12 +329,19 @@ export async function clearCaseDraft(specialty: Case["specialty"]): Promise<void
   }
 }
 
-export async function updateCase(id: string, updates: Partial<Case>): Promise<void> {
+export async function updateCase(
+  id: string,
+  updates: Partial<Case>,
+): Promise<void> {
   try {
     const existing = await getCase(id);
     if (!existing) return;
-    
-    const updatedCase = { ...existing, ...updates, updatedAt: new Date().toISOString() };
+
+    const updatedCase = {
+      ...existing,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
     await saveCase(updatedCase);
   } catch (error) {
     console.error("Error updating case:", error);
@@ -300,7 +352,7 @@ export async function updateCase(id: string, updates: Partial<Case>): Promise<vo
 export function getCasesPendingFollowUp(cases: Case[]): Case[] {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  
+
   return cases.filter((c) => {
     if (c.complicationsReviewed) return false;
     const procedureDate = new Date(c.procedureDate);
@@ -321,11 +373,11 @@ export async function findCasesByPatientId(patientId: string): Promise<Case[]> {
   const index = await getCaseIndex();
   const patientIdentifierHash = await hashPatientIdentifier(patientId);
   if (!patientIdentifierHash) return [];
-  
+
   const matchingEntries = index.filter((e) => {
     return e.patientIdentifierHash === patientIdentifierHash;
   });
-  
+
   const cases: Case[] = [];
   for (const entry of matchingEntries) {
     const caseData = await getCase(entry.id);
@@ -333,40 +385,41 @@ export async function findCasesByPatientId(patientId: string): Promise<Case[]> {
       cases.push(caseData);
     }
   }
-  
+
   return cases;
 }
 
 export async function findCaseByPatientIdAndDate(
   patientId: string,
-  procedureDate: string
+  procedureDate: string,
 ): Promise<Case | null> {
   const matches = await findCasesByPatientId(patientId);
   if (matches.length === 0) return null;
-  
+
   const targetDate = new Date(procedureDate).toDateString();
   const exactMatch = matches.find((c) => {
     const caseDate = new Date(c.procedureDate).toDateString();
     return caseDate === targetDate;
   });
-  
+
   if (exactMatch) return exactMatch;
-  
+
   const withinWeek = matches.filter((c) => {
     const caseDate = new Date(c.procedureDate);
     const target = new Date(procedureDate);
-    const diffDays = Math.abs(caseDate.getTime() - target.getTime()) / (1000 * 60 * 60 * 24);
+    const diffDays =
+      Math.abs(caseDate.getTime() - target.getTime()) / (1000 * 60 * 60 * 24);
     return diffDays <= 7;
   });
-  
-  if (withinWeek.length === 1) return withinWeek[0];
-  
+
+  if (withinWeek.length === 1) return withinWeek[0] ?? null;
+
   return null;
 }
 
 export async function recordComplications(
   caseId: string,
-  complications: ComplicationEntry[]
+  complications: ComplicationEntry[],
 ): Promise<void> {
   await updateCase(caseId, {
     complicationsReviewed: true,
@@ -385,11 +438,11 @@ export async function deleteCase(id: string): Promise<void> {
     }
 
     await AsyncStorage.removeItem(`${CASE_PREFIX}${id}`);
-    
+
     const index = await getCaseIndex();
     const filtered = index.filter((e) => e.id !== id);
     await saveCaseIndex(filtered);
-    
+
     const events = await getTimelineEvents(id);
     for (const event of events) {
       if (event.mediaAttachments) {
@@ -404,15 +457,20 @@ export async function deleteCase(id: string): Promise<void> {
   }
 }
 
-export async function getTimelineEvents(caseId: string): Promise<TimelineEvent[]> {
+export async function getTimelineEvents(
+  caseId: string,
+): Promise<TimelineEvent[]> {
   try {
     const data = await AsyncStorage.getItem(TIMELINE_KEY);
     if (!data) return [];
     const decrypted = await decryptData(data);
     const allEvents: TimelineEvent[] = JSON.parse(decrypted);
-    return allEvents.filter((e) => e.caseId === caseId).sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    return allEvents
+      .filter((e) => e.caseId === caseId)
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
   } catch (error) {
     console.error("Error reading timeline events:", error);
     return [];
@@ -436,7 +494,10 @@ export async function saveTimelineEvent(event: TimelineEvent): Promise<void> {
   }
 }
 
-export async function updateTimelineEvent(id: string, updates: Partial<TimelineEvent>): Promise<void> {
+export async function updateTimelineEvent(
+  id: string,
+  updates: Partial<TimelineEvent>,
+): Promise<void> {
   try {
     const data = await AsyncStorage.getItem(TIMELINE_KEY);
     if (!data) return;
@@ -444,7 +505,11 @@ export async function updateTimelineEvent(id: string, updates: Partial<TimelineE
     const events: TimelineEvent[] = JSON.parse(decrypted);
     const index = events.findIndex((e) => e.id === id);
     if (index < 0) return;
-    events[index] = { ...events[index], ...updates, updatedAt: new Date().toISOString() };
+    events[index] = {
+      ...events[index]!,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
     const encrypted = await encryptData(JSON.stringify(events));
     await AsyncStorage.setItem(TIMELINE_KEY, encrypted);
   } catch (error) {

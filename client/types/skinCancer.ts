@@ -21,7 +21,10 @@ import type { SkinCancerType } from "../lib/skinCancerDiagnoses";
 
 export type ExcisionCompleteness = "complete" | "incomplete" | "uncertain";
 
-export const EXCISION_COMPLETENESS_LABELS: Record<ExcisionCompleteness, string> = {
+export const EXCISION_COMPLETENESS_LABELS: Record<
+  ExcisionCompleteness,
+  string
+> = {
   complete: "Complete",
   incomplete: "Incomplete",
   uncertain: "Uncertain",
@@ -112,7 +115,10 @@ export type MelanomaHistologicalSubtype =
   | "lentigo_maligna"
   | "other";
 
-export const MELANOMA_SUBTYPE_LABELS: Record<MelanomaHistologicalSubtype, string> = {
+export const MELANOMA_SUBTYPE_LABELS: Record<
+  MelanomaHistologicalSubtype,
+  string
+> = {
   ssm: "Superficial spreading (SSM)",
   nm: "Nodular (NM)",
   lmm: "Lentigo maligna melanoma (LMM)",
@@ -226,22 +232,21 @@ export interface EnhancedSkinLesionDetails {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export type HistologyFieldGroup =
-  | "margins"           // All skin cancers
-  | "completeness"      // All skin cancers
-  | "pni_lvi"           // BCC, SCC, rare
-  | "bcc_subtype"       // BCC only
-  | "scc_fields"        // SCC only (differentiation, subtype, depth)
-  | "melanoma_fields"   // Melanoma only (breslow, ulceration, clark, mitotic, staging)
-  | "atypia_grade"      // Dysplastic naevus only
-  | "staging"           // Melanoma, Merkel cell
-  ;
+  | "margins" // All skin cancers
+  | "completeness" // All skin cancers
+  | "pni_lvi" // BCC, SCC, rare
+  | "bcc_subtype" // BCC only
+  | "scc_fields" // SCC only (differentiation, subtype, depth)
+  | "melanoma_fields" // Melanoma only (breslow, ulceration, clark, mitotic, staging)
+  | "atypia_grade" // Dysplastic naevus only
+  | "staging"; // Melanoma, Merkel cell
 
 /**
  * Returns which field groups should be visible for a given cancer type.
  * Drives conditional rendering in the histology capture form.
  */
 export function getVisibleFieldGroups(
-  cancerType?: SkinCancerType
+  cancerType?: SkinCancerType,
 ): HistologyFieldGroup[] {
   if (!cancerType) return ["margins", "completeness"];
 
@@ -288,7 +293,7 @@ export function getVisibleFieldGroups(
  * has not yet been confirmed.
  */
 export function needsHistologyReminder(
-  details?: EnhancedSkinLesionDetails
+  details?: EnhancedSkinLesionDetails,
 ): boolean {
   if (!details) return false;
   // If histology has been confirmed, no reminder needed
@@ -308,7 +313,7 @@ export function needsHistologyReminder(
  */
 export function getHistologyReminderDate(
   procedureDate: string,
-  daysAfter: number = 30
+  daysAfter: number = 30,
 ): string {
   const date = new Date(procedureDate);
   date.setDate(date.getDate() + daysAfter);

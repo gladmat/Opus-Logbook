@@ -10,7 +10,12 @@ import {
   TextInput,
 } from "react-native";
 import { v4 as uuidv4 } from "uuid";
-import { useNavigation, useRoute, RouteProp, useFocusEffect } from "@react-navigation/native";
+import {
+  useNavigation,
+  useRoute,
+  RouteProp,
+  useFocusEffect,
+} from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight, HeaderButton } from "@react-navigation/elements";
@@ -55,7 +60,14 @@ import {
   isExcisionBiopsyDiagnosis,
   CLINICAL_SUSPICION_LABELS,
 } from "@/types/case";
-import { getCase, getTimelineEvents, deleteCase, updateCase, markNoComplications, deleteTimelineEvent } from "@/lib/storage";
+import {
+  getCase,
+  getTimelineEvents,
+  deleteCase,
+  updateCase,
+  markNoComplications,
+  deleteTimelineEvent,
+} from "@/lib/storage";
 import { deleteMultipleEncryptedMedia } from "@/lib/mediaStorage";
 import { SpecialtyBadge } from "@/components/SpecialtyBadge";
 import { RoleBadge } from "@/components/RoleBadge";
@@ -63,7 +75,10 @@ import { LoadingState } from "@/components/LoadingState";
 import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/SectionHeader";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
-import { COUNTRY_CODING_SYSTEMS, getCountryCodeFromProfile } from "@/lib/snomedCt";
+import {
+  COUNTRY_CODING_SYSTEMS,
+  getCountryCodeFromProfile,
+} from "@/lib/snomedCt";
 import { useAuth } from "@/contexts/AuthContext";
 
 type RouteParams = RouteProp<RootStackParamList, "CaseDetail">;
@@ -77,22 +92,25 @@ interface DetailRowProps {
 
 function DetailRow({ label, value, unit }: DetailRowProps) {
   const { theme } = useTheme();
-  
+
   if (value === undefined || value === null || value === "") return null;
-  
+
   return (
     <View style={styles.detailRow}>
       <ThemedText style={[styles.detailLabel, { color: theme.textSecondary }]}>
         {label}
       </ThemedText>
       <ThemedText style={styles.detailValue}>
-        {value}{unit ? ` ${unit}` : ""}
+        {value}
+        {unit ? ` ${unit}` : ""}
       </ThemedText>
     </View>
   );
 }
 
-function getEventTypeIcon(eventType: TimelineEventType): keyof typeof Feather.glyphMap {
+function getEventTypeIcon(
+  eventType: TimelineEventType,
+): keyof typeof Feather.glyphMap {
   switch (eventType) {
     case "photo":
       return "camera";
@@ -115,7 +133,10 @@ function getEventTypeIcon(eventType: TimelineEventType): keyof typeof Feather.gl
   }
 }
 
-function getEventTypeColor(eventType: TimelineEventType, theme: typeof import("@/constants/theme").Colors.light): string {
+function getEventTypeColor(
+  eventType: TimelineEventType,
+  theme: typeof import("@/constants/theme").Colors.light,
+): string {
   switch (eventType) {
     case "photo":
       return theme.link;
@@ -145,16 +166,17 @@ export default function CaseDetailScreen() {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
   const { profile } = useAuth();
-  
+
   const countryCode = getCountryCodeFromProfile(profile?.countryOfPractice);
 
   const [caseData, setCaseData] = useState<Case | null>(null);
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   const [showComplicationForm, setShowComplicationForm] = useState(false);
   const [complicationDescription, setComplicationDescription] = useState("");
-  const [complicationGrade, setComplicationGrade] = useState<ClavienDindoGrade>("I");
+  const [complicationGrade, setComplicationGrade] =
+    useState<ClavienDindoGrade>("I");
   const [complicationNotes, setComplicationNotes] = useState("");
   const [savingComplication, setSavingComplication] = useState(false);
 
@@ -182,7 +204,7 @@ export default function CaseDetailScreen() {
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [route.params.caseId])
+    }, [route.params.caseId]),
   );
 
   const showHeaderMenu = useCallback(() => {
@@ -220,11 +242,16 @@ export default function CaseDetailScreen() {
   useEffect(() => {
     navigation.setOptions({
       headerTitle: caseData?.patientIdentifier || "Case Details",
-      headerRight: () => caseData ? (
-        <HeaderButton onPress={showHeaderMenu}>
-          <Feather name="more-horizontal" size={22} color={theme.textSecondary} />
-        </HeaderButton>
-      ) : null,
+      headerRight: () =>
+        caseData ? (
+          <HeaderButton onPress={showHeaderMenu}>
+            <Feather
+              name="more-horizontal"
+              size={22}
+              color={theme.textSecondary}
+            />
+          </HeaderButton>
+        ) : null,
     });
   }, [caseData, theme, showHeaderMenu]);
 
@@ -240,18 +267,20 @@ export default function CaseDetailScreen() {
           onPress: async () => {
             if (caseData) {
               await deleteCase(caseData.id);
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success,
+              );
               navigation.goBack();
             }
           },
         },
-      ]
+      ],
     );
   };
 
   const isSkinLesionCase = useCallback(() => {
     if (!caseData) return false;
-    
+
     const skinLesionKeywords = [
       "skin lesion excision",
       "lesion excision",
@@ -266,13 +295,15 @@ export default function CaseDetailScreen() {
       "basal cell",
       "squamous cell",
     ];
-    
+
     const allProcs = getAllProcedures(caseData);
     const procedureName = allProcs[0]?.procedureName?.toLowerCase() || "";
-    const diagnosisName = getPrimaryDiagnosisName(caseData)?.toLowerCase() || "";
-    
+    const diagnosisName =
+      getPrimaryDiagnosisName(caseData)?.toLowerCase() || "";
+
     return skinLesionKeywords.some(
-      keyword => procedureName.includes(keyword) || diagnosisName.includes(keyword)
+      (keyword) =>
+        procedureName.includes(keyword) || diagnosisName.includes(keyword),
     );
   }, [caseData]);
 
@@ -318,7 +349,9 @@ export default function CaseDetailScreen() {
                 }
               }
               await deleteTimelineEvent(event.id);
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success,
+              );
               await loadData();
             } catch (error) {
               console.error("Error deleting timeline event:", error);
@@ -326,7 +359,7 @@ export default function CaseDetailScreen() {
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -347,7 +380,7 @@ export default function CaseDetailScreen() {
       Alert.alert("Required", "Please enter a complication description.");
       return;
     }
-    
+
     setSavingComplication(true);
     try {
       const newComplication: ComplicationEntry = {
@@ -358,7 +391,7 @@ export default function CaseDetailScreen() {
         managementNotes: complicationNotes.trim() || undefined,
         resolved: false,
       };
-      
+
       const existingComplications = caseData.complications || [];
       await updateCase(caseData.id, {
         complicationsReviewed: true,
@@ -366,7 +399,7 @@ export default function CaseDetailScreen() {
         hasComplications: true,
         complications: [...existingComplications, newComplication],
       });
-      
+
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setShowComplicationForm(false);
       setComplicationDescription("");
@@ -381,11 +414,15 @@ export default function CaseDetailScreen() {
     }
   };
 
-  const daysSinceProcedure = caseData ? Math.floor(
-    (Date.now() - new Date(caseData.procedureDate).getTime()) / (1000 * 60 * 60 * 24)
-  ) : 0;
-  
-  const isPending30DayReview = caseData && daysSinceProcedure >= 30 && !caseData.complicationsReviewed;
+  const daysSinceProcedure = caseData
+    ? Math.floor(
+        (Date.now() - new Date(caseData.procedureDate).getTime()) /
+          (1000 * 60 * 60 * 24),
+      )
+    : 0;
+
+  const isPending30DayReview =
+    caseData && daysSinceProcedure >= 30 && !caseData.complicationsReviewed;
 
   if (loading) {
     return <LoadingState message="Loading case..." />;
@@ -407,11 +444,11 @@ export default function CaseDetailScreen() {
 
   const formattedDate = new Date(caseData.procedureDate).toLocaleDateString(
     "en-NZ",
-    { weekday: "long", day: "numeric", month: "long", year: "numeric" }
+    { weekday: "long", day: "numeric", month: "long", year: "numeric" },
   );
 
   const userMember = caseData.teamMembers.find(
-    (m) => m.id === caseData.ownerId || m.userId === caseData.ownerId
+    (m) => m.id === caseData.ownerId || m.userId === caseData.ownerId,
   );
 
   const formatDuration = (minutes: number | undefined): string | undefined => {
@@ -421,13 +458,15 @@ export default function CaseDetailScreen() {
     return `${hours}h ${mins}m`;
   };
 
-  const formatDateDisplay = (dateStr: string | undefined): string | undefined => {
+  const formatDateDisplay = (
+    dateStr: string | undefined,
+  ): string | undefined => {
     if (!dateStr) return undefined;
     try {
-      return new Date(dateStr).toLocaleDateString("en-NZ", { 
-        day: "numeric", 
-        month: "short", 
-        year: "numeric" 
+      return new Date(dateStr).toLocaleDateString("en-NZ", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
       });
     } catch {
       return dateStr;
@@ -435,16 +474,34 @@ export default function CaseDetailScreen() {
   };
 
   const hasHistologyPending = caseData.diagnosisGroups?.some(
-    (g) => g.diagnosisCertainty === "clinical" || isExcisionBiopsyDiagnosis(g.diagnosisPicklistId)
+    (g) =>
+      g.diagnosisCertainty === "clinical" ||
+      isExcisionBiopsyDiagnosis(g.diagnosisPicklistId),
   );
 
-  const hasProcedures = caseData.diagnosisGroups?.some(g => g.procedures.length > 0);
-  const hasPatientDemographics = caseData.gender || caseData.age || caseData.ethnicity;
-  const hasAdmissionDetails = caseData.admissionDate || caseData.dischargeDate || caseData.admissionUrgency || (caseData.unplannedReadmission && caseData.unplannedReadmission !== "no");
-  const hasDiagnoses = caseData.diagnosisGroups?.some(g => g.diagnosis);
-  const hasComorbidities = caseData.comorbidities && caseData.comorbidities.length > 0;
-  const hasOperativeFactors = caseData.woundInfectionRisk || caseData.anaestheticType || caseData.prophylaxis;
-  const hasOutcomes = caseData.unplannedICU || caseData.returnToTheatre || caseData.outcome || caseData.mortalityClassification || caseData.discussedAtMDM;
+  const hasProcedures = caseData.diagnosisGroups?.some(
+    (g) => g.procedures.length > 0,
+  );
+  const hasPatientDemographics =
+    caseData.gender || caseData.age || caseData.ethnicity;
+  const hasAdmissionDetails =
+    caseData.admissionDate ||
+    caseData.dischargeDate ||
+    caseData.admissionUrgency ||
+    (caseData.unplannedReadmission && caseData.unplannedReadmission !== "no");
+  const hasDiagnoses = caseData.diagnosisGroups?.some((g) => g.diagnosis);
+  const hasComorbidities =
+    caseData.comorbidities && caseData.comorbidities.length > 0;
+  const hasOperativeFactors =
+    caseData.woundInfectionRisk ||
+    caseData.anaestheticType ||
+    caseData.prophylaxis;
+  const hasOutcomes =
+    caseData.unplannedICU ||
+    caseData.returnToTheatre ||
+    caseData.outcome ||
+    caseData.mortalityClassification ||
+    caseData.discussedAtMDM;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
@@ -457,7 +514,12 @@ export default function CaseDetailScreen() {
           },
         ]}
       >
-        <View style={[styles.heroCard, { backgroundColor: theme.backgroundDefault }]}>
+        <View
+          style={[
+            styles.heroCard,
+            { backgroundColor: theme.backgroundDefault },
+          ]}
+        >
           <View style={styles.heroBadges}>
             <SpecialtyBadge specialty={caseData.specialty} size="medium" />
             {userMember ? <RoleBadge role={userMember.role} /> : null}
@@ -465,10 +527,17 @@ export default function CaseDetailScreen() {
           <ThemedText type="h2" style={styles.procedureType}>
             {getPrimaryDiagnosisName(caseData) || caseData.procedureType}
           </ThemedText>
-          
+
           {caseData.procedureCode ? (
-            <View style={[styles.codeCard, { backgroundColor: theme.backgroundRoot }]}>
-              <ThemedText style={[styles.codeLabel, { color: theme.textSecondary }]}>
+            <View
+              style={[
+                styles.codeCard,
+                { backgroundColor: theme.backgroundRoot },
+              ]}
+            >
+              <ThemedText
+                style={[styles.codeLabel, { color: theme.textSecondary }]}
+              >
                 SNOMED CT
               </ThemedText>
               <ThemedText style={styles.codeValue}>
@@ -476,7 +545,12 @@ export default function CaseDetailScreen() {
               </ThemedText>
               {caseData.procedureCode.localCode ? (
                 <>
-                  <ThemedText style={[styles.codeLabel, { color: theme.textSecondary, marginTop: Spacing.xs }]}>
+                  <ThemedText
+                    style={[
+                      styles.codeLabel,
+                      { color: theme.textSecondary, marginTop: Spacing.xs },
+                    ]}
+                  >
                     {caseData.procedureCode.localSystem}
                   </ThemedText>
                   <ThemedText style={styles.codeValue}>
@@ -490,13 +564,17 @@ export default function CaseDetailScreen() {
           <View style={styles.heroMeta}>
             <View style={styles.metaItem}>
               <Feather name="calendar" size={16} color={theme.textSecondary} />
-              <ThemedText style={[styles.metaText, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[styles.metaText, { color: theme.textSecondary }]}
+              >
                 {formattedDate}
               </ThemedText>
             </View>
             <View style={styles.metaItem}>
               <Feather name="map-pin" size={16} color={theme.textSecondary} />
-              <ThemedText style={[styles.metaText, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[styles.metaText, { color: theme.textSecondary }]}
+              >
                 {caseData.facility}
               </ThemedText>
             </View>
@@ -504,21 +582,27 @@ export default function CaseDetailScreen() {
         </View>
 
         {hasHistologyPending ? (
-          <View style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 8,
-            backgroundColor: "#FEF3C7",
-            padding: 12,
-            borderRadius: 10,
-            marginBottom: 16,
-          }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              backgroundColor: "#FEF3C7",
+              padding: 12,
+              borderRadius: 10,
+              marginBottom: 16,
+            }}
+          >
             <Feather name="clock" size={18} color="#E5A00D" />
             <View style={{ flex: 1 }}>
-              <ThemedText style={{ fontWeight: "600", color: "#92400E", fontSize: 14 }}>
+              <ThemedText
+                style={{ fontWeight: "600", color: "#92400E", fontSize: 14 }}
+              >
                 Histology pending
               </ThemedText>
-              <ThemedText style={{ color: "#92400E", fontSize: 12, marginTop: 2 }}>
+              <ThemedText
+                style={{ color: "#92400E", fontSize: 12, marginTop: 2 }}
+              >
                 Edit this case to update diagnosis when results arrive
               </ThemedText>
             </View>
@@ -535,22 +619,43 @@ export default function CaseDetailScreen() {
                 <View key={group.id}>
                   {showGroupHeader ? (
                     <View style={styles.groupHeader}>
-                      <SpecialtyBadge specialty={group.specialty} size="small" />
+                      <SpecialtyBadge
+                        specialty={group.specialty}
+                        size="small"
+                      />
                       {group.diagnosis ? (
-                        <ThemedText style={[styles.groupDiagnosisLabel, { color: theme.textSecondary }]}>
+                        <ThemedText
+                          style={[
+                            styles.groupDiagnosisLabel,
+                            { color: theme.textSecondary },
+                          ]}
+                        >
                           {group.diagnosis.displayName}
                         </ThemedText>
                       ) : null}
                     </View>
                   ) : null}
                   {group.procedures.map((proc, idx) => (
-                    <View 
-                      key={proc.id} 
-                      style={[styles.procedureCard, { backgroundColor: theme.backgroundDefault }]}
+                    <View
+                      key={proc.id}
+                      style={[
+                        styles.procedureCard,
+                        { backgroundColor: theme.backgroundDefault },
+                      ]}
                     >
                       <View style={styles.procedureHeader}>
-                        <View style={[styles.procedureNumber, { backgroundColor: theme.link + "20" }]}>
-                          <ThemedText style={[styles.procedureNumberText, { color: theme.link }]}>
+                        <View
+                          style={[
+                            styles.procedureNumber,
+                            { backgroundColor: theme.link + "20" },
+                          ]}
+                        >
+                          <ThemedText
+                            style={[
+                              styles.procedureNumberText,
+                              { color: theme.link },
+                            ]}
+                          >
                             {idx + 1}
                           </ThemedText>
                         </View>
@@ -559,7 +664,12 @@ export default function CaseDetailScreen() {
                             {proc.procedureName || "Unnamed Procedure"}
                           </ThemedText>
                           {proc.specialty ? (
-                            <ThemedText style={[styles.procedureSpecialty, { color: theme.textSecondary }]}>
+                            <ThemedText
+                              style={[
+                                styles.procedureSpecialty,
+                                { color: theme.textSecondary },
+                              ]}
+                            >
                               {SPECIALTY_LABELS[proc.specialty]}
                             </ThemedText>
                           ) : null}
@@ -567,126 +677,232 @@ export default function CaseDetailScreen() {
                         <RoleBadge role={proc.surgeonRole} />
                       </View>
                       {proc.snomedCtCode ? (
-                        <View style={[styles.procedureSnomedRow, { borderTopColor: theme.border }]}>
-                          <ThemedText style={[styles.procedureSnomedLabel, { color: theme.textTertiary }]}>
+                        <View
+                          style={[
+                            styles.procedureSnomedRow,
+                            { borderTopColor: theme.border },
+                          ]}
+                        >
+                          <ThemedText
+                            style={[
+                              styles.procedureSnomedLabel,
+                              { color: theme.textTertiary },
+                            ]}
+                          >
                             SNOMED CT: {proc.snomedCtCode}
                           </ThemedText>
                           {proc.snomedCtDisplay ? (
-                            <ThemedText style={[styles.procedureSnomedDisplay, { color: theme.textSecondary }]}>
+                            <ThemedText
+                              style={[
+                                styles.procedureSnomedDisplay,
+                                { color: theme.textSecondary },
+                              ]}
+                            >
                               {proc.snomedCtDisplay}
                             </ThemedText>
                           ) : null}
                         </View>
                       ) : null}
                       {proc.notes ? (
-                        <ThemedText style={[styles.procedureNotes, { color: theme.textSecondary }]}>
+                        <ThemedText
+                          style={[
+                            styles.procedureNotes,
+                            { color: theme.textSecondary },
+                          ]}
+                        >
                           {proc.notes}
                         </ThemedText>
                       ) : null}
                       {proc.clinicalDetails ? (
-                        <View style={[styles.procedureClinicalDetails, { borderTopColor: theme.border }]}>
-                          {proc.tags?.includes("free_flap") && (proc.clinicalDetails as FreeFlapDetails) ? (
+                        <View
+                          style={[
+                            styles.procedureClinicalDetails,
+                            { borderTopColor: theme.border },
+                          ]}
+                        >
+                          {proc.tags?.includes("free_flap") &&
+                          (proc.clinicalDetails as FreeFlapDetails) ? (
                             <>
-                              {(proc.clinicalDetails as FreeFlapDetails).harvestSide ? (
-                                <DetailRow 
-                                  label="Harvest Side" 
-                                  value={(proc.clinicalDetails as FreeFlapDetails).harvestSide === "left" ? "Left" : "Right"} 
+                              {(proc.clinicalDetails as FreeFlapDetails)
+                                .harvestSide ? (
+                                <DetailRow
+                                  label="Harvest Side"
+                                  value={
+                                    (proc.clinicalDetails as FreeFlapDetails)
+                                      .harvestSide === "left"
+                                      ? "Left"
+                                      : "Right"
+                                  }
                                 />
                               ) : null}
-                              {(proc.clinicalDetails as FreeFlapDetails).indication ? (
-                                <DetailRow 
-                                  label="Indication" 
-                                  value={INDICATION_LABELS[(proc.clinicalDetails as FreeFlapDetails).indication!]} 
+                              {(proc.clinicalDetails as FreeFlapDetails)
+                                .indication ? (
+                                <DetailRow
+                                  label="Indication"
+                                  value={
+                                    INDICATION_LABELS[
+                                      (proc.clinicalDetails as FreeFlapDetails)
+                                        .indication!
+                                    ]
+                                  }
                                 />
                               ) : null}
-                              {(proc.clinicalDetails as FreeFlapDetails).recipientSiteRegion ? (
-                                <DetailRow 
-                                  label="Recipient Site" 
-                                  value={(proc.clinicalDetails as FreeFlapDetails).recipientSiteRegion?.replace(/_/g, " ")}
+                              {(proc.clinicalDetails as FreeFlapDetails)
+                                .recipientSiteRegion ? (
+                                <DetailRow
+                                  label="Recipient Site"
+                                  value={(
+                                    proc.clinicalDetails as FreeFlapDetails
+                                  ).recipientSiteRegion?.replace(/_/g, " ")}
                                 />
                               ) : null}
-                              {(proc.clinicalDetails as FreeFlapDetails).ischemiaTimeMinutes ? (
-                                <DetailRow 
-                                  label="Ischemia Time" 
-                                  value={(proc.clinicalDetails as FreeFlapDetails).ischemiaTimeMinutes} 
+                              {(proc.clinicalDetails as FreeFlapDetails)
+                                .ischemiaTimeMinutes ? (
+                                <DetailRow
+                                  label="Ischemia Time"
+                                  value={
+                                    (proc.clinicalDetails as FreeFlapDetails)
+                                      .ischemiaTimeMinutes
+                                  }
                                   unit="min"
                                 />
                               ) : null}
-                              {(proc.clinicalDetails as FreeFlapDetails).flapWidthCm || (proc.clinicalDetails as FreeFlapDetails).flapLengthCm ? (
-                                <DetailRow 
-                                  label="Flap Dimensions" 
-                                  value={`${(proc.clinicalDetails as FreeFlapDetails).flapWidthCm || "?"} x ${(proc.clinicalDetails as FreeFlapDetails).flapLengthCm || "?"} cm`} 
+                              {(proc.clinicalDetails as FreeFlapDetails)
+                                .flapWidthCm ||
+                              (proc.clinicalDetails as FreeFlapDetails)
+                                .flapLengthCm ? (
+                                <DetailRow
+                                  label="Flap Dimensions"
+                                  value={`${(proc.clinicalDetails as FreeFlapDetails).flapWidthCm || "?"} x ${(proc.clinicalDetails as FreeFlapDetails).flapLengthCm || "?"} cm`}
                                 />
                               ) : null}
-                              {(proc.clinicalDetails as FreeFlapDetails).anastomoses && (proc.clinicalDetails as FreeFlapDetails).anastomoses!.length > 0 ? (
+                              {(proc.clinicalDetails as FreeFlapDetails)
+                                .anastomoses &&
+                              (proc.clinicalDetails as FreeFlapDetails)
+                                .anastomoses!.length > 0 ? (
                                 <View style={styles.anastomosesList}>
-                                  <ThemedText style={[styles.anastomosesTitle, { color: theme.textSecondary }]}>
+                                  <ThemedText
+                                    style={[
+                                      styles.anastomosesTitle,
+                                      { color: theme.textSecondary },
+                                    ]}
+                                  >
                                     Anastomoses:
                                   </ThemedText>
-                                  {(proc.clinicalDetails as FreeFlapDetails).anastomoses!.map((a, aIdx) => (
-                                    <ThemedText key={a.id || aIdx} style={styles.anastomosisItem}>
-                                      {a.vesselType === "artery" ? "\u2764\uFE0F " : "\uD83D\uDCA7 "}
-                                      {a.recipientVesselName || "Unknown vessel"}
-                                      {a.couplingMethod ? ` (${ANASTOMOSIS_LABELS[a.couplingMethod as keyof typeof ANASTOMOSIS_LABELS] || a.couplingMethod})` : ""}
+                                  {(
+                                    proc.clinicalDetails as FreeFlapDetails
+                                  ).anastomoses!.map((a, aIdx) => (
+                                    <ThemedText
+                                      key={a.id || aIdx}
+                                      style={styles.anastomosisItem}
+                                    >
+                                      {a.vesselType === "artery"
+                                        ? "\u2764\uFE0F "
+                                        : "\uD83D\uDCA7 "}
+                                      {a.recipientVesselName ||
+                                        "Unknown vessel"}
+                                      {a.couplingMethod
+                                        ? ` (${ANASTOMOSIS_LABELS[a.couplingMethod as keyof typeof ANASTOMOSIS_LABELS] || a.couplingMethod})`
+                                        : ""}
                                     </ThemedText>
                                   ))}
                                 </View>
                               ) : null}
-                              {(proc.clinicalDetails as FreeFlapDetails).perforatorCount ? (
-                                <DetailRow 
-                                  label="Perforator Count" 
-                                  value={(proc.clinicalDetails as FreeFlapDetails).perforatorCount} 
+                              {(proc.clinicalDetails as FreeFlapDetails)
+                                .perforatorCount ? (
+                                <DetailRow
+                                  label="Perforator Count"
+                                  value={
+                                    (proc.clinicalDetails as FreeFlapDetails)
+                                      .perforatorCount
+                                  }
                                 />
                               ) : null}
-                              {(proc.clinicalDetails as FreeFlapDetails).elevationPlane ? (
-                                <DetailRow 
-                                  label="Elevation Plane" 
-                                  value={(proc.clinicalDetails as FreeFlapDetails).elevationPlane === "subfascial" ? "Subfascial" : (proc.clinicalDetails as FreeFlapDetails).elevationPlane === "suprafascial" ? "Suprafascial" : (proc.clinicalDetails as FreeFlapDetails).elevationPlane} 
+                              {(proc.clinicalDetails as FreeFlapDetails)
+                                .elevationPlane ? (
+                                <DetailRow
+                                  label="Elevation Plane"
+                                  value={
+                                    (proc.clinicalDetails as FreeFlapDetails)
+                                      .elevationPlane === "subfascial"
+                                      ? "Subfascial"
+                                      : (
+                                            proc.clinicalDetails as FreeFlapDetails
+                                          ).elevationPlane === "suprafascial"
+                                        ? "Suprafascial"
+                                        : (
+                                            proc.clinicalDetails as FreeFlapDetails
+                                          ).elevationPlane
+                                  }
                                 />
                               ) : null}
-                              {(proc.clinicalDetails as FreeFlapDetails).composition ? (
-                                <DetailRow 
-                                  label="Composition" 
-                                  value={(proc.clinicalDetails as FreeFlapDetails).composition} 
+                              {(proc.clinicalDetails as FreeFlapDetails)
+                                .composition ? (
+                                <DetailRow
+                                  label="Composition"
+                                  value={
+                                    (proc.clinicalDetails as FreeFlapDetails)
+                                      .composition
+                                  }
                                 />
                               ) : null}
-                              {(proc.clinicalDetails as FreeFlapDetails).isFlowThrough ? (
+                              {(proc.clinicalDetails as FreeFlapDetails)
+                                .isFlowThrough ? (
                                 <DetailRow label="Flow-Through" value="Yes" />
                               ) : null}
-                              {(proc.clinicalDetails as FreeFlapDetails).skinIsland !== undefined ? (
-                                <DetailRow 
-                                  label="Skin Island" 
-                                  value={(proc.clinicalDetails as FreeFlapDetails).skinIsland ? "Yes" : "No"} 
+                              {(proc.clinicalDetails as FreeFlapDetails)
+                                .skinIsland !== undefined ? (
+                                <DetailRow
+                                  label="Skin Island"
+                                  value={
+                                    (proc.clinicalDetails as FreeFlapDetails)
+                                      .skinIsland
+                                      ? "Yes"
+                                      : "No"
+                                  }
                                 />
                               ) : null}
                             </>
                           ) : null}
-                          {proc.specialty === "hand_surgery" && proc.clinicalDetails ? (
+                          {proc.specialty === "hand_surgery" &&
+                          proc.clinicalDetails ? (
                             <>
-                              <DetailRow 
-                                label="Injury Mechanism" 
-                                value={(proc.clinicalDetails as any).injuryMechanism} 
+                              <DetailRow
+                                label="Injury Mechanism"
+                                value={
+                                  (proc.clinicalDetails as any).injuryMechanism
+                                }
                               />
-                              <DetailRow 
-                                label="Fixation Material" 
-                                value={(proc.clinicalDetails as any).fixationMaterial?.replace(/_/g, " ")} 
+                              <DetailRow
+                                label="Fixation Material"
+                                value={(
+                                  proc.clinicalDetails as any
+                                ).fixationMaterial?.replace(/_/g, " ")}
                               />
-                              <DetailRow 
-                                label="Fracture Site" 
-                                value={(proc.clinicalDetails as any).fractureSite} 
+                              <DetailRow
+                                label="Fracture Site"
+                                value={
+                                  (proc.clinicalDetails as any).fractureSite
+                                }
                               />
                             </>
                           ) : null}
-                          {proc.specialty === "body_contouring" && proc.clinicalDetails ? (
+                          {proc.specialty === "body_contouring" &&
+                          proc.clinicalDetails ? (
                             <>
-                              <DetailRow 
-                                label="Resection Weight" 
-                                value={(proc.clinicalDetails as any).resectionWeightGrams} 
+                              <DetailRow
+                                label="Resection Weight"
+                                value={
+                                  (proc.clinicalDetails as any)
+                                    .resectionWeightGrams
+                                }
                                 unit="g"
                               />
-                              <DetailRow 
-                                label="Drain Output" 
-                                value={(proc.clinicalDetails as any).drainOutputMl} 
+                              <DetailRow
+                                label="Drain Output"
+                                value={
+                                  (proc.clinicalDetails as any).drainOutputMl
+                                }
                                 unit="ml"
                               />
                             </>
@@ -712,22 +928,40 @@ export default function CaseDetailScreen() {
               {caseData.operativeMedia.map((media) => (
                 <View
                   key={media.id}
-                  style={[styles.mediaItem, { backgroundColor: theme.backgroundDefault }]}
+                  style={[
+                    styles.mediaItem,
+                    { backgroundColor: theme.backgroundDefault },
+                  ]}
                 >
                   <EncryptedImage
                     uri={media.localUri}
                     style={styles.mediaImage}
                     resizeMode="cover"
-                    onError={() => console.warn("Media file missing:", media.localUri)}
+                    onError={() =>
+                      console.warn("Media file missing:", media.localUri)
+                    }
                   />
-                  <View style={[styles.mediaTypeBadge, { backgroundColor: theme.link }]}>
+                  <View
+                    style={[
+                      styles.mediaTypeBadge,
+                      { backgroundColor: theme.link },
+                    ]}
+                  >
                     <ThemedText style={styles.mediaTypeBadgeText}>
                       {OPERATIVE_MEDIA_TYPE_LABELS[media.mediaType]}
                     </ThemedText>
                   </View>
                   {media.caption ? (
-                    <View style={[styles.mediaCaptionOverlay, { backgroundColor: "rgba(0,0,0,0.6)" }]}>
-                      <ThemedText style={styles.mediaCaptionText} numberOfLines={2}>
+                    <View
+                      style={[
+                        styles.mediaCaptionOverlay,
+                        { backgroundColor: "rgba(0,0,0,0.6)" },
+                      ]}
+                    >
+                      <ThemedText
+                        style={styles.mediaCaptionText}
+                        numberOfLines={2}
+                      >
                         {media.caption}
                       </ThemedText>
                     </View>
@@ -741,12 +975,22 @@ export default function CaseDetailScreen() {
         {hasPatientDemographics ? (
           <>
             <SectionHeader title="Patient Demographics" />
-            <View style={[styles.card, { backgroundColor: theme.backgroundDefault }]}>
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: theme.backgroundDefault },
+              ]}
+            >
               <DetailRow
                 label="Gender"
-                value={caseData.gender ? GENDER_LABELS[caseData.gender] : undefined}
+                value={
+                  caseData.gender ? GENDER_LABELS[caseData.gender] : undefined
+                }
               />
-              <DetailRow label="Age" value={caseData.age ? String(caseData.age) : undefined} />
+              <DetailRow
+                label="Age"
+                value={caseData.age ? String(caseData.age) : undefined}
+              />
               <DetailRow label="Ethnicity" value={caseData.ethnicity} />
             </View>
           </>
@@ -755,23 +999,35 @@ export default function CaseDetailScreen() {
         {hasAdmissionDetails ? (
           <>
             <SectionHeader title="Admission Details" />
-            <View style={[styles.card, { backgroundColor: theme.backgroundDefault }]}>
-              <DetailRow 
-                label="Admission Date" 
-                value={formatDateDisplay(caseData.admissionDate)} 
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: theme.backgroundDefault },
+              ]}
+            >
+              <DetailRow
+                label="Admission Date"
+                value={formatDateDisplay(caseData.admissionDate)}
               />
-              <DetailRow 
-                label="Discharge Date" 
-                value={formatDateDisplay(caseData.dischargeDate)} 
+              <DetailRow
+                label="Discharge Date"
+                value={formatDateDisplay(caseData.dischargeDate)}
               />
-              <DetailRow 
-                label="Admission Urgency" 
-                value={caseData.admissionUrgency ? ADMISSION_URGENCY_LABELS[caseData.admissionUrgency] : undefined} 
+              <DetailRow
+                label="Admission Urgency"
+                value={
+                  caseData.admissionUrgency
+                    ? ADMISSION_URGENCY_LABELS[caseData.admissionUrgency]
+                    : undefined
+                }
               />
-              {caseData.unplannedReadmission && caseData.unplannedReadmission !== "no" ? (
-                <DetailRow 
-                  label="Unplanned Readmission" 
-                  value={UNPLANNED_READMISSION_LABELS[caseData.unplannedReadmission]} 
+              {caseData.unplannedReadmission &&
+              caseData.unplannedReadmission !== "no" ? (
+                <DetailRow
+                  label="Unplanned Readmission"
+                  value={
+                    UNPLANNED_READMISSION_LABELS[caseData.unplannedReadmission]
+                  }
                 />
               ) : null}
             </View>
@@ -782,48 +1038,94 @@ export default function CaseDetailScreen() {
           <>
             <SectionHeader title="Diagnoses" />
             {caseData.diagnosisGroups?.map((group, gIdx) => {
-              if (!group.diagnosis && !group.pathologicalDiagnosis && (!group.fractures || group.fractures.length === 0)) return null;
+              if (
+                !group.diagnosis &&
+                !group.pathologicalDiagnosis &&
+                (!group.fractures || group.fractures.length === 0)
+              )
+                return null;
               const showGroupLabel = caseData.diagnosisGroups.length > 1;
               return (
-                <View key={group.id} style={[styles.card, { backgroundColor: theme.backgroundDefault, marginBottom: Spacing.sm }]}>
+                <View
+                  key={group.id}
+                  style={[
+                    styles.card,
+                    {
+                      backgroundColor: theme.backgroundDefault,
+                      marginBottom: Spacing.sm,
+                    },
+                  ]}
+                >
                   {showGroupLabel ? (
                     <View style={styles.groupHeader}>
-                      <SpecialtyBadge specialty={group.specialty} size="small" />
+                      <SpecialtyBadge
+                        specialty={group.specialty}
+                        size="small"
+                      />
                     </View>
                   ) : null}
                   {group.diagnosis ? (
                     <View style={styles.diagnosisItem}>
-                      <ThemedText style={[styles.diagnosisLabel, { color: theme.textSecondary }]}>
+                      <ThemedText
+                        style={[
+                          styles.diagnosisLabel,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
                         Diagnosis
                       </ThemedText>
                       <ThemedText style={styles.diagnosisValue}>
                         {group.diagnosis.displayName}
                       </ThemedText>
                       {group.diagnosis.snomedCtCode ? (
-                        <ThemedText style={[styles.snomedCode, { color: theme.textTertiary }]}>
+                        <ThemedText
+                          style={[
+                            styles.snomedCode,
+                            { color: theme.textTertiary },
+                          ]}
+                        >
                           SNOMED CT: {group.diagnosis.snomedCtCode}
                         </ThemedText>
                       ) : null}
                       {group.clinicalSuspicion ? (
-                        <ThemedText style={[styles.snomedCode, { color: theme.textSecondary, marginTop: 4 }]}>
-                          Clinical suspicion: {CLINICAL_SUSPICION_LABELS[group.clinicalSuspicion]}
+                        <ThemedText
+                          style={[
+                            styles.snomedCode,
+                            { color: theme.textSecondary, marginTop: 4 },
+                          ]}
+                        >
+                          Clinical suspicion:{" "}
+                          {CLINICAL_SUSPICION_LABELS[group.clinicalSuspicion]}
                         </ThemedText>
                       ) : null}
                     </View>
                   ) : null}
-                  {group.diagnosisStagingSelections && Object.keys(group.diagnosisStagingSelections).length > 0 ? (
+                  {group.diagnosisStagingSelections &&
+                  Object.keys(group.diagnosisStagingSelections).length > 0 ? (
                     <View style={styles.diagnosisItem}>
-                      <ThemedText style={[styles.diagnosisLabel, { color: theme.textSecondary }]}>
+                      <ThemedText
+                        style={[
+                          styles.diagnosisLabel,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
                         Staging
                       </ThemedText>
-                      {Object.entries(group.diagnosisStagingSelections).map(([key, val]) => (
-                        <DetailRow key={key} label={key} value={val} />
-                      ))}
+                      {Object.entries(group.diagnosisStagingSelections).map(
+                        ([key, val]) => (
+                          <DetailRow key={key} label={key} value={val} />
+                        ),
+                      )}
                     </View>
                   ) : null}
                   {group.fractures && group.fractures.length > 0 ? (
                     <View style={styles.diagnosisItem}>
-                      <ThemedText style={[styles.diagnosisLabel, { color: theme.textSecondary }]}>
+                      <ThemedText
+                        style={[
+                          styles.diagnosisLabel,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
                         Fractures
                       </ThemedText>
                       {group.fractures.map((f) => (
@@ -833,33 +1135,68 @@ export default function CaseDetailScreen() {
                       ))}
                     </View>
                   ) : null}
-                  {group.diagnosisClinicalDetails?.handTrauma?.injuredStructures && group.diagnosisClinicalDetails.handTrauma.injuredStructures.length > 0 ? (
+                  {group.diagnosisClinicalDetails?.handTrauma
+                    ?.injuredStructures &&
+                  group.diagnosisClinicalDetails.handTrauma.injuredStructures
+                    .length > 0 ? (
                     <View style={styles.diagnosisItem}>
-                      <ThemedText style={[styles.diagnosisLabel, { color: theme.textSecondary }]}>
+                      <ThemedText
+                        style={[
+                          styles.diagnosisLabel,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
                         Injured Structures
                       </ThemedText>
-                      {group.diagnosisClinicalDetails.handTrauma.affectedDigits && group.diagnosisClinicalDetails.handTrauma.affectedDigits.length > 0 ? (
-                        <ThemedText style={[styles.snomedCode, { color: theme.textTertiary, marginBottom: 4 }]}>
-                          Digits: {group.diagnosisClinicalDetails.handTrauma.affectedDigits.join(", ")}
+                      {group.diagnosisClinicalDetails.handTrauma
+                        .affectedDigits &&
+                      group.diagnosisClinicalDetails.handTrauma.affectedDigits
+                        .length > 0 ? (
+                        <ThemedText
+                          style={[
+                            styles.snomedCode,
+                            { color: theme.textTertiary, marginBottom: 4 },
+                          ]}
+                        >
+                          Digits:{" "}
+                          {group.diagnosisClinicalDetails.handTrauma.affectedDigits.join(
+                            ", ",
+                          )}
                         </ThemedText>
                       ) : null}
-                      {group.diagnosisClinicalDetails.handTrauma.injuredStructures.map((s, sIdx) => (
-                        <ThemedText key={`${s.structureId}-${sIdx}`} style={styles.diagnosisValue}>
-                          {s.displayName}{s.zone ? ` (Zone ${s.zone})` : ""}
-                        </ThemedText>
-                      ))}
+                      {group.diagnosisClinicalDetails.handTrauma.injuredStructures.map(
+                        (s, sIdx) => (
+                          <ThemedText
+                            key={`${s.structureId}-${sIdx}`}
+                            style={styles.diagnosisValue}
+                          >
+                            {s.displayName}
+                            {s.zone ? ` (Zone ${s.zone})` : ""}
+                          </ThemedText>
+                        ),
+                      )}
                     </View>
                   ) : null}
                   {group.pathologicalDiagnosis ? (
                     <View style={styles.diagnosisItem}>
-                      <ThemedText style={[styles.diagnosisLabel, { color: theme.textSecondary }]}>
+                      <ThemedText
+                        style={[
+                          styles.diagnosisLabel,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
                         Pathological Diagnosis
                       </ThemedText>
                       <ThemedText style={styles.diagnosisValue}>
                         {group.pathologicalDiagnosis.displayName}
                       </ThemedText>
                       {group.pathologicalDiagnosis.snomedCtCode ? (
-                        <ThemedText style={[styles.snomedCode, { color: theme.textTertiary }]}>
+                        <ThemedText
+                          style={[
+                            styles.snomedCode,
+                            { color: theme.textTertiary },
+                          ]}
+                        >
                           SNOMED CT: {group.pathologicalDiagnosis.snomedCtCode}
                         </ThemedText>
                       ) : null}
@@ -874,14 +1211,27 @@ export default function CaseDetailScreen() {
         {hasComorbidities ? (
           <>
             <SectionHeader title="Co-morbidities" />
-            <View style={[styles.card, { backgroundColor: theme.backgroundDefault }]}>
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: theme.backgroundDefault },
+              ]}
+            >
               <View style={styles.comorbidityList}>
                 {caseData.comorbidities?.map((comorbidity, index) => (
-                  <View 
-                    key={comorbidity.snomedCtCode || index} 
-                    style={[styles.comorbidityChip, { backgroundColor: theme.warning + "20", borderColor: theme.warning }]}
+                  <View
+                    key={comorbidity.snomedCtCode || index}
+                    style={[
+                      styles.comorbidityChip,
+                      {
+                        backgroundColor: theme.warning + "20",
+                        borderColor: theme.warning,
+                      },
+                    ]}
                   >
-                    <ThemedText style={[styles.comorbidityText, { color: theme.warning }]}>
+                    <ThemedText
+                      style={[styles.comorbidityText, { color: theme.warning }]}
+                    >
                       {comorbidity.commonName || comorbidity.displayName}
                     </ThemedText>
                   </View>
@@ -894,13 +1244,27 @@ export default function CaseDetailScreen() {
         {caseData.surgeryTiming ? (
           <>
             <SectionHeader title="Surgery Timing" />
-            <View style={[styles.card, { backgroundColor: theme.backgroundDefault }]}>
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: theme.backgroundDefault },
+              ]}
+            >
               <View style={styles.timingRow}>
                 {caseData.surgeryTiming.startTime ? (
                   <View style={styles.timingItem}>
-                    <Feather name="play-circle" size={20} color={theme.success} />
+                    <Feather
+                      name="play-circle"
+                      size={20}
+                      color={theme.success}
+                    />
                     <View>
-                      <ThemedText style={[styles.timingLabel, { color: theme.textSecondary }]}>
+                      <ThemedText
+                        style={[
+                          styles.timingLabel,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
                         Start
                       </ThemedText>
                       <ThemedText style={styles.timingValue}>
@@ -913,7 +1277,12 @@ export default function CaseDetailScreen() {
                   <View style={styles.timingItem}>
                     <Feather name="stop-circle" size={20} color={theme.error} />
                     <View>
-                      <ThemedText style={[styles.timingLabel, { color: theme.textSecondary }]}>
+                      <ThemedText
+                        style={[
+                          styles.timingLabel,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
                         End
                       </ThemedText>
                       <ThemedText style={styles.timingValue}>
@@ -926,7 +1295,12 @@ export default function CaseDetailScreen() {
                   <View style={styles.timingItem}>
                     <Feather name="clock" size={20} color={theme.link} />
                     <View>
-                      <ThemedText style={[styles.timingLabel, { color: theme.textSecondary }]}>
+                      <ThemedText
+                        style={[
+                          styles.timingLabel,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
                         Duration
                       </ThemedText>
                       <ThemedText style={styles.timingValue}>
@@ -941,10 +1315,14 @@ export default function CaseDetailScreen() {
         ) : null}
 
         <SectionHeader title="Surgical Team" />
-        <View style={[styles.card, { backgroundColor: theme.backgroundDefault }]}>
+        <View
+          style={[styles.card, { backgroundColor: theme.backgroundDefault }]}
+        >
           {caseData.teamMembers.map((member) => (
             <View key={member.id} style={styles.teamMember}>
-              <View style={[styles.avatar, { backgroundColor: theme.link + "20" }]}>
+              <View
+                style={[styles.avatar, { backgroundColor: theme.link + "20" }]}
+              >
                 <Feather name="user" size={18} color={theme.link} />
               </View>
               <View style={styles.memberInfo}>
@@ -963,15 +1341,32 @@ export default function CaseDetailScreen() {
         {caseData.operatingTeam && caseData.operatingTeam.length > 0 ? (
           <>
             <SectionHeader title="Operating Team" />
-            <View style={[styles.card, { backgroundColor: theme.backgroundDefault }]}>
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: theme.backgroundDefault },
+              ]}
+            >
               {caseData.operatingTeam.map((member) => (
                 <View key={member.id} style={styles.teamMember}>
-                  <View style={[styles.avatar, { backgroundColor: theme.success + "20" }]}>
+                  <View
+                    style={[
+                      styles.avatar,
+                      { backgroundColor: theme.success + "20" },
+                    ]}
+                  >
                     <Feather name="users" size={18} color={theme.success} />
                   </View>
                   <View style={styles.memberInfo}>
-                    <ThemedText style={styles.memberName}>{member.name}</ThemedText>
-                    <ThemedText style={[styles.memberRole, { color: theme.textSecondary }]}>
+                    <ThemedText style={styles.memberName}>
+                      {member.name}
+                    </ThemedText>
+                    <ThemedText
+                      style={[
+                        styles.memberRole,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
                       {OPERATING_TEAM_ROLE_LABELS[member.role]}
                     </ThemedText>
                   </View>
@@ -981,19 +1376,41 @@ export default function CaseDetailScreen() {
           </>
         ) : null}
 
-        {(caseData.asaScore || caseData.bmi || caseData.smoker || caseData.diabetes !== undefined) ? (
+        {caseData.asaScore ||
+        caseData.bmi ||
+        caseData.smoker ||
+        caseData.diabetes !== undefined ? (
           <>
             <SectionHeader title="Risk Factors" />
-            <View style={[styles.card, { backgroundColor: theme.backgroundDefault }]}>
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: theme.backgroundDefault },
+              ]}
+            >
               <DetailRow label="ASA Score" value={caseData.asaScore} />
               <DetailRow label="BMI" value={caseData.bmi} />
               <DetailRow
                 label="Smoking Status"
-                value={caseData.smoker === "yes" ? "Current Smoker" : caseData.smoker === "ex" ? "Ex-Smoker" : caseData.smoker === "no" ? "Non-Smoker" : undefined}
+                value={
+                  caseData.smoker === "yes"
+                    ? "Current Smoker"
+                    : caseData.smoker === "ex"
+                      ? "Ex-Smoker"
+                      : caseData.smoker === "no"
+                        ? "Non-Smoker"
+                        : undefined
+                }
               />
               <DetailRow
                 label="Diabetes"
-                value={caseData.diabetes === true ? "Yes" : caseData.diabetes === false ? "No" : undefined}
+                value={
+                  caseData.diabetes === true
+                    ? "Yes"
+                    : caseData.diabetes === false
+                      ? "No"
+                      : undefined
+                }
               />
             </View>
           </>
@@ -1002,24 +1419,41 @@ export default function CaseDetailScreen() {
         {hasOperativeFactors ? (
           <>
             <SectionHeader title="Operative Factors" />
-            <View style={[styles.card, { backgroundColor: theme.backgroundDefault }]}>
-              <DetailRow 
-                label="Wound Infection Risk" 
-                value={caseData.woundInfectionRisk ? WOUND_INFECTION_RISK_LABELS[caseData.woundInfectionRisk] : undefined} 
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: theme.backgroundDefault },
+              ]}
+            >
+              <DetailRow
+                label="Wound Infection Risk"
+                value={
+                  caseData.woundInfectionRisk
+                    ? WOUND_INFECTION_RISK_LABELS[caseData.woundInfectionRisk]
+                    : undefined
+                }
               />
-              <DetailRow 
-                label="Anaesthetic Type" 
-                value={caseData.anaestheticType ? ANAESTHETIC_TYPE_LABELS[caseData.anaestheticType] : undefined} 
+              <DetailRow
+                label="Anaesthetic Type"
+                value={
+                  caseData.anaestheticType
+                    ? ANAESTHETIC_TYPE_LABELS[caseData.anaestheticType]
+                    : undefined
+                }
               />
               {caseData.prophylaxis ? (
                 <>
-                  <DetailRow 
-                    label="Antibiotic Prophylaxis" 
-                    value={caseData.prophylaxis.antibiotics ? "Given" : "Not Given"} 
+                  <DetailRow
+                    label="Antibiotic Prophylaxis"
+                    value={
+                      caseData.prophylaxis.antibiotics ? "Given" : "Not Given"
+                    }
                   />
-                  <DetailRow 
-                    label="DVT Prophylaxis" 
-                    value={caseData.prophylaxis.dvtPrevention ? "Given" : "Not Given"} 
+                  <DetailRow
+                    label="DVT Prophylaxis"
+                    value={
+                      caseData.prophylaxis.dvtPrevention ? "Given" : "Not Given"
+                    }
                   />
                 </>
               ) : null}
@@ -1030,36 +1464,52 @@ export default function CaseDetailScreen() {
         {hasOutcomes ? (
           <>
             <SectionHeader title="Outcomes" />
-            <View style={[styles.card, { backgroundColor: theme.backgroundDefault }]}>
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: theme.backgroundDefault },
+              ]}
+            >
               {caseData.unplannedICU && caseData.unplannedICU !== "no" ? (
-                <DetailRow 
-                  label="Unplanned ICU Admission" 
-                  value={UNPLANNED_ICU_LABELS[caseData.unplannedICU]} 
+                <DetailRow
+                  label="Unplanned ICU Admission"
+                  value={UNPLANNED_ICU_LABELS[caseData.unplannedICU]}
                 />
               ) : null}
               {caseData.returnToTheatre ? (
                 <>
                   <DetailRow label="Return to Theatre" value="Yes" />
-                  <DetailRow label="Reason" value={caseData.returnToTheatreReason} />
+                  <DetailRow
+                    label="Reason"
+                    value={caseData.returnToTheatreReason}
+                  />
                 </>
               ) : null}
-              <DetailRow 
-                label="Discharge Outcome" 
-                value={caseData.outcome ? DISCHARGE_OUTCOME_LABELS[caseData.outcome] : undefined} 
+              <DetailRow
+                label="Discharge Outcome"
+                value={
+                  caseData.outcome
+                    ? DISCHARGE_OUTCOME_LABELS[caseData.outcome]
+                    : undefined
+                }
               />
               {caseData.mortalityClassification ? (
-                <DetailRow 
-                  label="Mortality Classification" 
-                  value={MORTALITY_CLASSIFICATION_LABELS[caseData.mortalityClassification]} 
+                <DetailRow
+                  label="Mortality Classification"
+                  value={
+                    MORTALITY_CLASSIFICATION_LABELS[
+                      caseData.mortalityClassification
+                    ]
+                  }
                 />
               ) : null}
-              <DetailRow 
-                label="Discussed at MDM" 
-                value={caseData.discussedAtMDM ? "Yes" : undefined} 
+              <DetailRow
+                label="Discussed at MDM"
+                value={caseData.discussedAtMDM ? "Yes" : undefined}
               />
-              <DetailRow 
-                label="Recurrence Date" 
-                value={formatDateDisplay(caseData.recurrenceDate)} 
+              <DetailRow
+                label="Recurrence Date"
+                value={formatDateDisplay(caseData.recurrenceDate)}
               />
             </View>
           </>
@@ -1067,26 +1517,44 @@ export default function CaseDetailScreen() {
 
         <SectionHeader title="30-Day Complication Review" />
         {isPending30DayReview ? (
-          <View style={[styles.reviewCard, { backgroundColor: theme.warning + "15", borderColor: theme.warning }]}>
+          <View
+            style={[
+              styles.reviewCard,
+              {
+                backgroundColor: theme.warning + "15",
+                borderColor: theme.warning,
+              },
+            ]}
+          >
             <View style={styles.reviewHeader}>
               <Feather name="clock" size={20} color={theme.warning} />
-              <ThemedText style={[styles.reviewTitle, { color: theme.warning }]}>
+              <ThemedText
+                style={[styles.reviewTitle, { color: theme.warning }]}
+              >
                 Review Due ({daysSinceProcedure} days post-op)
               </ThemedText>
             </View>
-            <ThemedText style={[styles.reviewSubtext, { color: theme.textSecondary }]}>
-              Document any complications within 30 days of surgery for audit compliance.
+            <ThemedText
+              style={[styles.reviewSubtext, { color: theme.textSecondary }]}
+            >
+              Document any complications within 30 days of surgery for audit
+              compliance.
             </ThemedText>
-            
+
             {showComplicationForm ? (
               <View style={styles.complicationForm}>
-                <ThemedText style={styles.formLabel}>Complication Description</ThemedText>
+                <ThemedText style={styles.formLabel}>
+                  Complication Description
+                </ThemedText>
                 <TextInput
-                  style={[styles.textInput, { 
-                    backgroundColor: theme.backgroundDefault,
-                    borderColor: theme.border,
-                    color: theme.text,
-                  }]}
+                  style={[
+                    styles.textInput,
+                    {
+                      backgroundColor: theme.backgroundDefault,
+                      borderColor: theme.border,
+                      color: theme.text,
+                    },
+                  ]}
                   value={complicationDescription}
                   onChangeText={setComplicationDescription}
                   placeholder="Describe the complication..."
@@ -1094,51 +1562,72 @@ export default function CaseDetailScreen() {
                   multiline
                   numberOfLines={3}
                 />
-                
-                <ThemedText style={styles.formLabel}>Clavien-Dindo Grade</ThemedText>
-                <ScrollView 
-                  horizontal 
-                  showsHorizontalScrollIndicator={false} 
+
+                <ThemedText style={styles.formLabel}>
+                  Clavien-Dindo Grade
+                </ThemedText>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
                   style={styles.gradeScroll}
                 >
                   {(Object.keys(CLAVIEN_DINDO_LABELS) as ClavienDindoGrade[])
-                    .filter(g => g !== "none")
+                    .filter((g) => g !== "none")
                     .map((grade) => (
-                    <Pressable
-                      key={grade}
-                      onPress={() => setComplicationGrade(grade)}
-                      style={[
-                        styles.gradeChip,
-                        { 
-                          backgroundColor: complicationGrade === grade 
-                            ? theme.link 
-                            : theme.backgroundDefault,
-                          borderColor: complicationGrade === grade 
-                            ? theme.link 
-                            : theme.border,
-                        }
-                      ]}
-                    >
-                      <ThemedText style={[
-                        styles.gradeChipText,
-                        { color: complicationGrade === grade ? theme.buttonText : theme.text }
-                      ]}>
-                        {grade}
-                      </ThemedText>
-                    </Pressable>
-                  ))}
+                      <Pressable
+                        key={grade}
+                        onPress={() => setComplicationGrade(grade)}
+                        style={[
+                          styles.gradeChip,
+                          {
+                            backgroundColor:
+                              complicationGrade === grade
+                                ? theme.link
+                                : theme.backgroundDefault,
+                            borderColor:
+                              complicationGrade === grade
+                                ? theme.link
+                                : theme.border,
+                          },
+                        ]}
+                      >
+                        <ThemedText
+                          style={[
+                            styles.gradeChipText,
+                            {
+                              color:
+                                complicationGrade === grade
+                                  ? theme.buttonText
+                                  : theme.text,
+                            },
+                          ]}
+                        >
+                          {grade}
+                        </ThemedText>
+                      </Pressable>
+                    ))}
                 </ScrollView>
-                <ThemedText style={[styles.gradeDescription, { color: theme.textSecondary }]}>
+                <ThemedText
+                  style={[
+                    styles.gradeDescription,
+                    { color: theme.textSecondary },
+                  ]}
+                >
                   {CLAVIEN_DINDO_LABELS[complicationGrade]}
                 </ThemedText>
-                
-                <ThemedText style={styles.formLabel}>Management Notes (optional)</ThemedText>
+
+                <ThemedText style={styles.formLabel}>
+                  Management Notes (optional)
+                </ThemedText>
                 <TextInput
-                  style={[styles.textInput, { 
-                    backgroundColor: theme.backgroundDefault,
-                    borderColor: theme.border,
-                    color: theme.text,
-                  }]}
+                  style={[
+                    styles.textInput,
+                    {
+                      backgroundColor: theme.backgroundDefault,
+                      borderColor: theme.border,
+                      color: theme.text,
+                    },
+                  ]}
                   value={complicationNotes}
                   onChangeText={setComplicationNotes}
                   placeholder="How was this managed?"
@@ -1146,7 +1635,7 @@ export default function CaseDetailScreen() {
                   multiline
                   numberOfLines={2}
                 />
-                
+
                 <View style={styles.formActions}>
                   <Pressable
                     onPress={() => setShowComplicationForm(false)}
@@ -1169,19 +1658,33 @@ export default function CaseDetailScreen() {
               <View style={styles.reviewActions}>
                 <Pressable
                   onPress={() => setShowComplicationForm(true)}
-                  style={[styles.addComplicationButton, { borderColor: theme.warning }]}
+                  style={[
+                    styles.addComplicationButton,
+                    { borderColor: theme.warning },
+                  ]}
                 >
-                  <Feather name="alert-triangle" size={16} color={theme.warning} />
-                  <ThemedText style={{ color: theme.warning, fontWeight: "600" }}>
+                  <Feather
+                    name="alert-triangle"
+                    size={16}
+                    color={theme.warning}
+                  />
+                  <ThemedText
+                    style={{ color: theme.warning, fontWeight: "600" }}
+                  >
                     Add Complication
                   </ThemedText>
                 </Pressable>
                 <Pressable
                   onPress={handleMarkNoComplications}
-                  style={[styles.noComplicationsButton, { backgroundColor: theme.success }]}
+                  style={[
+                    styles.noComplicationsButton,
+                    { backgroundColor: theme.success },
+                  ]}
                 >
                   <Feather name="check" size={16} color={theme.buttonText} />
-                  <ThemedText style={{ color: theme.buttonText, fontWeight: "600" }}>
+                  <ThemedText
+                    style={{ color: theme.buttonText, fontWeight: "600" }}
+                  >
                     No Complications
                   </ThemedText>
                 </Pressable>
@@ -1189,43 +1692,72 @@ export default function CaseDetailScreen() {
             )}
           </View>
         ) : caseData.complicationsReviewed ? (
-          <View style={[styles.card, { backgroundColor: theme.backgroundDefault }]}>
+          <View
+            style={[styles.card, { backgroundColor: theme.backgroundDefault }]}
+          >
             <View style={styles.reviewedRow}>
-              <Feather 
-                name={caseData.hasComplications ? "alert-circle" : "check-circle"} 
-                size={20} 
-                color={caseData.hasComplications ? theme.warning : theme.success} 
+              <Feather
+                name={
+                  caseData.hasComplications ? "alert-circle" : "check-circle"
+                }
+                size={20}
+                color={
+                  caseData.hasComplications ? theme.warning : theme.success
+                }
               />
               <ThemedText style={styles.reviewedText}>
-                {caseData.hasComplications 
-                  ? `${caseData.complications?.length || 0} complication(s) documented` 
+                {caseData.hasComplications
+                  ? `${caseData.complications?.length || 0} complication(s) documented`
                   : "No complications"}
               </ThemedText>
             </View>
             {caseData.complicationsReviewedAt ? (
-              <ThemedText style={[styles.reviewedDate, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[styles.reviewedDate, { color: theme.textSecondary }]}
+              >
                 Reviewed {formatDateDisplay(caseData.complicationsReviewedAt)}
               </ThemedText>
             ) : null}
-            
+
             {caseData.complications && caseData.complications.length > 0 ? (
               <View style={styles.complicationsList}>
                 {caseData.complications.map((comp) => (
-                  <View key={comp.id} style={[styles.complicationItem, { borderColor: theme.border }]}>
+                  <View
+                    key={comp.id}
+                    style={[
+                      styles.complicationItem,
+                      { borderColor: theme.border },
+                    ]}
+                  >
                     <View style={styles.complicationHeader}>
                       <ThemedText style={styles.complicationDescription}>
                         {comp.description}
                       </ThemedText>
                       {comp.clavienDindoGrade ? (
-                        <View style={[styles.gradeBadge, { backgroundColor: theme.warning + "20" }]}>
-                          <ThemedText style={[styles.gradeBadgeText, { color: theme.warning }]}>
+                        <View
+                          style={[
+                            styles.gradeBadge,
+                            { backgroundColor: theme.warning + "20" },
+                          ]}
+                        >
+                          <ThemedText
+                            style={[
+                              styles.gradeBadgeText,
+                              { color: theme.warning },
+                            ]}
+                          >
                             {comp.clavienDindoGrade}
                           </ThemedText>
                         </View>
                       ) : null}
                     </View>
                     {comp.managementNotes ? (
-                      <ThemedText style={[styles.complicationNotes, { color: theme.textSecondary }]}>
+                      <ThemedText
+                        style={[
+                          styles.complicationNotes,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
                         {comp.managementNotes}
                       </ThemedText>
                     ) : null}
@@ -1233,23 +1765,29 @@ export default function CaseDetailScreen() {
                 ))}
               </View>
             ) : null}
-            
+
             {!caseData.hasComplications ? (
               <Pressable
                 onPress={() => setShowComplicationForm(true)}
                 style={styles.addLaterButton}
               >
                 <Feather name="plus" size={14} color={theme.link} />
-                <ThemedText style={[styles.addLaterText, { color: theme.link }]}>
+                <ThemedText
+                  style={[styles.addLaterText, { color: theme.link }]}
+                >
                   Add a complication
                 </ThemedText>
               </Pressable>
             ) : null}
           </View>
         ) : (
-          <View style={[styles.card, { backgroundColor: theme.backgroundDefault }]}>
-            <ThemedText style={[styles.pendingText, { color: theme.textSecondary }]}>
-              {daysSinceProcedure < 30 
+          <View
+            style={[styles.card, { backgroundColor: theme.backgroundDefault }]}
+          >
+            <ThemedText
+              style={[styles.pendingText, { color: theme.textSecondary }]}
+            >
+              {daysSinceProcedure < 30
                 ? `Review available in ${30 - daysSinceProcedure} days`
                 : "Review status unknown"}
             </ThemedText>
@@ -1259,23 +1797,55 @@ export default function CaseDetailScreen() {
         <SectionHeader title="Timeline" />
         <WoundDimensionChart events={timelineEvents} />
         {timelineEvents.length === 0 ? (
-          <View style={[styles.emptyTimeline, { backgroundColor: theme.backgroundDefault }]}>
+          <View
+            style={[
+              styles.emptyTimeline,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
             <Feather name="calendar" size={32} color={theme.textTertiary} />
-            <ThemedText style={[styles.emptyTimelineText, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.emptyTimelineText, { color: theme.textSecondary }]}
+            >
               No timeline events yet
             </ThemedText>
           </View>
         ) : (
-          <View style={[styles.card, { backgroundColor: theme.backgroundDefault }]}>
+          <View
+            style={[styles.card, { backgroundColor: theme.backgroundDefault }]}
+          >
             {timelineEvents.map((event) => {
-              if (event.eventType === "wound_assessment" && event.woundAssessmentData) {
+              if (
+                event.eventType === "wound_assessment" &&
+                event.woundAssessmentData
+              ) {
                 return (
                   <View key={event.id}>
-                    <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 8, paddingRight: Spacing.md, paddingTop: Spacing.sm }}>
-                      <Pressable onPress={() => handleEditEvent(event)} hitSlop={8} style={{ padding: 4 }}>
-                        <Feather name="edit-2" size={14} color={theme.textTertiary} />
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "flex-end",
+                        gap: 8,
+                        paddingRight: Spacing.md,
+                        paddingTop: Spacing.sm,
+                      }}
+                    >
+                      <Pressable
+                        onPress={() => handleEditEvent(event)}
+                        hitSlop={8}
+                        style={{ padding: 4 }}
+                      >
+                        <Feather
+                          name="edit-2"
+                          size={14}
+                          color={theme.textTertiary}
+                        />
                       </Pressable>
-                      <Pressable onPress={() => handleDeleteEvent(event)} hitSlop={8} style={{ padding: 4 }}>
+                      <Pressable
+                        onPress={() => handleDeleteEvent(event)}
+                        hitSlop={8}
+                        style={{ padding: 4 }}
+                      >
                         <Feather name="trash-2" size={14} color={theme.error} />
                       </Pressable>
                     </View>
@@ -1287,111 +1857,227 @@ export default function CaseDetailScreen() {
                 );
               }
               return (
-              <View key={event.id} style={styles.timelineEvent}>
-                <View style={[styles.timelineDot, { backgroundColor: getEventTypeColor(event.eventType, theme) }]} />
-                <View style={styles.timelineContent}>
-                  <View style={styles.eventHeader}>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flex: 1, flexWrap: "wrap" }}>
-                      <View style={[styles.eventTypeBadge, { backgroundColor: getEventTypeColor(event.eventType, theme) + "20" }]}>
-                        <Feather name={getEventTypeIcon(event.eventType)} size={12} color={getEventTypeColor(event.eventType, theme)} />
-                        <ThemedText style={[styles.eventTypeBadgeText, { color: getEventTypeColor(event.eventType, theme) }]}>
-                          {TIMELINE_EVENT_TYPE_LABELS[event.eventType] || event.eventType}
-                        </ThemedText>
-                      </View>
-                      {event.followUpInterval ? (
-                        <ThemedText style={[styles.intervalBadge, { color: theme.textSecondary }]}>
-                          {FOLLOW_UP_INTERVAL_LABELS[event.followUpInterval]}
-                        </ThemedText>
-                      ) : null}
-                      {event.clinicalContext === "discharge" ? (
-                        <View style={{
+                <View key={event.id} style={styles.timelineEvent}>
+                  <View
+                    style={[
+                      styles.timelineDot,
+                      {
+                        backgroundColor: getEventTypeColor(
+                          event.eventType,
+                          theme,
+                        ),
+                      },
+                    ]}
+                  />
+                  <View style={styles.timelineContent}>
+                    <View style={styles.eventHeader}>
+                      <View
+                        style={{
                           flexDirection: "row",
                           alignItems: "center",
-                          gap: 4,
-                          backgroundColor: theme.success + "20",
-                          paddingHorizontal: 8,
-                          paddingVertical: 2,
-                          borderRadius: 10,
-                        }}>
-                          <Feather name="log-out" size={10} color={theme.success} />
-                          <ThemedText style={{ fontSize: 11, color: theme.success, fontWeight: "500" }}>
-                            Discharge
+                          gap: 6,
+                          flex: 1,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <View
+                          style={[
+                            styles.eventTypeBadge,
+                            {
+                              backgroundColor:
+                                getEventTypeColor(event.eventType, theme) +
+                                "20",
+                            },
+                          ]}
+                        >
+                          <Feather
+                            name={getEventTypeIcon(event.eventType)}
+                            size={12}
+                            color={getEventTypeColor(event.eventType, theme)}
+                          />
+                          <ThemedText
+                            style={[
+                              styles.eventTypeBadgeText,
+                              {
+                                color: getEventTypeColor(
+                                  event.eventType,
+                                  theme,
+                                ),
+                              },
+                            ]}
+                          >
+                            {TIMELINE_EVENT_TYPE_LABELS[event.eventType] ||
+                              event.eventType}
                           </ThemedText>
                         </View>
-                      ) : null}
-                    </View>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                      <Pressable
-                        onPress={() => handleEditEvent(event)}
-                        hitSlop={8}
-                        style={{ padding: 4 }}
+                        {event.followUpInterval ? (
+                          <ThemedText
+                            style={[
+                              styles.intervalBadge,
+                              { color: theme.textSecondary },
+                            ]}
+                          >
+                            {FOLLOW_UP_INTERVAL_LABELS[event.followUpInterval]}
+                          </ThemedText>
+                        ) : null}
+                        {event.clinicalContext === "discharge" ? (
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 4,
+                              backgroundColor: theme.success + "20",
+                              paddingHorizontal: 8,
+                              paddingVertical: 2,
+                              borderRadius: 10,
+                            }}
+                          >
+                            <Feather
+                              name="log-out"
+                              size={10}
+                              color={theme.success}
+                            />
+                            <ThemedText
+                              style={{
+                                fontSize: 11,
+                                color: theme.success,
+                                fontWeight: "500",
+                              }}
+                            >
+                              Discharge
+                            </ThemedText>
+                          </View>
+                        ) : null}
+                      </View>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
                       >
-                        <Feather name="edit-2" size={14} color={theme.textTertiary} />
-                      </Pressable>
-                      <Pressable
-                        onPress={() => handleDeleteEvent(event)}
-                        hitSlop={8}
-                        style={{ padding: 4 }}
+                        <Pressable
+                          onPress={() => handleEditEvent(event)}
+                          hitSlop={8}
+                          style={{ padding: 4 }}
+                        >
+                          <Feather
+                            name="edit-2"
+                            size={14}
+                            color={theme.textTertiary}
+                          />
+                        </Pressable>
+                        <Pressable
+                          onPress={() => handleDeleteEvent(event)}
+                          hitSlop={8}
+                          style={{ padding: 4 }}
+                        >
+                          <Feather
+                            name="trash-2"
+                            size={14}
+                            color={theme.error}
+                          />
+                        </Pressable>
+                      </View>
+                    </View>
+
+                    {(event.mediaAttachments?.length ?? 0) > 0 ? (
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        style={styles.mediaThumbnails}
+                        contentContainerStyle={styles.mediaThumbnailsContent}
                       >
-                        <Feather name="trash-2" size={14} color={theme.error} />
-                      </Pressable>
-                    </View>
-                  </View>
+                        {event.mediaAttachments?.map((media) => (
+                          <EncryptedImage
+                            key={media.id}
+                            uri={media.localUri}
+                            style={styles.mediaThumbnail}
+                            resizeMode="cover"
+                            onError={() =>
+                              console.warn(
+                                "Media file missing:",
+                                media.localUri,
+                              )
+                            }
+                          />
+                        ))}
+                      </ScrollView>
+                    ) : null}
 
-                  {(event.mediaAttachments?.length ?? 0) > 0 ? (
-                    <ScrollView 
-                      horizontal 
-                      showsHorizontalScrollIndicator={false} 
-                      style={styles.mediaThumbnails}
-                      contentContainerStyle={styles.mediaThumbnailsContent}
-                    >
-                      {event.mediaAttachments?.map((media) => (
-                        <EncryptedImage
-                          key={media.id}
-                          uri={media.localUri}
-                          style={styles.mediaThumbnail}
-                          resizeMode="cover"
-                          onError={() => console.warn("Media file missing:", media.localUri)}
-                        />
-                      ))}
-                    </ScrollView>
-                  ) : null}
-
-                  {event.promData ? (
-                    <View style={[styles.promDataCard, { backgroundColor: theme.backgroundRoot }]}>
-                      <ThemedText style={[styles.promQuestionnaire, { color: theme.textSecondary }]}>
-                        {PROM_QUESTIONNAIRE_LABELS[event.promData.questionnaire]}
-                      </ThemedText>
-                      <ThemedText style={[styles.promScore, { color: theme.link }]}>
-                        Score: {event.promData.score}
-                      </ThemedText>
-                    </View>
-                  ) : null}
-
-                  {event.complicationData ? (
-                    <View style={[styles.complicationDataCard, { backgroundColor: theme.error + "10" }]}>
-                      <ThemedText style={styles.complicationDesc}>
-                        {event.complicationData.description}
-                      </ThemedText>
-                      {event.complicationData.clavienDindoGrade && event.complicationData.clavienDindoGrade !== "none" ? (
-                        <ThemedText style={[styles.complicationGrade, { color: theme.error }]}>
-                          {CLAVIEN_DINDO_LABELS[event.complicationData.clavienDindoGrade]}
+                    {event.promData ? (
+                      <View
+                        style={[
+                          styles.promDataCard,
+                          { backgroundColor: theme.backgroundRoot },
+                        ]}
+                      >
+                        <ThemedText
+                          style={[
+                            styles.promQuestionnaire,
+                            { color: theme.textSecondary },
+                          ]}
+                        >
+                          {
+                            PROM_QUESTIONNAIRE_LABELS[
+                              event.promData.questionnaire
+                            ]
+                          }
                         </ThemedText>
-                      ) : null}
-                    </View>
-                  ) : null}
+                        <ThemedText
+                          style={[styles.promScore, { color: theme.link }]}
+                        >
+                          Score: {event.promData.score}
+                        </ThemedText>
+                      </View>
+                    ) : null}
 
-                  {event.note ? (
-                    <ThemedText style={[styles.eventNote, { color: theme.textSecondary }]}>
-                      {event.note}
+                    {event.complicationData ? (
+                      <View
+                        style={[
+                          styles.complicationDataCard,
+                          { backgroundColor: theme.error + "10" },
+                        ]}
+                      >
+                        <ThemedText style={styles.complicationDesc}>
+                          {event.complicationData.description}
+                        </ThemedText>
+                        {event.complicationData.clavienDindoGrade &&
+                        event.complicationData.clavienDindoGrade !== "none" ? (
+                          <ThemedText
+                            style={[
+                              styles.complicationGrade,
+                              { color: theme.error },
+                            ]}
+                          >
+                            {
+                              CLAVIEN_DINDO_LABELS[
+                                event.complicationData.clavienDindoGrade
+                              ]
+                            }
+                          </ThemedText>
+                        ) : null}
+                      </View>
+                    ) : null}
+
+                    {event.note ? (
+                      <ThemedText
+                        style={[
+                          styles.eventNote,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
+                        {event.note}
+                      </ThemedText>
+                    ) : null}
+                    <ThemedText
+                      style={[styles.eventDate, { color: theme.textTertiary }]}
+                    >
+                      {new Date(event.createdAt).toLocaleDateString()}
+                      {event.updatedAt ? " (edited)" : ""}
                     </ThemedText>
-                  ) : null}
-                  <ThemedText style={[styles.eventDate, { color: theme.textTertiary }]}>
-                    {new Date(event.createdAt).toLocaleDateString()}
-                    {event.updatedAt ? " (edited)" : ""}
-                  </ThemedText>
+                  </View>
                 </View>
-              </View>
               );
             })}
           </View>

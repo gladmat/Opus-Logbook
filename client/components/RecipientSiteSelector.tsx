@@ -39,7 +39,9 @@ export function RecipientSiteSelector({
           {label}
         </ThemedText>
         {required ? (
-          <ThemedText style={[styles.required, { color: theme.error }]}>*</ThemedText>
+          <ThemedText style={[styles.required, { color: theme.error }]}>
+            *
+          </ThemedText>
         ) : null}
       </View>
       <View style={styles.optionsGrid}>

@@ -1,9 +1,5 @@
 import React, { useState } from "react";
-import {
-  View,
-  StyleSheet,
-  Pressable,
-} from "react-native";
+import { View, StyleSheet, Pressable } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { v4 as uuidv4 } from "uuid";
@@ -11,10 +7,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { InfectionEpisodeCard } from "@/components/InfectionEpisodeCard";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
-import {
-  InfectionEpisode,
-  InfectionOverlay,
-} from "@/types/infection";
+import { InfectionEpisode, InfectionOverlay } from "@/types/infection";
 
 interface InfectionEpisodeTimelineProps {
   overlay: InfectionOverlay;
@@ -26,7 +19,9 @@ export function InfectionEpisodeTimeline({
   onOverlayChange,
 }: InfectionEpisodeTimelineProps) {
   const { theme } = useTheme();
-  const [expandedEpisodeId, setExpandedEpisodeId] = useState<string | null>(null);
+  const [expandedEpisodeId, setExpandedEpisodeId] = useState<string | null>(
+    null,
+  );
 
   const episodes = overlay.episodes || [];
 
@@ -41,7 +36,7 @@ export function InfectionEpisodeTimeline({
       createdAt: now,
       updatedAt: now,
     };
-    
+
     onOverlayChange({
       ...overlay,
       episodes: [...episodes, newEpisode],
@@ -54,7 +49,7 @@ export function InfectionEpisodeTimeline({
     onOverlayChange({
       ...overlay,
       episodes: episodes.map((ep) =>
-        ep.id === updatedEpisode.id ? updatedEpisode : ep
+        ep.id === updatedEpisode.id ? updatedEpisode : ep,
       ),
       updatedAt: new Date().toISOString(),
     });
@@ -68,7 +63,7 @@ export function InfectionEpisodeTimeline({
         ...ep,
         episodeNumber: index + 1,
       }));
-    
+
     onOverlayChange({
       ...overlay,
       episodes: updatedEpisodes,
@@ -87,7 +82,9 @@ export function InfectionEpisodeTimeline({
           style={[styles.addButton, { backgroundColor: theme.link }]}
         >
           <Feather name="plus" size={16} color={theme.buttonText} />
-          <ThemedText style={[styles.addButtonText, { color: theme.buttonText }]}>
+          <ThemedText
+            style={[styles.addButtonText, { color: theme.buttonText }]}
+          >
             Add Episode
           </ThemedText>
         </Pressable>
@@ -98,7 +95,9 @@ export function InfectionEpisodeTimeline({
           {episodes.map((episode, index) => (
             <View key={episode.id} style={styles.timelineItem}>
               {index > 0 ? (
-                <View style={[styles.connector, { backgroundColor: theme.border }]} />
+                <View
+                  style={[styles.connector, { backgroundColor: theme.border }]}
+                />
               ) : null}
               <InfectionEpisodeCard
                 episode={episode}
@@ -107,7 +106,7 @@ export function InfectionEpisodeTimeline({
                 isExpanded={expandedEpisodeId === episode.id}
                 onToggleExpand={() =>
                   setExpandedEpisodeId(
-                    expandedEpisodeId === episode.id ? null : episode.id
+                    expandedEpisodeId === episode.id ? null : episode.id,
                   )
                 }
               />
@@ -115,13 +114,17 @@ export function InfectionEpisodeTimeline({
           ))}
         </View>
       ) : (
-        <View style={[styles.emptyState, { backgroundColor: theme.backgroundRoot }]}>
+        <View
+          style={[styles.emptyState, { backgroundColor: theme.backgroundRoot }]}
+        >
           <Feather name="clipboard" size={24} color={theme.textTertiary} />
-          <ThemedText style={[styles.emptyText, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.emptyText, { color: theme.textSecondary }]}
+          >
             No episodes recorded yet
           </ThemedText>
           <ThemedText style={[styles.emptyHint, { color: theme.textTertiary }]}>
-            Tap "Add Episode" to document the first operative intervention
+            {'Tap "Add Episode" to document the first operative intervention'}
           </ThemedText>
         </View>
       )}

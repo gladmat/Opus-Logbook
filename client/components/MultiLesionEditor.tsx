@@ -38,7 +38,11 @@ import { v4 as uuidv4 } from "uuid";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
-import type { LesionInstance, LesionPathologyType, LesionReconstruction } from "@/types/case";
+import type {
+  LesionInstance,
+  LesionPathologyType,
+  LesionReconstruction,
+} from "@/types/case";
 
 // ─── Common anatomical sites for quick-pick ────────────────────────────────
 
@@ -67,25 +71,32 @@ const COMMON_SITES: string[] = [
 
 // ─── Option configs ────────────────────────────────────────────────────────
 
-const PATHOLOGY_OPTIONS: { value: LesionPathologyType; label: string; color: string }[] = [
-  { value: "bcc",      label: "BCC",      color: "#2563EB" },
-  { value: "scc",      label: "SCC",      color: "#E5A00D" },
-  { value: "melanoma", label: "Mel",      color: "#7C3AED" },
-  { value: "benign",   label: "Benign",   color: "#059669" },
-  { value: "other",    label: "Other",    color: "#6B7280" },
+const PATHOLOGY_OPTIONS: {
+  value: LesionPathologyType;
+  label: string;
+  color: string;
+}[] = [
+  { value: "bcc", label: "BCC", color: "#2563EB" },
+  { value: "scc", label: "SCC", color: "#E5A00D" },
+  { value: "melanoma", label: "Mel", color: "#7C3AED" },
+  { value: "benign", label: "Benign", color: "#059669" },
+  { value: "other", label: "Other", color: "#6B7280" },
 ];
 
 const RECON_OPTIONS: { value: LesionReconstruction; label: string }[] = [
-  { value: "primary_closure",   label: "Primary" },
-  { value: "local_flap",        label: "Local flap" },
-  { value: "skin_graft",        label: "SSG/FTG" },
+  { value: "primary_closure", label: "Primary" },
+  { value: "local_flap", label: "Local flap" },
+  { value: "skin_graft", label: "SSG/FTG" },
   { value: "secondary_healing", label: "Secondary" },
-  { value: "other",             label: "Other" },
+  { value: "other", label: "Other" },
 ];
 
-const MARGIN_STATUS_OPTIONS: { value: LesionInstance["marginStatus"]; label: string }[] = [
-  { value: "pending",  label: "Pending" },
-  { value: "clear",    label: "Clear" },
+const MARGIN_STATUS_OPTIONS: {
+  value: LesionInstance["marginStatus"];
+  label: string;
+}[] = [
+  { value: "pending", label: "Pending" },
+  { value: "clear", label: "Clear" },
   { value: "involved", label: "Involved" },
 ];
 
@@ -122,17 +133,20 @@ function LesionRow({
   const { theme } = useTheme();
   const [showSitePicker, setShowSitePicker] = useState(false);
 
-  const pathologyOption = PATHOLOGY_OPTIONS.find(p => p.value === lesion.pathologyType);
+  const pathologyOption = PATHOLOGY_OPTIONS.find(
+    (p) => p.value === lesion.pathologyType,
+  );
 
   // Summary line: "BCC · Forehead · Primary · Pending"
   const summaryParts = [
     pathologyOption?.label,
     lesion.site || "Site not set",
     lesion.reconstruction
-      ? RECON_OPTIONS.find(r => r.value === lesion.reconstruction)?.label
+      ? RECON_OPTIONS.find((r) => r.value === lesion.reconstruction)?.label
       : null,
     lesion.marginStatus
-      ? MARGIN_STATUS_OPTIONS.find(m => m.value === lesion.marginStatus)?.label
+      ? MARGIN_STATUS_OPTIONS.find((m) => m.value === lesion.marginStatus)
+          ?.label
       : null,
   ].filter(Boolean);
 
@@ -167,12 +181,16 @@ function LesionRow({
               {summaryParts.join(" · ")}
             </ThemedText>
           ) : (
-            <ThemedText style={[styles.lesionSummaryText, { color: theme.textTertiary }]}>
+            <ThemedText
+              style={[styles.lesionSummaryText, { color: theme.textTertiary }]}
+            >
               Tap to configure lesion {index + 1}
             </ThemedText>
           )}
           {lesion.lengthMm || lesion.widthMm ? (
-            <ThemedText style={[styles.lesionSizeText, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.lesionSizeText, { color: theme.textSecondary }]}
+            >
               {lesion.lengthMm ?? "?"}×{lesion.widthMm ?? "?"}mm
             </ThemedText>
           ) : null}
@@ -188,17 +206,20 @@ function LesionRow({
       {/* ── Expanded detail fields ── */}
       {isExpanded && (
         <View style={styles.lesionDetail}>
-          
           {/* Pathology type chips */}
           <View style={styles.fieldBlock}>
-            <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.fieldLabel, { color: theme.textSecondary }]}
+            >
               Pathology
             </ThemedText>
             <View style={styles.chipRow}>
-              {PATHOLOGY_OPTIONS.map(opt => (
+              {PATHOLOGY_OPTIONS.map((opt) => (
                 <Pressable
                   key={opt.value}
-                  onPress={() => onUpdate({ ...lesion, pathologyType: opt.value })}
+                  onPress={() =>
+                    onUpdate({ ...lesion, pathologyType: opt.value })
+                  }
                   style={[
                     styles.chip,
                     {
@@ -221,7 +242,8 @@ function LesionRow({
                           lesion.pathologyType === opt.value
                             ? opt.color
                             : theme.textSecondary,
-                        fontWeight: lesion.pathologyType === opt.value ? "600" : "400",
+                        fontWeight:
+                          lesion.pathologyType === opt.value ? "600" : "400",
                       },
                     ]}
                   >
@@ -234,12 +256,14 @@ function LesionRow({
 
           {/* Anatomical site */}
           <View style={styles.fieldBlock}>
-            <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.fieldLabel, { color: theme.textSecondary }]}
+            >
               Site
             </ThemedText>
             <TextInput
               value={lesion.site}
-              onChangeText={text => onUpdate({ ...lesion, site: text })}
+              onChangeText={(text) => onUpdate({ ...lesion, site: text })}
               placeholder="e.g. Right temple, Dorsal hand…"
               placeholderTextColor={theme.textTertiary}
               style={[
@@ -257,7 +281,9 @@ function LesionRow({
               onPress={() => setShowSitePicker(!showSitePicker)}
               style={styles.quickPickToggle}
             >
-              <ThemedText style={[styles.quickPickToggleText, { color: theme.link }]}>
+              <ThemedText
+                style={[styles.quickPickToggleText, { color: theme.link }]}
+              >
                 {showSitePicker ? "Hide quick-pick" : "Quick-pick site ▾"}
               </ThemedText>
             </Pressable>
@@ -268,7 +294,7 @@ function LesionRow({
                 style={styles.siteScrollView}
               >
                 <View style={styles.siteChipRow}>
-                  {COMMON_SITES.map(site => (
+                  {COMMON_SITES.map((site) => (
                     <Pressable
                       key={site}
                       onPress={() => {
@@ -292,7 +318,9 @@ function LesionRow({
                           styles.chipText,
                           {
                             color:
-                              lesion.site === site ? theme.link : theme.textSecondary,
+                              lesion.site === site
+                                ? theme.link
+                                : theme.textSecondary,
                           },
                         ]}
                       >
@@ -307,14 +335,18 @@ function LesionRow({
 
           {/* Reconstruction */}
           <View style={styles.fieldBlock}>
-            <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.fieldLabel, { color: theme.textSecondary }]}
+            >
               Reconstruction
             </ThemedText>
             <View style={styles.chipRow}>
-              {RECON_OPTIONS.map(opt => (
+              {RECON_OPTIONS.map((opt) => (
                 <Pressable
                   key={opt.value}
-                  onPress={() => onUpdate({ ...lesion, reconstruction: opt.value })}
+                  onPress={() =>
+                    onUpdate({ ...lesion, reconstruction: opt.value })
+                  }
                   style={[
                     styles.chip,
                     {
@@ -351,56 +383,78 @@ function LesionRow({
 
           {/* Size row */}
           <View style={styles.fieldBlock}>
-            <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.fieldLabel, { color: theme.textSecondary }]}
+            >
               Lesion size (mm)
             </ThemedText>
             <View style={styles.twoColRow}>
               <View style={styles.halfField}>
-                <ThemedText style={[styles.subLabel, { color: theme.textTertiary }]}>
+                <ThemedText
+                  style={[styles.subLabel, { color: theme.textTertiary }]}
+                >
                   Length
                 </ThemedText>
                 <View
                   style={[
                     styles.numInputContainer,
-                    { backgroundColor: theme.backgroundRoot, borderColor: theme.border },
+                    {
+                      backgroundColor: theme.backgroundRoot,
+                      borderColor: theme.border,
+                    },
                   ]}
                 >
                   <TextInput
                     value={lesion.lengthMm?.toString() ?? ""}
-                    onChangeText={t =>
-                      onUpdate({ ...lesion, lengthMm: t ? parseFloat(t) : undefined })
+                    onChangeText={(t) =>
+                      onUpdate({
+                        ...lesion,
+                        lengthMm: t ? parseFloat(t) : undefined,
+                      })
                     }
                     placeholder="—"
                     placeholderTextColor={theme.textTertiary}
                     keyboardType="decimal-pad"
                     style={[styles.numInput, { color: theme.text }]}
                   />
-                  <ThemedText style={[styles.unit, { color: theme.textSecondary }]}>
+                  <ThemedText
+                    style={[styles.unit, { color: theme.textSecondary }]}
+                  >
                     mm
                   </ThemedText>
                 </View>
               </View>
               <View style={styles.halfField}>
-                <ThemedText style={[styles.subLabel, { color: theme.textTertiary }]}>
+                <ThemedText
+                  style={[styles.subLabel, { color: theme.textTertiary }]}
+                >
                   Width
                 </ThemedText>
                 <View
                   style={[
                     styles.numInputContainer,
-                    { backgroundColor: theme.backgroundRoot, borderColor: theme.border },
+                    {
+                      backgroundColor: theme.backgroundRoot,
+                      borderColor: theme.border,
+                    },
                   ]}
                 >
                   <TextInput
                     value={lesion.widthMm?.toString() ?? ""}
-                    onChangeText={t =>
-                      onUpdate({ ...lesion, widthMm: t ? parseFloat(t) : undefined })
+                    onChangeText={(t) =>
+                      onUpdate({
+                        ...lesion,
+                        widthMm: t ? parseFloat(t) : undefined,
+                      })
                     }
                     placeholder="—"
                     placeholderTextColor={theme.textTertiary}
                     keyboardType="decimal-pad"
                     style={[styles.numInput, { color: theme.text }]}
                   />
-                  <ThemedText style={[styles.unit, { color: theme.textSecondary }]}>
+                  <ThemedText
+                    style={[styles.unit, { color: theme.textSecondary }]}
+                  >
                     mm
                   </ThemedText>
                 </View>
@@ -410,7 +464,9 @@ function LesionRow({
 
           {/* Peripheral margin */}
           <View style={styles.fieldBlock}>
-            <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.fieldLabel, { color: theme.textSecondary }]}
+            >
               Peripheral margin (mm)
             </ThemedText>
             <View
@@ -425,7 +481,7 @@ function LesionRow({
             >
               <TextInput
                 value={lesion.peripheralMarginMm?.toString() ?? ""}
-                onChangeText={t =>
+                onChangeText={(t) =>
                   onUpdate({
                     ...lesion,
                     peripheralMarginMm: t ? parseFloat(t) : undefined,
@@ -444,22 +500,26 @@ function LesionRow({
 
           {/* Margin status */}
           <View style={styles.fieldBlock}>
-            <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.fieldLabel, { color: theme.textSecondary }]}
+            >
               Margin status
             </ThemedText>
             <View style={styles.chipRow}>
-              {MARGIN_STATUS_OPTIONS.map(opt => {
+              {MARGIN_STATUS_OPTIONS.map((opt) => {
                 const isSelected = lesion.marginStatus === opt.value;
                 const statusColor =
                   opt.value === "clear"
                     ? "#059669"
                     : opt.value === "involved"
-                    ? "#DC2626"
-                    : "#6B7280";
+                      ? "#DC2626"
+                      : "#6B7280";
                 return (
                   <Pressable
                     key={opt.value ?? "none"}
-                    onPress={() => onUpdate({ ...lesion, marginStatus: opt.value })}
+                    onPress={() =>
+                      onUpdate({ ...lesion, marginStatus: opt.value })
+                    }
                     style={[
                       styles.chip,
                       {
@@ -503,7 +563,9 @@ function LesionRow({
               style={[styles.rowActionButton, { borderColor: theme.border }]}
             >
               <Feather name="trash-2" size={15} color={theme.error} />
-              <ThemedText style={[styles.rowActionText, { color: theme.error }]}>
+              <ThemedText
+                style={[styles.rowActionText, { color: theme.error }]}
+              >
                 Remove
               </ThemedText>
             </Pressable>
@@ -524,11 +586,11 @@ export function MultiLesionEditor({
   const { theme } = useTheme();
   const [expandedIds, setExpandedIds] = useState<Set<string>>(
     // Auto-expand last row (new additions)
-    new Set(lesions.length > 0 ? [lesions[lesions.length - 1].id] : [])
+    new Set(lesions.length > 0 ? [lesions[lesions.length - 1]!.id] : []),
   );
 
   const toggleExpand = useCallback((id: string) => {
-    setExpandedIds(prev => {
+    setExpandedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
@@ -541,9 +603,9 @@ export function MultiLesionEditor({
 
   const handleUpdate = useCallback(
     (id: string, updated: LesionInstance) => {
-      onChange(lesions.map(l => (l.id === id ? updated : l)));
+      onChange(lesions.map((l) => (l.id === id ? updated : l)));
     },
-    [lesions, onChange]
+    [lesions, onChange],
   );
 
   const handleDelete = useCallback(
@@ -552,30 +614,26 @@ export function MultiLesionEditor({
         Alert.alert(
           "Remove lesion?",
           "This is the only lesion. To switch back to single-lesion mode, turn off Multi-lesion at the top.",
-          [{ text: "OK" }]
+          [{ text: "OK" }],
         );
         return;
       }
-      Alert.alert(
-        "Remove lesion",
-        "Remove this lesion entry?",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Remove",
-            style: "destructive",
-            onPress: () => onChange(lesions.filter(l => l.id !== id)),
-          },
-        ]
-      );
+      Alert.alert("Remove lesion", "Remove this lesion entry?", [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: () => onChange(lesions.filter((l) => l.id !== id)),
+        },
+      ]);
     },
-    [lesions, onChange]
+    [lesions, onChange],
   );
 
   const handleDuplicate = useCallback(
     (id: string) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const source = lesions.find(l => l.id === id);
+      const source = lesions.find((l) => l.id === id);
       if (!source) return;
       const newId = uuidv4();
       const copy: LesionInstance = {
@@ -585,7 +643,7 @@ export function MultiLesionEditor({
         marginStatus: "pending", // reset margin status on duplicate
         histologyConfirmed: false,
       };
-      const idx = lesions.findIndex(l => l.id === id);
+      const idx = lesions.findIndex((l) => l.id === id);
       const newList = [
         ...lesions.slice(0, idx + 1),
         copy,
@@ -593,9 +651,9 @@ export function MultiLesionEditor({
       ];
       onChange(newList);
       // Auto-expand the new copy
-      setExpandedIds(prev => new Set([...prev, newId]));
+      setExpandedIds((prev) => new Set([...prev, newId]));
     },
-    [lesions, onChange]
+    [lesions, onChange],
   );
 
   const handleAdd = useCallback(() => {
@@ -611,23 +669,39 @@ export function MultiLesionEditor({
       histologyConfirmed: false,
     };
     onChange([...lesions, newLesion]);
-    setExpandedIds(prev => new Set([...prev, newId]));
+    setExpandedIds((prev) => new Set([...prev, newId]));
   }, [lesions, onChange, defaultPathologyType]);
 
   // Summary stats
-  const confirmedCount = lesions.filter(l => l.marginStatus === "clear").length;
-  const pendingCount = lesions.filter(l => l.marginStatus === "pending").length;
-  const involvedCount = lesions.filter(l => l.marginStatus === "involved").length;
+  const confirmedCount = lesions.filter(
+    (l) => l.marginStatus === "clear",
+  ).length;
+  const pendingCount = lesions.filter(
+    (l) => l.marginStatus === "pending",
+  ).length;
+  const involvedCount = lesions.filter(
+    (l) => l.marginStatus === "involved",
+  ).length;
 
   return (
     <View>
       {/* Header with stats */}
-      <View style={[styles.statsBar, { backgroundColor: theme.backgroundDefault, borderColor: theme.border }]}>
+      <View
+        style={[
+          styles.statsBar,
+          {
+            backgroundColor: theme.backgroundDefault,
+            borderColor: theme.border,
+          },
+        ]}
+      >
         <View style={styles.statItem}>
           <ThemedText style={[styles.statNumber, { color: theme.text }]}>
             {lesions.length}
           </ThemedText>
-          <ThemedText style={[styles.statLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.statLabel, { color: theme.textSecondary }]}
+          >
             lesions
           </ThemedText>
         </View>
@@ -636,7 +710,9 @@ export function MultiLesionEditor({
             <ThemedText style={[styles.statNumber, { color: "#059669" }]}>
               {confirmedCount}
             </ThemedText>
-            <ThemedText style={[styles.statLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.statLabel, { color: theme.textSecondary }]}
+            >
               clear
             </ThemedText>
           </View>
@@ -646,7 +722,9 @@ export function MultiLesionEditor({
             <ThemedText style={[styles.statNumber, { color: "#DC2626" }]}>
               {involvedCount}
             </ThemedText>
-            <ThemedText style={[styles.statLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.statLabel, { color: theme.textSecondary }]}
+            >
               involved
             </ThemedText>
           </View>
@@ -656,7 +734,9 @@ export function MultiLesionEditor({
             <ThemedText style={[styles.statNumber, { color: "#6B7280" }]}>
               {pendingCount}
             </ThemedText>
-            <ThemedText style={[styles.statLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.statLabel, { color: theme.textSecondary }]}
+            >
               pending
             </ThemedText>
           </View>
@@ -671,7 +751,7 @@ export function MultiLesionEditor({
           index={index}
           isExpanded={expandedIds.has(lesion.id)}
           onToggleExpand={() => toggleExpand(lesion.id)}
-          onUpdate={updated => handleUpdate(lesion.id, updated)}
+          onUpdate={(updated) => handleUpdate(lesion.id, updated)}
           onDelete={() => handleDelete(lesion.id)}
           onDuplicate={() => handleDuplicate(lesion.id)}
         />

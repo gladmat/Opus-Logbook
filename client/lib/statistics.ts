@@ -1,7 +1,24 @@
-import { Case, Specialty, Role, FreeFlapDetails, ClavienDindoGrade, getAllProcedures, getCaseSpecialties, SPECIALTY_LABELS } from "@/types/case";
-import { INFECTION_SYNDROME_LABELS, InfectionSyndrome } from "@/types/infection";
+import {
+  Case,
+  Specialty,
+  Role,
+  FreeFlapDetails,
+  ClavienDindoGrade,
+  getAllProcedures,
+  getCaseSpecialties,
+  SPECIALTY_LABELS,
+} from "@/types/case";
+import {
+  INFECTION_SYNDROME_LABELS,
+  InfectionSyndrome,
+} from "@/types/infection";
 
-export type TimePeriod = "all_time" | "this_year" | "last_6_months" | "last_12_months" | "custom";
+export type TimePeriod =
+  | "all_time"
+  | "this_year"
+  | "last_6_months"
+  | "last_12_months"
+  | "custom";
 
 export interface StatisticsFilters {
   specialty: Specialty | "all";
@@ -63,7 +80,13 @@ export interface InfectionStatistics {
   mortalityCount: number;
 }
 
-export type SpecialtyStatistics = BaseStatistics | FreeFlapStatistics | HandSurgeryStatistics | BodyContouringStatistics | OrthoplasticStatistics | BreastStatistics;
+export type SpecialtyStatistics =
+  | BaseStatistics
+  | FreeFlapStatistics
+  | HandSurgeryStatistics
+  | BodyContouringStatistics
+  | OrthoplasticStatistics
+  | BreastStatistics;
 
 export const TIME_PERIOD_LABELS: Record<TimePeriod, string> = {
   all_time: "All Time",
@@ -84,10 +107,15 @@ export const ROLE_FILTER_LABELS: Record<Role | "all", string> = {
   A: "Available",
 };
 
-function isWithinTimePeriod(dateString: string, timePeriod: TimePeriod, customStart?: string, customEnd?: string): boolean {
+function isWithinTimePeriod(
+  dateString: string,
+  timePeriod: TimePeriod,
+  customStart?: string,
+  customEnd?: string,
+): boolean {
   const date = new Date(dateString);
   const now = new Date();
-  
+
   switch (timePeriod) {
     case "all_time":
       return true;
@@ -118,65 +146,79 @@ function isWithinTimePeriod(dateString: string, timePeriod: TimePeriod, customSt
 function getPrimaryRole(caseData: Case): Role {
   const procs = getAllProcedures(caseData);
   if (procs.length > 0) {
-    return procs[0].surgeonRole;
+    return procs[0]!.surgeonRole;
   }
   if (caseData.teamMembers && caseData.teamMembers.length > 0) {
-    const primary = caseData.teamMembers.find(m => m.role === "PS");
+    const primary = caseData.teamMembers.find((m) => m.role === "PS");
     if (primary) return "PS";
-    const supervising = caseData.teamMembers.find(m => m.role === "SS" || m.role === "SNS");
+    const supervising = caseData.teamMembers.find(
+      (m) => m.role === "SS" || m.role === "SNS",
+    );
     if (supervising) return supervising.role as Role;
   }
   return "PS";
 }
 
 export function filterCases(cases: Case[], filters: StatisticsFilters): Case[] {
-  return cases.filter(c => {
+  return cases.filter((c) => {
     if (filters.specialty !== "all") {
       const caseSpecialties = getCaseSpecialties(c);
       if (!caseSpecialties.includes(filters.specialty)) {
         return false;
       }
     }
-    
-    if (!isWithinTimePeriod(c.procedureDate, filters.timePeriod, filters.customStartDate, filters.customEndDate)) {
+
+    if (
+      !isWithinTimePeriod(
+        c.procedureDate,
+        filters.timePeriod,
+        filters.customStartDate,
+        filters.customEndDate,
+      )
+    ) {
       return false;
     }
-    
+
     if (filters.facility !== "all" && c.facility !== filters.facility) {
       return false;
     }
-    
+
     if (filters.role !== "all") {
       const caseRole = getPrimaryRole(c);
       if (caseRole !== filters.role) {
         return false;
       }
     }
-    
+
     return true;
   });
 }
 
 export function calculateBaseStatistics(cases: Case[]): BaseStatistics {
   const totalCases = cases.length;
-  
+
   const durationsMinutes = cases
-    .map(c => c.surgeryTiming?.durationMinutes)
+    .map((c) => c.surgeryTiming?.durationMinutes)
     .filter((d): d is number => d !== undefined && d !== null && d > 0);
-  
-  const averageDurationMinutes = durationsMinutes.length > 0
-    ? Math.round(durationsMinutes.reduce((a, b) => a + b, 0) / durationsMinutes.length)
-    : null;
-  
-  const casesWithComplications = cases.filter(c => 
-    c.hasComplications === true || 
-    (c.complications && c.complications.length > 0) ||
-    c.returnToTheatre === true
+
+  const averageDurationMinutes =
+    durationsMinutes.length > 0
+      ? Math.round(
+          durationsMinutes.reduce((a, b) => a + b, 0) / durationsMinutes.length,
+        )
+      : null;
+
+  const casesWithComplications = cases.filter(
+    (c) =>
+      c.hasComplications === true ||
+      (c.complications && c.complications.length > 0) ||
+      c.returnToTheatre === true,
   ).length;
-  const complicationRate = totalCases > 0 ? (casesWithComplications / totalCases) * 100 : 0;
-  
+  const complicationRate =
+    totalCases > 0 ? (casesWithComplications / totalCases) * 100 : 0;
+
   const casesByMonthMap = new Map<string, number>();
-  cases.forEach(c => {
+  cases.forEach((c) => {
     const date = new Date(c.procedureDate);
     const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
     casesByMonthMap.set(monthKey, (casesByMonthMap.get(monthKey) || 0) + 1);
@@ -185,28 +227,35 @@ export function calculateBaseStatistics(cases: Case[]): BaseStatistics {
     .sort((a, b) => a[0].localeCompare(b[0]))
     .slice(-12)
     .map(([month, count]) => ({ month, count }));
-  
+
   const casesByFacilityMap = new Map<string, number>();
-  cases.forEach(c => {
+  cases.forEach((c) => {
     if (c.facility) {
-      casesByFacilityMap.set(c.facility, (casesByFacilityMap.get(c.facility) || 0) + 1);
+      casesByFacilityMap.set(
+        c.facility,
+        (casesByFacilityMap.get(c.facility) || 0) + 1,
+      );
     }
   });
   const casesByFacility = Array.from(casesByFacilityMap.entries())
     .sort((a, b) => b[1] - a[1])
     .map(([facility, count]) => ({ facility, count }));
-  
-  const casesNeedingFollowUp = cases.filter(c => {
+
+  const casesNeedingFollowUp = cases.filter((c) => {
     const daysSinceProcedure = Math.floor(
-      (Date.now() - new Date(c.procedureDate).getTime()) / (1000 * 60 * 60 * 24)
+      (Date.now() - new Date(c.procedureDate).getTime()) /
+        (1000 * 60 * 60 * 24),
     );
     return daysSinceProcedure >= 30;
   });
-  const casesWithFollowUpComplete = casesNeedingFollowUp.filter(c => c.complicationsReviewed === true);
-  const followUpCompletionRate = casesNeedingFollowUp.length > 0
-    ? (casesWithFollowUpComplete.length / casesNeedingFollowUp.length) * 100
-    : 100;
-  
+  const casesWithFollowUpComplete = casesNeedingFollowUp.filter(
+    (c) => c.complicationsReviewed === true,
+  );
+  const followUpCompletionRate =
+    casesNeedingFollowUp.length > 0
+      ? (casesWithFollowUpComplete.length / casesNeedingFollowUp.length) * 100
+      : 100;
+
   return {
     totalCases,
     averageDurationMinutes,
@@ -219,38 +268,44 @@ export function calculateBaseStatistics(cases: Case[]): BaseStatistics {
 
 export function calculateFreeFlapStatistics(cases: Case[]): FreeFlapStatistics {
   const base = calculateBaseStatistics(cases);
-  
-  const freeFlapCases = cases.filter(c => 
-    getAllProcedures(c).some(p => p.tags?.includes("free_flap")) ||
-    c.specialty === "orthoplastic" ||
-    c.specialty === "head_neck" ||
-    c.specialty === "breast"
+
+  const freeFlapCases = cases.filter(
+    (c) =>
+      getAllProcedures(c).some((p) => p.tags?.includes("free_flap")) ||
+      c.specialty === "orthoplastic" ||
+      c.specialty === "head_neck" ||
+      c.specialty === "breast",
   );
-  
-  const casesWithOutcome = freeFlapCases.filter(c => {
+
+  const casesWithOutcome = freeFlapCases.filter((c) => {
     const complications = c.complications || [];
-    const hasFlapLoss = complications.some(comp => 
-      comp.description.toLowerCase().includes("flap loss") ||
-      comp.description.toLowerCase().includes("total loss") ||
-      comp.clavienDindoGrade === "V"
+    const hasFlapLoss = complications.some(
+      (comp) =>
+        comp.description.toLowerCase().includes("flap loss") ||
+        comp.description.toLowerCase().includes("total loss") ||
+        comp.clavienDindoGrade === "V",
     );
     return c.complicationsReviewed || hasFlapLoss;
   });
-  
-  const flapLossCases = casesWithOutcome.filter(c => {
+
+  const flapLossCases = casesWithOutcome.filter((c) => {
     const complications = c.complications || [];
-    return complications.some(comp => 
-      comp.description.toLowerCase().includes("flap loss") ||
-      comp.description.toLowerCase().includes("total loss")
+    return complications.some(
+      (comp) =>
+        comp.description.toLowerCase().includes("flap loss") ||
+        comp.description.toLowerCase().includes("total loss"),
     );
   });
-  
-  const flapSurvivalRate = casesWithOutcome.length > 0
-    ? ((casesWithOutcome.length - flapLossCases.length) / casesWithOutcome.length) * 100
-    : 100;
-  
+
+  const flapSurvivalRate =
+    casesWithOutcome.length > 0
+      ? ((casesWithOutcome.length - flapLossCases.length) /
+          casesWithOutcome.length) *
+        100
+      : 100;
+
   const ischemiaTimesMinutes = freeFlapCases
-    .map(c => {
+    .map((c) => {
       const procs = getAllProcedures(c);
       for (const proc of procs) {
         const details = proc.clinicalDetails as FreeFlapDetails | undefined;
@@ -262,22 +317,26 @@ export function calculateFreeFlapStatistics(cases: Case[]): FreeFlapStatistics {
       return details?.ischemiaTimeMinutes;
     })
     .filter((t): t is number => t !== undefined && t !== null && t > 0);
-  
-  const averageIschemiaTimeMinutes = ischemiaTimesMinutes.length > 0
-    ? Math.round(ischemiaTimesMinutes.reduce((a, b) => a + b, 0) / ischemiaTimesMinutes.length)
-    : null;
-  
+
+  const averageIschemiaTimeMinutes =
+    ischemiaTimesMinutes.length > 0
+      ? Math.round(
+          ischemiaTimesMinutes.reduce((a, b) => a + b, 0) /
+            ischemiaTimesMinutes.length,
+        )
+      : null;
+
   const flapTypeMap = new Map<string, number>();
-  freeFlapCases.forEach(c => {
+  freeFlapCases.forEach((c) => {
     const flapType = c.procedureType || "Unknown";
     flapTypeMap.set(flapType, (flapTypeMap.get(flapType) || 0) + 1);
   });
   const casesByFlapType = Array.from(flapTypeMap.entries())
     .sort((a, b) => b[1] - a[1])
     .map(([flapType, count]) => ({ flapType, count }));
-  
+
   const indicationMap = new Map<string, number>();
-  freeFlapCases.forEach(c => {
+  freeFlapCases.forEach((c) => {
     let indication = "Unknown";
     const procs = getAllProcedures(c);
     if (procs.length > 0) {
@@ -297,12 +356,13 @@ export function calculateFreeFlapStatistics(cases: Case[]): FreeFlapStatistics {
   const casesByIndication = Array.from(indicationMap.entries())
     .sort((a, b) => b[1] - a[1])
     .map(([indication, count]) => ({ indication, count }));
-  
-  const takeBackCases = freeFlapCases.filter(c => c.returnToTheatre === true);
-  const takeBackRate = freeFlapCases.length > 0
-    ? (takeBackCases.length / freeFlapCases.length) * 100
-    : 0;
-  
+
+  const takeBackCases = freeFlapCases.filter((c) => c.returnToTheatre === true);
+  const takeBackRate =
+    freeFlapCases.length > 0
+      ? (takeBackCases.length / freeFlapCases.length) * 100
+      : 0;
+
   return {
     ...base,
     flapSurvivalRate,
@@ -313,18 +373,24 @@ export function calculateFreeFlapStatistics(cases: Case[]): FreeFlapStatistics {
   };
 }
 
-export function calculateHandSurgeryStatistics(cases: Case[]): HandSurgeryStatistics {
+export function calculateHandSurgeryStatistics(
+  cases: Case[],
+): HandSurgeryStatistics {
   const base = calculateBaseStatistics(cases);
-  
-  const handSurgeryCases = cases.filter(c => c.specialty === "hand_surgery");
-  
+
+  const handSurgeryCases = cases.filter((c) => c.specialty === "hand_surgery");
+
   const procedureTypeMap = new Map<string, number>();
-  handSurgeryCases.forEach(c => {
+  handSurgeryCases.forEach((c) => {
     const procs = getAllProcedures(c);
     if (procs.length > 0) {
       // Derive procedure type from the actual procedure subcategory or name
-      const subcategory = procs[0].subcategory || procs[0].procedureName || "Unknown";
-      procedureTypeMap.set(subcategory, (procedureTypeMap.get(subcategory) || 0) + 1);
+      const subcategory =
+        procs[0]!.subcategory || procs[0]!.procedureName || "Unknown";
+      procedureTypeMap.set(
+        subcategory,
+        (procedureTypeMap.get(subcategory) || 0) + 1,
+      );
     } else {
       const pt = c.procedureType || "Unknown";
       procedureTypeMap.set(pt, (procedureTypeMap.get(pt) || 0) + 1);
@@ -334,20 +400,22 @@ export function calculateHandSurgeryStatistics(cases: Case[]): HandSurgeryStatis
     .sort((a, b) => b[1] - a[1])
     .map(([procedureType, count]) => ({ procedureType, count }));
 
-  const nerveRepairCount = handSurgeryCases.filter(c =>
-    getAllProcedures(c).some(p =>
-      p.tags?.includes("nerve_repair") ||
-      p.subcategory?.toLowerCase().includes("nerve")
-    )
+  const nerveRepairCount = handSurgeryCases.filter((c) =>
+    getAllProcedures(c).some(
+      (p) =>
+        p.tags?.includes("nerve_repair") ||
+        p.subcategory?.toLowerCase().includes("nerve"),
+    ),
   ).length;
 
-  const tendonRepairCount = handSurgeryCases.filter(c =>
-    getAllProcedures(c).some(p =>
-      p.tags?.includes("tendon_repair") ||
-      p.subcategory?.toLowerCase().includes("tendon")
-    )
+  const tendonRepairCount = handSurgeryCases.filter((c) =>
+    getAllProcedures(c).some(
+      (p) =>
+        p.tags?.includes("tendon_repair") ||
+        p.subcategory?.toLowerCase().includes("tendon"),
+    ),
   ).length;
-  
+
   return {
     ...base,
     casesByProcedureType,
@@ -356,39 +424,46 @@ export function calculateHandSurgeryStatistics(cases: Case[]): HandSurgeryStatis
   };
 }
 
-export function calculateOrthoplasticStatistics(cases: Case[]): OrthoplasticStatistics {
+export function calculateOrthoplasticStatistics(
+  cases: Case[],
+): OrthoplasticStatistics {
   const base = calculateBaseStatistics(cases);
-  
-  const orthoplasticCases = cases.filter(c => c.specialty === "orthoplastic");
-  
-  const freeFlapCount = orthoplasticCases.filter(c =>
-    getAllProcedures(c).some(p =>
-      p.tags?.includes("free_flap") ||
-      p.subcategory?.toLowerCase().includes("free flap")
-    )
+
+  const orthoplasticCases = cases.filter((c) => c.specialty === "orthoplastic");
+
+  const freeFlapCount = orthoplasticCases.filter((c) =>
+    getAllProcedures(c).some(
+      (p) =>
+        p.tags?.includes("free_flap") ||
+        p.subcategory?.toLowerCase().includes("free flap"),
+    ),
   ).length;
-  
+
   const ischemiaTimesMinutes = orthoplasticCases
-    .flatMap(c => getAllProcedures(c))
-    .map(p => {
+    .flatMap((c) => getAllProcedures(c))
+    .map((p) => {
       const details = p.clinicalDetails as FreeFlapDetails | undefined;
       return details?.ischemiaTimeMinutes;
     })
     .filter((t): t is number => t !== undefined && t !== null && t > 0);
-  
-  const averageIschemiaTimeMinutes = ischemiaTimesMinutes.length > 0
-    ? Math.round(ischemiaTimesMinutes.reduce((a, b) => a + b, 0) / ischemiaTimesMinutes.length)
-    : null;
-  
+
+  const averageIschemiaTimeMinutes =
+    ischemiaTimesMinutes.length > 0
+      ? Math.round(
+          ischemiaTimesMinutes.reduce((a, b) => a + b, 0) /
+            ischemiaTimesMinutes.length,
+        )
+      : null;
+
   const coverageMap = new Map<string, number>();
-  orthoplasticCases.forEach(c => {
+  orthoplasticCases.forEach((c) => {
     const procedureType = c.procedureType || "Unknown";
     coverageMap.set(procedureType, (coverageMap.get(procedureType) || 0) + 1);
   });
   const casesByCoverage = Array.from(coverageMap.entries())
     .sort((a, b) => b[1] - a[1])
     .map(([coverage, count]) => ({ coverage, count }));
-  
+
   return {
     ...base,
     freeFlapCount,
@@ -399,22 +474,25 @@ export function calculateOrthoplasticStatistics(cases: Case[]): OrthoplasticStat
 
 export function calculateBreastStatistics(cases: Case[]): BreastStatistics {
   const base = calculateBaseStatistics(cases);
-  
-  const breastCases = cases.filter(c => c.specialty === "breast");
-  
-  const reconstructionCount = breastCases.filter(c => 
-    c.procedureType?.toLowerCase().includes("reconstruction")
+
+  const breastCases = cases.filter((c) => c.specialty === "breast");
+
+  const reconstructionCount = breastCases.filter((c) =>
+    c.procedureType?.toLowerCase().includes("reconstruction"),
   ).length;
-  
+
   const procedureTypeMap = new Map<string, number>();
-  breastCases.forEach(c => {
+  breastCases.forEach((c) => {
     const procedureType = c.procedureType || "Unknown";
-    procedureTypeMap.set(procedureType, (procedureTypeMap.get(procedureType) || 0) + 1);
+    procedureTypeMap.set(
+      procedureType,
+      (procedureTypeMap.get(procedureType) || 0) + 1,
+    );
   });
   const casesByProcedureType = Array.from(procedureTypeMap.entries())
     .sort((a, b) => b[1] - a[1])
     .map(([procedureType, count]) => ({ procedureType, count }));
-  
+
   return {
     ...base,
     reconstructionCount,
@@ -422,32 +500,44 @@ export function calculateBreastStatistics(cases: Case[]): BreastStatistics {
   };
 }
 
-export function calculateBodyContouringStatistics(cases: Case[]): BodyContouringStatistics {
+export function calculateBodyContouringStatistics(
+  cases: Case[],
+): BodyContouringStatistics {
   const base = calculateBaseStatistics(cases);
-  
-  const bodyContouringCases = cases.filter(c => c.specialty === "body_contouring");
-  
+
+  const bodyContouringCases = cases.filter(
+    (c) => c.specialty === "body_contouring",
+  );
+
   const resectionWeights: number[] = [];
-  bodyContouringCases.forEach(c => {
-    getAllProcedures(c).forEach(proc => {
-      const details = proc.clinicalDetails as { resectionWeightGrams?: number } | undefined;
+  bodyContouringCases.forEach((c) => {
+    getAllProcedures(c).forEach((proc) => {
+      const details = proc.clinicalDetails as
+        | { resectionWeightGrams?: number }
+        | undefined;
       if (details?.resectionWeightGrams) {
         resectionWeights.push(details.resectionWeightGrams);
       }
     });
   });
-  
-  const averageResectionWeightGrams = resectionWeights.length > 0
-    ? Math.round(resectionWeights.reduce((a, b) => a + b, 0) / resectionWeights.length)
-    : null;
-  
+
+  const averageResectionWeightGrams =
+    resectionWeights.length > 0
+      ? Math.round(
+          resectionWeights.reduce((a, b) => a + b, 0) / resectionWeights.length,
+        )
+      : null;
+
   return {
     ...base,
     averageResectionWeightGrams,
   };
 }
 
-export function calculateStatistics(cases: Case[], specialty: Specialty | "all"): SpecialtyStatistics {
+export function calculateStatistics(
+  cases: Case[],
+  specialty: Specialty | "all",
+): SpecialtyStatistics {
   switch (specialty) {
     case "orthoplastic":
       return calculateOrthoplasticStatistics(cases);
@@ -464,7 +554,7 @@ export function calculateStatistics(cases: Case[], specialty: Specialty | "all")
 
 export function getUniqueFacilities(cases: Case[]): string[] {
   const facilities = new Set<string>();
-  cases.forEach(c => {
+  cases.forEach((c) => {
     if (c.facility) {
       facilities.add(c.facility);
     }
@@ -486,40 +576,53 @@ export function formatPercentage(value: number): string {
 }
 
 export function formatMonthLabel(monthKey: string): string {
-  const [year, month] = monthKey.split("-");
-  const date = new Date(parseInt(year), parseInt(month) - 1);
+  const parts = monthKey.split("-");
+  const date = new Date(
+    parseInt(parts[0] ?? "0"),
+    parseInt(parts[1] ?? "1") - 1,
+  );
   return date.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 }
 
-export function calculateInfectionStatistics(cases: Case[]): InfectionStatistics {
-  const infectionCases = cases.filter(c => c.infectionOverlay);
+export function calculateInfectionStatistics(
+  cases: Case[],
+): InfectionStatistics {
+  const infectionCases = cases.filter((c) => c.infectionOverlay);
   const totalInfectionCases = infectionCases.length;
-  
-  const activeInfectionCases = infectionCases.filter(c => !c.dischargeDate).length;
-  const resolvedInfectionCases = infectionCases.filter(c => c.dischargeDate).length;
-  
+
+  const activeInfectionCases = infectionCases.filter(
+    (c) => !c.dischargeDate,
+  ).length;
+  const resolvedInfectionCases = infectionCases.filter(
+    (c) => c.dischargeDate,
+  ).length;
+
   let totalEpisodes = 0;
-  infectionCases.forEach(c => {
+  infectionCases.forEach((c) => {
     totalEpisodes += c.infectionOverlay?.episodes?.length || 1;
   });
-  
-  const averageEpisodesPerCase = totalInfectionCases > 0 
-    ? Math.round((totalEpisodes / totalInfectionCases) * 10) / 10 
-    : 0;
-  
-  const casesWithCultureData = infectionCases.filter(c => 
-    c.infectionOverlay?.microbiology?.culturesTaken
+
+  const averageEpisodesPerCase =
+    totalInfectionCases > 0
+      ? Math.round((totalEpisodes / totalInfectionCases) * 10) / 10
+      : 0;
+
+  const casesWithCultureData = infectionCases.filter(
+    (c) => c.infectionOverlay?.microbiology?.culturesTaken,
   );
-  const culturePositiveCases = casesWithCultureData.filter(c =>
-    c.infectionOverlay?.microbiology?.cultureStatus === "positive" ||
-    (c.infectionOverlay?.microbiology?.organisms && c.infectionOverlay.microbiology.organisms.length > 0)
+  const culturePositiveCases = casesWithCultureData.filter(
+    (c) =>
+      c.infectionOverlay?.microbiology?.cultureStatus === "positive" ||
+      (c.infectionOverlay?.microbiology?.organisms &&
+        c.infectionOverlay.microbiology.organisms.length > 0),
   );
-  const culturePositiveRate = casesWithCultureData.length > 0
-    ? (culturePositiveCases.length / casesWithCultureData.length) * 100
-    : 0;
-  
+  const culturePositiveRate =
+    casesWithCultureData.length > 0
+      ? (culturePositiveCases.length / casesWithCultureData.length) * 100
+      : 0;
+
   const syndromeCounts = new Map<string, number>();
-  infectionCases.forEach(c => {
+  infectionCases.forEach((c) => {
     const syndrome = c.infectionOverlay?.syndromePrimary;
     if (syndrome) {
       const label = INFECTION_SYNDROME_LABELS[syndrome] || syndrome;
@@ -529,14 +632,14 @@ export function calculateInfectionStatistics(cases: Case[]): InfectionStatistics
   const casesBySyndrome = Array.from(syndromeCounts.entries())
     .sort((a, b) => b[1] - a[1])
     .map(([syndrome, count]) => ({ syndrome, count }));
-  
+
   const severityCounts = new Map<string, number>();
-  infectionCases.forEach(c => {
+  infectionCases.forEach((c) => {
     const severity = c.infectionOverlay?.severity;
     if (severity) {
       const severityLabels: Record<string, string> = {
         local: "Local",
-        systemic_sepsis: "Systemic/Sepsis", 
+        systemic_sepsis: "Systemic/Sepsis",
         shock_icu: "Shock/ICU",
       };
       const label = severityLabels[severity] || severity;
@@ -549,11 +652,11 @@ export function calculateInfectionStatistics(cases: Case[]): InfectionStatistics
       return order.indexOf(a[0]) - order.indexOf(b[0]);
     })
     .map(([severity, count]) => ({ severity, count }));
-  
+
   let amputationCount = 0;
   let mortalityCount = 0;
-  infectionCases.forEach(c => {
-    c.infectionOverlay?.episodes?.forEach(ep => {
+  infectionCases.forEach((c) => {
+    c.infectionOverlay?.episodes?.forEach((ep) => {
       if (ep.amputationLevel) {
         amputationCount++;
       }
@@ -562,7 +665,7 @@ export function calculateInfectionStatistics(cases: Case[]): InfectionStatistics
       mortalityCount++;
     }
   });
-  
+
   return {
     totalInfectionCases,
     activeInfectionCases,
@@ -703,8 +806,8 @@ export function calculateEntryTimeStats(cases: Case[]): EntryTimeStats {
   const mid = Math.floor(durations.length / 2);
   const medianEntryTimeSeconds =
     durations.length % 2 === 0
-      ? Math.round((durations[mid - 1] + durations[mid]) / 2)
-      : durations[mid];
+      ? Math.round(((durations[mid - 1] ?? 0) + (durations[mid] ?? 0)) / 2)
+      : (durations[mid] ?? null);
 
   const bySpecialty = new Map<string, { total: number; count: number }>();
   for (const c of casesWithTime) {

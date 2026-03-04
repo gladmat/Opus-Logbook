@@ -1,19 +1,22 @@
 /**
  * SNOMED CT API Client using CSIRO Ontoserver FHIR API
- * 
+ *
  * Uses the Australian National Clinical Terminology Service's public FHIR endpoint
  * which provides access to SNOMED CT International Edition
- * 
+ *
  * API Documentation: https://r4.ontoserver.csiro.au/fhir
  */
 
 const ONTOSERVER_BASE_URL = "https://r4.ontoserver.csiro.au/fhir";
 const FETCH_TIMEOUT_MS = 8000;
 
-async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-  
+
   try {
     const response = await fetch(url, {
       ...options,
@@ -27,9 +30,9 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise
 
 // SNOMED CT Concept IDs for key hierarchies (used in ECL expressions)
 const SNOMED_HIERARCHIES = {
-  PROCEDURE: "71388002",        // Procedure (procedure)
+  PROCEDURE: "71388002", // Procedure (procedure)
   CLINICAL_FINDING: "404684003", // Clinical finding (finding)
-  BODY_STRUCTURE: "123037004",  // Body structure (body structure)
+  BODY_STRUCTURE: "123037004", // Body structure (body structure)
 };
 
 export interface SnomedSearchResult {
@@ -116,7 +119,7 @@ function parseFhirExpansion(data: FhirExpansionResponse): SnomedSearchResult[] {
 export async function searchProcedures(
   query: string,
   specialty?: string,
-  limit: number = 20
+  limit: number = 20,
 ): Promise<SnomedSearchResult[]> {
   if (!query || query.length < 2) {
     return [];
@@ -126,8 +129,9 @@ export async function searchProcedures(
     // ECL expression for procedures: <<71388002 (all descendants of Procedure)
     const ecl = `<<${SNOMED_HIERARCHIES.PROCEDURE}`;
     const eclEncoded = encodeURIComponent(ecl);
-    
-    const url = `${ONTOSERVER_BASE_URL}/ValueSet/$expand?` + 
+
+    const url =
+      `${ONTOSERVER_BASE_URL}/ValueSet/$expand?` +
       `url=http://snomed.info/sct?fhir_vs=ecl/${eclEncoded}` +
       `&filter=${encodeURIComponent(query)}` +
       `&count=${limit}`;
@@ -136,25 +140,28 @@ export async function searchProcedures(
 
     const response = await fetchWithTimeout(url, {
       headers: {
-        "Accept": "application/fhir+json",
+        Accept: "application/fhir+json",
       },
     });
 
     if (!response.ok) {
-      console.error("SNOMED API error:", response.status, await response.text());
+      console.error("SNOMED API error:", response.status);
       return [];
     }
 
-    const data = await response.json() as FhirExpansionResponse;
+    const data = (await response.json()) as FhirExpansionResponse;
     const results = parseFhirExpansion(data);
-    
+
     console.log(`SNOMED procedures found: ${results.length}`);
     return results;
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
       console.error("SNOMED procedure search timed out");
     } else {
-      console.error("Error searching SNOMED procedures:", error);
+      console.error(
+        "Error searching SNOMED procedures:",
+        error instanceof Error ? error.message : "Unknown error",
+      );
     }
     return [];
   }
@@ -166,7 +173,7 @@ export async function searchProcedures(
 export async function searchDiagnoses(
   query: string,
   specialty?: string,
-  limit: number = 20
+  limit: number = 20,
 ): Promise<SnomedSearchResult[]> {
   if (!query || query.length < 2) {
     return [];
@@ -176,8 +183,9 @@ export async function searchDiagnoses(
     // ECL expression for clinical findings: <<404684003 (all descendants of Clinical finding)
     const ecl = `<<${SNOMED_HIERARCHIES.CLINICAL_FINDING}`;
     const eclEncoded = encodeURIComponent(ecl);
-    
-    const url = `${ONTOSERVER_BASE_URL}/ValueSet/$expand?` + 
+
+    const url =
+      `${ONTOSERVER_BASE_URL}/ValueSet/$expand?` +
       `url=http://snomed.info/sct?fhir_vs=ecl/${eclEncoded}` +
       `&filter=${encodeURIComponent(query)}` +
       `&count=${limit}`;
@@ -186,25 +194,28 @@ export async function searchDiagnoses(
 
     const response = await fetchWithTimeout(url, {
       headers: {
-        "Accept": "application/fhir+json",
+        Accept: "application/fhir+json",
       },
     });
 
     if (!response.ok) {
-      console.error("SNOMED API error:", response.status, await response.text());
+      console.error("SNOMED API error:", response.status);
       return [];
     }
 
-    const data = await response.json() as FhirExpansionResponse;
+    const data = (await response.json()) as FhirExpansionResponse;
     const results = parseFhirExpansion(data);
-    
+
     console.log(`SNOMED diagnoses found: ${results.length}`);
     return results;
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
       console.error("SNOMED diagnosis search timed out");
     } else {
-      console.error("Error searching SNOMED diagnoses:", error);
+      console.error(
+        "Error searching SNOMED diagnoses:",
+        error instanceof Error ? error.message : "Unknown error",
+      );
     }
     return [];
   }
@@ -213,15 +224,18 @@ export async function searchDiagnoses(
 /**
  * Get concept details by ID using FHIR CodeSystem/$lookup
  */
-export async function getConceptDetails(conceptId: string): Promise<SnomedConceptDetail | null> {
+export async function getConceptDetails(
+  conceptId: string,
+): Promise<SnomedConceptDetail | null> {
   try {
-    const url = `${ONTOSERVER_BASE_URL}/CodeSystem/$lookup?` +
+    const url =
+      `${ONTOSERVER_BASE_URL}/CodeSystem/$lookup?` +
       `system=http://snomed.info/sct` +
       `&code=${conceptId}`;
 
     const response = await fetchWithTimeout(url, {
       headers: {
-        "Accept": "application/fhir+json",
+        Accept: "application/fhir+json",
       },
     });
 
@@ -230,7 +244,7 @@ export async function getConceptDetails(conceptId: string): Promise<SnomedConcep
       return null;
     }
 
-    const data = await response.json() as FhirParametersResponse;
+    const data = (await response.json()) as FhirParametersResponse;
 
     // Parse FHIR Parameters response
     let display = "";
@@ -279,7 +293,10 @@ export async function getConceptDetails(conceptId: string): Promise<SnomedConcep
       children,
     };
   } catch (error) {
-    console.error("Error fetching SNOMED concept details:", error);
+    console.error(
+      "Error fetching SNOMED concept details:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
     return null;
   }
 }
@@ -289,13 +306,14 @@ export async function getConceptDetails(conceptId: string): Promise<SnomedConcep
  */
 export async function validateCode(conceptId: string): Promise<boolean> {
   try {
-    const url = `${ONTOSERVER_BASE_URL}/CodeSystem/$validate-code?` +
+    const url =
+      `${ONTOSERVER_BASE_URL}/CodeSystem/$validate-code?` +
       `system=http://snomed.info/sct` +
       `&code=${conceptId}`;
 
     const response = await fetch(url, {
       headers: {
-        "Accept": "application/fhir+json",
+        Accept: "application/fhir+json",
       },
     });
 
@@ -303,13 +321,16 @@ export async function validateCode(conceptId: string): Promise<boolean> {
       return false;
     }
 
-    const data = await response.json() as FhirParametersResponse;
+    const data = (await response.json()) as FhirParametersResponse;
 
     // Find the "result" parameter
     const resultParam = data.parameter?.find((p) => p.name === "result");
     return resultParam?.valueBoolean === true;
   } catch (error) {
-    console.error("Error validating SNOMED code:", error);
+    console.error(
+      "Error validating SNOMED code:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
     return false;
   }
 }

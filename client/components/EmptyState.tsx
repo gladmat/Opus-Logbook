@@ -28,9 +28,7 @@ export function EmptyState({
       <ThemedText type="h3" style={styles.title}>
         {title}
       </ThemedText>
-      <ThemedText
-        style={[styles.message, { color: theme.textSecondary }]}
-      >
+      <ThemedText style={[styles.message, { color: theme.textSecondary }]}>
         {message}
       </ThemedText>
       {actionLabel && onAction ? (

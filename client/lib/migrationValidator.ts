@@ -43,7 +43,10 @@ export interface MigrationTestResult {
   warningCases: MigrationWarning[];
 }
 
-function validateCase(c: Case): { errors: string[]; warnings: MigrationWarning[] } {
+function validateCase(c: Case): {
+  errors: string[];
+  warnings: MigrationWarning[];
+} {
   const errors: string[] = [];
   const warnings: MigrationWarning[] = [];
 
@@ -79,9 +82,7 @@ function validateCase(c: Case): { errors: string[]; warnings: MigrationWarning[]
     } else {
       group.procedures.forEach((proc, pIdx) => {
         if (!proc.id) {
-          errors.push(
-            `diagnosisGroups[${idx}].procedures[${pIdx}] missing id`,
-          );
+          errors.push(`diagnosisGroups[${idx}].procedures[${pIdx}] missing id`);
         }
         if (!proc.procedureName && !proc.snomedCtCode) {
           warnings.push({

@@ -1,12 +1,12 @@
-import { Resend } from 'resend';
+import { Resend } from "resend";
 
-const FROM_EMAIL = 'noreply@drgladysz.com';
-const APP_NAME = 'Opus';
+const FROM_EMAIL = "noreply@drgladysz.com";
+const APP_NAME = "Opus";
 
 function getResendClient(): Resend {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
-    throw new Error('RESEND_API_KEY environment variable must be set');
+    throw new Error("RESEND_API_KEY environment variable must be set");
   }
   return new Resend(apiKey);
 }
@@ -20,24 +20,24 @@ function getAppDomain(): string {
   if (process.env.RAILWAY_PUBLIC_DOMAIN) {
     return `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
   }
-  return 'https://logbook-api.drgladysz.com';
+  return "https://logbook-api.drgladysz.com";
 }
 
 export async function sendPasswordResetEmail(
-  email: string, 
-  token: string, 
-  userName?: string
+  email: string,
+  token: string,
+  userName?: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const client = getResendClient();
     const resetUrl = `${getAppDomain()}/reset-password?token=${token}`;
-    
-    const greeting = userName ? `Hi ${userName}` : 'Hi';
-    
+
+    const greeting = userName ? `Hi ${userName}` : "Hi";
+
     const { data, error } = await client.emails.send({
       from: `${APP_NAME} <${FROM_EMAIL}>`,
       to: email,
-      subject: 'Reset Your Password — Opus',
+      subject: "Reset Your Password — Opus",
       html: `
         <!DOCTYPE html>
         <html>
@@ -95,26 +95,30 @@ This link will expire in 1 hour for security reasons.
 
 If you didn't request this password reset, you can safely ignore this email. Your password will remain unchanged.
 
-- The ${APP_NAME} Team`
+- The ${APP_NAME} Team`,
     });
 
     if (error) {
-      console.error('Resend error:', error);
+      console.error(
+        "Resend error:",
+        error instanceof Error ? error.message : "Unknown error",
+      );
       return { success: false, error: error.message };
     }
 
-    console.log('Password reset email sent successfully:', data?.id);
+    console.log("Password reset email sent successfully");
     return { success: true };
   } catch (error) {
-    console.error('Failed to send password reset email:', error);
-    const message = error instanceof Error ? error.message : 'Failed to send email';
+    console.error("Failed to send password reset email:", error);
+    const message =
+      error instanceof Error ? error.message : "Failed to send email";
     return { success: false, error: message };
   }
 }
 
 export async function sendWelcomeEmail(
   email: string,
-  userName: string
+  userName: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const client = getResendClient();
@@ -168,19 +172,23 @@ ${APP_NAME} is your privacy-first surgical logbook designed for microsurgery and
 
 If you have any questions, feel free to reach out to us.
 
-- The ${APP_NAME} Team`
+- The ${APP_NAME} Team`,
     });
 
     if (error) {
-      console.error('Resend error:', error);
+      console.error(
+        "Resend error:",
+        error instanceof Error ? error.message : "Unknown error",
+      );
       return { success: false, error: error.message };
     }
 
-    console.log('Welcome email sent successfully:', data?.id);
+    console.log("Welcome email sent successfully");
     return { success: true };
   } catch (error) {
-    console.error('Failed to send welcome email:', error);
-    const message = error instanceof Error ? error.message : 'Failed to send email';
+    console.error("Failed to send welcome email:", error);
+    const message =
+      error instanceof Error ? error.message : "Failed to send email";
     return { success: false, error: message };
   }
 }

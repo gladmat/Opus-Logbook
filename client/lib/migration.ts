@@ -22,7 +22,11 @@ function migrateSnomedCodes(c: Case): Case {
         const fix = migrateSnomedCode(proc.snomedCtCode);
         if (fix) {
           groupChanged = true;
-          return { ...proc, snomedCtCode: fix.newCode, snomedCtDisplay: fix.newDisplay };
+          return {
+            ...proc,
+            snomedCtCode: fix.newCode,
+            snomedCtDisplay: fix.newDisplay,
+          };
         }
       }
       return proc;
@@ -30,7 +34,11 @@ function migrateSnomedCodes(c: Case): Case {
 
     if (groupChanged) {
       changed = true;
-      return { ...group, diagnosis: updatedDiagnosis, procedures: updatedProcedures };
+      return {
+        ...group,
+        diagnosis: updatedDiagnosis,
+        procedures: updatedProcedures,
+      };
     }
     return group;
   });
@@ -41,42 +49,69 @@ function migrateSnomedCodes(c: Case): Case {
   return c;
 }
 
-export function migrateCase(raw: any): Case {
-  if (Array.isArray(raw.diagnosisGroups) && raw.diagnosisGroups.length > 0) {
-    const migrated = migrateSnomedCodes(raw as Case);
-    if (!migrated.schemaVersion) {
-      return { ...migrated, schemaVersion: 2 };
-    }
-    return migrated;
+export function migrateCase(raw: unknown): Case {
+  if (!raw || typeof raw !== "object") {
+    console.error("Case migration failed: invalid input (not an object)");
+    return { ...(raw as Case), schemaVersion: 2 };
   }
 
-  const oldDiagnosis = raw.preManagementDiagnosis || raw.finalDiagnosis;
+  try {
+    const obj = raw as Record<string, unknown>;
 
-  const group: DiagnosisGroup = {
-    id: uuidv4(),
-    sequenceOrder: 1,
-    specialty: raw.specialty || "general",
-    diagnosis: oldDiagnosis
-      ? { snomedCtCode: oldDiagnosis.snomedCtCode, displayName: oldDiagnosis.displayName, date: oldDiagnosis.date }
-      : undefined,
-    diagnosisPicklistId: raw.diagnosisPicklistId || undefined,
-    diagnosisStagingSelections: raw.diagnosisStagingSelections || undefined,
-    diagnosisClinicalDetails: oldDiagnosis?.clinicalDetails || undefined,
-    procedureSuggestionSource: raw.procedureSuggestionSource || undefined,
-    pathologicalDiagnosis: raw.pathologicalDiagnosis || undefined,
-    fractures: raw.fractures || undefined,
-    procedures: raw.procedures || [],
-  };
+    if (Array.isArray(obj.diagnosisGroups) && obj.diagnosisGroups.length > 0) {
+      const migrated = migrateSnomedCodes(raw as Case);
+      if (!migrated.schemaVersion) {
+        return { ...migrated, schemaVersion: 2 };
+      }
+      return migrated;
+    }
 
-  const migrated: any = { ...raw, diagnosisGroups: [group], schemaVersion: 2 };
-  delete migrated.preManagementDiagnosis;
-  delete migrated.finalDiagnosis;
-  delete migrated.pathologicalDiagnosis;
-  delete migrated.diagnosisPicklistId;
-  delete migrated.diagnosisStagingSelections;
-  delete migrated.procedureSuggestionSource;
-  delete migrated.fractures;
-  delete migrated.procedures;
+    const oldDiagnosis =
+      (obj as any).preManagementDiagnosis || (obj as any).finalDiagnosis;
 
-  return migrateSnomedCodes(migrated as Case);
+    const group: DiagnosisGroup = {
+      id: uuidv4(),
+      sequenceOrder: 1,
+      specialty: (obj as any).specialty || "general",
+      diagnosis: oldDiagnosis
+        ? {
+            snomedCtCode: oldDiagnosis.snomedCtCode,
+            displayName: oldDiagnosis.displayName,
+            date: oldDiagnosis.date,
+          }
+        : undefined,
+      diagnosisPicklistId: (obj as any).diagnosisPicklistId || undefined,
+      diagnosisStagingSelections:
+        (obj as any).diagnosisStagingSelections || undefined,
+      diagnosisClinicalDetails: oldDiagnosis?.clinicalDetails || undefined,
+      procedureSuggestionSource:
+        (obj as any).procedureSuggestionSource || undefined,
+      pathologicalDiagnosis: (obj as any).pathologicalDiagnosis || undefined,
+      fractures: (obj as any).fractures || undefined,
+      procedures: (obj as any).procedures || [],
+    };
+
+    const migrated: any = {
+      ...obj,
+      diagnosisGroups: [group],
+      schemaVersion: 2,
+    };
+    delete migrated.preManagementDiagnosis;
+    delete migrated.finalDiagnosis;
+    delete migrated.pathologicalDiagnosis;
+    delete migrated.diagnosisPicklistId;
+    delete migrated.diagnosisStagingSelections;
+    delete migrated.procedureSuggestionSource;
+    delete migrated.fractures;
+    delete migrated.procedures;
+
+    return migrateSnomedCodes(migrated as Case);
+  } catch (error) {
+    console.error(
+      "Case migration failed:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    // Return raw data with schema version to prevent data loss
+    return { ...(raw as Case), schemaVersion: 2 };
+  }
 }

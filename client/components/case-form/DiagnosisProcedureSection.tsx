@@ -3,7 +3,10 @@ import { View, Pressable, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { DiagnosisGroupEditor } from "@/components/DiagnosisGroupEditor";
-import { useCaseFormState, useCaseFormDispatch } from "@/contexts/CaseFormContext";
+import {
+  useCaseFormState,
+  useCaseFormDispatch,
+} from "@/contexts/CaseFormContext";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { DiagnosisGroup } from "@/types/case";
@@ -13,87 +16,110 @@ interface DiagnosisProcedureSectionProps {
   scrollPositionRef: React.MutableRefObject<number>;
 }
 
-export const DiagnosisProcedureSection = React.memo(function DiagnosisProcedureSection({
-  scrollViewRef,
-  scrollPositionRef,
-}: DiagnosisProcedureSectionProps) {
-  const { theme } = useTheme();
-  const { state } = useCaseFormState();
-  const {
-    handleDiagnosisGroupChange: dispatchGroupChange,
-    handleDeleteDiagnosisGroup,
-    addDiagnosisGroup,
-    reorderDiagnosisGroups,
-    fieldErrors,
-  } = useCaseFormDispatch();
+export const DiagnosisProcedureSection = React.memo(
+  function DiagnosisProcedureSection({
+    scrollViewRef,
+    scrollPositionRef,
+  }: DiagnosisProcedureSectionProps) {
+    const { theme } = useTheme();
+    const { state } = useCaseFormState();
+    const {
+      handleDiagnosisGroupChange: dispatchGroupChange,
+      handleDeleteDiagnosisGroup,
+      addDiagnosisGroup,
+      reorderDiagnosisGroups,
+      fieldErrors,
+    } = useCaseFormDispatch();
 
-  const onGroupChange = useCallback(
-    (index: number, updated: DiagnosisGroup) => {
-      dispatchGroupChange(index, updated, scrollViewRef, scrollPositionRef);
-    },
-    [dispatchGroupChange, scrollViewRef, scrollPositionRef],
-  );
+    const onGroupChange = useCallback(
+      (index: number, updated: DiagnosisGroup) => {
+        dispatchGroupChange(index, updated, scrollViewRef, scrollPositionRef);
+      },
+      [dispatchGroupChange, scrollViewRef, scrollPositionRef],
+    );
 
-  const handleMoveUp = useCallback(
-    (index: number) => {
-      if (index <= 0) return;
-      const groups = [...state.diagnosisGroups];
-      [groups[index - 1], groups[index]] = [groups[index], groups[index - 1]];
-      reorderDiagnosisGroups(groups);
-    },
-    [state.diagnosisGroups, reorderDiagnosisGroups],
-  );
+    const handleMoveUp = useCallback(
+      (index: number) => {
+        if (index <= 0) return;
+        const groups = [...state.diagnosisGroups];
+        const a = groups[index - 1]!;
+        const b = groups[index]!;
+        groups[index - 1] = b;
+        groups[index] = a;
+        reorderDiagnosisGroups(groups);
+      },
+      [state.diagnosisGroups, reorderDiagnosisGroups],
+    );
 
-  const handleMoveDown = useCallback(
-    (index: number) => {
-      if (index >= state.diagnosisGroups.length - 1) return;
-      const groups = [...state.diagnosisGroups];
-      [groups[index], groups[index + 1]] = [groups[index + 1], groups[index]];
-      reorderDiagnosisGroups(groups);
-    },
-    [state.diagnosisGroups, reorderDiagnosisGroups],
-  );
+    const handleMoveDown = useCallback(
+      (index: number) => {
+        if (index >= state.diagnosisGroups.length - 1) return;
+        const groups = [...state.diagnosisGroups];
+        const a = groups[index]!;
+        const b = groups[index + 1]!;
+        groups[index] = b;
+        groups[index + 1] = a;
+        reorderDiagnosisGroups(groups);
+      },
+      [state.diagnosisGroups, reorderDiagnosisGroups],
+    );
 
-  return (
-    <>
-      {state.diagnosisGroups.map((group, idx) => (
-        <DiagnosisGroupEditor
-          key={group.id}
-          group={group}
-          index={idx}
-          isOnly={state.diagnosisGroups.length === 1}
-          totalGroups={state.diagnosisGroups.length}
-          onChange={(updated) => onGroupChange(idx, updated)}
-          onDelete={() => handleDeleteDiagnosisGroup(idx)}
-          onMoveUp={() => handleMoveUp(idx)}
-          onMoveDown={() => handleMoveDown(idx)}
-        />
-      ))}
+    return (
+      <>
+        {state.diagnosisGroups.map((group, idx) => (
+          <DiagnosisGroupEditor
+            key={group.id}
+            group={group}
+            index={idx}
+            isOnly={state.diagnosisGroups.length === 1}
+            totalGroups={state.diagnosisGroups.length}
+            onChange={(updated) => onGroupChange(idx, updated)}
+            onDelete={() => handleDeleteDiagnosisGroup(idx)}
+            onMoveUp={() => handleMoveUp(idx)}
+            onMoveDown={() => handleMoveDown(idx)}
+          />
+        ))}
 
-      {fieldErrors.diagnosisGroups ? (
-        <View style={[styles.diagnosisError, { backgroundColor: theme.error + "10", borderColor: theme.error + "40" }]}>
-          <Feather name="alert-circle" size={14} color={theme.error} />
-          <ThemedText style={[styles.diagnosisErrorText, { color: theme.error }]}>
-            {fieldErrors.diagnosisGroups}
+        {fieldErrors.diagnosisGroups ? (
+          <View
+            style={[
+              styles.diagnosisError,
+              {
+                backgroundColor: theme.error + "10",
+                borderColor: theme.error + "40",
+              },
+            ]}
+          >
+            <Feather name="alert-circle" size={14} color={theme.error} />
+            <ThemedText
+              style={[styles.diagnosisErrorText, { color: theme.error }]}
+            >
+              {fieldErrors.diagnosisGroups}
+            </ThemedText>
+          </View>
+        ) : null}
+
+        <Pressable
+          style={[
+            styles.addGroupButton,
+            {
+              borderColor: theme.link,
+              backgroundColor: theme.backgroundSecondary,
+            },
+          ]}
+          onPress={addDiagnosisGroup}
+        >
+          <Feather name="plus-circle" size={18} color={theme.link} />
+          <ThemedText
+            style={[styles.addGroupButtonText, { color: theme.link }]}
+          >
+            Add Diagnosis Group
           </ThemedText>
-        </View>
-      ) : null}
-
-      <Pressable
-        style={[
-          styles.addGroupButton,
-          { borderColor: theme.link, backgroundColor: theme.backgroundSecondary },
-        ]}
-        onPress={addDiagnosisGroup}
-      >
-        <Feather name="plus-circle" size={18} color={theme.link} />
-        <ThemedText style={[styles.addGroupButtonText, { color: theme.link }]}>
-          Add Diagnosis Group
-        </ThemedText>
-      </Pressable>
-    </>
-  );
-});
+        </Pressable>
+      </>
+    );
+  },
+);
 
 const styles = StyleSheet.create({
   addGroupButton: {

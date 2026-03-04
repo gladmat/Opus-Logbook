@@ -18,7 +18,10 @@ export function setPendingBase64(data: string, mimeType?: string) {
   _pendingMimeType = mimeType || "image/jpeg";
 }
 
-export function consumePendingBase64(): { base64: string; mimeType: string } | null {
+export function consumePendingBase64(): {
+  base64: string;
+  mimeType: string;
+} | null {
   if (!_pendingBase64) return null;
   const result = { base64: _pendingBase64, mimeType: _pendingMimeType };
   _pendingBase64 = null;
@@ -38,7 +41,9 @@ function mediaIdFromUri(uri: string): string {
   return uri.slice(ENCRYPTED_MEDIA_PREFIX.length);
 }
 
-async function generateThumbnailBase64(sourceUri: string): Promise<string | null> {
+async function generateThumbnailBase64(
+  sourceUri: string,
+): Promise<string | null> {
   try {
     const context = ImageManipulator.manipulate(sourceUri);
     context.resize({ width: THUMB_SIZE, height: THUMB_SIZE });
@@ -58,7 +63,7 @@ async function generateThumbnailBase64(sourceUri: string): Promise<string | null
 export async function saveEncryptedMedia(
   base64Data: string,
   mimeType: string = "image/jpeg",
-  sourceUri?: string
+  sourceUri?: string,
 ): Promise<string> {
   const id = uuidv4();
   const payload = JSON.stringify({ m: mimeType, d: base64Data });
@@ -86,7 +91,7 @@ export async function loadThumbnail(uri: string): Promise<string | null> {
 
 export async function generateAndSaveThumbnail(
   uri: string,
-  dataUri: string
+  dataUri: string,
 ): Promise<void> {
   if (!isEncryptedMediaUri(uri)) return;
   const id = mediaIdFromUri(uri);
@@ -121,13 +126,13 @@ export async function deleteEncryptedMedia(uri: string): Promise<void> {
   ]);
 }
 
-export async function deleteMultipleEncryptedMedia(uris: string[]): Promise<void> {
-  const keys = uris
-    .filter(isEncryptedMediaUri)
-    .flatMap((uri) => {
-      const id = mediaIdFromUri(uri);
-      return [`${MEDIA_KEY_PREFIX}${id}`, `${THUMB_KEY_PREFIX}${id}`];
-    });
+export async function deleteMultipleEncryptedMedia(
+  uris: string[],
+): Promise<void> {
+  const keys = uris.filter(isEncryptedMediaUri).flatMap((uri) => {
+    const id = mediaIdFromUri(uri);
+    return [`${MEDIA_KEY_PREFIX}${id}`, `${THUMB_KEY_PREFIX}${id}`];
+  });
   if (keys.length > 0) {
     await AsyncStorage.multiRemove(keys);
   }

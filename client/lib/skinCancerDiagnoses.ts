@@ -197,19 +197,22 @@ const SCC_SUBTYPES: SkinCancerSubtype[] = [
     id: "well_differentiated",
     displayName: "Well differentiated SCC",
     snomedCtCode: "254651007",
-    snomedCtDisplay: "Well differentiated squamous cell carcinoma of skin (disorder)",
+    snomedCtDisplay:
+      "Well differentiated squamous cell carcinoma of skin (disorder)",
   },
   {
     id: "moderately_differentiated",
     displayName: "Moderately differentiated SCC",
     snomedCtCode: "254651007",
-    snomedCtDisplay: "Moderately differentiated squamous cell carcinoma of skin (disorder)",
+    snomedCtDisplay:
+      "Moderately differentiated squamous cell carcinoma of skin (disorder)",
   },
   {
     id: "poorly_differentiated",
     displayName: "Poorly differentiated SCC",
     snomedCtCode: "254651007",
-    snomedCtDisplay: "Poorly differentiated squamous cell carcinoma of skin (disorder)",
+    snomedCtDisplay:
+      "Poorly differentiated squamous cell carcinoma of skin (disorder)",
   },
   {
     id: "scc_in_situ",
@@ -441,7 +444,7 @@ export const SKIN_CANCER_DIAGNOSES: SkinCancerDiagnosisEntry[] = [
 
 /** Get all diagnoses, optionally filtered by group */
 export function getSkinCancerDiagnoses(
-  group?: SkinCancerGroup
+  group?: SkinCancerGroup,
 ): SkinCancerDiagnosisEntry[] {
   if (group) {
     return SKIN_CANCER_DIAGNOSES.filter((d) => d.group === group);
@@ -451,21 +454,21 @@ export function getSkinCancerDiagnoses(
 
 /** Find a diagnosis entry by its ID */
 export function getSkinCancerDiagnosisById(
-  id: SkinCancerType
+  id: SkinCancerType,
 ): SkinCancerDiagnosisEntry | undefined {
   return SKIN_CANCER_DIAGNOSES.find((d) => d.id === id);
 }
 
 /** Find a diagnosis entry by SNOMED CT code */
 export function getSkinCancerDiagnosisBySnomed(
-  snomedCode: string
+  snomedCode: string,
 ): SkinCancerDiagnosisEntry | undefined {
   return SKIN_CANCER_DIAGNOSES.find((d) => d.snomedCtCode === snomedCode);
 }
 
 /** Get subtypes for a given cancer type */
 export function getSubtypesForCancerType(
-  cancerType: SkinCancerType
+  cancerType: SkinCancerType,
 ): SkinCancerSubtype[] {
   const entry = getSkinCancerDiagnosisById(cancerType);
   return entry?.subtypes ?? [];
@@ -478,7 +481,7 @@ export function getSubtypesForCancerType(
  */
 export function resolveSnomedCode(
   cancerType: SkinCancerType,
-  subtypeId?: string
+  subtypeId?: string,
 ): { snomedCtCode: string; snomedCtDisplay: string } {
   const entry = getSkinCancerDiagnosisById(cancerType);
   if (!entry) {
@@ -508,13 +511,13 @@ export function resolveSnomedCode(
  */
 export function isSkinCancerDiagnosis(
   snomedCode?: string,
-  displayName?: string
+  displayName?: string,
 ): boolean {
   // Check against our picklist SNOMED codes
   if (snomedCode) {
     const allCodes = SKIN_CANCER_DIAGNOSES.map((d) => d.snomedCtCode);
     const subtypeCodes = SKIN_CANCER_DIAGNOSES.flatMap((d) =>
-      d.subtypes.filter((s) => s.snomedCtCode).map((s) => s.snomedCtCode!)
+      d.subtypes.filter((s) => s.snomedCtCode).map((s) => s.snomedCtCode!),
     );
     if (allCodes.includes(snomedCode) || subtypeCodes.includes(snomedCode)) {
       return true;
@@ -525,12 +528,24 @@ export function isSkinCancerDiagnosis(
   if (displayName) {
     const lower = displayName.toLowerCase();
     const keywords = [
-      "melanoma", "bcc", "basal cell", "scc", "squamous cell",
-      "merkel", "actinic keratosis", "bowen", "keratoacanthoma",
-      "dysplastic naevus", "dysplastic nevus", "dfsp",
-      "dermatofibrosarcoma", "sebaceous carcinoma",
-      "fibroxanthoma", "pleomorphic dermal sarcoma",
-      "eccrine carcinoma", "apocrine carcinoma",
+      "melanoma",
+      "bcc",
+      "basal cell",
+      "scc",
+      "squamous cell",
+      "merkel",
+      "actinic keratosis",
+      "bowen",
+      "keratoacanthoma",
+      "dysplastic naevus",
+      "dysplastic nevus",
+      "dfsp",
+      "dermatofibrosarcoma",
+      "sebaceous carcinoma",
+      "fibroxanthoma",
+      "pleomorphic dermal sarcoma",
+      "eccrine carcinoma",
+      "apocrine carcinoma",
       "microcystic adnexal",
     ];
     return keywords.some((kw) => lower.includes(kw));
@@ -545,7 +560,7 @@ export function isSkinCancerDiagnosis(
  * Useful for auto-populating from OCR-extracted histology text.
  */
 export function matchHistologyToPicklist(
-  histologyText: string
+  histologyText: string,
 ): { cancerType: SkinCancerType; subtypeId?: string } | null {
   const lower = histologyText.toLowerCase();
 
@@ -582,7 +597,11 @@ export function matchHistologyToPicklist(
   }
 
   // BCC subtypes
-  if (lower.includes("morpho") || lower.includes("sclerosing bcc") || lower.includes("morpheaform")) {
+  if (
+    lower.includes("morpho") ||
+    lower.includes("sclerosing bcc") ||
+    lower.includes("morpheaform")
+  ) {
     return { cancerType: "bcc", subtypeId: "morphoeic" };
   }
   if (lower.includes("basosquamous") || lower.includes("metatypical")) {
@@ -594,10 +613,16 @@ export function matchHistologyToPicklist(
   if (lower.includes("infiltrative") && lower.includes("bcc")) {
     return { cancerType: "bcc", subtypeId: "infiltrative" };
   }
-  if (lower.includes("superficial") && (lower.includes("bcc") || lower.includes("basal cell"))) {
+  if (
+    lower.includes("superficial") &&
+    (lower.includes("bcc") || lower.includes("basal cell"))
+  ) {
     return { cancerType: "bcc", subtypeId: "superficial" };
   }
-  if (lower.includes("nodular") && (lower.includes("bcc") || lower.includes("basal cell"))) {
+  if (
+    lower.includes("nodular") &&
+    (lower.includes("bcc") || lower.includes("basal cell"))
+  ) {
     return { cancerType: "bcc", subtypeId: "nodular" };
   }
   if (lower.includes("basal cell") || lower.includes("bcc")) {
@@ -605,13 +630,22 @@ export function matchHistologyToPicklist(
   }
 
   // SCC subtypes
-  if (lower.includes("poorly differentiated") && (lower.includes("scc") || lower.includes("squamous"))) {
+  if (
+    lower.includes("poorly differentiated") &&
+    (lower.includes("scc") || lower.includes("squamous"))
+  ) {
     return { cancerType: "scc", subtypeId: "poorly_differentiated" };
   }
-  if (lower.includes("moderately differentiated") && (lower.includes("scc") || lower.includes("squamous"))) {
+  if (
+    lower.includes("moderately differentiated") &&
+    (lower.includes("scc") || lower.includes("squamous"))
+  ) {
     return { cancerType: "scc", subtypeId: "moderately_differentiated" };
   }
-  if (lower.includes("well differentiated") && (lower.includes("scc") || lower.includes("squamous"))) {
+  if (
+    lower.includes("well differentiated") &&
+    (lower.includes("scc") || lower.includes("squamous"))
+  ) {
     return { cancerType: "scc", subtypeId: "well_differentiated" };
   }
   if (lower.includes("verrucous carcinoma")) {
@@ -631,31 +665,52 @@ export function matchHistologyToPicklist(
   if (lower.includes("keratoacanthoma")) {
     return { cancerType: "keratoacanthoma" };
   }
-  if (lower.includes("actinic keratosis") || lower.includes("solar keratosis")) {
+  if (
+    lower.includes("actinic keratosis") ||
+    lower.includes("solar keratosis")
+  ) {
     return { cancerType: "actinic_keratosis" };
   }
-  if (lower.includes("dysplastic") && (lower.includes("naevus") || lower.includes("nevus"))) {
-    if (lower.includes("severe")) return { cancerType: "dysplastic_naevus", subtypeId: "severe" };
-    if (lower.includes("moderate")) return { cancerType: "dysplastic_naevus", subtypeId: "moderate" };
-    if (lower.includes("mild")) return { cancerType: "dysplastic_naevus", subtypeId: "mild" };
+  if (
+    lower.includes("dysplastic") &&
+    (lower.includes("naevus") || lower.includes("nevus"))
+  ) {
+    if (lower.includes("severe"))
+      return { cancerType: "dysplastic_naevus", subtypeId: "severe" };
+    if (lower.includes("moderate"))
+      return { cancerType: "dysplastic_naevus", subtypeId: "moderate" };
+    if (lower.includes("mild"))
+      return { cancerType: "dysplastic_naevus", subtypeId: "mild" };
     return { cancerType: "dysplastic_naevus" };
   }
 
   // Rare cutaneous
   if (lower.includes("dermatofibrosarcoma") || lower.includes("dfsp")) {
-    return { cancerType: "rare_cutaneous", subtypeId: "dermatofibrosarcoma_protuberans" };
+    return {
+      cancerType: "rare_cutaneous",
+      subtypeId: "dermatofibrosarcoma_protuberans",
+    };
   }
   if (lower.includes("sebaceous carcinoma")) {
     return { cancerType: "rare_cutaneous", subtypeId: "sebaceous_carcinoma" };
   }
   if (lower.includes("microcystic adnexal") || lower.includes("mac ")) {
-    return { cancerType: "rare_cutaneous", subtypeId: "microcystic_adnexal_carcinoma" };
+    return {
+      cancerType: "rare_cutaneous",
+      subtypeId: "microcystic_adnexal_carcinoma",
+    };
   }
   if (lower.includes("atypical fibroxanthoma") || lower.includes("afx")) {
-    return { cancerType: "rare_cutaneous", subtypeId: "atypical_fibroxanthoma" };
+    return {
+      cancerType: "rare_cutaneous",
+      subtypeId: "atypical_fibroxanthoma",
+    };
   }
   if (lower.includes("pleomorphic dermal sarcoma") || lower.includes("pds")) {
-    return { cancerType: "rare_cutaneous", subtypeId: "pleomorphic_dermal_sarcoma" };
+    return {
+      cancerType: "rare_cutaneous",
+      subtypeId: "pleomorphic_dermal_sarcoma",
+    };
   }
 
   return null;

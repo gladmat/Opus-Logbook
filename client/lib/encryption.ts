@@ -3,11 +3,7 @@ import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Crypto from "expo-crypto";
 import { xchacha20poly1305 } from "@noble/ciphers/chacha.js";
-import {
-  bytesToHex,
-  hexToBytes,
-  utf8ToBytes,
-} from "@noble/hashes/utils.js";
+import { bytesToHex, hexToBytes, utf8ToBytes } from "@noble/hashes/utils.js";
 
 function bytesToUtf8(bytes: Uint8Array): string {
   return new TextDecoder().decode(bytes);
@@ -66,12 +62,14 @@ function legacyXorDecrypt(encrypted: string, key: string): string {
     throw new Error("atob is not available for legacy decryption");
   }
 
-  const encryptedBytes = Uint8Array.from(atobFn(encrypted), c => c.charCodeAt(0));
+  const encryptedBytes = Uint8Array.from(atobFn(encrypted), (c) =>
+    c.charCodeAt(0),
+  );
   const keyBytes = utf8ToBytes(key);
   const result = new Uint8Array(encryptedBytes.length);
 
   for (let i = 0; i < encryptedBytes.length; i++) {
-    result[i] = encryptedBytes[i] ^ keyBytes[i % keyBytes.length];
+    result[i] = encryptedBytes[i]! ^ keyBytes[i % keyBytes.length]!;
   }
 
   return bytesToUtf8(result);
@@ -90,7 +88,10 @@ export async function generateKeyHex(): Promise<string> {
   return bytesToHex(await Crypto.getRandomBytesAsync(KEY_BYTES));
 }
 
-export async function encryptWithKey(plaintext: string, keyHex: string): Promise<string> {
+export async function encryptWithKey(
+  plaintext: string,
+  keyHex: string,
+): Promise<string> {
   const key = hexToBytes(keyHex);
   const nonce = await Crypto.getRandomBytesAsync(NONCE_BYTES);
   const cipher = xchacha20poly1305(key, nonce);
@@ -99,7 +100,10 @@ export async function encryptWithKey(plaintext: string, keyHex: string): Promise
   return `${ENVELOPE_PREFIX}:${bytesToHex(nonce)}:${bytesToHex(ciphertext)}`;
 }
 
-export async function decryptWithKey(envelope: string, keyHex: string): Promise<string> {
+export async function decryptWithKey(
+  envelope: string,
+  keyHex: string,
+): Promise<string> {
   if (!envelope.startsWith(`${ENVELOPE_PREFIX}:`)) {
     return envelope;
   }
@@ -129,7 +133,9 @@ export async function encryptData(data: string): Promise<string> {
 
     return `${ENVELOPE_PREFIX}:${bytesToHex(nonce)}:${bytesToHex(ciphertext)}`;
   } catch (error) {
-    throw new Error("Encryption failed. Data was not saved to protect your privacy.");
+    throw new Error(
+      "Encryption failed. Data was not saved to protect your privacy.",
+    );
   }
 }
 

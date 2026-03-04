@@ -20,8 +20,10 @@ export function SpecialtyBadge({
   const { theme } = useTheme();
 
   const iconSize = size === "small" ? 14 : size === "large" ? 20 : 16;
-  const paddingH = size === "small" ? Spacing.sm : size === "large" ? Spacing.lg : Spacing.md;
-  const paddingV = size === "small" ? Spacing.xs : size === "large" ? Spacing.md : Spacing.sm;
+  const paddingH =
+    size === "small" ? Spacing.sm : size === "large" ? Spacing.lg : Spacing.md;
+  const paddingV =
+    size === "small" ? Spacing.xs : size === "large" ? Spacing.md : Spacing.sm;
   const specialtyColor = theme.specialty[specialty];
 
   return (

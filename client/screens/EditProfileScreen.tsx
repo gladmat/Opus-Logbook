@@ -53,23 +53,29 @@ export default function EditProfileScreen() {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
   const navigation = useNavigation();
-  const { profile, updateProfile, uploadProfilePicture, deleteProfilePicture } = useAuth();
+  const { profile, updateProfile, uploadProfilePicture, deleteProfilePicture } =
+    useAuth();
 
   const [firstName, setFirstName] = useState(profile?.firstName || "");
   const [lastName, setLastName] = useState(profile?.lastName || "");
   const [dateOfBirth, setDateOfBirth] = useState<Date | null>(
-    profile?.dateOfBirth ? new Date(profile.dateOfBirth) : null
+    profile?.dateOfBirth ? new Date(profile.dateOfBirth) : null,
   );
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [sex, setSex] = useState<string | null>(profile?.sex || null);
-  const [countryOfPractice, setCountryOfPractice] = useState(profile?.countryOfPractice || "");
+  const [countryOfPractice, setCountryOfPractice] = useState(
+    profile?.countryOfPractice || "",
+  );
   const [careerStage, setCareerStage] = useState(profile?.careerStage || "");
-  const [medicalCouncilNumber, setMedicalCouncilNumber] = useState(profile?.medicalCouncilNumber || "");
+  const [medicalCouncilNumber, setMedicalCouncilNumber] = useState(
+    profile?.medicalCouncilNumber || "",
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingPicture, setIsUploadingPicture] = useState(false);
 
   // Derive legacy fullName from first + last for backward compat
-  const derivedFullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ") || null;
+  const derivedFullName =
+    [firstName.trim(), lastName.trim()].filter(Boolean).join(" ") || null;
 
   const avatarUrl = profile?.profilePictureUrl
     ? `${getApiUrl()}${profile.profilePictureUrl}`
@@ -78,7 +84,10 @@ export default function EditProfileScreen() {
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permission Required", "Please allow access to your photo library to set a profile picture.");
+      Alert.alert(
+        "Permission Required",
+        "Please allow access to your photo library to set a profile picture.",
+      );
       return;
     }
 
@@ -103,21 +112,27 @@ export default function EditProfileScreen() {
   };
 
   const handleRemovePicture = () => {
-    Alert.alert("Remove Photo", "Are you sure you want to remove your profile photo?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Remove",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await deleteProfilePicture();
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          } catch (error: any) {
-            Alert.alert("Error", error.message || "Failed to remove picture");
-          }
+    Alert.alert(
+      "Remove Photo",
+      "Are you sure you want to remove your profile photo?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteProfilePicture();
+              Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success,
+              );
+            } catch (error: any) {
+              Alert.alert("Error", error.message || "Failed to remove picture");
+            }
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   const handleSave = async () => {
@@ -136,7 +151,9 @@ export default function EditProfileScreen() {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         fullName: derivedFullName,
-        dateOfBirth: dateOfBirth ? dateOfBirth.toISOString().split("T")[0] : null,
+        dateOfBirth: dateOfBirth
+          ? dateOfBirth.toISOString().split("T")[0]
+          : null,
         sex,
         countryOfPractice: countryOfPractice || null,
         careerStage: careerStage || null,
@@ -183,16 +200,26 @@ export default function EditProfileScreen() {
       <View style={styles.avatarSection}>
         <Pressable
           onPress={handlePickImage}
-          style={[styles.avatarWrapper, { backgroundColor: theme.backgroundDefault }]}
+          style={[
+            styles.avatarWrapper,
+            { backgroundColor: theme.backgroundDefault },
+          ]}
         >
           {isUploadingPicture ? (
-            <View style={[styles.avatar, { backgroundColor: theme.backgroundTertiary }]}>
+            <View
+              style={[
+                styles.avatar,
+                { backgroundColor: theme.backgroundTertiary },
+              ]}
+            >
               <ActivityIndicator color={theme.link} size="large" />
             </View>
           ) : avatarUrl ? (
             <Image source={{ uri: avatarUrl }} style={styles.avatar} />
           ) : (
-            <View style={[styles.avatar, { backgroundColor: theme.link + "15" }]}>
+            <View
+              style={[styles.avatar, { backgroundColor: theme.link + "15" }]}
+            >
               <Feather name="user" size={44} color={theme.link} />
             </View>
           )}
@@ -202,13 +229,17 @@ export default function EditProfileScreen() {
         </Pressable>
         <View style={styles.avatarActions}>
           <Pressable onPress={handlePickImage}>
-            <ThemedText style={[styles.avatarActionText, { color: theme.link }]}>
+            <ThemedText
+              style={[styles.avatarActionText, { color: theme.link }]}
+            >
               {avatarUrl ? "Change Photo" : "Add Photo"}
             </ThemedText>
           </Pressable>
           {avatarUrl ? (
             <Pressable onPress={handleRemovePicture}>
-              <ThemedText style={[styles.avatarActionText, { color: theme.error }]}>
+              <ThemedText
+                style={[styles.avatarActionText, { color: theme.error }]}
+              >
                 Remove
               </ThemedText>
             </Pressable>
@@ -218,16 +249,32 @@ export default function EditProfileScreen() {
 
       {/* Name Section */}
       <View style={styles.section}>
-        <ThemedText style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+        <ThemedText
+          style={[styles.sectionTitle, { color: theme.textSecondary }]}
+        >
           PERSONAL DETAILS
         </ThemedText>
-        <View style={[styles.sectionCard, { backgroundColor: theme.backgroundDefault }]}>
+        <View
+          style={[
+            styles.sectionCard,
+            { backgroundColor: theme.backgroundDefault },
+          ]}
+        >
           <View style={styles.fieldRow}>
-            <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.fieldLabel, { color: theme.textSecondary }]}
+            >
               First Name *
             </ThemedText>
             <TextInput
-              style={[styles.fieldInput, { color: theme.text, backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}
+              style={[
+                styles.fieldInput,
+                {
+                  color: theme.text,
+                  backgroundColor: theme.backgroundSecondary,
+                  borderColor: theme.border,
+                },
+              ]}
               value={firstName}
               onChangeText={setFirstName}
               placeholder="First name"
@@ -238,11 +285,20 @@ export default function EditProfileScreen() {
           </View>
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
           <View style={styles.fieldRow}>
-            <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.fieldLabel, { color: theme.textSecondary }]}
+            >
               Last Name *
             </ThemedText>
             <TextInput
-              style={[styles.fieldInput, { color: theme.text, backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}
+              style={[
+                styles.fieldInput,
+                {
+                  color: theme.text,
+                  backgroundColor: theme.backgroundSecondary,
+                  borderColor: theme.border,
+                },
+              ]}
               value={lastName}
               onChangeText={setLastName}
               placeholder="Last name"
@@ -255,14 +311,25 @@ export default function EditProfileScreen() {
 
           {/* Date of Birth */}
           <View style={styles.fieldRow}>
-            <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.fieldLabel, { color: theme.textSecondary }]}
+            >
               Date of Birth
             </ThemedText>
             <Pressable
-              style={[styles.fieldInput, styles.dateButton, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}
+              style={[
+                styles.fieldInput,
+                styles.dateButton,
+                {
+                  backgroundColor: theme.backgroundSecondary,
+                  borderColor: theme.border,
+                },
+              ]}
               onPress={() => setShowDatePicker(true)}
             >
-              <ThemedText style={{ color: dateOfBirth ? theme.text : theme.textTertiary }}>
+              <ThemedText
+                style={{ color: dateOfBirth ? theme.text : theme.textTertiary }}
+              >
                 {dateOfBirth ? formatDate(dateOfBirth) : "Select date"}
               </ThemedText>
               <Feather name="calendar" size={18} color={theme.textSecondary} />
@@ -282,10 +349,15 @@ export default function EditProfileScreen() {
               />
               {Platform.OS === "ios" && (
                 <Pressable
-                  style={[styles.datePickerDone, { backgroundColor: theme.link }]}
+                  style={[
+                    styles.datePickerDone,
+                    { backgroundColor: theme.link },
+                  ]}
                   onPress={() => setShowDatePicker(false)}
                 >
-                  <ThemedText style={{ color: "#FFF", fontWeight: "600" }}>Done</ThemedText>
+                  <ThemedText style={{ color: "#FFF", fontWeight: "600" }}>
+                    Done
+                  </ThemedText>
                 </Pressable>
               )}
             </View>
@@ -295,7 +367,9 @@ export default function EditProfileScreen() {
 
           {/* Sex */}
           <View style={styles.fieldRow}>
-            <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.fieldLabel, { color: theme.textSecondary }]}
+            >
               Sex (Optional)
             </ThemedText>
             <View style={styles.optionPills}>
@@ -306,8 +380,14 @@ export default function EditProfileScreen() {
                     key={option.value}
                     style={[
                       styles.pill,
-                      { borderColor: theme.border, backgroundColor: theme.backgroundSecondary },
-                      isSelected && { borderColor: theme.link, backgroundColor: theme.link + "15" },
+                      {
+                        borderColor: theme.border,
+                        backgroundColor: theme.backgroundSecondary,
+                      },
+                      isSelected && {
+                        borderColor: theme.link,
+                        backgroundColor: theme.link + "15",
+                      },
                     ]}
                     onPress={() => {
                       setSex(isSelected ? null : option.value);
@@ -333,13 +413,22 @@ export default function EditProfileScreen() {
 
       {/* Professional Details */}
       <View style={styles.section}>
-        <ThemedText style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+        <ThemedText
+          style={[styles.sectionTitle, { color: theme.textSecondary }]}
+        >
           PROFESSIONAL DETAILS
         </ThemedText>
-        <View style={[styles.sectionCard, { backgroundColor: theme.backgroundDefault }]}>
+        <View
+          style={[
+            styles.sectionCard,
+            { backgroundColor: theme.backgroundDefault },
+          ]}
+        >
           {/* Country of Practice */}
           <View style={styles.fieldRow}>
-            <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.fieldLabel, { color: theme.textSecondary }]}
+            >
               Country of Practice
             </ThemedText>
             <View style={styles.optionPills}>
@@ -350,8 +439,14 @@ export default function EditProfileScreen() {
                     key={country.value}
                     style={[
                       styles.pill,
-                      { borderColor: theme.border, backgroundColor: theme.backgroundSecondary },
-                      isSelected && { borderColor: theme.link, backgroundColor: theme.link + "15" },
+                      {
+                        borderColor: theme.border,
+                        backgroundColor: theme.backgroundSecondary,
+                      },
+                      isSelected && {
+                        borderColor: theme.link,
+                        backgroundColor: theme.link + "15",
+                      },
                     ]}
                     onPress={() => {
                       setCountryOfPractice(country.value);
@@ -377,7 +472,9 @@ export default function EditProfileScreen() {
 
           {/* Career Stage */}
           <View style={styles.fieldRow}>
-            <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.fieldLabel, { color: theme.textSecondary }]}
+            >
               Career Stage
             </ThemedText>
             <View style={styles.optionPills}>
@@ -388,8 +485,14 @@ export default function EditProfileScreen() {
                     key={stage.value}
                     style={[
                       styles.pill,
-                      { borderColor: theme.border, backgroundColor: theme.backgroundSecondary },
-                      isSelected && { borderColor: theme.link, backgroundColor: theme.link + "15" },
+                      {
+                        borderColor: theme.border,
+                        backgroundColor: theme.backgroundSecondary,
+                      },
+                      isSelected && {
+                        borderColor: theme.link,
+                        backgroundColor: theme.link + "15",
+                      },
                     ]}
                     onPress={() => {
                       setCareerStage(stage.value);
@@ -415,11 +518,20 @@ export default function EditProfileScreen() {
 
           {/* Medical Council Number */}
           <View style={styles.fieldRow}>
-            <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.fieldLabel, { color: theme.textSecondary }]}
+            >
               Registration Number
             </ThemedText>
             <TextInput
-              style={[styles.fieldInput, { color: theme.text, backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}
+              style={[
+                styles.fieldInput,
+                {
+                  color: theme.text,
+                  backgroundColor: theme.backgroundSecondary,
+                  borderColor: theme.border,
+                },
+              ]}
               value={medicalCouncilNumber}
               onChangeText={setMedicalCouncilNumber}
               placeholder="e.g. MCNZ 12345"
@@ -445,7 +557,9 @@ export default function EditProfileScreen() {
           {isSaving ? (
             <ActivityIndicator color={theme.buttonText} size="small" />
           ) : (
-            <ThemedText style={[styles.saveButtonText, { color: theme.buttonText }]}>
+            <ThemedText
+              style={[styles.saveButtonText, { color: theme.buttonText }]}
+            >
               Save Changes
             </ThemedText>
           )}

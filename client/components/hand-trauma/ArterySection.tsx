@@ -14,16 +14,32 @@ import {
 interface ArterySectionProps {
   selectedDigits: DigitId[];
   checkedStructures: HandTraumaStructure[];
-  onToggleStructure: (structureId: string, category: "artery", displayName: string, digit?: DigitId, side?: "radial" | "ulnar") => void;
+  onToggleStructure: (
+    structureId: string,
+    category: "artery",
+    displayName: string,
+    digit?: DigitId,
+    side?: "radial" | "ulnar",
+  ) => void;
 }
 
-export function ArterySection({ selectedDigits, checkedStructures, onToggleStructure }: ArterySectionProps) {
+export function ArterySection({
+  selectedDigits,
+  checkedStructures,
+  onToggleStructure,
+}: ArterySectionProps) {
   const { theme } = useTheme();
 
   const isChecked = (structureId: string) =>
-    checkedStructures.some((s) => s.structureId === structureId && s.category === "artery");
+    checkedStructures.some(
+      (s) => s.structureId === structureId && s.category === "artery",
+    );
 
-  const digitalArteries: { id: string; digit: DigitId; side: "radial" | "ulnar" }[] = [];
+  const digitalArteries: {
+    id: string;
+    digit: DigitId;
+    side: "radial" | "ulnar";
+  }[] = [];
   for (const digit of selectedDigits) {
     const map = DIGIT_ARTERY_MAP[digit];
     digitalArteries.push({ id: map.radial, digit, side: "radial" });
@@ -34,7 +50,10 @@ export function ArterySection({ selectedDigits, checkedStructures, onToggleStruc
     <View style={styles.container}>
       {digitalArteries.length > 0 ? (
         <View style={styles.group}>
-          <ThemedText type="small" style={[styles.groupLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            type="small"
+            style={[styles.groupLabel, { color: theme.textSecondary }]}
+          >
             Digital arteries
           </ThemedText>
           {digitalArteries.map((artery) => {
@@ -44,14 +63,25 @@ export function ArterySection({ selectedDigits, checkedStructures, onToggleStruc
                 key={artery.id}
                 testID={`artery-${artery.id}`}
                 style={[styles.checkRow, { borderColor: theme.border }]}
-                onPress={() => onToggleStructure(artery.id, "artery", ARTERY_LABELS[artery.id], artery.digit, artery.side)}
+                onPress={() =>
+                  onToggleStructure(
+                    artery.id,
+                    "artery",
+                    ARTERY_LABELS[artery.id] ?? artery.id,
+                    artery.digit,
+                    artery.side,
+                  )
+                }
               >
                 <Feather
                   name={checked ? "check-square" : "square"}
                   size={20}
                   color={checked ? theme.link : theme.textTertiary}
                 />
-                <ThemedText type="small" style={[styles.checkLabel, { color: theme.text }]}>
+                <ThemedText
+                  type="small"
+                  style={[styles.checkLabel, { color: theme.text }]}
+                >
                   {ARTERY_LABELS[artery.id]}
                 </ThemedText>
               </Pressable>
@@ -61,7 +91,10 @@ export function ArterySection({ selectedDigits, checkedStructures, onToggleStruc
       ) : null}
 
       <View style={styles.group}>
-        <ThemedText type="small" style={[styles.groupLabel, { color: theme.textSecondary }]}>
+        <ThemedText
+          type="small"
+          style={[styles.groupLabel, { color: theme.textSecondary }]}
+        >
           Proximal arteries
         </ThemedText>
         {PROXIMAL_ARTERIES.map((artery) => {
@@ -71,14 +104,19 @@ export function ArterySection({ selectedDigits, checkedStructures, onToggleStruc
               key={artery.id}
               testID={`artery-${artery.id}`}
               style={[styles.checkRow, { borderColor: theme.border }]}
-              onPress={() => onToggleStructure(artery.id, "artery", artery.label)}
+              onPress={() =>
+                onToggleStructure(artery.id, "artery", artery.label)
+              }
             >
               <Feather
                 name={checked ? "check-square" : "square"}
                 size={20}
                 color={checked ? theme.link : theme.textTertiary}
               />
-              <ThemedText type="small" style={[styles.checkLabel, { color: theme.text }]}>
+              <ThemedText
+                type="small"
+                style={[styles.checkLabel, { color: theme.text }]}
+              >
                 {artery.label}
               </ThemedText>
             </Pressable>

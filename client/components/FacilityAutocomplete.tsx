@@ -146,9 +146,7 @@ export function FacilityAutocomplete({
                   </Text>
                 </View>
               </View>
-              <Text
-                style={[styles.regionText, { color: colors.textTertiary }]}
-              >
+              <Text style={[styles.regionText, { color: colors.textTertiary }]}>
                 {facility.region}
               </Text>
             </Pressable>
@@ -167,7 +165,9 @@ export function FacilityAutocomplete({
           ]}
         >
           <View style={styles.noResultsContainer}>
-            <Text style={[styles.noResultsText, { color: colors.textTertiary }]}>
+            <Text
+              style={[styles.noResultsText, { color: colors.textTertiary }]}
+            >
               No matching hospitals found
             </Text>
           </View>

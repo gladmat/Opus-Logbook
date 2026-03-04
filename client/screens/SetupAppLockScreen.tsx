@@ -29,12 +29,7 @@ import {
   setAppLockEnabled,
   clearAllAppLockData,
 } from "@/lib/appLockStorage";
-import {
-  Spacing,
-  BorderRadius,
-  Shadows,
-  Typography,
-} from "@/constants/theme";
+import { Spacing, BorderRadius, Shadows, Typography } from "@/constants/theme";
 
 const PIN_LENGTH = 4;
 
@@ -162,9 +157,7 @@ export default function SetupAppLockScreen() {
             setHasPinSet(false);
             setBiometricEnabled(false);
             await refreshLockState();
-            Haptics.notificationAsync(
-              Haptics.NotificationFeedbackType.Success,
-            );
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             Alert.alert("App Lock Disabled", "Your app lock has been removed.");
             resetPinFlow();
           } else if (pinAction === "change") {
@@ -222,23 +215,17 @@ export default function SetupAppLockScreen() {
     }
   }, [pin]);
 
-  const handleToggleBiometric = useCallback(
-    async (value: boolean) => {
-      await setBiometricPreference(value);
-      setBiometricEnabled(value);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    },
-    [],
-  );
+  const handleToggleBiometric = useCallback(async (value: boolean) => {
+    await setBiometricPreference(value);
+    setBiometricEnabled(value);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, []);
 
-  const handleSetTimeout = useCallback(
-    async (seconds: number) => {
-      await setAutoLockTimeout(seconds);
-      setTimeout_(seconds);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    },
-    [],
-  );
+  const handleSetTimeout = useCallback(async (seconds: number) => {
+    await setAutoLockTimeout(seconds);
+    setTimeout_(seconds);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, []);
 
   const startSetupPin = () => {
     setPinAction("setup");
@@ -288,29 +275,20 @@ export default function SetupAppLockScreen() {
         ]}
       >
         <View style={styles.pinFlowHeader}>
-          <Pressable
-            onPress={resetPinFlow}
-            style={styles.cancelButton}
-          >
+          <Pressable onPress={resetPinFlow} style={styles.cancelButton}>
             <ThemedText style={{ color: colors.link }}>Cancel</ThemedText>
           </Pressable>
         </View>
 
         <View style={styles.pinFlowContent}>
           <Text
-            style={[
-              Typography.h2,
-              { color: colors.text, textAlign: "center" },
-            ]}
+            style={[Typography.h2, { color: colors.text, textAlign: "center" }]}
           >
             {getPinPrompt()}
           </Text>
 
           <Animated.View
-            style={[
-              styles.dotsRow,
-              { transform: [{ translateX: shakeAnim }] },
-            ]}
+            style={[styles.dotsRow, { transform: [{ translateX: shakeAnim }] }]}
           >
             {Array.from({ length: PIN_LENGTH }).map((_, i) => (
               <View
@@ -320,8 +298,7 @@ export default function SetupAppLockScreen() {
                   {
                     backgroundColor:
                       i < pin.length ? colors.link : "transparent",
-                    borderColor:
-                      i < pin.length ? colors.link : colors.border,
+                    borderColor: i < pin.length ? colors.link : colors.border,
                   },
                 ]}
               />
@@ -393,7 +370,10 @@ export default function SetupAppLockScreen() {
 
   return (
     <ScrollView
-      style={[styles.scrollContainer, { backgroundColor: colors.backgroundRoot }]}
+      style={[
+        styles.scrollContainer,
+        { backgroundColor: colors.backgroundRoot },
+      ]}
       contentContainerStyle={[
         styles.scrollContent,
         { paddingTop: headerHeight + Spacing.lg, paddingBottom: insets.bottom + Spacing["3xl"] },
@@ -504,7 +484,9 @@ export default function SetupAppLockScreen() {
                 />
               </View>
               <View style={styles.rowContent}>
-                <ThemedText style={styles.rowLabel}>{biometricLabel}</ThemedText>
+                <ThemedText style={styles.rowLabel}>
+                  {biometricLabel}
+                </ThemedText>
                 <ThemedText
                   style={[styles.rowSubtitle, { color: colors.textSecondary }]}
                 >
@@ -543,10 +525,7 @@ export default function SetupAppLockScreen() {
               <React.Fragment key={option.value}>
                 {index > 0 && (
                   <View
-                    style={[
-                      styles.divider,
-                      { backgroundColor: colors.border },
-                    ]}
+                    style={[styles.divider, { backgroundColor: colors.border }]}
                   />
                 )}
                 <Pressable

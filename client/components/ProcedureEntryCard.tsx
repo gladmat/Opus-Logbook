@@ -10,7 +10,11 @@ import { ProcedureClinicalDetails } from "@/components/ProcedureClinicalDetails"
 import { ProcedureSubcategoryPicker } from "@/components/ProcedureSubcategoryPicker";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { SnomedSearchPicker } from "@/components/SnomedSearchPicker";
-import { hasPicklistForSpecialty, findPicklistEntry, PICKLIST_TO_FLAP_TYPE } from "@/lib/procedurePicklist";
+import {
+  hasPicklistForSpecialty,
+  findPicklistEntry,
+  PICKLIST_TO_FLAP_TYPE,
+} from "@/lib/procedurePicklist";
 import type { ProcedurePicklistEntry } from "@/lib/procedurePicklist";
 import {
   type CaseProcedure,
@@ -113,7 +117,9 @@ export function ProcedureEntryCard({
     });
   };
 
-  const handleSnomedProcedureSelect = (result: { conceptId: string; term: string } | null) => {
+  const handleSnomedProcedureSelect = (
+    result: { conceptId: string; term: string } | null,
+  ) => {
     onUpdate({
       ...procedure,
       snomedCtCode: result?.conceptId || "",
@@ -138,7 +144,7 @@ export function ProcedureEntryCard({
   const handleTagToggle = (tag: ProcedureTag) => {
     const currentTags = procedure.tags || [];
     const newTags = currentTags.includes(tag)
-      ? currentTags.filter(t => t !== tag)
+      ? currentTags.filter((t) => t !== tag)
       : [...currentTags, tag];
     onUpdate({
       ...procedure,
@@ -157,12 +163,17 @@ export function ProcedureEntryCard({
     <View
       style={[
         styles.card,
-        { backgroundColor: theme.backgroundElevated, borderColor: theme.border },
+        {
+          backgroundColor: theme.backgroundElevated,
+          borderColor: theme.border,
+        },
       ]}
     >
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
-          <View style={[styles.orderBadge, { backgroundColor: theme.link + "20" }]}>
+          <View
+            style={[styles.orderBadge, { backgroundColor: theme.link + "20" }]}
+          >
             <ThemedText style={[styles.orderText, { color: theme.link }]}>
               {index + 1}
             </ThemedText>
@@ -181,7 +192,11 @@ export function ProcedureEntryCard({
               hitSlop={8}
               style={styles.iconButton}
             >
-              <Feather name="chevron-up" size={18} color={theme.textSecondary} />
+              <Feather
+                name="chevron-up"
+                size={18}
+                color={theme.textSecondary}
+              />
             </Pressable>
           ) : null}
           {canMoveDown ? (
@@ -193,7 +208,11 @@ export function ProcedureEntryCard({
               hitSlop={8}
               style={styles.iconButton}
             >
-              <Feather name="chevron-down" size={18} color={theme.textSecondary} />
+              <Feather
+                name="chevron-down"
+                size={18}
+                color={theme.textSecondary}
+              />
             </Pressable>
           ) : null}
           {!isOnlyProcedure ? (
@@ -226,10 +245,16 @@ export function ProcedureEntryCard({
         hasPicklistForSpecialty(procedure.specialty) ? (
           <View style={styles.procedurePickerSection}>
             <View style={styles.fieldLabelRow}>
-              <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[styles.fieldLabel, { color: theme.textSecondary }]}
+              >
                 Procedure
               </ThemedText>
-              <ThemedText style={[styles.requiredAsterisk, { color: theme.error }]}>*</ThemedText>
+              <ThemedText
+                style={[styles.requiredAsterisk, { color: theme.error }]}
+              >
+                *
+              </ThemedText>
             </View>
             <ProcedureSubcategoryPicker
               specialty={procedure.specialty}
@@ -266,7 +291,9 @@ export function ProcedureEntryCard({
                 style={[
                   styles.tagChip,
                   {
-                    backgroundColor: isSelected ? theme.link : theme.backgroundDefault,
+                    backgroundColor: isSelected
+                      ? theme.link
+                      : theme.backgroundDefault,
                     borderColor: isSelected ? theme.link : theme.border,
                   },
                 ]}
@@ -274,7 +301,11 @@ export function ProcedureEntryCard({
                 <ThemedText
                   style={[
                     styles.tagText,
-                    { color: isSelected ? theme.buttonText : theme.textSecondary },
+                    {
+                      color: isSelected
+                        ? theme.buttonText
+                        : theme.textSecondary,
+                    },
                   ]}
                 >
                   {PROCEDURE_TAG_LABELS[tag]}
@@ -287,10 +318,14 @@ export function ProcedureEntryCard({
 
       <View style={styles.roleHeaderRow}>
         <View style={styles.labelRow}>
-          <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
             Your Role (RACS MALT)
           </ThemedText>
-          <ThemedText style={[styles.requiredAsterisk, { color: theme.error }]}>*</ThemedText>
+          <ThemedText style={[styles.requiredAsterisk, { color: theme.error }]}>
+            *
+          </ThemedText>
         </View>
         <Pressable
           style={[styles.infoButton, { backgroundColor: theme.link + "15" }]}
@@ -323,11 +358,23 @@ export function ProcedureEntryCard({
         presentationStyle="pageSheet"
         onRequestClose={() => setShowRoleInfoModal(false)}
       >
-        <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
-          <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
-            <ThemedText style={styles.modalTitle}>Supervision Levels</ThemedText>
+        <View
+          style={[
+            styles.modalContainer,
+            { backgroundColor: theme.backgroundRoot },
+          ]}
+        >
+          <View
+            style={[styles.modalHeader, { borderBottomColor: theme.border }]}
+          >
+            <ThemedText style={styles.modalTitle}>
+              Supervision Levels
+            </ThemedText>
             <Pressable
-              style={[styles.modalCloseButton, { backgroundColor: theme.backgroundDefault }]}
+              style={[
+                styles.modalCloseButton,
+                { backgroundColor: theme.backgroundDefault },
+              ]}
               onPress={() => setShowRoleInfoModal(false)}
               hitSlop={8}
             >
@@ -338,23 +385,42 @@ export function ProcedureEntryCard({
             style={styles.modalContent}
             contentContainerStyle={styles.modalScrollContent}
           >
-            <ThemedText style={[styles.modalSubtitle, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.modalSubtitle, { color: theme.textSecondary }]}
+            >
               RACS MALT role in theatre definitions
             </ThemedText>
             {(Object.keys(ROLE_LABELS) as Role[]).map((roleKey) => (
-              <View 
-                key={roleKey} 
-                style={[styles.roleInfoCard, { backgroundColor: theme.backgroundDefault }]}
+              <View
+                key={roleKey}
+                style={[
+                  styles.roleInfoCard,
+                  { backgroundColor: theme.backgroundDefault },
+                ]}
               >
                 <View style={styles.roleInfoHeader}>
-                  <View style={[styles.roleCodeBadge, { backgroundColor: theme.link + "20" }]}>
-                    <ThemedText style={[styles.roleCode, { color: theme.link }]}>
+                  <View
+                    style={[
+                      styles.roleCodeBadge,
+                      { backgroundColor: theme.link + "20" },
+                    ]}
+                  >
+                    <ThemedText
+                      style={[styles.roleCode, { color: theme.link }]}
+                    >
                       {roleKey}
                     </ThemedText>
                   </View>
-                  <ThemedText style={styles.roleLabel}>{ROLE_LABELS[roleKey]}</ThemedText>
+                  <ThemedText style={styles.roleLabel}>
+                    {ROLE_LABELS[roleKey]}
+                  </ThemedText>
                 </View>
-                <ThemedText style={[styles.roleDescription, { color: theme.textSecondary }]}>
+                <ThemedText
+                  style={[
+                    styles.roleDescription,
+                    { color: theme.textSecondary },
+                  ]}
+                >
                   {ROLE_DESCRIPTIONS[roleKey]}
                 </ThemedText>
               </View>
@@ -367,7 +433,10 @@ export function ProcedureEntryCard({
         label="SNOMED CT Procedure"
         value={
           procedure.snomedCtCode && procedure.snomedCtDisplay
-            ? { conceptId: procedure.snomedCtCode, term: procedure.snomedCtDisplay }
+            ? {
+                conceptId: procedure.snomedCtCode,
+                term: procedure.snomedCtDisplay,
+              }
             : undefined
         }
         onSelect={handleSnomedProcedureSelect}

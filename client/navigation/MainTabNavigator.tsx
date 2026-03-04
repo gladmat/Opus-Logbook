@@ -25,7 +25,8 @@ export default function MainTabNavigator() {
         tabBarInactiveTintColor: theme.tabIconDefault,
         tabBarStyle: {
           position: "absolute",
-          backgroundColor: Platform.OS === "ios" ? "transparent" : theme.backgroundRoot,
+          backgroundColor:
+            Platform.OS === "ios" ? "transparent" : theme.backgroundRoot,
           borderTopWidth: 0,
           elevation: 0,
         },

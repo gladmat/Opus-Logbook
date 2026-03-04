@@ -89,7 +89,7 @@ const SPECIALTY_MAP: Partial<Record<Specialty, DiagnosisPicklistEntry[]>> = {
  * Returns empty array for specialties without a picklist yet.
  */
 export function getDiagnosesForSpecialty(
-  specialty: Specialty
+  specialty: Specialty,
 ): DiagnosisPicklistEntry[] {
   return SPECIALTY_MAP[specialty] ?? [];
 }
@@ -126,10 +126,10 @@ export function getDiagnosisSubcategories(specialty: Specialty): string[] {
  */
 export function getDiagnosesForSubcategory(
   specialty: Specialty,
-  subcategory: string
+  subcategory: string,
 ): DiagnosisPicklistEntry[] {
   return getDiagnosesForSpecialty(specialty).filter(
-    (dx) => dx.subcategory === subcategory
+    (dx) => dx.subcategory === subcategory,
   );
 }
 
@@ -150,7 +150,7 @@ function getIdIndex(): Map<string, DiagnosisPicklistEntry> {
 
 /** Find a diagnosis by its unique ID */
 export function findDiagnosisById(
-  id: string
+  id: string,
 ): DiagnosisPicklistEntry | undefined {
   return getIdIndex().get(id);
 }
@@ -158,11 +158,9 @@ export function findDiagnosisById(
 /** Find a diagnosis by its SNOMED CT code (returns first match) */
 export function findDiagnosisBySnomedCode(
   snomedCtCode: string,
-  specialty?: Specialty
+  specialty?: Specialty,
 ): DiagnosisPicklistEntry | undefined {
-  const pool = specialty
-    ? getDiagnosesForSpecialty(specialty)
-    : ALL_DIAGNOSES;
+  const pool = specialty ? getDiagnosesForSpecialty(specialty) : ALL_DIAGNOSES;
   return pool.find((dx) => dx.snomedCtCode === snomedCtCode);
 }
 
@@ -176,14 +174,12 @@ export function findDiagnosisBySnomedCode(
 export function searchDiagnoses(
   query: string,
   specialty?: Specialty,
-  limit: number = 15
+  limit: number = 15,
 ): DiagnosisPicklistEntry[] {
   if (!query || query.length < 2) return [];
 
   const q = query.toLowerCase().trim();
-  const pool = specialty
-    ? getDiagnosesForSpecialty(specialty)
-    : ALL_DIAGNOSES;
+  const pool = specialty ? getDiagnosesForSpecialty(specialty) : ALL_DIAGNOSES;
 
   const scored: Array<{ dx: DiagnosisPicklistEntry; score: number }> = [];
 
@@ -208,7 +204,10 @@ export function searchDiagnoses(
       }
     }
 
-    if (score === 0 && dx.searchSynonyms?.some((syn) => syn.toLowerCase().includes(q))) {
+    if (
+      score === 0 &&
+      dx.searchSynonyms?.some((syn) => syn.toLowerCase().includes(q))
+    ) {
       score = 40;
     }
 
@@ -243,7 +242,7 @@ export function searchDiagnoses(
  */
 export function evaluateSuggestions(
   diagnosis: DiagnosisPicklistEntry,
-  stagingSelections: StagingSelections = {}
+  stagingSelections: StagingSelections = {},
 ): EvaluatedSuggestion[] {
   return diagnosis.suggestedProcedures.map((suggestion) => {
     let isActive: boolean;
@@ -257,9 +256,7 @@ export function evaluateSuggestions(
         suggestion.conditionStagingMatch;
       const selectedValue = stagingSelections[stagingSystemName];
 
-      isActive = selectedValue
-        ? matchValues.includes(selectedValue)
-        : false;
+      isActive = selectedValue ? matchValues.includes(selectedValue) : false;
     }
 
     return {
@@ -275,7 +272,7 @@ export function evaluateSuggestions(
  */
 export function getActiveProcedureIds(
   diagnosis: DiagnosisPicklistEntry,
-  stagingSelections: StagingSelections = {}
+  stagingSelections: StagingSelections = {},
 ): string[] {
   return evaluateSuggestions(diagnosis, stagingSelections)
     .filter((s) => s.isActive)
@@ -287,7 +284,7 @@ export function getActiveProcedureIds(
  * (both active and inactive — everything the surgeon might pick).
  */
 export function getAllSuggestionProcedureIds(
-  diagnosis: DiagnosisPicklistEntry
+  diagnosis: DiagnosisPicklistEntry,
 ): string[] {
   return diagnosis.suggestedProcedures.map((s) => s.procedurePicklistId);
 }
@@ -306,7 +303,8 @@ function getReverseIndex(): Map<string, ReverseDiagnosisSuggestion[]> {
     _reverseIndex = new Map();
     for (const dx of ALL_DIAGNOSES) {
       for (const suggestion of dx.suggestedProcedures) {
-        const existing = _reverseIndex.get(suggestion.procedurePicklistId) || [];
+        const existing =
+          _reverseIndex.get(suggestion.procedurePicklistId) || [];
         existing.push({
           diagnosis: dx,
           isDefaultForDiagnosis: suggestion.isDefault,
@@ -323,7 +321,7 @@ function getReverseIndex(): Map<string, ReverseDiagnosisSuggestion[]> {
 export function getDiagnosesForProcedure(
   procedurePicklistId: string,
   specialty?: Specialty,
-  limit: number = 8
+  limit: number = 8,
 ): ReverseDiagnosisSuggestion[] {
   const reverseIndex = getReverseIndex();
   const matches = reverseIndex.get(procedurePicklistId);
@@ -332,7 +330,10 @@ export function getDiagnosesForProcedure(
   const deduped = new Map<string, ReverseDiagnosisSuggestion>();
   for (const match of matches) {
     const existing = deduped.get(match.diagnosis.id);
-    if (!existing || (match.isDefaultForDiagnosis && !existing.isDefaultForDiagnosis)) {
+    if (
+      !existing ||
+      (match.isDefaultForDiagnosis && !existing.isDefaultForDiagnosis)
+    ) {
       deduped.set(match.diagnosis.id, match);
     }
   }
@@ -359,14 +360,17 @@ export function getDiagnosesForProcedure(
 export function getDiagnosesForProcedures(
   procedurePicklistIds: string[],
   specialty?: Specialty,
-  limit: number = 8
+  limit: number = 8,
 ): ReverseDiagnosisSuggestion[] {
   if (procedurePicklistIds.length === 0) return [];
   if (procedurePicklistIds.length === 1) {
-    return getDiagnosesForProcedure(procedurePicklistIds[0], specialty, limit);
+    return getDiagnosesForProcedure(procedurePicklistIds[0]!, specialty, limit);
   }
 
-  const diagnosisCoverage = new Map<string, { suggestion: ReverseDiagnosisSuggestion; matchCount: number }>();
+  const diagnosisCoverage = new Map<
+    string,
+    { suggestion: ReverseDiagnosisSuggestion; matchCount: number }
+  >();
 
   for (const procId of procedurePicklistIds) {
     const matches = getDiagnosesForProcedure(procId, specialty, 100);
@@ -378,7 +382,10 @@ export function getDiagnosesForProcedures(
           existing.suggestion = match;
         }
       } else {
-        diagnosisCoverage.set(match.diagnosis.id, { suggestion: match, matchCount: 1 });
+        diagnosisCoverage.set(match.diagnosis.id, {
+          suggestion: match,
+          matchCount: 1,
+        });
       }
     }
   }
@@ -387,8 +394,10 @@ export function getDiagnosesForProcedures(
 
   results.sort((a, b) => {
     if (b.matchCount !== a.matchCount) return b.matchCount - a.matchCount;
-    const aSpec = specialty && a.suggestion.diagnosis.specialty === specialty ? 1 : 0;
-    const bSpec = specialty && b.suggestion.diagnosis.specialty === specialty ? 1 : 0;
+    const aSpec =
+      specialty && a.suggestion.diagnosis.specialty === specialty ? 1 : 0;
+    const bSpec =
+      specialty && b.suggestion.diagnosis.specialty === specialty ? 1 : 0;
     if (aSpec !== bSpec) return bSpec - aSpec;
     const aDefault = a.suggestion.isDefaultForDiagnosis ? 1 : 0;
     const bDefault = b.suggestion.isDefaultForDiagnosis ? 1 : 0;

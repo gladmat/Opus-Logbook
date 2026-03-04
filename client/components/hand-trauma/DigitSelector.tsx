@@ -12,7 +12,10 @@ interface DigitSelectorProps {
   onChange: (digits: DigitId[]) => void;
 }
 
-export function DigitSelector({ selectedDigits, onChange }: DigitSelectorProps) {
+export function DigitSelector({
+  selectedDigits,
+  onChange,
+}: DigitSelectorProps) {
   const { theme } = useTheme();
 
   const toggleDigit = (digit: DigitId) => {
@@ -26,7 +29,10 @@ export function DigitSelector({ selectedDigits, onChange }: DigitSelectorProps) 
 
   return (
     <View style={styles.container}>
-      <ThemedText type="small" style={[styles.label, { color: theme.textSecondary }]}>
+      <ThemedText
+        type="small"
+        style={[styles.label, { color: theme.textSecondary }]}
+      >
         Affected digits
       </ThemedText>
       <View style={styles.chipRow}>
@@ -39,7 +45,9 @@ export function DigitSelector({ selectedDigits, onChange }: DigitSelectorProps) 
               style={[
                 styles.chip,
                 {
-                  backgroundColor: isSelected ? theme.link : theme.backgroundTertiary,
+                  backgroundColor: isSelected
+                    ? theme.link
+                    : theme.backgroundTertiary,
                   borderColor: isSelected ? theme.link : theme.border,
                 },
               ]}
@@ -58,7 +66,11 @@ export function DigitSelector({ selectedDigits, onChange }: DigitSelectorProps) 
                 type="small"
                 style={[
                   styles.chipSubtext,
-                  { color: isSelected ? "rgba(255,255,255,0.7)" : theme.textTertiary },
+                  {
+                    color: isSelected
+                      ? "rgba(255,255,255,0.7)"
+                      : theme.textTertiary,
+                  },
                 ]}
               >
                 {DIGIT_LABELS[digit]}

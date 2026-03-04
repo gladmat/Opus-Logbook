@@ -1,8 +1,16 @@
 import React, { useEffect, useMemo } from "react";
 import { StyleSheet } from "react-native";
-import { NavigationContainer, DefaultTheme, DarkTheme, Theme } from "@react-navigation/native";
+import {
+  NavigationContainer,
+  DefaultTheme,
+  DarkTheme,
+  Theme,
+} from "@react-navigation/native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { KeyboardProvider, KeyboardController } from "react-native-keyboard-controller";
+import {
+  KeyboardProvider,
+  KeyboardController,
+} from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 
@@ -21,7 +29,11 @@ function StatusBarThemed() {
   return <StatusBar style={isDark ? "light" : "dark"} />;
 }
 
-function ThemedNavigationContainer({ children }: { children: React.ReactNode }) {
+function ThemedNavigationContainer({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const { theme, isDark } = useTheme();
 
   const navigationTheme: Theme = useMemo(
@@ -40,7 +52,11 @@ function ThemedNavigationContainer({ children }: { children: React.ReactNode }) 
     [isDark, theme],
   );
 
-  return <NavigationContainer theme={navigationTheme}>{children}</NavigationContainer>;
+  return (
+    <NavigationContainer theme={navigationTheme}>
+      {children}
+    </NavigationContainer>
+  );
 }
 
 export default function App() {
@@ -54,18 +70,18 @@ export default function App() {
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <AppLockProvider>
-            <MediaCallbackProvider>
-              <SafeAreaProvider>
-                <GestureHandlerRootView style={styles.root}>
-                  <KeyboardProvider>
-                    <ThemedNavigationContainer>
-                      <RootStackNavigator />
-                    </ThemedNavigationContainer>
-                    <StatusBarThemed />
-                  </KeyboardProvider>
-                </GestureHandlerRootView>
-              </SafeAreaProvider>
-            </MediaCallbackProvider>
+              <MediaCallbackProvider>
+                <SafeAreaProvider>
+                  <GestureHandlerRootView style={styles.root}>
+                    <KeyboardProvider>
+                      <ThemedNavigationContainer>
+                        <RootStackNavigator />
+                      </ThemedNavigationContainer>
+                      <StatusBarThemed />
+                    </KeyboardProvider>
+                  </GestureHandlerRootView>
+                </SafeAreaProvider>
+              </MediaCallbackProvider>
             </AppLockProvider>
           </AuthProvider>
         </QueryClientProvider>

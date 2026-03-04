@@ -10,28 +10,48 @@ import { DIGIT_LABELS } from "./structureConfig";
 interface OtherStructuresSectionProps {
   selectedDigits: DigitId[];
   checkedStructures: HandTraumaStructure[];
-  onToggleStructure: (structureId: string, category: "other", displayName: string, digit?: DigitId) => void;
+  onToggleStructure: (
+    structureId: string,
+    category: "other",
+    displayName: string,
+    digit?: DigitId,
+  ) => void;
 }
 
-export function OtherStructuresSection({ selectedDigits, checkedStructures, onToggleStructure }: OtherStructuresSectionProps) {
+export function OtherStructuresSection({
+  selectedDigits,
+  checkedStructures,
+  onToggleStructure,
+}: OtherStructuresSectionProps) {
   const { theme } = useTheme();
 
   const isChecked = (structureId: string) =>
-    checkedStructures.some((s) => s.structureId === structureId && s.category === "other");
+    checkedStructures.some(
+      (s) => s.structureId === structureId && s.category === "other",
+    );
 
   const pipDigits = selectedDigits.filter((d) => d !== "I");
 
   return (
     <View style={styles.container}>
       <View style={styles.group}>
-        <ThemedText type="small" style={[styles.groupLabel, { color: theme.textSecondary }]}>
+        <ThemedText
+          type="small"
+          style={[styles.groupLabel, { color: theme.textSecondary }]}
+        >
           General
         </ThemedText>
 
         <Pressable
           testID="other-bone"
           style={[styles.checkRow, { borderColor: theme.border }]}
-          onPress={() => onToggleStructure("bone", "other", "Bone injury (use AO classification)")}
+          onPress={() =>
+            onToggleStructure(
+              "bone",
+              "other",
+              "Bone injury (use AO classification)",
+            )
+          }
         >
           <Feather
             name={isChecked("bone") ? "check-square" : "square"}
@@ -39,10 +59,16 @@ export function OtherStructuresSection({ selectedDigits, checkedStructures, onTo
             color={isChecked("bone") ? theme.link : theme.textTertiary}
           />
           <View style={styles.labelContainer}>
-            <ThemedText type="small" style={[styles.checkLabel, { color: theme.text }]}>
+            <ThemedText
+              type="small"
+              style={[styles.checkLabel, { color: theme.text }]}
+            >
               Bone
             </ThemedText>
-            <ThemedText type="small" style={{ color: theme.textTertiary, fontSize: 12 }}>
+            <ThemedText
+              type="small"
+              style={{ color: theme.textTertiary, fontSize: 12 }}
+            >
               Links to AO fracture classification
             </ThemedText>
           </View>
@@ -51,14 +77,19 @@ export function OtherStructuresSection({ selectedDigits, checkedStructures, onTo
         <Pressable
           testID="other-nail_bed"
           style={[styles.checkRow, { borderColor: theme.border }]}
-          onPress={() => onToggleStructure("nail_bed", "other", "Nail bed injury")}
+          onPress={() =>
+            onToggleStructure("nail_bed", "other", "Nail bed injury")
+          }
         >
           <Feather
             name={isChecked("nail_bed") ? "check-square" : "square"}
             size={20}
             color={isChecked("nail_bed") ? theme.link : theme.textTertiary}
           />
-          <ThemedText type="small" style={[styles.checkLabel, { color: theme.text }]}>
+          <ThemedText
+            type="small"
+            style={[styles.checkLabel, { color: theme.text }]}
+          >
             Nail bed
           </ThemedText>
         </Pressable>
@@ -66,7 +97,9 @@ export function OtherStructuresSection({ selectedDigits, checkedStructures, onTo
         <Pressable
           testID="other-skin_loss"
           style={[styles.checkRow, { borderColor: theme.border }]}
-          onPress={() => onToggleStructure("skin_loss", "other", "Skin / soft tissue loss")}
+          onPress={() =>
+            onToggleStructure("skin_loss", "other", "Skin / soft tissue loss")
+          }
         >
           <Feather
             name={isChecked("skin_loss") ? "check-square" : "square"}
@@ -74,10 +107,16 @@ export function OtherStructuresSection({ selectedDigits, checkedStructures, onTo
             color={isChecked("skin_loss") ? theme.link : theme.textTertiary}
           />
           <View style={styles.labelContainer}>
-            <ThemedText type="small" style={[styles.checkLabel, { color: theme.text }]}>
+            <ThemedText
+              type="small"
+              style={[styles.checkLabel, { color: theme.text }]}
+            >
               Skin / soft tissue loss
             </ThemedText>
-            <ThemedText type="small" style={{ color: theme.textTertiary, fontSize: 12 }}>
+            <ThemedText
+              type="small"
+              style={{ color: theme.textTertiary, fontSize: 12 }}
+            >
               Select coverage procedure manually
             </ThemedText>
           </View>
@@ -86,7 +125,10 @@ export function OtherStructuresSection({ selectedDigits, checkedStructures, onTo
 
       {pipDigits.length > 0 ? (
         <View style={styles.group}>
-          <ThemedText type="small" style={[styles.groupLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            type="small"
+            style={[styles.groupLabel, { color: theme.textSecondary }]}
+          >
             Volar plate (PIP)
           </ThemedText>
           {pipDigits.map((digit) => {
@@ -97,14 +139,24 @@ export function OtherStructuresSection({ selectedDigits, checkedStructures, onTo
                 key={digit}
                 testID={`other-${vpId}`}
                 style={[styles.checkRow, { borderColor: theme.border }]}
-                onPress={() => onToggleStructure(vpId, "other", `Volar plate PIP - ${DIGIT_LABELS[digit]}`, digit)}
+                onPress={() =>
+                  onToggleStructure(
+                    vpId,
+                    "other",
+                    `Volar plate PIP - ${DIGIT_LABELS[digit]}`,
+                    digit,
+                  )
+                }
               >
                 <Feather
                   name={checked ? "check-square" : "square"}
                   size={20}
                   color={checked ? theme.link : theme.textTertiary}
                 />
-                <ThemedText type="small" style={[styles.checkLabel, { color: theme.text }]}>
+                <ThemedText
+                  type="small"
+                  style={[styles.checkLabel, { color: theme.text }]}
+                >
                   {DIGIT_LABELS[digit]} ({digit})
                 </ThemedText>
               </Pressable>

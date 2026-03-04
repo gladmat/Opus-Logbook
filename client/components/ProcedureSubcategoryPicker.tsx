@@ -47,9 +47,13 @@ export function ProcedureSubcategoryPicker({
     return subcategories[0] ?? "";
   };
 
-  const [activeSubcategory, setActiveSubcategory] = useState<string>(initialSubcat);
+  const [activeSubcategory, setActiveSubcategory] =
+    useState<string>(initialSubcat);
 
-  const proceduresInSubcat = getProceduresForSubcategory(specialty, activeSubcategory);
+  const proceduresInSubcat = getProceduresForSubcategory(
+    specialty,
+    activeSubcategory,
+  );
 
   // Resolve procedure IDs to chip items
   const favouriteChips = useMemo(() => {
@@ -116,7 +120,9 @@ export function ProcedureSubcategoryPicker({
               style={[
                 styles.subcatChip,
                 {
-                  backgroundColor: isActive ? theme.link : theme.backgroundDefault,
+                  backgroundColor: isActive
+                    ? theme.link
+                    : theme.backgroundDefault,
                   borderColor: isActive ? theme.link : theme.border,
                 },
               ]}
@@ -169,22 +175,41 @@ export function ProcedureSubcategoryPicker({
                 </ThemedText>
                 <View style={styles.badgeRow}>
                   {entry.hasFreeFlap ? (
-                    <View style={[styles.badge, { backgroundColor: theme.error + "20" }]}>
-                      <ThemedText style={[styles.badgeText, { color: theme.error }]}>
+                    <View
+                      style={[
+                        styles.badge,
+                        { backgroundColor: theme.error + "20" },
+                      ]}
+                    >
+                      <ThemedText
+                        style={[styles.badgeText, { color: theme.error }]}
+                      >
                         Free flap
                       </ThemedText>
                     </View>
                   ) : null}
                   {entry.tags.includes("microsurgery") ? (
-                    <View style={[styles.badge, { backgroundColor: theme.link + "15" }]}>
-                      <ThemedText style={[styles.badgeText, { color: theme.link }]}>
+                    <View
+                      style={[
+                        styles.badge,
+                        { backgroundColor: theme.link + "15" },
+                      ]}
+                    >
+                      <ThemedText
+                        style={[styles.badgeText, { color: theme.link }]}
+                      >
                         Microsurgery
                       </ThemedText>
                     </View>
                   ) : null}
-                  {entry.tags.includes("pedicled_flap") && !entry.hasFreeFlap ? (
-                    <View style={[styles.badge, { backgroundColor: "#8B5CF620" }]}>
-                      <ThemedText style={[styles.badgeText, { color: "#8B5CF6" }]}>
+                  {entry.tags.includes("pedicled_flap") &&
+                  !entry.hasFreeFlap ? (
+                    <View
+                      style={[styles.badge, { backgroundColor: "#8B5CF620" }]}
+                    >
+                      <ThemedText
+                        style={[styles.badgeText, { color: "#8B5CF6" }]}
+                      >
                         Pedicled
                       </ThemedText>
                     </View>

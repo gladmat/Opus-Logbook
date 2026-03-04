@@ -6,30 +6,30 @@ import { Platform } from "react-native";
 
 export const palette = {
   charcoal: {
-    950: "#0C0F14",  // Deepest background — app canvas
-    900: "#161B22",  // Card/surface background
-    850: "#1C2128",  // Raised surface, active items
-    800: "#2D333B",  // Borders, dividers
-    750: "#444C56",  // Active borders, hover, emphasis
-    700: "#4B5563",  // Disabled text on dark
-    500: "#656D76",  // Placeholder text, tertiary
-    400: "#8B949E",  // Secondary text
-    300: "#AFB8C1",  // Light mode active borders
-    200: "#D0D7DE",  // Light mode borders
-    100: "#ECEEF1",  // Light mode tertiary bg
-    50: "#F6F8FA",   // Light mode surface
-    25: "#FFFFFF",   // Light mode background
+    950: "#0C0F14", // Deepest background — app canvas
+    900: "#161B22", // Card/surface background
+    850: "#1C2128", // Raised surface, active items
+    800: "#2D333B", // Borders, dividers
+    750: "#444C56", // Active borders, hover, emphasis
+    700: "#4B5563", // Disabled text on dark
+    500: "#656D76", // Placeholder text, tertiary
+    400: "#8B949E", // Secondary text
+    300: "#AFB8C1", // Light mode active borders
+    200: "#D0D7DE", // Light mode borders
+    100: "#ECEEF1", // Light mode tertiary bg
+    50: "#F6F8FA", // Light mode surface
+    25: "#FFFFFF", // Light mode background
   },
   amber: {
-    900: "#78350F",  // Dark amber bg (chips/badges on dark mode)
-    800: "#92400E",  // Deep amber
-    700: "#B47E00",  // Light mode primary accent
-    600: "#E5A00D",  // ★ THE brand colour — dark mode primary accent
-    500: "#F0B429",  // Hover/emphasis states, focus rings
-    400: "#F7C948",  // Charts, highlights
-    200: "#FDE68A",  // Light amber tint
-    100: "#FEF3C7",  // Light mode amber background
-    50: "#FFFBEB",   // Lightest amber wash
+    900: "#78350F", // Dark amber bg (chips/badges on dark mode)
+    800: "#92400E", // Deep amber
+    700: "#B47E00", // Light mode primary accent
+    600: "#E5A00D", // ★ THE brand colour — dark mode primary accent
+    500: "#F0B429", // Hover/emphasis states, focus rings
+    400: "#F7C948", // Charts, highlights
+    200: "#FDE68A", // Light amber tint
+    100: "#FEF3C7", // Light mode amber background
+    50: "#FFFBEB", // Lightest amber wash
   },
   white: "#FFFFFF",
   black: "#000000",

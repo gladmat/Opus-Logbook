@@ -44,21 +44,35 @@ interface FhirBundle {
 
 const LATERALITY_SNOMED: Record<string, FhirCoding> = {
   left: { system: "http://snomed.info/sct", code: "7771000", display: "Left" },
-  right: { system: "http://snomed.info/sct", code: "24028007", display: "Right" },
-  bilateral: { system: "http://snomed.info/sct", code: "51440002", display: "Bilateral" },
+  right: {
+    system: "http://snomed.info/sct",
+    code: "24028007",
+    display: "Right",
+  },
+  bilateral: {
+    system: "http://snomed.info/sct",
+    code: "51440002",
+    display: "Bilateral",
+  },
 };
 
 // ─── Resource Builders ─────────────────────────────────────────────────────
 
-function buildSnomedCoding(code?: string, display?: string): FhirCodeableConcept | undefined {
+function buildSnomedCoding(
+  code?: string,
+  display?: string,
+): FhirCodeableConcept | undefined {
   if (!code) return undefined;
   return {
-    coding: [{ system: "http://snomed.info/sct", code, display: display || code }],
+    coding: [
+      { system: "http://snomed.info/sct", code, display: display || code },
+    ],
   };
 }
 
 function buildEncounter(c: Case, conditionRefs: string[]): FhirResource {
-  const encounterClass = c.stayType === "day_case" || !c.admissionDate ? "AMB" : "IMP";
+  const encounterClass =
+    c.stayType === "day_case" || !c.admissionDate ? "AMB" : "IMP";
   const period: Record<string, string> = {};
   if (c.admissionDate) period.start = c.admissionDate;
   if (c.dischargeDate) period.end = c.dischargeDate;
@@ -85,9 +99,7 @@ function buildEncounter(c: Case, conditionRefs: string[]): FhirResource {
     ],
     subject: { reference: `Patient/${c.patientIdentifier}` },
     ...(Object.keys(period).length > 0 ? { period } : {}),
-    ...(c.facility
-      ? { serviceProvider: { display: c.facility } }
-      : {}),
+    ...(c.facility ? { serviceProvider: { display: c.facility } } : {}),
     diagnosis: conditionRefs.map((ref, i) => ({
       condition: { reference: `Condition/${ref}` },
       rank: i + 1,
@@ -97,7 +109,8 @@ function buildEncounter(c: Case, conditionRefs: string[]): FhirResource {
         {
           coding: [
             {
-              system: "http://terminology.hl7.org/CodeSystem/v3-ParticipationType",
+              system:
+                "http://terminology.hl7.org/CodeSystem/v3-ParticipationType",
               code: m.role || "PPRF",
             },
           ],
@@ -185,7 +198,8 @@ function buildProcedure(
         function: {
           coding: [
             {
-              system: "http://terminology.hl7.org/CodeSystem/v3-ParticipationType",
+              system:
+                "http://terminology.hl7.org/CodeSystem/v3-ParticipationType",
               code: proc.surgeonRole,
             },
           ],
@@ -195,7 +209,9 @@ function buildProcedure(
   };
 
   // bodySite with laterality qualifier
-  const laterality = group.diagnosisClinicalDetails?.laterality as Laterality | undefined;
+  const laterality = group.diagnosisClinicalDetails?.laterality as
+    | Laterality
+    | undefined;
   if (laterality && LATERALITY_SNOMED[laterality]) {
     procedure.bodySite = [
       {
@@ -216,7 +232,11 @@ function caseToFhirBundle(c: Case): FhirBundle {
   // Build Condition + Procedure resources per group
   for (const group of c.diagnosisGroups) {
     if (group.diagnosis) {
-      const condition = buildCondition(group, c.patientIdentifier, c.procedureDate);
+      const condition = buildCondition(
+        group,
+        c.patientIdentifier,
+        c.procedureDate,
+      );
       conditionIds.push(condition.id);
       entries.push({ resource: condition });
     }
@@ -224,7 +244,13 @@ function caseToFhirBundle(c: Case): FhirBundle {
     for (const proc of group.procedures) {
       if (!proc.procedureName.trim()) continue;
       entries.push({
-        resource: buildProcedure(proc, group, c.patientIdentifier, c.procedureDate, c.ownerId),
+        resource: buildProcedure(
+          proc,
+          group,
+          c.patientIdentifier,
+          c.procedureDate,
+          c.ownerId,
+        ),
       });
     }
   }

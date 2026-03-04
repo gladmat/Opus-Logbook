@@ -32,10 +32,20 @@ import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { OperativeMediaType, OPERATIVE_MEDIA_TYPE_LABELS } from "@/types/case";
 import { useMediaCallback } from "@/contexts/MediaCallbackContext";
 
-type AddOperativeMediaRouteProp = RouteProp<RootStackParamList, "AddOperativeMedia">;
-type AddOperativeMediaNavigationProp = NativeStackNavigationProp<RootStackParamList, "AddOperativeMedia">;
+type AddOperativeMediaRouteProp = RouteProp<
+  RootStackParamList,
+  "AddOperativeMedia"
+>;
+type AddOperativeMediaNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  "AddOperativeMedia"
+>;
 
-const MEDIA_TYPE_OPTIONS: { value: OperativeMediaType; label: string; icon: keyof typeof Feather.glyphMap }[] = [
+const MEDIA_TYPE_OPTIONS: {
+  value: OperativeMediaType;
+  label: string;
+  icon: keyof typeof Feather.glyphMap;
+}[] = [
   { value: "preoperative_photo", label: "Preop Photo", icon: "image" },
   { value: "intraoperative_photo", label: "Intraop Photo", icon: "camera" },
   { value: "xray", label: "X-ray", icon: "file" },
@@ -64,10 +74,11 @@ export default function AddOperativeMediaScreen() {
   } = route.params;
 
   const [selectedType, setSelectedType] = useState<OperativeMediaType>(
-    (existingMediaType as OperativeMediaType) || "intraoperative_photo"
+    (existingMediaType as OperativeMediaType) || "intraoperative_photo",
   );
   const [captionInput, setCaptionInput] = useState(existingCaption || "");
-  const [cameraPermission, requestCameraPermission] = ImagePicker.useCameraPermissions();
+  const [cameraPermission, requestCameraPermission] =
+    ImagePicker.useCameraPermissions();
   const [currentUri, setCurrentUri] = useState(imageUri);
   const [currentMimeType, setCurrentMimeType] = useState(mimeType);
   const [saving, setSaving] = useState(false);
@@ -84,14 +95,19 @@ export default function AddOperativeMediaScreen() {
           [
             { text: "Cancel", style: "cancel" },
             ...(Platform.OS !== "web"
-              ? [{ text: "Open Settings", onPress: async () => {
-                  try {
-                    const { Linking } = await import("react-native");
-                    await Linking.openSettings();
-                  } catch (e) {}
-                }}]
+              ? [
+                  {
+                    text: "Open Settings",
+                    onPress: async () => {
+                      try {
+                        const { Linking } = await import("react-native");
+                        await Linking.openSettings();
+                      } catch (e) {}
+                    },
+                  },
+                ]
               : []),
-          ]
+          ],
         );
         return;
       }
@@ -106,6 +122,7 @@ export default function AddOperativeMediaScreen() {
       });
       if (!result.canceled && result.assets.length > 0) {
         const asset = result.assets[0];
+        if (!asset) return;
         const mime = asset.mimeType || "image/jpeg";
         if (asset.base64) {
           setPendingBase64(asset.base64, mime);
@@ -127,6 +144,7 @@ export default function AddOperativeMediaScreen() {
       });
       if (!result.canceled && result.assets.length > 0) {
         const asset = result.assets[0];
+        if (!asset) return;
         const mime = asset.mimeType || "image/jpeg";
         if (asset.base64) {
           setPendingBase64(asset.base64, mime);
@@ -147,7 +165,11 @@ export default function AddOperativeMediaScreen() {
       let finalUri = currentUri;
       const pending = consumePendingBase64();
       if (pending) {
-        finalUri = await saveEncryptedMedia(pending.base64, pending.mimeType, currentUri);
+        finalUri = await saveEncryptedMedia(
+          pending.base64,
+          pending.mimeType,
+          currentUri,
+        );
       } else if (editMode && isEncryptedMediaUri(currentUri)) {
         finalUri = currentUri;
       }
@@ -169,26 +191,52 @@ export default function AddOperativeMediaScreen() {
     } catch (error: any) {
       setSaving(false);
       console.error("Error saving media:", error);
-      Alert.alert("Error", `Failed to save media: ${error?.message || "Unknown error"}. Please try again.`);
+      Alert.alert(
+        "Error",
+        `Failed to save media: ${error?.message || "Unknown error"}. Please try again.`,
+      );
     }
   };
 
   return (
     <ThemedView style={styles.container}>
-      <KeyboardAvoidingView style={styles.flex} behavior="padding" keyboardVerticalOffset={0}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior="padding"
+        keyboardVerticalOffset={0}
+      >
         <View style={[styles.header, { paddingTop: insets.top + Spacing.md }]}>
-          <Pressable onPress={() => navigation.goBack()} style={styles.headerButton}>
+          <Pressable
+            onPress={() => navigation.goBack()}
+            style={styles.headerButton}
+          >
             <Feather name="x" size={24} color={theme.text} />
           </Pressable>
-          <ThemedText style={styles.headerTitle}>{editMode ? "Edit Media" : "Add Media"}</ThemedText>
-          <Pressable onPress={handleConfirm} disabled={saving} style={styles.headerButton}>
-            <ThemedText style={[styles.saveText, { color: saving ? theme.textTertiary : theme.link }]}>{saving ? "Saving..." : editMode ? "Save" : "Add"}</ThemedText>
+          <ThemedText style={styles.headerTitle}>
+            {editMode ? "Edit Media" : "Add Media"}
+          </ThemedText>
+          <Pressable
+            onPress={handleConfirm}
+            disabled={saving}
+            style={styles.headerButton}
+          >
+            <ThemedText
+              style={[
+                styles.saveText,
+                { color: saving ? theme.textTertiary : theme.link },
+              ]}
+            >
+              {saving ? "Saving..." : editMode ? "Save" : "Add"}
+            </ThemedText>
           </Pressable>
         </View>
 
         <ScrollView
           style={styles.scrollContent}
-          contentContainerStyle={[styles.scrollInner, { paddingBottom: insets.bottom + Spacing.xl }]}
+          contentContainerStyle={[
+            styles.scrollInner,
+            { paddingBottom: insets.bottom + Spacing.xl },
+          ]}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.previewContainer}>
@@ -210,21 +258,29 @@ export default function AddOperativeMediaScreen() {
           <View style={styles.replaceRow}>
             <Pressable
               onPress={handleRetakeCamera}
-              style={[styles.replaceButton, { backgroundColor: theme.backgroundElevated }]}
+              style={[
+                styles.replaceButton,
+                { backgroundColor: theme.backgroundElevated },
+              ]}
             >
               <Feather name="camera" size={16} color={theme.text} />
               <ThemedText style={styles.replaceText}>Retake</ThemedText>
             </Pressable>
             <Pressable
               onPress={handleReplaceGallery}
-              style={[styles.replaceButton, { backgroundColor: theme.backgroundElevated }]}
+              style={[
+                styles.replaceButton,
+                { backgroundColor: theme.backgroundElevated },
+              ]}
             >
               <Feather name="image" size={16} color={theme.text} />
               <ThemedText style={styles.replaceText}>Replace</ThemedText>
             </Pressable>
           </View>
 
-          <ThemedText style={[styles.sectionLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.sectionLabel, { color: theme.textSecondary }]}
+          >
             Media Type
           </ThemedText>
           <ScrollView
@@ -242,8 +298,12 @@ export default function AddOperativeMediaScreen() {
                 style={[
                   styles.typeChip,
                   {
-                    backgroundColor: selectedType === option.value ? theme.link : theme.backgroundRoot,
-                    borderColor: selectedType === option.value ? theme.link : theme.border,
+                    backgroundColor:
+                      selectedType === option.value
+                        ? theme.link
+                        : theme.backgroundRoot,
+                    borderColor:
+                      selectedType === option.value ? theme.link : theme.border,
                   },
                 ]}
               >
@@ -255,7 +315,10 @@ export default function AddOperativeMediaScreen() {
                 <ThemedText
                   style={[
                     styles.typeChipText,
-                    { color: selectedType === option.value ? "#fff" : theme.text },
+                    {
+                      color:
+                        selectedType === option.value ? "#fff" : theme.text,
+                    },
                   ]}
                 >
                   {option.label}
@@ -264,7 +327,9 @@ export default function AddOperativeMediaScreen() {
             ))}
           </ScrollView>
 
-          <ThemedText style={[styles.sectionLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.sectionLabel, { color: theme.textSecondary }]}
+          >
             Caption (optional)
           </ThemedText>
           <TextInput
@@ -289,10 +354,15 @@ export default function AddOperativeMediaScreen() {
             testID="button-confirm-media"
             onPress={handleConfirm}
             disabled={saving}
-            style={[styles.confirmButton, { backgroundColor: saving ? theme.textTertiary : theme.link }]}
+            style={[
+              styles.confirmButton,
+              { backgroundColor: saving ? theme.textTertiary : theme.link },
+            ]}
           >
             <Feather name="check" size={20} color="#fff" />
-            <ThemedText style={styles.confirmButtonText}>{saving ? "Saving..." : editMode ? "Save Changes" : "Add Media"}</ThemedText>
+            <ThemedText style={styles.confirmButtonText}>
+              {saving ? "Saving..." : editMode ? "Save Changes" : "Add Media"}
+            </ThemedText>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>

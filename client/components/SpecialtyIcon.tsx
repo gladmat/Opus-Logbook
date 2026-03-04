@@ -9,7 +9,11 @@ interface SpecialtyIconProps {
   color: string;
 }
 
-export function SpecialtyIcon({ specialty, size = 24, color }: SpecialtyIconProps) {
+export function SpecialtyIcon({
+  specialty,
+  size = 24,
+  color,
+}: SpecialtyIconProps) {
   const icon = SPECIALTY_ICON_PATHS[specialty];
   if (!icon) return null;
 
