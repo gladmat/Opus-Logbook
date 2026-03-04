@@ -10,7 +10,7 @@ import {
   userDeviceKeys, type UserDeviceKey
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, ilike, sql, lt, isNull, desc } from "drizzle-orm";
+import { eq, and, ne, ilike, sql, lt, isNull, desc } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -30,6 +30,7 @@ export interface IStorage {
   getUserFacilities(userId: string): Promise<UserFacility[]>;
   createUserFacility(facility: InsertUserFacility): Promise<UserFacility>;
   updateUserFacility(id: string, userId: string, facility: Partial<InsertUserFacility>): Promise<UserFacility | undefined>;
+  clearPrimaryFacilities(userId: string, excludeId: string): Promise<void>;
   // IMPROVEMENT: IDOR fix — requires userId to enforce ownership at query level
   deleteUserFacility(id: string, userId: string): Promise<boolean>;
   
@@ -145,6 +146,20 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(userFacilities.id, id), eq(userFacilities.userId, userId)))
       .returning();
     return updated || undefined;
+  }
+
+  // Batch unset isPrimary for all user facilities except the one being set as primary
+  async clearPrimaryFacilities(userId: string, excludeId: string): Promise<void> {
+    await db
+      .update(userFacilities)
+      .set({ isPrimary: false })
+      .where(
+        and(
+          eq(userFacilities.userId, userId),
+          eq(userFacilities.isPrimary, true),
+          ne(userFacilities.id, excludeId)
+        )
+      );
   }
 
   // IMPROVEMENT: IDOR fix — deletes only if BOTH id and userId match,
@@ -272,22 +287,32 @@ export class DatabaseStorage implements IStorage {
     return true;
   }
 
-  // Ownership verification helpers
+  // Ownership verification helpers — single query each (no N+1 chains)
   async verifyProcedureOwnership(procedureId: string, userId: string): Promise<boolean> {
-    const procedure = await this.getProcedure(procedureId);
-    return procedure?.userId === userId;
+    const [result] = await db
+      .select({ id: procedures.id })
+      .from(procedures)
+      .where(and(eq(procedures.id, procedureId), eq(procedures.userId, userId)));
+    return !!result;
   }
 
   async verifyFlapOwnership(flapId: string, userId: string): Promise<boolean> {
-    const flap = await this.getFlap(flapId);
-    if (!flap) return false;
-    return this.verifyProcedureOwnership(flap.procedureId, userId);
+    const [result] = await db
+      .select({ id: flaps.id })
+      .from(flaps)
+      .innerJoin(procedures, eq(flaps.procedureId, procedures.id))
+      .where(and(eq(flaps.id, flapId), eq(procedures.userId, userId)));
+    return !!result;
   }
 
   async verifyAnastomosisOwnership(anastomosisId: string, userId: string): Promise<boolean> {
-    const anastomosis = await this.getAnastomosis(anastomosisId);
-    if (!anastomosis) return false;
-    return this.verifyFlapOwnership(anastomosis.flapId, userId);
+    const [result] = await db
+      .select({ id: anastomoses.id })
+      .from(anastomoses)
+      .innerJoin(flaps, eq(anastomoses.flapId, flaps.id))
+      .innerJoin(procedures, eq(flaps.procedureId, procedures.id))
+      .where(and(eq(anastomoses.id, anastomosisId), eq(procedures.userId, userId)));
+    return !!result;
   }
 
   async getUserDeviceKeys(userId: string): Promise<UserDeviceKey[]> {
