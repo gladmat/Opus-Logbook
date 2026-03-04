@@ -83,12 +83,20 @@ export type CareerStage = typeof careerStageEnum[number];
 export const verificationStatusEnum = ["unverified", "pending", "verified"] as const;
 export type VerificationStatus = typeof verificationStatusEnum[number];
 
+export const sexEnum = ["male", "female", "other", "prefer_not_to_say"] as const;
+export type Sex = typeof sexEnum[number];
+
 export const profiles = pgTable("profiles", {
   id: varchar("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }).unique(),
   fullName: text("full_name"),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  dateOfBirth: varchar("date_of_birth", { length: 10 }), // ISO date string YYYY-MM-DD
+  sex: varchar("sex", { length: 20 }),
+  profilePictureUrl: text("profile_picture_url"),
   countryOfPractice: varchar("country_of_practice", { length: 50 }),
   medicalCouncilNumber: varchar("medical_council_number", { length: 50 }),
   verificationStatus: varchar("verification_status", { length: 20 }).default("unverified").notNull(),

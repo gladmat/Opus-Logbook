@@ -1,14 +1,16 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { Platform } from "react-native";
-import { 
-  AuthUser, 
-  UserProfile, 
+import {
+  AuthUser,
+  UserProfile,
   UserFacility,
-  getCurrentUser, 
-  login as authLogin, 
+  getCurrentUser,
+  login as authLogin,
   signup as authSignup,
   logout as authLogout,
   updateProfile as authUpdateProfile,
+  uploadProfilePicture as authUploadProfilePicture,
+  deleteProfilePicture as authDeleteProfilePicture,
   getUserFacilities,
   createFacility as authCreateFacility,
   deleteFacility as authDeleteFacility,
@@ -29,6 +31,8 @@ interface AuthContextType {
   signup: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (profile: Partial<UserProfile>) => Promise<void>;
+  uploadProfilePicture: (imageUri: string) => Promise<void>;
+  deleteProfilePicture: () => Promise<void>;
   addFacility: (name: string, isPrimary?: boolean, facilityId?: string) => Promise<void>;
   removeFacility: (id: string) => Promise<void>;
   setFacilityPrimary: (id: string) => Promise<void>;
@@ -118,6 +122,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(updated);
   };
 
+  const uploadProfilePicture = async (imageUri: string) => {
+    const updated = await authUploadProfilePicture(imageUri);
+    setProfile(updated);
+  };
+
+  const deleteProfilePicture = async () => {
+    const updated = await authDeleteProfilePicture();
+    setProfile(updated);
+  };
+
   const addFacility = async (name: string, isPrimary: boolean = false, facilityId?: string) => {
     const facility = await authCreateFacility(name, isPrimary, facilityId);
     setFacilities(prev => [...prev, facility]);
@@ -148,6 +162,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signup,
         logout,
         updateProfile,
+        uploadProfilePicture,
+        deleteProfilePicture,
         addFacility,
         removeFacility,
         setFacilityPrimary,

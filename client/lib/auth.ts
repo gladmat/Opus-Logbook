@@ -14,6 +14,11 @@ export interface UserProfile {
   id: string;
   userId: string;
   fullName: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  dateOfBirth: string | null;
+  sex: string | null;
+  profilePictureUrl: string | null;
   countryOfPractice: string | null;
   medicalCouncilNumber: string | null;
   verificationStatus: string;
@@ -189,6 +194,43 @@ export async function deleteFacility(id: string): Promise<void> {
     const error = await res.json();
     throw new Error(error.error || "Failed to delete facility");
   }
+}
+
+export async function uploadProfilePicture(imageUri: string): Promise<UserProfile> {
+  const baseUrl = getApiUrl();
+  const token = await getAuthToken();
+
+  const formData = new FormData();
+  const filename = imageUri.split("/").pop() || "avatar.jpg";
+  const match = /\.(\w+)$/.exec(filename);
+  const type = match ? `image/${match[1]}` : "image/jpeg";
+  formData.append("picture", { uri: imageUri, name: filename, type } as any);
+
+  const res = await fetch(new URL("/api/profile/picture", baseUrl).href, {
+    method: "POST",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Failed to upload profile picture");
+  }
+
+  return res.json();
+}
+
+export async function deleteProfilePicture(): Promise<UserProfile> {
+  const res = await authFetch("/api/profile/picture", { method: "DELETE" });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Failed to delete profile picture");
+  }
+
+  return res.json();
 }
 
 export async function registerDeviceKey(

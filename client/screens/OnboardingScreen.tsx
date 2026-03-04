@@ -51,7 +51,8 @@ export default function OnboardingScreen() {
   const [agreementError, setAgreementError] = useState(false);
 
   const [countryOfPractice, setCountryOfPractice] = useState<string | null>(null);
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [medicalCouncilNumber, setMedicalCouncilNumber] = useState("");
   const [careerStage, setCareerStage] = useState<string | null>(null);
   const [newFacility, setNewFacility] = useState("");
@@ -81,8 +82,12 @@ export default function OnboardingScreen() {
         Alert.alert("Required", "Please select your country of practice");
         return;
       }
-      if (!fullName.trim()) {
-        Alert.alert("Required", "Please enter your full name");
+      if (!firstName.trim()) {
+        Alert.alert("Required", "Please enter your first name");
+        return;
+      }
+      if (!lastName.trim()) {
+        Alert.alert("Required", "Please enter your last name");
         return;
       }
       setStep("career");
@@ -100,7 +105,9 @@ export default function OnboardingScreen() {
       setIsLoading(true);
       try {
         await updateProfile({
-          fullName: fullName.trim(),
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          fullName: `${firstName.trim()} ${lastName.trim()}`,
           countryOfPractice,
           medicalCouncilNumber: medicalCouncilNumber.trim() || null,
           careerStage,
@@ -250,13 +257,24 @@ export default function OnboardingScreen() {
               Let's set up your profile. First, tell us where you practice.
             </Text>
 
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Full Name</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>First Name</Text>
             <TextInput
-              testID="input-full-name"
+              testID="input-first-name"
               style={[styles.input, { backgroundColor: colors.backgroundSecondary, color: colors.text, borderColor: colors.border }]}
-              value={fullName}
-              onChangeText={setFullName}
-              placeholder="Dr. Jane Smith"
+              value={firstName}
+              onChangeText={setFirstName}
+              placeholder="Jane"
+              placeholderTextColor={colors.textTertiary}
+              autoCapitalize="words"
+            />
+
+            <Text style={[styles.label, { color: colors.textSecondary, marginTop: Spacing.lg }]}>Last Name</Text>
+            <TextInput
+              testID="input-last-name"
+              style={[styles.input, { backgroundColor: colors.backgroundSecondary, color: colors.text, borderColor: colors.border }]}
+              value={lastName}
+              onChangeText={setLastName}
+              placeholder="Smith"
               placeholderTextColor={colors.textTertiary}
               autoCapitalize="words"
             />

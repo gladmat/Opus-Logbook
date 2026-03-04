@@ -9,6 +9,7 @@ import {
   Linking,
   TextInput,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -408,13 +409,28 @@ export default function SettingsScreen() {
             ACCOUNT
           </ThemedText>
           <View style={[styles.sectionCard, { backgroundColor: theme.backgroundDefault }]}>
-            <View style={styles.profileHeader}>
-              <View style={[styles.avatarContainer, { backgroundColor: theme.link + "15" }]}>
-                <Feather name="user" size={28} color={theme.link} />
+            <Pressable
+              style={styles.profileHeader}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                navigation.navigate("EditProfile");
+              }}
+            >
+              <View style={[styles.avatarContainer, { backgroundColor: theme.link + "15", overflow: "hidden" }]}>
+                {profile?.profilePictureUrl ? (
+                  <Image
+                    source={{ uri: `${getApiUrl()}${profile.profilePictureUrl}` }}
+                    style={{ width: 56, height: 56, borderRadius: 28 }}
+                  />
+                ) : (
+                  <Feather name="user" size={28} color={theme.link} />
+                )}
               </View>
               <View style={styles.profileInfo}>
                 <ThemedText style={styles.profileName}>
-                  {profile?.fullName || "Surgeon"}
+                  {profile?.firstName && profile?.lastName
+                    ? `${profile.firstName} ${profile.lastName}`
+                    : profile?.fullName || "Surgeon"}
                 </ThemedText>
                 <ThemedText style={[styles.profileEmail, { color: theme.textSecondary }]}>
                   {user?.email}
@@ -425,7 +441,8 @@ export default function SettingsScreen() {
                   </ThemedText>
                 ) : null}
               </View>
-            </View>
+              <Feather name="chevron-right" size={20} color={theme.textTertiary} />
+            </Pressable>
             <View style={[styles.profileDetailsRow, { borderTopColor: theme.border }]}>
               <View style={styles.profileDetailItem}>
                 <ThemedText style={[styles.profileDetailLabel, { color: theme.textSecondary }]}>

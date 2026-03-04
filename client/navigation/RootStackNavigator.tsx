@@ -12,6 +12,7 @@ import AuthScreen from "@/screens/AuthScreen";
 import OnboardingScreen from "@/screens/OnboardingScreen";
 import LockScreen from "@/screens/LockScreen";
 import SetupAppLockScreen from "@/screens/SetupAppLockScreen";
+import EditProfileScreen from "@/screens/EditProfileScreen";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppLock } from "@/contexts/AppLockContext";
@@ -43,6 +44,7 @@ export type RootStackParamList = {
     existingCaption?: string;
   };
   SetupAppLock: undefined;
+  EditProfile: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -137,6 +139,13 @@ export default function RootStackNavigator() {
             component={SetupAppLockScreen}
             options={{
               headerTitle: "App Lock",
+            }}
+          />
+          <Stack.Screen
+            name="EditProfile"
+            component={EditProfileScreen}
+            options={{
+              headerTitle: "Edit Profile",
             }}
           />
         </>
