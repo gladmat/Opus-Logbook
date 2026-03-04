@@ -1,5 +1,6 @@
 import { InfectionOverlay } from "./infection";
 import { WoundAssessment } from "@/types/wound";
+import { EncounterClass } from "@/types/episode";
 
 // Case status for active patient tracking
 export type CaseStatus = "active" | "discharged" | "incomplete";
@@ -1148,6 +1149,8 @@ export interface DiagnosisGroup {
   diagnosisCertainty?: DiagnosisCertainty;
   /** Pre-operative clinical impression (only for excision biopsy / awaiting histology cases) */
   clinicalSuspicion?: ClinicalSuspicion;
+  /** Wound assessment data for this diagnosis group (per-group for multi-site burns) */
+  woundAssessment?: WoundAssessment;
 }
 
 export interface SuggestionAcceptanceEntry {
@@ -1176,6 +1179,11 @@ export interface Case {
   formSavedAt?: string;
   entryDurationSeconds?: number;
   suggestionAcceptanceLog?: SuggestionAcceptanceEntry[];
+
+  // Episode linkage (Phase 6a)
+  episodeId?: string;
+  episodeSequence?: number;
+  encounterClass?: EncounterClass;
 
   // Patient Demographics
   gender?: Gender;

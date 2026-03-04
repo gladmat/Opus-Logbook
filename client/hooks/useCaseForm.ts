@@ -1273,7 +1273,7 @@ export function useCaseForm({
                   },
                 ],
           ownerId: isEditMode && existingCase ? existingCase.ownerId : userId,
-          schemaVersion: 2,
+          schemaVersion: 3,
           formOpenedAt: formOpenedAt || undefined,
           formSavedAt,
           entryDurationSeconds,

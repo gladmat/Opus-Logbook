@@ -40,6 +40,8 @@ interface CaseIndexEntry {
   procedureDate: string;
   patientIdentifierHash?: string;
   updatedAt: string;
+  episodeId?: string;
+  encounterClass?: string;
 }
 
 async function hashPatientIdentifier(
@@ -267,6 +269,8 @@ export async function saveCase(caseData: Case): Promise<void> {
       procedureDate: caseData.procedureDate,
       patientIdentifierHash,
       updatedAt: now,
+      episodeId: caseData.episodeId,
+      encounterClass: caseData.encounterClass,
     };
 
     if (existingIdx >= 0) {

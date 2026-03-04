@@ -52,7 +52,7 @@ function migrateSnomedCodes(c: Case): Case {
 export function migrateCase(raw: unknown): Case {
   if (!raw || typeof raw !== "object") {
     console.error("Case migration failed: invalid input (not an object)");
-    return { ...(raw as Case), schemaVersion: 2 };
+    return { ...(raw as Case), schemaVersion: 3 };
   }
 
   try {
@@ -60,8 +60,8 @@ export function migrateCase(raw: unknown): Case {
 
     if (Array.isArray(obj.diagnosisGroups) && obj.diagnosisGroups.length > 0) {
       const migrated = migrateSnomedCodes(raw as Case);
-      if (!migrated.schemaVersion) {
-        return { ...migrated, schemaVersion: 2 };
+      if (!migrated.schemaVersion || migrated.schemaVersion < 3) {
+        return { ...migrated, schemaVersion: 3 };
       }
       return migrated;
     }
@@ -94,7 +94,7 @@ export function migrateCase(raw: unknown): Case {
     const migrated: any = {
       ...obj,
       diagnosisGroups: [group],
-      schemaVersion: 2,
+      schemaVersion: 3,
     };
     delete migrated.preManagementDiagnosis;
     delete migrated.finalDiagnosis;
@@ -112,6 +112,6 @@ export function migrateCase(raw: unknown): Case {
       error instanceof Error ? error.message : "Unknown error",
     );
     // Return raw data with schema version to prevent data loss
-    return { ...(raw as Case), schemaVersion: 2 };
+    return { ...(raw as Case), schemaVersion: 3 };
   }
 }

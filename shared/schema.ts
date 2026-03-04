@@ -522,3 +522,53 @@ export const insertCaseProcedureSchema = createInsertSchema(
 
 export type CaseProcedure = typeof caseProcedures.$inferSelect;
 export type InsertCaseProcedure = z.infer<typeof insertCaseProcedureSchema>;
+
+// ── Treatment Episodes ──────────────────────────────────────────────────────
+
+export const treatmentEpisodes = pgTable(
+  "treatment_episodes",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    encryptedData: text("encrypted_data").notNull(),
+    patientIdentifierHash: varchar("patient_identifier_hash", { length: 64 }),
+    status: varchar("status", { length: 20 }).notNull().default("planned"),
+    createdAt: timestamp("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: timestamp("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => [
+    index("treatment_episodes_user_idx").on(t.userId),
+    index("treatment_episodes_user_status_idx").on(t.userId, t.status),
+  ],
+);
+
+export const treatmentEpisodesRelations = relations(
+  treatmentEpisodes,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [treatmentEpisodes.userId],
+      references: [users.id],
+    }),
+  }),
+);
+
+export const insertTreatmentEpisodeSchema = createInsertSchema(
+  treatmentEpisodes,
+).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type TreatmentEpisodeRow = typeof treatmentEpisodes.$inferSelect;
+export type InsertTreatmentEpisodeRow = z.infer<
+  typeof insertTreatmentEpisodeSchema
+>;
