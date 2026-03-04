@@ -30,6 +30,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { OperativeMediaType, OPERATIVE_MEDIA_TYPE_LABELS } from "@/types/case";
+import { DatePickerField } from "@/components/FormField";
 import { useMediaCallback } from "@/contexts/MediaCallbackContext";
 
 type AddOperativeMediaRouteProp = RouteProp<
@@ -71,12 +72,18 @@ export default function AddOperativeMediaScreen() {
     existingMediaId,
     existingMediaType,
     existingCaption,
+    existingTimestamp,
   } = route.params;
 
   const [selectedType, setSelectedType] = useState<OperativeMediaType>(
     (existingMediaType as OperativeMediaType) || "intraoperative_photo",
   );
   const [captionInput, setCaptionInput] = useState(existingCaption || "");
+  const [mediaDate, setMediaDate] = useState(
+    existingTimestamp
+      ? existingTimestamp.split("T")[0]
+      : new Date().toISOString().split("T")[0],
+  );
   const [cameraPermission, requestCameraPermission] =
     ImagePicker.useCameraPermissions();
   const [currentUri, setCurrentUri] = useState(imageUri);
@@ -174,13 +181,21 @@ export default function AddOperativeMediaScreen() {
         finalUri = currentUri;
       }
 
+      // Build timestamp from selected date
+      const today = new Date().toISOString().split("T")[0];
+      const timestamp =
+        mediaDate === today
+          ? new Date().toISOString()
+          : new Date(mediaDate + "T12:00:00").toISOString();
+
       const mediaData = {
         id: editMode && existingMediaId ? existingMediaId : uuidv4(),
         localUri: finalUri,
         mimeType: currentMimeType,
         mediaType: selectedType,
         caption: captionInput.trim() || undefined,
-        createdAt: new Date().toISOString(),
+        timestamp,
+        createdAt: editMode ? (existingTimestamp || new Date().toISOString()) : new Date().toISOString(),
       };
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -326,6 +341,13 @@ export default function AddOperativeMediaScreen() {
               </Pressable>
             ))}
           </ScrollView>
+
+          <DatePickerField
+            label="Date"
+            value={mediaDate}
+            onChange={setMediaDate}
+            placeholder="Select date..."
+          />
 
           <ThemedText
             style={[styles.sectionLabel, { color: theme.textSecondary }]}

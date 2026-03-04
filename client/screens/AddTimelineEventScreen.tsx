@@ -23,7 +23,7 @@ import {
   ClavienDindoGrade,
   CLAVIEN_DINDO_LABELS,
 } from "@/types/case";
-import { FormField, SelectField } from "@/components/FormField";
+import { FormField, SelectField, DatePickerField } from "@/components/FormField";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Button } from "@/components/Button";
 import { MediaCapture } from "@/components/MediaCapture";
@@ -88,6 +88,9 @@ export default function AddTimelineEventScreen() {
   const [eventType, setEventType] = useState<TimelineEventType | "">(
     initialEventType || "",
   );
+  const [eventDate, setEventDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
   const [note, setNote] = useState("");
   const [followUpInterval, setFollowUpInterval] = useState<
     FollowUpInterval | ""
@@ -128,6 +131,7 @@ export default function AddTimelineEventScreen() {
         if (!existing) return;
         setEditingEvent(existing);
         setEventType(existing.eventType);
+        setEventDate(existing.createdAt.split("T")[0]);
         setNote(existing.note || "");
         if (existing.followUpInterval)
           setFollowUpInterval(existing.followUpInterval);
@@ -286,12 +290,24 @@ export default function AddTimelineEventScreen() {
       }
 
       if (isEditMode && editEventId) {
+        // Preserve original time if date unchanged, otherwise use selected date
+        const existingDate = editingEvent?.createdAt?.split("T")[0];
+        if (existingDate !== eventDate) {
+          updates.createdAt = new Date(eventDate + "T12:00:00").toISOString();
+        }
         await updateTimelineEvent(editEventId, updates);
       } else {
+        // Build timestamp: use current time if today, otherwise noon on selected date
+        const today = new Date().toISOString().split("T")[0];
+        const createdAt =
+          eventDate === today
+            ? new Date().toISOString()
+            : new Date(eventDate + "T12:00:00").toISOString();
+
         const event: TimelineEvent = {
           id: uuidv4(),
           caseId,
-          createdAt: new Date().toISOString(),
+          createdAt,
           clinicalContext: isDischargeDay ? "discharge" : undefined,
           ...updates,
         } as TimelineEvent;
@@ -429,6 +445,15 @@ export default function AddTimelineEventScreen() {
         Entry Type
       </ThemedText>
       {renderEventTypeButtons()}
+
+      {eventType ? (
+        <DatePickerField
+          label="Event Date"
+          value={eventDate}
+          onChange={setEventDate}
+          placeholder="Select date..."
+        />
+      ) : null}
 
       {eventType === "photo" || eventType === "imaging" ? (
         <View style={styles.section}>

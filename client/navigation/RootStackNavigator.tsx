@@ -53,6 +53,7 @@ export type RootStackParamList = {
     existingMediaId?: string;
     existingMediaType?: string;
     existingCaption?: string;
+    existingTimestamp?: string;
   };
   SetupAppLock: undefined;
   EditProfile: undefined;
