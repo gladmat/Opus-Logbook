@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "Opus",
-    "slug": "surgical-logbook",
-    "version": "2.0.0",
+    "slug": "opus",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./client/assets/icons/app/opus-icon-1024.png",
     "scheme": "opus",
@@ -10,8 +10,8 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.surgicallogbook.app",
-      "buildNumber": "8",
+      "bundleIdentifier": "com.drgladysz.opus",
+      "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -25,8 +25,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.surgicallogbook.app",
-      "versionCode": 8,
+      "package": "com.drgladysz.opus",
+      "versionCode": 1,
       "permissions": [
         "android.permission.RECORD_AUDIO"
       ]

@@ -163,6 +163,18 @@ Hand surgery, Orthoplastic, Breast, Body contouring, Burns, Head & neck, Aesthet
 - **Healthcheck:** `GET /api/health`
 - **Schema push:** Use public DATABASE_URL from Postgres service with `npx drizzle-kit push`
 
+## iOS / App Store distribution
+
+- **Bundle ID:** `com.drgladysz.opus`
+- **App Store listing name:** Opus Logbook
+- **Home screen name:** Opus
+- **App Store Connect App ID:** 6759992788
+- **SKU:** opus-surgical-logbook
+- **Apple Developer Team ID:** 8CQ38RR2W4
+- **Expo slug:** opus
+- **EAS Project ID:** 0bc1b91c-c240-4f4e-b030-31d16389cd1e
+- **Expo account:** @gladmat
+
 ## Brand & Design System: Charcoal + Amber
 
 Dark-mode-first design with warm charcoal palette and amber as the singular accent colour. Defined in `client/constants/theme.ts`.

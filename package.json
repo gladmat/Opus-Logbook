@@ -1,7 +1,7 @@
 {
-  "name": "my-app",
+  "name": "opus",
   "main": "client/index.js",
-  "version": "1.1.0",
+  "version": "1.0.0",
   "scripts": {
     "expo:dev": "EXPO_PUBLIC_API_URL=http://localhost:5001 npx expo start",
     "server:dev": "NODE_ENV=development node --env-file=.env --import tsx server/index.ts",
