@@ -9,8 +9,12 @@ import {
   Linking,
   TextInput,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { Feather } from "@expo/vector-icons";
@@ -27,6 +31,7 @@ import { exportCases, ExportFormat, EXPORT_FORMAT_LABELS } from "@/lib/export";
 import { validateMigrationCorpus } from "@/lib/migrationValidator";
 import { getCodingSystemForProfile } from "@/lib/snomedCt";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAppLock } from "@/contexts/AppLockContext";
 import { MasterFacility, getFacilityById, SUPPORTED_COUNTRIES } from "@/data/facilities";
 import { getApiUrl } from "@/lib/query-client";
 
@@ -135,6 +140,8 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
   const tabBarHeight = useBottomTabBarHeight();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { isAppLockConfigured } = useAppLock();
   const { user, profile, facilities, logout, addFacility, removeFacility } = useAuth();
 
   const [caseCount, setCaseCount] = useState<number | null>(null);
@@ -402,13 +409,28 @@ export default function SettingsScreen() {
             ACCOUNT
           </ThemedText>
           <View style={[styles.sectionCard, { backgroundColor: theme.backgroundDefault }]}>
-            <View style={styles.profileHeader}>
-              <View style={[styles.avatarContainer, { backgroundColor: theme.link + "15" }]}>
-                <Feather name="user" size={28} color={theme.link} />
+            <Pressable
+              style={styles.profileHeader}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                navigation.navigate("EditProfile");
+              }}
+            >
+              <View style={[styles.avatarContainer, { backgroundColor: theme.link + "15", overflow: "hidden" }]}>
+                {profile?.profilePictureUrl ? (
+                  <Image
+                    source={{ uri: `${getApiUrl()}${profile.profilePictureUrl}` }}
+                    style={{ width: 56, height: 56, borderRadius: 28 }}
+                  />
+                ) : (
+                  <Feather name="user" size={28} color={theme.link} />
+                )}
               </View>
               <View style={styles.profileInfo}>
                 <ThemedText style={styles.profileName}>
-                  {profile?.fullName || "Surgeon"}
+                  {profile?.firstName && profile?.lastName
+                    ? `${profile.firstName} ${profile.lastName}`
+                    : profile?.fullName || "Surgeon"}
                 </ThemedText>
                 <ThemedText style={[styles.profileEmail, { color: theme.textSecondary }]}>
                   {user?.email}
@@ -419,7 +441,8 @@ export default function SettingsScreen() {
                   </ThemedText>
                 ) : null}
               </View>
-            </View>
+              <Feather name="chevron-right" size={20} color={theme.textTertiary} />
+            </Pressable>
             <View style={[styles.profileDetailsRow, { borderTopColor: theme.border }]}>
               <View style={styles.profileDetailItem}>
                 <ThemedText style={[styles.profileDetailLabel, { color: theme.textSecondary }]}>
@@ -450,6 +473,28 @@ export default function SettingsScreen() {
                 </View>
               </View>
             ) : null}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <ThemedText style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+            SECURITY
+          </ThemedText>
+          <View style={[styles.sectionCard, { backgroundColor: theme.backgroundDefault }]}>
+            <SettingsItem
+              icon="shield"
+              label="App Lock"
+              subtitle="PIN and biometric protection"
+              value={isAppLockConfigured ? "On" : "Off"}
+              onPress={() => navigation.navigate("SetupAppLock")}
+            />
+            <View style={[styles.divider, { backgroundColor: theme.border }]} />
+            <SettingsItem
+              icon="lock"
+              label="Change Password"
+              subtitle="Update your account password"
+              onPress={() => setShowChangePasswordModal(true)}
+            />
           </View>
         </View>
 
@@ -624,20 +669,6 @@ export default function SettingsScreen() {
               label="Send Feedback"
               subtitle="Report bugs or suggest features"
               onPress={handleSendFeedback}
-            />
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <ThemedText style={[styles.sectionTitle, { color: theme.textSecondary }]}>
-            SECURITY
-          </ThemedText>
-          <View style={[styles.sectionCard, { backgroundColor: theme.backgroundDefault }]}>
-            <SettingsItem
-              icon="lock"
-              label="Change Password"
-              subtitle="Update your account password"
-              onPress={() => setShowChangePasswordModal(true)}
             />
           </View>
         </View>

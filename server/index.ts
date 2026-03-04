@@ -80,6 +80,7 @@ function setupBodyParsing(app: express.Application) {
 
   // Apply route-specific limits (most restrictive first, fallback last)
   app.use("/api/auth", authJsonParser, authUrlencodedParser);
+  app.use("/api/profile/picture", bulkJsonParser, bulkUrlencodedParser); // Profile picture uploads use multipart, but needs higher limit
   app.use("/api/seed-snomed-ref", bulkJsonParser, bulkUrlencodedParser);
 
   // Default API limit for everything else under /api
@@ -248,6 +249,7 @@ function configureExpoAndLanding(app: express.Application) {
     next();
   });
 
+  app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
   app.use("/assets", express.static(path.resolve(process.cwd(), "assets")));
   app.use(express.static(path.resolve(process.cwd(), "static-build")));
 

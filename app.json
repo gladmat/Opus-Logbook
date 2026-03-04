@@ -13,7 +13,8 @@
       "bundleIdentifier": "com.drgladysz.opus",
       "buildNumber": "1",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSFaceIDUsageDescription": "Opus uses Face ID to protect your surgical case data."
       }
     },
     "android": {
@@ -48,6 +49,7 @@
         }
       ],
       "expo-web-browser",
+      "expo-local-authentication",
       [
         "expo-image-picker",
         {

@@ -45,6 +45,9 @@ app-example
 # server build output
 server_dist/
 
+# uploaded files
+uploads/
+
 # generated native folders
 /ios
 /android

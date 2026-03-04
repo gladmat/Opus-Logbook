@@ -1,6 +1,9 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "node:http";
 import { createHash, randomBytes } from "node:crypto";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import multer from "multer";
 import { storage } from "./storage";
 import { allSeedData } from "./seedData";
 import { searchProcedures, searchDiagnoses, getConceptDetails } from "./snomedApi";
@@ -43,12 +46,41 @@ const resetPasswordSchema = z.object({
 const profileUpdateSchema = insertProfileSchema
   .pick({
     fullName: true,
+    firstName: true,
+    lastName: true,
+    dateOfBirth: true,
+    sex: true,
     countryOfPractice: true,
     medicalCouncilNumber: true,
     careerStage: true,
     onboardingComplete: true,
   })
   .partial();
+
+// Profile picture upload config
+const uploadsDir = path.resolve(process.cwd(), "uploads", "avatars");
+fs.mkdirSync(uploadsDir, { recursive: true });
+
+const avatarStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadsDir),
+  filename: (req: AuthenticatedRequest, _file, cb) => {
+    const ext = ".jpg"; // We'll accept any image but save as original extension
+    const filename = `${req.userId}-${Date.now()}${ext}`;
+    cb(null, filename);
+  },
+});
+
+const avatarUpload = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed"));
+    }
+  },
+});
 
 // ── Facility validation schemas ──────────────────────────────────────────────
 
@@ -78,7 +110,6 @@ const revokeDeviceKeySchema = z.object({
 });
 
 // ── Flap/Anastomosis validation schemas ──────────────────────────────────────
-
 const flapCreateSchema = insertFlapSchema;
 const flapUpdateSchema = insertFlapSchema.partial().omit({ procedureId: true });
 const anastomosisCreateSchema = insertAnastomosisSchema;
@@ -395,12 +426,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!parseResult.success) {
         return res.status(400).json({ error: "Invalid profile data", details: parseResult.error.flatten() });
       }
-      
+
       const profile = await storage.updateProfile(req.userId!, parseResult.data);
       res.json(profile);
     } catch (error) {
       console.error("Profile update error:", error);
       res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+
+  // Profile picture upload
+  app.post("/api/profile/picture", authenticateToken, (req: AuthenticatedRequest, res: Response) => {
+    avatarUpload.single("picture")(req, res, async (err) => {
+      if (err) {
+        const message = err instanceof multer.MulterError
+          ? (err.code === "LIMIT_FILE_SIZE" ? "File too large (max 5MB)" : err.message)
+          : err.message || "Upload failed";
+        return res.status(400).json({ error: message });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+
+      try {
+        // Delete old avatar file if it exists
+        const existingProfile = await storage.getProfile(req.userId!);
+        if (existingProfile?.profilePictureUrl) {
+          const oldPath = path.resolve(process.cwd(), existingProfile.profilePictureUrl.replace(/^\//, ""));
+          if (fs.existsSync(oldPath)) {
+            fs.unlinkSync(oldPath);
+          }
+        }
+
+        const pictureUrl = `/uploads/avatars/${req.file.filename}`;
+        const profile = await storage.updateProfile(req.userId!, { profilePictureUrl: pictureUrl });
+        res.json(profile);
+      } catch (error) {
+        console.error("Profile picture upload error:", error);
+        res.status(500).json({ error: "Failed to upload profile picture" });
+      }
+    });
+  });
+
+  app.delete("/api/profile/picture", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const existingProfile = await storage.getProfile(req.userId!);
+      if (existingProfile?.profilePictureUrl) {
+        const oldPath = path.resolve(process.cwd(), existingProfile.profilePictureUrl.replace(/^\//, ""));
+        if (fs.existsSync(oldPath)) {
+          fs.unlinkSync(oldPath);
+        }
+      }
+      const profile = await storage.updateProfile(req.userId!, { profilePictureUrl: null });
+      res.json(profile);
+    } catch (error) {
+      console.error("Profile picture delete error:", error);
+      res.status(500).json({ error: "Failed to delete profile picture" });
     }
   });
 
