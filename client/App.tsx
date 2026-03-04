@@ -12,6 +12,7 @@ import { queryClient } from "@/lib/query-client";
 import RootStackNavigator from "@/navigation/RootStackNavigator";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { AppLockProvider } from "@/contexts/AppLockContext";
 import { MediaCallbackProvider } from "@/contexts/MediaCallbackContext";
 import { ThemeProvider, useTheme } from "@/hooks/useTheme";
 
@@ -52,6 +53,7 @@ export default function App() {
       <ThemeProvider>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
+            <AppLockProvider>
             <MediaCallbackProvider>
               <SafeAreaProvider>
                 <GestureHandlerRootView style={styles.root}>
@@ -64,6 +66,7 @@ export default function App() {
                 </GestureHandlerRootView>
               </SafeAreaProvider>
             </MediaCallbackProvider>
+            </AppLockProvider>
           </AuthProvider>
         </QueryClientProvider>
       </ThemeProvider>

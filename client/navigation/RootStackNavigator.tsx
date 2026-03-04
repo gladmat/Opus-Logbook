@@ -10,8 +10,11 @@ import MediaManagementScreen from "@/screens/MediaManagementScreen";
 import AddOperativeMediaScreen from "@/screens/AddOperativeMediaScreen";
 import AuthScreen from "@/screens/AuthScreen";
 import OnboardingScreen from "@/screens/OnboardingScreen";
+import LockScreen from "@/screens/LockScreen";
+import SetupAppLockScreen from "@/screens/SetupAppLockScreen";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAppLock } from "@/contexts/AppLockContext";
 import { Specialty, TimelineEventType, MediaAttachment, Case } from "@/types/case";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -39,6 +42,7 @@ export type RootStackParamList = {
     existingMediaType?: string;
     existingCaption?: string;
   };
+  SetupAppLock: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -46,6 +50,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export default function RootStackNavigator() {
   const screenOptions = useScreenOptions();
   const { isAuthenticated, onboardingComplete, isLoading } = useAuth();
+  const { isLocked, isAppLockConfigured } = useAppLock();
   const { theme: colors } = useTheme();
 
   if (isLoading) {
@@ -54,6 +59,11 @@ export default function RootStackNavigator() {
         <ActivityIndicator size="large" color={colors.link} />
       </View>
     );
+  }
+
+  // Show lock screen when authenticated, app lock is configured, and currently locked
+  if (isAuthenticated && isAppLockConfigured && isLocked) {
+    return <LockScreen />;
   }
 
   return (
@@ -120,6 +130,13 @@ export default function RootStackNavigator() {
             options={{
               headerShown: false,
               presentation: "fullScreenModal",
+            }}
+          />
+          <Stack.Screen
+            name="SetupAppLock"
+            component={SetupAppLockScreen}
+            options={{
+              headerTitle: "App Lock",
             }}
           />
         </>

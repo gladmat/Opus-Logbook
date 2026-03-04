@@ -48,6 +48,7 @@
     "expo-image-manipulator": "~14.0.8",
     "expo-image-picker": "~17.0.10",
     "expo-linking": "~8.0.8",
+    "expo-local-authentication": "^55.0.8",
     "expo-mail-composer": "^15.0.8",
     "expo-secure-store": "^15.0.8",
     "expo-splash-screen": "~31.0.10",

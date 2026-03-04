@@ -11,6 +11,9 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { Feather } from "@expo/vector-icons";
@@ -27,6 +30,7 @@ import { exportCases, ExportFormat, EXPORT_FORMAT_LABELS } from "@/lib/export";
 import { validateMigrationCorpus } from "@/lib/migrationValidator";
 import { getCodingSystemForProfile } from "@/lib/snomedCt";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAppLock } from "@/contexts/AppLockContext";
 import { MasterFacility, getFacilityById, SUPPORTED_COUNTRIES } from "@/data/facilities";
 import { getApiUrl } from "@/lib/query-client";
 
@@ -135,6 +139,8 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
   const tabBarHeight = useBottomTabBarHeight();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { isAppLockConfigured } = useAppLock();
   const { user, profile, facilities, logout, addFacility, removeFacility } = useAuth();
 
   const [caseCount, setCaseCount] = useState<number | null>(null);
@@ -638,6 +644,14 @@ export default function SettingsScreen() {
               label="Change Password"
               subtitle="Update your account password"
               onPress={() => setShowChangePasswordModal(true)}
+            />
+            <View style={[styles.divider, { backgroundColor: theme.border }]} />
+            <SettingsItem
+              icon="shield"
+              label="App Lock"
+              subtitle="PIN and biometric protection"
+              value={isAppLockConfigured ? "On" : "Off"}
+              onPress={() => navigation.navigate("SetupAppLock")}
             />
           </View>
         </View>

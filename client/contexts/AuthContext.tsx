@@ -16,6 +16,7 @@ import {
   registerDeviceKey,
 } from "@/lib/auth";
 import { getOrCreateDeviceIdentity } from "@/lib/e2ee";
+import { clearAllAppLockData } from "@/lib/appLockStorage";
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -106,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     await authLogout();
+    await clearAllAppLockData();
     setUser(null);
     setProfile(null);
     setFacilities([]);
