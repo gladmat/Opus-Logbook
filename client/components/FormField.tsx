@@ -23,7 +23,12 @@ interface FormFieldProps {
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
-  keyboardType?: "default" | "numeric" | "decimal-pad" | "email-address" | "number-pad";
+  keyboardType?:
+    | "default"
+    | "numeric"
+    | "decimal-pad"
+    | "email-address"
+    | "number-pad";
   unit?: string;
   required?: boolean;
   multiline?: boolean;
@@ -31,7 +36,13 @@ interface FormFieldProps {
   editable?: boolean;
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
   onBlur?: () => void;
-  textContentType?: "none" | "name" | "givenName" | "familyName" | "emailAddress" | "telephoneNumber";
+  textContentType?:
+    | "none"
+    | "name"
+    | "givenName"
+    | "familyName"
+    | "emailAddress"
+    | "telephoneNumber";
   returnKeyType?: "done" | "next" | "go" | "search" | "default";
 }
 
@@ -60,7 +71,9 @@ export function FormField({
           {label}
         </ThemedText>
         {required ? (
-          <ThemedText style={[styles.required, { color: theme.error }]}>*</ThemedText>
+          <ThemedText style={[styles.required, { color: theme.error }]}>
+            *
+          </ThemedText>
         ) : null}
       </View>
       <View
@@ -84,6 +97,7 @@ export function FormField({
           autoCapitalize={autoCapitalize}
           textContentType={textContentType}
           returnKeyType={returnKeyType}
+          accessibilityLabel={label}
           style={[
             styles.input,
             {
@@ -137,10 +151,16 @@ export function SelectField({
           {label}
         </ThemedText>
         {required ? (
-          <ThemedText style={[styles.required, { color: theme.error }]}>*</ThemedText>
+          <ThemedText style={[styles.required, { color: theme.error }]}>
+            *
+          </ThemedText>
         ) : null}
       </View>
-      <View style={styles.optionsRow}>
+      <View
+        style={styles.optionsRow}
+        accessibilityRole="radiogroup"
+        accessibilityLabel={label}
+      >
         {options.map((option) => (
           <Pressable
             key={option.value}
@@ -148,6 +168,9 @@ export function SelectField({
               Haptics.selectionAsync();
               onSelect(option.value);
             }}
+            accessibilityRole="radio"
+            accessibilityLabel={option.label}
+            accessibilityState={{ selected: value === option.value }}
             style={[
               styles.optionButton,
               {
@@ -155,8 +178,7 @@ export function SelectField({
                   value === option.value
                     ? theme.link + "15"
                     : theme.backgroundDefault,
-                borderColor:
-                  value === option.value ? theme.link : theme.border,
+                borderColor: value === option.value ? theme.link : theme.border,
               },
             ]}
           >
@@ -359,7 +381,7 @@ export function PickerField({
   const [modalVisible, setModalVisible] = useState(false);
   const pendingValueRef = useRef<string | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  
+
   const selectedOption = options.find((o) => o.value === value);
 
   const flushPending = useCallback(() => {
@@ -376,18 +398,21 @@ export function PickerField({
     }
   }, [onSelect]);
 
-  const handleSelect = useCallback((itemValue: string) => {
-    Haptics.selectionAsync();
-    pendingValueRef.current = itemValue;
-    setModalVisible(false);
-    if (timeoutRef.current !== null) {
-      clearTimeout(timeoutRef.current);
-    }
-    timeoutRef.current = setTimeout(() => {
-      timeoutRef.current = null;
-      flushPending();
-    }, 400);
-  }, [flushPending]);
+  const handleSelect = useCallback(
+    (itemValue: string) => {
+      Haptics.selectionAsync();
+      pendingValueRef.current = itemValue;
+      setModalVisible(false);
+      if (timeoutRef.current !== null) {
+        clearTimeout(timeoutRef.current);
+      }
+      timeoutRef.current = setTimeout(() => {
+        timeoutRef.current = null;
+        flushPending();
+      }, 400);
+    },
+    [flushPending],
+  );
 
   const handleModalDismiss = useCallback(() => {
     flushPending();
@@ -405,11 +430,13 @@ export function PickerField({
             {label}
           </ThemedText>
           {required ? (
-            <ThemedText style={[styles.required, { color: theme.error }]}>*</ThemedText>
+            <ThemedText style={[styles.required, { color: theme.error }]}>
+              *
+            </ThemedText>
           ) : null}
         </View>
       ) : null}
-      
+
       <TouchableOpacity
         style={[
           styles.pickerButton,
@@ -421,13 +448,23 @@ export function PickerField({
         onPress={() => setModalVisible(true)}
         activeOpacity={0.7}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityRole="button"
+        accessibilityLabel={`${label}: ${selectedOption?.label ?? placeholder}`}
+        accessibilityHint="Double tap to open picker"
       >
         {selectedOption ? (
-          <ThemedText style={[styles.pickerButtonText, { color: theme.text, fontWeight: "500" }]}>
+          <ThemedText
+            style={[
+              styles.pickerButtonText,
+              { color: theme.text, fontWeight: "500" },
+            ]}
+          >
             {selectedOption.label}
           </ThemedText>
         ) : (
-          <ThemedText style={[styles.pickerPlaceholder, { color: theme.textTertiary }]}>
+          <ThemedText
+            style={[styles.pickerPlaceholder, { color: theme.textTertiary }]}
+          >
             {placeholder}
           </ThemedText>
         )}
@@ -447,21 +484,20 @@ export function PickerField({
         onRequestClose={handleClose}
         onDismiss={handleModalDismiss}
       >
-        <Pressable 
-          style={styles.modalOverlay} 
-          onPress={handleClose}
-        >
-          <Pressable 
+        <Pressable style={styles.modalOverlay} onPress={handleClose}>
+          <Pressable
             style={[
-              styles.modalContent, 
-              { 
+              styles.modalContent,
+              {
                 backgroundColor: theme.backgroundElevated,
                 paddingBottom: insets.bottom,
-              }
+              },
             ]}
             onPress={(e) => e.stopPropagation()}
           >
-            <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
+            <View
+              style={[styles.modalHeader, { borderBottomColor: theme.border }]}
+            >
               <ThemedText style={[styles.modalTitle, { color: theme.text }]}>
                 {label}
               </ThemedText>
@@ -469,12 +505,14 @@ export function PickerField({
                 style={styles.modalDoneButton}
                 onPress={handleClose}
               >
-                <ThemedText style={[styles.modalDoneText, { color: theme.link }]}>
+                <ThemedText
+                  style={[styles.modalDoneText, { color: theme.link }]}
+                >
                   Done
                 </ThemedText>
               </TouchableOpacity>
             </View>
-            
+
             <FlatList
               data={options}
               keyExtractor={(item) => item.value}
@@ -536,9 +574,9 @@ export function DatePickerField({
   const { theme } = useTheme();
   const [showPicker, setShowPicker] = useState(false);
   const pendingDateRef = useRef<string | null>(null);
-  
+
   const dateValue = value ? new Date(value) : new Date();
-  
+
   const formatDisplayDate = (dateStr: string) => {
     if (!dateStr) return "";
     const date = new Date(dateStr);
@@ -549,19 +587,22 @@ export function DatePickerField({
     });
   };
 
-  const handleDateChange = useCallback((event: any, selectedDate?: Date) => {
-    if (Platform.OS === "android") {
-      setShowPicker(false);
-      if (selectedDate) {
-        const isoDate = selectedDate.toISOString().split("T")[0];
-        onChange(isoDate);
+  const handleDateChange = useCallback(
+    (event: any, selectedDate?: Date) => {
+      if (Platform.OS === "android") {
+        setShowPicker(false);
+        if (selectedDate) {
+          const isoDate = selectedDate.toISOString().split("T")[0];
+          onChange(isoDate);
+        }
+        return;
       }
-      return;
-    }
-    if (selectedDate) {
-      pendingDateRef.current = selectedDate.toISOString().split("T")[0];
-    }
-  }, [onChange]);
+      if (selectedDate) {
+        pendingDateRef.current = selectedDate.toISOString().split("T")[0];
+      }
+    },
+    [onChange],
+  );
 
   const handleDatePickerClose = useCallback(() => {
     setShowPicker(false);
@@ -579,30 +620,40 @@ export function DatePickerField({
           {label}
         </ThemedText>
         {required ? (
-          <ThemedText style={[styles.required, { color: theme.error }]}>*</ThemedText>
+          <ThemedText style={[styles.required, { color: theme.error }]}>
+            *
+          </ThemedText>
         ) : null}
       </View>
-      
+
       <View style={{ flexDirection: "row", alignItems: "center" }}>
         <Pressable
           style={[
             styles.dateButton,
             {
               flex: 1,
-              backgroundColor: disabled ? theme.backgroundDefault : theme.backgroundRoot,
+              backgroundColor: disabled
+                ? theme.backgroundDefault
+                : theme.backgroundRoot,
               borderColor: error ? theme.error : theme.border,
               opacity: disabled ? 0.6 : 1,
             },
           ]}
           onPress={() => !disabled && setShowPicker(true)}
           disabled={disabled}
+          accessibilityRole="button"
+          accessibilityLabel={`${label}: ${value ? formatDisplayDate(value) : "not set"}`}
+          accessibilityHint="Double tap to select date"
+          accessibilityState={{ disabled }}
         >
           {value ? (
             <ThemedText style={[styles.dateButtonText, { color: theme.text }]}>
               {formatDisplayDate(value)}
             </ThemedText>
           ) : (
-            <ThemedText style={[styles.dateButtonText, { color: theme.textTertiary }]}>
+            <ThemedText
+              style={[styles.dateButtonText, { color: theme.textTertiary }]}
+            >
               {placeholder}
             </ThemedText>
           )}
@@ -636,26 +687,35 @@ export function DatePickerField({
             animationType="slide"
             onRequestClose={handleDatePickerClose}
           >
-            <Pressable 
+            <Pressable
               style={styles.modalOverlay}
               onPress={handleDatePickerClose}
             >
               <Pressable
                 style={[
-                  styles.modalContent, 
-                  { backgroundColor: theme.backgroundElevated }
+                  styles.modalContent,
+                  { backgroundColor: theme.backgroundElevated },
                 ]}
                 onPress={(e) => e.stopPropagation()}
               >
-                <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
-                  <ThemedText style={[styles.modalTitle, { color: theme.text }]}>
+                <View
+                  style={[
+                    styles.modalHeader,
+                    { borderBottomColor: theme.border },
+                  ]}
+                >
+                  <ThemedText
+                    style={[styles.modalTitle, { color: theme.text }]}
+                  >
                     {label}
                   </ThemedText>
                   <TouchableOpacity
                     style={styles.modalDoneButton}
                     onPress={handleDatePickerClose}
                   >
-                    <ThemedText style={[styles.modalDoneText, { color: theme.link }]}>
+                    <ThemedText
+                      style={[styles.modalDoneText, { color: theme.link }]}
+                    >
                       Done
                     </ThemedText>
                   </TouchableOpacity>

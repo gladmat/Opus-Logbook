@@ -52,17 +52,27 @@ export function SectionNavBar({
   }, [activeSection]);
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundRoot, borderBottomColor: theme.border }]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.backgroundRoot,
+          borderBottomColor: theme.border,
+        },
+      ]}
+    >
       <ScrollView
         ref={scrollRef}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        accessibilityRole="tablist"
       >
         {FORM_SECTIONS.map((section) => {
           const isActive = activeSection === section.id;
           const completion = completionMap[section.id];
-          const isComplete = completion && completion.filled >= completion.total;
+          const isComplete =
+            completion && completion.filled >= completion.total;
 
           return (
             <Pressable
@@ -74,10 +84,15 @@ export function SectionNavBar({
                   width: e.nativeEvent.layout.width,
                 };
               }}
+              accessibilityRole="tab"
+              accessibilityLabel={section.label}
+              accessibilityState={{ selected: isActive }}
               style={[
                 styles.pill,
                 {
-                  backgroundColor: isActive ? theme.link : theme.backgroundSecondary,
+                  backgroundColor: isActive
+                    ? theme.link
+                    : theme.backgroundSecondary,
                 },
               ]}
             >
@@ -86,7 +101,9 @@ export function SectionNavBar({
                   style={[
                     styles.dot,
                     {
-                      backgroundColor: isComplete ? theme.success : theme.textTertiary,
+                      backgroundColor: isComplete
+                        ? theme.success
+                        : theme.textTertiary,
                     },
                   ]}
                 />
@@ -123,6 +140,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.full,
+    minHeight: 44,
+    justifyContent: "center",
   },
   pillContent: {
     flexDirection: "row",

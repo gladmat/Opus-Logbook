@@ -11,7 +11,14 @@ import { ThemedText } from "@/components/ThemedText";
 import { EncryptedImage } from "@/components/EncryptedImage";
 import { useTheme } from "@/hooks/useTheme";
 import { BorderRadius, Spacing, Shadows } from "@/constants/theme";
-import { Case, Specialty, SPECIALTY_LABELS, getPrimaryDiagnosisName, getPrimarySiteLabel, isExcisionBiopsyDiagnosis } from "@/types/case";
+import {
+  Case,
+  Specialty,
+  SPECIALTY_LABELS,
+  getPrimaryDiagnosisName,
+  getPrimarySiteLabel,
+  isExcisionBiopsyDiagnosis,
+} from "@/types/case";
 import { RoleBadge } from "@/components/RoleBadge";
 import { SpecialtyBadge } from "@/components/SpecialtyBadge";
 
@@ -24,13 +31,22 @@ interface CaseCardProps {
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-const CaseThumbnail = React.memo(function CaseThumbnail({ caseData }: { caseData: Case }) {
+const CaseThumbnail = React.memo(function CaseThumbnail({
+  caseData,
+}: {
+  caseData: Case;
+}) {
   const { theme } = useTheme();
   const firstPhoto = caseData.operativeMedia?.[0];
 
   if (firstPhoto?.localUri) {
     return (
-      <View style={[thumbStyles.container, { backgroundColor: theme.backgroundElevated }]}>
+      <View
+        style={[
+          thumbStyles.container,
+          { backgroundColor: theme.backgroundElevated },
+        ]}
+      >
         <EncryptedImage
           uri={firstPhoto.localUri}
           style={thumbStyles.image}
@@ -42,7 +58,12 @@ const CaseThumbnail = React.memo(function CaseThumbnail({ caseData }: { caseData
   }
 
   return (
-    <View style={[thumbStyles.container, { backgroundColor: theme.specialty[caseData.specialty] + "10" }]}>
+    <View
+      style={[
+        thumbStyles.container,
+        { backgroundColor: theme.specialty[caseData.specialty] + "10" },
+      ]}
+    >
       <SpecialtyIcon
         specialty={caseData.specialty}
         size={20}
@@ -58,7 +79,9 @@ function SiteChip({ caseData }: { caseData: Case }) {
   if (!label) return null;
 
   return (
-    <View style={[chipStyles.chip, { backgroundColor: theme.textTertiary + "15" }]}>
+    <View
+      style={[chipStyles.chip, { backgroundColor: theme.textTertiary + "15" }]}
+    >
       <ThemedText style={[chipStyles.chipText, { color: theme.textSecondary }]}>
         {label}
       </ThemedText>
@@ -66,7 +89,10 @@ function SiteChip({ caseData }: { caseData: Case }) {
   );
 }
 
-export const CaseCard = React.memo(function CaseCard({ caseData, onPress }: CaseCardProps) {
+export const CaseCard = React.memo(function CaseCard({
+  caseData,
+  onPress,
+}: CaseCardProps) {
   const { theme } = useTheme();
   const scale = useSharedValue(1);
 
@@ -93,17 +119,18 @@ export const CaseCard = React.memo(function CaseCard({ caseData, onPress }: Case
       day: "numeric",
       month: "short",
       year: "numeric",
-    }
+    },
   );
 
-  const userRole = caseData.teamMembers.find(
-    (m) => m.id === caseData.ownerId
-  )?.role || "PS";
+  const userRole =
+    caseData.teamMembers.find((m) => m.id === caseData.ownerId)?.role || "PS";
 
   const caseTitle = getPrimaryDiagnosisName(caseData) || caseData.procedureType;
 
   const hasHistologyPending = caseData.diagnosisGroups?.some(
-    (g) => g.diagnosisCertainty === "clinical" || isExcisionBiopsyDiagnosis(g.diagnosisPicklistId)
+    (g) =>
+      g.diagnosisCertainty === "clinical" ||
+      isExcisionBiopsyDiagnosis(g.diagnosisPicklistId),
   );
 
   return (
@@ -111,6 +138,8 @@ export const CaseCard = React.memo(function CaseCard({ caseData, onPress }: Case
       onPress={handlePress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
+      accessibilityRole="button"
+      accessibilityLabel={`${caseData.patientIdentifier}, ${caseTitle}, ${formattedDate}`}
       style={[
         styles.card,
         {
@@ -155,13 +184,17 @@ export const CaseCard = React.memo(function CaseCard({ caseData, onPress }: Case
       <View style={styles.footer}>
         <View style={styles.footerItem}>
           <Feather name="calendar" size={14} color={theme.textTertiary} />
-          <ThemedText style={[styles.footerText, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.footerText, { color: theme.textSecondary }]}
+          >
             {formattedDate}
           </ThemedText>
         </View>
         <View style={styles.footerItem}>
           <Feather name="map-pin" size={14} color={theme.textTertiary} />
-          <ThemedText style={[styles.footerText, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.footerText, { color: theme.textSecondary }]}
+          >
             {caseData.facility}
           </ThemedText>
         </View>

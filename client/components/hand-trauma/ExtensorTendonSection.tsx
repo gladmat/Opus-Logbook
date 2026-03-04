@@ -45,7 +45,7 @@ export function ExtensorTendonSection({
       (s) =>
         s.category === "extensor_tendon" &&
         s.structureId === structureId &&
-        s.digit === digit
+        s.digit === digit,
     );
 
   const handleToggle = (structureId: string, digit: DigitId) => {
@@ -72,7 +72,10 @@ export function ExtensorTendonSection({
   return (
     <View style={styles.container}>
       <View style={styles.zoneSection}>
-        <ThemedText type="small" style={[styles.zoneLabel, { color: theme.textSecondary }]}>
+        <ThemedText
+          type="small"
+          style={[styles.zoneLabel, { color: theme.textSecondary }]}
+        >
           Zone
         </ThemedText>
         <View style={styles.zoneRow}>
@@ -85,7 +88,9 @@ export function ExtensorTendonSection({
                 style={[
                   styles.zoneChip,
                   {
-                    backgroundColor: isSelected ? theme.link + "15" : theme.backgroundTertiary,
+                    backgroundColor: isSelected
+                      ? theme.link + "15"
+                      : theme.backgroundTertiary,
                     borderColor: isSelected ? theme.link : theme.border,
                   },
                 ]}
@@ -112,8 +117,14 @@ export function ExtensorTendonSection({
         if (!tendons) return null;
 
         return (
-          <View key={digit} style={[styles.digitGroup, { borderColor: theme.border }]}>
-            <ThemedText type="small" style={[styles.digitHeader, { color: theme.textSecondary }]}>
+          <View
+            key={digit}
+            style={[styles.digitGroup, { borderColor: theme.border }]}
+          >
+            <ThemedText
+              type="small"
+              style={[styles.digitHeader, { color: theme.textSecondary }]}
+            >
               {digit} — {DIGIT_LABELS[digit]}
             </ThemedText>
             {tendons.map((tendon) => {
@@ -192,7 +203,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: Spacing.xs,
-    minHeight: 36,
+    minHeight: 44,
   },
   checkbox: {
     width: 22,

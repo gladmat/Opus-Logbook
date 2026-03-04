@@ -5,12 +5,15 @@ import {
   RefreshControl,
   Pressable,
   ScrollView,
+  FlatList,
   Modal,
   TextInput,
   Alert,
   InteractionManager,
 } from "react-native";
-import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
+import DateTimePicker, {
+  DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -23,9 +26,24 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, Shadows } from "@/constants/theme";
-import { Case, Specialty, Role, SPECIALTY_LABELS, ROLE_LABELS, getPrimaryDiagnosisName } from "@/types/case";
-import { INFECTION_SYNDROME_LABELS, InfectionSyndrome } from "@/types/infection";
-import { getCases, getCasesPendingFollowUp, markNoComplications, updateCase } from "@/lib/storage";
+import {
+  Case,
+  Specialty,
+  Role,
+  SPECIALTY_LABELS,
+  ROLE_LABELS,
+  getPrimaryDiagnosisName,
+} from "@/types/case";
+import {
+  INFECTION_SYNDROME_LABELS,
+  InfectionSyndrome,
+} from "@/types/infection";
+import {
+  getCases,
+  getCasesPendingFollowUp,
+  markNoComplications,
+  updateCase,
+} from "@/lib/storage";
 import { CaseCard } from "@/components/CaseCard";
 import { SkeletonCard } from "@/components/LoadingState";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
@@ -83,12 +101,23 @@ interface StatCardProps {
   trend?: "up" | "down" | "neutral";
 }
 
-function StatCard({ title, value, subtitle, icon, color, trend }: StatCardProps) {
+function StatCard({
+  title,
+  value,
+  subtitle,
+  icon,
+  color,
+  trend,
+}: StatCardProps) {
   const { theme } = useTheme();
-  
+
   return (
-    <View style={[styles.statCard, { backgroundColor: theme.backgroundDefault }]}>
-      <View style={[styles.statIconContainer, { backgroundColor: color + "20" }]}>
+    <View
+      style={[styles.statCard, { backgroundColor: theme.backgroundDefault }]}
+    >
+      <View
+        style={[styles.statIconContainer, { backgroundColor: color + "20" }]}
+      >
         <Feather name={icon} size={20} color={color} />
       </View>
       <View style={styles.statContent}>
@@ -101,13 +130,15 @@ function StatCard({ title, value, subtitle, icon, color, trend }: StatCardProps)
         {subtitle ? (
           <View style={styles.statSubtitleRow}>
             {trend && trend !== "neutral" ? (
-              <Feather 
-                name={trend === "up" ? "trending-up" : "trending-down"} 
-                size={12} 
-                color={trend === "up" ? theme.success : theme.error} 
+              <Feather
+                name={trend === "up" ? "trending-up" : "trending-down"}
+                size={12}
+                color={trend === "up" ? theme.success : theme.error}
               />
             ) : null}
-            <ThemedText style={[styles.statSubtitle, { color: theme.textTertiary }]}>
+            <ThemedText
+              style={[styles.statSubtitle, { color: theme.textTertiary }]}
+            >
               {subtitle}
             </ThemedText>
           </View>
@@ -125,7 +156,7 @@ interface FilterChipProps {
 
 function FilterChip({ label, selected, onPress }: FilterChipProps) {
   const { theme } = useTheme();
-  
+
   return (
     <Pressable
       onPress={onPress}
@@ -156,14 +187,19 @@ interface DropdownSelectProps {
 
 function DropdownSelect({ label, value, onPress }: DropdownSelectProps) {
   const { theme } = useTheme();
-  
+
   return (
-    <Pressable 
+    <Pressable
       onPress={onPress}
-      style={[styles.dropdownSelect, { backgroundColor: theme.backgroundDefault, borderColor: theme.border }]}
+      style={[
+        styles.dropdownSelect,
+        { backgroundColor: theme.backgroundDefault, borderColor: theme.border },
+      ]}
     >
       <View>
-        <ThemedText style={[styles.dropdownLabel, { color: theme.textSecondary }]}>
+        <ThemedText
+          style={[styles.dropdownLabel, { color: theme.textSecondary }]}
+        >
           {label}
         </ThemedText>
         <ThemedText style={styles.dropdownValue} numberOfLines={1}>
@@ -187,14 +223,14 @@ export default function DashboardScreen() {
   const [showFollowUps, setShowFollowUps] = useState(true);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   const [filters, setFilters] = useState<StatisticsFilters>({
     specialty: "all",
     timePeriod: "this_year",
     facility: "all",
     role: "all",
   });
-  
+
   const [showFacilityPicker, setShowFacilityPicker] = useState(false);
   const [showRolePicker, setShowRolePicker] = useState(false);
 
@@ -223,13 +259,16 @@ export default function DashboardScreen() {
               complicationsReviewedAt: new Date().toISOString(),
               hasComplications: false,
             }
-          : c
-      )
+          : c,
+      ),
     );
   };
 
   const handleAddComplication = (caseData: Case) => {
-    navigation.navigate("CaseDetail", { caseId: caseData.id, showComplicationForm: true });
+    navigation.navigate("CaseDetail", {
+      caseId: caseData.id,
+      showComplicationForm: true,
+    });
   };
 
   useFocusEffect(
@@ -240,7 +279,7 @@ export default function DashboardScreen() {
         loadCases();
       });
       return () => task.cancel();
-    }, [])
+    }, []),
   );
 
   const handleRefresh = async () => {
@@ -249,34 +288,56 @@ export default function DashboardScreen() {
     setRefreshing(false);
   };
 
-  const filteredCases = useMemo(() => filterCases(cases, filters), [cases, filters]);
-  const statistics = useMemo(() => calculateStatistics(filteredCases, filters.specialty), [filteredCases, filters.specialty]);
-  const infectionStats = useMemo(() => calculateInfectionStatistics(filteredCases), [filteredCases]);
+  const filteredCases = useMemo(
+    () => filterCases(cases, filters),
+    [cases, filters],
+  );
+  const statistics = useMemo(
+    () => calculateStatistics(filteredCases, filters.specialty),
+    [filteredCases, filters.specialty],
+  );
+  const infectionStats = useMemo(
+    () => calculateInfectionStatistics(filteredCases),
+    [filteredCases],
+  );
   const recentCases = useMemo(() => filteredCases.slice(0, 5), [filteredCases]);
   const facilities = useMemo(() => getUniqueFacilities(cases), [cases]);
-  const topPairs = useMemo(() => calculateTopDiagnosisProcedurePairs(filteredCases, 5), [filteredCases]);
-  const suggestionStats = useMemo(() => calculateSuggestionAcceptanceStats(filteredCases), [filteredCases]);
-  const entryTimeStats = useMemo(() => calculateEntryTimeStats(filteredCases), [filteredCases]);
-  
+  const topPairs = useMemo(
+    () => calculateTopDiagnosisProcedurePairs(filteredCases, 5),
+    [filteredCases],
+  );
+  const suggestionStats = useMemo(
+    () => calculateSuggestionAcceptanceStats(filteredCases),
+    [filteredCases],
+  );
+  const entryTimeStats = useMemo(
+    () => calculateEntryTimeStats(filteredCases),
+    [filteredCases],
+  );
+
   const activeCases = useMemo(() => {
-    return cases.filter(c => 
-      c.infectionOverlay && !c.dischargeDate
-    ).sort((a, b) => 
-      new Date(b.procedureDate).getTime() - new Date(a.procedureDate).getTime()
-    );
+    return cases
+      .filter((c) => c.infectionOverlay && !c.dischargeDate)
+      .sort(
+        (a, b) =>
+          new Date(b.procedureDate).getTime() -
+          new Date(a.procedureDate).getTime(),
+      );
   }, [cases]);
-  
+
   const currentInpatients = useMemo(() => {
-    return cases.filter(c =>
-      !c.dischargeDate
-    ).sort((a, b) =>
-      new Date(b.procedureDate).getTime() - new Date(a.procedureDate).getTime()
-    );
+    return cases
+      .filter((c) => !c.dischargeDate)
+      .sort(
+        (a, b) =>
+          new Date(b.procedureDate).getTime() -
+          new Date(a.procedureDate).getTime(),
+      );
   }, [cases]);
 
   const [showInpatients, setShowInpatients] = useState(true);
   const [showActiveCases, setShowActiveCases] = useState(true);
-  
+
   // Discharge modal state
   const [dischargeModalVisible, setDischargeModalVisible] = useState(false);
   const [dischargeCase, setDischargeCase] = useState<Case | null>(null);
@@ -294,34 +355,40 @@ export default function DashboardScreen() {
 
   const handleConfirmDischarge = async () => {
     if (!dischargeCase) return;
-    
+
     try {
       await updateCase(dischargeCase.id, {
         dischargeDate: dischargeDate.toISOString().split("T")[0],
-        infectionOverlay: dischargeCase.infectionOverlay ? {
-          ...dischargeCase.infectionOverlay,
-          dischargeNotes: dischargeNotes || undefined,
-          resolvedDate: dischargeDate.toISOString().split("T")[0],
-        } : undefined,
+        infectionOverlay: dischargeCase.infectionOverlay
+          ? {
+              ...dischargeCase.infectionOverlay,
+              dischargeNotes: dischargeNotes || undefined,
+              resolvedDate: dischargeDate.toISOString().split("T")[0],
+            }
+          : undefined,
       });
-      
+
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      
+
       // Update local state
-      setCases(prev => prev.map(c => 
-        c.id === dischargeCase.id 
-          ? { 
-              ...c, 
-              dischargeDate: dischargeDate.toISOString().split("T")[0],
-              infectionOverlay: c.infectionOverlay ? {
-                ...c.infectionOverlay,
-                dischargeNotes: dischargeNotes || undefined,
-                resolvedDate: dischargeDate.toISOString().split("T")[0],
-              } : undefined,
-            } 
-          : c
-      ));
-      
+      setCases((prev) =>
+        prev.map((c) =>
+          c.id === dischargeCase.id
+            ? {
+                ...c,
+                dischargeDate: dischargeDate.toISOString().split("T")[0],
+                infectionOverlay: c.infectionOverlay
+                  ? {
+                      ...c.infectionOverlay,
+                      dischargeNotes: dischargeNotes || undefined,
+                      resolvedDate: dischargeDate.toISOString().split("T")[0],
+                    }
+                  : undefined,
+              }
+            : c,
+        ),
+      );
+
       setDischargeModalVisible(false);
       setDischargeCase(null);
     } catch (error) {
@@ -330,55 +397,62 @@ export default function DashboardScreen() {
     }
   };
 
-  const handleDischargeDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+  const handleDischargeDateChange = (
+    event: DateTimePickerEvent,
+    selectedDate?: Date,
+  ) => {
     setShowDischargeDatePicker(false);
     if (selectedDate) {
       setDischargeDate(selectedDate);
     }
   };
 
-  const handleCasePress = (caseData: Case) => {
-    navigation.navigate("CaseDetail", { caseId: caseData.id });
-  };
+  const handleCasePress = useCallback(
+    (caseData: Case) => {
+      navigation.navigate("CaseDetail", { caseId: caseData.id });
+    },
+    [navigation],
+  );
 
   const handleSpecialtyPress = (specialty: Specialty | "all") => {
     Haptics.selectionAsync();
-    setFilters(prev => ({ ...prev, specialty }));
+    setFilters((prev) => ({ ...prev, specialty }));
   };
 
   const handleTimePeriodPress = (timePeriod: TimePeriod) => {
     Haptics.selectionAsync();
-    setFilters(prev => ({ ...prev, timePeriod }));
+    setFilters((prev) => ({ ...prev, timePeriod }));
   };
 
-  const isFreeFlapStats = (stats: BaseStatistics): stats is FreeFlapStatistics => {
+  const isFreeFlapStats = (
+    stats: BaseStatistics,
+  ): stats is FreeFlapStatistics => {
     return "flapSurvivalRate" in stats;
   };
 
-  const isHandSurgeryStats = (stats: BaseStatistics): stats is HandSurgeryStatistics => {
+  const isHandSurgeryStats = (
+    stats: BaseStatistics,
+  ): stats is HandSurgeryStatistics => {
     return "nerveRepairCount" in stats;
   };
 
-  return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          {
-            paddingTop: headerHeight + Spacing.lg,
-            paddingBottom: tabBarHeight + Spacing.xl + 80,
-          },
-        ]}
-        scrollIndicatorInsets={{ bottom: insets.bottom }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={theme.link}
-            progressViewOffset={headerHeight}
-          />
-        }
-      >
+  const renderCaseItem = useCallback(
+    ({ item, index }: { item: Case; index: number }) => (
+      <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
+        <CaseCard caseData={item} onPress={() => handleCasePress(item)} />
+        {index < recentCases.length - 1 ? (
+          <View style={styles.separator} />
+        ) : null}
+      </Animated.View>
+    ),
+    [recentCases.length, handleCasePress],
+  );
+
+  const keyExtractor = useCallback((item: Case) => item.id, []);
+
+  const listHeader = useMemo(
+    () => (
+      <View>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -408,19 +482,24 @@ export default function DashboardScreen() {
                 style={[
                   styles.timePeriodChip,
                   {
-                    backgroundColor: filters.timePeriod === period 
-                      ? theme.link + "20" 
-                      : "transparent",
-                    borderColor: filters.timePeriod === period 
-                      ? theme.link 
-                      : theme.border,
+                    backgroundColor:
+                      filters.timePeriod === period
+                        ? theme.link + "20"
+                        : "transparent",
+                    borderColor:
+                      filters.timePeriod === period ? theme.link : theme.border,
                   },
                 ]}
               >
                 <ThemedText
                   style={[
                     styles.timePeriodText,
-                    { color: filters.timePeriod === period ? theme.link : theme.textSecondary },
+                    {
+                      color:
+                        filters.timePeriod === period
+                          ? theme.link
+                          : theme.textSecondary,
+                    },
                   ]}
                 >
                   {TIME_PERIOD_LABELS[period]}
@@ -434,7 +513,9 @@ export default function DashboardScreen() {
           <View style={styles.dropdownWrapper}>
             <DropdownSelect
               label="Facility"
-              value={filters.facility === "all" ? "All Facilities" : filters.facility}
+              value={
+                filters.facility === "all" ? "All Facilities" : filters.facility
+              }
               onPress={() => setShowFacilityPicker(true)}
             />
           </View>
@@ -449,57 +530,116 @@ export default function DashboardScreen() {
 
         {activeCases.length > 0 ? (
           <View style={styles.followUpSection}>
-            <Pressable 
+            <Pressable
               onPress={() => setShowActiveCases(!showActiveCases)}
               style={styles.followUpHeader}
             >
               <View style={styles.followUpTitleRow}>
                 <Feather name="activity" size={18} color={theme.error} />
-                <ThemedText style={[styles.followUpTitle, { color: theme.error }]}>
+                <ThemedText
+                  style={[styles.followUpTitle, { color: theme.error }]}
+                >
                   Infection Cases ({activeCases.length})
                 </ThemedText>
               </View>
-              <Feather name={showActiveCases ? "chevron-up" : "chevron-down"} size={20} color={theme.textSecondary} />
+              <Feather
+                name={showActiveCases ? "chevron-up" : "chevron-down"}
+                size={20}
+                color={theme.textSecondary}
+              />
             </Pressable>
-            
+
             {showActiveCases ? (
               <>
                 {activeCases.slice(0, 5).map((caseItem) => (
-                  <View key={caseItem.id} style={[styles.followUpCard, { backgroundColor: theme.backgroundDefault }]}>
-                    <Pressable 
+                  <View
+                    key={caseItem.id}
+                    style={[
+                      styles.followUpCard,
+                      { backgroundColor: theme.backgroundDefault },
+                    ]}
+                  >
+                    <Pressable
                       style={styles.activeCaseContent}
                       onPress={() => handleCasePress(caseItem)}
                     >
                       <View style={styles.followUpCaseInfo}>
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.xs, flex: 1 }}>
-                          <View style={[styles.activeBadge, { backgroundColor: theme.error }]}>
-                            <ThemedText style={[styles.activeBadgeText, { color: "#fff" }]}>
-                              {caseItem.infectionOverlay?.episodes?.length || 1} ep
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: Spacing.xs,
+                            flex: 1,
+                          }}
+                        >
+                          <View
+                            style={[
+                              styles.activeBadge,
+                              { backgroundColor: theme.error },
+                            ]}
+                          >
+                            <ThemedText
+                              style={[
+                                styles.activeBadgeText,
+                                { color: "#fff" },
+                              ]}
+                            >
+                              {caseItem.infectionOverlay?.episodes?.length || 1}{" "}
+                              ep
                             </ThemedText>
                           </View>
-                          <ThemedText style={styles.followUpCaseType} numberOfLines={1}>
-                            {caseItem.infectionOverlay?.syndromePrimary ? INFECTION_SYNDROME_LABELS[caseItem.infectionOverlay.syndromePrimary] : caseItem.procedureType}
+                          <ThemedText
+                            style={styles.followUpCaseType}
+                            numberOfLines={1}
+                          >
+                            {caseItem.infectionOverlay?.syndromePrimary
+                              ? INFECTION_SYNDROME_LABELS[
+                                  caseItem.infectionOverlay.syndromePrimary
+                                ]
+                              : caseItem.procedureType}
                           </ThemedText>
                         </View>
-                        <ThemedText style={[styles.followUpCaseDate, { color: theme.textSecondary }]}>
-                          {caseItem.patientIdentifier} - {new Date(caseItem.procedureDate).toLocaleDateString()}
+                        <ThemedText
+                          style={[
+                            styles.followUpCaseDate,
+                            { color: theme.textSecondary },
+                          ]}
+                        >
+                          {caseItem.patientIdentifier} -{" "}
+                          {new Date(
+                            caseItem.procedureDate,
+                          ).toLocaleDateString()}
                         </ThemedText>
                       </View>
-                      <Feather name="chevron-right" size={18} color={theme.textTertiary} />
+                      <Feather
+                        name="chevron-right"
+                        size={18}
+                        color={theme.textTertiary}
+                      />
                     </Pressable>
-                    <Pressable 
-                      style={[styles.dischargeButton, { backgroundColor: theme.success }]}
+                    <Pressable
+                      style={[
+                        styles.dischargeButton,
+                        { backgroundColor: theme.success },
+                      ]}
                       onPress={() => handleOpenDischargeModal(caseItem)}
                       testID={`discharge-button-${caseItem.id}`}
                     >
                       <Feather name="check-circle" size={14} color="#fff" />
-                      <ThemedText style={styles.dischargeButtonText}>Discharge</ThemedText>
+                      <ThemedText style={styles.dischargeButtonText}>
+                        Discharge
+                      </ThemedText>
                     </Pressable>
                   </View>
                 ))}
-                
+
                 {activeCases.length > 5 ? (
-                  <ThemedText style={[styles.moreFollowUps, { color: theme.textSecondary }]}>
+                  <ThemedText
+                    style={[
+                      styles.moreFollowUps,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
                     +{activeCases.length - 5} more infection cases
                   </ThemedText>
                 ) : null}
@@ -516,11 +656,17 @@ export default function DashboardScreen() {
             >
               <View style={styles.followUpTitleRow}>
                 <Feather name="home" size={18} color={theme.warning} />
-                <ThemedText style={[styles.followUpTitle, { color: theme.warning }]}>
+                <ThemedText
+                  style={[styles.followUpTitle, { color: theme.warning }]}
+                >
                   Current Inpatients ({currentInpatients.length})
                 </ThemedText>
               </View>
-              <Feather name={showInpatients ? "chevron-up" : "chevron-down"} size={20} color={theme.textSecondary} />
+              <Feather
+                name={showInpatients ? "chevron-up" : "chevron-down"}
+                size={20}
+                color={theme.textSecondary}
+              />
             </Pressable>
 
             {showInpatients ? (
@@ -530,46 +676,114 @@ export default function DashboardScreen() {
                   const today = new Date();
                   opDate.setHours(0, 0, 0, 0);
                   today.setHours(0, 0, 0, 0);
-                  const postOpDays = Math.max(0, Math.round((today.getTime() - opDate.getTime()) / (1000 * 60 * 60 * 24)));
-                  const dayBg = postOpDays <= 3 ? "#E8F5E9" : postOpDays <= 7 ? "#FFF8E1" : "#FFEBEE";
-                  const dayColor = postOpDays <= 3 ? "#2E7D32" : postOpDays <= 7 ? "#F57F17" : "#C62828";
+                  const postOpDays = Math.max(
+                    0,
+                    Math.round(
+                      (today.getTime() - opDate.getTime()) /
+                        (1000 * 60 * 60 * 24),
+                    ),
+                  );
+                  const dayBg =
+                    postOpDays <= 3
+                      ? "#E8F5E9"
+                      : postOpDays <= 7
+                        ? "#FFF8E1"
+                        : "#FFEBEE";
+                  const dayColor =
+                    postOpDays <= 3
+                      ? "#2E7D32"
+                      : postOpDays <= 7
+                        ? "#F57F17"
+                        : "#C62828";
                   return (
                     <Pressable
                       key={caseItem.id}
-                      style={[styles.followUpCard, { backgroundColor: theme.backgroundDefault }]}
+                      style={[
+                        styles.followUpCard,
+                        { backgroundColor: theme.backgroundDefault },
+                      ]}
                       onPress={() => handleCasePress(caseItem)}
                     >
                       <View style={styles.activeCaseContent}>
                         <View style={styles.followUpCaseInfo}>
-                          <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.xs, flex: 1 }}>
-                            <View style={[styles.activeBadge, { backgroundColor: dayBg }]}>
-                              <ThemedText style={[styles.activeBadgeText, { color: dayColor }]}>
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: Spacing.xs,
+                              flex: 1,
+                            }}
+                          >
+                            <View
+                              style={[
+                                styles.activeBadge,
+                                { backgroundColor: dayBg },
+                              ]}
+                            >
+                              <ThemedText
+                                style={[
+                                  styles.activeBadgeText,
+                                  { color: dayColor },
+                                ]}
+                              >
                                 Day {postOpDays}
                               </ThemedText>
                             </View>
-                            <ThemedText style={styles.followUpCaseType} numberOfLines={1}>
-                              {getPrimaryDiagnosisName(caseItem) || caseItem.procedureType}
+                            <ThemedText
+                              style={styles.followUpCaseType}
+                              numberOfLines={1}
+                            >
+                              {getPrimaryDiagnosisName(caseItem) ||
+                                caseItem.procedureType}
                             </ThemedText>
                           </View>
-                          <ThemedText style={[styles.followUpCaseDate, { color: theme.textSecondary }]}>
-                            {caseItem.patientIdentifier} - {caseItem.facility || "No facility"}
+                          <ThemedText
+                            style={[
+                              styles.followUpCaseDate,
+                              { color: theme.textSecondary },
+                            ]}
+                          >
+                            {caseItem.patientIdentifier} -{" "}
+                            {caseItem.facility || "No facility"}
                           </ThemedText>
                         </View>
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.sm }}>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: Spacing.sm,
+                          }}
+                        >
                           <Pressable
-                            style={[styles.dischargeButton, { borderColor: theme.success }]}
+                            style={[
+                              styles.dischargeButton,
+                              { borderColor: theme.success },
+                            ]}
                             onPress={(e) => {
                               e.stopPropagation();
                               handleOpenDischargeModal(caseItem);
                             }}
                             testID={`discharge-inpatient-${caseItem.id}`}
                           >
-                            <Feather name="check-circle" size={13} color={theme.success} />
-                            <ThemedText style={[styles.dischargeButtonText, { color: theme.success }]}>
+                            <Feather
+                              name="check-circle"
+                              size={13}
+                              color={theme.success}
+                            />
+                            <ThemedText
+                              style={[
+                                styles.dischargeButtonText,
+                                { color: theme.success },
+                              ]}
+                            >
                               Discharge
                             </ThemedText>
                           </Pressable>
-                          <Feather name="chevron-right" size={18} color={theme.textTertiary} />
+                          <Feather
+                            name="chevron-right"
+                            size={18}
+                            color={theme.textTertiary}
+                          />
                         </View>
                       </View>
                     </Pressable>
@@ -577,7 +791,12 @@ export default function DashboardScreen() {
                 })}
 
                 {currentInpatients.length > 5 ? (
-                  <ThemedText style={[styles.moreFollowUps, { color: theme.textSecondary }]}>
+                  <ThemedText
+                    style={[
+                      styles.moreFollowUps,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
                     +{currentInpatients.length - 5} more inpatients
                   </ThemedText>
                 ) : null}
@@ -588,75 +807,118 @@ export default function DashboardScreen() {
 
         {pendingFollowUps.length > 0 && showFollowUps ? (
           <View style={styles.followUpSection}>
-            <Pressable 
+            <Pressable
               onPress={() => setShowFollowUps(false)}
               style={styles.followUpHeader}
             >
               <View style={styles.followUpTitleRow}>
                 <Feather name="clock" size={18} color={theme.warning} />
-                <ThemedText style={[styles.followUpTitle, { color: theme.warning }]}>
+                <ThemedText
+                  style={[styles.followUpTitle, { color: theme.warning }]}
+                >
                   Follow-ups Due ({pendingFollowUps.length})
                 </ThemedText>
               </View>
-              <Feather name="chevron-up" size={20} color={theme.textSecondary} />
+              <Feather
+                name="chevron-up"
+                size={20}
+                color={theme.textSecondary}
+              />
             </Pressable>
-            
+
             {pendingFollowUps.slice(0, 3).map((caseItem) => (
-              <View 
-                key={caseItem.id} 
-                style={[styles.followUpCard, { backgroundColor: theme.backgroundDefault }]}
+              <View
+                key={caseItem.id}
+                style={[
+                  styles.followUpCard,
+                  { backgroundColor: theme.backgroundDefault },
+                ]}
               >
                 <Pressable
                   style={styles.followUpCardContent}
                   onPress={() => handleCasePress(caseItem)}
                 >
                   <View style={styles.followUpCaseInfo}>
-                    <ThemedText style={styles.followUpCaseType} numberOfLines={1}>
+                    <ThemedText
+                      style={styles.followUpCaseType}
+                      numberOfLines={1}
+                    >
                       {caseItem.procedureType}
                     </ThemedText>
-                    <ThemedText style={[styles.followUpCaseDate, { color: theme.textSecondary }]}>
+                    <ThemedText
+                      style={[
+                        styles.followUpCaseDate,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
                       {new Date(caseItem.procedureDate).toLocaleDateString()}
                     </ThemedText>
                   </View>
                 </Pressable>
-                
+
                 <View style={styles.followUpActions}>
                   <Pressable
                     onPress={() => handleAddComplication(caseItem)}
-                    style={[styles.followUpButton, styles.addComplicationBtn, { borderColor: theme.warning }]}
+                    style={[
+                      styles.followUpButton,
+                      styles.addComplicationBtn,
+                      { borderColor: theme.warning },
+                    ]}
                   >
-                    <ThemedText style={[styles.followUpButtonText, { color: theme.warning }]}>
+                    <ThemedText
+                      style={[
+                        styles.followUpButtonText,
+                        { color: theme.warning },
+                      ]}
+                    >
                       Add
                     </ThemedText>
                   </Pressable>
-                  
+
                   <Pressable
                     onPress={() => handleMarkNoComplications(caseItem.id)}
-                    style={[styles.followUpButton, styles.noneBtn, { backgroundColor: theme.success }]}
+                    style={[
+                      styles.followUpButton,
+                      styles.noneBtn,
+                      { backgroundColor: theme.success },
+                    ]}
                   >
                     <Feather name="check" size={14} color={theme.buttonText} />
-                    <ThemedText style={[styles.followUpButtonText, { color: theme.buttonText }]}>
+                    <ThemedText
+                      style={[
+                        styles.followUpButtonText,
+                        { color: theme.buttonText },
+                      ]}
+                    >
                       None
                     </ThemedText>
                   </Pressable>
                 </View>
               </View>
             ))}
-            
+
             {pendingFollowUps.length > 3 ? (
-              <ThemedText style={[styles.moreFollowUps, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[styles.moreFollowUps, { color: theme.textSecondary }]}
+              >
                 +{pendingFollowUps.length - 3} more cases pending review
               </ThemedText>
             ) : null}
           </View>
         ) : pendingFollowUps.length > 0 ? (
-          <Pressable 
+          <Pressable
             onPress={() => setShowFollowUps(true)}
-            style={[styles.collapsedFollowUp, { backgroundColor: theme.warning + "15" }]}
+            style={[
+              styles.collapsedFollowUp,
+              { backgroundColor: theme.warning + "15" },
+            ]}
           >
             <Feather name="clock" size={16} color={theme.warning} />
-            <ThemedText style={[styles.collapsedFollowUpText, { color: theme.warning }]}>
-              {pendingFollowUps.length} follow-up{pendingFollowUps.length !== 1 ? "s" : ""} due
+            <ThemedText
+              style={[styles.collapsedFollowUpText, { color: theme.warning }]}
+            >
+              {pendingFollowUps.length} follow-up
+              {pendingFollowUps.length !== 1 ? "s" : ""} due
             </ThemedText>
             <Feather name="chevron-down" size={18} color={theme.warning} />
           </Pressable>
@@ -664,7 +926,7 @@ export default function DashboardScreen() {
 
         <View style={styles.statsSection}>
           <ThemedText style={styles.sectionTitle}>Statistics</ThemedText>
-          
+
           <View style={styles.statsGrid}>
             <StatCard
               title="Total Cases"
@@ -675,7 +937,9 @@ export default function DashboardScreen() {
             <StatCard
               title="Avg Duration"
               value={formatDuration(statistics.averageDurationMinutes)}
-              subtitle={filters.role !== "all" ? ROLE_LABELS[filters.role] : undefined}
+              subtitle={
+                filters.role !== "all" ? ROLE_LABELS[filters.role] : undefined
+              }
               icon="clock"
               color={theme.info}
             />
@@ -683,19 +947,30 @@ export default function DashboardScreen() {
               title="Complication Rate"
               value={formatPercentage(statistics.complicationRate)}
               icon="alert-circle"
-              color={statistics.complicationRate > 10 ? theme.error : theme.success}
+              color={
+                statistics.complicationRate > 10 ? theme.error : theme.success
+              }
             />
             <StatCard
               title="Follow-up Rate"
               value={formatPercentage(statistics.followUpCompletionRate)}
               icon="check-circle"
-              color={statistics.followUpCompletionRate >= 90 ? theme.success : theme.warning}
+              color={
+                statistics.followUpCompletionRate >= 90
+                  ? theme.success
+                  : theme.warning
+              }
             />
           </View>
 
           {isFreeFlapStats(statistics) ? (
             <View style={styles.specialtyStats}>
-              <ThemedText style={[styles.specialtyStatsTitle, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[
+                  styles.specialtyStatsTitle,
+                  { color: theme.textSecondary },
+                ]}
+              >
                 Free Flap Specific
               </ThemedText>
               <View style={styles.statsGrid}>
@@ -703,13 +978,19 @@ export default function DashboardScreen() {
                   title="Flap Survival"
                   value={formatPercentage(statistics.flapSurvivalRate)}
                   icon="heart"
-                  color={statistics.flapSurvivalRate >= 95 ? theme.success : theme.warning}
+                  color={
+                    statistics.flapSurvivalRate >= 95
+                      ? theme.success
+                      : theme.warning
+                  }
                 />
                 <StatCard
                   title="Avg Ischemia"
-                  value={statistics.averageIschemiaTimeMinutes 
-                    ? `${statistics.averageIschemiaTimeMinutes}m` 
-                    : "—"}
+                  value={
+                    statistics.averageIschemiaTimeMinutes
+                      ? `${statistics.averageIschemiaTimeMinutes}m`
+                      : "—"
+                  }
                   icon="thermometer"
                   color={theme.info}
                 />
@@ -717,30 +998,47 @@ export default function DashboardScreen() {
                   title="Take-back Rate"
                   value={formatPercentage(statistics.takeBackRate)}
                   icon="refresh-cw"
-                  color={statistics.takeBackRate > 5 ? theme.warning : theme.success}
+                  color={
+                    statistics.takeBackRate > 5 ? theme.warning : theme.success
+                  }
                 />
               </View>
-              
+
               {statistics.casesByFlapType.length > 0 ? (
-                <View style={[styles.breakdownCard, { backgroundColor: theme.backgroundDefault }]}>
-                  <ThemedText style={styles.breakdownTitle}>Cases by Flap Type</ThemedText>
+                <View
+                  style={[
+                    styles.breakdownCard,
+                    { backgroundColor: theme.backgroundDefault },
+                  ]}
+                >
+                  <ThemedText style={styles.breakdownTitle}>
+                    Cases by Flap Type
+                  </ThemedText>
                   {statistics.casesByFlapType.slice(0, 5).map((item) => (
                     <View key={item.flapType} style={styles.breakdownRow}>
-                      <ThemedText style={styles.breakdownLabel} numberOfLines={1}>
+                      <ThemedText
+                        style={styles.breakdownLabel}
+                        numberOfLines={1}
+                      >
                         {item.flapType}
                       </ThemedText>
                       <View style={styles.breakdownBarContainer}>
-                        <View 
+                        <View
                           style={[
-                            styles.breakdownBar, 
-                            { 
+                            styles.breakdownBar,
+                            {
                               backgroundColor: theme.link,
                               width: `${(item.count / statistics.totalCases) * 100}%`,
                             },
-                          ]} 
+                          ]}
                         />
                       </View>
-                      <ThemedText style={[styles.breakdownCount, { color: theme.textSecondary }]}>
+                      <ThemedText
+                        style={[
+                          styles.breakdownCount,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
                         {item.count}
                       </ThemedText>
                     </View>
@@ -752,19 +1050,28 @@ export default function DashboardScreen() {
 
           {isHandSurgeryStats(statistics) ? (
             <View style={styles.specialtyStats}>
-              <ThemedText style={[styles.specialtyStatsTitle, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[
+                  styles.specialtyStatsTitle,
+                  { color: theme.textSecondary },
+                ]}
+              >
                 Hand Surgery Specific
               </ThemedText>
               <View style={styles.statsGrid}>
                 <StatCard
                   title="Nerve Repairs"
-                  value={(statistics as HandSurgeryStatistics).nerveRepairCount.toString()}
+                  value={(
+                    statistics as HandSurgeryStatistics
+                  ).nerveRepairCount.toString()}
                   icon="activity"
                   color={theme.info}
                 />
                 <StatCard
                   title="Tendon Repairs"
-                  value={(statistics as HandSurgeryStatistics).tendonRepairCount.toString()}
+                  value={(
+                    statistics as HandSurgeryStatistics
+                  ).tendonRepairCount.toString()}
                   icon="link"
                   color={theme.link}
                 />
@@ -773,29 +1080,44 @@ export default function DashboardScreen() {
           ) : null}
 
           {statistics.casesByMonth.length > 0 ? (
-            <View style={[styles.chartCard, { backgroundColor: theme.backgroundDefault }]}>
+            <View
+              style={[
+                styles.chartCard,
+                { backgroundColor: theme.backgroundDefault },
+              ]}
+            >
               <ThemedText style={styles.chartTitle}>Cases Over Time</ThemedText>
               <View style={styles.barChart}>
                 {statistics.casesByMonth.slice(-6).map((item) => {
-                  const maxCount = Math.max(...statistics.casesByMonth.map(m => m.count));
-                  const heightPercent = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
+                  const maxCount = Math.max(
+                    ...statistics.casesByMonth.map((m) => m.count),
+                  );
+                  const heightPercent =
+                    maxCount > 0 ? (item.count / maxCount) * 100 : 0;
                   return (
                     <View key={item.month} style={styles.barContainer}>
                       <View style={styles.barWrapper}>
-                        <View 
+                        <View
                           style={[
-                            styles.bar, 
-                            { 
+                            styles.bar,
+                            {
                               backgroundColor: theme.link,
                               height: `${heightPercent}%`,
                             },
-                          ]} 
+                          ]}
                         />
                       </View>
-                      <ThemedText style={[styles.barLabel, { color: theme.textTertiary }]}>
+                      <ThemedText
+                        style={[styles.barLabel, { color: theme.textTertiary }]}
+                      >
                         {formatMonthLabel(item.month)}
                       </ThemedText>
-                      <ThemedText style={[styles.barValue, { color: theme.textSecondary }]}>
+                      <ThemedText
+                        style={[
+                          styles.barValue,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
                         {item.count}
                       </ThemedText>
                     </View>
@@ -807,7 +1129,12 @@ export default function DashboardScreen() {
         </View>
 
         {topPairs.length > 0 ? (
-          <View style={[styles.analyticsCard, { backgroundColor: theme.backgroundDefault }]}>
+          <View
+            style={[
+              styles.analyticsCard,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
             <View style={styles.analyticsCardHeader}>
               <Feather name="bar-chart-2" size={16} color={theme.link} />
               <ThemedText style={styles.analyticsCardTitle}>
@@ -818,12 +1145,21 @@ export default function DashboardScreen() {
               const maxCount = topPairs[0].count;
               const barWidth = maxCount > 0 ? (pair.count / maxCount) * 100 : 0;
               return (
-                <View key={`${pair.diagnosisName}-${pair.procedureName}-${idx}`} style={styles.pairRow}>
+                <View
+                  key={`${pair.diagnosisName}-${pair.procedureName}-${idx}`}
+                  style={styles.pairRow}
+                >
                   <View style={styles.pairLabels}>
                     <ThemedText style={styles.pairDiagnosis} numberOfLines={1}>
                       {pair.diagnosisName}
                     </ThemedText>
-                    <ThemedText style={[styles.pairProcedure, { color: theme.textSecondary }]} numberOfLines={1}>
+                    <ThemedText
+                      style={[
+                        styles.pairProcedure,
+                        { color: theme.textSecondary },
+                      ]}
+                      numberOfLines={1}
+                    >
                       {pair.procedureName}
                     </ThemedText>
                   </View>
@@ -835,7 +1171,12 @@ export default function DashboardScreen() {
                       ]}
                     />
                   </View>
-                  <ThemedText style={[styles.pairCount, { color: theme.textSecondary, fontFamily: "monospace" }]}>
+                  <ThemedText
+                    style={[
+                      styles.pairCount,
+                      { color: theme.textSecondary, fontFamily: "monospace" },
+                    ]}
+                  >
                     {pair.count}
                   </ThemedText>
                 </View>
@@ -846,77 +1187,179 @@ export default function DashboardScreen() {
 
         <View style={styles.analyticsRow}>
           {entryTimeStats.averageEntryTimeSeconds !== null ? (
-            <View style={[styles.analyticsSmallCard, { backgroundColor: theme.backgroundDefault }]}>
-              <View style={[styles.analyticsSmallIcon, { backgroundColor: theme.info + "20" }]}>
+            <View
+              style={[
+                styles.analyticsSmallCard,
+                { backgroundColor: theme.backgroundDefault },
+              ]}
+            >
+              <View
+                style={[
+                  styles.analyticsSmallIcon,
+                  { backgroundColor: theme.info + "20" },
+                ]}
+              >
                 <Feather name="edit-3" size={16} color={theme.info} />
               </View>
-              <ThemedText style={[styles.analyticsSmallValue, { fontFamily: "monospace" }]}>
+              <ThemedText
+                style={[
+                  styles.analyticsSmallValue,
+                  { fontFamily: "monospace" },
+                ]}
+              >
                 {formatEntryTime(entryTimeStats.averageEntryTimeSeconds)}
               </ThemedText>
-              <ThemedText style={[styles.analyticsSmallLabel, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[
+                  styles.analyticsSmallLabel,
+                  { color: theme.textSecondary },
+                ]}
+              >
                 Avg Entry Time
               </ThemedText>
-              <ThemedText style={[styles.analyticsSmallSub, { color: theme.textTertiary }]}>
+              <ThemedText
+                style={[
+                  styles.analyticsSmallSub,
+                  { color: theme.textTertiary },
+                ]}
+              >
                 median {formatEntryTime(entryTimeStats.medianEntryTimeSeconds)}
               </ThemedText>
             </View>
           ) : null}
 
           {suggestionStats.totalSuggestedGroups > 0 ? (
-            <View style={[styles.analyticsSmallCard, { backgroundColor: theme.backgroundDefault }]}>
-              <View style={[styles.analyticsSmallIcon, { backgroundColor: theme.success + "20" }]}>
+            <View
+              style={[
+                styles.analyticsSmallCard,
+                { backgroundColor: theme.backgroundDefault },
+              ]}
+            >
+              <View
+                style={[
+                  styles.analyticsSmallIcon,
+                  { backgroundColor: theme.success + "20" },
+                ]}
+              >
                 <Feather name="check-square" size={16} color={theme.success} />
               </View>
-              <ThemedText style={[styles.analyticsSmallValue, { fontFamily: "monospace" }]}>
+              <ThemedText
+                style={[
+                  styles.analyticsSmallValue,
+                  { fontFamily: "monospace" },
+                ]}
+              >
                 {formatPercentage(suggestionStats.acceptanceRate)}
               </ThemedText>
-              <ThemedText style={[styles.analyticsSmallLabel, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[
+                  styles.analyticsSmallLabel,
+                  { color: theme.textSecondary },
+                ]}
+              >
                 Suggestion Accept
               </ThemedText>
-              <ThemedText style={[styles.analyticsSmallSub, { color: theme.textTertiary }]}>
-                {suggestionStats.totalAcceptedProcedures}/{suggestionStats.totalSuggestedProcedures} procs
+              <ThemedText
+                style={[
+                  styles.analyticsSmallSub,
+                  { color: theme.textTertiary },
+                ]}
+              >
+                {suggestionStats.totalAcceptedProcedures}/
+                {suggestionStats.totalSuggestedProcedures} procs
               </ThemedText>
             </View>
           ) : null}
         </View>
 
         {infectionStats.totalInfectionCases > 0 ? (
-          <View style={[styles.infectionStatsCard, { backgroundColor: theme.backgroundDefault }]}>
+          <View
+            style={[
+              styles.infectionStatsCard,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
             <View style={styles.infectionStatsHeader}>
               <Feather name="activity" size={18} color={theme.error} />
-              <ThemedText style={styles.infectionStatsTitle}>Infection Cases</ThemedText>
+              <ThemedText style={styles.infectionStatsTitle}>
+                Infection Cases
+              </ThemedText>
             </View>
-            
+
             <View style={styles.infectionStatsGrid}>
-              <View style={[styles.infectionStatItem, { borderColor: theme.border }]}>
-                <ThemedText style={[styles.infectionStatValue, { color: theme.error }]}>
+              <View
+                style={[
+                  styles.infectionStatItem,
+                  { borderColor: theme.border },
+                ]}
+              >
+                <ThemedText
+                  style={[styles.infectionStatValue, { color: theme.error }]}
+                >
                   {infectionStats.activeInfectionCases}
                 </ThemedText>
-                <ThemedText style={[styles.infectionStatLabel, { color: theme.textSecondary }]}>
+                <ThemedText
+                  style={[
+                    styles.infectionStatLabel,
+                    { color: theme.textSecondary },
+                  ]}
+                >
                   Active
                 </ThemedText>
               </View>
-              <View style={[styles.infectionStatItem, { borderColor: theme.border }]}>
-                <ThemedText style={[styles.infectionStatValue, { color: theme.success }]}>
+              <View
+                style={[
+                  styles.infectionStatItem,
+                  { borderColor: theme.border },
+                ]}
+              >
+                <ThemedText
+                  style={[styles.infectionStatValue, { color: theme.success }]}
+                >
                   {infectionStats.resolvedInfectionCases}
                 </ThemedText>
-                <ThemedText style={[styles.infectionStatLabel, { color: theme.textSecondary }]}>
+                <ThemedText
+                  style={[
+                    styles.infectionStatLabel,
+                    { color: theme.textSecondary },
+                  ]}
+                >
                   Resolved
                 </ThemedText>
               </View>
-              <View style={[styles.infectionStatItem, { borderColor: theme.border }]}>
+              <View
+                style={[
+                  styles.infectionStatItem,
+                  { borderColor: theme.border },
+                ]}
+              >
                 <ThemedText style={styles.infectionStatValue}>
                   {infectionStats.totalEpisodes}
                 </ThemedText>
-                <ThemedText style={[styles.infectionStatLabel, { color: theme.textSecondary }]}>
+                <ThemedText
+                  style={[
+                    styles.infectionStatLabel,
+                    { color: theme.textSecondary },
+                  ]}
+                >
                   Episodes
                 </ThemedText>
               </View>
-              <View style={[styles.infectionStatItem, { borderColor: theme.border }]}>
+              <View
+                style={[
+                  styles.infectionStatItem,
+                  { borderColor: theme.border },
+                ]}
+              >
                 <ThemedText style={styles.infectionStatValue}>
                   {infectionStats.averageEpisodesPerCase}
                 </ThemedText>
-                <ThemedText style={[styles.infectionStatLabel, { color: theme.textSecondary }]}>
+                <ThemedText
+                  style={[
+                    styles.infectionStatLabel,
+                    { color: theme.textSecondary },
+                  ]}
+                >
                   Avg/Case
                 </ThemedText>
               </View>
@@ -924,15 +1367,31 @@ export default function DashboardScreen() {
 
             {infectionStats.casesBySyndrome.length > 0 ? (
               <View style={styles.infectionBreakdown}>
-                <ThemedText style={[styles.infectionBreakdownTitle, { color: theme.textSecondary }]}>
+                <ThemedText
+                  style={[
+                    styles.infectionBreakdownTitle,
+                    { color: theme.textSecondary },
+                  ]}
+                >
                   By Syndrome
                 </ThemedText>
-                {infectionStats.casesBySyndrome.slice(0, 4).map(item => (
-                  <View key={item.syndrome} style={styles.infectionBreakdownRow}>
-                    <ThemedText style={styles.infectionBreakdownLabel} numberOfLines={1}>
+                {infectionStats.casesBySyndrome.slice(0, 4).map((item) => (
+                  <View
+                    key={item.syndrome}
+                    style={styles.infectionBreakdownRow}
+                  >
+                    <ThemedText
+                      style={styles.infectionBreakdownLabel}
+                      numberOfLines={1}
+                    >
                       {item.syndrome}
                     </ThemedText>
-                    <ThemedText style={[styles.infectionBreakdownCount, { color: theme.textSecondary }]}>
+                    <ThemedText
+                      style={[
+                        styles.infectionBreakdownCount,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
                       {item.count}
                     </ThemedText>
                   </View>
@@ -942,27 +1401,44 @@ export default function DashboardScreen() {
 
             {infectionStats.casesBySeverity.length > 0 ? (
               <View style={styles.infectionBreakdown}>
-                <ThemedText style={[styles.infectionBreakdownTitle, { color: theme.textSecondary }]}>
+                <ThemedText
+                  style={[
+                    styles.infectionBreakdownTitle,
+                    { color: theme.textSecondary },
+                  ]}
+                >
                   By Severity
                 </ThemedText>
-                {infectionStats.casesBySeverity.map(item => (
-                  <View key={item.severity} style={styles.infectionBreakdownRow}>
+                {infectionStats.casesBySeverity.map((item) => (
+                  <View
+                    key={item.severity}
+                    style={styles.infectionBreakdownRow}
+                  >
                     <ThemedText style={styles.infectionBreakdownLabel}>
                       {item.severity}
                     </ThemedText>
                     <View style={styles.infectionSeverityBar}>
-                      <View 
+                      <View
                         style={[
-                          styles.infectionSeverityFill, 
-                          { 
-                            backgroundColor: item.severity === "Shock/ICU" ? theme.error : 
-                              item.severity === "Systemic/Sepsis" ? theme.warning : theme.success,
+                          styles.infectionSeverityFill,
+                          {
+                            backgroundColor:
+                              item.severity === "Shock/ICU"
+                                ? theme.error
+                                : item.severity === "Systemic/Sepsis"
+                                  ? theme.warning
+                                  : theme.success,
                             width: `${Math.min((item.count / infectionStats.totalInfectionCases) * 100, 100)}%`,
-                          }
-                        ]} 
+                          },
+                        ]}
                       />
                     </View>
-                    <ThemedText style={[styles.infectionBreakdownCount, { color: theme.textSecondary }]}>
+                    <ThemedText
+                      style={[
+                        styles.infectionBreakdownCount,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
                       {item.count}
                     </ThemedText>
                   </View>
@@ -970,24 +1446,55 @@ export default function DashboardScreen() {
               </View>
             ) : null}
 
-            {(infectionStats.amputationCount > 0 || infectionStats.mortalityCount > 0) ? (
+            {infectionStats.amputationCount > 0 ||
+            infectionStats.mortalityCount > 0 ? (
               <View style={styles.infectionOutcomes}>
                 {infectionStats.amputationCount > 0 ? (
-                  <View style={[styles.infectionOutcomeItem, { backgroundColor: theme.warning + "20" }]}>
-                    <ThemedText style={[styles.infectionOutcomeValue, { color: theme.warning }]}>
+                  <View
+                    style={[
+                      styles.infectionOutcomeItem,
+                      { backgroundColor: theme.warning + "20" },
+                    ]}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.infectionOutcomeValue,
+                        { color: theme.warning },
+                      ]}
+                    >
                       {infectionStats.amputationCount}
                     </ThemedText>
-                    <ThemedText style={[styles.infectionOutcomeLabel, { color: theme.textSecondary }]}>
+                    <ThemedText
+                      style={[
+                        styles.infectionOutcomeLabel,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
                       Amputations
                     </ThemedText>
                   </View>
                 ) : null}
                 {infectionStats.mortalityCount > 0 ? (
-                  <View style={[styles.infectionOutcomeItem, { backgroundColor: theme.error + "20" }]}>
-                    <ThemedText style={[styles.infectionOutcomeValue, { color: theme.error }]}>
+                  <View
+                    style={[
+                      styles.infectionOutcomeItem,
+                      { backgroundColor: theme.error + "20" },
+                    ]}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.infectionOutcomeValue,
+                        { color: theme.error },
+                      ]}
+                    >
                       {infectionStats.mortalityCount}
                     </ThemedText>
-                    <ThemedText style={[styles.infectionOutcomeLabel, { color: theme.textSecondary }]}>
+                    <ThemedText
+                      style={[
+                        styles.infectionOutcomeLabel,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
                       Deaths
                     </ThemedText>
                   </View>
@@ -1001,36 +1508,88 @@ export default function DashboardScreen() {
           <View style={styles.sectionHeader}>
             <ThemedText style={styles.sectionTitle}>Recent Cases</ThemedText>
             {filteredCases.length > 5 ? (
-              <Pressable onPress={() => navigation.getParent()?.navigate("Cases")}>
+              <Pressable
+                onPress={() => navigation.getParent()?.navigate("Cases")}
+              >
                 <ThemedText style={[styles.seeAllLink, { color: theme.link }]}>
                   See All ({filteredCases.length})
                 </ThemedText>
               </Pressable>
             ) : null}
           </View>
-          
-          {loading ? (
-            <View style={styles.skeletonContainer}>
-              <SkeletonCard height={130} />
-              <SkeletonCard height={130} />
-            </View>
-          ) : recentCases.length > 0 ? (
-            recentCases.map((item, index) => (
-              <Animated.View key={item.id} entering={FadeInDown.delay(index * 50).springify()}>
-                <CaseCard caseData={item} onPress={() => handleCasePress(item)} />
-                {index < recentCases.length - 1 ? <View style={styles.separator} /> : null}
-              </Animated.View>
-            ))
-          ) : (
-            <ThemedView style={[styles.emptyCard, { backgroundColor: theme.backgroundDefault }]}>
-              <Feather name="inbox" size={32} color={theme.textTertiary} />
-              <ThemedText style={[styles.emptyText, { color: theme.textSecondary }]}>
-                No cases match your filters
-              </ThemedText>
-            </ThemedView>
-          )}
         </View>
-      </ScrollView>
+      </View>
+    ),
+    [
+      theme,
+      filters,
+      facilities,
+      statistics,
+      infectionStats,
+      topPairs,
+      entryTimeStats,
+      suggestionStats,
+      activeCases,
+      currentInpatients,
+      pendingFollowUps,
+      filteredCases,
+      showActiveCases,
+      showInpatients,
+      showFollowUps,
+      loading,
+      navigation,
+    ],
+  );
+
+  const listEmpty = useMemo(() => {
+    if (loading) {
+      return (
+        <View style={styles.skeletonContainer}>
+          <SkeletonCard height={130} />
+          <SkeletonCard height={130} />
+        </View>
+      );
+    }
+    return (
+      <ThemedView
+        style={[styles.emptyCard, { backgroundColor: theme.backgroundDefault }]}
+      >
+        <Feather name="inbox" size={32} color={theme.textTertiary} />
+        <ThemedText style={[styles.emptyText, { color: theme.textSecondary }]}>
+          No cases match your filters
+        </ThemedText>
+      </ThemedView>
+    );
+  }, [loading, theme]);
+
+  return (
+    <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+      <FlatList
+        data={loading ? [] : recentCases}
+        renderItem={renderCaseItem}
+        keyExtractor={keyExtractor}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={listEmpty}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: headerHeight + Spacing.lg,
+            paddingBottom: tabBarHeight + Spacing.xl + 80,
+          },
+        ]}
+        scrollIndicatorInsets={{ bottom: insets.bottom }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={theme.link}
+            progressViewOffset={headerHeight}
+          />
+        }
+        maxToRenderPerBatch={10}
+        windowSize={10}
+        accessibilityRole="list"
+      />
 
       <Pressable
         onPress={() => {
@@ -1055,27 +1614,40 @@ export default function DashboardScreen() {
         animationType="fade"
         onRequestClose={() => setShowFacilityPicker(false)}
       >
-        <Pressable 
-          style={styles.modalOverlay} 
+        <Pressable
+          style={styles.modalOverlay}
           onPress={() => setShowFacilityPicker(false)}
         >
-          <Pressable style={[styles.modalContent, { backgroundColor: theme.backgroundDefault }]} onPress={(e) => e.stopPropagation()}>
+          <Pressable
+            style={[
+              styles.modalContent,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
             <ThemedText style={styles.modalTitle}>Select Facility</ThemedText>
             <ScrollView style={styles.modalScroll}>
               <Pressable
                 style={[
                   styles.modalOption,
-                  filters.facility === "all" && { backgroundColor: theme.link + "20" },
+                  filters.facility === "all" && {
+                    backgroundColor: theme.link + "20",
+                  },
                 ]}
                 onPress={() => {
-                  setFilters(prev => ({ ...prev, facility: "all" }));
+                  setFilters((prev) => ({ ...prev, facility: "all" }));
                   setShowFacilityPicker(false);
                 }}
               >
-                <ThemedText style={[
-                  styles.modalOptionText,
-                  filters.facility === "all" && { color: theme.link, fontWeight: "600" },
-                ]}>
+                <ThemedText
+                  style={[
+                    styles.modalOptionText,
+                    filters.facility === "all" && {
+                      color: theme.link,
+                      fontWeight: "600",
+                    },
+                  ]}
+                >
                   All Facilities
                 </ThemedText>
               </Pressable>
@@ -1084,17 +1656,24 @@ export default function DashboardScreen() {
                   key={facility}
                   style={[
                     styles.modalOption,
-                    filters.facility === facility && { backgroundColor: theme.link + "20" },
+                    filters.facility === facility && {
+                      backgroundColor: theme.link + "20",
+                    },
                   ]}
                   onPress={() => {
-                    setFilters(prev => ({ ...prev, facility }));
+                    setFilters((prev) => ({ ...prev, facility }));
                     setShowFacilityPicker(false);
                   }}
                 >
-                  <ThemedText style={[
-                    styles.modalOptionText,
-                    filters.facility === facility && { color: theme.link, fontWeight: "600" },
-                  ]}>
+                  <ThemedText
+                    style={[
+                      styles.modalOptionText,
+                      filters.facility === facility && {
+                        color: theme.link,
+                        fontWeight: "600",
+                      },
+                    ]}
+                  >
                     {facility}
                   </ThemedText>
                 </Pressable>
@@ -1110,29 +1689,44 @@ export default function DashboardScreen() {
         animationType="fade"
         onRequestClose={() => setShowRolePicker(false)}
       >
-        <Pressable 
-          style={styles.modalOverlay} 
+        <Pressable
+          style={styles.modalOverlay}
           onPress={() => setShowRolePicker(false)}
         >
-          <Pressable style={[styles.modalContent, { backgroundColor: theme.backgroundDefault }]} onPress={(e) => e.stopPropagation()}>
+          <Pressable
+            style={[
+              styles.modalContent,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
             <ThemedText style={styles.modalTitle}>Select Role</ThemedText>
             <ScrollView style={styles.modalScroll}>
-              {(["all", "PS", "PP", "AS", "ONS", "SS", "SNS", "A"] as const).map((role) => (
+              {(
+                ["all", "PS", "PP", "AS", "ONS", "SS", "SNS", "A"] as const
+              ).map((role) => (
                 <Pressable
                   key={role}
                   style={[
                     styles.modalOption,
-                    filters.role === role && { backgroundColor: theme.link + "20" },
+                    filters.role === role && {
+                      backgroundColor: theme.link + "20",
+                    },
                   ]}
                   onPress={() => {
-                    setFilters(prev => ({ ...prev, role }));
+                    setFilters((prev) => ({ ...prev, role }));
                     setShowRolePicker(false);
                   }}
                 >
-                  <ThemedText style={[
-                    styles.modalOptionText,
-                    filters.role === role && { color: theme.link, fontWeight: "600" },
-                  ]}>
+                  <ThemedText
+                    style={[
+                      styles.modalOptionText,
+                      filters.role === role && {
+                        color: theme.link,
+                        fontWeight: "600",
+                      },
+                    ]}
+                  >
                     {ROLE_FILTER_LABELS[role]}
                   </ThemedText>
                 </Pressable>
@@ -1149,36 +1743,77 @@ export default function DashboardScreen() {
         onRequestClose={() => setDischargeModalVisible(false)}
       >
         <View style={styles.dischargeModalOverlay}>
-          <View style={[styles.dischargeModalContent, { backgroundColor: theme.backgroundDefault }]}>
+          <View
+            style={[
+              styles.dischargeModalContent,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
             <View style={styles.dischargeModalHeader}>
-              <ThemedText style={styles.dischargeModalTitle}>Discharge Patient</ThemedText>
+              <ThemedText style={styles.dischargeModalTitle}>
+                Discharge Patient
+              </ThemedText>
               <Pressable onPress={() => setDischargeModalVisible(false)}>
                 <Feather name="x" size={24} color={theme.textSecondary} />
               </Pressable>
             </View>
-            
+
             {dischargeCase ? (
               <View style={styles.dischargeModalBody}>
-                <View style={[styles.dischargePatientInfo, { backgroundColor: theme.backgroundSecondary }]}>
-                  <ThemedText style={styles.dischargePatientId}>{dischargeCase.patientIdentifier}</ThemedText>
-                  <ThemedText style={[styles.dischargeSyndrome, { color: theme.textSecondary }]}>
-                    {dischargeCase.infectionOverlay?.syndromePrimary 
-                      ? INFECTION_SYNDROME_LABELS[dischargeCase.infectionOverlay.syndromePrimary] 
+                <View
+                  style={[
+                    styles.dischargePatientInfo,
+                    { backgroundColor: theme.backgroundSecondary },
+                  ]}
+                >
+                  <ThemedText style={styles.dischargePatientId}>
+                    {dischargeCase.patientIdentifier}
+                  </ThemedText>
+                  <ThemedText
+                    style={[
+                      styles.dischargeSyndrome,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
+                    {dischargeCase.infectionOverlay?.syndromePrimary
+                      ? INFECTION_SYNDROME_LABELS[
+                          dischargeCase.infectionOverlay.syndromePrimary
+                        ]
                       : dischargeCase.procedureType}
                   </ThemedText>
-                  <ThemedText style={[styles.dischargeEpisodes, { color: theme.textTertiary }]}>
-                    {dischargeCase.infectionOverlay?.episodes?.length || 1} episode(s) documented
+                  <ThemedText
+                    style={[
+                      styles.dischargeEpisodes,
+                      { color: theme.textTertiary },
+                    ]}
+                  >
+                    {dischargeCase.infectionOverlay?.episodes?.length || 1}{" "}
+                    episode(s) documented
                   </ThemedText>
                 </View>
 
                 <View style={styles.dischargeField}>
-                  <ThemedText style={styles.dischargeFieldLabel}>Discharge Date</ThemedText>
-                  <Pressable 
+                  <ThemedText style={styles.dischargeFieldLabel}>
+                    Discharge Date
+                  </ThemedText>
+                  <Pressable
                     onPress={() => setShowDischargeDatePicker(true)}
-                    style={[styles.dischargeDateButton, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}
+                    style={[
+                      styles.dischargeDateButton,
+                      {
+                        backgroundColor: theme.backgroundSecondary,
+                        borderColor: theme.border,
+                      },
+                    ]}
                   >
-                    <ThemedText>{dischargeDate.toLocaleDateString()}</ThemedText>
-                    <Feather name="calendar" size={18} color={theme.textSecondary} />
+                    <ThemedText>
+                      {dischargeDate.toLocaleDateString()}
+                    </ThemedText>
+                    <Feather
+                      name="calendar"
+                      size={18}
+                      color={theme.textSecondary}
+                    />
                   </Pressable>
                 </View>
 
@@ -1193,13 +1828,18 @@ export default function DashboardScreen() {
                 ) : null}
 
                 <View style={styles.dischargeField}>
-                  <ThemedText style={styles.dischargeFieldLabel}>Discharge Notes (Optional)</ThemedText>
+                  <ThemedText style={styles.dischargeFieldLabel}>
+                    Discharge Notes (Optional)
+                  </ThemedText>
                   <TextInput
-                    style={[styles.dischargeNotesInput, { 
-                      backgroundColor: theme.backgroundSecondary, 
-                      borderColor: theme.border,
-                      color: theme.text,
-                    }]}
+                    style={[
+                      styles.dischargeNotesInput,
+                      {
+                        backgroundColor: theme.backgroundSecondary,
+                        borderColor: theme.border,
+                        color: theme.text,
+                      },
+                    ]}
                     placeholder="e.g., Infection resolved, wound healed"
                     placeholderTextColor={theme.textTertiary}
                     value={dischargeNotes}
@@ -1211,19 +1851,27 @@ export default function DashboardScreen() {
                 </View>
 
                 <View style={styles.dischargeActions}>
-                  <Pressable 
-                    style={[styles.dischargeCancelButton, { borderColor: theme.border }]}
+                  <Pressable
+                    style={[
+                      styles.dischargeCancelButton,
+                      { borderColor: theme.border },
+                    ]}
                     onPress={() => setDischargeModalVisible(false)}
                   >
                     <ThemedText>Cancel</ThemedText>
                   </Pressable>
-                  <Pressable 
-                    style={[styles.dischargeConfirmButton, { backgroundColor: theme.success }]}
+                  <Pressable
+                    style={[
+                      styles.dischargeConfirmButton,
+                      { backgroundColor: theme.success },
+                    ]}
                     onPress={handleConfirmDischarge}
                     testID="confirm-discharge-button"
                   >
                     <Feather name="check" size={18} color="#fff" />
-                    <ThemedText style={styles.dischargeConfirmText}>Confirm Discharge</ThemedText>
+                    <ThemedText style={styles.dischargeConfirmText}>
+                      Confirm Discharge
+                    </ThemedText>
                   </Pressable>
                 </View>
               </View>

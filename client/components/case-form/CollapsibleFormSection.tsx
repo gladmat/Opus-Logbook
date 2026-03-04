@@ -1,7 +1,12 @@
-import React, { useState, useRef } from "react";
-import { View, Pressable, Animated, StyleSheet } from "react-native";
+import React, { useState, useRef, useCallback } from "react";
+import { View, Pressable, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+} from "react-native-reanimated";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
@@ -15,99 +20,117 @@ interface CollapsibleFormSectionProps {
   defaultExpanded?: boolean;
 }
 
-export const CollapsibleFormSection = React.memo(function CollapsibleFormSection({
-  title,
-  subtitle,
-  filledCount,
-  totalCount,
-  children,
-  defaultExpanded = true,
-}: CollapsibleFormSectionProps) {
-  const { theme } = useTheme();
-  const [expanded, setExpanded] = useState(defaultExpanded);
-  const [measured, setMeasured] = useState(false);
-  const expandedRef = useRef(defaultExpanded);
-  const contentHeightRef = useRef(0);
-  const animatedHeight = useRef(new Animated.Value(defaultExpanded ? 1 : 0)).current;
+export const CollapsibleFormSection = React.memo(
+  function CollapsibleFormSection({
+    title,
+    subtitle,
+    filledCount,
+    totalCount,
+    children,
+    defaultExpanded = true,
+  }: CollapsibleFormSectionProps) {
+    const { theme } = useTheme();
+    const [expanded, setExpanded] = useState(defaultExpanded);
+    const expandedRef = useRef(defaultExpanded);
+    const contentHeightRef = useRef(0);
+    const measuredRef = useRef(false);
+    const animatedHeight = useSharedValue(defaultExpanded ? -1 : 0);
 
-  const toggle = () => {
-    const nextExpanded = !expandedRef.current;
-    expandedRef.current = nextExpanded;
-    setExpanded(nextExpanded);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const toggle = useCallback(() => {
+      const nextExpanded = !expandedRef.current;
+      expandedRef.current = nextExpanded;
+      setExpanded(nextExpanded);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    if (measured) {
-      Animated.timing(animatedHeight, {
-        toValue: nextExpanded ? contentHeightRef.current : 0,
-        duration: 250,
-        useNativeDriver: false,
-      }).start();
-    }
-  };
+      if (measuredRef.current) {
+        animatedHeight.value = withTiming(
+          nextExpanded ? contentHeightRef.current : 0,
+          { duration: 250 },
+        );
+      }
+    }, [animatedHeight]);
 
-  const badgeColor = filledCount > 0 ? theme.link : theme.textTertiary;
+    const contentStyle = useAnimatedStyle(() => {
+      if (animatedHeight.value === -1) {
+        return { overflow: "hidden" as const };
+      }
+      return {
+        height: animatedHeight.value,
+        overflow: "hidden" as const,
+      };
+    });
 
-  return (
-    <View style={styles.wrapper}>
-      <Pressable onPress={toggle} style={styles.header}>
-        <View style={styles.headerLeft}>
-          <ThemedText style={[styles.title, { color: theme.text }]}>
-            {title}
-          </ThemedText>
-          {subtitle ? (
-            <ThemedText style={[styles.subtitle, { color: theme.textTertiary }]}>
-              {subtitle}
-            </ThemedText>
-          ) : null}
-        </View>
-        <View style={styles.headerRight}>
-          <View
-            style={[
-              styles.badge,
-              {
-                backgroundColor: badgeColor + "15",
-                borderColor: badgeColor + "30",
-              },
-            ]}
-          >
-            <ThemedText style={[styles.badgeText, { color: badgeColor }]}>
-              {filledCount}/{totalCount}
-            </ThemedText>
-          </View>
-          <Feather
-            name={expanded ? "chevron-up" : "chevron-down"}
-            size={18}
-            color={theme.textSecondary}
-          />
-        </View>
-      </Pressable>
+    const handleLayout = useCallback(
+      (e: { nativeEvent: { layout: { height: number } } }) => {
+        const h = e.nativeEvent.layout.height;
+        if (h > 0) {
+          contentHeightRef.current = h;
+          if (!measuredRef.current) {
+            animatedHeight.value = expandedRef.current ? h : 0;
+            measuredRef.current = true;
+          } else if (expandedRef.current) {
+            animatedHeight.value = h;
+          }
+        }
+      },
+      [animatedHeight],
+    );
 
-      <Animated.View
-        style={{
-          height: measured ? animatedHeight : undefined,
-          overflow: "hidden",
-        }}
-      >
-        <View
-          onLayout={(e) => {
-            const h = e.nativeEvent.layout.height;
-            if (h > 0) {
-              contentHeightRef.current = h;
-              if (!measured) {
-                animatedHeight.setValue(expandedRef.current ? h : 0);
-                setMeasured(true);
-              } else if (expandedRef.current) {
-                animatedHeight.setValue(h);
-              }
-            }
-          }}
+    const badgeColor = filledCount > 0 ? theme.link : theme.textTertiary;
+
+    return (
+      <View style={styles.wrapper}>
+        <Pressable
+          onPress={toggle}
+          style={styles.header}
+          accessibilityRole="button"
+          accessibilityLabel={`${title}, ${filledCount} of ${totalCount} filled`}
+          accessibilityState={{ expanded }}
+          accessibilityHint={
+            expanded ? "Double tap to collapse" : "Double tap to expand"
+          }
         >
-          {children}
-        </View>
-      </Animated.View>
-    </View>
-  );
-});
+          <View style={styles.headerLeft}>
+            <ThemedText style={[styles.title, { color: theme.text }]}>
+              {title}
+            </ThemedText>
+            {subtitle ? (
+              <ThemedText
+                style={[styles.subtitle, { color: theme.textTertiary }]}
+              >
+                {subtitle}
+              </ThemedText>
+            ) : null}
+          </View>
+          <View style={styles.headerRight}>
+            <View
+              style={[
+                styles.badge,
+                {
+                  backgroundColor: badgeColor + "15",
+                  borderColor: badgeColor + "30",
+                },
+              ]}
+            >
+              <ThemedText style={[styles.badgeText, { color: badgeColor }]}>
+                {filledCount}/{totalCount}
+              </ThemedText>
+            </View>
+            <Feather
+              name={expanded ? "chevron-up" : "chevron-down"}
+              size={18}
+              color={theme.textSecondary}
+            />
+          </View>
+        </Pressable>
+
+        <Animated.View style={contentStyle}>
+          <View onLayout={handleLayout}>{children}</View>
+        </Animated.View>
+      </View>
+    );
+  },
+);
 
 const styles = StyleSheet.create({
   wrapper: {
