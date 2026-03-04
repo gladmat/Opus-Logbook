@@ -17,7 +17,14 @@ export function useScreenOptions({
     headerTitleAlign: "center",
     headerTransparent: transparent,
     headerBlurEffect: isDark ? "dark" : "light",
-    headerTintColor: theme.text,
+    headerTintColor: theme.link, // Amber for interactive back chevron
+    headerTitleStyle: {
+      color: theme.text,
+      fontWeight: "600",
+      fontSize: 17,
+    },
+    headerBackTitleVisible: false, // Clean chevron-only back button
+    headerShadowVisible: true,
     headerStyle: {
       backgroundColor: Platform.select({
         ios: undefined,

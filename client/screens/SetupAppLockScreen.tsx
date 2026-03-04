@@ -14,6 +14,7 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as LocalAuthentication from "expo-local-authentication";
 import { useNavigation } from "@react-navigation/native";
+import { useHeaderHeight } from "@react-navigation/elements";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { useAppLock } from "@/contexts/AppLockContext";
@@ -50,6 +51,7 @@ export default function SetupAppLockScreen() {
   const { theme: colors } = useTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const headerHeight = useHeaderHeight();
   const { refreshLockState, isAppLockConfigured } = useAppLock();
 
   const [hasPinSet, setHasPinSet] = useState(false);
@@ -394,7 +396,7 @@ export default function SetupAppLockScreen() {
       style={[styles.scrollContainer, { backgroundColor: colors.backgroundRoot }]}
       contentContainerStyle={[
         styles.scrollContent,
-        { paddingBottom: insets.bottom + Spacing["3xl"] },
+        { paddingTop: headerHeight + Spacing.lg, paddingBottom: insets.bottom + Spacing["3xl"] },
       ]}
     >
       {/* PIN Section */}
@@ -629,7 +631,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,
   },
   pinFlowHeader: {
     width: "100%",
