@@ -70,7 +70,12 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
       if (!isAppLockConfigured) return;
 
       if (nextState === "background" || nextState === "inactive") {
-        backgroundTimestamp.current = Date.now();
+        // Only record background time when the app is actually unlocked.
+        // While locked, the biometric prompt causes inactive→active transitions
+        // that would otherwise create an immediate re-lock loop.
+        if (!isLocked) {
+          backgroundTimestamp.current = Date.now();
+        }
       } else if (nextState === "active") {
         if (backgroundTimestamp.current !== null) {
           const elapsed = (Date.now() - backgroundTimestamp.current) / 1000;
@@ -89,7 +94,7 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
       handleAppStateChange,
     );
     return () => subscription.remove();
-  }, [isAppLockConfigured]);
+  }, [isAppLockConfigured, isLocked]);
 
   const unlockWithBiometrics = useCallback(async (): Promise<boolean> => {
     try {
@@ -110,6 +115,10 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
       });
 
       if (result.success) {
+        // Clear timestamp BEFORE unlocking to prevent the AppState "active"
+        // handler from immediately re-locking (the biometric prompt causes
+        // an inactive→active transition that would otherwise trigger re-lock).
+        backgroundTimestamp.current = null;
         setIsLocked(false);
         return true;
       }
@@ -123,6 +132,7 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
     async (pin: string): Promise<boolean> => {
       const valid = await verifyPin(pin);
       if (valid) {
+        backgroundTimestamp.current = null;
         setIsLocked(false);
         return true;
       }
