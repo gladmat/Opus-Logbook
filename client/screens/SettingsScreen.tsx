@@ -461,6 +461,28 @@ export default function SettingsScreen() {
 
         <View style={styles.section}>
           <ThemedText style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+            SECURITY
+          </ThemedText>
+          <View style={[styles.sectionCard, { backgroundColor: theme.backgroundDefault }]}>
+            <SettingsItem
+              icon="shield"
+              label="App Lock"
+              subtitle="PIN and biometric protection"
+              value={isAppLockConfigured ? "On" : "Off"}
+              onPress={() => navigation.navigate("SetupAppLock")}
+            />
+            <View style={[styles.divider, { backgroundColor: theme.border }]} />
+            <SettingsItem
+              icon="lock"
+              label="Change Password"
+              subtitle="Update your account password"
+              onPress={() => setShowChangePasswordModal(true)}
+            />
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <ThemedText style={[styles.sectionTitle, { color: theme.textSecondary }]}>
             APPEARANCE
           </ThemedText>
           <View style={[styles.sectionCard, { backgroundColor: theme.backgroundDefault, padding: Spacing.md }]}>
@@ -630,28 +652,6 @@ export default function SettingsScreen() {
               label="Send Feedback"
               subtitle="Report bugs or suggest features"
               onPress={handleSendFeedback}
-            />
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <ThemedText style={[styles.sectionTitle, { color: theme.textSecondary }]}>
-            SECURITY
-          </ThemedText>
-          <View style={[styles.sectionCard, { backgroundColor: theme.backgroundDefault }]}>
-            <SettingsItem
-              icon="lock"
-              label="Change Password"
-              subtitle="Update your account password"
-              onPress={() => setShowChangePasswordModal(true)}
-            />
-            <View style={[styles.divider, { backgroundColor: theme.border }]} />
-            <SettingsItem
-              icon="shield"
-              label="App Lock"
-              subtitle="PIN and biometric protection"
-              value={isAppLockConfigured ? "On" : "Off"}
-              onPress={() => navigation.navigate("SetupAppLock")}
             />
           </View>
         </View>
