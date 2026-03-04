@@ -3,7 +3,7 @@ import { View, Pressable, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
-import { FormField, PickerField } from "@/components/FormField";
+import { FormField, PickerField, SelectField } from "@/components/FormField";
 import { SectionHeader } from "@/components/SectionHeader";
 import { TimeField } from "@/components/TimeField";
 import { CollapsibleFormSection } from "./CollapsibleFormSection";
@@ -16,9 +16,22 @@ import {
   WoundInfectionRisk,
   AnaestheticType,
   OPERATING_TEAM_ROLE_LABELS,
-  WOUND_INFECTION_RISK_LABELS,
-  ANAESTHETIC_TYPE_LABELS,
 } from "@/types/case";
+
+const ANAESTHETIC_OPTIONS: { value: AnaestheticType; label: string }[] = [
+  { value: "general", label: "GA" },
+  { value: "local", label: "LA" },
+  { value: "sedation_local", label: "Sedation + LA" },
+  { value: "walant", label: "WALANT" },
+];
+
+const WOUND_RISK_OPTIONS: { value: WoundInfectionRisk; label: string }[] = [
+  { value: "clean", label: "Clean" },
+  { value: "clean_contaminated", label: "Clean/Contaminated" },
+  { value: "contaminated", label: "Contaminated" },
+  { value: "dirty", label: "Dirty" },
+  { value: "na", label: "N/A" },
+];
 
 const TEAM_ROLES: { value: OperatingTeamRole; label: string }[] = [
   { value: "scrub_nurse", label: "Scrub Nurse" },
@@ -144,23 +157,19 @@ export const OperativeFactorsSection = React.memo(function OperativeFactorsSecti
 
       <SectionHeader title="Operative Factors" />
 
-      <PickerField
+      <SelectField
         label="Wound Infection Risk"
         value={state.woundInfectionRisk}
-        options={Object.entries(WOUND_INFECTION_RISK_LABELS).map(
-          ([value, label]) => ({ value, label }),
-        )}
+        options={WOUND_RISK_OPTIONS}
         onSelect={(v: string) =>
           dispatch(setField("woundInfectionRisk", v as WoundInfectionRisk))
         }
       />
 
-      <PickerField
+      <SelectField
         label="Anaesthetic Type"
         value={state.anaestheticType}
-        options={Object.entries(ANAESTHETIC_TYPE_LABELS).map(
-          ([value, label]) => ({ value, label }),
-        )}
+        options={ANAESTHETIC_OPTIONS}
         onSelect={(v: string) =>
           dispatch(setField("anaestheticType", v as AnaestheticType))
         }

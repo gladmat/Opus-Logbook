@@ -3,6 +3,9 @@
 # dependencies
 node_modules/
 
+# Replit
+.config/replit/
+
 # Expo
 .expo/
 dist/
