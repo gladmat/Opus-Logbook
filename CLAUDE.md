@@ -2,7 +2,7 @@
 
 ## What is this project?
 
-A full-stack Expo/React Native surgical case logbook app (branded as **Opus**) for documenting surgical procedures, tracking post-operative outcomes, and generating analytics. Supports multiple surgical specialties with SNOMED CT coding, free flap tracking, anastomosis logging, wound assessments, and infection episode monitoring. Originally built on Replit.
+A full-stack Expo/React Native surgical case logbook app (branded as **Opus**) for documenting surgical procedures, tracking post-operative outcomes, and generating analytics. Supports multiple surgical specialties with SNOMED CT coding, free flap tracking, anastomosis logging, wound assessments, and infection episode monitoring. Privacy-first design with on-device data storage and end-to-end encryption. Integrates RACS MALT fields for auditing and logging.
 
 ## v2.0 Overhaul Status
 
@@ -25,7 +25,7 @@ A full-stack Expo/React Native surgical case logbook app (branded as **Opus**) f
 
 ```bash
 npm run server:dev     # Start Express API server (port from .env, default 5001 locally)
-npm run expo:dev       # Start Expo dev client (designed for Replit — needs env adjustment locally)
+npm run expo:dev       # Start Expo dev client
 npm run db:push        # Push Drizzle schema to PostgreSQL (loads .env)
 npm run server:build   # Production server build → server_dist/
 npm run server:prod    # Run production server
@@ -74,6 +74,7 @@ client/
       CollapsibleFormSection.tsx  # Shared collapsible card wrapper
       SectionNavBar.tsx          # Sticky horizontal pill navigation
       CaseSummaryView.tsx        # Read-only review before save
+    hand-trauma/             # 10 files — zone-and-digit-driven UI for hand trauma cases
   contexts/
     AuthContext.tsx           # Auth state, profile, facilities, device keys
     MediaCallbackContext.tsx  # Cross-screen media selection callbacks
@@ -94,6 +95,8 @@ client/
     statistics.ts            # Case analytics calculations
     mediaStorage.ts          # Image encryption + storage
     melanomaStaging.ts       # Melanoma staging rules
+    migration.ts             # Auto-migrates old case formats on load
+    snomedCodeMigration.ts   # Old→new SNOMED code mapping
     diagnosisPicklists/      # Pre-built diagnosis suggestions by specialty
   types/
     case.ts                  # Case, Procedure, TimelineEvent, MediaAttachment
@@ -129,10 +132,14 @@ migrations/                  # SQL migration files
 - **Multi-specialty:** Hand surgery, orthoplastic, breast, burns, head/neck, aesthetics, general, body contouring
 - **Theme:** ThemeProvider in `client/hooks/useTheme.ts` wraps the app. `useTheme()` returns `{ theme, isDark, colorScheme, preference, toggleColorScheme, setColorScheme }`. Default is dark mode; respects system preference; user override persists to AsyncStorage. `ThemedNavigationContainer` in `App.tsx` maps theme to React Navigation's Theme prop.
 - **Case form:** `CaseFormScreen.tsx` (~240 lines) delegates to 7 section components via `CaseFormContext`. Form state is a `useReducer` in `useCaseForm.ts` with actions: `SET_FIELD`, `SET_FIELDS`, `RESET_FORM`, `LOAD_DRAFT`, `LOAD_CASE`. Draft auto-save via `useCaseDraft.ts` (debounced writes + AppState background flush). Summary view (`CaseSummaryView.tsx`) gates save with validation.
+- **Multi-Diagnosis Group Architecture:** Each Case has `diagnosisGroups: DiagnosisGroup[]` instead of flat diagnosis/procedures fields. Each DiagnosisGroup bundles a specialty, diagnosis, staging, fractures, and procedures. Enables multi-specialty cases (e.g., hand surgery + orthoplastic). Old cases auto-migrated on load via `client/lib/migration.ts`. Helpers: `getAllProcedures(c)`, `getCaseSpecialties(c)`, `getPrimaryDiagnosisName(c)` in `client/types/case.ts`.
+- **RACS MALT Data Model:** Comprehensive implementation of RACS MALT requirements including supervision levels.
 
 ## Database tables (PostgreSQL)
 
 `users`, `profiles`, `user_facilities`, `user_device_keys`, `password_reset_tokens`, `procedures`, `flaps`, `anastomoses`, `case_procedures`, `snomed_ref`, `teams`, `team_members`
+
+**Performance indexes** (`migrations/add_performance_indexes.sql`): 8 indexes on high-frequency query paths — procedures (user_id, user_id+date), flaps (procedure_id), anastomoses (flap_id), case_procedures (case_id), password_reset_tokens (expires_at), snomed_ref (category+is_active), user_facilities (user_id). All use `IF NOT EXISTS` for idempotent execution.
 
 ## Path aliases (tsconfig + babel)
 
@@ -151,17 +158,142 @@ migrations/                  # SQL migration files
 
 Hand surgery, Orthoplastic, Breast, Body contouring, Burns, Head & neck, Aesthetics, General
 
-## Railway deployment (production API)
+## Feature modules
 
-- **Project:** surgical-logbook-api
-- **URL:** https://api-server-production-4dd7.up.railway.app
-- **Services:** `api-server` (Express backend) + `Postgres` (PostgreSQL database)
-- **Deploy method:** `railway up` from project root (CLI push)
-- **Build:** Nixpacks, Node 20, `npm run server:build` → CJS bundle → `node server_dist/index.js`
-- **Config:** `railway.toml` in project root
-- **Env vars on Railway:** `DATABASE_URL` (references Postgres service), `JWT_SECRET`, `PORT=5000`, `NODE_ENV=production`
-- **Healthcheck:** `GET /api/health`
-- **Schema push:** Use public DATABASE_URL from Postgres service with `npx drizzle-kit push`
+### Procedure Picklists & SNOMED CT
+
+- **Complete 8-Specialty Procedure Picklist:** 412 unique procedures across all 8 specialties (Orthoplastic 43, Hand Surgery 94, Head & Neck 93, General 80, Breast 47, Burns 34, Aesthetics 53, Body Contouring 31). Includes Facial Soft Tissue Trauma (8 procedures) and Soft Tissue Trauma (6 procedures) subcategories. Skin cancer/melanoma procedures and diagnoses cross-tagged between General and Head & Neck. All specialties use the subcategory picker UI.
+- **SNOMED CT Audit:** ~70 entries fixed across CRITICAL/HIGH/MEDIUM priorities — botulinum toxin US→INT edition, dermal filler hierarchy, burns codes, LD flap, cleft palate, body contouring, breast procedures, cross-map alignment.
+- **SNOMED Code Migration:** `client/lib/snomedCodeMigration.ts` maintains old→new code mapping. `migrateCase()` in `client/lib/migration.ts` transparently updates old codes on load (historical data preserved).
+
+### Diagnosis-to-Procedure Suggestions
+
+- 161 structured diagnoses across all 8 specialties with procedure suggestions (staging-conditional).
+- Selecting a diagnosis auto-populates default procedures; staging changes activate/deactivate conditional procedures.
+- Components: `DiagnosisPicker`, `ProcedureSuggestions`.
+
+### Procedure-First (Reverse) Entry
+
+Dual-entry flow — when a surgeon picks procedures without a diagnosis first, a "What's the diagnosis?" card appears with smart suggestions derived from reverse-mapping procedures to likely diagnoses. Same-specialty suggestions shown first, cross-specialty grouped separately. Reverse index built lazily in `client/lib/diagnosisPicklists/index.ts` (`getDiagnosesForProcedure`, `getDiagnosesForProcedures`). UI component: `client/components/DiagnosisSuggestions.tsx`, wired into `DiagnosisGroupEditor.tsx`.
+
+### Hand Trauma Structure Picker
+
+Zone-and-digit-driven UI accelerator for hand surgery trauma cases (`client/components/hand-trauma/`). Activates when `groupSpecialty === "hand_surgery" && clinicalGroup === "trauma"`. Surgeon selects affected digits (I–V), then checks injured structures across 6 accordion categories: flexor tendons (zone I–V/T1–T3), extensor tendons (zone I–VIII/TI–TV), nerves (digital N1–N10 + proximal median/ulnar/radial/DBUN), arteries (digital A1–A10 + proximal radial/ulnar/palmar arches), ligaments (PIP collateral, MCP I UCL/RCL), and other (bone, nail bed, skin loss, volar plate). Each checked structure auto-generates a `CaseProcedure` via `STRUCTURE_PROCEDURE_MAP` lookup with SNOMED codes and descriptive notes. Smart defaults auto-expand relevant sections based on diagnosis. Data stored in `DiagnosisClinicalDetails.handTrauma: HandTraumaDetails`.
+
+### Hand Surgery Form Restructure
+
+Fracture checkbox removed (was UI-only state, not in DB). AO/OTA classification auto-shows when `hasFractureSubcategory` is true. Field order for fracture cases: Laterality → Affected Structures → AO/OTA Classification → Injury Mechanism. AO/OTA entry upgraded to smart inline `AOTAClassificationCard` with classified/unclassified states.
+
+### Multi-Lesion Session
+
+Supports logging 3–6 skin lesion excisions from one operative session as discrete, auditable entries within a single diagnosis group.
+- **Types** (`client/types/case.ts`): `LesionInstance`, `LesionPathologyType`, `LesionReconstruction` — each instance captures site, pathology type, reconstruction method, dimensions, margins, margin status, and optional SNOMED CT site modifier.
+- **DiagnosisGroup extension:** `isMultiLesion?: boolean` and `lesionInstances?: LesionInstance[]` fields. Old cases without these fields load without errors (backward compatible).
+- **MultiLesionEditor** (`client/components/MultiLesionEditor.tsx`): Collapsible row-per-lesion UI with quick-pick anatomical sites, pathology type selector, reconstruction picker, dimension/margin inputs, margin status, and swipe-to-delete. "Add" appends blank row; "Duplicate last" copies prior row.
+- **Toggle:** Appears in `DiagnosisGroupEditor` when `hasEnhancedHistology` or specialty is `general`/`head_neck`. Replaces standard procedure list when on.
+- **Helpers:** `getAllLesionInstances(case)` returns all lesion instances across groups; `getExcisionCount(case)` counts discrete excisions.
+
+### Staging Configurations
+
+14 staging systems: Tubiana, Gustilo-Anderson, Breslow, CTS Severity, Quinnell, TNM, NPUAP, Burns Depth/TBSA, Baker Classification, Hurley Stage, ISL Stage, House-Brackmann Grade, Wagner Grade, Le Fort Classification.
+
+### Wound Episode Tracker
+
+Serial wound assessment documentation as a timeline event type (`wound_assessment`).
+- **WoundAssessmentForm** (`client/components/WoundAssessmentForm.tsx`): Progressive-disclosure form with 11 sections — dimensions (auto-area), TIME classification (Tissue/Infection/Moisture/Edge), surrounding skin, dressing catalogue (40+ products grouped by category), healing trend, intervention notes, clinician note, next review date.
+- **WoundAssessmentCard** (`client/components/WoundAssessmentCard.tsx`): Compact timeline card with header badge, dimensions, tissue/exudate/edge details, infection signs (red highlight), dressings list, healing trend (colour-coded), and clinician note.
+- **WoundDimensionChart** (`client/components/WoundDimensionChart.tsx`): SVG line chart (react-native-svg) showing wound area (cm²) over time; renders when >= 2 wound assessments with area data exist.
+- **Types** (`client/types/wound.ts`): WoundAssessment, WoundDressingEntry, DressingProduct, TIME classification types, DRESSING_CATALOGUE (40+ products with SNOMED CT codes where applicable).
+- **Integration:** Extends `TimelineEvent` with `woundAssessmentData?: WoundAssessment`; patched into AddTimelineEventScreen and CaseDetailScreen.
+
+### Infection Documentation Module
+
+Comprehensive infection case documentation with serial episode tracking.
+- **InfectionOverlay:** Attachable overlay for any case specialty.
+- **Quick Templates:** Pre-configured templates for common infection patterns (Abscess, Necrotising Fasciitis, Implant Infection, etc.).
+- **Infection Syndromes:** Categories: Skin/Soft Tissue, Deep Infection, Bone/Joint.
+- **Serial Episode Tracking:** Auto-incrementing episode numbers for multiple operative interventions.
+- **Microbiology Data:** Culture status, organism entries with resistance flags.
+- **Active Cases Dashboard:** Prominent display of active infection cases.
+- **Infection Statistics:** Dashboard card showing counts, averages, and breakdowns.
+
+### Current Inpatients Dashboard
+
+Cases with `stayType === "inpatient"` and no `dischargeDate` shown in a collapsible "Current Inpatients" section on the Dashboard with day count since admission and quick-discharge button. Discharge date field is clearable.
+
+### Free Flap / Orthoplastic Documentation
+
+- **Picklist-to-Flap Mapping** (`client/lib/procedurePicklist.ts`): `PICKLIST_TO_FLAP_TYPE` maps picklist entry IDs to `FreeFlap` enum values. Auto-populates `flapType` and shows locked confirmation badge instead of full 18-flap picker. Generic/unmapped entries show full picker.
+- **FreeFlapPicker Component:** Selectable list of 18 free flaps.
+- **Config-Driven Elevation Planes:** Per-flap configurable elevation planes.
+- **Flap-Specific Conditional Fields:** Config-driven field rendering via `flapFieldConfig.ts` (~100 typed fields).
+- **Donor Vessel Auto-Population:** Automatic suggestion based on flap type.
+- **Recipient Site Regions:** Includes Knee.
+- **Recipient Vessel Presets:** Local presets for common recipient vessels by body region.
+- **Recipient Site Laterality:** `recipientSiteLaterality` field in `FreeFlapDetails`. Both Harvest Side and Recipient Side use filled segmented buttons displayed side-by-side.
+- **Simplified Anastomosis Documentation:** Streamlined arterial and venous documentation.
+
+### Anastomosis UI (AnastomosisEntryCard)
+
+- **Segmented buttons:** Technique (vein) and Configuration fields use segmented button groups instead of PickerField dropdowns.
+- **Coupler constraint:** Selecting "Coupler" auto-sets configuration to "End-to-End" and locks other options (dimmed at 35% opacity). Enforced on initial load via useEffect.
+
+### Diagnosis Group Editor
+
+- **Collapsible groups:** Multi-diagnosis groups collapse to a compact summary card (specialty + diagnosis + procedure count). Auto-expanded when no diagnosis selected.
+- **Free flap initialization:** Auto-created free flap procedures from diagnosis suggestions include initialized `clinicalDetails` (flapType, SNOMED codes, harvest side, indication, empty anastomoses).
+
+### Extended Details Collapsible
+
+`ExtendedDetailsSection` in `CaseFormScreen.tsx` wraps Surgery Timing, Operating Team, Risk Factors, Infection Documentation, and Outcomes behind a collapsible section (collapsed by default). Uses `Animated.spring` for height animation with dynamic content height re-measurement. Save button always visible below.
+
+## Authentication & Security
+
+- **Password Security:** bcrypt hashing (10 rounds), minimum 8-character passwords.
+- **Password Reset Flow:** Token-based reset via web page, tokens expire after 1 hour and are single-use.
+- **JWT Token Revocation:** `tokenVersion` mechanism revokes all existing tokens on password change.
+- **Profile Update Protection:** Restricted fields to prevent mass assignment vulnerabilities.
+- **Rate Limiting:** Auth endpoints protected against brute force attacks.
+- **Patient Identifier Privacy:** Patient identifiers in local case index are SHA-256 hashed.
+- **Endpoint Protection:** All SNOMED and staging endpoints require authentication.
+
+## Encryption Architecture
+
+- **XChaCha20-Poly1305 AEAD:** All local case data encrypted.
+- **Envelope Format:** `enc:v1:nonce:ciphertext` for version identification.
+- **Backward Compatibility:** Legacy XOR-encrypted data automatically re-encrypted.
+- **Key Derivation:** Device encryption key derived from user passphrase using scrypt.
+
+### End-to-End Encryption Scaffolding
+
+- **Per-Device Key Pairs:** Each device generates X25519 key pair stored securely.
+- **Device Key Registration:** Public keys registered with server.
+- **Key Registry API:** Server stores device public keys and metadata.
+- **Key Revocation:** Devices can be remotely revoked.
+- **Case Key Wrapping:** Infrastructure for wrapping symmetric case keys with recipient public keys.
+
+### Encrypted Media Storage
+
+- Photos encrypted with XChaCha20-Poly1305 and stored in AsyncStorage as individual entries (`@surgical_logbook_media_[uuid]`). No filesystem dependency.
+- Image picker calls use `base64: true` for direct data without filesystem operations.
+- `encrypted-media:[uuid]` URI scheme in case data. `EncryptedImage` component handles async decryption with in-memory caching. Passes through non-encrypted URIs (legacy `file://` paths).
+- All intake paths covered: `OperativeMediaSection`, `MediaCapture`, `AddOperativeMediaScreen`, `MediaManagementScreen` via `client/lib/mediaStorage.ts`.
+- Cleanup on delete: `deleteCase()` in storage.ts removes associated media. Individual photo removal also cleans up.
+- **Pending base64 pattern:** For the AddOperativeMedia navigation flow, base64 data held in a module-level store (`setPendingBase64`/`consumePendingBase64`) to avoid large strings through navigation params.
+
+## Edit Mode (CaseFormScreen)
+
+- **Clinical details round-trip:** Restores `clinicalDetails`, `recipientSiteRegion`, and `anastomoses` from existing case data.
+- **Save payload:** Uses actual `clinicalDetails` state (not placeholder), preserving all clinical data through edits.
+- **Draft isolation:** Draft loading skipped in edit mode (`isEditMode` guard) to prevent race conditions.
+- **Unconditional setters:** All field setters use `?? ""` / `?? defaultValue` instead of conditional `if`, ensuring cleared fields persist correctly.
+- **Header save ref pattern:** `handleSaveRef.current` always points to the latest `handleSave` closure, so the header button never captures stale state.
+
+## Email Configuration
+
+- **Provider:** Resend integration for transactional emails.
+- **From Address:** noreply@drgladysz.com
+- **Email Types:** Password reset and welcome emails with branded HTML templates.
 
 ## iOS / App Store distribution
 
@@ -174,6 +306,19 @@ Hand surgery, Orthoplastic, Breast, Body contouring, Burns, Head & neck, Aesthet
 - **Expo slug:** opus
 - **EAS Project ID:** 0bc1b91c-c240-4f4e-b030-31d16389cd1e
 - **Expo account:** @gladmat
+- **iOS Permissions:** expo-image-picker plugin configured in `app.json` with custom `photosPermission` and `cameraPermission` strings.
+
+## Railway deployment (production API)
+
+- **Project:** surgical-logbook-api
+- **URL:** https://api-server-production-4dd7.up.railway.app
+- **Services:** `api-server` (Express backend) + `Postgres` (PostgreSQL database)
+- **Deploy method:** `railway up` from project root (CLI push)
+- **Build:** Nixpacks, Node 20, `npm run server:build` → CJS bundle → `node server_dist/index.js`
+- **Config:** `railway.toml` in project root
+- **Env vars on Railway:** `DATABASE_URL` (references Postgres service), `JWT_SECRET`, `PORT=5000`, `NODE_ENV=production`
+- **Healthcheck:** `GET /api/health`
+- **Schema push:** Use public DATABASE_URL from Postgres service with `npx drizzle-kit push`
 
 ## Brand & Design System: Charcoal + Amber
 
