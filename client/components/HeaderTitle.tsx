@@ -2,5 +2,5 @@ import React from "react";
 import { OpusLogo } from "@/components/brand";
 
 export function HeaderTitle() {
-  return <OpusLogo size="md" showSubtitle />;
+  return <OpusLogo size="lg" showSubtitle />;
 }

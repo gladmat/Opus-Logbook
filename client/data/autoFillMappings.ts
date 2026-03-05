@@ -95,6 +95,13 @@ export function getDefaultFlapSpecificDetails(
   }
 }
 
+export const DIEP_BILATERAL_DEFAULTS: Partial<FlapSpecificDetails> = {
+  diepMSTRAM: "ms_3",
+  diepPerforatorRow: "medial",
+  diepPerfusionZones: "zone_i_iii",
+  diepFlapConfiguration: "standard_unilateral",
+};
+
 // ═══════════════════════════════════════════════════════════════════════════
 // CONTEXT-SPECIFIC OVERRIDES
 // Gracilis and Fibula defaults depend on diagnosis/recipient context
@@ -192,6 +199,8 @@ export const ARTERY_TO_CONCOMITANT_VEIN: Record<string, string> = {
   // Hand
   "Radial artery at anatomical snuffbox": "Cephalic vein",
   "Ulnar artery": "Basilic vein",
+  "Superficial palmar arch": "Superficial venous arch",
+  "Deep palmar arch": "Superficial venous arch",
   "Common digital artery": "Dorsal metacarpal veins",
   "Proper digital artery": "Dorsal metacarpal veins",
 
@@ -218,6 +227,48 @@ export const ARTERY_TO_CONCOMITANT_VEIN: Record<string, string> = {
   "Lateral thoracic artery": "Lateral thoracic vein",
   "Thoracoacromial artery": "Cephalic vein",
 };
+
+export function normalizeVesselName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\(.*?\)/g, " ")
+    .replace(/\b(left|right|lt|rt)\b/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const NORMALIZED_ARTERY_TO_CONCOMITANT_VEIN: Record<string, string> = Object.fromEntries(
+  Object.entries(ARTERY_TO_CONCOMITANT_VEIN).map(([artery, vein]) => [
+    normalizeVesselName(artery),
+    vein,
+  ]),
+);
+
+export function resolveConcomitantVeinName(
+  arteryCandidates: string[],
+): string | undefined {
+  for (const artery of arteryCandidates) {
+    if (!artery) continue;
+    const normalized = normalizeVesselName(artery);
+    const directMatch = NORMALIZED_ARTERY_TO_CONCOMITANT_VEIN[normalized];
+    if (directMatch) return directMatch;
+  }
+
+  for (const artery of arteryCandidates) {
+    if (!artery) continue;
+    const normalized = normalizeVesselName(artery);
+    for (const [mappedArtery, mappedVein] of Object.entries(
+      NORMALIZED_ARTERY_TO_CONCOMITANT_VEIN,
+    )) {
+      if (normalized.includes(mappedArtery) || mappedArtery.includes(normalized)) {
+        return mappedVein;
+      }
+    }
+  }
+
+  return undefined;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // REGION → DEFAULT ARTERIAL CONFIGURATION

@@ -55,6 +55,7 @@ import {
   getGracilisContextDefaults,
   getFibulaContextDefaults,
   BREAST_RECON_DEFAULT_RECIPIENT_VESSELS,
+  DIEP_BILATERAL_DEFAULTS,
 } from "@/data/autoFillMappings";
 import { SectionHeader } from "@/components/SectionHeader";
 import { DiagnosisSuggestions } from "@/components/DiagnosisSuggestions";
@@ -243,6 +244,28 @@ export function DiagnosisGroupEditor({
     procedures.some((p) => p.subcategory === "Fracture & Joint Fixation");
 
   useEffect(() => {
+    if (groupSpecialty !== "hand_surgery") {
+      setHandCaseType(null);
+      return;
+    }
+
+    if (selectedDiagnosis?.clinicalGroup) {
+      setHandCaseType(
+        selectedDiagnosis.clinicalGroup === "trauma" ? "trauma" : "elective",
+      );
+      return;
+    }
+
+    if (diagnosisClinicalDetails.handTrauma) {
+      setHandCaseType("trauma");
+    }
+  }, [
+    groupSpecialty,
+    selectedDiagnosis?.clinicalGroup,
+    diagnosisClinicalDetails.handTrauma,
+  ]);
+
+  useEffect(() => {
     if (!hasFractureSubcategory) {
       setFractures([]);
     }
@@ -327,6 +350,92 @@ export function DiagnosisGroupEditor({
     [groupSpecialty],
   );
 
+  const buildFreeFlapClinicalDetails = useCallback(
+    (
+      picklistId: string,
+      diagnosisEntry?: DiagnosisPicklistEntry | null,
+    ): FreeFlapDetails | undefined => {
+      const mappedFlapType = PICKLIST_TO_FLAP_TYPE[picklistId];
+      if (!mappedFlapType) return undefined;
+
+      const snomedEntry = FLAP_SNOMED_MAP[mappedFlapType];
+      const prefAnticoag =
+        profile?.surgicalPreferences?.microsurgery?.anticoagulationProtocol;
+      const recipientSite = diagnosisEntry
+        ? DIAGNOSIS_TO_RECIPIENT_SITE[diagnosisEntry.id]
+        : undefined;
+      const recipientSiteSnomed = recipientSite
+        ? RECIPIENT_SITE_SNOMED_MAP[recipientSite]
+        : undefined;
+      const indication = diagnosisEntry?.clinicalGroup
+        ? CLINICAL_GROUP_TO_INDICATION[diagnosisEntry.clinicalGroup]
+        : undefined;
+
+      let flapSpecificDetails = getDefaultFlapSpecificDetails(mappedFlapType);
+      let skinIsland: boolean | undefined;
+
+      // Gracilis: facial reanimation vs soft tissue.
+      if (mappedFlapType === "gracilis" && diagnosisEntry) {
+        const gracilisDefaults = getGracilisContextDefaults(diagnosisEntry.id);
+        flapSpecificDetails = gracilisDefaults.flapSpecificDetails;
+        skinIsland = gracilisDefaults.skinIsland;
+      }
+
+      // Fibula: head & neck vs limb reconstruction defaults.
+      if (mappedFlapType === "fibula") {
+        flapSpecificDetails = getFibulaContextDefaults(recipientSite);
+      }
+
+      // Bilateral DIEP context from diagnosis laterality.
+      if (
+        mappedFlapType === "diep" &&
+        diagnosisClinicalDetails.laterality === "bilateral"
+      ) {
+        flapSpecificDetails = {
+          ...flapSpecificDetails,
+          ...DIEP_BILATERAL_DEFAULTS,
+        };
+      }
+
+      // Breast recon defaults: IMA + IMV.
+      let anastomoses: AnastomosisEntry[] = [];
+      if (recipientSite === "breast_chest") {
+        anastomoses = [
+          {
+            id: uuidv4(),
+            vesselType: "artery",
+            recipientVesselName: BREAST_RECON_DEFAULT_RECIPIENT_VESSELS.artery,
+            couplingMethod: "hand_sewn",
+          },
+          {
+            id: uuidv4(),
+            vesselType: "vein",
+            recipientVesselName: BREAST_RECON_DEFAULT_RECIPIENT_VESSELS.vein,
+            couplingMethod: "coupler",
+          },
+        ];
+      }
+
+      return {
+        flapType: mappedFlapType,
+        flapSnomedCode: snomedEntry?.code,
+        flapSnomedDisplay: snomedEntry?.display,
+        harvestSide: "left",
+        anastomoses,
+        ...(indication ? { indication } : {}),
+        recipientSiteRegion: recipientSite,
+        recipientSiteSnomedCode: recipientSiteSnomed?.code,
+        recipientSiteSnomedDisplay: recipientSiteSnomed?.display,
+        ...(skinIsland !== undefined ? { skinIsland } : {}),
+        ...(Object.keys(flapSpecificDetails).length > 0
+          ? { flapSpecificDetails }
+          : {}),
+        ...(prefAnticoag ? { anticoagulationProtocol: prefAnticoag } : {}),
+      };
+    },
+    [diagnosisClinicalDetails.laterality, profile?.surgicalPreferences],
+  );
+
   const handleDiagnosisSelect = useCallback(
     (dx: DiagnosisPicklistEntry, hints: AOProcedureHint[] = []) => {
       setSelectedDiagnosis(dx);
@@ -335,6 +444,10 @@ export function DiagnosisGroupEditor({
       setStagingValues({});
       setIsDiagnosisPickerCollapsed(true);
       setShowAllProcedures(false);
+
+      if (groupSpecialty === "hand_surgery" && dx.clinicalGroup) {
+        setHandCaseType(dx.clinicalGroup === "trauma" ? "trauma" : "elective");
+      }
 
       // Apply AO procedure hints if provided (promote/demote defaults)
       const effectiveSuggestions =
@@ -353,76 +466,7 @@ export function DiagnosisGroupEditor({
           const entry = findPicklistEntry(picklistId);
           let clinicalDetails: FreeFlapDetails | undefined = undefined;
           if (entry?.hasFreeFlap) {
-            const mappedFlapType = PICKLIST_TO_FLAP_TYPE[picklistId];
-            if (mappedFlapType) {
-              const snomedEntry = FLAP_SNOMED_MAP[mappedFlapType];
-              const prefAnticoag =
-                profile?.surgicalPreferences?.microsurgery
-                  ?.anticoagulationProtocol;
-              const recipientSite = DIAGNOSIS_TO_RECIPIENT_SITE[dx.id];
-              const recipientSiteSnomed = recipientSite
-                ? RECIPIENT_SITE_SNOMED_MAP[recipientSite]
-                : undefined;
-              const indication = dx.clinicalGroup
-                ? CLINICAL_GROUP_TO_INDICATION[dx.clinicalGroup]
-                : undefined;
-
-              // Build flap-specific details with context overrides
-              let flapSpecificDetails =
-                getDefaultFlapSpecificDetails(mappedFlapType);
-              let skinIsland: boolean | undefined;
-
-              // Gracilis: facial reanimation vs soft tissue
-              if (mappedFlapType === "gracilis") {
-                const gracilisDefaults = getGracilisContextDefaults(dx.id);
-                flapSpecificDetails = gracilisDefaults.flapSpecificDetails;
-                skinIsland = gracilisDefaults.skinIsland;
-              }
-
-              // Fibula: H&N vs limb reconstruction
-              if (mappedFlapType === "fibula") {
-                flapSpecificDetails = getFibulaContextDefaults(recipientSite);
-              }
-
-              // Breast recon: auto-populate IMA/IMV anastomoses
-              let anastomoses: AnastomosisEntry[] = [];
-              if (recipientSite === "breast_chest") {
-                anastomoses = [
-                  {
-                    id: uuidv4(),
-                    vesselType: "artery",
-                    recipientVesselName:
-                      BREAST_RECON_DEFAULT_RECIPIENT_VESSELS.artery,
-                    couplingMethod: "hand_sewn",
-                  },
-                  {
-                    id: uuidv4(),
-                    vesselType: "vein",
-                    recipientVesselName:
-                      BREAST_RECON_DEFAULT_RECIPIENT_VESSELS.vein,
-                    couplingMethod: "coupler",
-                  },
-                ];
-              }
-              clinicalDetails = {
-                flapType: mappedFlapType,
-                flapSnomedCode: snomedEntry?.code,
-                flapSnomedDisplay: snomedEntry?.display,
-                harvestSide: "left",
-                indication,
-                anastomoses,
-                recipientSiteRegion: recipientSite,
-                recipientSiteSnomedCode: recipientSiteSnomed?.code,
-                recipientSiteSnomedDisplay: recipientSiteSnomed?.display,
-                ...(skinIsland !== undefined ? { skinIsland } : {}),
-                ...(Object.keys(flapSpecificDetails).length > 0
-                  ? { flapSpecificDetails }
-                  : {}),
-                ...(prefAnticoag
-                  ? { anticoagulationProtocol: prefAnticoag }
-                  : {}),
-              } as FreeFlapDetails;
-            }
+            clinicalDetails = buildFreeFlapClinicalDetails(picklistId, dx);
           }
           return {
             id: uuidv4(),
@@ -443,7 +487,7 @@ export function DiagnosisGroupEditor({
         newProcedures.length > 0 ? newProcedures : buildDefaultProcedures(),
       );
     },
-    [groupSpecialty, buildDefaultProcedures, profile?.surgicalPreferences],
+    [groupSpecialty, buildDefaultProcedures, buildFreeFlapClinicalDetails],
   );
 
   const handleStagingChangeForSuggestions = useCallback(
@@ -494,6 +538,10 @@ export function DiagnosisGroupEditor({
             const addedProcedures: CaseProcedure[] = idsToAdd.map(
               (picklistId) => {
                 const entry = findPicklistEntry(picklistId);
+                const clinicalDetails =
+                  entry?.hasFreeFlap && selectedDiagnosis
+                    ? buildFreeFlapClinicalDetails(picklistId, selectedDiagnosis)
+                    : undefined;
                 return {
                   id: uuidv4(),
                   sequenceOrder: 1,
@@ -505,6 +553,7 @@ export function DiagnosisGroupEditor({
                   snomedCtDisplay: entry?.snomedCtDisplay,
                   subcategory: entry?.subcategory,
                   tags: entry?.tags,
+                  clinicalDetails,
                 };
               },
             );
@@ -521,6 +570,7 @@ export function DiagnosisGroupEditor({
       selectedSuggestionIds,
       procedures,
       groupSpecialty,
+      buildFreeFlapClinicalDetails,
     ],
   );
 
@@ -536,6 +586,9 @@ export function DiagnosisGroupEditor({
           entry &&
           !procedures.some((p) => p.picklistEntryId === procedurePicklistId)
         ) {
+          const clinicalDetails = entry.hasFreeFlap
+            ? buildFreeFlapClinicalDetails(procedurePicklistId, selectedDiagnosis)
+            : undefined;
           const newProc: CaseProcedure = {
             id: uuidv4(),
             sequenceOrder: procedures.length + 1,
@@ -547,6 +600,7 @@ export function DiagnosisGroupEditor({
             snomedCtDisplay: entry.snomedCtDisplay,
             subcategory: entry.subcategory,
             tags: entry.tags,
+            clinicalDetails,
           };
           setProcedures((prev) => [...prev, newProc]);
         }
@@ -564,7 +618,7 @@ export function DiagnosisGroupEditor({
         });
       }
     },
-    [procedures, groupSpecialty],
+    [procedures, groupSpecialty, selectedDiagnosis, buildFreeFlapClinicalDetails],
   );
 
   const procedurePicklistIds = useMemo(
@@ -608,6 +662,50 @@ export function DiagnosisGroupEditor({
       }),
     [procedures],
   );
+
+  useEffect(() => {
+    if (diagnosisClinicalDetails.laterality !== "bilateral") return;
+
+    setProcedures((prev) => {
+      let hasChanges = false;
+      const next = prev.map((procedure) => {
+        const details = procedure.clinicalDetails as FreeFlapDetails | undefined;
+        const flapType =
+          details?.flapType ||
+          (procedure.picklistEntryId
+            ? PICKLIST_TO_FLAP_TYPE[procedure.picklistEntryId]
+            : undefined);
+        const isBreastDiep =
+          procedure.picklistEntryId === "breast_recon_diep" ||
+          flapType === "diep";
+        if (!isBreastDiep) return procedure;
+
+        const currentSpecific = details?.flapSpecificDetails || {};
+        const alreadyApplied = Object.entries(DIEP_BILATERAL_DEFAULTS).every(
+          ([key, value]) =>
+            currentSpecific[key as keyof typeof currentSpecific] === value,
+        );
+        if (alreadyApplied) return procedure;
+
+        hasChanges = true;
+        const updatedDetails: FreeFlapDetails = {
+          ...(details || { harvestSide: "left", anastomoses: [] }),
+          harvestSide: details?.harvestSide || "left",
+          anastomoses: details?.anastomoses || [],
+          flapType: "diep",
+          flapSpecificDetails: {
+            ...currentSpecific,
+            ...DIEP_BILATERAL_DEFAULTS,
+          },
+        };
+        return {
+          ...procedure,
+          clinicalDetails: updatedDetails,
+        };
+      });
+      return hasChanges ? next : prev;
+    });
+  }, [diagnosisClinicalDetails.laterality]);
 
   const flapSummary = useMemo(
     () =>
@@ -677,6 +775,9 @@ export function DiagnosisGroupEditor({
           if (!existingPicklistIds.has(picklistId)) {
             const entry = findPicklistEntry(picklistId);
             if (entry) {
+              const clinicalDetails = entry.hasFreeFlap
+                ? buildFreeFlapClinicalDetails(picklistId, dx)
+                : undefined;
               newProcedures.push({
                 id: uuidv4(),
                 sequenceOrder: prev.length + newProcedures.length + 1,
@@ -688,6 +789,7 @@ export function DiagnosisGroupEditor({
                 snomedCtDisplay: entry.snomedCtDisplay,
                 subcategory: entry.subcategory,
                 tags: entry.tags,
+                clinicalDetails,
               });
             }
           }
@@ -702,7 +804,7 @@ export function DiagnosisGroupEditor({
         return prev;
       });
     },
-    [groupSpecialty],
+    [groupSpecialty, buildFreeFlapClinicalDetails],
   );
 
   const addProcedure = () => {
@@ -1623,7 +1725,6 @@ export function DiagnosisGroupEditor({
               (freeFlapProcedure.clinicalDetails as FreeFlapDetails) || {
                 flapType: "",
                 harvestSide: "left",
-                indication: "trauma",
                 anastomoses: [],
               }
             }

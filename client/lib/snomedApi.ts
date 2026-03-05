@@ -217,6 +217,8 @@ export const RECIPIENT_VESSEL_PRESETS: Record<
       "Small saphenous vein",
       "Venae comitantes of posterior tibial artery",
       "Venae comitantes of anterior tibial artery",
+      "Venae comitantes of peroneal artery",
+      "Venae comitantes of dorsalis pedis artery",
     ],
   },
   knee: {
@@ -239,6 +241,7 @@ export const RECIPIENT_VESSEL_PRESETS: Record<
       "Dorsal venous arch",
       "Great saphenous vein",
       "Small saphenous vein",
+      "Venae comitantes of dorsalis pedis artery",
     ],
   },
   thigh: {

@@ -6,7 +6,10 @@ import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { BorderRadius, Spacing } from "@/constants/theme";
 import { FormField, PickerField } from "@/components/FormField";
-import { AnastomosisEntryCard } from "@/components/AnastomosisEntryCard";
+import {
+  AnastomosisEntryCard,
+  type ArterySelectionPayload,
+} from "@/components/AnastomosisEntryCard";
 import { RecipientSiteSelector } from "@/components/RecipientSiteSelector";
 import { FreeFlapPicker } from "@/components/FreeFlapPicker";
 import { FlapSpecificFields } from "@/components/FlapSpecificFields";
@@ -54,7 +57,8 @@ import { FLAP_ELEVATION_PLANES } from "@/data/flapFieldConfig";
 import {
   getDefaultFlapSpecificDetails,
   ALT_ELEVATION_TO_COMPOSITION,
-  ARTERY_TO_CONCOMITANT_VEIN,
+  normalizeVesselName,
+  resolveConcomitantVeinName,
 } from "@/data/autoFillMappings";
 
 interface FreeFlapClinicalFieldsProps {
@@ -187,44 +191,87 @@ export function FreeFlapClinicalFields({
     });
   };
 
-  const handleArterySelected = (arteryName: string) => {
-    const concomitantVein = ARTERY_TO_CONCOMITANT_VEIN[arteryName];
-    if (!concomitantVein) return;
-
-    // Find existing vein entry that hasn't been manually set
-    const existingVein = anastomoses.find(
-      (a) => a.vesselType === "vein" && !a.recipientVesselName,
+  const handleArterySelected = (payload: ArterySelectionPayload) => {
+    const updatedAnastomoses = anastomoses.map((entry) =>
+      entry.id === payload.entryId
+        ? {
+            ...entry,
+            recipientVesselSnomedCode: payload.arterySnomedCtCode,
+            recipientVesselName: payload.arteryDisplayName,
+            ...(payload.defaultArterialConfiguration && !entry.configuration
+              ? { configuration: payload.defaultArterialConfiguration }
+              : {}),
+          }
+        : entry,
     );
 
-    if (existingVein) {
-      // Update existing empty vein entry
+    const concomitantVein = resolveConcomitantVeinName([
+      payload.arteryCommonName || "",
+      payload.arteryDisplayName,
+    ]);
+
+    if (!concomitantVein) {
       onUpdate({
         ...clinicalDetails,
-        anastomoses: anastomoses.map((a) =>
-          a.id === existingVein.id
-            ? {
-                ...a,
-                recipientVesselName: concomitantVein,
-                couplingMethod: "coupler" as const,
-                configuration: "end_to_end" as const,
-              }
-            : a,
+        anastomoses: updatedAnastomoses,
+      });
+      return;
+    }
+
+    const normalizedTarget = normalizeVesselName(concomitantVein);
+    const matchingVeinOption = payload.availableVeinOptions.find((option) => {
+      const display = normalizeVesselName(option.displayName);
+      const common = option.commonName ? normalizeVesselName(option.commonName) : "";
+      return (
+        display === normalizedTarget ||
+        common === normalizedTarget ||
+        display.includes(normalizedTarget) ||
+        normalizedTarget.includes(display) ||
+        (common.length > 0 &&
+          (common.includes(normalizedTarget) || normalizedTarget.includes(common)))
+      );
+    });
+
+    const veinPatch = {
+      recipientVesselName: matchingVeinOption?.displayName || concomitantVein,
+      recipientVesselSnomedCode: matchingVeinOption?.snomedCtCode,
+      couplingMethod: "coupler" as const,
+      configuration: "end_to_end" as const,
+    };
+
+    const emptyVein = updatedAnastomoses.find(
+      (entry) =>
+        entry.vesselType === "vein" && !entry.recipientVesselName.trim(),
+    );
+
+    if (emptyVein) {
+      onUpdate({
+        ...clinicalDetails,
+        anastomoses: updatedAnastomoses.map((entry) =>
+          entry.id === emptyVein.id ? { ...entry, ...veinPatch } : entry,
         ),
       });
-    } else if (!anastomoses.some((a) => a.vesselType === "vein")) {
-      // No vein entry at all — create one
+      return;
+    }
+
+    if (!updatedAnastomoses.some((entry) => entry.vesselType === "vein")) {
       const newVein: AnastomosisEntry = {
         id: uuidv4(),
         vesselType: "vein",
-        recipientVesselName: concomitantVein,
-        couplingMethod: "coupler",
-        configuration: "end_to_end",
+        ...veinPatch,
       };
       onUpdate({
         ...clinicalDetails,
-        anastomoses: [...anastomoses, newVein],
+        anastomoses: [...updatedAnastomoses, newVein],
       });
+      return;
     }
+
+    // Respect manual venous recipient choices.
+    onUpdate({
+      ...clinicalDetails,
+      anastomoses: updatedAnastomoses,
+    });
   };
 
   const flapType = clinicalDetails.flapType;

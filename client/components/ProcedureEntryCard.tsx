@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { View, StyleSheet, Pressable, Modal } from "react-native";
+import { v4 as uuidv4 } from "uuid";
 import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
@@ -25,13 +26,17 @@ import {
   type SlnbDetails,
   type ProcedureTag,
   FLAP_SNOMED_MAP,
+  RECIPIENT_SITE_SNOMED_MAP,
   ROLE_LABELS,
   ROLE_DESCRIPTIONS,
   SPECIALTY_LABELS,
   PROCEDURE_TYPES,
   PROCEDURE_TAG_LABELS,
 } from "@/types/case";
-import { getDefaultFlapSpecificDetails } from "@/data/autoFillMappings";
+import {
+  getDefaultFlapSpecificDetails,
+  BREAST_RECON_DEFAULT_RECIPIENT_VESSELS,
+} from "@/data/autoFillMappings";
 
 interface ProcedureEntryCardProps {
   procedure: CaseProcedure;
@@ -79,13 +84,39 @@ export function ProcedureEntryCard({
       const snomedEntry = FLAP_SNOMED_MAP[mappedFlapType];
       const flapSpecificDetails =
         getDefaultFlapSpecificDetails(mappedFlapType);
+      const recipientSiteRegion =
+        procedure.specialty === "breast" ? "breast_chest" : undefined;
+      const recipientSiteSnomed = recipientSiteRegion
+        ? RECIPIENT_SITE_SNOMED_MAP[recipientSiteRegion]
+        : undefined;
+      const anastomoses =
+        recipientSiteRegion === "breast_chest"
+          ? [
+              {
+                id: uuidv4(),
+                vesselType: "artery" as const,
+                recipientVesselName:
+                  BREAST_RECON_DEFAULT_RECIPIENT_VESSELS.artery,
+                couplingMethod: "hand_sewn" as const,
+              },
+              {
+                id: uuidv4(),
+                vesselType: "vein" as const,
+                recipientVesselName: BREAST_RECON_DEFAULT_RECIPIENT_VESSELS.vein,
+                couplingMethod: "coupler" as const,
+              },
+            ]
+          : [];
 
       clinicalDetails = {
         flapType: mappedFlapType,
         flapSnomedCode: snomedEntry?.code,
         flapSnomedDisplay: snomedEntry?.display,
         harvestSide: "left",
-        anastomoses: [],
+        anastomoses,
+        recipientSiteRegion,
+        recipientSiteSnomedCode: recipientSiteSnomed?.code,
+        recipientSiteSnomedDisplay: recipientSiteSnomed?.display,
         ...(Object.keys(flapSpecificDetails).length > 0
           ? { flapSpecificDetails }
           : {}),

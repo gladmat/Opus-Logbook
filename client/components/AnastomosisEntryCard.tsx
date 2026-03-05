@@ -29,10 +29,24 @@ interface AnastomosisEntryCardProps {
   onUpdate: (entry: AnastomosisEntry) => void;
   onDelete: () => void;
   /** Fired when an artery vessel is selected — parent uses this to auto-populate vein entry */
-  onArterySelected?: (arteryName: string) => void;
+  onArterySelected?: (payload: ArterySelectionPayload) => void;
 }
 
 const COUPLER_SIZES = ["1.5", "2.0", "2.5", "3.0", "3.5", "4.0"];
+
+export interface ArterySelectionPayload {
+  entryId: string;
+  arteryDisplayName: string;
+  arteryCommonName?: string;
+  arterySnomedCtCode: string;
+  recipientRegion?: AnatomicalRegion;
+  availableVeinOptions: Array<{
+    snomedCtCode: string;
+    displayName: string;
+    commonName?: string;
+  }>;
+  defaultArterialConfiguration?: AnastomosisType;
+}
 
 export function AnastomosisEntryCard({
   entry,
@@ -166,26 +180,40 @@ export function AnastomosisEntryCard({
         ? arteries.find((v) => v.snomedCtCode === snomedCode)
         : veins.find((v) => v.snomedCtCode === snomedCode);
 
-    const vesselName = vessel?.displayName || "";
+    const vesselName = vessel?.displayName || vessel?.commonName || "";
 
     if (entry.vesselType === "artery") {
       // Auto-set arterial configuration based on region
       const defaultConfig = recipientRegion
         ? REGION_ARTERIAL_CONFIGURATION[recipientRegion]
         : undefined;
-
-      onUpdate({
+      const updatedArteryEntry: AnastomosisEntry = {
         ...entry,
         recipientVesselSnomedCode: snomedCode,
         recipientVesselName: vesselName,
         ...(defaultConfig && !entry.configuration
           ? { configuration: defaultConfig }
           : {}),
-      });
+      };
 
-      // Notify parent to auto-populate vein
-      if (vesselName && onArterySelected) {
-        onArterySelected(vesselName);
+      // Parent handles a single combined update (artery + potential vein autofill)
+      if (onArterySelected) {
+        onArterySelected({
+          entryId: entry.id,
+          arteryDisplayName: vesselName,
+          arteryCommonName: vessel?.commonName || undefined,
+          arterySnomedCtCode: snomedCode,
+          recipientRegion,
+          availableVeinOptions: veins.map((v) => ({
+            snomedCtCode: v.snomedCtCode,
+            displayName: v.displayName,
+            commonName: v.commonName || undefined,
+          })),
+          defaultArterialConfiguration:
+            defaultConfig && !entry.configuration ? defaultConfig : undefined,
+        });
+      } else {
+        onUpdate(updatedArteryEntry);
       }
     } else {
       onUpdate({
