@@ -712,21 +712,31 @@ export function buildEpisodePrefillState(
 ): CaseFormState {
   const defaults = getDefaultFormState(prefill.specialty, primaryFacility);
 
-  // Deep clone diagnosis groups with new IDs
+  // Clone diagnosis groups with new IDs, stripping per-operation data.
+  // Keep: diagnosis identity, specialty, staging, laterality, injury mechanism,
+  //       fractures (patient-level), procedure names/codes.
+  // Strip: clinicalDetails on procedures (FreeFlapDetails, ischemia times,
+  //        anastomoses), woundAssessment, lesionInstances, handTrauma.
   const clonedGroups: DiagnosisGroup[] = prefill.diagnosisGroups?.map((g) => ({
     ...g,
     id: uuidv4(),
     procedures: g.procedures.map((p) => ({
       ...p,
       id: uuidv4(),
-      clinicalDetails: p.clinicalDetails ? { ...p.clinicalDetails } : undefined,
+      clinicalDetails: undefined, // Strip per-operation FreeFlapDetails etc.
     })),
     diagnosisClinicalDetails: g.diagnosisClinicalDetails
-      ? { ...g.diagnosisClinicalDetails }
+      ? {
+          laterality: g.diagnosisClinicalDetails.laterality,
+          injuryMechanism: g.diagnosisClinicalDetails.injuryMechanism,
+          // handTrauma stripped — per-operation structure repairs
+        }
       : undefined,
     diagnosisStagingSelections: g.diagnosisStagingSelections
       ? { ...g.diagnosisStagingSelections }
       : undefined,
+    woundAssessment: undefined, // Strip — per-operation wound data
+    lesionInstances: undefined, // Strip — new excisions are new lesions
   })) ?? defaults.diagnosisGroups;
 
   return {
