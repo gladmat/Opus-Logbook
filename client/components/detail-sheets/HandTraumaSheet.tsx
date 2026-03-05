@@ -1,21 +1,33 @@
 /**
- * Modal sheet for hand trauma structure documentation.
- * Wraps HandTraumaStructurePicker with isolated local state for Save/Cancel semantics.
+ * Modal sheet for unified hand trauma assessment.
+ * Wraps HandTraumaAssessment with isolated local state for Save/Cancel semantics.
+ *
+ * Replaces the old HandTraumaStructurePicker-only sheet with the unified
+ * assessment that covers fractures, dislocations, structures, and soft tissue.
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { DetailModuleSheet } from "./DetailModuleSheet";
-import { HandTraumaStructurePicker } from "@/components/hand-trauma/HandTraumaStructurePicker";
-import type { CaseProcedure, HandTraumaDetails } from "@/types/case";
+import { HandTraumaAssessment } from "@/components/hand-trauma/HandTraumaAssessment";
+import type {
+  CaseProcedure,
+  FractureEntry,
+  HandTraumaDetails,
+} from "@/types/case";
 import type { DiagnosisPicklistEntry } from "@/types/diagnosis";
 
 interface HandTraumaSheetProps {
   visible: boolean;
   onClose: () => void;
-  onSave: (details: HandTraumaDetails, procedures: CaseProcedure[]) => void;
+  onSave: (
+    details: HandTraumaDetails,
+    procedures: CaseProcedure[],
+    fractures: FractureEntry[],
+  ) => void;
   initialDetails: HandTraumaDetails;
   selectedDiagnosis?: DiagnosisPicklistEntry;
   initialProcedures: CaseProcedure[];
+  initialFractures: FractureEntry[];
 }
 
 export function HandTraumaSheet({
@@ -25,39 +37,53 @@ export function HandTraumaSheet({
   initialDetails,
   selectedDiagnosis,
   initialProcedures,
+  initialFractures,
 }: HandTraumaSheetProps) {
   const [localDetails, setLocalDetails] =
     useState<HandTraumaDetails>(initialDetails);
   const [localProcedures, setLocalProcedures] =
     useState<CaseProcedure[]>(initialProcedures);
+  const [localFractures, setLocalFractures] =
+    useState<FractureEntry[]>(initialFractures);
 
   // Reset local state when sheet opens
   useEffect(() => {
     if (visible) {
       setLocalDetails(initialDetails);
       setLocalProcedures(initialProcedures);
+      setLocalFractures(initialFractures);
     }
-  }, [visible, initialDetails, initialProcedures]);
+  }, [visible, initialDetails, initialProcedures, initialFractures]);
 
-  const handleSave = () => {
-    onSave(localDetails, localProcedures);
+  const handleSave = useCallback(() => {
+    onSave(localDetails, localProcedures, localFractures);
     onClose();
-  };
+  }, [localDetails, localProcedures, localFractures, onSave, onClose]);
+
+  const handleProceduresChange = useCallback(
+    (updater: (prev: CaseProcedure[]) => CaseProcedure[]) => {
+      setLocalProcedures(updater);
+    },
+    [],
+  );
 
   return (
     <DetailModuleSheet
       visible={visible}
-      title="Hand Structures"
-      subtitle="Injured structures & generated procedures"
+      title="Hand Trauma Assessment"
+      subtitle="Injuries, classification & procedures"
       onSave={handleSave}
       onCancel={onClose}
     >
-      <HandTraumaStructurePicker
+      <HandTraumaAssessment
         value={localDetails}
         onChange={setLocalDetails}
-        selectedDiagnosis={selectedDiagnosis}
+        fractures={localFractures}
+        onFracturesChange={setLocalFractures}
         procedures={localProcedures}
-        onProceduresChange={setLocalProcedures}
+        onProceduresChange={handleProceduresChange}
+        selectedDiagnosis={selectedDiagnosis}
+        onAccept={handleSave}
       />
     </DetailModuleSheet>
   );

@@ -31,7 +31,6 @@ import { PickerField } from "@/components/FormField";
 import { SnomedSearchPicker } from "@/components/SnomedSearchPicker";
 import { getDiagnosisStaging, DiagnosisStagingConfig } from "@/lib/snomedApi";
 import { DiagnosisClinicalFields } from "@/components/DiagnosisClinicalFields";
-import { FractureClassificationWizard } from "@/components/FractureClassificationWizard";
 import { ProcedureEntryCard } from "@/components/ProcedureEntryCard";
 import { DiagnosisPicker } from "@/components/DiagnosisPicker";
 import { ProcedureSuggestions } from "@/components/ProcedureSuggestions";
@@ -165,7 +164,7 @@ export function DiagnosisGroupEditor({
   const [fractures, setFractures] = useState<FractureEntry[]>(
     group.fractures || [],
   );
-  const [showFractureWizard, setShowFractureWizard] = useState(false);
+
   const [snomedSuggestion, setSnomedSuggestion] = useState<{
     searchTerm: string;
     displayName: string;
@@ -630,6 +629,14 @@ export function DiagnosisGroupEditor({
     [diagnosisClinicalDetails.handTrauma],
   );
 
+  /** Combined summary for the unified hand trauma assessment hub row */
+  const handTraumaAssessmentSummary = useMemo(() => {
+    const parts: string[] = [];
+    if (fractureSummary) parts.push(fractureSummary);
+    if (handTraumaSummary) parts.push(handTraumaSummary);
+    return parts.length > 0 ? parts.join(" · ") : null;
+  }, [fractureSummary, handTraumaSummary]);
+
   const infectionSummary = useMemo(
     () =>
       infectionOverlay ? generateInfectionSummary(infectionOverlay) : null,
@@ -643,8 +650,7 @@ export function DiagnosisGroupEditor({
 
   const hasAnyModule =
     moduleVisibility.flapDetails ||
-    moduleVisibility.fractureClassification ||
-    moduleVisibility.handStructures ||
+    moduleVisibility.handTraumaAssessment ||
     moduleVisibility.infection ||
     moduleVisibility.woundAssessment;
 
@@ -753,54 +759,6 @@ export function DiagnosisGroupEditor({
     });
   };
 
-  const handleFractureWizardSave = async (newFractures: FractureEntry[]) => {
-    setFractures(newFractures);
-    setShowFractureWizard(false);
-
-    if (newFractures.length > 0) {
-      const firstFracture = newFractures[0];
-      if (!firstFracture) return;
-
-      // Try new AO → diagnosis mapping first (hand surgery)
-      if (groupSpecialty === "hand_surgery" && firstFracture.aoCode) {
-        const familyCode =
-          firstFracture.details?.familyCode ?? firstFracture.aoCode.slice(0, 2);
-        const resolution = resolveAOToDiagnosis({
-          familyCode,
-          finger: firstFracture.details?.finger,
-          segment: firstFracture.details?.segment,
-          type: firstFracture.details?.type,
-        });
-
-        if (resolution) {
-          const dx = findDiagnosisById(resolution.diagnosisPicklistId);
-          if (dx) {
-            setIsDiagnosisFromAO(true);
-            setAoSourceLabel(
-              resolution.matchedRefinement ?? "AO classification",
-            );
-            setAoHints(resolution.procedureHints);
-            handleDiagnosisSelect(dx, resolution.procedureHints);
-            return;
-          }
-        }
-      }
-
-      // Fallback: old AO → SNOMED suggestion lookup
-      const suggestion = getAoToSnomedSuggestion(firstFracture.aoCode);
-      setSnomedSuggestion(suggestion);
-
-      if (suggestion) {
-        setPrimaryDiagnosis({ conceptId: "", term: suggestion.displayName });
-        setDiagnosis(suggestion.displayName);
-      }
-    }
-  };
-
-  const handleFractureWizardClose = () => {
-    setShowFractureWizard(false);
-  };
-
   const handleSpecialtyChange = (newSpecialty: string) => {
     const s = newSpecialty as Specialty;
     setGroupSpecialty(s);
@@ -902,11 +860,43 @@ export function DiagnosisGroupEditor({
   }, [profile?.surgicalPreferences?.microsurgery?.monitoringProtocol]);
 
   const handleHandTraumaSave = useCallback(
-    (details: HandTraumaDetails, procs: CaseProcedure[]) => {
+    (
+      details: HandTraumaDetails,
+      procs: CaseProcedure[],
+      newFractures: FractureEntry[],
+    ) => {
       setDiagnosisClinicalDetails((prev) => ({ ...prev, handTrauma: details }));
       setProcedures(procs);
+      setFractures(newFractures);
+
+      // Auto-resolve diagnosis from fractures if present and no diagnosis yet
+      if (newFractures.length > 0 && !selectedDiagnosis) {
+        const firstFracture = newFractures[0];
+        if (firstFracture?.aoCode && groupSpecialty === "hand_surgery") {
+          const familyCode =
+            firstFracture.details?.familyCode ??
+            firstFracture.aoCode.slice(0, 2);
+          const resolution = resolveAOToDiagnosis({
+            familyCode,
+            finger: firstFracture.details?.finger,
+            segment: firstFracture.details?.segment,
+            type: firstFracture.details?.type,
+          });
+          if (resolution) {
+            const dx = findDiagnosisById(resolution.diagnosisPicklistId);
+            if (dx) {
+              setIsDiagnosisFromAO(true);
+              setAoSourceLabel(
+                resolution.matchedRefinement ?? "AO classification",
+              );
+              setAoHints(resolution.procedureHints);
+              handleDiagnosisSelect(dx, resolution.procedureHints);
+            }
+          }
+        }
+      }
     },
-    [],
+    [selectedDiagnosis, groupSpecialty, handleDiagnosisSelect],
   );
 
   const handleInfectionSave = useCallback(
@@ -1387,7 +1377,7 @@ export function DiagnosisGroupEditor({
             fractures={fractures}
             onFracturesChange={setFractures}
             showFractureClassification={hasFractureSubcategory}
-            onOpenFractureWizard={() => setShowFractureWizard(true)}
+            onOpenFractureWizard={() => setShowHandTraumaSheet(true)}
           />
         ) : null}
 
@@ -1593,20 +1583,11 @@ export function DiagnosisGroupEditor({
                 icon="heart"
               />
             ) : null}
-            {moduleVisibility.fractureClassification ? (
+            {moduleVisibility.handTraumaAssessment ? (
               <DetailModuleRow
-                title="Fracture Classification"
-                summary={fractureSummary}
-                isComplete={fractureSummary !== null}
-                onPress={() => setShowFractureWizard(true)}
-                icon="layers"
-              />
-            ) : null}
-            {moduleVisibility.handStructures ? (
-              <DetailModuleRow
-                title="Hand Structures"
-                summary={handTraumaSummary}
-                isComplete={handTraumaSummary !== null}
+                title="Hand Trauma Assessment"
+                summary={handTraumaAssessmentSummary}
+                isComplete={handTraumaAssessmentSummary !== null}
                 onPress={() => setShowHandTraumaSheet(true)}
                 icon="hand"
               />
@@ -1633,13 +1614,6 @@ export function DiagnosisGroupEditor({
         ) : null}
 
         {/* Modal sheets */}
-        <FractureClassificationWizard
-          visible={showFractureWizard}
-          onClose={handleFractureWizardClose}
-          onSave={handleFractureWizardSave}
-          initialFractures={fractures}
-        />
-
         {moduleVisibility.flapDetails && freeFlapProcedure ? (
           <FreeFlapSheet
             visible={showFlapSheet}
@@ -1670,7 +1644,7 @@ export function DiagnosisGroupEditor({
           />
         ) : null}
 
-        {moduleVisibility.handStructures ? (
+        {moduleVisibility.handTraumaAssessment ? (
           <HandTraumaSheet
             visible={showHandTraumaSheet}
             onClose={() => setShowHandTraumaSheet(false)}
@@ -1678,6 +1652,7 @@ export function DiagnosisGroupEditor({
             initialDetails={diagnosisClinicalDetails.handTrauma || {}}
             selectedDiagnosis={selectedDiagnosis ?? undefined}
             initialProcedures={procedures}
+            initialFractures={fractures}
           />
         ) : null}
 
