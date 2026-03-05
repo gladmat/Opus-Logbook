@@ -249,7 +249,12 @@ export interface ComplicationEntry {
   resolvedDate?: string;
 }
 
-export type Indication = "trauma" | "oncologic" | "congenital";
+export type Indication =
+  | "trauma"
+  | "oncologic"
+  | "congenital"
+  | "reconstructive"
+  | "elective";
 
 export type AnastomosisType = "end_to_end" | "end_to_side" | "side_to_side";
 
@@ -1189,7 +1194,7 @@ export const RECIPIENT_SITE_COMPLICATION_LABELS: Record<
 
 export interface FreeFlapDetails {
   harvestSide: HarvestSide;
-  indication: Indication;
+  indication?: Indication;
   flapType?: FreeFlap;
   flapSnomedCode?: string;
   flapSnomedDisplay?: string;
@@ -1839,6 +1844,8 @@ export const INDICATION_LABELS: Record<Indication, string> = {
   trauma: "Trauma",
   oncologic: "Oncologic",
   congenital: "Congenital",
+  reconstructive: "Reconstructive",
+  elective: "Elective",
 };
 
 export const ANASTOMOSIS_LABELS: Record<AnastomosisType, string> = {

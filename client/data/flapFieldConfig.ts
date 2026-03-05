@@ -1366,9 +1366,12 @@ export const FLAP_FIELD_CONFIG: Partial<
   ],
 };
 
+// Only show elevation plane for flaps where it's a genuine surgical decision.
+// Flaps not listed are always raised in one plane (no choice to make).
 export const FLAP_ELEVATION_PLANES: Partial<
   Record<FreeFlap, ElevationPlane[]>
 > = {
+  // ALT: full spectrum (the only flap with 6 distinct planes)
   alt: [
     "subfascial",
     "epifascial",
@@ -1377,17 +1380,10 @@ export const FLAP_ELEVATION_PLANES: Partial<
     "ultrathin",
     "subdermal",
   ],
-  scip: ["subfascial", "suprafascial"],
-  tdap: ["subfascial", "suprafascial"],
-  latissimus_dorsi: ["subfascial", "suprafascial"],
+  // These have a meaningful subfascial vs suprafascial choice:
   radial_forearm: ["subfascial", "suprafascial"],
+  scip: ["subfascial", "suprafascial"],
   medial_sural: ["subfascial", "suprafascial"],
   pap: ["subfascial", "suprafascial"],
-  gracilis: ["subfascial", "suprafascial"],
-  tug: ["subfascial", "suprafascial"],
-  sgap: ["subfascial", "suprafascial"],
-  igap: ["subfascial", "suprafascial"],
-  serratus_anterior: ["subfascial", "suprafascial"],
-  parascapular: ["subfascial", "suprafascial"],
-  scapular: ["subfascial", "suprafascial"],
+  tdap: ["subfascial", "suprafascial"],
 };

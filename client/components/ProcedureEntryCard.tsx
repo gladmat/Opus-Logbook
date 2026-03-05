@@ -31,6 +31,7 @@ import {
   PROCEDURE_TYPES,
   PROCEDURE_TAG_LABELS,
 } from "@/types/case";
+import { getDefaultFlapSpecificDetails } from "@/data/autoFillMappings";
 
 interface ProcedureEntryCardProps {
   procedure: CaseProcedure;
@@ -76,10 +77,18 @@ export function ProcedureEntryCard({
     let clinicalDetails: ClinicalDetails | undefined = undefined;
     if (entry.hasFreeFlap && mappedFlapType) {
       const snomedEntry = FLAP_SNOMED_MAP[mappedFlapType];
+      const flapSpecificDetails =
+        getDefaultFlapSpecificDetails(mappedFlapType);
+
       clinicalDetails = {
         flapType: mappedFlapType,
         flapSnomedCode: snomedEntry?.code,
         flapSnomedDisplay: snomedEntry?.display,
+        harvestSide: "left",
+        anastomoses: [],
+        ...(Object.keys(flapSpecificDetails).length > 0
+          ? { flapSpecificDetails }
+          : {}),
       } as FreeFlapDetails;
     } else if (entry.hasSlnb) {
       clinicalDetails = {

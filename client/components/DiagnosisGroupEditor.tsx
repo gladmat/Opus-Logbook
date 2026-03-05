@@ -47,7 +47,16 @@ import {
   findPicklistEntry,
   PICKLIST_TO_FLAP_TYPE,
 } from "@/lib/procedurePicklist";
-import { FLAP_SNOMED_MAP } from "@/types/case";
+import { FLAP_SNOMED_MAP, RECIPIENT_SITE_SNOMED_MAP } from "@/types/case";
+import type { AnastomosisEntry } from "@/types/case";
+import {
+  DIAGNOSIS_TO_RECIPIENT_SITE,
+  CLINICAL_GROUP_TO_INDICATION,
+  getDefaultFlapSpecificDetails,
+  getGracilisContextDefaults,
+  getFibulaContextDefaults,
+  BREAST_RECON_DEFAULT_RECIPIENT_VESSELS,
+} from "@/data/autoFillMappings";
 import { SectionHeader } from "@/components/SectionHeader";
 import { DiagnosisSuggestions } from "@/components/DiagnosisSuggestions";
 import { MultiLesionEditor } from "@/components/MultiLesionEditor";
@@ -351,13 +360,65 @@ export function DiagnosisGroupEditor({
               const prefAnticoag =
                 profile?.surgicalPreferences?.microsurgery
                   ?.anticoagulationProtocol;
+              const recipientSite = DIAGNOSIS_TO_RECIPIENT_SITE[dx.id];
+              const recipientSiteSnomed = recipientSite
+                ? RECIPIENT_SITE_SNOMED_MAP[recipientSite]
+                : undefined;
+              const indication = dx.clinicalGroup
+                ? CLINICAL_GROUP_TO_INDICATION[dx.clinicalGroup]
+                : undefined;
+
+              // Build flap-specific details with context overrides
+              let flapSpecificDetails =
+                getDefaultFlapSpecificDetails(mappedFlapType);
+              let skinIsland: boolean | undefined;
+
+              // Gracilis: facial reanimation vs soft tissue
+              if (mappedFlapType === "gracilis") {
+                const gracilisDefaults = getGracilisContextDefaults(dx.id);
+                flapSpecificDetails = gracilisDefaults.flapSpecificDetails;
+                skinIsland = gracilisDefaults.skinIsland;
+              }
+
+              // Fibula: H&N vs limb reconstruction
+              if (mappedFlapType === "fibula") {
+                flapSpecificDetails = getFibulaContextDefaults(recipientSite);
+              }
+
+              // Breast recon: auto-populate IMA/IMV anastomoses
+              let anastomoses: AnastomosisEntry[] = [];
+              if (recipientSite === "breast_chest") {
+                anastomoses = [
+                  {
+                    id: uuidv4(),
+                    vesselType: "artery",
+                    recipientVesselName:
+                      BREAST_RECON_DEFAULT_RECIPIENT_VESSELS.artery,
+                    couplingMethod: "hand_sewn",
+                  },
+                  {
+                    id: uuidv4(),
+                    vesselType: "vein",
+                    recipientVesselName:
+                      BREAST_RECON_DEFAULT_RECIPIENT_VESSELS.vein,
+                    couplingMethod: "coupler",
+                  },
+                ];
+              }
               clinicalDetails = {
                 flapType: mappedFlapType,
                 flapSnomedCode: snomedEntry?.code,
                 flapSnomedDisplay: snomedEntry?.display,
                 harvestSide: "left",
-                indication: "trauma",
-                anastomoses: [],
+                indication,
+                anastomoses,
+                recipientSiteRegion: recipientSite,
+                recipientSiteSnomedCode: recipientSiteSnomed?.code,
+                recipientSiteSnomedDisplay: recipientSiteSnomed?.display,
+                ...(skinIsland !== undefined ? { skinIsland } : {}),
+                ...(Object.keys(flapSpecificDetails).length > 0
+                  ? { flapSpecificDetails }
+                  : {}),
                 ...(prefAnticoag
                   ? { anticoagulationProtocol: prefAnticoag }
                   : {}),

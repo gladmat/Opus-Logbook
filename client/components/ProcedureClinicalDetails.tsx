@@ -51,6 +51,11 @@ import {
 } from "@/types/surgicalPreferences";
 import { CollapsibleFormSection } from "@/components/case-form/CollapsibleFormSection";
 import { FLAP_ELEVATION_PLANES } from "@/data/flapFieldConfig";
+import {
+  getDefaultFlapSpecificDetails,
+  ALT_ELEVATION_TO_COMPOSITION,
+  ARTERY_TO_CONCOMITANT_VEIN,
+} from "@/data/autoFillMappings";
 
 interface FreeFlapClinicalFieldsProps {
   clinicalDetails: FreeFlapDetails;
@@ -182,6 +187,46 @@ export function FreeFlapClinicalFields({
     });
   };
 
+  const handleArterySelected = (arteryName: string) => {
+    const concomitantVein = ARTERY_TO_CONCOMITANT_VEIN[arteryName];
+    if (!concomitantVein) return;
+
+    // Find existing vein entry that hasn't been manually set
+    const existingVein = anastomoses.find(
+      (a) => a.vesselType === "vein" && !a.recipientVesselName,
+    );
+
+    if (existingVein) {
+      // Update existing empty vein entry
+      onUpdate({
+        ...clinicalDetails,
+        anastomoses: anastomoses.map((a) =>
+          a.id === existingVein.id
+            ? {
+                ...a,
+                recipientVesselName: concomitantVein,
+                couplingMethod: "coupler" as const,
+                configuration: "end_to_end" as const,
+              }
+            : a,
+        ),
+      });
+    } else if (!anastomoses.some((a) => a.vesselType === "vein")) {
+      // No vein entry at all — create one
+      const newVein: AnastomosisEntry = {
+        id: uuidv4(),
+        vesselType: "vein",
+        recipientVesselName: concomitantVein,
+        couplingMethod: "coupler",
+        configuration: "end_to_end",
+      };
+      onUpdate({
+        ...clinicalDetails,
+        anastomoses: [...anastomoses, newVein],
+      });
+    }
+  };
+
   const flapType = clinicalDetails.flapType;
   const donorVessels = flapType ? DEFAULT_DONOR_VESSELS[flapType] : undefined;
 
@@ -198,14 +243,35 @@ export function FreeFlapClinicalFields({
 
   const handleFlapTypeChange = (flap: FreeFlap) => {
     const snomedEntry = FLAP_SNOMED_MAP[flap];
+    const defaultFlapSpecific = getDefaultFlapSpecificDetails(flap);
+
     onUpdate({
       ...clinicalDetails,
       flapType: flap,
       flapSnomedCode: snomedEntry?.code,
       flapSnomedDisplay: snomedEntry?.display,
       skinIsland: undefined,
-      flapSpecificDetails: {},
+      flapSpecificDetails: defaultFlapSpecific,
     });
+  };
+
+  const handleElevationPlaneChange = (plane: ElevationPlane) => {
+    const updates: Partial<FreeFlapDetails> = {
+      elevationPlane: plane,
+    };
+
+    // ALT-specific: cascade elevation plane to tissue composition
+    if (clinicalDetails.flapType === "alt") {
+      const cascadedComposition = ALT_ELEVATION_TO_COMPOSITION[plane];
+      if (cascadedComposition) {
+        updates.flapSpecificDetails = {
+          ...clinicalDetails.flapSpecificDetails,
+          altTissueComposition: cascadedComposition,
+        };
+      }
+    }
+
+    onUpdate({ ...clinicalDetails, ...updates } as FreeFlapDetails);
   };
 
   const handleRecipientSiteChange = (region: AnatomicalRegion) => {
@@ -256,10 +322,7 @@ export function FreeFlapClinicalFields({
                   label: ELEVATION_PLANE_LABELS[plane],
                 }))}
                 onSelect={(value) =>
-                  onUpdate({
-                    ...clinicalDetails,
-                    elevationPlane: value as ElevationPlane,
-                  })
+                  handleElevationPlaneChange(value as ElevationPlane)
                 }
               />
             </View>
@@ -270,9 +333,7 @@ export function FreeFlapClinicalFields({
           flapType={clinicalDetails.flapType}
           elevationPlane={clinicalDetails.elevationPlane}
           onFlapTypeChange={handleFlapTypeChange}
-          onElevationPlaneChange={(plane) =>
-            onUpdate({ ...clinicalDetails, elevationPlane: plane })
-          }
+          onElevationPlaneChange={handleElevationPlaneChange}
           required
         />
       )}
@@ -328,6 +389,11 @@ export function FreeFlapClinicalFields({
             defaultDonorVessel={defaultDonorVessel}
             onUpdate={updateAnastomosis}
             onDelete={() => removeAnastomosis(entry.id)}
+            onArterySelected={
+              entry.vesselType === "artery"
+                ? handleArterySelected
+                : undefined
+            }
           />
         );
       })}

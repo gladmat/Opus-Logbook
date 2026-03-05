@@ -19,6 +19,7 @@ import {
   fetchVesselsByRegion,
   getRecipientVesselPresets,
 } from "@/lib/snomedApi";
+import { REGION_ARTERIAL_CONFIGURATION } from "@/data/autoFillMappings";
 
 interface AnastomosisEntryCardProps {
   entry: AnastomosisEntry;
@@ -27,6 +28,8 @@ interface AnastomosisEntryCardProps {
   defaultDonorVessel?: string;
   onUpdate: (entry: AnastomosisEntry) => void;
   onDelete: () => void;
+  /** Fired when an artery vessel is selected — parent uses this to auto-populate vein entry */
+  onArterySelected?: (arteryName: string) => void;
 }
 
 const COUPLER_SIZES = ["1.5", "2.0", "2.5", "3.0", "3.5", "4.0"];
@@ -38,6 +41,7 @@ export function AnastomosisEntryCard({
   defaultDonorVessel,
   onUpdate,
   onDelete,
+  onArterySelected,
 }: AnastomosisEntryCardProps) {
   const { theme } = useTheme();
   const [arteries, setArteries] = useState<SnomedRefItem[]>([]);
@@ -162,11 +166,34 @@ export function AnastomosisEntryCard({
         ? arteries.find((v) => v.snomedCtCode === snomedCode)
         : veins.find((v) => v.snomedCtCode === snomedCode);
 
-    onUpdate({
-      ...entry,
-      recipientVesselSnomedCode: snomedCode,
-      recipientVesselName: vessel?.displayName || "",
-    });
+    const vesselName = vessel?.displayName || "";
+
+    if (entry.vesselType === "artery") {
+      // Auto-set arterial configuration based on region
+      const defaultConfig = recipientRegion
+        ? REGION_ARTERIAL_CONFIGURATION[recipientRegion]
+        : undefined;
+
+      onUpdate({
+        ...entry,
+        recipientVesselSnomedCode: snomedCode,
+        recipientVesselName: vesselName,
+        ...(defaultConfig && !entry.configuration
+          ? { configuration: defaultConfig }
+          : {}),
+      });
+
+      // Notify parent to auto-populate vein
+      if (vesselName && onArterySelected) {
+        onArterySelected(vesselName);
+      }
+    } else {
+      onUpdate({
+        ...entry,
+        recipientVesselSnomedCode: snomedCode,
+        recipientVesselName: vesselName,
+      });
+    }
   };
 
   return (
