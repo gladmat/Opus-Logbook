@@ -62,6 +62,7 @@ export type RootStackParamList = {
     existingMediaId?: string;
     existingMediaType?: string;
     existingCaption?: string;
+    existingTimestamp?: string;
   };
   EpisodeDetail: { episodeId: string };
   EpisodeList: undefined;

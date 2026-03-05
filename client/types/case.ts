@@ -1363,6 +1363,7 @@ export interface MediaAttachment {
   caption?: string;
   createdAt: string;
   category?: MediaCategory;
+  timestamp?: string; // User-selected date for the media (e.g. pre-op X-ray date)
 }
 
 // Operative media for photos/files attached directly to case record

@@ -21,6 +21,7 @@ import { saveEncryptedMedia, deleteEncryptedMedia } from "@/lib/mediaStorage";
 import { EncryptedImage } from "@/components/EncryptedImage";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import { DatePickerField } from "@/components/FormField";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
@@ -206,6 +207,13 @@ export default function MediaManagementScreen() {
   const handleCaptionChange = (id: string, caption: string) => {
     setAttachments((prev) =>
       prev.map((a) => (a.id === id ? { ...a, caption } : a)),
+    );
+  };
+
+  const handleDateChange = (id: string, date: string) => {
+    const timestamp = new Date(date + "T12:00:00").toISOString();
+    setAttachments((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, timestamp } : a)),
     );
   };
 
@@ -420,6 +428,19 @@ export default function MediaManagementScreen() {
               multiline
               numberOfLines={3}
               textAlignVertical="top"
+            />
+
+            <DatePickerField
+              label="Date"
+              value={
+                selectedAttachment.timestamp
+                  ? selectedAttachment.timestamp.split("T")[0]
+                  : selectedAttachment.createdAt.split("T")[0]
+              }
+              onChange={(date) =>
+                handleDateChange(selectedAttachment.id, date)
+              }
+              placeholder="Select date..."
             />
 
             <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>

@@ -18,9 +18,44 @@ import { EncryptedImage } from "@/components/EncryptedImage";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
-import { OperativeMediaItem, OPERATIVE_MEDIA_TYPE_LABELS } from "@/types/case";
+import {
+  OperativeMediaItem,
+  OperativeMediaType,
+  OPERATIVE_MEDIA_TYPE_LABELS,
+  MediaAttachment,
+  MediaCategory,
+} from "@/types/case";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useMediaCallback } from "@/contexts/MediaCallbackContext";
+
+// Mapping between OperativeMediaType and MediaCategory
+const MEDIA_TYPE_TO_CATEGORY: Record<OperativeMediaType, MediaCategory> = {
+  preoperative_photo: "preop",
+  intraoperative_photo: "immediate_postop", // closest match for intraop photos
+  xray: "xray",
+  ct_scan: "ct_angiogram",
+  mri: "ultrasound", // closest imaging category
+  diagram: "other",
+  document: "other",
+  other: "other",
+};
+
+const CATEGORY_TO_MEDIA_TYPE: Partial<Record<MediaCategory, OperativeMediaType>> = {
+  preop: "preoperative_photo",
+  flap_harvest: "intraoperative_photo",
+  flap_inset: "intraoperative_photo",
+  anastomosis: "intraoperative_photo",
+  closure: "intraoperative_photo",
+  immediate_postop: "intraoperative_photo",
+  flap_planning: "preoperative_photo",
+  xray: "xray",
+  preop_xray: "xray",
+  intraop_xray: "xray",
+  postop_xray: "xray",
+  ct_angiogram: "ct_scan",
+  ultrasound: "other",
+  other: "other",
+};
 
 interface OperativeMediaSectionProps {
   media: OperativeMediaItem[];
@@ -41,6 +76,49 @@ export function OperativeMediaSection({
     ImagePicker.useCameraPermissions();
 
   const canAddMore = media.length < maxItems;
+
+  const handleManageMedia = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Convert OperativeMediaItem[] to MediaAttachment[] for MediaManagementScreen
+    const attachments: MediaAttachment[] = media.map((item) => ({
+      id: item.id,
+      localUri: item.localUri,
+      thumbnailUri: item.thumbnailUri,
+      mimeType: item.mimeType,
+      caption: item.caption,
+      createdAt: item.createdAt,
+      category: MEDIA_TYPE_TO_CATEGORY[item.mediaType],
+      timestamp: item.timestamp,
+    }));
+
+    const callbackId = registerGenericCallback(
+      (updatedAttachments: MediaAttachment[]) => {
+        // Convert back from MediaAttachment[] to OperativeMediaItem[]
+        const updatedMedia: OperativeMediaItem[] = updatedAttachments.map(
+          (att) => ({
+            id: att.id,
+            localUri: att.localUri,
+            thumbnailUri: att.thumbnailUri,
+            mimeType: att.mimeType,
+            caption: att.caption,
+            createdAt: att.createdAt,
+            timestamp: att.timestamp,
+            mediaType:
+              (att.category && CATEGORY_TO_MEDIA_TYPE[att.category]) ||
+              "intraoperative_photo",
+          }),
+        );
+        onMediaChange(updatedMedia);
+      },
+    );
+
+    navigation.navigate("MediaManagement", {
+      existingAttachments: attachments,
+      callbackId,
+      maxAttachments: maxItems,
+      context: "case",
+    });
+  };
 
   const navigateToAddMedia = (uri: string, mimeType: string) => {
     const callbackId = registerGenericCallback(
@@ -180,6 +258,7 @@ export function OperativeMediaSection({
       existingMediaId: item.id,
       existingMediaType: item.mediaType,
       existingCaption: item.caption,
+      existingTimestamp: item.timestamp,
     });
   };
 
@@ -209,9 +288,29 @@ export function OperativeMediaSection({
           <Feather name="image" size={18} color={theme.link} />
           <ThemedText style={styles.headerTitle}>Operative Media</ThemedText>
         </View>
-        <ThemedText style={[styles.countBadge, { color: theme.textSecondary }]}>
-          {media.length} / {maxItems}
-        </ThemedText>
+        <View style={styles.headerRight}>
+          {media.length > 0 ? (
+            <Pressable
+              onPress={handleManageMedia}
+              style={[
+                styles.manageButton,
+                { backgroundColor: theme.link + "15", borderColor: theme.link },
+              ]}
+            >
+              <Feather name="sliders" size={14} color={theme.link} />
+              <ThemedText
+                style={[styles.manageButtonText, { color: theme.link }]}
+              >
+                Manage
+              </ThemedText>
+            </Pressable>
+          ) : null}
+          <ThemedText
+            style={[styles.countBadge, { color: theme.textSecondary }]}
+          >
+            {media.length} / {maxItems}
+          </ThemedText>
+        </View>
       </View>
 
       {media.length > 0 ? (
@@ -341,6 +440,24 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   headerTitle: {
+    fontWeight: "600",
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  manageButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+  },
+  manageButtonText: {
+    fontSize: 12,
     fontWeight: "600",
   },
   countBadge: {
