@@ -39,7 +39,13 @@ import {
 } from "@/types/case";
 import { InfectionOverlay } from "@/types/infection";
 import type { EncounterClass, EpisodePrefillData } from "@/types/episode";
-import { saveCase, updateCase, getCase, CaseDraft } from "@/lib/storage";
+import {
+  saveCase,
+  updateCase,
+  getCase,
+  CaseDraft,
+  getCasesByEpisodeId,
+} from "@/lib/storage";
 import { updateEpisode, getEpisode } from "@/lib/episodeStorage";
 import { getDefaultClinicalDetails } from "@/lib/procedureConfig";
 import {
@@ -706,21 +712,31 @@ export function buildEpisodePrefillState(
 ): CaseFormState {
   const defaults = getDefaultFormState(prefill.specialty, primaryFacility);
 
-  // Deep clone diagnosis groups with new IDs
+  // Clone diagnosis groups with new IDs, stripping per-operation data.
+  // Keep: diagnosis identity, specialty, staging, laterality, injury mechanism,
+  //       fractures (patient-level), procedure names/codes.
+  // Strip: clinicalDetails on procedures (FreeFlapDetails, ischemia times,
+  //        anastomoses), woundAssessment, lesionInstances, handTrauma.
   const clonedGroups: DiagnosisGroup[] = prefill.diagnosisGroups?.map((g) => ({
     ...g,
     id: uuidv4(),
     procedures: g.procedures.map((p) => ({
       ...p,
       id: uuidv4(),
-      clinicalDetails: p.clinicalDetails ? { ...p.clinicalDetails } : undefined,
+      clinicalDetails: undefined, // Strip per-operation FreeFlapDetails etc.
     })),
     diagnosisClinicalDetails: g.diagnosisClinicalDetails
-      ? { ...g.diagnosisClinicalDetails }
+      ? {
+          laterality: g.diagnosisClinicalDetails.laterality,
+          injuryMechanism: g.diagnosisClinicalDetails.injuryMechanism,
+          // handTrauma stripped — per-operation structure repairs
+        }
       : undefined,
     diagnosisStagingSelections: g.diagnosisStagingSelections
       ? { ...g.diagnosisStagingSelections }
       : undefined,
+    woundAssessment: undefined, // Strip — per-operation wound data
+    lesionInstances: undefined, // Strip — new excisions are new lesions
   })) ?? defaults.diagnosisGroups;
 
   return {
@@ -1261,6 +1277,25 @@ export function useCaseForm({
               }
             : undefined;
 
+        // Compute episode sequence at save time to avoid duplicates
+        let computedEpisodeSequence = state.episodeSequence;
+        if (state.episodeId) {
+          const caseId =
+            isEditMode && existingCase ? existingCase.id : undefined;
+          const episodeCases = await getCasesByEpisodeId(state.episodeId);
+          if (isEditMode && existingCase?.episodeId === state.episodeId) {
+            // Editing a case already in this episode — preserve its sequence
+            computedEpisodeSequence =
+              existingCase.episodeSequence || state.episodeSequence;
+          } else {
+            // New case or episode changed — next available sequence
+            const existingCount = caseId
+              ? episodeCases.filter((c) => c.id !== caseId).length
+              : episodeCases.length;
+            computedEpisodeSequence = existingCount + 1;
+          }
+        }
+
         const casePayload: Case = {
           id: isEditMode && existingCase ? existingCase.id : uuidv4(),
           patientIdentifier: state.patientIdentifier.trim(),
@@ -1316,7 +1351,7 @@ export function useCaseForm({
           discussedAtMDM: state.discussedAtMDM || undefined,
           infectionOverlay: state.infectionOverlay || undefined,
           episodeId: state.episodeId || undefined,
-          episodeSequence: state.episodeSequence || undefined,
+          episodeSequence: computedEpisodeSequence || undefined,
           encounterClass: state.encounterClass || undefined,
           caseStatus: isIncomplete
             ? "incomplete"

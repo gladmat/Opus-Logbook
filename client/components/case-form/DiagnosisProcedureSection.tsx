@@ -58,7 +58,7 @@ export const DiagnosisProcedureSection = React.memo(
           type: "BULK_UPDATE",
           updates: {
             episodeId: episode.id,
-            episodeSequence: 1,
+            episodeSequence: 1, // Placeholder — recomputed at save time
           },
         });
       },

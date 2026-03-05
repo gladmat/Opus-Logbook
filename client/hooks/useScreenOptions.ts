@@ -23,7 +23,7 @@ export function useScreenOptions({
       fontWeight: "600",
       fontSize: 17,
     },
-    headerBackTitleVisible: false, // Clean chevron-only back button
+    headerBackTitle: "", // Clean chevron-only back button
     headerShadowVisible: true,
     headerStyle: {
       backgroundColor: Platform.select({
