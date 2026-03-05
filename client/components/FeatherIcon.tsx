@@ -4,6 +4,7 @@
  * with only the 49 icons actually used in this app (~8KB vs ~15-40MB).
  */
 import React from "react";
+import { Pressable, type StyleProp, type ViewStyle } from "react-native";
 import Svg, {
   Circle,
   Line,
@@ -76,8 +77,7 @@ const ICONS: Record<string, string> = {
     '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
   settings:
     '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
-  shield:
-    '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+  shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
   sliders:
     '<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>',
   star: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
@@ -107,15 +107,19 @@ type SvgElement = {
 function parseElements(svg: string): SvgElement[] {
   const elements: SvgElement[] = [];
   const tagRegex = /<(\w+)\s+([^/]*?)\/>/g;
-  let match;
+  let match: RegExpExecArray | null;
   while ((match = tagRegex.exec(svg)) !== null) {
     const tag = match[1];
     const attrStr = match[2];
+    if (!tag || !attrStr) continue;
     const attrs: Record<string, string> = {};
     const attrRegex = /(\w[\w-]*)="([^"]*)"/g;
-    let attrMatch;
+    let attrMatch: RegExpExecArray | null;
     while ((attrMatch = attrRegex.exec(attrStr)) !== null) {
-      attrs[attrMatch[1]] = attrMatch[2];
+      const attrName = attrMatch[1];
+      const attrValue = attrMatch[2];
+      if (!attrName || attrValue === undefined) continue;
+      attrs[attrName] = attrValue;
     }
     elements.push({ tag, attrs });
   }
@@ -151,10 +155,11 @@ for (const [name, svg] of Object.entries(ICONS)) {
 export type FeatherIconName = keyof typeof ICONS;
 
 interface FeatherIconProps {
-  name: string;
+  name: FeatherIconName;
   size?: number;
   color?: string;
-  style?: object;
+  style?: StyleProp<ViewStyle>;
+  onPress?: () => void;
 }
 
 export default function FeatherIcon({
@@ -162,6 +167,7 @@ export default function FeatherIcon({
   size = 24,
   color = "currentColor",
   style,
+  onPress,
 }: FeatherIconProps) {
   const elements = PARSED_ICONS[name];
   if (!elements) {
@@ -171,7 +177,7 @@ export default function FeatherIcon({
     return null;
   }
 
-  return (
+  const icon = (
     <Svg
       width={size}
       height={size}
@@ -186,6 +192,12 @@ export default function FeatherIcon({
       {elements.map((el, i) => renderElement(el, i, color))}
     </Svg>
   );
+
+  if (!onPress) {
+    return icon;
+  }
+
+  return <Pressable onPress={onPress}>{icon}</Pressable>;
 }
 
 // Compatibility shim: Feather.glyphMap for type-safe icon name lookups

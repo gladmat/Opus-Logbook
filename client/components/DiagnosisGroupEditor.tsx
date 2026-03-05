@@ -243,6 +243,28 @@ export function DiagnosisGroupEditor({
     procedures.some((p) => p.subcategory === "Fracture & Joint Fixation");
 
   useEffect(() => {
+    if (groupSpecialty !== "hand_surgery") {
+      setHandCaseType(null);
+      return;
+    }
+
+    if (selectedDiagnosis?.clinicalGroup) {
+      setHandCaseType(
+        selectedDiagnosis.clinicalGroup === "trauma" ? "trauma" : "elective",
+      );
+      return;
+    }
+
+    if (diagnosisClinicalDetails.handTrauma) {
+      setHandCaseType("trauma");
+    }
+  }, [
+    groupSpecialty,
+    selectedDiagnosis?.clinicalGroup,
+    diagnosisClinicalDetails.handTrauma,
+  ]);
+
+  useEffect(() => {
     if (!hasFractureSubcategory) {
       setFractures([]);
     }
@@ -335,6 +357,10 @@ export function DiagnosisGroupEditor({
       setStagingValues({});
       setIsDiagnosisPickerCollapsed(true);
       setShowAllProcedures(false);
+
+      if (groupSpecialty === "hand_surgery" && dx.clinicalGroup) {
+        setHandCaseType(dx.clinicalGroup === "trauma" ? "trauma" : "elective");
+      }
 
       // Apply AO procedure hints if provided (promote/demote defaults)
       const effectiveSuggestions =
