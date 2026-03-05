@@ -36,6 +36,7 @@ import {
   FreeFlapDetails,
   ProcedureCode,
   SuggestionAcceptanceEntry,
+  ReconstructionTiming,
 } from "@/types/case";
 import { InfectionOverlay } from "@/types/infection";
 import type { EncounterClass, EpisodePrefillData } from "@/types/episode";
@@ -49,6 +50,7 @@ import {
 } from "@/lib/snomedCt";
 import { findDiagnosisById } from "@/lib/diagnosisPicklists";
 import { UserProfile } from "@/lib/auth";
+import { syncFlapOutcomeToServer } from "@/lib/outcomeSync";
 
 // ─── Default Donor Vessels ──────────────────────────────────────────────────
 
@@ -198,6 +200,13 @@ export interface CaseFormState {
   recipientSiteRegion: AnatomicalRegion | undefined;
   anastomoses: AnastomosisEntry[];
 
+  // Treatment Context (case-level, visible for free flap cases)
+  reconstructionTiming: ReconstructionTiming | "";
+  priorRadiotherapy: boolean;
+  priorChemotherapy: boolean;
+  intraoperativeTransfusion: boolean;
+  transfusionUnits: string;
+
   // Episode linkage
   episodeId: string;
   episodeSequence: number;
@@ -290,6 +299,11 @@ export function getDefaultFormState(
     clinicalDetails: getDefaultClinicalDetails(specialty),
     recipientSiteRegion: undefined,
     anastomoses: [],
+    reconstructionTiming: "",
+    priorRadiotherapy: false,
+    priorChemotherapy: false,
+    intraoperativeTransfusion: false,
+    transfusionUnits: "",
     episodeId: "",
     episodeSequence: 0,
     encounterClass: "",
@@ -379,6 +393,11 @@ function loadCaseIntoFormState(
     clinicalDetails,
     recipientSiteRegion,
     anastomoses,
+    reconstructionTiming: caseData.reconstructionTiming ?? "",
+    priorRadiotherapy: caseData.priorRadiotherapy ?? false,
+    priorChemotherapy: caseData.priorChemotherapy ?? false,
+    intraoperativeTransfusion: caseData.intraoperativeTransfusion ?? false,
+    transfusionUnits: caseData.transfusionUnits ? String(caseData.transfusionUnits) : "",
     episodeId: caseData.episodeId ?? "",
     episodeSequence: caseData.episodeSequence ?? 0,
     encounterClass: (caseData.encounterClass as EncounterClass) ?? "",
@@ -723,6 +742,21 @@ export function buildEpisodePrefillState(
       : undefined,
   })) ?? defaults.diagnosisGroups;
 
+  // Strip per-operation flap fields from cloned procedures (Part 8A)
+  // Patient-level facts (prior radio/chemo) carry forward; per-op data (ischemia, outcome) stripped
+  for (const group of clonedGroups) {
+    for (const proc of group.procedures) {
+      if (proc.clinicalDetails) {
+        const cd = proc.clinicalDetails as Record<string, any>;
+        delete cd.warmIschemiaMinutes;
+        delete cd.coldIschemiaMinutes;
+        delete cd.perfusionAssessment;
+        delete cd.positionChangeRequired;
+        delete cd.flapOutcome;
+      }
+    }
+  }
+
   return {
     ...defaults,
     patientIdentifier: prefill.patientIdentifier,
@@ -731,6 +765,9 @@ export function buildEpisodePrefillState(
     episodeSequence: prefill.episodeSequence,
     encounterClass: prefill.encounterClass || "",
     diagnosisGroups: clonedGroups,
+    // Patient-level facts carry forward
+    priorRadiotherapy: prefill.priorRadiotherapy ?? false,
+    priorChemotherapy: prefill.priorChemotherapy ?? false,
   };
 }
 
@@ -1315,6 +1352,11 @@ export function useCaseForm({
           mortalityClassification: state.mortalityClassification || undefined,
           discussedAtMDM: state.discussedAtMDM || undefined,
           infectionOverlay: state.infectionOverlay || undefined,
+          reconstructionTiming: state.reconstructionTiming || undefined,
+          priorRadiotherapy: state.priorRadiotherapy || undefined,
+          priorChemotherapy: state.priorChemotherapy || undefined,
+          intraoperativeTransfusion: state.intraoperativeTransfusion || undefined,
+          transfusionUnits: state.transfusionUnits ? parseInt(state.transfusionUnits) : undefined,
           episodeId: state.episodeId || undefined,
           episodeSequence: state.episodeSequence || undefined,
           encounterClass: state.encounterClass || undefined,
@@ -1366,6 +1408,16 @@ export function useCaseForm({
         } else {
           await saveCase(casePayload);
           savedRef.current = true;
+        }
+
+        // Fire-and-forget: sync flap outcomes to server procedure_outcomes table (Part 8C)
+        for (const group of state.diagnosisGroups) {
+          for (const proc of group.procedures) {
+            const cd = proc.clinicalDetails as FreeFlapDetails | undefined;
+            if (cd?.flapOutcome && proc.id) {
+              syncFlapOutcomeToServer(proc.id, cd.flapOutcome).catch(() => {});
+            }
+          }
         }
 
         // Auto-activate planned episode when first case is saved

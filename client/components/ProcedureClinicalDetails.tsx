@@ -32,13 +32,24 @@ import {
   type SlnbDetails,
   type SlnbBasin,
   type SlnbBasinResult,
+  type PreoperativeImaging,
+  type PerfusionAssessment,
+  type DonorSiteClosureMethod,
   INDICATION_LABELS,
   FLAP_SNOMED_MAP,
   RECIPIENT_SITE_SNOMED_MAP,
   FREE_FLAP_LABELS,
   ELEVATION_PLANE_LABELS,
   SLNB_BASIN_LABELS,
+  PREOPERATIVE_IMAGING_LABELS,
+  PERFUSION_ASSESSMENT_LABELS,
+  DONOR_SITE_CLOSURE_LABELS,
 } from "@/types/case";
+import {
+  type AnticoagulationProtocolId,
+  ANTICOAGULATION_PROTOCOLS,
+} from "@/types/surgicalPreferences";
+import { CollapsibleFormSection } from "@/components/case-form/CollapsibleFormSection";
 import { FLAP_ELEVATION_PLANES } from "@/data/flapFieldConfig";
 
 interface FreeFlapClinicalFieldsProps {
@@ -380,8 +391,107 @@ export function FreeFlapClinicalFields({
         required
       />
 
+      {/* Planning & Technique collapsible section */}
+      <CollapsibleFormSection
+        title="Planning & Technique"
+        subtitle="Pre-op imaging, protocols & closure"
+        filledCount={
+          [
+            clinicalDetails.preoperativeImaging,
+            clinicalDetails.perfusionAssessment,
+            clinicalDetails.anticoagulationProtocol,
+            clinicalDetails.positionChangeRequired !== undefined
+              ? "filled"
+              : undefined,
+            clinicalDetails.donorSiteClosureMethod,
+          ].filter(Boolean).length
+        }
+        totalCount={5}
+        defaultExpanded={false}
+      >
+        <View style={{ gap: Spacing.md, paddingBottom: Spacing.md }}>
+          <SelectField
+            label="Preoperative Imaging"
+            value={clinicalDetails.preoperativeImaging || ""}
+            options={Object.entries(PREOPERATIVE_IMAGING_LABELS).map(
+              ([value, label]) => ({ value, label }),
+            )}
+            onSelect={(v) =>
+              onUpdate({
+                ...clinicalDetails,
+                preoperativeImaging: v as PreoperativeImaging,
+              })
+            }
+          />
+
+          <SelectField
+            label="Perfusion Assessment"
+            value={clinicalDetails.perfusionAssessment || ""}
+            options={Object.entries(PERFUSION_ASSESSMENT_LABELS).map(
+              ([value, label]) => ({ value, label }),
+            )}
+            onSelect={(v) =>
+              onUpdate({
+                ...clinicalDetails,
+                perfusionAssessment: v as PerfusionAssessment,
+              })
+            }
+          />
+
+          <SelectField
+            label="Anticoagulation Protocol"
+            value={clinicalDetails.anticoagulationProtocol || ""}
+            options={ANTICOAGULATION_PROTOCOLS.map((p) => ({
+              value: p.id,
+              label: p.label,
+            }))}
+            onSelect={(v) =>
+              onUpdate({
+                ...clinicalDetails,
+                anticoagulationProtocol: v as AnticoagulationProtocolId,
+              })
+            }
+          />
+
+          <SelectField
+            label="Position Change Required"
+            value={
+              clinicalDetails.positionChangeRequired === true
+                ? "yes"
+                : clinicalDetails.positionChangeRequired === false
+                  ? "no"
+                  : ""
+            }
+            options={[
+              { value: "yes", label: "Yes" },
+              { value: "no", label: "No" },
+            ]}
+            onSelect={(v) =>
+              onUpdate({
+                ...clinicalDetails,
+                positionChangeRequired: v === "yes",
+              })
+            }
+          />
+
+          <SelectField
+            label="Donor Site Closure"
+            value={clinicalDetails.donorSiteClosureMethod || ""}
+            options={Object.entries(DONOR_SITE_CLOSURE_LABELS).map(
+              ([value, label]) => ({ value, label }),
+            )}
+            onSelect={(v) =>
+              onUpdate({
+                ...clinicalDetails,
+                donorSiteClosureMethod: v as DonorSiteClosureMethod,
+              })
+            }
+          />
+        </View>
+      </CollapsibleFormSection>
+
       <FormField
-        label="Ischemia Time"
+        label="Ischemia Time (Total)"
         value={
           clinicalDetails.ischemiaTimeMinutes
             ? String(clinicalDetails.ischemiaTimeMinutes)
@@ -398,6 +508,47 @@ export function FreeFlapClinicalFields({
         unit="min"
         required
       />
+
+      <View style={styles.row}>
+        <View style={styles.halfField}>
+          <FormField
+            label="Warm Ischemia"
+            value={
+              clinicalDetails.warmIschemiaMinutes
+                ? String(clinicalDetails.warmIschemiaMinutes)
+                : ""
+            }
+            onChangeText={(v) =>
+              onUpdate({
+                ...clinicalDetails,
+                warmIschemiaMinutes: v ? parseInt(v) : undefined,
+              })
+            }
+            placeholder="—"
+            keyboardType="numeric"
+            unit="min"
+          />
+        </View>
+        <View style={styles.halfField}>
+          <FormField
+            label="Cold Ischemia"
+            value={
+              clinicalDetails.coldIschemiaMinutes
+                ? String(clinicalDetails.coldIschemiaMinutes)
+                : ""
+            }
+            onChangeText={(v) =>
+              onUpdate({
+                ...clinicalDetails,
+                coldIschemiaMinutes: v ? parseInt(v) : undefined,
+              })
+            }
+            placeholder="—"
+            keyboardType="numeric"
+            unit="min"
+          />
+        </View>
+      </View>
 
       <View style={styles.row}>
         <View style={styles.halfField}>

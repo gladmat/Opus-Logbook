@@ -7,7 +7,16 @@ import {
   getAllProcedures,
   getCaseSpecialties,
   SPECIALTY_LABELS,
+  type FreeFlapOutcomeDetails,
+  type DonorSiteComplication,
+  type RecipientSiteComplication,
+  DONOR_SITE_COMPLICATION_LABELS,
+  RECIPIENT_SITE_COMPLICATION_LABELS,
 } from "@/types/case";
+import {
+  ANTICOAGULATION_PROTOCOLS,
+  FLAP_MONITORING_PROTOCOLS,
+} from "@/types/surgicalPreferences";
 import {
   INFECTION_SYNDROME_LABELS,
   InfectionSyndrome,
@@ -40,10 +49,25 @@ export interface BaseStatistics {
 
 export interface FreeFlapStatistics extends BaseStatistics {
   flapSurvivalRate: number;
+  partialLossRate: number;
+  totalLossRate: number;
   averageIschemiaTimeMinutes: number | null;
+  averageWarmIschemiaMinutes: number | null;
   casesByFlapType: { flapType: string; count: number }[];
   casesByIndication: { indication: string; count: number }[];
   takeBackRate: number;
+  reExplorationRate: number;
+  salvageRate: number;
+  donorSiteComplicationRate: number;
+  recipientSiteComplicationRate: number;
+  mostCommonDonorComplication: string | null;
+  mostCommonRecipientComplication: string | null;
+  anticoagulationDistribution: { protocol: string; count: number }[];
+  monitoringDistribution: { protocol: string; count: number }[];
+  /** Number of flap procedures with structured outcome data */
+  structuredOutcomeCount: number;
+  /** Number using legacy string-matching fallback */
+  legacyOutcomeCount: number;
 }
 
 export interface HandSurgeryStatistics extends BaseStatistics {
@@ -266,9 +290,37 @@ export function calculateBaseStatistics(cases: Case[]): BaseStatistics {
   };
 }
 
+/**
+ * Extract all free flap procedures from a case, returning the procedure + its FreeFlapDetails.
+ */
+function extractFreeFlapProcedures(
+  c: Case,
+): { details: FreeFlapDetails; procId?: string }[] {
+  const results: { details: FreeFlapDetails; procId?: string }[] = [];
+  for (const group of c.diagnosisGroups) {
+    for (const proc of group.procedures) {
+      if (proc.tags?.includes("free_flap") && proc.clinicalDetails) {
+        results.push({
+          details: proc.clinicalDetails as FreeFlapDetails,
+          procId: proc.id,
+        });
+      }
+    }
+  }
+  // Legacy flat structure fallback
+  if (results.length === 0) {
+    const legacy = c.clinicalDetails as FreeFlapDetails | undefined;
+    if (legacy?.flapType) {
+      results.push({ details: legacy });
+    }
+  }
+  return results;
+}
+
 export function calculateFreeFlapStatistics(cases: Case[]): FreeFlapStatistics {
   const base = calculateBaseStatistics(cases);
 
+  // Identify cases containing at least one free flap procedure
   const freeFlapCases = cases.filter(
     (c) =>
       getAllProcedures(c).some((p) => p.tags?.includes("free_flap")) ||
@@ -277,47 +329,175 @@ export function calculateFreeFlapStatistics(cases: Case[]): FreeFlapStatistics {
       c.specialty === "breast",
   );
 
-  const casesWithOutcome = freeFlapCases.filter((c) => {
-    const complications = c.complications || [];
-    const hasFlapLoss = complications.some(
-      (comp) =>
-        comp.description.toLowerCase().includes("flap loss") ||
-        comp.description.toLowerCase().includes("total loss") ||
-        comp.clavienDindoGrade === "V",
-    );
-    return c.complicationsReviewed || hasFlapLoss;
-  });
+  // ─── Survival analysis: structured first, legacy fallback ───────────
+  let structuredOutcomeCount = 0;
+  let legacyOutcomeCount = 0;
+  let structuredComplete = 0;
+  let structuredPartial = 0;
+  let structuredTotal = 0;
+  let legacySurvived = 0;
+  let legacyLost = 0;
 
-  const flapLossCases = casesWithOutcome.filter((c) => {
-    const complications = c.complications || [];
-    return complications.some(
-      (comp) =>
-        comp.description.toLowerCase().includes("flap loss") ||
-        comp.description.toLowerCase().includes("total loss"),
-    );
-  });
+  // Re-exploration & salvage
+  let reExplorationCount = 0;
+  let salvageAttempts = 0;
+  let salvageSuccesses = 0;
 
-  const flapSurvivalRate =
-    casesWithOutcome.length > 0
-      ? ((casesWithOutcome.length - flapLossCases.length) /
-          casesWithOutcome.length) *
-        100
-      : 100;
+  // Complications
+  const donorCompCounts = new Map<DonorSiteComplication, number>();
+  const recipientCompCounts = new Map<RecipientSiteComplication, number>();
+  let procsWithDonorComp = 0;
+  let procsWithRecipientComp = 0;
+  let totalFreeFlapProcs = 0;
 
-  const ischemiaTimesMinutes = freeFlapCases
-    .map((c) => {
-      const procs = getAllProcedures(c);
-      for (const proc of procs) {
-        const details = proc.clinicalDetails as FreeFlapDetails | undefined;
-        if (details?.ischemiaTimeMinutes) {
-          return details.ischemiaTimeMinutes;
+  // Protocol distributions
+  const anticoagMap = new Map<string, number>();
+  const monitoringMap = new Map<string, number>();
+
+  // Ischemia
+  const ischemiaTimesMinutes: number[] = [];
+  const warmIschemiaTimesMinutes: number[] = [];
+
+  // Flap type & indication
+  const flapTypeMap = new Map<string, number>();
+  const indicationMap = new Map<string, number>();
+
+  for (const c of freeFlapCases) {
+    const flapProcs = extractFreeFlapProcedures(c);
+
+    for (const { details } of flapProcs) {
+      totalFreeFlapProcs++;
+
+      // ── Survival classification ──
+      const outcome = details.flapOutcome;
+      if (outcome) {
+        structuredOutcomeCount++;
+        switch (outcome.flapSurvival) {
+          case "complete_survival":
+            structuredComplete++;
+            break;
+          case "partial_loss":
+            structuredPartial++;
+            break;
+          case "total_loss":
+            structuredTotal++;
+            break;
+        }
+
+        // Re-exploration
+        if (outcome.reExploration?.reExplored) {
+          reExplorationCount++;
+          const events = outcome.reExploration.events || [];
+          for (const evt of events) {
+            salvageAttempts++;
+            if (
+              evt.salvageOutcome === "salvaged_complete" ||
+              evt.salvageOutcome === "salvaged_partial_loss"
+            ) {
+              salvageSuccesses++;
+            }
+          }
+        }
+
+        // Donor site complications
+        if (outcome.donorSiteComplications?.length) {
+          procsWithDonorComp++;
+          for (const comp of outcome.donorSiteComplications) {
+            donorCompCounts.set(
+              comp,
+              (donorCompCounts.get(comp) || 0) + 1,
+            );
+          }
+        }
+
+        // Recipient site complications
+        if (outcome.recipientSiteComplications?.length) {
+          procsWithRecipientComp++;
+          for (const comp of outcome.recipientSiteComplications) {
+            recipientCompCounts.set(
+              comp,
+              (recipientCompCounts.get(comp) || 0) + 1,
+            );
+          }
+        }
+
+        // Monitoring protocol
+        if (outcome.monitoringProtocol) {
+          const label =
+            FLAP_MONITORING_PROTOCOLS.find(
+              (p) => p.id === outcome.monitoringProtocol,
+            )?.label || outcome.monitoringProtocol;
+          monitoringMap.set(label, (monitoringMap.get(label) || 0) + 1);
         }
       }
-      const details = c.clinicalDetails as FreeFlapDetails | undefined;
-      return details?.ischemiaTimeMinutes;
-    })
-    .filter((t): t is number => t !== undefined && t !== null && t > 0);
 
+      // ── Ischemia ──
+      if (details.ischemiaTimeMinutes && details.ischemiaTimeMinutes > 0) {
+        ischemiaTimesMinutes.push(details.ischemiaTimeMinutes);
+      }
+      if (details.warmIschemiaMinutes && details.warmIschemiaMinutes > 0) {
+        warmIschemiaTimesMinutes.push(details.warmIschemiaMinutes);
+      }
+
+      // ── Anticoagulation ──
+      if (details.anticoagulationProtocol) {
+        const label =
+          ANTICOAGULATION_PROTOCOLS.find(
+            (p) => p.id === details.anticoagulationProtocol,
+          )?.label || details.anticoagulationProtocol;
+        anticoagMap.set(label, (anticoagMap.get(label) || 0) + 1);
+      }
+
+      // ── Flap type ──
+      const flapType = details.flapType || "Unknown";
+      flapTypeMap.set(flapType, (flapTypeMap.get(flapType) || 0) + 1);
+
+      // ── Indication ──
+      const indication = details.indication || "Unknown";
+      indicationMap.set(indication, (indicationMap.get(indication) || 0) + 1);
+    }
+
+    // Legacy fallback for cases without structured outcomes
+    if (flapProcs.every((fp) => !fp.details.flapOutcome)) {
+      // Try legacy string-matching on case-level complications
+      const complications = c.complications || [];
+      const hasFlapLoss = complications.some(
+        (comp) =>
+          comp.description.toLowerCase().includes("flap loss") ||
+          comp.description.toLowerCase().includes("total loss"),
+      );
+      if (c.complicationsReviewed || hasFlapLoss) {
+        legacyOutcomeCount++;
+        if (hasFlapLoss) {
+          legacyLost++;
+        } else {
+          legacySurvived++;
+        }
+      }
+    }
+  }
+
+  // ─── Aggregate survival rates ───────────────────────────────────────
+  const totalWithOutcome =
+    structuredOutcomeCount + legacyOutcomeCount;
+  const totalSurvived = structuredComplete + legacySurvived;
+  const totalPartialLoss = structuredPartial;
+  const totalTotalLoss = structuredTotal + legacyLost;
+
+  const flapSurvivalRate =
+    totalWithOutcome > 0
+      ? (totalSurvived / totalWithOutcome) * 100
+      : 100;
+  const partialLossRate =
+    totalWithOutcome > 0
+      ? (totalPartialLoss / totalWithOutcome) * 100
+      : 0;
+  const totalLossRate =
+    totalWithOutcome > 0
+      ? (totalTotalLoss / totalWithOutcome) * 100
+      : 0;
+
+  // ─── Ischemia averages ──────────────────────────────────────────────
   const averageIschemiaTimeMinutes =
     ischemiaTimesMinutes.length > 0
       ? Math.round(
@@ -326,37 +506,72 @@ export function calculateFreeFlapStatistics(cases: Case[]): FreeFlapStatistics {
         )
       : null;
 
-  const flapTypeMap = new Map<string, number>();
-  freeFlapCases.forEach((c) => {
-    const flapType = c.procedureType || "Unknown";
-    flapTypeMap.set(flapType, (flapTypeMap.get(flapType) || 0) + 1);
-  });
+  const averageWarmIschemiaMinutes =
+    warmIschemiaTimesMinutes.length > 0
+      ? Math.round(
+          warmIschemiaTimesMinutes.reduce((a, b) => a + b, 0) /
+            warmIschemiaTimesMinutes.length,
+        )
+      : null;
+
+  // ─── Re-exploration & salvage ───────────────────────────────────────
+  const reExplorationRate =
+    totalFreeFlapProcs > 0
+      ? (reExplorationCount / totalFreeFlapProcs) * 100
+      : 0;
+  const salvageRate =
+    salvageAttempts > 0
+      ? (salvageSuccesses / salvageAttempts) * 100
+      : 0;
+
+  // ─── Complication rates ─────────────────────────────────────────────
+  const donorSiteComplicationRate =
+    totalFreeFlapProcs > 0
+      ? (procsWithDonorComp / totalFreeFlapProcs) * 100
+      : 0;
+  const recipientSiteComplicationRate =
+    totalFreeFlapProcs > 0
+      ? (procsWithRecipientComp / totalFreeFlapProcs) * 100
+      : 0;
+
+  // Most common complications
+  let mostCommonDonorComplication: string | null = null;
+  if (donorCompCounts.size > 0) {
+    const top = Array.from(donorCompCounts.entries()).sort(
+      (a, b) => b[1] - a[1],
+    )[0]!;
+    mostCommonDonorComplication =
+      DONOR_SITE_COMPLICATION_LABELS[top[0]] || top[0];
+  }
+
+  let mostCommonRecipientComplication: string | null = null;
+  if (recipientCompCounts.size > 0) {
+    const top = Array.from(recipientCompCounts.entries()).sort(
+      (a, b) => b[1] - a[1],
+    )[0]!;
+    mostCommonRecipientComplication =
+      RECIPIENT_SITE_COMPLICATION_LABELS[top[0]] || top[0];
+  }
+
+  // ─── Protocol distributions ─────────────────────────────────────────
+  const anticoagulationDistribution = Array.from(anticoagMap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([protocol, count]) => ({ protocol, count }));
+
+  const monitoringDistribution = Array.from(monitoringMap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([protocol, count]) => ({ protocol, count }));
+
+  // ─── Flap type & indication breakdowns ──────────────────────────────
   const casesByFlapType = Array.from(flapTypeMap.entries())
     .sort((a, b) => b[1] - a[1])
     .map(([flapType, count]) => ({ flapType, count }));
 
-  const indicationMap = new Map<string, number>();
-  freeFlapCases.forEach((c) => {
-    let indication = "Unknown";
-    const procs = getAllProcedures(c);
-    if (procs.length > 0) {
-      for (const proc of procs) {
-        const details = proc.clinicalDetails as FreeFlapDetails | undefined;
-        if (details?.indication) {
-          indication = details.indication;
-          break;
-        }
-      }
-    } else {
-      const details = c.clinicalDetails as FreeFlapDetails | undefined;
-      if (details?.indication) indication = details.indication;
-    }
-    indicationMap.set(indication, (indicationMap.get(indication) || 0) + 1);
-  });
   const casesByIndication = Array.from(indicationMap.entries())
     .sort((a, b) => b[1] - a[1])
     .map(([indication, count]) => ({ indication, count }));
 
+  // ─── Take-back rate ─────────────────────────────────────────────────
   const takeBackCases = freeFlapCases.filter((c) => c.returnToTheatre === true);
   const takeBackRate =
     freeFlapCases.length > 0
@@ -366,10 +581,23 @@ export function calculateFreeFlapStatistics(cases: Case[]): FreeFlapStatistics {
   return {
     ...base,
     flapSurvivalRate,
+    partialLossRate,
+    totalLossRate,
     averageIschemiaTimeMinutes,
+    averageWarmIschemiaMinutes,
     casesByFlapType,
     casesByIndication,
     takeBackRate,
+    reExplorationRate,
+    salvageRate,
+    donorSiteComplicationRate,
+    recipientSiteComplicationRate,
+    mostCommonDonorComplication,
+    mostCommonRecipientComplication,
+    anticoagulationDistribution,
+    monitoringDistribution,
+    structuredOutcomeCount,
+    legacyOutcomeCount,
   };
 }
 

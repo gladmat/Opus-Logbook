@@ -2,6 +2,7 @@ import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getApiUrl } from "./query-client";
+import type { SurgicalPreferences } from "@/types/surgicalPreferences";
 
 const AUTH_TOKEN_KEY = "surgical_logbook_auth_token";
 
@@ -23,6 +24,7 @@ export interface UserProfile {
   medicalCouncilNumber: string | null;
   verificationStatus: string;
   careerStage: string | null;
+  surgicalPreferences?: SurgicalPreferences;
   onboardingComplete: boolean;
 }
 

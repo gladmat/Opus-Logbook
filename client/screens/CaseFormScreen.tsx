@@ -55,6 +55,8 @@ import {
 import type { CompletionMap } from "@/components/case-form/SectionNavBar";
 import { CaseSummaryView } from "@/components/case-form/CaseSummaryView";
 import { EpisodeLinkBanner } from "@/components/EpisodeLinkBanner";
+import { TreatmentContextSection } from "@/components/case-form/TreatmentContextSection";
+import { caseHasFreeFlap } from "@/lib/moduleVisibility";
 import { useFavouritesRecents } from "@/hooks/useFavouritesRecents";
 import type { TreatmentEpisode } from "@/types/episode";
 
@@ -641,6 +643,10 @@ export default function CaseFormScreen() {
             >
               <OperativeFactorsSection />
             </SectionWrapper>
+
+            {caseHasFreeFlap(form.state.diagnosisGroups) ? (
+              <TreatmentContextSection />
+            ) : null}
 
             <SectionWrapper
               sectionId="infection"

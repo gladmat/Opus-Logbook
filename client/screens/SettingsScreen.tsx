@@ -740,6 +740,27 @@ export default function SettingsScreen() {
           <ThemedText
             style={[styles.sectionTitle, { color: theme.textSecondary }]}
           >
+            CLINICAL
+          </ThemedText>
+          <View
+            style={[
+              styles.sectionCard,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
+            <SettingsItem
+              icon="sliders"
+              label="Surgical Preferences"
+              subtitle="Anticoagulation & monitoring defaults"
+              onPress={() => navigation.navigate("SurgicalPreferences")}
+            />
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <ThemedText
+            style={[styles.sectionTitle, { color: theme.textSecondary }]}
+          >
             DATA
           </ThemedText>
           <View

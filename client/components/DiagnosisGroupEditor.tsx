@@ -51,6 +51,7 @@ import { FLAP_SNOMED_MAP } from "@/types/case";
 import { SectionHeader } from "@/components/SectionHeader";
 import { DiagnosisSuggestions } from "@/components/DiagnosisSuggestions";
 import { MultiLesionEditor } from "@/components/MultiLesionEditor";
+import { useAuth } from "@/contexts/AuthContext";
 import type { LesionInstance, LesionPathologyType } from "@/types/case";
 import { SelectedDiagnosisCard } from "@/components/SelectedDiagnosisCard";
 import {
@@ -60,10 +61,13 @@ import {
 } from "@/lib/aoToDiagnosisMapping";
 import { DetailModuleRow } from "@/components/detail-sheets/DetailModuleRow";
 import { FreeFlapSheet } from "@/components/detail-sheets/FreeFlapSheet";
+import { FlapOutcomeSheet } from "@/components/detail-sheets/FlapOutcomeSheet";
 import { HandTraumaSheet } from "@/components/detail-sheets/HandTraumaSheet";
 import { InfectionSheet } from "@/components/detail-sheets/InfectionSheet";
 import { WoundAssessmentSheet } from "@/components/detail-sheets/WoundAssessmentSheet";
 import { getModuleVisibility } from "@/lib/moduleVisibility";
+import { generateFlapOutcomeSummary } from "@/components/FlapOutcomeSection";
+import type { FreeFlapOutcomeDetails } from "@/types/case";
 import {
   generateFlapSummary,
   generateFractureSummary,
@@ -106,6 +110,7 @@ export function DiagnosisGroupEditor({
   episodeType,
 }: DiagnosisGroupEditorProps) {
   const { theme } = useTheme();
+  const { profile } = useAuth();
 
   // Accent color: monochromatic amber — primary full, then fading
   const accentColor =
@@ -171,6 +176,7 @@ export function DiagnosisGroupEditor({
 
   // Hub-and-spoke sheet visibility
   const [showFlapSheet, setShowFlapSheet] = useState(false);
+  const [showFlapOutcomeSheet, setShowFlapOutcomeSheet] = useState(false);
   const [showHandTraumaSheet, setShowHandTraumaSheet] = useState(false);
   const [showInfectionSheet, setShowInfectionSheet] = useState(false);
   const [showWoundSheet, setShowWoundSheet] = useState(false);
@@ -343,6 +349,9 @@ export function DiagnosisGroupEditor({
             const mappedFlapType = PICKLIST_TO_FLAP_TYPE[picklistId];
             if (mappedFlapType) {
               const snomedEntry = FLAP_SNOMED_MAP[mappedFlapType];
+              const prefAnticoag =
+                profile?.surgicalPreferences?.microsurgery
+                  ?.anticoagulationProtocol;
               clinicalDetails = {
                 flapType: mappedFlapType,
                 flapSnomedCode: snomedEntry?.code,
@@ -350,6 +359,9 @@ export function DiagnosisGroupEditor({
                 harvestSide: "left",
                 indication: "trauma",
                 anastomoses: [],
+                ...(prefAnticoag
+                  ? { anticoagulationProtocol: prefAnticoag }
+                  : {}),
               } as FreeFlapDetails;
             }
           }
@@ -372,7 +384,7 @@ export function DiagnosisGroupEditor({
         newProcedures.length > 0 ? newProcedures : buildDefaultProcedures(),
       );
     },
-    [groupSpecialty, buildDefaultProcedures],
+    [groupSpecialty, buildDefaultProcedures, profile?.surgicalPreferences],
   );
 
   const handleStagingChangeForSuggestions = useCallback(
@@ -799,6 +811,35 @@ export function DiagnosisGroupEditor({
     },
     [freeFlapProcedure],
   );
+
+  const handleFlapOutcomeSave = useCallback(
+    (outcomeDetails: FreeFlapOutcomeDetails) => {
+      if (!freeFlapProcedure) return;
+      const currentDetails =
+        (freeFlapProcedure.clinicalDetails as FreeFlapDetails) || {};
+      updateProcedure({
+        ...freeFlapProcedure,
+        clinicalDetails: { ...currentDetails, flapOutcome: outcomeDetails },
+      });
+    },
+    [freeFlapProcedure],
+  );
+
+  const flapOutcomeSummary = useMemo(() => {
+    if (!freeFlapProcedure?.clinicalDetails) return null;
+    const details = freeFlapProcedure.clinicalDetails as FreeFlapDetails;
+    return generateFlapOutcomeSummary(details.flapOutcome);
+  }, [freeFlapProcedure?.clinicalDetails]);
+
+  // Default outcome for zero-tap happy path
+  const defaultFlapOutcome = useMemo((): FreeFlapOutcomeDetails => {
+    const monitoringPref =
+      profile?.surgicalPreferences?.microsurgery?.monitoringProtocol;
+    return {
+      flapSurvival: "complete_survival",
+      ...(monitoringPref ? { monitoringProtocol: monitoringPref } : {}),
+    };
+  }, [profile?.surgicalPreferences?.microsurgery?.monitoringProtocol]);
 
   const handleHandTraumaSave = useCallback(
     (details: HandTraumaDetails, procs: CaseProcedure[]) => {
@@ -1483,6 +1524,15 @@ export function DiagnosisGroupEditor({
                 icon="activity"
               />
             ) : null}
+            {moduleVisibility.flapOutcome ? (
+              <DetailModuleRow
+                title="Flap Outcome"
+                summary={flapOutcomeSummary}
+                isComplete={flapOutcomeSummary !== null}
+                onPress={() => setShowFlapOutcomeSheet(true)}
+                icon="heart"
+              />
+            ) : null}
             {moduleVisibility.fractureClassification ? (
               <DetailModuleRow
                 title="Fracture Classification"
@@ -1545,6 +1595,18 @@ export function DiagnosisGroupEditor({
             }
             procedureType={freeFlapProcedure.procedureName}
             picklistEntryId={freeFlapProcedure.picklistEntryId}
+          />
+        ) : null}
+
+        {moduleVisibility.flapOutcome && freeFlapProcedure ? (
+          <FlapOutcomeSheet
+            visible={showFlapOutcomeSheet}
+            onClose={() => setShowFlapOutcomeSheet(false)}
+            onSave={handleFlapOutcomeSave}
+            initialOutcome={
+              (freeFlapProcedure.clinicalDetails as FreeFlapDetails)
+                ?.flapOutcome || defaultFlapOutcome
+            }
           />
         ) : null}
 
