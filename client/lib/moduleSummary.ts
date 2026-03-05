@@ -87,6 +87,75 @@ export function generateHandTraumaSummary(
 }
 
 /**
+ * Unified Hand Trauma Assessment summary — combines fractures, structures, and dislocations.
+ * e.g. "23-A2.1 Distal radius + FDP Zone II + 3 more"
+ */
+export function generateHandTraumaAssessmentSummary(
+  details: HandTraumaDetails | undefined,
+  fractures: FractureEntry[] | undefined,
+): string | null {
+  const parts: string[] = [];
+
+  // Fractures
+  if (fractures && fractures.length > 0) {
+    const first = fractures[0]!;
+    parts.push(`${first.aoCode} ${first.boneName}`);
+    if (fractures.length > 1) {
+      parts.push(`+${fractures.length - 1} fracture${fractures.length > 2 ? "s" : ""}`);
+    }
+  }
+
+  // Dislocations
+  if (details?.dislocations && details.dislocations.length > 0) {
+    const jointLabels: Record<string, string> = {
+      pip: "PIP", mcp: "MCP", cmc: "CMC", thumb_cmc: "Thumb CMC",
+      druj: "DRUJ", perilunate: "Perilunate", lunate: "Lunate",
+    };
+    const first = details.dislocations[0]!;
+    parts.push(`${jointLabels[first.joint] ?? first.joint} dislocation`);
+    if (details.dislocations.length > 1) {
+      parts.push(`+${details.dislocations.length - 1} more`);
+    }
+  }
+
+  // Special injuries
+  if (details?.isHighPressureInjection) parts.push("HPI");
+  if (details?.isFightBite) parts.push("Fight bite");
+  if (details?.isCompartmentSyndrome) parts.push("Compartment syndrome");
+  if (details?.isRingAvulsion) parts.push("Ring avulsion");
+
+  // Amputation
+  if (details?.amputationLevel) {
+    const levelLabels: Record<string, string> = {
+      fingertip: "Fingertip", distal_phalanx: "Distal phalanx",
+      middle_phalanx: "Middle phalanx", proximal_phalanx: "Proximal phalanx",
+      mcp: "MCP level", ray: "Ray", hand_wrist: "Hand/wrist",
+    };
+    const label = levelLabels[details.amputationLevel] ?? details.amputationLevel;
+    parts.push(`${label} amputation${details.isReplantable ? " (replantable)" : ""}`);
+  }
+
+  // Structures
+  if (details?.injuredStructures && details.injuredStructures.length > 0) {
+    const structures = details.injuredStructures;
+    const first = structures[0]!;
+    let structSummary = first.displayName;
+    if (first.digit) structSummary += ` ${first.digit}`;
+    parts.push(structSummary);
+    if (structures.length > 1) {
+      parts.push(`+${structures.length - 1} structure${structures.length > 2 ? "s" : ""}`);
+    }
+  }
+
+  // Digits
+  if (parts.length === 0 && details?.affectedDigits && details.affectedDigits.length > 0) {
+    parts.push(`Digits: ${details.affectedDigits.join(", ")}`);
+  }
+
+  return parts.length > 0 ? parts.join(", ") : null;
+}
+
+/**
  * Infection Details summary — e.g. "Skin/Soft Tissue, left hand, 2 episodes"
  */
 export function generateInfectionSummary(

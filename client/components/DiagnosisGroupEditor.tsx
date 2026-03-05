@@ -71,7 +71,10 @@ import {
 import { DetailModuleRow } from "@/components/detail-sheets/DetailModuleRow";
 import { FreeFlapSheet } from "@/components/detail-sheets/FreeFlapSheet";
 import { FlapOutcomeSheet } from "@/components/detail-sheets/FlapOutcomeSheet";
-import { HandTraumaSheet } from "@/components/detail-sheets/HandTraumaSheet";
+import {
+  HandTraumaSheet,
+  type HandTraumaDiagnosisResolution,
+} from "@/components/detail-sheets/HandTraumaSheet";
 import { InfectionSheet } from "@/components/detail-sheets/InfectionSheet";
 import { WoundAssessmentSheet } from "@/components/detail-sheets/WoundAssessmentSheet";
 import { getModuleVisibility } from "@/lib/moduleVisibility";
@@ -81,6 +84,7 @@ import {
   generateFlapSummary,
   generateFractureSummary,
   generateHandTraumaSummary,
+  generateHandTraumaAssessmentSummary,
   generateInfectionSummary,
   generateWoundSummary,
 } from "@/lib/moduleSummary";
@@ -165,7 +169,9 @@ export function DiagnosisGroupEditor({
   const [fractures, setFractures] = useState<FractureEntry[]>(
     group.fractures || [],
   );
-  const [showFractureWizard, setShowFractureWizard] = useState(false);
+  const [showFractureWizard, setShowFractureWizard] = useState(false); // kept for standalone fracture wizard (non-trauma)
+  const [isDiagnosisFromTrauma, setIsDiagnosisFromTrauma] = useState(false);
+  const [traumaSourceLabel, setTraumaSourceLabel] = useState<string | undefined>(undefined);
   const [snomedSuggestion, setSnomedSuggestion] = useState<{
     searchTerm: string;
     displayName: string;
@@ -630,6 +636,15 @@ export function DiagnosisGroupEditor({
     [diagnosisClinicalDetails.handTrauma],
   );
 
+  const handTraumaAssessmentSummary = useMemo(
+    () =>
+      generateHandTraumaAssessmentSummary(
+        diagnosisClinicalDetails.handTrauma,
+        fractures,
+      ),
+    [diagnosisClinicalDetails.handTrauma, fractures],
+  );
+
   const infectionSummary = useMemo(
     () =>
       infectionOverlay ? generateInfectionSummary(infectionOverlay) : null,
@@ -643,8 +658,7 @@ export function DiagnosisGroupEditor({
 
   const hasAnyModule =
     moduleVisibility.flapDetails ||
-    moduleVisibility.fractureClassification ||
-    moduleVisibility.handStructures ||
+    moduleVisibility.handTraumaAssessment ||
     moduleVisibility.infection ||
     moduleVisibility.woundAssessment;
 
@@ -841,6 +855,8 @@ export function DiagnosisGroupEditor({
     setAoSourceLabel(undefined);
     setAoHints([]);
     setSnomedSuggestion(null);
+    setIsDiagnosisFromTrauma(false);
+    setTraumaSourceLabel(undefined);
   }, []);
 
   const specialtyOptions = Object.entries(SPECIALTY_LABELS).map(
@@ -907,6 +923,79 @@ export function DiagnosisGroupEditor({
       setProcedures(procs);
     },
     [],
+  );
+
+  const handleTraumaDiagnosisResolved = useCallback(
+    (resolution: HandTraumaDiagnosisResolution) => {
+      const { mappingResult, fractures: resolvedFractures } = resolution;
+
+      // Update fractures
+      setFractures(resolvedFractures);
+
+      // Auto-set diagnosis from mapping result
+      const dxId = mappingResult.primaryDiagnosis.diagnosisPicklistId;
+      const picklist = dxId ? findDiagnosisById(dxId) : null;
+
+      if (picklist) {
+        setSelectedDiagnosis(picklist);
+        setPrimaryDiagnosis({
+          conceptId: picklist.snomedCtCode,
+          term: picklist.displayName,
+        });
+        setDiagnosis(picklist.displayName);
+        setIsDiagnosisPickerCollapsed(true);
+        setIsDiagnosisFromTrauma(true);
+        setTraumaSourceLabel("Hand trauma assessment");
+      } else if (mappingResult.primaryDiagnosis.displayName) {
+        setPrimaryDiagnosis({
+          conceptId: mappingResult.primaryDiagnosis.snomedCtCode,
+          term: mappingResult.primaryDiagnosis.displayName,
+        });
+        setDiagnosis(mappingResult.primaryDiagnosis.displayName);
+        setIsDiagnosisPickerCollapsed(true);
+        setIsDiagnosisFromTrauma(true);
+        setTraumaSourceLabel("Hand trauma assessment");
+      }
+
+      // Add suggested default procedures (merge with existing structure-generated ones)
+      const defaultProcs = mappingResult.suggestedProcedures.filter(
+        (sp) => sp.isDefault,
+      );
+      if (defaultProcs.length > 0) {
+        setProcedures((prev) => {
+          const existingIds = new Set(
+            prev.map((p) => p.picklistEntryId).filter(Boolean),
+          );
+          const toAdd: CaseProcedure[] = [];
+          for (const sp of defaultProcs) {
+            if (!existingIds.has(sp.procedurePicklistId)) {
+              const entry = findPicklistEntry(sp.procedurePicklistId);
+              if (entry) {
+                toAdd.push({
+                  id: uuidv4(),
+                  sequenceOrder: prev.length + toAdd.length + 1,
+                  procedureName: entry.displayName,
+                  specialty: groupSpecialty,
+                  surgeonRole: "PS" as Role,
+                  picklistEntryId: sp.procedurePicklistId,
+                  snomedCtCode: entry.snomedCtCode,
+                  snomedCtDisplay: entry.snomedCtDisplay,
+                  subcategory: entry.subcategory,
+                  tags: entry.tags,
+                });
+              }
+            }
+          }
+          if (toAdd.length > 0) {
+            return [...prev, ...toAdd];
+          }
+          return prev;
+        });
+      }
+
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    },
+    [groupSpecialty],
   );
 
   const handleInfectionSave = useCallback(
@@ -1201,7 +1290,7 @@ export function DiagnosisGroupEditor({
             <SelectedDiagnosisCard
               diagnosis={selectedDiagnosis}
               onClear={clearDiagnosis}
-              sourceLabel={isDiagnosisFromAO ? aoSourceLabel : undefined}
+              sourceLabel={isDiagnosisFromAO ? aoSourceLabel : isDiagnosisFromTrauma ? traumaSourceLabel : undefined}
             />
           ) : (
             <DiagnosisPicker
@@ -1387,7 +1476,14 @@ export function DiagnosisGroupEditor({
             fractures={fractures}
             onFracturesChange={setFractures}
             showFractureClassification={hasFractureSubcategory}
-            onOpenFractureWizard={() => setShowFractureWizard(true)}
+            onOpenFractureWizard={() => {
+              // For trauma cases, open the unified HandTraumaSheet (fracture wizard is inside)
+              if (moduleVisibility.handTraumaAssessment) {
+                setShowHandTraumaSheet(true);
+              } else {
+                setShowFractureWizard(true);
+              }
+            }}
           />
         ) : null}
 
@@ -1593,20 +1689,11 @@ export function DiagnosisGroupEditor({
                 icon="heart"
               />
             ) : null}
-            {moduleVisibility.fractureClassification ? (
+            {moduleVisibility.handTraumaAssessment ? (
               <DetailModuleRow
-                title="Fracture Classification"
-                summary={fractureSummary}
-                isComplete={fractureSummary !== null}
-                onPress={() => setShowFractureWizard(true)}
-                icon="layers"
-              />
-            ) : null}
-            {moduleVisibility.handStructures ? (
-              <DetailModuleRow
-                title="Hand Structures"
-                summary={handTraumaSummary}
-                isComplete={handTraumaSummary !== null}
+                title="Hand Trauma Assessment"
+                summary={handTraumaAssessmentSummary}
+                isComplete={handTraumaAssessmentSummary !== null}
                 onPress={() => setShowHandTraumaSheet(true)}
                 icon="hand"
               />
@@ -1633,12 +1720,16 @@ export function DiagnosisGroupEditor({
         ) : null}
 
         {/* Modal sheets */}
-        <FractureClassificationWizard
-          visible={showFractureWizard}
-          onClose={handleFractureWizardClose}
-          onSave={handleFractureWizardSave}
-          initialFractures={fractures}
-        />
+
+        {/* Standalone fracture wizard for non-trauma cases (elective hand surgery) */}
+        {!moduleVisibility.handTraumaAssessment ? (
+          <FractureClassificationWizard
+            visible={showFractureWizard}
+            onClose={handleFractureWizardClose}
+            onSave={handleFractureWizardSave}
+            initialFractures={fractures}
+          />
+        ) : null}
 
         {moduleVisibility.flapDetails && freeFlapProcedure ? (
           <FreeFlapSheet
@@ -1670,14 +1761,17 @@ export function DiagnosisGroupEditor({
           />
         ) : null}
 
-        {moduleVisibility.handStructures ? (
+        {moduleVisibility.handTraumaAssessment ? (
           <HandTraumaSheet
             visible={showHandTraumaSheet}
             onClose={() => setShowHandTraumaSheet(false)}
             onSave={handleHandTraumaSave}
+            onDiagnosisResolved={handleTraumaDiagnosisResolved}
             initialDetails={diagnosisClinicalDetails.handTrauma || {}}
             selectedDiagnosis={selectedDiagnosis ?? undefined}
             initialProcedures={procedures}
+            initialFractures={fractures}
+            onFracturesChange={setFractures}
           />
         ) : null}
 
