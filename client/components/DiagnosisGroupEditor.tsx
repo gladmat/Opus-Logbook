@@ -258,8 +258,7 @@ export function DiagnosisGroupEditor({
 
     const isExcBiopsy = isExcisionBiopsyDiagnosis(selectedDiagnosis?.id);
     const assembled: DiagnosisGroup = {
-      id: group.id,
-      sequenceOrder: group.sequenceOrder,
+      ...group, // Preserve woundAssessment, pathologicalDiagnosis, and other fields not managed here
       specialty: groupSpecialty,
       diagnosis: primaryDiagnosis
         ? {
