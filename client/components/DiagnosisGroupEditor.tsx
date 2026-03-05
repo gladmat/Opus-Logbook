@@ -25,6 +25,8 @@ import {
   CLINICAL_SUSPICION_LABELS,
   isExcisionBiopsyDiagnosis,
 } from "@/types/case";
+import type { FreeFlapDetails, HandTraumaDetails } from "@/types/case";
+import type { InfectionOverlay } from "@/types/infection";
 import { PickerField } from "@/components/FormField";
 import { SnomedSearchPicker } from "@/components/SnomedSearchPicker";
 import { getDiagnosisStaging, DiagnosisStagingConfig } from "@/lib/snomedApi";
@@ -45,10 +47,9 @@ import {
   findPicklistEntry,
   PICKLIST_TO_FLAP_TYPE,
 } from "@/lib/procedurePicklist";
-import { FLAP_SNOMED_MAP, type FreeFlapDetails } from "@/types/case";
+import { FLAP_SNOMED_MAP } from "@/types/case";
 import { SectionHeader } from "@/components/SectionHeader";
 import { DiagnosisSuggestions } from "@/components/DiagnosisSuggestions";
-import { HandTraumaStructurePicker } from "@/components/hand-trauma/HandTraumaStructurePicker";
 import { MultiLesionEditor } from "@/components/MultiLesionEditor";
 import type { LesionInstance, LesionPathologyType } from "@/types/case";
 import { SelectedDiagnosisCard } from "@/components/SelectedDiagnosisCard";
@@ -57,6 +58,17 @@ import {
   applyProcedureHints,
   type AOProcedureHint,
 } from "@/lib/aoToDiagnosisMapping";
+import { DetailModuleRow } from "@/components/detail-sheets/DetailModuleRow";
+import { FreeFlapSheet } from "@/components/detail-sheets/FreeFlapSheet";
+import { HandTraumaSheet } from "@/components/detail-sheets/HandTraumaSheet";
+import { InfectionSheet } from "@/components/detail-sheets/InfectionSheet";
+import { getModuleVisibility } from "@/lib/moduleVisibility";
+import {
+  generateFlapSummary,
+  generateFractureSummary,
+  generateHandTraumaSummary,
+  generateInfectionSummary,
+} from "@/lib/moduleSummary";
 
 interface DiagnosisGroupEditorProps {
   group: DiagnosisGroup;
@@ -67,6 +79,10 @@ interface DiagnosisGroupEditorProps {
   onDelete: () => void;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
+  infectionOverlay?: InfectionOverlay;
+  onInfectionChange?: (overlay: InfectionOverlay | undefined) => void;
+  /** Whether this is the first group that triggers infection visibility */
+  isFirstInfectionGroup?: boolean;
 }
 
 export function DiagnosisGroupEditor({
@@ -78,6 +94,9 @@ export function DiagnosisGroupEditor({
   onDelete,
   onMoveUp,
   onMoveDown,
+  infectionOverlay,
+  onInfectionChange,
+  isFirstInfectionGroup,
 }: DiagnosisGroupEditorProps) {
   const { theme } = useTheme();
 
@@ -142,6 +161,11 @@ export function DiagnosisGroupEditor({
   const [clinicalSuspicion, setClinicalSuspicion] = useState<
     ClinicalSuspicion | undefined
   >(group.clinicalSuspicion);
+
+  // Hub-and-spoke sheet visibility
+  const [showFlapSheet, setShowFlapSheet] = useState(false);
+  const [showHandTraumaSheet, setShowHandTraumaSheet] = useState(false);
+  const [showInfectionSheet, setShowInfectionSheet] = useState(false);
 
   // Feature 1: collapse diagnosis picklist after selection
   const [isDiagnosisPickerCollapsed, setIsDiagnosisPickerCollapsed] =
@@ -475,6 +499,50 @@ export function DiagnosisGroupEditor({
   const showDiagnosisSuggestions =
     procedurePicklistIds.length > 0 && !selectedDiagnosis && !primaryDiagnosis;
 
+  // Hub-and-spoke: module visibility + summaries
+  const moduleVisibility = useMemo(
+    () =>
+      getModuleVisibility(
+        { ...group, procedures, specialty: groupSpecialty },
+        handCaseType ?? undefined,
+        infectionOverlay,
+        isFirstInfectionGroup,
+      ),
+    [group, procedures, groupSpecialty, handCaseType, infectionOverlay, isFirstInfectionGroup],
+  );
+
+  const freeFlapProcedure = useMemo(
+    () =>
+      procedures.find((p) => {
+        if (!p.picklistEntryId) return false;
+        const entry = findPicklistEntry(p.picklistEntryId);
+        return entry?.hasFreeFlap;
+      }),
+    [procedures],
+  );
+
+  const flapSummary = useMemo(
+    () => (freeFlapProcedure?.clinicalDetails ? generateFlapSummary(freeFlapProcedure.clinicalDetails as FreeFlapDetails) : null),
+    [freeFlapProcedure],
+  );
+
+  const fractureSummary = useMemo(
+    () => generateFractureSummary(fractures),
+    [fractures],
+  );
+
+  const handTraumaSummary = useMemo(
+    () => generateHandTraumaSummary(diagnosisClinicalDetails.handTrauma || {}),
+    [diagnosisClinicalDetails.handTrauma],
+  );
+
+  const infectionSummary = useMemo(
+    () => (infectionOverlay ? generateInfectionSummary(infectionOverlay) : null),
+    [infectionOverlay],
+  );
+
+  const hasAnyModule = moduleVisibility.flapDetails || moduleVisibility.fractureClassification || moduleVisibility.handStructures || moduleVisibility.infection;
+
   const handleReverseDiagnosisSelect = useCallback(
     (dx: DiagnosisPicklistEntry) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -689,6 +757,30 @@ export function DiagnosisGroupEditor({
       return "benign";
     return "bcc";
   }
+
+  // Hub-and-spoke save handlers
+  const handleFlapSave = useCallback(
+    (details: FreeFlapDetails) => {
+      if (!freeFlapProcedure) return;
+      updateProcedure({ ...freeFlapProcedure, clinicalDetails: details });
+    },
+    [freeFlapProcedure],
+  );
+
+  const handleHandTraumaSave = useCallback(
+    (details: HandTraumaDetails, procs: CaseProcedure[]) => {
+      setDiagnosisClinicalDetails((prev) => ({ ...prev, handTrauma: details }));
+      setProcedures(procs);
+    },
+    [],
+  );
+
+  const handleInfectionSave = useCallback(
+    (overlay: InfectionOverlay) => {
+      onInfectionChange?.(overlay);
+    },
+    [onInfectionChange],
+  );
 
   if (!isExpanded && !isOnly) {
     return (
@@ -950,73 +1042,6 @@ export function DiagnosisGroupEditor({
                 );
               })}
             </View>
-          </View>
-        ) : null}
-
-        {/* Feature 3: HandTraumaStructurePicker — trauma pathway (shown first) */}
-        {groupSpecialty === "hand_surgery" && handCaseType === "trauma" ? (
-          <HandTraumaStructurePicker
-            value={diagnosisClinicalDetails.handTrauma || {}}
-            onChange={(handTrauma) =>
-              setDiagnosisClinicalDetails((prev) => ({ ...prev, handTrauma }))
-            }
-            selectedDiagnosis={selectedDiagnosis ?? undefined}
-            procedures={procedures}
-            onProceduresChange={setProcedures}
-          />
-        ) : null}
-
-        {/* Feature 3: AO Classification section (trauma pathway only) */}
-        {groupSpecialty === "hand_surgery" && handCaseType === "trauma" ? (
-          <View style={[styles.aoSection, { borderColor: theme.border }]}>
-            <ThemedText
-              style={[styles.aoSectionLabel, { color: theme.textSecondary }]}
-            >
-              AO Classification{" "}
-              <ThemedText
-                style={{ color: theme.textTertiary, fontWeight: "400" }}
-              >
-                (optional)
-              </ThemedText>
-            </ThemedText>
-            {fractures.length > 0 ? (
-              <View style={styles.aoSummaryRow}>
-                <Feather name="check-circle" size={14} color={theme.link} />
-                <ThemedText
-                  style={[styles.aoSummaryText, { color: theme.textSecondary }]}
-                >
-                  {fractures.length} fracture{fractures.length !== 1 ? "s" : ""}{" "}
-                  classified
-                </ThemedText>
-                <Pressable
-                  onPress={() => {
-                    setFractures([]);
-                    if (isDiagnosisFromAO) {
-                      clearDiagnosis();
-                    }
-                  }}
-                  hitSlop={8}
-                >
-                  <Feather name="x" size={16} color={theme.textTertiary} />
-                </Pressable>
-              </View>
-            ) : (
-              <Pressable
-                style={[
-                  styles.aoOpenButton,
-                  { borderColor: theme.link + "60" },
-                ]}
-                onPress={() => setShowFractureWizard(true)}
-                testID="button-open-ao-classifier"
-              >
-                <Feather name="layers" size={16} color={theme.link} />
-                <ThemedText
-                  style={[styles.aoOpenButtonText, { color: theme.link }]}
-                >
-                  Open AO Classifier
-                </ThemedText>
-              </Pressable>
-            )}
           </View>
         ) : null}
 
@@ -1401,12 +1426,98 @@ export function DiagnosisGroupEditor({
           })()
         )}
 
+        {/* Hub-and-spoke: Clinical Details module rows */}
+        {hasAnyModule ? (
+          <View style={styles.hubSection}>
+            <ThemedText
+              style={[styles.hubSectionTitle, { color: theme.textSecondary }]}
+            >
+              Clinical Details
+            </ThemedText>
+            {moduleVisibility.flapDetails ? (
+              <DetailModuleRow
+                title="Flap Details"
+                summary={flapSummary}
+                isComplete={flapSummary !== null}
+                onPress={() => setShowFlapSheet(true)}
+                icon="activity"
+              />
+            ) : null}
+            {moduleVisibility.fractureClassification ? (
+              <DetailModuleRow
+                title="Fracture Classification"
+                summary={fractureSummary}
+                isComplete={fractureSummary !== null}
+                onPress={() => setShowFractureWizard(true)}
+                icon="layers"
+              />
+            ) : null}
+            {moduleVisibility.handStructures ? (
+              <DetailModuleRow
+                title="Hand Structures"
+                summary={handTraumaSummary}
+                isComplete={handTraumaSummary !== null}
+                onPress={() => setShowHandTraumaSheet(true)}
+                icon="hand"
+              />
+            ) : null}
+            {moduleVisibility.infection ? (
+              <DetailModuleRow
+                title="Infection Details"
+                summary={infectionSummary}
+                isComplete={infectionSummary !== null}
+                onPress={() => setShowInfectionSheet(true)}
+                icon="alert-triangle"
+              />
+            ) : null}
+          </View>
+        ) : null}
+
+        {/* Modal sheets */}
         <FractureClassificationWizard
           visible={showFractureWizard}
           onClose={handleFractureWizardClose}
           onSave={handleFractureWizardSave}
           initialFractures={fractures}
         />
+
+        {moduleVisibility.flapDetails && freeFlapProcedure ? (
+          <FreeFlapSheet
+            visible={showFlapSheet}
+            onClose={() => setShowFlapSheet(false)}
+            onSave={handleFlapSave}
+            initialDetails={
+              (freeFlapProcedure.clinicalDetails as FreeFlapDetails) || {
+                flapType: "",
+                harvestSide: "left",
+                indication: "trauma",
+                anastomoses: [],
+              }
+            }
+            procedureType={freeFlapProcedure.procedureName}
+            picklistEntryId={freeFlapProcedure.picklistEntryId}
+          />
+        ) : null}
+
+        {moduleVisibility.handStructures ? (
+          <HandTraumaSheet
+            visible={showHandTraumaSheet}
+            onClose={() => setShowHandTraumaSheet(false)}
+            onSave={handleHandTraumaSave}
+            initialDetails={diagnosisClinicalDetails.handTrauma || {}}
+            selectedDiagnosis={selectedDiagnosis ?? undefined}
+            initialProcedures={procedures}
+          />
+        ) : null}
+
+        {moduleVisibility.infection ? (
+          <InfectionSheet
+            visible={showInfectionSheet}
+            onClose={() => setShowInfectionSheet(false)}
+            onSave={handleInfectionSave}
+            initialOverlay={infectionOverlay}
+          />
+        ) : null}
       </View>
     </View>
   );
@@ -1605,5 +1716,16 @@ const styles = StyleSheet.create({
   orderText: {
     fontSize: 14,
     fontWeight: "700",
+  },
+  hubSection: {
+    marginTop: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  hubSectionTitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: Spacing.xs,
   },
 });
