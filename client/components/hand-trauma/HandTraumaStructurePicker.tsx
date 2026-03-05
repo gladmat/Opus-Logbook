@@ -131,6 +131,7 @@ export function HandTraumaStructurePicker({
   }, [selectedDiagnosis]);
 
   const toggleSection = (section: AccordionSection) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setOpenSections((prev) => {
       const next = new Set(prev);
@@ -225,6 +226,7 @@ export function HandTraumaStructurePicker({
   const handleToggleTendonStructure = useCallback(
     (structure: HandTraumaStructure) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       const existing = injuredStructures.find(
         (s) =>
           s.category === structure.category &&
@@ -265,6 +267,7 @@ export function HandTraumaStructurePicker({
       side?: "radial" | "ulnar",
     ) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       const existing = injuredStructures.find(
         (s) => s.category === category && s.structureId === structureId,
       );

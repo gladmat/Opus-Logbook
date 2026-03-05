@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Pressable, StyleSheet } from "react-native";
+import * as Haptics from "expo-haptics";
 import { Feather } from "@/components/FeatherIcon";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
@@ -94,7 +95,10 @@ export function FlexorTendonSection({
                     borderColor: isSelected ? theme.link : theme.border,
                   },
                 ]}
-                onPress={() => onZoneChange(z)}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  onZoneChange(z);
+                }}
               >
                 <ThemedText
                   type="small"

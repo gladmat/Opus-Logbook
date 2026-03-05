@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from "react";
+import * as Haptics from "expo-haptics";
 import { DetailModuleSheet } from "./DetailModuleSheet";
 import { HandTraumaAssessment } from "@/components/hand-trauma/HandTraumaAssessment";
 import type {
@@ -56,6 +57,7 @@ export function HandTraumaSheet({
   }, [visible, initialDetails, initialProcedures, initialFractures]);
 
   const handleSave = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onSave(localDetails, localProcedures, localFractures);
     onClose();
   }, [localDetails, localProcedures, localFractures, onSave, onClose]);
