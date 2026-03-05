@@ -20,6 +20,10 @@ import {
   STAY_TYPE_LABELS,
   UNPLANNED_READMISSION_LABELS,
 } from "@/types/case";
+import {
+  EncounterClass,
+  ENCOUNTER_CLASS_LABELS,
+} from "@/types/episode";
 
 export const AdmissionSection = React.memo(function AdmissionSection() {
   const { theme } = useTheme();
@@ -125,6 +129,19 @@ export const AdmissionSection = React.memo(function AdmissionSection() {
           </View>
         </View>
       </View>
+
+      {state.episodeId ? (
+        <SelectField
+          label="Encounter Class"
+          value={state.encounterClass}
+          options={Object.entries(ENCOUNTER_CLASS_LABELS).map(
+            ([value, label]) => ({ value, label }),
+          )}
+          onSelect={(v: string) =>
+            dispatch(setField("encounterClass", v as EncounterClass))
+          }
+        />
+      ) : null}
 
       <View style={styles.row}>
         <View style={styles.halfField}>

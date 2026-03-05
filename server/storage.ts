@@ -24,6 +24,9 @@ import {
   type PasswordResetToken,
   userDeviceKeys,
   type UserDeviceKey,
+  treatmentEpisodes,
+  type TreatmentEpisodeRow,
+  type InsertTreatmentEpisodeRow,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, ne, ilike, sql, lt, isNull, desc } from "drizzle-orm";
@@ -97,6 +100,21 @@ export interface IStorage {
     anastomosis: Partial<InsertAnastomosis>,
   ): Promise<Anastomosis | undefined>;
   deleteAnastomosis(id: string): Promise<boolean>;
+
+  getEpisodesByUser(userId: string): Promise<TreatmentEpisodeRow[]>;
+  getEpisode(
+    id: string,
+    userId: string,
+  ): Promise<TreatmentEpisodeRow | undefined>;
+  createEpisode(
+    episode: InsertTreatmentEpisodeRow & { id: string },
+  ): Promise<TreatmentEpisodeRow>;
+  updateEpisode(
+    id: string,
+    userId: string,
+    data: Partial<InsertTreatmentEpisodeRow>,
+  ): Promise<TreatmentEpisodeRow | undefined>;
+  deleteEpisode(id: string, userId: string): Promise<boolean>;
 
   getUserDeviceKeys(userId: string): Promise<UserDeviceKey[]>;
   upsertUserDeviceKey(
@@ -459,6 +477,73 @@ export class DatabaseStorage implements IStorage {
         and(eq(anastomoses.id, anastomosisId), eq(procedures.userId, userId)),
       );
     return !!result;
+  }
+
+  // ── Treatment Episodes ────────────────────────────────────────────────────
+
+  async getEpisodesByUser(userId: string): Promise<TreatmentEpisodeRow[]> {
+    return db
+      .select()
+      .from(treatmentEpisodes)
+      .where(eq(treatmentEpisodes.userId, userId))
+      .orderBy(desc(treatmentEpisodes.updatedAt));
+  }
+
+  async getEpisode(
+    id: string,
+    userId: string,
+  ): Promise<TreatmentEpisodeRow | undefined> {
+    const [episode] = await db
+      .select()
+      .from(treatmentEpisodes)
+      .where(
+        and(
+          eq(treatmentEpisodes.id, id),
+          eq(treatmentEpisodes.userId, userId),
+        ),
+      );
+    return episode || undefined;
+  }
+
+  async createEpisode(
+    episode: InsertTreatmentEpisodeRow & { id: string },
+  ): Promise<TreatmentEpisodeRow> {
+    const [created] = await db
+      .insert(treatmentEpisodes)
+      .values(episode)
+      .returning();
+    return created!;
+  }
+
+  async updateEpisode(
+    id: string,
+    userId: string,
+    data: Partial<InsertTreatmentEpisodeRow>,
+  ): Promise<TreatmentEpisodeRow | undefined> {
+    const [updated] = await db
+      .update(treatmentEpisodes)
+      .set({ ...data, updatedAt: new Date() })
+      .where(
+        and(
+          eq(treatmentEpisodes.id, id),
+          eq(treatmentEpisodes.userId, userId),
+        ),
+      )
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteEpisode(id: string, userId: string): Promise<boolean> {
+    const result = await db
+      .delete(treatmentEpisodes)
+      .where(
+        and(
+          eq(treatmentEpisodes.id, id),
+          eq(treatmentEpisodes.userId, userId),
+        ),
+      )
+      .returning();
+    return result.length > 0;
   }
 
   async getUserDeviceKeys(userId: string): Promise<UserDeviceKey[]> {

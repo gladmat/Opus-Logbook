@@ -54,7 +54,9 @@ import {
 } from "@/components/case-form/SectionNavBar";
 import type { CompletionMap } from "@/components/case-form/SectionNavBar";
 import { CaseSummaryView } from "@/components/case-form/CaseSummaryView";
+import { EpisodeLinkBanner } from "@/components/EpisodeLinkBanner";
 import { useFavouritesRecents } from "@/hooks/useFavouritesRecents";
+import type { TreatmentEpisode } from "@/types/episode";
 
 type RouteParams = RouteProp<RootStackParamList, "CaseForm">;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -112,7 +114,13 @@ export default function CaseFormScreen() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const touchedFieldsRef = useRef<Set<string>>(new Set());
 
-  const { specialty: routeSpecialty, caseId, duplicateFrom } = route.params;
+  const {
+    specialty: routeSpecialty,
+    caseId,
+    duplicateFrom,
+    episodeId: routeEpisodeId,
+    episodePrefill,
+  } = route.params;
   const [showDuplicateBanner, setShowDuplicateBanner] =
     useState(!!duplicateFrom);
   const primaryFacility =
@@ -124,6 +132,8 @@ export default function CaseFormScreen() {
     specialty: routeSpecialty || "general",
     caseId,
     duplicateFrom,
+    episodeId: routeEpisodeId,
+    episodePrefill,
     primaryFacility,
     profile,
   });
@@ -134,6 +144,7 @@ export default function CaseFormScreen() {
     state: form.state,
     specialty: form.specialty,
     isEditMode: form.isEditMode,
+    isEpisodePrefill: !!episodePrefill,
     draftLoadedRef: form.draftLoadedRef,
     savedRef: form.savedRef,
     dispatch: form.dispatch,
@@ -176,6 +187,21 @@ export default function CaseFormScreen() {
       return changed ? next : prev;
     });
   }, [form.state]);
+
+  // ── Episode link handler ────────────────────────────────────────────────
+
+  const handleLinkEpisode = useCallback(
+    (episode: TreatmentEpisode) => {
+      form.dispatch({
+        type: "BULK_UPDATE",
+        updates: {
+          episodeId: episode.id,
+          episodeSequence: 1,
+        },
+      });
+    },
+    [form.dispatch],
+  );
 
   // ── Completion map ──────────────────────────────────────────────────────
 
@@ -565,6 +591,13 @@ export default function CaseFormScreen() {
 
             <SectionWrapper sectionId="patient" onLayout={handleSectionLayout}>
               <PatientInfoSection />
+              {!form.isEditMode ? (
+                <EpisodeLinkBanner
+                  patientIdentifier={form.state.patientIdentifier}
+                  currentEpisodeId={form.state.episodeId}
+                  onLinkEpisode={handleLinkEpisode}
+                />
+              ) : null}
             </SectionWrapper>
 
             <SectionWrapper

@@ -552,7 +552,7 @@ export function PickerField({
 // Date picker field
 interface DatePickerFieldProps {
   label: string;
-  value: string; // ISO date string YYYY-MM-DD
+  value?: string; // ISO date string YYYY-MM-DD
   onChange: (date: string) => void;
   placeholder?: string;
   required?: boolean;

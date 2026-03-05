@@ -596,6 +596,50 @@ export async function exportCasesAsJSON(): Promise<string> {
   }
 }
 
+export async function getCasesByEpisodeId(
+  episodeId: string,
+): Promise<Case[]> {
+  try {
+    const index = await getCaseIndex();
+    const matching = index.filter((e) => e.episodeId === episodeId);
+    if (matching.length === 0) return [];
+
+    const results = await Promise.all(
+      matching.map((entry) => getCase(entry.id)),
+    );
+    return results
+      .filter((c): c is Case => c !== null)
+      .sort(
+        (a, b) =>
+          new Date(a.procedureDate).getTime() -
+          new Date(b.procedureDate).getTime(),
+      );
+  } catch (error) {
+    console.error("Error reading cases by episode:", error);
+    return [];
+  }
+}
+
+export async function getLatestCaseForEpisode(
+  episodeId: string,
+): Promise<Case | null> {
+  try {
+    const index = await getCaseIndex();
+    const matching = index
+      .filter((e) => e.episodeId === episodeId)
+      .sort(
+        (a, b) =>
+          new Date(b.procedureDate).getTime() -
+          new Date(a.procedureDate).getTime(),
+      );
+    if (matching.length === 0) return null;
+    return getCase(matching[0]!.id);
+  } catch (error) {
+    console.error("Error reading latest case for episode:", error);
+    return null;
+  }
+}
+
 export async function clearAllData(): Promise<void> {
   try {
     const index = await getCaseIndex();

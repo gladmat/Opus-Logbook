@@ -38,7 +38,9 @@ import {
   SuggestionAcceptanceEntry,
 } from "@/types/case";
 import { InfectionOverlay } from "@/types/infection";
+import type { EncounterClass, EpisodePrefillData } from "@/types/episode";
 import { saveCase, updateCase, getCase, CaseDraft } from "@/lib/storage";
+import { updateEpisode, getEpisode } from "@/lib/episodeStorage";
 import { getDefaultClinicalDetails } from "@/lib/procedureConfig";
 import {
   findSnomedProcedure,
@@ -196,6 +198,11 @@ export interface CaseFormState {
   recipientSiteRegion: AnatomicalRegion | undefined;
   anastomoses: AnastomosisEntry[];
 
+  // Episode linkage
+  episodeId: string;
+  episodeSequence: number;
+  encounterClass: EncounterClass | "";
+
   // UI state
   saving: boolean;
 }
@@ -283,6 +290,9 @@ export function getDefaultFormState(
     clinicalDetails: getDefaultClinicalDetails(specialty),
     recipientSiteRegion: undefined,
     anastomoses: [],
+    episodeId: "",
+    episodeSequence: 0,
+    encounterClass: "",
     saving: false,
   };
 }
@@ -369,6 +379,9 @@ function loadCaseIntoFormState(
     clinicalDetails,
     recipientSiteRegion,
     anastomoses,
+    episodeId: caseData.episodeId ?? "",
+    episodeSequence: caseData.episodeSequence ?? 0,
+    encounterClass: (caseData.encounterClass as EncounterClass) ?? "",
     saving: false,
   };
 }
@@ -461,6 +474,9 @@ export function formStateToDraft(
         addedAt: new Date().toISOString(),
       },
     ],
+    episodeId: state.episodeId || undefined,
+    episodeSequence: state.episodeSequence || undefined,
+    encounterClass: state.encounterClass || undefined,
     ownerId: "draft",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -520,6 +536,9 @@ export function draftToFormState(
   result.outcome = draft.outcome ?? "";
   result.mortalityClassification = draft.mortalityClassification ?? "";
   result.discussedAtMDM = draft.discussedAtMDM ?? false;
+  result.episodeId = draft.episodeId ?? "";
+  result.episodeSequence = draft.episodeSequence ?? 0;
+  result.encounterClass = (draft.encounterClass as EncounterClass) ?? "";
 
   return result;
 }
@@ -672,8 +691,47 @@ interface UseCaseFormParams {
   specialty: Specialty;
   caseId?: string;
   duplicateFrom?: Case;
+  episodeId?: string;
+  episodePrefill?: EpisodePrefillData;
   primaryFacility: string;
   profile: UserProfile | null;
+}
+
+// ─── Episode Prefill State Builder ──────────────────────────────────────────
+
+export function buildEpisodePrefillState(
+  episodeId: string,
+  prefill: EpisodePrefillData,
+  primaryFacility: string,
+): CaseFormState {
+  const defaults = getDefaultFormState(prefill.specialty, primaryFacility);
+
+  // Deep clone diagnosis groups with new IDs
+  const clonedGroups: DiagnosisGroup[] = prefill.diagnosisGroups?.map((g) => ({
+    ...g,
+    id: uuidv4(),
+    procedures: g.procedures.map((p) => ({
+      ...p,
+      id: uuidv4(),
+      clinicalDetails: p.clinicalDetails ? { ...p.clinicalDetails } : undefined,
+    })),
+    diagnosisClinicalDetails: g.diagnosisClinicalDetails
+      ? { ...g.diagnosisClinicalDetails }
+      : undefined,
+    diagnosisStagingSelections: g.diagnosisStagingSelections
+      ? { ...g.diagnosisStagingSelections }
+      : undefined,
+  })) ?? defaults.diagnosisGroups;
+
+  return {
+    ...defaults,
+    patientIdentifier: prefill.patientIdentifier,
+    facility: prefill.facility || primaryFacility,
+    episodeId,
+    episodeSequence: prefill.episodeSequence,
+    encounterClass: prefill.encounterClass || "",
+    diagnosisGroups: clonedGroups,
+  };
 }
 
 // ─── Duplicate State Builder ────────────────────────────────────────────────
@@ -771,6 +829,9 @@ export function buildDuplicateState(
     outcome: "",
     mortalityClassification: "",
     discussedAtMDM: false,
+    episodeId: "",
+    episodeSequence: 0,
+    encounterClass: "",
     saving: false,
   };
 }
@@ -814,11 +875,14 @@ export function useCaseForm({
   specialty: routeSpecialty,
   caseId,
   duplicateFrom,
+  episodeId: routeEpisodeId,
+  episodePrefill,
   primaryFacility,
   profile,
 }: UseCaseFormParams): UseCaseFormReturn {
   const isEditMode = !!caseId;
   const isDuplicate = !!duplicateFrom;
+  const isEpisodePrefill = !!episodePrefill;
   const [existingCase, setExistingCase] = useState<Case | null>(null);
   const specialty = routeSpecialty || existingCase?.specialty || "general";
 
@@ -828,9 +892,15 @@ export function useCaseForm({
 
   const [state, dispatch] = useReducer(
     caseFormReducer,
-    duplicateFrom
-      ? buildDuplicateState(duplicateFrom, specialty, primaryFacility)
-      : getDefaultFormState(specialty, primaryFacility),
+    episodePrefill && routeEpisodeId
+      ? buildEpisodePrefillState(
+          routeEpisodeId,
+          episodePrefill,
+          primaryFacility,
+        )
+      : duplicateFrom
+        ? buildDuplicateState(duplicateFrom, specialty, primaryFacility)
+        : getDefaultFormState(specialty, primaryFacility),
   );
 
   // ── Derived values ──────────────────────────────────────────────────────
@@ -1245,6 +1315,9 @@ export function useCaseForm({
           mortalityClassification: state.mortalityClassification || undefined,
           discussedAtMDM: state.discussedAtMDM || undefined,
           infectionOverlay: state.infectionOverlay || undefined,
+          episodeId: state.episodeId || undefined,
+          episodeSequence: state.episodeSequence || undefined,
+          encounterClass: state.encounterClass || undefined,
           caseStatus: isIncomplete
             ? "incomplete"
             : state.dischargeDate
@@ -1294,6 +1367,19 @@ export function useCaseForm({
           await saveCase(casePayload);
           savedRef.current = true;
         }
+
+        // Auto-activate planned episode when first case is saved
+        if (state.episodeId) {
+          try {
+            const episode = await getEpisode(state.episodeId);
+            if (episode && episode.status === "planned") {
+              await updateEpisode(state.episodeId, { status: "active" });
+            }
+          } catch {
+            // Non-critical — episode activation failure shouldn't block case save
+          }
+        }
+
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         return true;
       } catch (error) {

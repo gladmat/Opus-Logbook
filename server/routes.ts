@@ -1571,6 +1571,159 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
+  // ──────────────────────────────────────────────────────────────────────────
+  // Treatment Episode Routes (encrypted server-side storage)
+  // Consumer: Mobile client (episode sync)
+  // ──────────────────────────────────────────────────────────────────────────
+
+  const episodeBodySchema = z.object({
+    id: z.string().min(1),
+    encryptedData: z.string().min(1),
+    patientIdentifierHash: z.string().max(64).optional(),
+    status: z.string().max(20),
+  });
+
+  // List all episodes for the authenticated user
+  app.get(
+    "/api/episodes",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const episodes = await storage.getEpisodesByUser(req.userId!);
+        res.json(episodes);
+      } catch (error) {
+        console.error(
+          "Error listing episodes:",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+        res.status(500).json({ error: "Failed to list episodes" });
+      }
+    },
+  );
+
+  // Get a single episode by ID
+  app.get(
+    "/api/episodes/:id",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const episode = await storage.getEpisode(
+          req.params.id as string,
+          req.userId!,
+        );
+        if (!episode) {
+          res.status(404).json({ error: "Episode not found" });
+          return;
+        }
+        res.json(episode);
+      } catch (error) {
+        console.error(
+          "Error fetching episode:",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+        res.status(500).json({ error: "Failed to fetch episode" });
+      }
+    },
+  );
+
+  // Create a new episode
+  app.post(
+    "/api/episodes",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const parseResult = episodeBodySchema.safeParse(req.body);
+        if (!parseResult.success) {
+          res.status(400).json({
+            error: "Invalid episode data",
+            details: parseResult.error.issues,
+          });
+          return;
+        }
+
+        const { id, encryptedData, patientIdentifierHash, status } =
+          parseResult.data;
+        const episode = await storage.createEpisode({
+          id,
+          userId: req.userId!,
+          encryptedData,
+          patientIdentifierHash: patientIdentifierHash ?? null,
+          status,
+        });
+        res.status(201).json(episode);
+      } catch (error) {
+        console.error(
+          "Error creating episode:",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+        res.status(500).json({ error: "Failed to create episode" });
+      }
+    },
+  );
+
+  // Update an existing episode
+  app.put(
+    "/api/episodes/:id",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const parseResult = episodeBodySchema
+          .partial()
+          .omit({ id: true })
+          .safeParse(req.body);
+        if (!parseResult.success) {
+          res.status(400).json({
+            error: "Invalid episode data",
+            details: parseResult.error.issues,
+          });
+          return;
+        }
+
+        const updated = await storage.updateEpisode(
+          req.params.id as string,
+          req.userId!,
+          parseResult.data,
+        );
+        if (!updated) {
+          res.status(404).json({ error: "Episode not found" });
+          return;
+        }
+        res.json(updated);
+      } catch (error) {
+        console.error(
+          "Error updating episode:",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+        res.status(500).json({ error: "Failed to update episode" });
+      }
+    },
+  );
+
+  // Delete an episode
+  app.delete(
+    "/api/episodes/:id",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const deleted = await storage.deleteEpisode(
+          req.params.id as string,
+          req.userId!,
+        );
+        if (!deleted) {
+          res.status(404).json({ error: "Episode not found" });
+          return;
+        }
+        res.json({ success: true });
+      } catch (error) {
+        console.error(
+          "Error deleting episode:",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+        res.status(500).json({ error: "Failed to delete episode" });
+      }
+    },
+  );
+
   const httpServer = createServer(app);
 
   return httpServer;

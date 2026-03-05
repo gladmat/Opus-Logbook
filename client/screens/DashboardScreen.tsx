@@ -46,6 +46,10 @@ import {
 } from "@/lib/storage";
 import { CaseCard } from "@/components/CaseCard";
 import { SkeletonCard } from "@/components/LoadingState";
+import { ActiveEpisodesSection } from "@/components/ActiveEpisodesSection";
+import { useActiveEpisodes } from "@/hooks/useActiveEpisodes";
+import { getLatestCaseForEpisode } from "@/lib/storage";
+import type { TreatmentEpisode, EpisodePrefillData } from "@/types/episode";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import {
   StatisticsFilters,
@@ -224,6 +228,9 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const { episodes: activeEpisodes, refresh: refreshEpisodes } =
+    useActiveEpisodes();
+
   const [filters, setFilters] = useState<StatisticsFilters>({
     specialty: "all",
     timePeriod: "this_year",
@@ -284,7 +291,7 @@ export default function DashboardScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadCases();
+    await Promise.all([loadCases(), refreshEpisodes()]);
     setRefreshing(false);
   };
 
@@ -414,6 +421,42 @@ export default function DashboardScreen() {
     [navigation],
   );
 
+  const handleNavigateEpisode = useCallback(
+    (episodeId: string) => {
+      navigation.navigate("EpisodeDetail", { episodeId });
+    },
+    [navigation],
+  );
+
+  const handleLogCase = useCallback(
+    async (episode: TreatmentEpisode) => {
+      const lastCase = await getLatestCaseForEpisode(episode.id);
+      const linkedCases = activeEpisodes.find(
+        (e) => e.episode.id === episode.id,
+      )?.cases;
+      const seq = (linkedCases?.length ?? 0) + 1;
+
+      const prefill: EpisodePrefillData = {
+        patientIdentifier: episode.patientIdentifier,
+        facility: lastCase?.facility,
+        specialty: episode.specialty,
+        diagnosisGroups: lastCase?.diagnosisGroups,
+        episodeSequence: seq,
+      };
+
+      navigation.navigate("CaseForm", {
+        specialty: episode.specialty,
+        episodeId: episode.id,
+        episodePrefill: prefill,
+      });
+    },
+    [navigation, activeEpisodes],
+  );
+
+  const handleViewAllEpisodes = useCallback(() => {
+    navigation.navigate("EpisodeList");
+  }, [navigation]);
+
   const handleSpecialtyPress = (specialty: Specialty | "all") => {
     Haptics.selectionAsync();
     setFilters((prev) => ({ ...prev, specialty }));
@@ -527,6 +570,13 @@ export default function DashboardScreen() {
             />
           </View>
         </View>
+
+        <ActiveEpisodesSection
+          episodes={activeEpisodes}
+          onNavigateEpisode={handleNavigateEpisode}
+          onLogCase={handleLogCase}
+          onViewAll={handleViewAllEpisodes}
+        />
 
         {activeCases.length > 0 ? (
           <View style={styles.followUpSection}>
@@ -1536,6 +1586,7 @@ export default function DashboardScreen() {
       showActiveCases,
       showInpatients,
       showFollowUps,
+      activeEpisodes,
       loading,
       navigation,
     ],

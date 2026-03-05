@@ -62,13 +62,17 @@ import { DetailModuleRow } from "@/components/detail-sheets/DetailModuleRow";
 import { FreeFlapSheet } from "@/components/detail-sheets/FreeFlapSheet";
 import { HandTraumaSheet } from "@/components/detail-sheets/HandTraumaSheet";
 import { InfectionSheet } from "@/components/detail-sheets/InfectionSheet";
+import { WoundAssessmentSheet } from "@/components/detail-sheets/WoundAssessmentSheet";
 import { getModuleVisibility } from "@/lib/moduleVisibility";
 import {
   generateFlapSummary,
   generateFractureSummary,
   generateHandTraumaSummary,
   generateInfectionSummary,
+  generateWoundSummary,
 } from "@/lib/moduleSummary";
+import type { WoundAssessment } from "@/types/wound";
+import type { EpisodeType } from "@/types/episode";
 
 interface DiagnosisGroupEditorProps {
   group: DiagnosisGroup;
@@ -83,6 +87,8 @@ interface DiagnosisGroupEditorProps {
   onInfectionChange?: (overlay: InfectionOverlay | undefined) => void;
   /** Whether this is the first group that triggers infection visibility */
   isFirstInfectionGroup?: boolean;
+  /** Episode type from linked episode — triggers wound module for wound/burns episodes */
+  episodeType?: EpisodeType;
 }
 
 export function DiagnosisGroupEditor({
@@ -97,6 +103,7 @@ export function DiagnosisGroupEditor({
   infectionOverlay,
   onInfectionChange,
   isFirstInfectionGroup,
+  episodeType,
 }: DiagnosisGroupEditorProps) {
   const { theme } = useTheme();
 
@@ -166,6 +173,7 @@ export function DiagnosisGroupEditor({
   const [showFlapSheet, setShowFlapSheet] = useState(false);
   const [showHandTraumaSheet, setShowHandTraumaSheet] = useState(false);
   const [showInfectionSheet, setShowInfectionSheet] = useState(false);
+  const [showWoundSheet, setShowWoundSheet] = useState(false);
 
   // Feature 1: collapse diagnosis picklist after selection
   const [isDiagnosisPickerCollapsed, setIsDiagnosisPickerCollapsed] =
@@ -507,8 +515,17 @@ export function DiagnosisGroupEditor({
         handCaseType ?? undefined,
         infectionOverlay,
         isFirstInfectionGroup,
+        episodeType,
       ),
-    [group, procedures, groupSpecialty, handCaseType, infectionOverlay, isFirstInfectionGroup],
+    [
+      group,
+      procedures,
+      groupSpecialty,
+      handCaseType,
+      infectionOverlay,
+      isFirstInfectionGroup,
+      episodeType,
+    ],
   );
 
   const freeFlapProcedure = useMemo(
@@ -522,7 +539,12 @@ export function DiagnosisGroupEditor({
   );
 
   const flapSummary = useMemo(
-    () => (freeFlapProcedure?.clinicalDetails ? generateFlapSummary(freeFlapProcedure.clinicalDetails as FreeFlapDetails) : null),
+    () =>
+      freeFlapProcedure?.clinicalDetails
+        ? generateFlapSummary(
+            freeFlapProcedure.clinicalDetails as FreeFlapDetails,
+          )
+        : null,
     [freeFlapProcedure],
   );
 
@@ -537,11 +559,22 @@ export function DiagnosisGroupEditor({
   );
 
   const infectionSummary = useMemo(
-    () => (infectionOverlay ? generateInfectionSummary(infectionOverlay) : null),
+    () =>
+      infectionOverlay ? generateInfectionSummary(infectionOverlay) : null,
     [infectionOverlay],
   );
 
-  const hasAnyModule = moduleVisibility.flapDetails || moduleVisibility.fractureClassification || moduleVisibility.handStructures || moduleVisibility.infection;
+  const woundSummary = useMemo(
+    () => generateWoundSummary(group.woundAssessment),
+    [group.woundAssessment],
+  );
+
+  const hasAnyModule =
+    moduleVisibility.flapDetails ||
+    moduleVisibility.fractureClassification ||
+    moduleVisibility.handStructures ||
+    moduleVisibility.infection ||
+    moduleVisibility.woundAssessment;
 
   const handleReverseDiagnosisSelect = useCallback(
     (dx: DiagnosisPicklistEntry) => {
@@ -780,6 +813,13 @@ export function DiagnosisGroupEditor({
       onInfectionChange?.(overlay);
     },
     [onInfectionChange],
+  );
+
+  const handleWoundSave = useCallback(
+    (assessment: WoundAssessment) => {
+      onChange({ ...group, woundAssessment: assessment });
+    },
+    [group, onChange],
   );
 
   if (!isExpanded && !isOnly) {
@@ -1470,6 +1510,15 @@ export function DiagnosisGroupEditor({
                 icon="alert-triangle"
               />
             ) : null}
+            {moduleVisibility.woundAssessment ? (
+              <DetailModuleRow
+                title="Wound Assessment"
+                summary={woundSummary}
+                isComplete={woundSummary !== null}
+                onPress={() => setShowWoundSheet(true)}
+                icon="thermometer"
+              />
+            ) : null}
           </View>
         ) : null}
 
@@ -1516,6 +1565,15 @@ export function DiagnosisGroupEditor({
             onClose={() => setShowInfectionSheet(false)}
             onSave={handleInfectionSave}
             initialOverlay={infectionOverlay}
+          />
+        ) : null}
+
+        {moduleVisibility.woundAssessment ? (
+          <WoundAssessmentSheet
+            visible={showWoundSheet}
+            onClose={() => setShowWoundSheet(false)}
+            onSave={handleWoundSave}
+            initialAssessment={group.woundAssessment}
           />
         ) : null}
       </View>

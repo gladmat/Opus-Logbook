@@ -1,7 +1,9 @@
 import { Case, SPECIALTY_LABELS } from "@/types/case";
+import { TreatmentEpisode, ENCOUNTER_CLASS_LABELS } from "@/types/episode";
 
 export interface CsvExportOptions {
   includePatientId: boolean;
+  episodeMap?: Map<string, TreatmentEpisode>;
 }
 
 /**
@@ -43,6 +45,9 @@ const CSV_HEADERS = [
   "has_complications",
   "complication_grades",
   "case_status",
+  "episode_id",
+  "episode_title",
+  "encounter_class",
   "entry_duration_seconds",
 ] as const;
 
@@ -92,6 +97,13 @@ function caseToRow(c: Case, options: CsvExportOptions): string {
     .filter(Boolean)
     .join("; ");
 
+  const episodeTitle = c.episodeId
+    ? (options.episodeMap?.get(c.episodeId)?.title ?? "")
+    : "";
+  const encounterClassLabel = c.encounterClass
+    ? ENCOUNTER_CLASS_LABELS[c.encounterClass]
+    : "";
+
   const values: (string | number | boolean | undefined | null)[] = [
     c.id,
     options.includePatientId ? c.patientIdentifier : undefined,
@@ -123,6 +135,9 @@ function caseToRow(c: Case, options: CsvExportOptions): string {
     c.hasComplications,
     complicationGrades,
     c.caseStatus,
+    c.episodeId ?? "",
+    episodeTitle,
+    encounterClassLabel,
     c.entryDurationSeconds,
   ];
 

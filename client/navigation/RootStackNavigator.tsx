@@ -13,6 +13,8 @@ import OnboardingScreen from "@/screens/OnboardingScreen";
 import LockScreen from "@/screens/LockScreen";
 import SetupAppLockScreen from "@/screens/SetupAppLockScreen";
 import EditProfileScreen from "@/screens/EditProfileScreen";
+import EpisodeDetailScreen from "@/screens/EpisodeDetailScreen";
+import EpisodeListScreen from "@/screens/EpisodeListScreen";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppLock } from "@/contexts/AppLockContext";
@@ -22,6 +24,7 @@ import {
   MediaAttachment,
   Case,
 } from "@/types/case";
+import type { EpisodePrefillData } from "@/types/episode";
 import { useTheme } from "@/hooks/useTheme";
 
 export type RootStackParamList = {
@@ -29,7 +32,13 @@ export type RootStackParamList = {
   Onboarding: undefined;
   Main: undefined;
   CaseDetail: { caseId: string; showComplicationForm?: boolean };
-  CaseForm: { specialty?: Specialty; caseId?: string; duplicateFrom?: Case };
+  CaseForm: {
+    specialty?: Specialty;
+    caseId?: string;
+    duplicateFrom?: Case;
+    episodeId?: string;
+    episodePrefill?: EpisodePrefillData;
+  };
   AddCase: undefined;
   AddTimelineEvent: {
     caseId: string;
@@ -55,6 +64,8 @@ export type RootStackParamList = {
     existingCaption?: string;
     existingTimestamp?: string;
   };
+  EpisodeDetail: { episodeId: string };
+  EpisodeList: undefined;
   SetupAppLock: undefined;
   EditProfile: undefined;
 };
@@ -149,6 +160,20 @@ export default function RootStackNavigator() {
             options={{
               headerShown: false,
               presentation: "fullScreenModal",
+            }}
+          />
+          <Stack.Screen
+            name="EpisodeDetail"
+            component={EpisodeDetailScreen}
+            options={{
+              headerTitle: "Episode",
+            }}
+          />
+          <Stack.Screen
+            name="EpisodeList"
+            component={EpisodeListScreen}
+            options={{
+              headerTitle: "All Episodes",
             }}
           />
           <Stack.Screen

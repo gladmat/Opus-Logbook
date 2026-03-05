@@ -5,6 +5,7 @@
 
 import type { DiagnosisGroup } from "@/types/case";
 import type { InfectionOverlay } from "@/types/infection";
+import type { EpisodeType } from "@/types/episode";
 import { findPicklistEntry } from "@/lib/procedurePicklist";
 
 export interface ModuleVisibility {
@@ -12,6 +13,7 @@ export interface ModuleVisibility {
   fractureClassification: boolean;
   handStructures: boolean;
   infection: boolean;
+  woundAssessment: boolean;
 }
 
 /**
@@ -21,12 +23,14 @@ export interface ModuleVisibility {
  * @param handCaseType - The hand surgery case type ("trauma" | "elective") when specialty is hand_surgery
  * @param infectionOverlay - The case-level infection overlay (shared across groups)
  * @param isFirstInfectionGroup - Whether this is the first group that triggers infection visibility
+ * @param episodeType - The linked episode's type, if any (triggers wound module for wound/burns episodes)
  */
 export function getModuleVisibility(
   group: DiagnosisGroup,
   handCaseType?: "trauma" | "elective",
   infectionOverlay?: InfectionOverlay,
   isFirstInfectionGroup?: boolean,
+  episodeType?: EpisodeType,
 ): ModuleVisibility {
   const procedures = group.procedures;
 
@@ -56,13 +60,22 @@ export function getModuleVisibility(
     (p) => p.subcategory === "Chronic Wounds / Infection",
   );
   const infection =
-    (isFirstInfectionGroup !== false) &&
+    isFirstInfectionGroup !== false &&
     (hasInfectionDiagnosis || !!infectionOverlay);
+
+  // Wound Assessment: procedure has complex_wound tag, or episode is wound/burns type,
+  // or wound data already exists on the group (re-editing)
+  const woundAssessment =
+    procedures.some((p) => p.tags?.includes("complex_wound")) ||
+    episodeType === "wound_management" ||
+    episodeType === "burns_management" ||
+    !!group.woundAssessment;
 
   return {
     flapDetails,
     fractureClassification,
     handStructures,
     infection,
+    woundAssessment,
   };
 }

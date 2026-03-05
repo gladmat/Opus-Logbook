@@ -3,6 +3,7 @@ import { View, Pressable, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { DiagnosisGroupEditor } from "@/components/DiagnosisGroupEditor";
+import { InlineEpisodeCreator } from "@/components/InlineEpisodeCreator";
 import {
   useCaseFormState,
   useCaseFormDispatch,
@@ -11,16 +12,20 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { DiagnosisGroup } from "@/types/case";
 import type { InfectionOverlay } from "@/types/infection";
+import type { TreatmentEpisode, EpisodeType } from "@/types/episode";
 
 interface DiagnosisProcedureSectionProps {
   scrollViewRef: React.RefObject<any>;
   scrollPositionRef: React.MutableRefObject<number>;
+  /** Episode type from linked episode — triggers wound module for wound/burns episodes */
+  episodeType?: EpisodeType;
 }
 
 export const DiagnosisProcedureSection = React.memo(
   function DiagnosisProcedureSection({
     scrollViewRef,
     scrollPositionRef,
+    episodeType,
   }: DiagnosisProcedureSectionProps) {
     const { theme } = useTheme();
     const { state } = useCaseFormState();
@@ -37,10 +42,34 @@ export const DiagnosisProcedureSection = React.memo(
 
     const handleInfectionChange = useCallback(
       (overlay: InfectionOverlay | undefined) => {
-        dispatch({ type: "SET_FIELD", field: "infectionOverlay", value: overlay });
+        dispatch({
+          type: "SET_FIELD",
+          field: "infectionOverlay",
+          value: overlay,
+        });
       },
       [dispatch],
     );
+
+    // ── Episode creation handler ──────────────────────────────────────────
+    const handleEpisodeCreated = useCallback(
+      (episode: TreatmentEpisode) => {
+        dispatch({
+          type: "BULK_UPDATE",
+          updates: {
+            episodeId: episode.id,
+            episodeSequence: 1,
+          },
+        });
+      },
+      [dispatch],
+    );
+
+    // Check if diagnosis is selected and no episode linked
+    const primaryGroup = state.diagnosisGroups[0];
+    const hasDiagnosis = !!primaryGroup?.diagnosis;
+    const showInlineEpisodeCreator =
+      hasDiagnosis && !state.episodeId && !state.saving;
 
     // Determine which group index is the first to trigger infection visibility
     const firstInfectionGroupIndex = useMemo(() => {
@@ -101,8 +130,22 @@ export const DiagnosisProcedureSection = React.memo(
             infectionOverlay={infectionOverlay}
             onInfectionChange={handleInfectionChange}
             isFirstInfectionGroup={idx === firstInfectionGroupIndex}
+            episodeType={episodeType}
           />
         ))}
+
+        <InlineEpisodeCreator
+          visible={showInlineEpisodeCreator}
+          specialty={primaryGroup?.specialty ?? "general"}
+          diagnosisName={primaryGroup?.diagnosis?.displayName}
+          diagnosisCode={primaryGroup?.diagnosis?.snomedCtCode}
+          laterality={primaryGroup?.diagnosisClinicalDetails?.laterality}
+          subcategory={primaryGroup?.procedures[0]?.subcategory}
+          patientIdentifier={state.patientIdentifier}
+          procedureDate={state.procedureDate}
+          onEpisodeCreated={handleEpisodeCreated}
+          onDismiss={() => {}}
+        />
 
         {fieldErrors.diagnosisGroups ? (
           <View

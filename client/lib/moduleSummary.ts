@@ -16,6 +16,8 @@ import {
   INFECTION_REGION_LABELS,
   INFECTION_LATERALITY_LABELS,
 } from "@/types/infection";
+import type { WoundAssessment } from "@/types/wound";
+import { WOUND_BED_TISSUE_LABELS, HEALING_TREND_LABELS } from "@/types/wound";
 
 /**
  * Flap Details summary — e.g. "DIEP, Left, ischaemia 42 min"
@@ -26,7 +28,9 @@ export function generateFlapSummary(
   if (!details?.flapType) return null;
 
   const parts: string[] = [];
-  parts.push(FREE_FLAP_LABELS[details.flapType as FreeFlap] || details.flapType);
+  parts.push(
+    FREE_FLAP_LABELS[details.flapType as FreeFlap] || details.flapType,
+  );
 
   if (details.harvestSide) {
     parts.push(details.harvestSide === "left" ? "Left" : "Right");
@@ -99,7 +103,9 @@ export function generateInfectionSummary(
       ? INFECTION_REGION_LABELS[overlay.region]
       : undefined;
     if (regionLabel) {
-      parts.push(`${lateralityLabel.toLowerCase()} ${regionLabel.toLowerCase()}`);
+      parts.push(
+        `${lateralityLabel.toLowerCase()} ${regionLabel.toLowerCase()}`,
+      );
     } else {
       parts.push(lateralityLabel);
     }
@@ -114,4 +120,48 @@ export function generateInfectionSummary(
   }
 
   return parts.join(", ");
+}
+
+/**
+ * Wound Assessment summary — e.g. "3.2 x 2.1 cm, granulating, improving"
+ */
+export function generateWoundSummary(
+  assessment: WoundAssessment | undefined,
+): string | null {
+  if (!assessment) return null;
+
+  const hasDimensions =
+    assessment.lengthCm != null || assessment.widthCm != null;
+  if (!hasDimensions && !assessment.tissueType && !assessment.healingTrend) {
+    return null;
+  }
+
+  const parts: string[] = [];
+
+  if (assessment.lengthCm != null && assessment.widthCm != null) {
+    let dim = `${assessment.lengthCm} \u00d7 ${assessment.widthCm}`;
+    if (assessment.depthCm != null) {
+      dim += ` \u00d7 ${assessment.depthCm}`;
+    }
+    dim += " cm";
+    parts.push(dim);
+  } else if (assessment.areaCm2 != null) {
+    parts.push(`Area: ${assessment.areaCm2} cm\u00B2`);
+  }
+
+  if (assessment.tissueType) {
+    parts.push(WOUND_BED_TISSUE_LABELS[assessment.tissueType]);
+  }
+
+  if (assessment.healingTrend) {
+    parts.push(HEALING_TREND_LABELS[assessment.healingTrend]);
+  }
+
+  if (assessment.dressings.length > 0) {
+    parts.push(
+      `${assessment.dressings.length} dressing${assessment.dressings.length !== 1 ? "s" : ""}`,
+    );
+  }
+
+  return parts.length > 0 ? parts.join(", ") : null;
 }

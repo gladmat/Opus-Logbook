@@ -2,13 +2,20 @@
  * FHIR R4 Export — surgical case to Bundle serialization.
  *
  * Resource mapping:
- *   Case                     → Encounter  (container)
+ *   TreatmentEpisode         → EpisodeOfCare (cross-case container)
+ *   Case                     → Encounter  (per-case container)
  *   DiagnosisGroup.diagnosis → Condition   (with stage if staging present)
  *   CaseProcedure            → Procedure   (with bodySite + laterality qualifier)
  *   Full export              → Bundle (type: "collection")
  */
 
 import { Case, DiagnosisGroup, CaseProcedure, Laterality } from "@/types/case";
+import {
+  TreatmentEpisode,
+  EpisodeStatus,
+  EncounterClass,
+  EPISODE_TYPE_LABELS,
+} from "@/types/episode";
 
 // ─── FHIR R4 Type Stubs ───────────────────────────────────────────────────
 
@@ -56,6 +63,26 @@ const LATERALITY_SNOMED: Record<string, FhirCoding> = {
   },
 };
 
+// ─── Episode & Encounter Class Mappings ──────────────────────────────────
+
+const EPISODE_STATUS_TO_FHIR: Record<EpisodeStatus, string> = {
+  planned: "planned",
+  active: "active",
+  on_hold: "onhold",
+  completed: "finished",
+  cancelled: "cancelled",
+};
+
+const ENCOUNTER_CLASS_TO_FHIR: Record<
+  EncounterClass,
+  { code: string; display: string }
+> = {
+  inpatient_theatre: { code: "IMP", display: "inpatient encounter" },
+  day_case_theatre: { code: "AMB", display: "ambulatory" },
+  outpatient_procedure: { code: "AMB", display: "ambulatory" },
+  emergency_theatre: { code: "EMER", display: "emergency" },
+};
+
 // ─── Resource Builders ─────────────────────────────────────────────────────
 
 function buildSnomedCoding(
@@ -70,9 +97,55 @@ function buildSnomedCoding(
   };
 }
 
+function buildEpisodeOfCare(episode: TreatmentEpisode): FhirResource {
+  const period: Record<string, string> = { start: episode.onsetDate };
+  if (episode.resolvedDate) period.end = episode.resolvedDate;
+
+  return {
+    resourceType: "EpisodeOfCare",
+    id: `episode-${episode.id}`,
+    status: EPISODE_STATUS_TO_FHIR[episode.status],
+    type: [
+      {
+        coding: [
+          {
+            system: "urn:opus:episode-type",
+            code: episode.type,
+            display: EPISODE_TYPE_LABELS[episode.type],
+          },
+        ],
+      },
+    ],
+    diagnosis: episode.primaryDiagnosisCode
+      ? [
+          {
+            condition: { display: episode.primaryDiagnosisDisplay },
+            role: buildSnomedCoding(
+              episode.primaryDiagnosisCode,
+              episode.primaryDiagnosisDisplay,
+            ),
+          },
+        ]
+      : undefined,
+    patient: { reference: `Patient/${episode.patientIdentifier}` },
+    period,
+  };
+}
+
 function buildEncounter(c: Case, conditionRefs: string[]): FhirResource {
-  const encounterClass =
-    c.stayType === "day_case" || !c.admissionDate ? "AMB" : "IMP";
+  // Use EncounterClass if present, otherwise fall back to legacy stayType mapping
+  let classCode: string;
+  let classDisplay: string;
+  if (c.encounterClass && ENCOUNTER_CLASS_TO_FHIR[c.encounterClass]) {
+    const mapping = ENCOUNTER_CLASS_TO_FHIR[c.encounterClass];
+    classCode = mapping.code;
+    classDisplay = mapping.display;
+  } else {
+    classCode =
+      c.stayType === "day_case" || !c.admissionDate ? "AMB" : "IMP";
+    classDisplay = classCode === "AMB" ? "ambulatory" : "inpatient encounter";
+  }
+
   const period: Record<string, string> = {};
   if (c.admissionDate) period.start = c.admissionDate;
   if (c.dischargeDate) period.end = c.dischargeDate;
@@ -83,8 +156,8 @@ function buildEncounter(c: Case, conditionRefs: string[]): FhirResource {
     status: c.caseStatus === "discharged" ? "finished" : "in-progress",
     class: {
       system: "http://terminology.hl7.org/CodeSystem/v3-ActCode",
-      code: encounterClass,
-      display: encounterClass === "AMB" ? "ambulatory" : "inpatient encounter",
+      code: classCode,
+      display: classDisplay,
     },
     type: [
       {
@@ -98,6 +171,13 @@ function buildEncounter(c: Case, conditionRefs: string[]): FhirResource {
       },
     ],
     subject: { reference: `Patient/${c.patientIdentifier}` },
+    ...(c.episodeId
+      ? {
+          episodeOfCare: [
+            { reference: `EpisodeOfCare/episode-${c.episodeId}` },
+          ],
+        }
+      : {}),
     ...(Object.keys(period).length > 0 ? { period } : {}),
     ...(c.facility ? { serviceProvider: { display: c.facility } } : {}),
     diagnosis: conditionRefs.map((ref, i) => ({
@@ -267,12 +347,22 @@ function caseToFhirBundle(c: Case): FhirBundle {
   };
 }
 
-export function exportCasesAsFhir(cases: Case[]): string {
+export function exportCasesAsFhir(
+  cases: Case[],
+  episodes?: TreatmentEpisode[],
+): string {
+  const episodeEntries: FhirBundleEntry[] = (episodes || []).map(
+    (episode) => ({ resource: buildEpisodeOfCare(episode) }),
+  );
+
   const masterBundle: FhirBundle = {
     resourceType: "Bundle",
     type: "collection",
     timestamp: new Date().toISOString(),
-    entry: cases.flatMap((c) => caseToFhirBundle(c).entry),
+    entry: [
+      ...episodeEntries,
+      ...cases.flatMap((c) => caseToFhirBundle(c).entry),
+    ],
   };
   return JSON.stringify(masterBundle, null, 2);
 }

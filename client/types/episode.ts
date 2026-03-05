@@ -1,4 +1,4 @@
-import { Specialty } from "@/types/case";
+import type { Specialty, DiagnosisGroup } from "@/types/case";
 
 // ── Episode Status (state machine) ──────────────────────────────────────────
 // planned → active ⇄ on_hold → completed | cancelled
@@ -108,4 +108,14 @@ export interface TreatmentEpisode {
   ownerId: string;
   createdAt: string;
   updatedAt: string;
+}
+
+// ── Episode Prefill Data (for "+ Log Case" workflow) ────────────────────────
+export interface EpisodePrefillData {
+  patientIdentifier: string;
+  facility?: string;
+  specialty: Specialty;
+  diagnosisGroups?: DiagnosisGroup[];
+  encounterClass?: EncounterClass;
+  episodeSequence: number;
 }

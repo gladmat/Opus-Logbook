@@ -1,7 +1,9 @@
 import { Share } from "react-native";
 import { getCases } from "./storage";
+import { getEpisodes } from "./episodeStorage";
 import { exportCasesAsCsv } from "./exportCsv";
 import { exportCasesAsFhir } from "./exportFhir";
+import { TreatmentEpisode } from "@/types/episode";
 
 export type ExportFormat = "json" | "csv" | "fhir";
 
@@ -22,6 +24,15 @@ export async function exportCases(options: ExportOptions): Promise<void> {
     throw new Error("No cases to export");
   }
 
+  // Load episodes for CSV (title lookup) and FHIR (EpisodeOfCare resources)
+  let episodes: TreatmentEpisode[] = [];
+  try {
+    episodes = await getEpisodes();
+  } catch {
+    // Episodes are optional — export proceeds without them
+  }
+  const episodeMap = new Map(episodes.map((e) => [e.id, e]));
+
   let content: string;
   let title: string;
 
@@ -29,11 +40,12 @@ export async function exportCases(options: ExportOptions): Promise<void> {
     case "csv":
       content = exportCasesAsCsv(cases, {
         includePatientId: options.includePatientId ?? true,
+        episodeMap,
       });
       title = "Opus Export (CSV)";
       break;
     case "fhir":
-      content = exportCasesAsFhir(cases);
+      content = exportCasesAsFhir(cases, episodes);
       title = "Opus Export (FHIR R4)";
       break;
     default:
