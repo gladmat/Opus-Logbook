@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Pressable } from "react-native";
+import React, { useState, useEffect, useRef } from "react";
+import { View, StyleSheet, Pressable, Animated } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
@@ -1179,6 +1179,93 @@ const slnbStyles = StyleSheet.create({
   },
 });
 
+// ─── SLNB Disclosure Group ────────────────────────────────────────────────────
+
+function SlnbDisclosureGroup({
+  defaultExpanded,
+  children,
+}: {
+  defaultExpanded: boolean;
+  children: React.ReactNode;
+}) {
+  const { theme } = useTheme();
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const animHeight = useRef(new Animated.Value(defaultExpanded ? 1 : 0)).current;
+  const contentHeight = useRef(0);
+
+  const toggle = () => {
+    const next = !expanded;
+    setExpanded(next);
+    Animated.spring(animHeight, {
+      toValue: next ? 1 : 0,
+      useNativeDriver: false,
+      friction: 20,
+      tension: 100,
+    }).start();
+  };
+
+  return (
+    <View style={disclosureStyles.container}>
+      <Pressable
+        style={[
+          disclosureStyles.header,
+          { borderColor: expanded ? theme.link + "40" : theme.border },
+        ]}
+        onPress={toggle}
+      >
+        <Feather
+          name={expanded ? "chevron-down" : "chevron-right"}
+          size={16}
+          color={theme.textSecondary}
+        />
+        <ThemedText
+          style={[disclosureStyles.headerText, { color: theme.text }]}
+        >
+          SLNB Details
+        </ThemedText>
+      </Pressable>
+      <Animated.View
+        style={{
+          overflow: "hidden",
+          maxHeight: animHeight.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 2000],
+          }),
+          opacity: animHeight,
+        }}
+      >
+        <View
+          onLayout={(e) => {
+            contentHeight.current = e.nativeEvent.layout.height;
+          }}
+        >
+          {children}
+        </View>
+      </Animated.View>
+    </View>
+  );
+}
+
+const disclosureStyles = StyleSheet.create({
+  container: {
+    marginTop: Spacing.md,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    marginBottom: Spacing.xs,
+  },
+  headerText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+});
+
 // ─── Procedure Clinical Details Router ───────────────────────────────────────
 
 interface ProcedureClinicalDetailsProps {
@@ -1222,27 +1309,17 @@ export function ProcedureClinicalDetails({
       gammaProbeUsed: existing.gammaProbeUsed,
       spectCtPerformed: existing.spectCtPerformed,
     };
+    const hasData = (slnbDetails.basins?.length ?? 0) > 0;
     return (
-      <SlnbClinicalFields clinicalDetails={slnbDetails} onUpdate={onUpdate} />
+      <SlnbDisclosureGroup defaultExpanded={hasData}>
+        <SlnbClinicalFields clinicalDetails={slnbDetails} onUpdate={onUpdate} />
+      </SlnbDisclosureGroup>
     );
   }
 
+  // Free flap details are handled by the hub row / FreeFlapSheet modal
   if (isFreeFlapProcedure) {
-    const existingDetails = (clinicalDetails as FreeFlapDetails) || {};
-    const freeFlapDetails: FreeFlapDetails = {
-      ...existingDetails,
-      harvestSide: existingDetails.harvestSide || "left",
-      indication: existingDetails.indication || "trauma",
-      anastomoses: existingDetails.anastomoses || [],
-    };
-    return (
-      <FreeFlapClinicalFields
-        clinicalDetails={freeFlapDetails}
-        procedureType={procedureType}
-        picklistEntryId={picklistEntryId}
-        onUpdate={onUpdate}
-      />
-    );
+    return null;
   }
 
   if (specialty === "hand_surgery") {
