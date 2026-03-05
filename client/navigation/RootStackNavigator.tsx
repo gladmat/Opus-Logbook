@@ -15,6 +15,7 @@ import SetupAppLockScreen from "@/screens/SetupAppLockScreen";
 import EditProfileScreen from "@/screens/EditProfileScreen";
 import EpisodeDetailScreen from "@/screens/EpisodeDetailScreen";
 import EpisodeListScreen from "@/screens/EpisodeListScreen";
+import SurgicalPreferencesScreen from "@/screens/SurgicalPreferencesScreen";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppLock } from "@/contexts/AppLockContext";
@@ -68,6 +69,7 @@ export type RootStackParamList = {
   EpisodeList: undefined;
   SetupAppLock: undefined;
   EditProfile: undefined;
+  SurgicalPreferences: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -188,6 +190,13 @@ export default function RootStackNavigator() {
             component={EditProfileScreen}
             options={{
               headerTitle: "Edit Profile",
+            }}
+          />
+          <Stack.Screen
+            name="SurgicalPreferences"
+            component={SurgicalPreferencesScreen}
+            options={{
+              headerTitle: "Surgical Preferences",
             }}
           />
         </>

@@ -23,6 +23,7 @@ import {
   insertFlapSchema,
   insertAnastomosisSchema,
   insertUserFacilitySchema,
+  insertProcedureOutcomeSchema,
 } from "@shared/schema";
 import { env } from "./env";
 import { z } from "zod";
@@ -75,6 +76,7 @@ const profileUpdateSchema = insertProfileSchema
     medicalCouncilNumber: true,
     careerStage: true,
     onboardingComplete: true,
+    surgicalPreferences: true,
   })
   .partial();
 
@@ -140,6 +142,10 @@ const anastomosisCreateSchema = insertAnastomosisSchema;
 const anastomosisUpdateSchema = insertAnastomosisSchema
   .partial()
   .omit({ flapId: true });
+const procedureOutcomeCreateSchema = insertProcedureOutcomeSchema;
+const procedureOutcomeUpdateSchema = insertProcedureOutcomeSchema
+  .partial()
+  .omit({ caseProcedureId: true });
 
 const authRateLimiter = new Map<string, { count: number; resetTime: number }>();
 const AUTH_RATE_LIMIT = 10;
@@ -625,7 +631,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     async (req: AuthenticatedRequest, res: Response) => {
       try {
         const profile = await storage.getProfile(req.userId!);
-        res.json(profile || null);
+        if (profile) {
+          // Deserialize surgicalPreferences from JSON string
+          const responseProfile = {
+            ...profile,
+            surgicalPreferences: profile.surgicalPreferences
+              ? JSON.parse(profile.surgicalPreferences)
+              : undefined,
+          };
+          res.json(responseProfile);
+        } else {
+          res.json(null);
+        }
       } catch (error) {
         console.error(
           "Profile fetch error:",
@@ -641,7 +658,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     authenticateToken,
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       try {
-        const parseResult = profileUpdateSchema.safeParse(req.body);
+        // Serialize surgicalPreferences to JSON string if provided as object
+        const body = { ...req.body };
+        if (
+          body.surgicalPreferences &&
+          typeof body.surgicalPreferences === "object"
+        ) {
+          body.surgicalPreferences = JSON.stringify(body.surgicalPreferences);
+        }
+
+        const parseResult = profileUpdateSchema.safeParse(body);
         if (!parseResult.success) {
           res.status(400).json({
             error: "Invalid profile data",
@@ -654,7 +680,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           req.userId!,
           parseResult.data,
         );
-        res.json(profile);
+
+        // Deserialize surgicalPreferences back to object for response
+        const responseProfile = {
+          ...profile,
+          surgicalPreferences: profile?.surgicalPreferences
+            ? JSON.parse(profile.surgicalPreferences)
+            : undefined,
+        };
+        res.json(responseProfile);
       } catch (error) {
         console.error(
           "Profile update error:",
@@ -1427,6 +1461,164 @@ export async function registerRoutes(app: Express): Promise<Server> {
           error instanceof Error ? error.message : "Unknown error",
         );
         res.status(500).json({ error: "Failed to delete anastomosis" });
+      }
+    },
+  );
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // PROCEDURE OUTCOMES CRUD
+  // Consumer: Mobile client (flap outcome documentation, registry export)
+  // Ownership: caseProcedureId → caseProcedures.caseId → procedures.userId
+  // ──────────────────────────────────────────────────────────────────────────
+
+  // GET /api/procedure-outcomes/:caseProcedureId — list outcomes for a case procedure
+  app.get(
+    "/api/procedure-outcomes/:caseProcedureId",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const caseProcedureId = req.params.caseProcedureId!;
+        const outcomes =
+          await storage.getProcedureOutcomesByCaseProcedure(caseProcedureId);
+        // Parse details JSON for each outcome
+        const parsed = outcomes.map((o) => ({
+          ...o,
+          details: typeof o.details === "string" ? JSON.parse(o.details) : o.details,
+        }));
+        res.json(parsed);
+      } catch (error) {
+        console.error(
+          "Error fetching procedure outcomes:",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+        res.status(500).json({ error: "Failed to fetch procedure outcomes" });
+      }
+    },
+  );
+
+  // POST /api/procedure-outcomes — create a procedure outcome
+  app.post(
+    "/api/procedure-outcomes",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        // Serialize details to JSON string if provided as object
+        const body = { ...req.body };
+        if (body.details && typeof body.details === "object") {
+          body.details = JSON.stringify(body.details);
+        }
+
+        const parseResult = procedureOutcomeCreateSchema.safeParse(body);
+        if (!parseResult.success) {
+          res.status(400).json({
+            error: "Invalid outcome data",
+            details: parseResult.error.flatten(),
+          });
+          return;
+        }
+
+        const outcome = await storage.createProcedureOutcome(parseResult.data);
+        res.status(201).json({
+          ...outcome,
+          details:
+            typeof outcome.details === "string"
+              ? JSON.parse(outcome.details)
+              : outcome.details,
+        });
+      } catch (error) {
+        console.error(
+          "Error creating procedure outcome:",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+        res.status(500).json({ error: "Failed to create procedure outcome" });
+      }
+    },
+  );
+
+  // PUT /api/procedure-outcomes/:id — update a procedure outcome
+  app.put(
+    "/api/procedure-outcomes/:id",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const id = req.params.id!;
+        const userId = req.userId!;
+
+        const hasAccess = await storage.verifyProcedureOutcomeOwnership(
+          id,
+          userId,
+        );
+        if (!hasAccess) {
+          res.status(403).json({ error: "Access denied" });
+          return;
+        }
+
+        // Serialize details to JSON string if provided as object
+        const body = { ...req.body };
+        if (body.details && typeof body.details === "object") {
+          body.details = JSON.stringify(body.details);
+        }
+
+        const parseResult = procedureOutcomeUpdateSchema.safeParse(body);
+        if (!parseResult.success) {
+          res.status(400).json({
+            error: "Invalid outcome data",
+            details: parseResult.error.flatten(),
+          });
+          return;
+        }
+
+        const outcome = await storage.updateProcedureOutcome(
+          id,
+          parseResult.data,
+        );
+        if (!outcome) {
+          res.status(404).json({ error: "Outcome not found" });
+          return;
+        }
+        res.json({
+          ...outcome,
+          details:
+            typeof outcome.details === "string"
+              ? JSON.parse(outcome.details)
+              : outcome.details,
+        });
+      } catch (error) {
+        console.error(
+          "Error updating procedure outcome:",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+        res.status(500).json({ error: "Failed to update procedure outcome" });
+      }
+    },
+  );
+
+  // DELETE /api/procedure-outcomes/:id — delete a procedure outcome
+  app.delete(
+    "/api/procedure-outcomes/:id",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const id = req.params.id!;
+        const userId = req.userId!;
+
+        const hasAccess = await storage.verifyProcedureOutcomeOwnership(
+          id,
+          userId,
+        );
+        if (!hasAccess) {
+          res.status(403).json({ error: "Access denied" });
+          return;
+        }
+
+        await storage.deleteProcedureOutcome(id);
+        res.json({ success: true });
+      } catch (error) {
+        console.error(
+          "Error deleting procedure outcome:",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+        res.status(500).json({ error: "Failed to delete procedure outcome" });
       }
     },
   );

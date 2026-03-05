@@ -10,10 +10,37 @@ import { findPicklistEntry } from "@/lib/procedurePicklist";
 
 export interface ModuleVisibility {
   flapDetails: boolean;
+  flapOutcome: boolean;
   fractureClassification: boolean;
   handStructures: boolean;
   infection: boolean;
   woundAssessment: boolean;
+}
+
+/**
+ * Check if a single procedure is a free flap procedure.
+ * Extracted for reuse across module visibility and case-level checks.
+ */
+function procedureHasFreeFlap(proc: {
+  picklistEntryId?: string;
+  tags?: string[];
+}): boolean {
+  const entry = proc.picklistEntryId
+    ? findPicklistEntry(proc.picklistEntryId)
+    : undefined;
+  return !!(
+    entry?.hasFreeFlap ||
+    proc.tags?.includes("free_flap") ||
+    proc.tags?.includes("pedicled_flap")
+  );
+}
+
+/**
+ * Case-level predicate: does ANY diagnosis group contain a free flap procedure?
+ * Single source of truth for Treatment Context and Flap Outcome visibility (Part 8D).
+ */
+export function caseHasFreeFlap(groups: DiagnosisGroup[]): boolean {
+  return groups.some((g) => g.procedures.some(procedureHasFreeFlap));
 }
 
 /**
@@ -35,16 +62,10 @@ export function getModuleVisibility(
   const procedures = group.procedures;
 
   // Flap Details: any procedure has hasFreeFlap on picklist entry OR tags include free_flap/pedicled_flap
-  const flapDetails = procedures.some((p) => {
-    const entry = p.picklistEntryId
-      ? findPicklistEntry(p.picklistEntryId)
-      : undefined;
-    return (
-      entry?.hasFreeFlap ||
-      p.tags?.includes("free_flap") ||
-      p.tags?.includes("pedicled_flap")
-    );
-  });
+  const flapDetails = procedures.some(procedureHasFreeFlap);
+
+  // Flap Outcome: same predicate as flapDetails (Part 8D alignment)
+  const flapOutcome = flapDetails;
 
   // Fracture Classification: hand_surgery specialty + trauma case type
   const fractureClassification =
@@ -73,6 +94,7 @@ export function getModuleVisibility(
 
   return {
     flapDetails,
+    flapOutcome,
     fractureClassification,
     handStructures,
     infection,

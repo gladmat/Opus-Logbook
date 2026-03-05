@@ -1,6 +1,10 @@
 import { InfectionOverlay } from "./infection";
 import { WoundAssessment } from "@/types/wound";
 import { EncounterClass } from "@/types/episode";
+import type {
+  AnticoagulationProtocolId,
+  FlapMonitoringProtocolId,
+} from "@/types/surgicalPreferences";
 
 // Case status for active patient tracking
 export type CaseStatus = "active" | "discharged" | "incomplete";
@@ -882,6 +886,307 @@ export interface AnastomosisEntry {
   patencyConfirmed?: boolean;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// PREOPERATIVE & INTRAOPERATIVE ENUMS (Free Flap Registry)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export type PreoperativeImaging =
+  | "none"
+  | "handheld_doppler"
+  | "duplex_ultrasound"
+  | "ct_angiography"
+  | "mr_angiography"
+  | "conventional_angiography";
+
+export const PREOPERATIVE_IMAGING_LABELS: Record<
+  PreoperativeImaging,
+  string
+> = {
+  none: "None",
+  handheld_doppler: "Handheld Doppler",
+  duplex_ultrasound: "Duplex Ultrasound",
+  ct_angiography: "CT Angiography",
+  mr_angiography: "MR Angiography",
+  conventional_angiography: "Conventional Angiography",
+};
+
+export type ReconstructionTiming =
+  | "immediate"
+  | "delayed_immediate"
+  | "delayed"
+  | "secondary"
+  | "salvage";
+
+export const RECONSTRUCTION_TIMING_LABELS: Record<
+  ReconstructionTiming,
+  string
+> = {
+  immediate: "Immediate",
+  delayed_immediate: "Delayed-Immediate",
+  delayed: "Delayed",
+  secondary: "Secondary (revision)",
+  salvage: "Salvage (after failed reconstruction)",
+};
+
+export type PerfusionAssessment =
+  | "none"
+  | "clinical_only"
+  | "icg_fluorescence"
+  | "handheld_doppler"
+  | "implantable_doppler"
+  | "laser_doppler"
+  | "spo2_probe"
+  | "thermography";
+
+export const PERFUSION_ASSESSMENT_LABELS: Record<
+  PerfusionAssessment,
+  string
+> = {
+  none: "None",
+  clinical_only: "Clinical Only",
+  icg_fluorescence: "ICG Fluorescence Angiography",
+  handheld_doppler: "Handheld Doppler",
+  implantable_doppler: "Implantable Doppler",
+  laser_doppler: "Laser Doppler",
+  spo2_probe: "SpO\u2082 Probe",
+  thermography: "Thermography",
+};
+
+export type DonorSiteClosureMethod =
+  | "primary_closure"
+  | "skin_graft_split"
+  | "skin_graft_full"
+  | "dermal_substitute"
+  | "secondary_intention"
+  | "local_flap"
+  | "combination";
+
+export const DONOR_SITE_CLOSURE_LABELS: Record<
+  DonorSiteClosureMethod,
+  string
+> = {
+  primary_closure: "Primary Closure",
+  skin_graft_split: "Split-Thickness Skin Graft",
+  skin_graft_full: "Full-Thickness Skin Graft",
+  dermal_substitute: "Dermal Substitute",
+  secondary_intention: "Secondary Intention",
+  local_flap: "Local Flap",
+  combination: "Combination",
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PROCEDURE-SPECIFIC OUTCOMES (Polymorphic)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export type ProcedureOutcomeType = "free_flap"; // Extend: | "joint_implant" | "nerve_repair"
+
+export interface ProcedureOutcomeBase {
+  id: string;
+  caseProcedureId: string;
+  outcomeType: ProcedureOutcomeType;
+  assessedAt?: string;
+  assessedDaysPostOp?: number;
+}
+
+export interface ProcedureOutcome extends ProcedureOutcomeBase {
+  details: FreeFlapOutcomeDetails; // Union later: | JointImplantDetails | ...
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FREE FLAP OUTCOME DETAILS (lives in clinicalDetails.flapOutcome JSONB)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface FreeFlapOutcomeDetails {
+  flapSurvival: FlapSurvivalStatus;
+  partialLossPercentage?: number;
+  partialLossManagement?: PartialLossManagement;
+  monitoringProtocol?: FlapMonitoringProtocolId;
+  reExploration?: FlapReExploration;
+  donorSiteComplications?: DonorSiteComplication[];
+  recipientSiteComplications?: RecipientSiteComplication[];
+}
+
+export type FlapSurvivalStatus =
+  | "complete_survival"
+  | "partial_loss"
+  | "total_loss";
+
+export const FLAP_SURVIVAL_LABELS: Record<FlapSurvivalStatus, string> = {
+  complete_survival: "Complete Survival",
+  partial_loss: "Partial Loss",
+  total_loss: "Total Loss",
+};
+
+export type PartialLossManagement =
+  | "conservative"
+  | "debridement_only"
+  | "skin_graft"
+  | "revision_flap"
+  | "other";
+
+export const PARTIAL_LOSS_MANAGEMENT_LABELS: Record<
+  PartialLossManagement,
+  string
+> = {
+  conservative: "Conservative (secondary intention)",
+  debridement_only: "Debridement Only",
+  skin_graft: "Skin Graft",
+  revision_flap: "Revision Flap",
+  other: "Other",
+};
+
+export interface FlapReExploration {
+  reExplored: boolean;
+  events?: FlapReExplorationEvent[];
+}
+
+export interface FlapReExplorationEvent {
+  id: string;
+  hoursPostOp: number;
+  finding: ReExplorationFinding;
+  intervention: ReExplorationIntervention;
+  salvageOutcome: SalvageOutcome;
+}
+
+export type ReExplorationFinding =
+  | "arterial_thrombosis"
+  | "venous_thrombosis"
+  | "combined_thrombosis"
+  | "haematoma_compression"
+  | "pedicle_kink"
+  | "pedicle_stretch"
+  | "vasospasm"
+  | "infection"
+  | "no_cause_found"
+  | "other";
+
+export const RE_EXPLORATION_FINDING_LABELS: Record<
+  ReExplorationFinding,
+  string
+> = {
+  arterial_thrombosis: "Arterial Thrombosis",
+  venous_thrombosis: "Venous Thrombosis",
+  combined_thrombosis: "Combined (Arterial + Venous)",
+  haematoma_compression: "Haematoma Compression",
+  pedicle_kink: "Pedicle Kink",
+  pedicle_stretch: "Pedicle Stretch/Tension",
+  vasospasm: "Vasospasm",
+  infection: "Infection",
+  no_cause_found: "No Cause Found",
+  other: "Other",
+};
+
+export type ReExplorationIntervention =
+  | "thrombectomy_reanastomosis"
+  | "vein_graft_interposition"
+  | "additional_anastomosis"
+  | "haematoma_evacuation"
+  | "pedicle_repositioning"
+  | "thrombolytics"
+  | "leech_therapy"
+  | "flap_removal"
+  | "observation_only"
+  | "other";
+
+export const RE_EXPLORATION_INTERVENTION_LABELS: Record<
+  ReExplorationIntervention,
+  string
+> = {
+  thrombectomy_reanastomosis: "Thrombectomy + Re-anastomosis",
+  vein_graft_interposition: "Vein Graft Interposition",
+  additional_anastomosis: "Additional Anastomosis",
+  haematoma_evacuation: "Haematoma Evacuation",
+  pedicle_repositioning: "Pedicle Repositioning",
+  thrombolytics: "Thrombolytics",
+  leech_therapy: "Leech Therapy",
+  flap_removal: "Flap Removal",
+  observation_only: "Observation Only",
+  other: "Other",
+};
+
+export type SalvageOutcome =
+  | "salvaged_complete"
+  | "salvaged_partial_loss"
+  | "failed_total_loss";
+
+export const SALVAGE_OUTCOME_LABELS: Record<SalvageOutcome, string> = {
+  salvaged_complete: "Salvaged \u2014 Complete Survival",
+  salvaged_partial_loss: "Salvaged \u2014 Partial Loss",
+  failed_total_loss: "Failed \u2014 Total Loss",
+};
+
+export type DonorSiteComplication =
+  | "wound_dehiscence"
+  | "infection"
+  | "seroma"
+  | "haematoma"
+  | "skin_graft_loss"
+  | "chronic_pain"
+  | "sensory_deficit"
+  | "motor_deficit"
+  | "hernia"
+  | "bulge"
+  | "contour_deformity"
+  | "fat_necrosis"
+  | "tendon_adhesion"
+  | "fracture"
+  | "other";
+
+export const DONOR_SITE_COMPLICATION_LABELS: Record<
+  DonorSiteComplication,
+  string
+> = {
+  wound_dehiscence: "Wound Dehiscence",
+  infection: "Infection",
+  seroma: "Seroma",
+  haematoma: "Haematoma",
+  skin_graft_loss: "Skin Graft Loss",
+  chronic_pain: "Chronic Pain",
+  sensory_deficit: "Sensory Deficit",
+  motor_deficit: "Motor Deficit",
+  hernia: "Hernia",
+  bulge: "Bulge",
+  contour_deformity: "Contour Deformity",
+  fat_necrosis: "Fat Necrosis",
+  tendon_adhesion: "Tendon Adhesion",
+  fracture: "Fracture (donor bone)",
+  other: "Other",
+};
+
+export type RecipientSiteComplication =
+  | "wound_dehiscence"
+  | "infection"
+  | "seroma"
+  | "haematoma"
+  | "fat_necrosis"
+  | "flap_congestion"
+  | "partial_skin_paddle_loss"
+  | "fistula"
+  | "plate_exposure"
+  | "implant_exposure"
+  | "other";
+
+export const RECIPIENT_SITE_COMPLICATION_LABELS: Record<
+  RecipientSiteComplication,
+  string
+> = {
+  wound_dehiscence: "Wound Dehiscence",
+  infection: "Infection",
+  seroma: "Seroma",
+  haematoma: "Haematoma",
+  fat_necrosis: "Fat Necrosis",
+  flap_congestion: "Flap Congestion",
+  partial_skin_paddle_loss: "Partial Skin Paddle Loss",
+  fistula: "Fistula",
+  plate_exposure: "Plate Exposure",
+  implant_exposure: "Implant Exposure",
+  other: "Other",
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FREE FLAP DETAILS (Extended with Registry Fields)
+// ═══════════════════════════════════════════════════════════════════════════
+
 export interface FreeFlapDetails {
   harvestSide: HarvestSide;
   indication: Indication;
@@ -909,6 +1214,18 @@ export interface FreeFlapDetails {
   anastomosisType?: AnastomosisType;
   couplerSizeMm?: number;
   flapSpecificDetails?: FlapSpecificDetails;
+
+  // Registry fields (all optional, added in Free Flap Registry Upgrade)
+  preoperativeImaging?: PreoperativeImaging;
+  warmIschemiaMinutes?: number;
+  coldIschemiaMinutes?: number;
+  anticoagulationProtocol?: AnticoagulationProtocolId;
+  perfusionAssessment?: PerfusionAssessment;
+  positionChangeRequired?: boolean;
+  donorSiteClosureMethod?: DonorSiteClosureMethod;
+
+  // Flap outcome (dual-storage: local clinicalDetails + server procedure_outcomes)
+  flapOutcome?: FreeFlapOutcomeDetails;
 }
 
 // AO/OTA fracture classification entry
@@ -1213,6 +1530,13 @@ export interface Case {
   woundInfectionRisk?: WoundInfectionRisk;
   anaestheticType?: AnaestheticType;
   prophylaxis?: Prophylaxis;
+
+  // Treatment Context (Free Flap Registry — case-level fields)
+  reconstructionTiming?: ReconstructionTiming;
+  priorRadiotherapy?: boolean;
+  priorChemotherapy?: boolean;
+  intraoperativeTransfusion?: boolean;
+  transfusionUnits?: number;
 
   // Outcomes
   unplannedICU?: UnplannedICUReason;

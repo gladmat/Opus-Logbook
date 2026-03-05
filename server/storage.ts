@@ -27,6 +27,10 @@ import {
   treatmentEpisodes,
   type TreatmentEpisodeRow,
   type InsertTreatmentEpisodeRow,
+  procedureOutcomes,
+  type ProcedureOutcomeRow,
+  type InsertProcedureOutcomeRow,
+  caseProcedures,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, ne, ilike, sql, lt, isNull, desc } from "drizzle-orm";
@@ -124,6 +128,23 @@ export interface IStorage {
     label?: string | null,
   ): Promise<UserDeviceKey>;
   revokeUserDeviceKey(userId: string, deviceId: string): Promise<boolean>;
+
+  // Procedure Outcomes
+  getProcedureOutcomesByCaseProcedure(
+    caseProcedureId: string,
+  ): Promise<ProcedureOutcomeRow[]>;
+  createProcedureOutcome(
+    outcome: InsertProcedureOutcomeRow,
+  ): Promise<ProcedureOutcomeRow>;
+  updateProcedureOutcome(
+    id: string,
+    data: Partial<InsertProcedureOutcomeRow>,
+  ): Promise<ProcedureOutcomeRow | undefined>;
+  deleteProcedureOutcome(id: string): Promise<boolean>;
+  verifyProcedureOutcomeOwnership(
+    outcomeId: string,
+    userId: string,
+  ): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -609,6 +630,70 @@ export class DatabaseStorage implements IStorage {
         ),
       );
     return true;
+  }
+  // ── Procedure Outcomes ────────────────────────────────────────────────
+
+  async getProcedureOutcomesByCaseProcedure(
+    caseProcedureId: string,
+  ): Promise<ProcedureOutcomeRow[]> {
+    return db
+      .select()
+      .from(procedureOutcomes)
+      .where(eq(procedureOutcomes.caseProcedureId, caseProcedureId));
+  }
+
+  async createProcedureOutcome(
+    outcome: InsertProcedureOutcomeRow,
+  ): Promise<ProcedureOutcomeRow> {
+    const [created] = await db
+      .insert(procedureOutcomes)
+      .values(outcome)
+      .returning();
+    return created!;
+  }
+
+  async updateProcedureOutcome(
+    id: string,
+    data: Partial<InsertProcedureOutcomeRow>,
+  ): Promise<ProcedureOutcomeRow | undefined> {
+    const [updated] = await db
+      .update(procedureOutcomes)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(procedureOutcomes.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteProcedureOutcome(id: string): Promise<boolean> {
+    const result = await db
+      .delete(procedureOutcomes)
+      .where(eq(procedureOutcomes.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  async verifyProcedureOutcomeOwnership(
+    outcomeId: string,
+    userId: string,
+  ): Promise<boolean> {
+    const [result] = await db
+      .select({ id: procedureOutcomes.id })
+      .from(procedureOutcomes)
+      .innerJoin(
+        caseProcedures,
+        eq(procedureOutcomes.caseProcedureId, caseProcedures.id),
+      )
+      .innerJoin(
+        procedures,
+        eq(caseProcedures.caseId, procedures.id),
+      )
+      .where(
+        and(
+          eq(procedureOutcomes.id, outcomeId),
+          eq(procedures.userId, userId),
+        ),
+      );
+    return !!result;
   }
 }
 

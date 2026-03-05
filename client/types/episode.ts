@@ -118,4 +118,7 @@ export interface EpisodePrefillData {
   diagnosisGroups?: DiagnosisGroup[];
   encounterClass?: EncounterClass;
   episodeSequence: number;
+  // Patient-level facts carried forward across episodes
+  priorRadiotherapy?: boolean;
+  priorChemotherapy?: boolean;
 }

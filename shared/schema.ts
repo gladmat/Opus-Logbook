@@ -147,6 +147,7 @@ export const profiles = pgTable("profiles", {
     .default("unverified")
     .notNull(),
   careerStage: varchar("career_stage", { length: 50 }),
+  surgicalPreferences: text("surgical_preferences"), // JSONB stored as text
   onboardingComplete: boolean("onboarding_complete").default(false).notNull(),
   createdAt: timestamp("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
@@ -352,6 +353,12 @@ export const procedures = pgTable(
     diabetes: boolean("diabetes"),
     startTime: timestamp("start_time"),
     endTime: timestamp("end_time"),
+    // Registry case-level fields
+    reconstructionTiming: varchar("reconstruction_timing", { length: 25 }),
+    priorRadiotherapy: boolean("prior_radiotherapy"),
+    priorChemotherapy: boolean("prior_chemotherapy"),
+    intraoperativeTransfusion: boolean("intraoperative_transfusion"),
+    transfusionUnits: integer("transfusion_units"),
     createdAt: timestamp("created_at")
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
@@ -406,6 +413,18 @@ export const flaps = pgTable(
     perforatorCount: integer("perforator_count"),
     elevationPlane: varchar("elevation_plane", { length: 50 }),
     ischemiaTimeMinutes: integer("ischemia_time_minutes"),
+    // Registry fields
+    preoperativeImaging: varchar("preoperative_imaging", { length: 30 }),
+    warmIschemiaMinutes: integer("warm_ischemia_minutes"),
+    coldIschemiaMinutes: integer("cold_ischemia_minutes"),
+    anticoagulationProtocol: varchar("anticoagulation_protocol", {
+      length: 30,
+    }),
+    perfusionAssessment: varchar("perfusion_assessment", { length: 25 }),
+    positionChangeRequired: boolean("position_change_required"),
+    donorSiteClosureMethod: varchar("donor_site_closure_method", {
+      length: 30,
+    }),
     createdAt: timestamp("created_at")
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
@@ -571,4 +590,55 @@ export const insertTreatmentEpisodeSchema = createInsertSchema(
 export type TreatmentEpisodeRow = typeof treatmentEpisodes.$inferSelect;
 export type InsertTreatmentEpisodeRow = z.infer<
   typeof insertTreatmentEpisodeSchema
+>;
+
+// ── Procedure Outcomes (Polymorphic) ────────────────────────────────────
+
+export const procedureOutcomes = pgTable(
+  "procedure_outcomes",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    caseProcedureId: varchar("case_procedure_id")
+      .notNull()
+      .references(() => caseProcedures.id, { onDelete: "cascade" }),
+    outcomeType: varchar("outcome_type", { length: 30 }).notNull(),
+    assessedAt: timestamp("assessed_at"),
+    assessedDaysPostOp: integer("assessed_days_post_op"),
+    details: text("details").notNull().default("{}"), // JSON string
+    createdAt: timestamp("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: timestamp("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => [
+    index("procedure_outcomes_case_proc_idx").on(t.caseProcedureId),
+    index("procedure_outcomes_type_idx").on(t.outcomeType),
+  ],
+);
+
+export const procedureOutcomesRelations = relations(
+  procedureOutcomes,
+  ({ one }) => ({
+    caseProcedure: one(caseProcedures, {
+      fields: [procedureOutcomes.caseProcedureId],
+      references: [caseProcedures.id],
+    }),
+  }),
+);
+
+export const insertProcedureOutcomeSchema = createInsertSchema(
+  procedureOutcomes,
+).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type ProcedureOutcomeRow = typeof procedureOutcomes.$inferSelect;
+export type InsertProcedureOutcomeRow = z.infer<
+  typeof insertProcedureOutcomeSchema
 >;
