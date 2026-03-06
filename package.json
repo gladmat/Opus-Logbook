@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "scripts": {
     "expo:dev": "EXPO_PUBLIC_API_URL=http://localhost:5001 npx expo start",
-    "server:dev": "NODE_ENV=development node --env-file=.env --import tsx server/index.ts",
+    "server:dev": "NODE_ENV=development node --watch --env-file=.env --import tsx server/index.ts",
     "expo:start:static:build": "npx expo start --no-dev --minify --localhost",
     "expo:static:build": "node scripts/build.js",
     "server:build": "esbuild server/index.ts --platform=node --packages=external --bundle --format=cjs --outdir=server_dist",
