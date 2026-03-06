@@ -24,8 +24,9 @@ A full-stack Expo/React Native surgical case logbook app (branded as **Opus**) f
 ## Commands
 
 ```bash
+npm run dev:mobile     # Start watch-mode API + Expo Go on LAN for device testing
 npm run server:dev     # Start Express API server (port from .env, default 5001 locally)
-npm run expo:dev       # Start Expo dev client
+npm run expo:dev       # Start Expo only (LAN host, port 8083)
 npm run db:push        # Push Drizzle schema to PostgreSQL (loads .env)
 npm run server:build   # Production server build → server_dist/
 npm run server:prod    # Run production server
@@ -39,8 +40,9 @@ npm run format         # Prettier format
 1. PostgreSQL must be running locally (Homebrew postgresql@16)
 2. `.env` file in project root with: `DATABASE_URL`, `JWT_SECRET`, `PORT`, `NODE_ENV`
 3. `npm install` then `npm run db:push` to create tables
-4. `npm run server:dev` starts the API server
-5. Port 5000 conflicts with macOS AirPlay — use port 5001
+4. `npm run dev:mobile` is the default device-testing workflow
+5. `npm run server:dev` starts only the API server when you need it separately
+6. Port 5000 conflicts with macOS AirPlay — use port 5001
 
 ## Project structure
 

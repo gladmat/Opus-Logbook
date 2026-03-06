@@ -3,7 +3,8 @@
   "main": "client/index.js",
   "version": "1.0.0",
   "scripts": {
-    "expo:dev": "EXPO_PUBLIC_API_URL=http://localhost:5001 npx expo start",
+    "dev:mobile": "node scripts/dev-mobile.js",
+    "expo:dev": "EXPO_PUBLIC_API_URL=http://localhost:5001 npx expo start --host lan --port 8083",
     "server:dev": "NODE_ENV=development node --watch --env-file=.env --import tsx server/index.ts",
     "expo:start:static:build": "npx expo start --no-dev --minify --localhost",
     "expo:static:build": "node scripts/build.js",
