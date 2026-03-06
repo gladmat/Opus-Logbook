@@ -32,8 +32,27 @@ export function procedureHasFreeFlap(proc: {
 }
 
 /**
+ * Check if a single procedure is a pedicled flap procedure.
+ */
+export function procedureHasPedicledFlap(proc: { tags?: string[] }): boolean {
+  return proc.tags?.includes("pedicled_flap") ?? false;
+}
+
+/**
+ * Case-level predicate for Treatment Context visibility.
+ * Registry treatment context applies to any reconstructive flap case, not only free flaps.
+ */
+export function caseHasFlapProcedure(groups: DiagnosisGroup[]): boolean {
+  return groups.some((g) =>
+    g.procedures.some(
+      (procedure) =>
+        procedureHasFreeFlap(procedure) || procedureHasPedicledFlap(procedure),
+    ),
+  );
+}
+
+/**
  * Case-level predicate: does ANY diagnosis group contain a free flap procedure?
- * Single source of truth for Treatment Context and Flap Outcome visibility (Part 8D).
  */
 export function caseHasFreeFlap(groups: DiagnosisGroup[]): boolean {
   return groups.some((g) => g.procedures.some(procedureHasFreeFlap));

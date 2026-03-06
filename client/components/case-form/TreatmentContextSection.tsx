@@ -3,8 +3,7 @@ import { View, Pressable, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
-import { SelectField } from "@/components/FormField";
-import { FormField } from "@/components/FormField";
+import { SelectField, FormField } from "@/components/FormField";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { CollapsibleFormSection } from "@/components/case-form/CollapsibleFormSection";
@@ -18,7 +17,7 @@ import type { ReconstructionTiming } from "@/types/case";
 
 /**
  * Case-level treatment context fields for free flap cases.
- * Visible only when caseHasFreeFlap() returns true (Part 8D).
+ * Visible only when the case includes a free or pedicled flap procedure.
  * Contains: reconstruction timing, prior radiotherapy/chemo, intraoperative transfusion.
  */
 export const TreatmentContextSection = React.memo(

@@ -5,6 +5,7 @@ import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
+import { useAuth } from "@/contexts/AuthContext";
 import { BorderRadius, Spacing, Shadows } from "@/constants/theme";
 import { FormField, PickerField } from "@/components/FormField";
 import { ProcedureClinicalDetails } from "@/components/ProcedureClinicalDetails";
@@ -13,7 +14,6 @@ import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollV
 import { SnomedSearchPicker } from "@/components/SnomedSearchPicker";
 import {
   hasPicklistForSpecialty,
-  findPicklistEntry,
   PICKLIST_TO_FLAP_TYPE,
 } from "@/lib/procedurePicklist";
 import type { ProcedurePicklistEntry } from "@/lib/procedurePicklist";
@@ -32,6 +32,8 @@ import {
   SPECIALTY_LABELS,
   PROCEDURE_TYPES,
   PROCEDURE_TAG_LABELS,
+  AnatomicalRegion,
+  Indication,
 } from "@/types/case";
 import {
   getDefaultFlapSpecificDetails,
@@ -41,9 +43,7 @@ import {
   DIAGNOSIS_TO_RECIPIENT_SITE,
   CLINICAL_GROUP_TO_INDICATION,
   DIEP_BILATERAL_DEFAULTS,
-  REGION_ARTERIAL_CONFIGURATION,
 } from "@/data/autoFillMappings";
-import type { AnatomicalRegion, Indication } from "@/types/case";
 
 interface ProcedureEntryCardProps {
   procedure: CaseProcedure;
@@ -59,6 +59,8 @@ interface ProcedureEntryCardProps {
   diagnosisId?: string;
   /** Clinical group from diagnosis (e.g. "trauma", "oncological") */
   clinicalGroup?: string;
+  /** Diagnosis laterality for context-aware flap defaults (e.g. bilateral DIEP). */
+  diagnosisLaterality?: string;
 }
 
 export function ProcedureEntryCard({
@@ -73,8 +75,10 @@ export function ProcedureEntryCard({
   canMoveDown,
   diagnosisId,
   clinicalGroup,
+  diagnosisLaterality,
 }: ProcedureEntryCardProps) {
   const { theme } = useTheme();
+  const { profile } = useAuth();
   const [showRoleInfoModal, setShowRoleInfoModal] = useState(false);
 
   const handleSpecialtyChange = (value: string) => {
@@ -96,6 +100,8 @@ export function ProcedureEntryCard({
     if (entry.hasFreeFlap && mappedFlapType) {
       const snomedEntry = FLAP_SNOMED_MAP[mappedFlapType];
       let flapSpecificDetails = getDefaultFlapSpecificDetails(mappedFlapType);
+      const prefAnticoag =
+        profile?.surgicalPreferences?.microsurgery?.anticoagulationProtocol;
 
       // ── Recipient site: use diagnosis mapping, then specialty fallback ──
       let recipientSiteRegion: AnatomicalRegion | undefined;
@@ -137,7 +143,7 @@ export function ProcedureEntryCard({
         };
       }
 
-      if (mappedFlapType === "diep") {
+      if (mappedFlapType === "diep" && diagnosisLaterality === "bilateral") {
         flapSpecificDetails = {
           ...flapSpecificDetails,
           ...DIEP_BILATERAL_DEFAULTS,
@@ -180,6 +186,7 @@ export function ProcedureEntryCard({
         ...(Object.keys(flapSpecificDetails).length > 0
           ? { flapSpecificDetails }
           : {}),
+        ...(prefAnticoag ? { anticoagulationProtocol: prefAnticoag } : {}),
       } as FreeFlapDetails;
     } else if (entry.hasSlnb) {
       clinicalDetails = {

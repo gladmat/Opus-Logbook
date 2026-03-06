@@ -72,12 +72,16 @@ function getProcessCommand(pid) {
 
 function isManagedApiProcess(command) {
   return Boolean(
-    command && command.includes("server/index.ts") && command.includes("--watch"),
+    command &&
+      command.includes("server/index.ts") &&
+      command.includes("--watch"),
   );
 }
 
 function isManagedExpoProcess(command) {
-  return Boolean(command && command.includes("expo") && command.includes("start"));
+  return Boolean(
+    command && command.includes("expo") && command.includes("start"),
+  );
 }
 
 function prefixStream(stream, label) {
@@ -117,24 +121,25 @@ async function main() {
 
   let serverProcess = null;
   const apiProcessCommand = getProcessCommand(getListeningPid(apiPort));
-  if ((await checkApiHealth(apiPort)) && isManagedApiProcess(apiProcessCommand)) {
+  if (
+    (await checkApiHealth(apiPort)) &&
+    isManagedApiProcess(apiProcessCommand)
+  ) {
     console.log(`Reusing existing API server on http://127.0.0.1:${apiPort}`);
   } else if (await checkApiHealth(apiPort)) {
     console.error(
       `Port ${apiPort} is already in use by a non-watch process: ${apiProcessCommand || "unknown"}`,
     );
-    console.error("Stop that process or run the watch-mode API before using dev:mobile.");
+    console.error(
+      "Stop that process or run the watch-mode API before using dev:mobile.",
+    );
     process.exit(1);
   } else {
     console.log("Starting local API server...");
-    serverProcess = spawnCommand(
-      npmCommand,
-      ["run", "server:dev"],
-      {
-        env: process.env,
-        label: "server",
-      },
-    );
+    serverProcess = spawnCommand(npmCommand, ["run", "server:dev"], {
+      env: process.env,
+      label: "server",
+    });
   }
 
   const expoProcessCommand = getProcessCommand(getListeningPid(expoPort));
@@ -149,24 +154,16 @@ async function main() {
     process.exit(1);
   } else {
     expoProcess = spawnCommand(
-        process.platform === "win32" ? "npx.cmd" : "npx",
-        [
-          "expo",
-          "start",
-          "--host",
-          "lan",
-          "--port",
-          String(expoPort),
-          "--clear",
-        ],
-        {
-          env: {
-            ...process.env,
-            EXPO_PUBLIC_API_URL: apiUrl,
-          },
-          label: "expo",
+      process.platform === "win32" ? "npx.cmd" : "npx",
+      ["expo", "start", "--host", "lan", "--port", String(expoPort), "--clear"],
+      {
+        env: {
+          ...process.env,
+          EXPO_PUBLIC_API_URL: apiUrl,
         },
-      );
+        label: "expo",
+      },
+    );
   }
 
   const cleanup = () => {

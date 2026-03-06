@@ -131,6 +131,7 @@ export const DiagnosisProcedureSection = React.memo(
             onInfectionChange={handleInfectionChange}
             isFirstInfectionGroup={idx === firstInfectionGroupIndex}
             episodeType={episodeType}
+            returnToTheatre={state.returnToTheatre}
           />
         ))}
 

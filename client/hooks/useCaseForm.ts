@@ -59,6 +59,7 @@ import {
 import { findDiagnosisById } from "@/lib/diagnosisPicklists";
 import { UserProfile } from "@/lib/auth";
 import { syncFlapOutcomeToServer } from "@/lib/outcomeSync";
+import { withDefaultFlapOutcome } from "@/lib/flapOutcomeDefaults";
 
 // ─── Default Donor Vessels ──────────────────────────────────────────────────
 
@@ -1448,6 +1449,40 @@ export function useCaseForm({
           }
         }
 
+        const monitoringPreference =
+          profile?.surgicalPreferences?.microsurgery?.monitoringProtocol;
+
+        const diagnosisGroupsWithFlapOutcomeDefaults =
+          state.diagnosisGroups.map((group) => ({
+            ...group,
+            procedures: group.procedures.map((procedure) => {
+              if (!hasProcedureFreeFlap(procedure)) {
+                return procedure;
+              }
+
+              const currentDetails = (procedure.clinicalDetails as
+                | FreeFlapDetails
+                | undefined) || {
+                harvestSide: "left",
+                anastomoses: [],
+              };
+
+              return {
+                ...procedure,
+                clinicalDetails: {
+                  ...currentDetails,
+                  flapOutcome: withDefaultFlapOutcome(
+                    currentDetails.flapOutcome,
+                    {
+                      monitoringProtocol: monitoringPreference,
+                      returnToTheatre: state.returnToTheatre,
+                    },
+                  ),
+                } as FreeFlapDetails,
+              };
+            }),
+          }));
+
         const casePayload: Case = {
           id: isEditMode && existingCase ? existingCase.id : uuidv4(),
           patientIdentifier: state.patientIdentifier.trim(),
@@ -1456,7 +1491,7 @@ export function useCaseForm({
           specialty,
           procedureType: derivedProcedureType,
           procedureCode,
-          diagnosisGroups: state.diagnosisGroups,
+          diagnosisGroups: diagnosisGroupsWithFlapOutcomeDefaults,
           surgeryTiming,
           operatingTeam:
             state.operatingTeam.length > 0 ? state.operatingTeam : undefined,
@@ -1564,7 +1599,7 @@ export function useCaseForm({
         }
 
         // Fire-and-forget: sync flap outcomes to server procedure_outcomes table (Part 8C)
-        for (const group of state.diagnosisGroups) {
+        for (const group of casePayload.diagnosisGroups) {
           for (const proc of group.procedures) {
             const cd = proc.clinicalDetails as FreeFlapDetails | undefined;
             if (cd?.flapOutcome && proc.id) {

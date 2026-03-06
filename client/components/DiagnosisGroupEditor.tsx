@@ -5,7 +5,7 @@ import React, {
   useMemo,
   useRef,
 } from "react";
-import { View, StyleSheet, Pressable, Animated } from "react-native";
+import { View, StyleSheet, Pressable } from "react-native";
 import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
 import { v4 as uuidv4 } from "uuid";
@@ -24,8 +24,17 @@ import {
   ClinicalSuspicion,
   CLINICAL_SUSPICION_LABELS,
   isExcisionBiopsyDiagnosis,
+  FLAP_SNOMED_MAP,
+  RECIPIENT_SITE_SNOMED_MAP,
 } from "@/types/case";
-import type { FreeFlapDetails, HandTraumaDetails } from "@/types/case";
+import type {
+  FreeFlapDetails,
+  HandTraumaDetails,
+  AnastomosisEntry,
+  LesionInstance,
+  LesionPathologyType,
+  FreeFlapOutcomeDetails,
+} from "@/types/case";
 import type { InfectionOverlay } from "@/types/infection";
 import { PickerField } from "@/components/FormField";
 import { SnomedSearchPicker } from "@/components/SnomedSearchPicker";
@@ -35,7 +44,6 @@ import { ProcedureEntryCard } from "@/components/ProcedureEntryCard";
 import { DiagnosisPicker } from "@/components/DiagnosisPicker";
 import { ProcedureSuggestions } from "@/components/ProcedureSuggestions";
 import { FractureClassificationWizard } from "@/components/FractureClassificationWizard";
-import { getAoToSnomedSuggestion } from "@/data/aoToSnomedMapping";
 import {
   hasDiagnosisPicklist,
   getActiveProcedureIds,
@@ -47,8 +55,6 @@ import {
   findPicklistEntry,
   PICKLIST_TO_FLAP_TYPE,
 } from "@/lib/procedurePicklist";
-import { FLAP_SNOMED_MAP, RECIPIENT_SITE_SNOMED_MAP } from "@/types/case";
-import type { AnastomosisEntry } from "@/types/case";
 import {
   DIAGNOSIS_TO_RECIPIENT_SITE,
   CLINICAL_GROUP_TO_INDICATION,
@@ -62,10 +68,8 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { DiagnosisSuggestions } from "@/components/DiagnosisSuggestions";
 import { MultiLesionEditor } from "@/components/MultiLesionEditor";
 import { useAuth } from "@/contexts/AuthContext";
-import type { LesionInstance, LesionPathologyType } from "@/types/case";
 import { SelectedDiagnosisCard } from "@/components/SelectedDiagnosisCard";
 import {
-  resolveAOToDiagnosis,
   applyProcedureHints,
   type AOProcedureHint,
 } from "@/lib/aoToDiagnosisMapping";
@@ -83,7 +87,7 @@ import {
   procedureHasFreeFlap,
 } from "@/lib/moduleVisibility";
 import { generateFlapOutcomeSummary } from "@/components/FlapOutcomeSection";
-import type { FreeFlapOutcomeDetails } from "@/types/case";
+import { withDefaultFlapOutcome } from "@/lib/flapOutcomeDefaults";
 import {
   generateFlapSummary,
   generateInfectionSummary,
@@ -108,6 +112,8 @@ interface DiagnosisGroupEditorProps {
   isFirstInfectionGroup?: boolean;
   /** Episode type from linked episode — triggers wound module for wound/burns episodes */
   episodeType?: EpisodeType;
+  /** Case-level return to theatre flag used for free flap outcome defaults. */
+  returnToTheatre?: boolean;
 }
 
 interface HandTraumaDiagnosisResolution {
@@ -131,6 +137,7 @@ export function DiagnosisGroupEditor({
   onInfectionChange,
   isFirstInfectionGroup,
   episodeType,
+  returnToTheatre,
 }: DiagnosisGroupEditorProps) {
   const { theme } = useTheme();
   const { profile } = useAuth();
@@ -202,8 +209,11 @@ export function DiagnosisGroupEditor({
   >(group.clinicalSuspicion);
 
   // Hub-and-spoke sheet visibility
-  const [showFlapSheet, setShowFlapSheet] = useState(false);
-  const [showFlapOutcomeSheet, setShowFlapOutcomeSheet] = useState(false);
+  const [activeFlapSheetProcedureId, setActiveFlapSheetProcedureId] = useState<
+    string | null
+  >(null);
+  const [activeFlapOutcomeProcedureId, setActiveFlapOutcomeProcedureId] =
+    useState<string | null>(null);
   const [showInfectionSheet, setShowInfectionSheet] = useState(false);
   const [showWoundSheet, setShowWoundSheet] = useState(false);
 
@@ -700,10 +710,49 @@ export function DiagnosisGroupEditor({
     }
   }, [isInlineHandTraumaFlow]);
 
-  const freeFlapProcedure = useMemo(
-    () => procedures.find((p) => procedureHasFreeFlap(p)),
+  const freeFlapProcedures = useMemo(
+    () => procedures.filter((p) => procedureHasFreeFlap(p)),
     [procedures],
   );
+
+  const activeFlapSheetProcedure = useMemo(
+    () =>
+      activeFlapSheetProcedureId
+        ? freeFlapProcedures.find((p) => p.id === activeFlapSheetProcedureId) ||
+          null
+        : null,
+    [activeFlapSheetProcedureId, freeFlapProcedures],
+  );
+
+  const activeFlapOutcomeProcedure = useMemo(
+    () =>
+      activeFlapOutcomeProcedureId
+        ? freeFlapProcedures.find(
+            (p) => p.id === activeFlapOutcomeProcedureId,
+          ) || null
+        : null,
+    [activeFlapOutcomeProcedureId, freeFlapProcedures],
+  );
+
+  useEffect(() => {
+    if (
+      activeFlapSheetProcedureId &&
+      !freeFlapProcedures.some((p) => p.id === activeFlapSheetProcedureId)
+    ) {
+      setActiveFlapSheetProcedureId(null);
+    }
+
+    if (
+      activeFlapOutcomeProcedureId &&
+      !freeFlapProcedures.some((p) => p.id === activeFlapOutcomeProcedureId)
+    ) {
+      setActiveFlapOutcomeProcedureId(null);
+    }
+  }, [
+    activeFlapOutcomeProcedureId,
+    activeFlapSheetProcedureId,
+    freeFlapProcedures,
+  ]);
 
   useEffect(() => {
     if (diagnosisClinicalDetails.laterality !== "bilateral") return;
@@ -751,14 +800,30 @@ export function DiagnosisGroupEditor({
     });
   }, [diagnosisClinicalDetails.laterality]);
 
-  const flapSummary = useMemo(
-    () =>
-      freeFlapProcedure?.clinicalDetails
-        ? generateFlapSummary(
-            freeFlapProcedure.clinicalDetails as FreeFlapDetails,
-          )
-        : null,
-    [freeFlapProcedure],
+  const monitoringPreference =
+    profile?.surgicalPreferences?.microsurgery?.monitoringProtocol;
+
+  const getFlapSummaryForProcedure = useCallback((procedure: CaseProcedure) => {
+    return procedure.clinicalDetails
+      ? generateFlapSummary(procedure.clinicalDetails as FreeFlapDetails)
+      : null;
+  }, []);
+
+  const getFlapOutcomeForProcedure = useCallback(
+    (procedure: CaseProcedure): FreeFlapOutcomeDetails => {
+      const details = procedure.clinicalDetails as FreeFlapDetails | undefined;
+      return withDefaultFlapOutcome(details?.flapOutcome, {
+        monitoringProtocol: monitoringPreference,
+        returnToTheatre,
+      });
+    },
+    [monitoringPreference, returnToTheatre],
+  );
+
+  const getFlapOutcomeSummaryForProcedure = useCallback(
+    (procedure: CaseProcedure) =>
+      generateFlapOutcomeSummary(getFlapOutcomeForProcedure(procedure)),
+    [getFlapOutcomeForProcedure],
   );
 
   const infectionSummary = useMemo(
@@ -960,40 +1025,27 @@ export function DiagnosisGroupEditor({
   // Hub-and-spoke save handlers
   const handleFlapSave = useCallback(
     (details: FreeFlapDetails) => {
-      if (!freeFlapProcedure) return;
-      updateProcedure({ ...freeFlapProcedure, clinicalDetails: details });
+      if (!activeFlapSheetProcedure) return;
+      updateProcedure({
+        ...activeFlapSheetProcedure,
+        clinicalDetails: details,
+      });
     },
-    [freeFlapProcedure],
+    [activeFlapSheetProcedure],
   );
 
   const handleFlapOutcomeSave = useCallback(
     (outcomeDetails: FreeFlapOutcomeDetails) => {
-      if (!freeFlapProcedure) return;
+      if (!activeFlapOutcomeProcedure) return;
       const currentDetails =
-        (freeFlapProcedure.clinicalDetails as FreeFlapDetails) || {};
+        (activeFlapOutcomeProcedure.clinicalDetails as FreeFlapDetails) || {};
       updateProcedure({
-        ...freeFlapProcedure,
+        ...activeFlapOutcomeProcedure,
         clinicalDetails: { ...currentDetails, flapOutcome: outcomeDetails },
       });
     },
-    [freeFlapProcedure],
+    [activeFlapOutcomeProcedure],
   );
-
-  const flapOutcomeSummary = useMemo(() => {
-    if (!freeFlapProcedure?.clinicalDetails) return null;
-    const details = freeFlapProcedure.clinicalDetails as FreeFlapDetails;
-    return generateFlapOutcomeSummary(details.flapOutcome);
-  }, [freeFlapProcedure?.clinicalDetails]);
-
-  // Default outcome for zero-tap happy path
-  const defaultFlapOutcome = useMemo((): FreeFlapOutcomeDetails => {
-    const monitoringPref =
-      profile?.surgicalPreferences?.microsurgery?.monitoringProtocol;
-    return {
-      flapSurvival: "complete_survival",
-      ...(monitoringPref ? { monitoringProtocol: monitoringPref } : {}),
-    };
-  }, [profile?.surgicalPreferences?.microsurgery?.monitoringProtocol]);
 
   const handleFractureWizardClose = useCallback(() => {
     setShowFractureWizard(false);
@@ -1867,6 +1919,9 @@ export function DiagnosisGroupEditor({
                         canMoveDown={idx < procedures.length - 1}
                         diagnosisId={selectedDiagnosis?.id}
                         clinicalGroup={selectedDiagnosis?.clinicalGroup}
+                        diagnosisLaterality={
+                          diagnosisClinicalDetails.laterality
+                        }
                       />
                     ))}
 
@@ -1896,24 +1951,55 @@ export function DiagnosisGroupEditor({
             >
               Clinical Details
             </ThemedText>
-            {moduleVisibility.flapDetails ? (
-              <DetailModuleRow
-                title="Flap Details"
-                summary={flapSummary}
-                isComplete={flapSummary !== null}
-                onPress={() => setShowFlapSheet(true)}
-                icon="activity"
-              />
-            ) : null}
-            {moduleVisibility.flapOutcome ? (
-              <DetailModuleRow
-                title="Flap Outcome"
-                summary={flapOutcomeSummary}
-                isComplete={flapOutcomeSummary !== null}
-                onPress={() => setShowFlapOutcomeSheet(true)}
-                icon="heart"
-              />
-            ) : null}
+            {moduleVisibility.flapDetails
+              ? freeFlapProcedures.map((procedure, flapIndex) => {
+                  const flapSummary = getFlapSummaryForProcedure(procedure);
+                  const title =
+                    freeFlapProcedures.length === 1
+                      ? "Flap Details"
+                      : `${
+                          procedure.procedureName || `Flap ${flapIndex + 1}`
+                        } Details`;
+
+                  return (
+                    <DetailModuleRow
+                      key={`flap-details-${procedure.id}`}
+                      title={title}
+                      summary={flapSummary}
+                      isComplete={flapSummary !== null}
+                      onPress={() =>
+                        setActiveFlapSheetProcedureId(procedure.id)
+                      }
+                      icon="activity"
+                    />
+                  );
+                })
+              : null}
+            {moduleVisibility.flapOutcome
+              ? freeFlapProcedures.map((procedure, flapIndex) => {
+                  const flapOutcomeSummary =
+                    getFlapOutcomeSummaryForProcedure(procedure);
+                  const title =
+                    freeFlapProcedures.length === 1
+                      ? "Flap Outcome"
+                      : `${
+                          procedure.procedureName || `Flap ${flapIndex + 1}`
+                        } Outcome`;
+
+                  return (
+                    <DetailModuleRow
+                      key={`flap-outcome-${procedure.id}`}
+                      title={title}
+                      summary={flapOutcomeSummary}
+                      isComplete={flapOutcomeSummary !== null}
+                      onPress={() =>
+                        setActiveFlapOutcomeProcedureId(procedure.id)
+                      }
+                      icon="heart"
+                    />
+                  );
+                })
+              : null}
             {moduleVisibility.infection ? (
               <DetailModuleRow
                 title="Infection Details"
@@ -1947,32 +2033,31 @@ export function DiagnosisGroupEditor({
           />
         ) : null}
 
-        {moduleVisibility.flapDetails && freeFlapProcedure ? (
+        {moduleVisibility.flapDetails && activeFlapSheetProcedure ? (
           <FreeFlapSheet
-            visible={showFlapSheet}
-            onClose={() => setShowFlapSheet(false)}
+            visible
+            onClose={() => setActiveFlapSheetProcedureId(null)}
             onSave={handleFlapSave}
             initialDetails={
-              (freeFlapProcedure.clinicalDetails as FreeFlapDetails) || {
+              (activeFlapSheetProcedure.clinicalDetails as FreeFlapDetails) || {
                 flapType: "",
                 harvestSide: "left",
                 anastomoses: [],
               }
             }
-            procedureType={freeFlapProcedure.procedureName}
-            picklistEntryId={freeFlapProcedure.picklistEntryId}
+            procedureType={activeFlapSheetProcedure.procedureName}
+            picklistEntryId={activeFlapSheetProcedure.picklistEntryId}
           />
         ) : null}
 
-        {moduleVisibility.flapOutcome && freeFlapProcedure ? (
+        {moduleVisibility.flapOutcome && activeFlapOutcomeProcedure ? (
           <FlapOutcomeSheet
-            visible={showFlapOutcomeSheet}
-            onClose={() => setShowFlapOutcomeSheet(false)}
+            visible
+            onClose={() => setActiveFlapOutcomeProcedureId(null)}
             onSave={handleFlapOutcomeSave}
-            initialOutcome={
-              (freeFlapProcedure.clinicalDetails as FreeFlapDetails)
-                ?.flapOutcome || defaultFlapOutcome
-            }
+            initialOutcome={getFlapOutcomeForProcedure(
+              activeFlapOutcomeProcedure,
+            )}
           />
         ) : null}
 
