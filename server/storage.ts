@@ -133,6 +133,10 @@ export interface IStorage {
   getProcedureOutcomesByCaseProcedure(
     caseProcedureId: string,
   ): Promise<ProcedureOutcomeRow[]>;
+  verifyCaseProcedureOwnership(
+    caseProcedureId: string,
+    userId: string,
+  ): Promise<boolean>;
   createProcedureOutcome(
     outcome: InsertProcedureOutcomeRow,
   ): Promise<ProcedureOutcomeRow>;
@@ -640,6 +644,23 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(procedureOutcomes)
       .where(eq(procedureOutcomes.caseProcedureId, caseProcedureId));
+  }
+
+  async verifyCaseProcedureOwnership(
+    caseProcedureId: string,
+    userId: string,
+  ): Promise<boolean> {
+    const [result] = await db
+      .select({ id: caseProcedures.id })
+      .from(caseProcedures)
+      .innerJoin(procedures, eq(caseProcedures.caseId, procedures.id))
+      .where(
+        and(
+          eq(caseProcedures.id, caseProcedureId),
+          eq(procedures.userId, userId),
+        ),
+      );
+    return !!result;
   }
 
   async createProcedureOutcome(

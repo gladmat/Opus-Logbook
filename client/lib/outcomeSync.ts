@@ -37,6 +37,9 @@ export async function syncFlapOutcomeToServer(
   outcome: FreeFlapOutcomeDetails,
 ): Promise<void> {
   try {
+    const assessedAt = outcome.assessedAt || new Date().toISOString();
+    const assessedDaysPostOp = outcome.assessedDaysPostOp;
+
     // Check for existing outcome
     const getRes = await authedFetch(
       `/api/procedure-outcomes/${caseProcedureId}`,
@@ -54,7 +57,10 @@ export async function syncFlapOutcomeToServer(
           method: "PUT",
           body: JSON.stringify({
             details: outcome,
-            assessedAt: new Date().toISOString(),
+            assessedAt,
+            ...(assessedDaysPostOp !== undefined
+              ? { assessedDaysPostOp }
+              : {}),
           }),
         });
       } else {
@@ -65,7 +71,10 @@ export async function syncFlapOutcomeToServer(
             caseProcedureId,
             outcomeType: "free_flap",
             details: outcome,
-            assessedAt: new Date().toISOString(),
+            assessedAt,
+            ...(assessedDaysPostOp !== undefined
+              ? { assessedDaysPostOp }
+              : {}),
           }),
         });
       }
@@ -77,7 +86,10 @@ export async function syncFlapOutcomeToServer(
           caseProcedureId,
           outcomeType: "free_flap",
           details: outcome,
-          assessedAt: new Date().toISOString(),
+          assessedAt,
+          ...(assessedDaysPostOp !== undefined
+            ? { assessedDaysPostOp }
+            : {}),
         }),
       });
     }

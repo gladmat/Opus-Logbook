@@ -1555,8 +1555,9 @@ export function ProcedureClinicalDetails({
   const picklistEntry = picklistEntryId
     ? findPicklistEntry(picklistEntryId)
     : undefined;
-  const isFreeFlapProcedure = picklistEntry
-    ? !!picklistEntry.hasFreeFlap
+  const isFreeFlapProcedure = picklistEntryId
+    ? !!PICKLIST_TO_FLAP_TYPE[picklistEntryId] ||
+      (picklistEntry?.tags?.includes("free_flap") ?? false)
     : procedureType.toLowerCase().includes("free flap") ||
       procedureType.toLowerCase().includes("free tissue");
 

@@ -147,6 +147,36 @@ const procedureOutcomeUpdateSchema = insertProcedureOutcomeSchema
   .partial()
   .omit({ caseProcedureId: true });
 
+function parseJsonObject(
+  value: unknown,
+): { ok: true; value: Record<string, unknown> | undefined } | { ok: false } {
+  if (value === undefined || value === null) {
+    return { ok: true, value: undefined };
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return { ok: true, value: undefined };
+    }
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return { ok: true, value: parsed as Record<string, unknown> };
+      }
+      return { ok: false };
+    } catch {
+      return { ok: false };
+    }
+  }
+
+  if (typeof value === "object" && !Array.isArray(value)) {
+    return { ok: true, value: value as Record<string, unknown> };
+  }
+
+  return { ok: false };
+}
+
 const authRateLimiter = new Map<string, { count: number; resetTime: number }>();
 const AUTH_RATE_LIMIT = 10;
 const AUTH_RATE_WINDOW_MS = 60 * 1000;
@@ -632,12 +662,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const profile = await storage.getProfile(req.userId!);
         if (profile) {
-          // Deserialize surgicalPreferences from JSON string
+          const parsedPrefs = parseJsonObject(profile.surgicalPreferences);
           const responseProfile = {
             ...profile,
-            surgicalPreferences: profile.surgicalPreferences
-              ? JSON.parse(profile.surgicalPreferences)
-              : undefined,
+            surgicalPreferences: parsedPrefs.ok ? parsedPrefs.value : undefined,
           };
           res.json(responseProfile);
         } else {
@@ -658,13 +686,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     authenticateToken,
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       try {
-        // Serialize surgicalPreferences to JSON string if provided as object
         const body = { ...req.body };
-        if (
-          body.surgicalPreferences &&
-          typeof body.surgicalPreferences === "object"
-        ) {
-          body.surgicalPreferences = JSON.stringify(body.surgicalPreferences);
+        if ("surgicalPreferences" in body) {
+          const parsedPrefs = parseJsonObject(body.surgicalPreferences);
+          if (!parsedPrefs.ok) {
+            res.status(400).json({
+              error: "Invalid profile data",
+              details: { surgicalPreferences: ["Must be a JSON object"] },
+            });
+            return;
+          }
+          body.surgicalPreferences = parsedPrefs.value ?? {};
         }
 
         const parseResult = profileUpdateSchema.safeParse(body);
@@ -681,12 +713,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           parseResult.data,
         );
 
-        // Deserialize surgicalPreferences back to object for response
+        const parsedPrefs = parseJsonObject(profile?.surgicalPreferences);
         const responseProfile = {
           ...profile,
-          surgicalPreferences: profile?.surgicalPreferences
-            ? JSON.parse(profile.surgicalPreferences)
-            : undefined,
+          surgicalPreferences: parsedPrefs.ok ? parsedPrefs.value : undefined,
         };
         res.json(responseProfile);
       } catch (error) {
@@ -1478,12 +1508,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       try {
         const caseProcedureId = req.params.caseProcedureId!;
+        const userId = req.userId!;
+        const hasAccess = await storage.verifyCaseProcedureOwnership(
+          caseProcedureId,
+          userId,
+        );
+        if (!hasAccess) {
+          res.status(403).json({ error: "Access denied" });
+          return;
+        }
+
         const outcomes =
           await storage.getProcedureOutcomesByCaseProcedure(caseProcedureId);
-        // Parse details JSON for each outcome
         const parsed = outcomes.map((o) => ({
           ...o,
-          details: typeof o.details === "string" ? JSON.parse(o.details) : o.details,
+          details: (() => {
+            const parsedDetails = parseJsonObject(o.details);
+            return parsedDetails.ok ? parsedDetails.value ?? {} : {};
+          })(),
         }));
         res.json(parsed);
       } catch (error) {
@@ -1502,10 +1544,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     authenticateToken,
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       try {
-        // Serialize details to JSON string if provided as object
+        const userId = req.userId!;
         const body = { ...req.body };
-        if (body.details && typeof body.details === "object") {
-          body.details = JSON.stringify(body.details);
+        if ("details" in body) {
+          const parsedDetails = parseJsonObject(body.details);
+          if (!parsedDetails.ok) {
+            res.status(400).json({
+              error: "Invalid outcome data",
+              details: { details: ["Must be a JSON object"] },
+            });
+            return;
+          }
+          body.details = parsedDetails.value ?? {};
         }
 
         const parseResult = procedureOutcomeCreateSchema.safeParse(body);
@@ -1517,13 +1567,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return;
         }
 
+        const hasAccess = await storage.verifyCaseProcedureOwnership(
+          parseResult.data.caseProcedureId,
+          userId,
+        );
+        if (!hasAccess) {
+          res.status(403).json({ error: "Access denied" });
+          return;
+        }
+
         const outcome = await storage.createProcedureOutcome(parseResult.data);
+        const parsedDetails = parseJsonObject(outcome.details);
         res.status(201).json({
           ...outcome,
-          details:
-            typeof outcome.details === "string"
-              ? JSON.parse(outcome.details)
-              : outcome.details,
+          details: parsedDetails.ok ? parsedDetails.value ?? {} : {},
         });
       } catch (error) {
         console.error(
@@ -1553,10 +1610,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return;
         }
 
-        // Serialize details to JSON string if provided as object
         const body = { ...req.body };
-        if (body.details && typeof body.details === "object") {
-          body.details = JSON.stringify(body.details);
+        if ("details" in body) {
+          const parsedDetails = parseJsonObject(body.details);
+          if (!parsedDetails.ok) {
+            res.status(400).json({
+              error: "Invalid outcome data",
+              details: { details: ["Must be a JSON object"] },
+            });
+            return;
+          }
+          body.details = parsedDetails.value ?? {};
         }
 
         const parseResult = procedureOutcomeUpdateSchema.safeParse(body);
@@ -1576,12 +1640,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           res.status(404).json({ error: "Outcome not found" });
           return;
         }
+        const parsedDetails = parseJsonObject(outcome.details);
         res.json({
           ...outcome,
-          details:
-            typeof outcome.details === "string"
-              ? JSON.parse(outcome.details)
-              : outcome.details,
+          details: parsedDetails.ok ? parsedDetails.value ?? {} : {},
         });
       } catch (error) {
         console.error(

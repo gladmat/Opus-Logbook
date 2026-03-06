@@ -74,7 +74,7 @@ import { FlapOutcomeSheet } from "@/components/detail-sheets/FlapOutcomeSheet";
 import { HandTraumaSheet } from "@/components/detail-sheets/HandTraumaSheet";
 import { InfectionSheet } from "@/components/detail-sheets/InfectionSheet";
 import { WoundAssessmentSheet } from "@/components/detail-sheets/WoundAssessmentSheet";
-import { getModuleVisibility } from "@/lib/moduleVisibility";
+import { getModuleVisibility, procedureHasFreeFlap } from "@/lib/moduleVisibility";
 import { generateFlapOutcomeSummary } from "@/components/FlapOutcomeSection";
 import type { FreeFlapOutcomeDetails } from "@/types/case";
 import {
@@ -465,7 +465,12 @@ export function DiagnosisGroupEditor({
         (picklistId, idx) => {
           const entry = findPicklistEntry(picklistId);
           let clinicalDetails: FreeFlapDetails | undefined = undefined;
-          if (entry?.hasFreeFlap) {
+          if (
+            procedureHasFreeFlap({
+              picklistEntryId: picklistId,
+              tags: entry?.tags,
+            })
+          ) {
             clinicalDetails = buildFreeFlapClinicalDetails(picklistId, dx);
           }
           return {
@@ -539,7 +544,10 @@ export function DiagnosisGroupEditor({
               (picklistId) => {
                 const entry = findPicklistEntry(picklistId);
                 const clinicalDetails =
-                  entry?.hasFreeFlap && selectedDiagnosis
+                  procedureHasFreeFlap({
+                    picklistEntryId: picklistId,
+                    tags: entry?.tags,
+                  }) && selectedDiagnosis
                     ? buildFreeFlapClinicalDetails(picklistId, selectedDiagnosis)
                     : undefined;
                 return {
@@ -586,7 +594,10 @@ export function DiagnosisGroupEditor({
           entry &&
           !procedures.some((p) => p.picklistEntryId === procedurePicklistId)
         ) {
-          const clinicalDetails = entry.hasFreeFlap
+          const clinicalDetails = procedureHasFreeFlap({
+            picklistEntryId: procedurePicklistId,
+            tags: entry.tags,
+          })
             ? buildFreeFlapClinicalDetails(procedurePicklistId, selectedDiagnosis)
             : undefined;
           const newProc: CaseProcedure = {
@@ -655,11 +666,7 @@ export function DiagnosisGroupEditor({
 
   const freeFlapProcedure = useMemo(
     () =>
-      procedures.find((p) => {
-        if (!p.picklistEntryId) return false;
-        const entry = findPicklistEntry(p.picklistEntryId);
-        return entry?.hasFreeFlap;
-      }),
+      procedures.find((p) => procedureHasFreeFlap(p)),
     [procedures],
   );
 
@@ -775,7 +782,10 @@ export function DiagnosisGroupEditor({
           if (!existingPicklistIds.has(picklistId)) {
             const entry = findPicklistEntry(picklistId);
             if (entry) {
-              const clinicalDetails = entry.hasFreeFlap
+              const clinicalDetails = procedureHasFreeFlap({
+                picklistEntryId: picklistId,
+                tags: entry.tags,
+              })
                 ? buildFreeFlapClinicalDetails(picklistId, dx)
                 : undefined;
               newProcedures.push({

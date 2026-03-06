@@ -1030,6 +1030,8 @@ export interface ProcedureOutcome extends ProcedureOutcomeBase {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export interface FreeFlapOutcomeDetails {
+  assessedAt?: string;
+  assessedDaysPostOp?: number;
   flapSurvival: FlapSurvivalStatus;
   partialLossPercentage?: number;
   partialLossManagement?: PartialLossManagement;

@@ -11,6 +11,7 @@ import * as Haptics from "expo-haptics";
 import { v4 as uuidv4 } from "uuid";
 import {
   Case,
+  CaseProcedure,
   DiagnosisGroup,
   Specialty,
   Role,
@@ -49,6 +50,7 @@ import {
 } from "@/lib/storage";
 import { updateEpisode, getEpisode } from "@/lib/episodeStorage";
 import { getDefaultClinicalDetails } from "@/lib/procedureConfig";
+import { PICKLIST_TO_FLAP_TYPE } from "@/lib/procedurePicklist";
 import {
   findSnomedProcedure,
   getProcedureCodeForCountry,
@@ -724,10 +726,20 @@ interface UseCaseFormParams {
 
 // ─── Episode Prefill State Builder ──────────────────────────────────────────
 
+function hasProcedureFreeFlap(
+  procedure: Pick<CaseProcedure, "picklistEntryId" | "tags">,
+): boolean {
+  if (procedure.picklistEntryId && PICKLIST_TO_FLAP_TYPE[procedure.picklistEntryId]) {
+    return true;
+  }
+  return procedure.tags?.includes("free_flap") ?? false;
+}
+
 export function buildEpisodePrefillState(
   episodeId: string,
   prefill: EpisodePrefillData,
   primaryFacility: string,
+  defaultAnticoagulation?: FreeFlapDetails["anticoagulationProtocol"],
 ): CaseFormState {
   const defaults = getDefaultFormState(prefill.specialty, primaryFacility);
 
@@ -739,11 +751,22 @@ export function buildEpisodePrefillState(
   const clonedGroups: DiagnosisGroup[] = prefill.diagnosisGroups?.map((g) => ({
     ...g,
     id: uuidv4(),
-    procedures: g.procedures.map((p) => ({
-      ...p,
-      id: uuidv4(),
-      clinicalDetails: undefined, // Strip per-operation FreeFlapDetails etc.
-    })),
+    procedures: g.procedures.map((p) => {
+      const clonedProcedure: CaseProcedure = {
+        ...p,
+        id: uuidv4(),
+        clinicalDetails: undefined, // Strip per-operation FreeFlapDetails etc.
+      };
+
+      // Re-apply defaults from surgical preferences (never cloned from previous case).
+      if (defaultAnticoagulation && hasProcedureFreeFlap(clonedProcedure)) {
+        clonedProcedure.clinicalDetails = {
+          anticoagulationProtocol: defaultAnticoagulation,
+        } as FreeFlapDetails;
+      }
+
+      return clonedProcedure;
+    }),
     diagnosisClinicalDetails: g.diagnosisClinicalDetails
       ? {
           laterality: g.diagnosisClinicalDetails.laterality,
@@ -758,21 +781,6 @@ export function buildEpisodePrefillState(
     lesionInstances: undefined, // Strip — new excisions are new lesions
   })) ?? defaults.diagnosisGroups;
 
-  // Strip per-operation flap fields from cloned procedures (Part 8A)
-  // Patient-level facts (prior radio/chemo) carry forward; per-op data (ischemia, outcome) stripped
-  for (const group of clonedGroups) {
-    for (const proc of group.procedures) {
-      if (proc.clinicalDetails) {
-        const cd = proc.clinicalDetails as Record<string, any>;
-        delete cd.warmIschemiaMinutes;
-        delete cd.coldIschemiaMinutes;
-        delete cd.perfusionAssessment;
-        delete cd.positionChangeRequired;
-        delete cd.flapOutcome;
-      }
-    }
-  }
-
   return {
     ...defaults,
     patientIdentifier: prefill.patientIdentifier,
@@ -782,6 +790,7 @@ export function buildEpisodePrefillState(
     encounterClass: prefill.encounterClass || "",
     diagnosisGroups: clonedGroups,
     // Patient-level facts carry forward
+    reconstructionTiming: prefill.reconstructionTiming ?? "",
     priorRadiotherapy: prefill.priorRadiotherapy ?? false,
     priorChemotherapy: prefill.priorChemotherapy ?? false,
   };
@@ -942,6 +951,8 @@ export function useCaseForm({
   const draftLoadedRef = useRef(false);
   const savedRef = useRef(false);
   const editModeLoadedRef = useRef(false);
+  const reconstructionTimingAutoSetRef = useRef(false);
+  const episodePrefillDefaultsAppliedRef = useRef(false);
 
   const [state, dispatch] = useReducer(
     caseFormReducer,
@@ -950,6 +961,7 @@ export function useCaseForm({
           routeEpisodeId,
           episodePrefill,
           primaryFacility,
+          profile?.surgicalPreferences?.microsurgery?.anticoagulationProtocol,
         )
       : duplicateFrom
         ? buildDuplicateState(duplicateFrom, specialty, primaryFacility)
@@ -1000,6 +1012,91 @@ export function useCaseForm({
     }
   }, [state.stayType, state.procedureDate]);
 
+  // Smart default for treatment context timing (Part 4C)
+  useEffect(() => {
+    if (state.reconstructionTiming || reconstructionTimingAutoSetRef.current) {
+      return;
+    }
+
+    const hasFreeFlapProcedure = state.diagnosisGroups.some((group) =>
+      group.procedures.some((procedure) => hasProcedureFreeFlap(procedure)),
+    );
+    if (!hasFreeFlapProcedure) return;
+
+    const hasTraumaDiagnosis = state.diagnosisGroups.some((group) => {
+      if (!group.diagnosisPicklistId) return false;
+      const dx = findDiagnosisById(group.diagnosisPicklistId);
+      return dx?.clinicalGroup === "trauma";
+    });
+
+    const hasOncologicalDiagnosis = state.diagnosisGroups.some((group) => {
+      if (!group.diagnosisPicklistId) return false;
+      const dx = findDiagnosisById(group.diagnosisPicklistId);
+      return dx?.clinicalGroup === "oncological";
+    });
+
+    const shouldDefaultImmediate =
+      (state.admissionUrgency === "acute" && hasTraumaDiagnosis) ||
+      (state.admissionUrgency === "elective" && hasOncologicalDiagnosis);
+
+    if (!shouldDefaultImmediate) return;
+
+    reconstructionTimingAutoSetRef.current = true;
+    dispatch(setField("reconstructionTiming", "immediate"));
+  }, [
+    state.reconstructionTiming,
+    state.admissionUrgency,
+    state.diagnosisGroups,
+  ]);
+
+  // Episode prefill: ensure anticoagulation defaults are applied from preferences, not inherited overrides
+  useEffect(() => {
+    const prefAnticoagulation =
+      profile?.surgicalPreferences?.microsurgery?.anticoagulationProtocol;
+    if (
+      !isEpisodePrefill ||
+      !prefAnticoagulation ||
+      episodePrefillDefaultsAppliedRef.current
+    ) {
+      return;
+    }
+
+    let hasChanges = false;
+    const nextGroups = state.diagnosisGroups.map((group) => {
+      let groupChanged = false;
+      const nextProcedures = group.procedures.map((procedure) => {
+        if (!hasProcedureFreeFlap(procedure)) return procedure;
+        const details = procedure.clinicalDetails as FreeFlapDetails | undefined;
+        if (details?.anticoagulationProtocol) return procedure;
+
+        groupChanged = true;
+        return {
+          ...procedure,
+          clinicalDetails: {
+            ...(details || {}),
+            anticoagulationProtocol: prefAnticoagulation,
+          } as FreeFlapDetails,
+        };
+      });
+
+      if (!groupChanged) return group;
+      hasChanges = true;
+      return {
+        ...group,
+        procedures: nextProcedures,
+      };
+    });
+
+    if (hasChanges) {
+      dispatch(setField("diagnosisGroups", nextGroups));
+    }
+    episodePrefillDefaultsAppliedRef.current = true;
+  }, [
+    isEpisodePrefill,
+    profile?.surgicalPreferences?.microsurgery?.anticoagulationProtocol,
+    state.diagnosisGroups,
+  ]);
+
   // Load existing case in edit mode
   useEffect(() => {
     if (!isEditMode || !caseId || editModeLoadedRef.current) return;
@@ -1032,6 +1129,8 @@ export function useCaseForm({
   // ── Reset / Revert ────────────────────────────────────────────────────
 
   const resetForm = useCallback(() => {
+    reconstructionTimingAutoSetRef.current = false;
+    episodePrefillDefaultsAppliedRef.current = false;
     dispatch({
       type: "RESET_FORM",
       defaults: getDefaultFormState(specialty, primaryFacility),
@@ -1040,6 +1139,8 @@ export function useCaseForm({
 
   const revertToSaved = useCallback(() => {
     if (existingCase) {
+      reconstructionTimingAutoSetRef.current = false;
+      episodePrefillDefaultsAppliedRef.current = false;
       const formState = loadCaseIntoFormState(existingCase, specialty);
       dispatch({ type: "LOAD_CASE", formState });
     }

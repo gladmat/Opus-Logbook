@@ -10,7 +10,7 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { v4 as uuidv4 } from "uuid";
 import { ThemedText } from "@/components/ThemedText";
-import { FormField } from "@/components/FormField";
+import { FormField, DatePickerField } from "@/components/FormField";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import {
@@ -358,6 +358,42 @@ export function FlapOutcomeSection({
   onUpdate,
 }: FlapOutcomeSectionProps) {
   const { theme } = useTheme();
+  const assessedDate = outcome.assessedAt
+    ? outcome.assessedAt.split("T")[0] || ""
+    : "";
+
+  const handleAssessedDateChange = useCallback(
+    (date: string) => {
+      if (!date) {
+        const next = { ...outcome };
+        delete next.assessedAt;
+        onUpdate(next);
+        return;
+      }
+      onUpdate({
+        ...outcome,
+        assessedAt: `${date}T00:00:00.000Z`,
+      });
+    },
+    [outcome, onUpdate],
+  );
+
+  const handleAssessedDaysChange = useCallback(
+    (value: string) => {
+      const parsed = Number.parseInt(value, 10);
+      if (!value.trim() || Number.isNaN(parsed) || parsed < 0) {
+        const next = { ...outcome };
+        delete next.assessedDaysPostOp;
+        onUpdate(next);
+        return;
+      }
+      onUpdate({
+        ...outcome,
+        assessedDaysPostOp: parsed,
+      });
+    },
+    [outcome, onUpdate],
+  );
 
   // ── Survival Status ──────────────────────────────────────────────────────
   const handleSurvivalChange = useCallback(
@@ -488,6 +524,8 @@ export function FlapOutcomeSection({
   // ── Filled count for badge ───────────────────────────────────────────────
   const filledCount = useMemo(() => {
     let count = 0;
+    if (outcome.assessedAt) count++;
+    if (outcome.assessedDaysPostOp !== undefined) count++;
     if (outcome.flapSurvival) count++;
     if (outcome.monitoringProtocol) count++;
     if (outcome.reExploration?.reExplored) count++;
@@ -495,6 +533,8 @@ export function FlapOutcomeSection({
     if (recipientComplications.length > 0) count++;
     return count;
   }, [
+    outcome.assessedAt,
+    outcome.assessedDaysPostOp,
     outcome.flapSurvival,
     outcome.monitoringProtocol,
     outcome.reExploration?.reExplored,
@@ -504,6 +544,27 @@ export function FlapOutcomeSection({
 
   return (
     <View style={styles.container}>
+      <View style={styles.timingSection}>
+        <DatePickerField
+          label="Assessment Date"
+          value={assessedDate}
+          onChange={handleAssessedDateChange}
+          placeholder="Select assessment date..."
+          clearable
+        />
+        <FormField
+          label="Assessment Day Post-op"
+          value={
+            outcome.assessedDaysPostOp !== undefined
+              ? String(outcome.assessedDaysPostOp)
+              : ""
+          }
+          onChangeText={handleAssessedDaysChange}
+          placeholder="e.g., 7"
+          keyboardType="number-pad"
+        />
+      </View>
+
       {/* Survival Status */}
       <SurvivalStatusControl
         value={outcome.flapSurvival}
@@ -771,6 +832,9 @@ export function generateFlapOutcomeSummary(
 const styles = StyleSheet.create({
   container: {
     gap: Spacing.lg,
+  },
+  timingSection: {
+    gap: Spacing.xs,
   },
   fieldLabel: {
     fontSize: 14,

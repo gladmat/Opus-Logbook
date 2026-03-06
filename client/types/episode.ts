@@ -1,4 +1,8 @@
-import type { Specialty, DiagnosisGroup } from "@/types/case";
+import type {
+  Specialty,
+  DiagnosisGroup,
+  ReconstructionTiming,
+} from "@/types/case";
 
 // ── Episode Status (state machine) ──────────────────────────────────────────
 // planned → active ⇄ on_hold → completed | cancelled
@@ -119,6 +123,7 @@ export interface EpisodePrefillData {
   encounterClass?: EncounterClass;
   episodeSequence: number;
   // Patient-level facts carried forward across episodes
+  reconstructionTiming?: ReconstructionTiming;
   priorRadiotherapy?: boolean;
   priorChemotherapy?: boolean;
 }

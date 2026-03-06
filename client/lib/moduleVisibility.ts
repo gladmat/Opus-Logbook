@@ -6,7 +6,7 @@
 import type { DiagnosisGroup } from "@/types/case";
 import type { InfectionOverlay } from "@/types/infection";
 import type { EpisodeType } from "@/types/episode";
-import { findPicklistEntry } from "@/lib/procedurePicklist";
+import { PICKLIST_TO_FLAP_TYPE } from "@/lib/procedurePicklist";
 
 export interface ModuleVisibility {
   flapDetails: boolean;
@@ -25,18 +25,14 @@ export interface ModuleVisibility {
  * Check if a single procedure is a free flap procedure.
  * Extracted for reuse across module visibility and case-level checks.
  */
-function procedureHasFreeFlap(proc: {
+export function procedureHasFreeFlap(proc: {
   picklistEntryId?: string;
   tags?: string[];
 }): boolean {
-  const entry = proc.picklistEntryId
-    ? findPicklistEntry(proc.picklistEntryId)
-    : undefined;
-  return !!(
-    entry?.hasFreeFlap ||
-    proc.tags?.includes("free_flap") ||
-    proc.tags?.includes("pedicled_flap")
-  );
+  if (proc.picklistEntryId && PICKLIST_TO_FLAP_TYPE[proc.picklistEntryId]) {
+    return true;
+  }
+  return proc.tags?.includes("free_flap") ?? false;
 }
 
 /**
@@ -65,7 +61,7 @@ export function getModuleVisibility(
 ): ModuleVisibility {
   const procedures = group.procedures;
 
-  // Flap Details: any procedure has hasFreeFlap on picklist entry OR tags include free_flap/pedicled_flap
+  // Flap Details: any procedure maps to a free flap or has explicit free_flap tag
   const flapDetails = procedures.some(procedureHasFreeFlap);
 
   // Flap Outcome: same predicate as flapDetails (Part 8D alignment)

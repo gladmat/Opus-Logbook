@@ -7,6 +7,7 @@ import {
   integer,
   decimal,
   timestamp,
+  jsonb,
   serial,
   uniqueIndex,
   index,
@@ -147,7 +148,9 @@ export const profiles = pgTable("profiles", {
     .default("unverified")
     .notNull(),
   careerStage: varchar("career_stage", { length: 50 }),
-  surgicalPreferences: text("surgical_preferences"), // JSONB stored as text
+  surgicalPreferences: jsonb("surgical_preferences")
+    .$type<Record<string, unknown>>()
+    .default(sql`'{}'::jsonb`),
   onboardingComplete: boolean("onboarding_complete").default(false).notNull(),
   createdAt: timestamp("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
@@ -606,7 +609,10 @@ export const procedureOutcomes = pgTable(
     outcomeType: varchar("outcome_type", { length: 30 }).notNull(),
     assessedAt: timestamp("assessed_at"),
     assessedDaysPostOp: integer("assessed_days_post_op"),
-    details: text("details").notNull().default("{}"), // JSON string
+    details: jsonb("details")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     createdAt: timestamp("created_at")
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),

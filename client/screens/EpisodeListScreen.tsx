@@ -119,6 +119,10 @@ export default function EpisodeListScreen() {
         facility: lastCase?.facility,
         specialty: episode.specialty,
         diagnosisGroups: lastCase?.diagnosisGroups,
+        encounterClass: lastCase?.encounterClass,
+        reconstructionTiming: lastCase?.reconstructionTiming,
+        priorRadiotherapy: lastCase?.priorRadiotherapy,
+        priorChemotherapy: lastCase?.priorChemotherapy,
         episodeSequence: seq,
       };
 
