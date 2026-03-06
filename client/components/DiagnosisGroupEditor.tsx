@@ -237,6 +237,11 @@ export function DiagnosisGroupEditor({
     useState(false);
   const [autoAppliedTraumaSuggestionIds, setAutoAppliedTraumaSuggestionIds] =
     useState<Set<string>>(new Set());
+  const latestGroupRef = useRef(group);
+
+  useEffect(() => {
+    latestGroupRef.current = group;
+  }, [group]);
 
   useEffect(() => {
     if (initializedRef.current) return;
@@ -326,7 +331,8 @@ export function DiagnosisGroupEditor({
 
     const isExcBiopsy = isExcisionBiopsyDiagnosis(selectedDiagnosis?.id);
     const assembled: DiagnosisGroup = {
-      ...group, // Preserve woundAssessment, pathologicalDiagnosis, and other fields not managed here
+      // Preserve fields managed outside this editor without forcing a sync loop.
+      ...latestGroupRef.current,
       specialty: groupSpecialty,
       diagnosis: primaryDiagnosis
         ? {
@@ -364,8 +370,6 @@ export function DiagnosisGroupEditor({
     isMultiLesion,
     lesionInstances,
     clinicalSuspicion,
-    group.id,
-    group.sequenceOrder,
   ]);
 
   const buildDefaultProcedures = useCallback(

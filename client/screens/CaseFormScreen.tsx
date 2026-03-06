@@ -145,6 +145,12 @@ export default function CaseFormScreen() {
     primaryFacility,
     profile,
   });
+  const formDispatch = form.dispatch;
+  const diagnosisGroupsRef = useRef(form.state.diagnosisGroups);
+  diagnosisGroupsRef.current = form.state.diagnosisGroups;
+
+  const isEditModeRef = useRef(form.isEditMode);
+  isEditModeRef.current = form.isEditMode;
 
   const { recordUsage } = useFavouritesRecents(form.specialty);
 
@@ -155,7 +161,7 @@ export default function CaseFormScreen() {
     isEpisodePrefill: !!episodePrefill,
     draftLoadedRef: form.draftLoadedRef,
     savedRef: form.savedRef,
-    dispatch: form.dispatch,
+    dispatch: formDispatch,
     primaryFacility,
   });
 
@@ -200,7 +206,7 @@ export default function CaseFormScreen() {
 
   const handleLinkEpisode = useCallback(
     (episode: TreatmentEpisode) => {
-      form.dispatch({
+      formDispatch({
         type: "BULK_UPDATE",
         updates: {
           episodeId: episode.id,
@@ -208,7 +214,7 @@ export default function CaseFormScreen() {
         },
       });
     },
-    [form.dispatch],
+    [formDispatch],
   );
 
   // ── Completion map ──────────────────────────────────────────────────────
@@ -434,7 +440,7 @@ export default function CaseFormScreen() {
             onPress={() =>
               handleSaveRef.current(formOpenedAtRef.current).then((success) => {
                 if (success) {
-                  for (const group of form.state.diagnosisGroups) {
+                  for (const group of diagnosisGroupsRef.current) {
                     if (group.diagnosisPicklistId) {
                       recordUsageRef.current(
                         "diagnosis",
@@ -450,7 +456,7 @@ export default function CaseFormScreen() {
                       }
                     }
                   }
-                  if (!form.isEditMode) clearDraftRef.current();
+                  if (!isEditModeRef.current) void clearDraftRef.current();
                   navigation.goBack();
                 }
               })
@@ -477,6 +483,7 @@ export default function CaseFormScreen() {
     form.specialty,
     theme.link,
     theme.textSecondary,
+    theme.textTertiary,
     navigation,
     showOverflowMenu,
     reviewMode,

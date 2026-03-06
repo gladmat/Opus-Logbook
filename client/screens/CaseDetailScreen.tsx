@@ -175,7 +175,7 @@ export default function CaseDetailScreen() {
     }
   }, [route.params.showComplicationForm]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const data = await getCase(route.params.caseId);
       setCaseData(data);
@@ -188,11 +188,11 @@ export default function CaseDetailScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [route.params.caseId]);
 
   useFocusEffect(
     useCallback(() => {
-      loadData();
+      void loadData();
     }, [loadData]),
   );
 

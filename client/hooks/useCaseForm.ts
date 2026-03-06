@@ -1270,12 +1270,13 @@ export function useCaseForm({
 
   // ── Anastomosis callbacks ─────────────────────────────────────────────
 
+  const primaryProcedureName =
+    state.diagnosisGroups[0]?.procedures[0]?.procedureName;
+
   const addAnastomosis = useCallback(
     (vesselType: "artery" | "vein") => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const derivedType =
-        state.diagnosisGroups[0]?.procedures[0]?.procedureName ||
-        state.procedureType;
+      const derivedType = primaryProcedureName || state.procedureType;
       const donorVessels = DEFAULT_DONOR_VESSELS[derivedType];
       const donorVesselName = donorVessels
         ? vesselType === "artery"
@@ -1291,7 +1292,7 @@ export function useCaseForm({
       };
       dispatch(setField("anastomoses", [...state.anastomoses, newEntry]));
     },
-    [state.procedureType, state.anastomoses],
+    [primaryProcedureName, state.procedureType, state.anastomoses],
   );
 
   const updateAnastomosis = useCallback(
