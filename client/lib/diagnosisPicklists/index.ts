@@ -17,10 +17,29 @@
 import type { Specialty } from "@/types/case";
 import type {
   DiagnosisPicklistEntry,
-  ProcedureSuggestion,
   EvaluatedSuggestion,
   StagingSelections,
 } from "@/types/diagnosis";
+
+// ─── Import all diagnosis arrays ─────────────────────────────────────────────
+
+import { HAND_SURGERY_DIAGNOSES } from "./handSurgeryDiagnoses";
+import { BURNS_DIAGNOSES } from "./burnsDiagnoses";
+import { BODY_CONTOURING_DIAGNOSES } from "./bodyContouringDiagnoses";
+import { BREAST_DIAGNOSES } from "./breastDiagnoses";
+import { AESTHETICS_DIAGNOSES } from "./aestheticsDiagnoses";
+import { GENERAL_DIAGNOSES, GEN_DX_SKIN_CANCER } from "./generalDiagnoses";
+
+import {
+  HEAD_NECK_DIAGNOSES,
+  HN_DX_SKIN_CANCER,
+  HN_DX_CLEFT_CRANIOFACIAL,
+} from "./headNeckDiagnoses";
+import { ORTHOPLASTIC_DIAGNOSES } from "./orthoplasticDiagnoses";
+import { CLEFT_CRANIO_DIAGNOSES } from "./cleftCranioDiagnoses";
+import { SKIN_CANCER_DIAGNOSES } from "./skinCancerDiagnoses";
+import { LYMPHOEDEMA_DIAGNOSES } from "./lymphoedemaDiagnoses";
+import { PERIPHERAL_NERVE_DIAGNOSES } from "./peripheralNerveDiagnoses";
 
 // ─── Re-exports ──────────────────────────────────────────────────────────────
 
@@ -48,26 +67,6 @@ export type {
   EvaluatedSuggestion,
   StagingSelections,
 } from "@/types/diagnosis";
-
-// ─── Import all diagnosis arrays ─────────────────────────────────────────────
-
-import { HAND_SURGERY_DIAGNOSES } from "./handSurgeryDiagnoses";
-import { BURNS_DIAGNOSES } from "./burnsDiagnoses";
-import { BODY_CONTOURING_DIAGNOSES } from "./bodyContouringDiagnoses";
-import { BREAST_DIAGNOSES } from "./breastDiagnoses";
-import { AESTHETICS_DIAGNOSES } from "./aestheticsDiagnoses";
-import { GENERAL_DIAGNOSES, GEN_DX_SKIN_CANCER } from "./generalDiagnoses";
-
-import {
-  HEAD_NECK_DIAGNOSES,
-  HN_DX_SKIN_CANCER,
-  HN_DX_CLEFT_CRANIOFACIAL,
-} from "./headNeckDiagnoses";
-import { ORTHOPLASTIC_DIAGNOSES } from "./orthoplasticDiagnoses";
-import { CLEFT_CRANIO_DIAGNOSES } from "./cleftCranioDiagnoses";
-import { SKIN_CANCER_DIAGNOSES } from "./skinCancerDiagnoses";
-import { LYMPHOEDEMA_DIAGNOSES } from "./lymphoedemaDiagnoses";
-import { PERIPHERAL_NERVE_DIAGNOSES } from "./peripheralNerveDiagnoses";
 
 // ─── Master Diagnosis Registry ───────────────────────────────────────────────
 
@@ -216,7 +215,7 @@ export function searchDiagnoses(
   const q = query.toLowerCase().trim();
   const pool = specialty ? getDiagnosesForSpecialty(specialty) : ALL_DIAGNOSES;
 
-  const scored: Array<{ dx: DiagnosisPicklistEntry; score: number }> = [];
+  const scored: { dx: DiagnosisPicklistEntry; score: number }[] = [];
 
   for (const dx of pool) {
     let score = 0;

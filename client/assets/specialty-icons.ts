@@ -5,8 +5,8 @@ import { Specialty } from "@/types/case";
 export const SPECIALTY_ICON_PATHS: Record<
   Specialty,
   {
-    strokes: Array<{ d: string; strokeWidth: number }>;
-    circles?: Array<{ cx: number; cy: number; r: number; fill?: boolean }>;
+    strokes: { d: string; strokeWidth: number }[];
+    circles?: { cx: number; cy: number; r: number; fill?: boolean }[];
   }
 > = {
   breast: {

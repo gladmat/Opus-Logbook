@@ -123,17 +123,6 @@ export function SoftTissueSection({
     }
   };
 
-  const toggleReplantable = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onChange({ ...value, isReplantable: !value.isReplantable });
-  };
-
-  const hasAnySpecialInjury =
-    value.isHighPressureInjection ||
-    value.isFightBite ||
-    value.isCompartmentSyndrome ||
-    value.isRingAvulsion;
-
   return (
     <View style={styles.container}>
       {/* Special Injuries */}

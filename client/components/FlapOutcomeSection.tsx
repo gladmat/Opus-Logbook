@@ -4,7 +4,7 @@
  * Captures: survival status, re-exploration events, donor/recipient complications.
  */
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useMemo, useCallback } from "react";
 import { View, Pressable, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -428,11 +428,18 @@ export function FlapOutcomeSection({
   );
 
   // ── Re-exploration ───────────────────────────────────────────────────────
-  const reExploration = outcome.reExploration || {
-    reExplored: false,
-    events: [],
-  };
-  const events = reExploration.events || [];
+  const reExploration = useMemo(
+    () =>
+      outcome.reExploration || {
+        reExplored: false,
+        events: [],
+      },
+    [outcome.reExploration],
+  );
+  const events = useMemo(
+    () => reExploration.events || [],
+    [reExploration.events],
+  );
 
   const toggleReExploration = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -529,27 +536,6 @@ export function FlapOutcomeSection({
     },
     [outcome, onUpdate],
   );
-
-  // ── Filled count for badge ───────────────────────────────────────────────
-  const filledCount = useMemo(() => {
-    let count = 0;
-    if (outcome.assessedAt) count++;
-    if (outcome.assessedDaysPostOp !== undefined) count++;
-    if (outcome.flapSurvival) count++;
-    if (outcome.monitoringProtocol) count++;
-    if (outcome.reExploration?.reExplored) count++;
-    if (donorComplications.length > 0) count++;
-    if (recipientComplications.length > 0) count++;
-    return count;
-  }, [
-    outcome.assessedAt,
-    outcome.assessedDaysPostOp,
-    outcome.flapSurvival,
-    outcome.monitoringProtocol,
-    outcome.reExploration?.reExplored,
-    donorComplications.length,
-    recipientComplications.length,
-  ]);
 
   return (
     <View style={styles.container}>

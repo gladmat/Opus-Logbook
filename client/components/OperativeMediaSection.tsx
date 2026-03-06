@@ -76,7 +76,6 @@ export function OperativeMediaSection({
   const { registerGenericCallback } = useMediaCallback();
   const [cameraPermission, requestCameraPermission] =
     ImagePicker.useCameraPermissions();
-
   const canAddMore = media.length < maxItems;
 
   const handleManageMedia = () => {
@@ -154,7 +153,7 @@ export function OperativeMediaSection({
                       try {
                         const { Linking } = await import("react-native");
                         await Linking.openSettings();
-                      } catch (e) {}
+                      } catch {}
                     },
                   },
                 ]

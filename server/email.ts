@@ -34,7 +34,7 @@ export async function sendPasswordResetEmail(
 
     const greeting = userName ? `Hi ${userName}` : "Hi";
 
-    const { data, error } = await client.emails.send({
+    const { error } = await client.emails.send({
       from: `${APP_NAME} <${FROM_EMAIL}>`,
       to: email,
       subject: "Reset Your Password — Opus",
@@ -123,7 +123,7 @@ export async function sendWelcomeEmail(
   try {
     const client = getResendClient();
 
-    const { data, error } = await client.emails.send({
+    const { error } = await client.emails.send({
       from: `${APP_NAME} <${FROM_EMAIL}>`,
       to: email,
       subject: `Welcome to ${APP_NAME}`,

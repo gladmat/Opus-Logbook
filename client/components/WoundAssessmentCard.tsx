@@ -3,7 +3,7 @@ import { View, StyleSheet } from "react-native";
 import { Feather } from "@/components/FeatherIcon";
 import { useTheme } from "@/hooks/useTheme";
 import { ThemedText } from "@/components/ThemedText";
-import { Spacing, BorderRadius, Typography } from "@/constants/theme";
+import { Spacing, BorderRadius } from "@/constants/theme";
 import {
   WoundAssessment,
   WOUND_BED_TISSUE_LABELS,

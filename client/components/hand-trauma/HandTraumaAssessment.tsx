@@ -105,15 +105,6 @@ export interface HandTraumaAssessmentAcceptPayload {
   selectedProcedureIds: string[];
 }
 
-// Map InjuryCategory to StructureCategory for the existing section components
-const STRUCTURE_CATEGORY_MAP: Partial<
-  Record<InjuryCategory, StructureCategory[]>
-> = {
-  tendon: ["flexor_tendon", "extensor_tendon"],
-  nerve: ["nerve"],
-  vessel: ["artery"],
-};
-
 function lookupProcedureMap(structureId: string): string | undefined {
   if (STRUCTURE_PROCEDURE_MAP[structureId])
     return STRUCTURE_PROCEDURE_MAP[structureId];
@@ -154,9 +145,18 @@ export function HandTraumaAssessment({
 
   const initializedRef = useRef(false);
 
-  const selectedDigits = value.affectedDigits ?? [];
-  const injuredStructures = value.injuredStructures ?? [];
-  const dislocations = value.dislocations ?? [];
+  const selectedDigits = useMemo(
+    () => value.affectedDigits ?? [],
+    [value.affectedDigits],
+  );
+  const injuredStructures = useMemo(
+    () => value.injuredStructures ?? [],
+    [value.injuredStructures],
+  );
+  const dislocations = useMemo(
+    () => value.dislocations ?? [],
+    [value.dislocations],
+  );
 
   // ─── Initialize from existing data ─────────────────────────────────────────
   useEffect(() => {

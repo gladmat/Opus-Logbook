@@ -35,10 +35,10 @@ function cacheSet(key: string, value: string) {
 // Concurrency-limited decryption queue to avoid saturating the JS thread
 const MAX_CONCURRENT = 2;
 let activeDecryptions = 0;
-const decryptionQueue: Array<{
+const decryptionQueue: {
   uri: string;
   resolve: (result: string | null) => void;
-}> = [];
+}[] = [];
 
 function processQueue() {
   while (activeDecryptions < MAX_CONCURRENT && decryptionQueue.length > 0) {
@@ -160,7 +160,7 @@ export function EncryptedImage({
           if (mountedRef.current) setLoading(false);
         });
     }
-  }, [uri, thumbnail]);
+  }, [uri, thumbnail, onError]);
 
   if (loading) {
     return (

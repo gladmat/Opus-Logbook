@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { View, StyleSheet, Pressable, ScrollView } from "react-native";
 import { Feather } from "@/components/FeatherIcon";
 import { ThemedText } from "@/components/ThemedText";
@@ -188,19 +188,9 @@ export function AOFractureCascadingForm({
     selectedQualifications,
   ]);
 
-  const isComplete =
-    boneCategory === "crush" ||
-    (currentAOCode !== "" &&
-      validateAOCode(currentAOCode).valid &&
-      (!needsQualifications ||
-        selectedQualifications.length > 0 ||
-        !["B", "C"].includes(selectedType)));
-
   const canSubmit =
     boneCategory === "crush" ||
     (currentAOCode !== "" && validateAOCode(currentAOCode).valid);
-
-  const _ = isComplete;
 
   const getBoneName = (): string => {
     if (boneCategory === "crush") return "Crushed / Multiple fractures";
@@ -305,28 +295,6 @@ export function AOFractureCascadingForm({
 
     return [];
   };
-
-  const renderFieldRow = (
-    label: string,
-    value: string,
-    onClear?: () => void,
-  ) => (
-    <View style={[styles.fieldRow, { borderBottomColor: theme.border }]}>
-      <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
-        {label}
-      </ThemedText>
-      <View style={styles.fieldValue}>
-        <ThemedText style={[styles.fieldValueText, { color: theme.text }]}>
-          {value}
-        </ThemedText>
-        {onClear ? (
-          <Pressable onPress={onClear} hitSlop={8}>
-            <Feather name="x" size={18} color={theme.textSecondary} />
-          </Pressable>
-        ) : null}
-      </View>
-    </View>
-  );
 
   const renderOptions = <T extends string | null>(
     options: { key: NonNullable<T>; label: string }[],

@@ -24,7 +24,7 @@ import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { getEpisodeWithCases, updateEpisode } from "@/lib/episodeStorage";
 import { getLatestCaseForEpisode } from "@/lib/storage";
 import type { Case } from "@/types/case";
-import { getPrimaryDiagnosisName, SPECIALTY_LABELS } from "@/types/case";
+import { getPrimaryDiagnosisName } from "@/types/case";
 import type {
   TreatmentEpisode,
   EpisodeStatus,

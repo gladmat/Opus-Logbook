@@ -6,11 +6,10 @@ import Svg, {
   Text as SvgText,
   G,
   Polyline,
-  Rect,
 } from "react-native-svg";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
-import { Spacing, BorderRadius, Typography } from "@/constants/theme";
+import { Spacing, BorderRadius } from "@/constants/theme";
 import type { TimelineEvent } from "@/types/case";
 
 interface WoundDimensionChartProps {

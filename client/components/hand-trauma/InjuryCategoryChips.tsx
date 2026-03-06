@@ -10,7 +10,7 @@ import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
-import { Spacing, BorderRadius, palette } from "@/constants/theme";
+import { Spacing, BorderRadius } from "@/constants/theme";
 import type { InjuryCategory } from "@/lib/handTraumaMapping";
 
 interface InjuryCategoryChipsProps {

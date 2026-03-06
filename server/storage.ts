@@ -33,7 +33,7 @@ import {
   caseProcedures,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, ne, ilike, sql, lt, isNull, desc } from "drizzle-orm";
+import { eq, and, ne, sql, lt, isNull, desc } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;

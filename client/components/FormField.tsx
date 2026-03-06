@@ -15,7 +15,7 @@ import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
-import { BorderRadius, Spacing, Typography } from "@/constants/theme";
+import { BorderRadius, Spacing } from "@/constants/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface FormFieldProps {
@@ -142,7 +142,6 @@ export function SelectField({
   error,
 }: SelectFieldProps) {
   const { theme } = useTheme();
-  const selectedOption = options.find((o) => o.value === value);
 
   return (
     <View style={styles.container}>

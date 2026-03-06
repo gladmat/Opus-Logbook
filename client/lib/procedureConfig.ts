@@ -1,4 +1,4 @@
-import { Specialty, FreeFlapDetails } from "@/types/case";
+import { Specialty } from "@/types/case";
 
 export interface FieldConfig {
   key: string;

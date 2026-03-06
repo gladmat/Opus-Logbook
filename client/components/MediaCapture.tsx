@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   StyleSheet,
@@ -48,8 +48,6 @@ export function MediaCapture({
   const [cameraPermission, requestCameraPermission] =
     ImagePicker.useCameraPermissions();
 
-  const canAddMore = attachments.length < maxAttachments;
-
   const handleOpenMediaManager = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const callbackId = registerCallback(onAttachmentsChange);
@@ -83,7 +81,7 @@ export function MediaCapture({
                       try {
                         const { Linking } = await import("react-native");
                         await Linking.openSettings();
-                      } catch (e) {}
+                      } catch {}
                     },
                   },
                 ]
@@ -166,33 +164,6 @@ export function MediaCapture({
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onAttachmentsChange(attachments.filter((a) => a.id !== attachmentId));
-  };
-
-  const handleCaptionEdit = (attachmentId: string) => {
-    const attachment = attachments.find((a) => a.id === attachmentId);
-    if (!attachment) return;
-
-    Alert.prompt?.(
-      "Add Caption",
-      "Enter a caption for this image",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Save",
-          onPress: (caption?: string) => {
-            if (caption !== undefined) {
-              onAttachmentsChange(
-                attachments.map((a) =>
-                  a.id === attachmentId ? { ...a, caption } : a,
-                ),
-              );
-            }
-          },
-        },
-      ],
-      "plain-text",
-      attachment.caption,
-    );
   };
 
   const getPlaceholderText = () => {

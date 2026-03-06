@@ -232,7 +232,7 @@ export function DiagnosisGroupEditor({
   const [aoSourceLabel, setAoSourceLabel] = useState<string | undefined>(
     undefined,
   );
-  const [aoHints, setAoHints] = useState<AOProcedureHint[]>([]);
+  const [, setAoHints] = useState<AOProcedureHint[]>([]);
   const [showManualTraumaDiagnosisPicker, setShowManualTraumaDiagnosisPicker] =
     useState(false);
   const [autoAppliedTraumaSuggestionIds, setAutoAppliedTraumaSuggestionIds] =

@@ -66,17 +66,17 @@ export interface TraumaMappingResult {
     snomedCtCode: string;
   };
   /** Additional diagnoses for multi-structure injuries */
-  additionalDiagnoses?: Array<{
+  additionalDiagnoses?: {
     diagnosisPicklistId: string;
     displayName: string;
-  }>;
+  }[];
   /** Suggested procedures, ranked */
-  suggestedProcedures: Array<{
+  suggestedProcedures: {
     procedurePicklistId: string;
     displayName: string;
     isDefault: boolean;
     reason: string;
-  }>;
+  }[];
 }
 
 // ─── Diagnosis Lookup Helper ─────────────────────────────────────────────────
@@ -262,7 +262,7 @@ function lookup(id: string): DiagnosisRef {
 
 interface DislocationMapping {
   diagnosisId: string;
-  procedures: Array<{ id: string; displayName: string; isDefault: boolean }>;
+  procedures: { id: string; displayName: string; isDefault: boolean }[];
 }
 
 function getDislocationKey(d: DislocationEntry): string {

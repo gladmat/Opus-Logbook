@@ -21,8 +21,6 @@ import {
   validateAOCode,
   FINGER_NAMES,
   PHALANX_NAMES,
-  SEGMENT_NAMES,
-  getFractureTypeLabel,
 } from "@/data/aoHandClassification";
 
 type BoneCategory = "carpal" | "metacarpal" | "phalanx" | "crush";

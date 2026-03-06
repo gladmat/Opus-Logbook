@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { View, StyleSheet, Pressable, Animated } from "react-native";
 import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
@@ -13,7 +13,6 @@ import {
 import { RecipientSiteSelector } from "@/components/RecipientSiteSelector";
 import { FreeFlapPicker } from "@/components/FreeFlapPicker";
 import { FlapSpecificFields } from "@/components/FlapSpecificFields";
-import { SectionHeader } from "@/components/SectionHeader";
 import { v4 as uuidv4 } from "uuid";
 import {
   findPicklistEntry,
@@ -845,17 +844,6 @@ interface HandSurgeryClinicalFieldsProps {
   onUpdate: (details: HandSurgeryDetails) => void;
 }
 
-const HAND_OPTIONS = [
-  { value: "left", label: "Left" },
-  { value: "right", label: "Right" },
-];
-
-const DOMINANT_HAND_OPTIONS = [
-  { value: "left", label: "Left" },
-  { value: "right", label: "Right" },
-  { value: "ambidextrous", label: "Ambidextrous" },
-];
-
 export function HandSurgeryClinicalFields({
   clinicalDetails,
   onUpdate,
@@ -913,18 +901,6 @@ export function BodyContouringClinicalFields({
 }
 
 // ─── SLNB Basin Detail Fields ─────────────────────────────────────────────────
-
-const ALL_BASINS: SlnbBasin[] = [
-  "right_axilla",
-  "left_axilla",
-  "right_groin",
-  "left_groin",
-  "right_popliteal",
-  "left_popliteal",
-  "right_cervical_parotid",
-  "left_cervical_parotid",
-  "other",
-];
 
 interface SlnbBasinCardProps {
   result: SlnbBasinResult;
@@ -1587,8 +1563,6 @@ export function ProcedureClinicalDetails({
   onUpdate,
   isSlnbProcedure,
 }: ProcedureClinicalDetailsProps) {
-  const { theme } = useTheme();
-
   const picklistEntry = picklistEntryId
     ? findPicklistEntry(picklistEntryId)
     : undefined;

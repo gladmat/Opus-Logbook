@@ -53,7 +53,6 @@ export default function MediaManagementScreen() {
     existingAttachments,
     callbackId,
     maxAttachments = 20,
-    context = "case",
     eventType,
   } = route.params || {};
 
@@ -66,7 +65,6 @@ export default function MediaManagementScreen() {
   const [saving, setSaving] = useState(false);
   const [cameraPermission, requestCameraPermission] =
     ImagePicker.useCameraPermissions();
-
   const canAddMore = attachments.length < maxAttachments;
 
   const handleCameraCapture = async () => {
@@ -88,7 +86,7 @@ export default function MediaManagementScreen() {
                       try {
                         const { Linking } = await import("react-native");
                         await Linking.openSettings();
-                      } catch (e) {}
+                      } catch {}
                     },
                   },
                 ]

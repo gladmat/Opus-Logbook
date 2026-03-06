@@ -29,7 +29,7 @@ import { ThemedView } from "@/components/ThemedView";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
-import { OperativeMediaType, OPERATIVE_MEDIA_TYPE_LABELS } from "@/types/case";
+import { OperativeMediaType } from "@/types/case";
 import { DatePickerField } from "@/components/FormField";
 import { useMediaCallback } from "@/contexts/MediaCallbackContext";
 
@@ -109,7 +109,7 @@ export default function AddOperativeMediaScreen() {
                       try {
                         const { Linking } = await import("react-native");
                         await Linking.openSettings();
-                      } catch (e) {}
+                      } catch {}
                     },
                   },
                 ]
@@ -137,7 +137,7 @@ export default function AddOperativeMediaScreen() {
         setCurrentUri(asset.uri);
         setCurrentMimeType(mime);
       }
-    } catch (error) {
+    } catch {
       Alert.alert("Error", "Failed to capture image.");
     }
   };
@@ -159,7 +159,7 @@ export default function AddOperativeMediaScreen() {
         setCurrentUri(asset.uri);
         setCurrentMimeType(mime);
       }
-    } catch (error) {
+    } catch {
       Alert.alert("Error", "Failed to select image.");
     }
   };

@@ -111,7 +111,7 @@ export function TimeField({
     if (value !== displayValue) {
       setDisplayValue(value);
     }
-  }, [value]);
+  }, [value, displayValue]);
 
   return (
     <View style={styles.container}>

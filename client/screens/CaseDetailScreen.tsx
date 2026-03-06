@@ -30,13 +30,11 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import {
   Case,
-  CaseProcedure,
   TimelineEvent,
   TimelineEventType,
   ComplicationEntry,
   ClavienDindoGrade,
   SPECIALTY_LABELS,
-  ROLE_LABELS,
   INDICATION_LABELS,
   ANASTOMOSIS_LABELS,
   FreeFlapDetails,
@@ -45,7 +43,6 @@ import {
   ADMISSION_URGENCY_LABELS,
   UNPLANNED_READMISSION_LABELS,
   OPERATIVE_MEDIA_TYPE_LABELS,
-  OperativeMediaItem,
   WOUND_INFECTION_RISK_LABELS,
   ANAESTHETIC_TYPE_LABELS,
   UNPLANNED_ICU_LABELS,
@@ -75,11 +72,6 @@ import { LoadingState } from "@/components/LoadingState";
 import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/SectionHeader";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
-import {
-  COUNTRY_CODING_SYSTEMS,
-  getCountryCodeFromProfile,
-} from "@/lib/snomedCt";
-import { useAuth } from "@/contexts/AuthContext";
 
 type RouteParams = RouteProp<RootStackParamList, "CaseDetail">;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -165,9 +157,6 @@ export default function CaseDetailScreen() {
   const route = useRoute<RouteParams>();
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
-  const { profile } = useAuth();
-
-  const countryCode = getCountryCodeFromProfile(profile?.countryOfPractice);
 
   const [caseData, setCaseData] = useState<Case | null>(null);
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
@@ -204,7 +193,7 @@ export default function CaseDetailScreen() {
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [route.params.caseId]),
+    }, [loadData]),
   );
 
   const showHeaderMenu = useCallback(() => {
@@ -253,7 +242,7 @@ export default function CaseDetailScreen() {
           </HeaderButton>
         ) : null,
     });
-  }, [caseData, theme, showHeaderMenu]);
+  }, [caseData, navigation, theme, showHeaderMenu]);
 
   const handleDelete = () => {
     Alert.alert(

@@ -5,7 +5,7 @@
  * procedure fields, absence of flat legacy fields.
  */
 
-import { Case, Specialty } from "@/types/case";
+import { Case } from "@/types/case";
 import { getCases } from "./storage";
 
 const VALID_SPECIALTIES: Set<string> = new Set<string>([
@@ -45,7 +45,7 @@ export interface MigrationWarning {
 export interface MigrationTestResult {
   totalCases: number;
   successCount: number;
-  failedCases: Array<{ caseId: string; errors: string[] }>;
+  failedCases: { caseId: string; errors: string[] }[];
   warningCases: MigrationWarning[];
 }
 

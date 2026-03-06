@@ -3,11 +3,9 @@ import {
   Specialty,
   Role,
   FreeFlapDetails,
-  ClavienDindoGrade,
   getAllProcedures,
   getCaseSpecialties,
   SPECIALTY_LABELS,
-  type FreeFlapOutcomeDetails,
   type DonorSiteComplication,
   type RecipientSiteComplication,
   DONOR_SITE_COMPLICATION_LABELS,
@@ -17,10 +15,7 @@ import {
   ANTICOAGULATION_PROTOCOLS,
   FLAP_MONITORING_PROTOCOLS,
 } from "@/types/surgicalPreferences";
-import {
-  INFECTION_SYNDROME_LABELS,
-  InfectionSyndrome,
-} from "@/types/infection";
+import { INFECTION_SYNDROME_LABELS } from "@/types/infection";
 
 export type TimePeriod =
   | "all_time"
@@ -988,11 +983,11 @@ export function calculateSuggestionAcceptanceStats(
 export interface EntryTimeStats {
   averageEntryTimeSeconds: number | null;
   medianEntryTimeSeconds: number | null;
-  entryTimeBySpecialty: Array<{
+  entryTimeBySpecialty: {
     specialty: string;
     averageSeconds: number;
     count: number;
-  }>;
+  }[];
 }
 
 export function calculateEntryTimeStats(cases: Case[]): EntryTimeStats {

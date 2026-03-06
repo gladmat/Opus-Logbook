@@ -8,7 +8,6 @@ import { Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import type { TreatmentEpisode } from "@/types/episode";
 import { EPISODE_STATUS_LABELS, PENDING_ACTION_LABELS } from "@/types/episode";
 import type { Case } from "@/types/case";
-import { getPrimaryDiagnosisName } from "@/types/case";
 
 interface EpisodeCardProps {
   episode: TreatmentEpisode;

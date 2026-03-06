@@ -5,7 +5,6 @@ import * as Haptics from "expo-haptics";
 import { v4 as uuidv4 } from "uuid";
 import { ThemedText } from "@/components/ThemedText";
 import { FormField, SelectField } from "@/components/FormField";
-import { SectionHeader } from "@/components/SectionHeader";
 import { InfectionEpisodeTimeline } from "@/components/InfectionEpisodeTimeline";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
@@ -31,10 +30,6 @@ import {
   BloodCultureStatus,
   CULTURE_STATUS_LABELS,
   BLOOD_CULTURE_LABELS,
-  ScoreEntry,
-  ScoreType,
-  SCORE_TYPE_LABELS,
-  InfectionCaseStatus,
 } from "@/types/infection";
 
 interface InfectionOverlayFormProps {
@@ -101,13 +96,6 @@ const CULTURE_STATUS_OPTIONS = Object.entries(CULTURE_STATUS_LABELS).map(
 );
 
 const BLOOD_CULTURE_OPTIONS = Object.entries(BLOOD_CULTURE_LABELS).map(
-  ([value, label]) => ({
-    value,
-    label,
-  }),
-);
-
-const SCORE_TYPE_OPTIONS = Object.entries(SCORE_TYPE_LABELS).map(
   ([value, label]) => ({
     value,
     label,

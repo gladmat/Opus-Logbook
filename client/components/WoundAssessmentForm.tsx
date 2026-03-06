@@ -3,7 +3,7 @@ import { View, StyleSheet, Pressable, TextInput } from "react-native";
 import { Feather } from "@/components/FeatherIcon";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
-import { BorderRadius, Spacing, Typography } from "@/constants/theme";
+import { BorderRadius, Spacing } from "@/constants/theme";
 import {
   FormField,
   PickerField,
@@ -28,7 +28,6 @@ import {
   INFECTION_SIGN_LABELS,
   HEALING_TREND_LABELS,
   DRESSING_CATEGORY_LABELS,
-  DRESSING_CATALOGUE,
   getDressingsByCategory,
   getDressingCategories,
 } from "@/types/wound";

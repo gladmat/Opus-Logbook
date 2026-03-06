@@ -11,10 +11,7 @@
  * Flow: AO Code → bone familyCode → mapped diagnosis ID → filtered procedures
  */
 
-import type {
-  DiagnosisPicklistEntry,
-  ProcedureSuggestion,
-} from "@/types/diagnosis";
+import type { ProcedureSuggestion } from "@/types/diagnosis";
 
 // ─── AO Family Code → Diagnosis Mapping ──────────────────────────────────────
 

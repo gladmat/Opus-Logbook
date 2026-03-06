@@ -2,7 +2,13 @@
  * @deprecated Replaced by unified `HandTraumaAssessment`.
  * Kept temporarily for backward compatibility during rollout.
  */
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, {
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  useMemo,
+} from "react";
 import {
   View,
   Pressable,
@@ -117,8 +123,14 @@ export function HandTraumaStructurePicker({
   const [extensorZone, setExtensorZone] = useState("");
   const initializedRef = useRef(false);
 
-  const selectedDigits = value.affectedDigits ?? [];
-  const injuredStructures = value.injuredStructures ?? [];
+  const selectedDigits = useMemo(
+    () => value.affectedDigits ?? [],
+    [value.affectedDigits],
+  );
+  const injuredStructures = useMemo(
+    () => value.injuredStructures ?? [],
+    [value.injuredStructures],
+  );
 
   useEffect(() => {
     if (initializedRef.current || !selectedDiagnosis) return;

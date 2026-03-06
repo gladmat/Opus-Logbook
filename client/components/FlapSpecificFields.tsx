@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet, Pressable, Switch, TextInput } from "react-native";
+import { View, StyleSheet, Pressable, Switch } from "react-native";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
 import { FormField } from "@/components/FormField";

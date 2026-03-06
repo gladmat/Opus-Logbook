@@ -48,7 +48,7 @@ export function OpusMark({
       duration: 900,
       easing: Easing.inOut(Easing.ease),
     });
-  }, [animate]);
+  }, [animate, dashOffset]);
 
   const animatedProps = useAnimatedProps(() => ({
     strokeDashoffset: dashOffset.value,

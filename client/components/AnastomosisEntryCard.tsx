@@ -4,7 +4,7 @@ import { Feather } from "@/components/FeatherIcon";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { BorderRadius, Spacing } from "@/constants/theme";
-import { FormField, SelectField, PickerField } from "@/components/FormField";
+import { FormField, PickerField } from "@/components/FormField";
 import {
   type AnastomosisEntry,
   type AnastomosisType,
@@ -40,11 +40,11 @@ export interface ArterySelectionPayload {
   arteryCommonName?: string;
   arterySnomedCtCode: string;
   recipientRegion?: AnatomicalRegion;
-  availableVeinOptions: Array<{
+  availableVeinOptions: {
     snomedCtCode: string;
     displayName: string;
     commonName?: string;
-  }>;
+  }[];
   defaultArterialConfiguration?: AnastomosisType;
 }
 
@@ -69,7 +69,7 @@ export function AnastomosisEntryCard({
     ) {
       onUpdate({ ...entry, configuration: "end_to_end" });
     }
-  }, []);
+  }, [entry, onUpdate]);
 
   useEffect(() => {
     if (recipientRegion) {
@@ -159,11 +159,6 @@ export function AnastomosisEntryCard({
           value: v.snomedCtCode,
           label: v.commonName || v.displayName,
         }));
-
-  const selectedVessel =
-    entry.vesselType === "artery"
-      ? arteries.find((v) => v.snomedCtCode === entry.recipientVesselSnomedCode)
-      : veins.find((v) => v.snomedCtCode === entry.recipientVesselSnomedCode);
 
   const handleVesselTypeChange = (value: string) => {
     onUpdate({

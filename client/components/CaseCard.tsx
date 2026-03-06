@@ -13,8 +13,6 @@ import { useTheme } from "@/hooks/useTheme";
 import { BorderRadius, Spacing, Shadows } from "@/constants/theme";
 import {
   Case,
-  Specialty,
-  SPECIALTY_LABELS,
   getPrimaryDiagnosisName,
   getPrimarySiteLabel,
   isExcisionBiopsyDiagnosis,

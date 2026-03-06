@@ -232,13 +232,9 @@ export function CaseSummaryView({
   saving,
 }: CaseSummaryViewProps) {
   const { theme } = useTheme();
-  const { state, calculatedBmi, durationDisplay, specialty } =
-    useCaseFormState();
+  const { state, calculatedBmi, durationDisplay } = useCaseFormState();
 
-  const { valid, errors } = useMemo(
-    () => validateRequiredFields(state),
-    [state],
-  );
+  const { errors } = useMemo(() => validateRequiredFields(state), [state]);
 
   const hasWarnings = errors.length > 0;
   const patientWarning = errors.find((e) => e.sectionId === "patient")?.message;

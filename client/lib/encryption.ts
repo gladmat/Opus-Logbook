@@ -132,7 +132,7 @@ export async function encryptData(data: string): Promise<string> {
     const ciphertext = cipher.encrypt(utf8ToBytes(data));
 
     return `${ENVELOPE_PREFIX}:${bytesToHex(nonce)}:${bytesToHex(ciphertext)}`;
-  } catch (error) {
+  } catch {
     throw new Error(
       "Encryption failed. Data was not saved to protect your privacy.",
     );

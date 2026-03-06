@@ -2,7 +2,7 @@ import React from "react";
 import { View, StyleSheet } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
-import { BorderRadius, Spacing, Typography } from "@/constants/theme";
+import { BorderRadius, Spacing } from "@/constants/theme";
 import { Role, ROLE_LABELS } from "@/types/case";
 
 interface RoleBadgeProps {

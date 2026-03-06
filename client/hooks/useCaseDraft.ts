@@ -52,7 +52,14 @@ export function useCaseDraft({
     };
 
     loadDraft();
-  }, [specialty, primaryFacility, isEditMode, draftLoadedRef, dispatch]);
+  }, [
+    specialty,
+    primaryFacility,
+    isEditMode,
+    isEpisodePrefill,
+    draftLoadedRef,
+    dispatch,
+  ]);
 
   // ── Flush pending draft immediately ───────────────────────────────────
 

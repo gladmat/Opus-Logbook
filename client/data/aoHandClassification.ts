@@ -362,7 +362,7 @@ export function validateAOCode(code: string): {
     crush: /^79$/,
   };
 
-  for (const [boneName, pattern] of Object.entries(patterns)) {
+  for (const [, pattern] of Object.entries(patterns)) {
     if (pattern.test(code)) {
       return { valid: true };
     }

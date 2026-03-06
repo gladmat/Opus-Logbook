@@ -14,7 +14,6 @@ import Animated, {
   interpolate,
   Extrapolation,
   withTiming,
-  withDelay,
   Easing,
   type SharedValue,
 } from "react-native-reanimated";
@@ -120,7 +119,7 @@ function SpeedVisual({ isActive }: { isActive: boolean }) {
     if (isActive) {
       opacity.value = withTiming(1, { duration: 500, easing: easeOut });
     }
-  }, [isActive]);
+  }, [isActive, opacity]);
 
   const animStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
@@ -215,7 +214,7 @@ function TeamVisual({ isActive }: { isActive: boolean }) {
         easing: easeOut,
       });
     }
-  }, [isActive]);
+  }, [isActive, progress]);
 
   const centralStyle = useAnimatedStyle(() => ({
     opacity: interpolate(progress.value, [0, 1], [0, 1], Extrapolation.CLAMP),
@@ -393,7 +392,7 @@ function DataFlowVisual({ isActive }: { isActive: boolean }) {
         easing: easeOut,
       });
     }
-  }, [isActive]);
+  }, [isActive, progress]);
 
   const centralStyle = useAnimatedStyle(() => ({
     opacity: interpolate(progress.value, [0, 1], [0, 1], Extrapolation.CLAMP),

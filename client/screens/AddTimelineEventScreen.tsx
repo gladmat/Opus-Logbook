@@ -50,15 +50,6 @@ const EVENT_TYPES: { value: TimelineEventType; label: string }[] =
     label,
   }));
 
-const SKIN_LESION_PROCEDURE_NAMES = [
-  "skin lesion excision",
-  "lesion excision",
-  "excision of skin lesion",
-  "excision biopsy",
-  "excisional biopsy",
-  "wide local excision",
-];
-
 const FOLLOW_UP_INTERVALS: { value: FollowUpInterval; label: string }[] =
   Object.entries(FOLLOW_UP_INTERVAL_LABELS).map(([value, label]) => ({
     value: value as FollowUpInterval,
@@ -78,13 +69,8 @@ export default function AddTimelineEventScreen() {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
 
-  const {
-    caseId,
-    initialEventType,
-    isSkinLesion,
-    caseDischargeDate,
-    editEventId,
-  } = route.params;
+  const { caseId, initialEventType, caseDischargeDate, editEventId } =
+    route.params;
 
   const isEditMode = !!editEventId;
 
