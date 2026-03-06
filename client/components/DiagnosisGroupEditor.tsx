@@ -68,19 +68,22 @@ import {
   applyProcedureHints,
   type AOProcedureHint,
 } from "@/lib/aoToDiagnosisMapping";
+import type { TraumaMappingResult } from "@/lib/handTraumaMapping";
 import { DetailModuleRow } from "@/components/detail-sheets/DetailModuleRow";
 import { FreeFlapSheet } from "@/components/detail-sheets/FreeFlapSheet";
 import { FlapOutcomeSheet } from "@/components/detail-sheets/FlapOutcomeSheet";
 import { HandTraumaSheet } from "@/components/detail-sheets/HandTraumaSheet";
 import { InfectionSheet } from "@/components/detail-sheets/InfectionSheet";
 import { WoundAssessmentSheet } from "@/components/detail-sheets/WoundAssessmentSheet";
-import { getModuleVisibility, procedureHasFreeFlap } from "@/lib/moduleVisibility";
+import {
+  getModuleVisibility,
+  procedureHasFreeFlap,
+} from "@/lib/moduleVisibility";
 import { generateFlapOutcomeSummary } from "@/components/FlapOutcomeSection";
 import type { FreeFlapOutcomeDetails } from "@/types/case";
 import {
   generateFlapSummary,
-  generateFractureSummary,
-  generateHandTraumaSummary,
+  generateHandTraumaAssessmentSummary,
   generateInfectionSummary,
   generateWoundSummary,
 } from "@/lib/moduleSummary";
@@ -205,6 +208,11 @@ export function DiagnosisGroupEditor({
   const [aoSourceLabel, setAoSourceLabel] = useState<string | undefined>(
     undefined,
   );
+  const [isDiagnosisFromTrauma, setIsDiagnosisFromTrauma] =
+    useState<boolean>(false);
+  const [traumaSourceLabel, setTraumaSourceLabel] = useState<
+    string | undefined
+  >(undefined);
   const [aoHints, setAoHints] = useState<AOProcedureHint[]>([]);
 
   useEffect(() => {
@@ -438,6 +446,8 @@ export function DiagnosisGroupEditor({
 
   const handleDiagnosisSelect = useCallback(
     (dx: DiagnosisPicklistEntry, hints: AOProcedureHint[] = []) => {
+      setIsDiagnosisFromTrauma(false);
+      setTraumaSourceLabel(undefined);
       setSelectedDiagnosis(dx);
       setPrimaryDiagnosis({ conceptId: dx.snomedCtCode, term: dx.displayName });
       setDiagnosis(dx.displayName);
@@ -548,7 +558,10 @@ export function DiagnosisGroupEditor({
                     picklistEntryId: picklistId,
                     tags: entry?.tags,
                   }) && selectedDiagnosis
-                    ? buildFreeFlapClinicalDetails(picklistId, selectedDiagnosis)
+                    ? buildFreeFlapClinicalDetails(
+                        picklistId,
+                        selectedDiagnosis,
+                      )
                     : undefined;
                 return {
                   id: uuidv4(),
@@ -598,7 +611,10 @@ export function DiagnosisGroupEditor({
             picklistEntryId: procedurePicklistId,
             tags: entry.tags,
           })
-            ? buildFreeFlapClinicalDetails(procedurePicklistId, selectedDiagnosis)
+            ? buildFreeFlapClinicalDetails(
+                procedurePicklistId,
+                selectedDiagnosis,
+              )
             : undefined;
           const newProc: CaseProcedure = {
             id: uuidv4(),
@@ -629,7 +645,12 @@ export function DiagnosisGroupEditor({
         });
       }
     },
-    [procedures, groupSpecialty, selectedDiagnosis, buildFreeFlapClinicalDetails],
+    [
+      procedures,
+      groupSpecialty,
+      selectedDiagnosis,
+      buildFreeFlapClinicalDetails,
+    ],
   );
 
   const procedurePicklistIds = useMemo(
@@ -665,8 +686,7 @@ export function DiagnosisGroupEditor({
   );
 
   const freeFlapProcedure = useMemo(
-    () =>
-      procedures.find((p) => procedureHasFreeFlap(p)),
+    () => procedures.find((p) => procedureHasFreeFlap(p)),
     [procedures],
   );
 
@@ -676,7 +696,9 @@ export function DiagnosisGroupEditor({
     setProcedures((prev) => {
       let hasChanges = false;
       const next = prev.map((procedure) => {
-        const details = procedure.clinicalDetails as FreeFlapDetails | undefined;
+        const details = procedure.clinicalDetails as
+          | FreeFlapDetails
+          | undefined;
         const flapType =
           details?.flapType ||
           (procedure.picklistEntryId
@@ -724,23 +746,14 @@ export function DiagnosisGroupEditor({
     [freeFlapProcedure],
   );
 
-  const fractureSummary = useMemo(
-    () => generateFractureSummary(fractures),
-    [fractures],
+  const handTraumaAssessmentSummary = useMemo(
+    () =>
+      generateHandTraumaAssessmentSummary(
+        diagnosisClinicalDetails.handTrauma || {},
+        fractures,
+      ),
+    [diagnosisClinicalDetails.handTrauma, fractures],
   );
-
-  const handTraumaSummary = useMemo(
-    () => generateHandTraumaSummary(diagnosisClinicalDetails.handTrauma || {}),
-    [diagnosisClinicalDetails.handTrauma],
-  );
-
-  /** Combined summary for the unified hand trauma assessment hub row */
-  const handTraumaAssessmentSummary = useMemo(() => {
-    const parts: string[] = [];
-    if (fractureSummary) parts.push(fractureSummary);
-    if (handTraumaSummary) parts.push(handTraumaSummary);
-    return parts.length > 0 ? parts.join(" · ") : null;
-  }, [fractureSummary, handTraumaSummary]);
 
   const infectionSummary = useMemo(
     () =>
@@ -763,6 +776,8 @@ export function DiagnosisGroupEditor({
     (dx: DiagnosisPicklistEntry) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
+      setIsDiagnosisFromTrauma(false);
+      setTraumaSourceLabel(undefined);
       setSelectedDiagnosis(dx);
       setPrimaryDiagnosis({ conceptId: dx.snomedCtCode, term: dx.displayName });
       setDiagnosis(dx.displayName);
@@ -888,6 +903,8 @@ export function DiagnosisGroupEditor({
     setHandCaseType(null);
     setIsDiagnosisFromAO(false);
     setAoSourceLabel(undefined);
+    setIsDiagnosisFromTrauma(false);
+    setTraumaSourceLabel(undefined);
     setAoHints([]);
     setProcedures([
       {
@@ -909,6 +926,8 @@ export function DiagnosisGroupEditor({
     setShowAllProcedures(false);
     setIsDiagnosisFromAO(false);
     setAoSourceLabel(undefined);
+    setIsDiagnosisFromTrauma(false);
+    setTraumaSourceLabel(undefined);
     setAoHints([]);
     setSnomedSuggestion(null);
   }, []);
@@ -976,10 +995,47 @@ export function DiagnosisGroupEditor({
       details: HandTraumaDetails,
       procs: CaseProcedure[],
       newFractures: FractureEntry[],
+      mappingResult?: TraumaMappingResult | null,
     ) => {
       setDiagnosisClinicalDetails((prev) => ({ ...prev, handTrauma: details }));
       setProcedures(procs);
       setFractures(newFractures);
+      const picklistIds = procs
+        .map((p) => p.picklistEntryId)
+        .filter(Boolean) as string[];
+      setSelectedSuggestionIds(new Set(picklistIds));
+
+      // Prefer direct trauma-mapping diagnosis when the user accepted mapping suggestions.
+      if (
+        !selectedDiagnosis &&
+        mappingResult?.primaryDiagnosis?.diagnosisPicklistId
+      ) {
+        const dx = findDiagnosisById(
+          mappingResult.primaryDiagnosis.diagnosisPicklistId,
+        );
+        if (dx) {
+          setIsDiagnosisFromAO(false);
+          setAoSourceLabel(undefined);
+          setAoHints([]);
+          setIsDiagnosisFromTrauma(true);
+          setTraumaSourceLabel("Hand trauma assessment");
+          setSelectedDiagnosis(dx);
+          setPrimaryDiagnosis({
+            conceptId: dx.snomedCtCode,
+            term: dx.displayName,
+          });
+          setDiagnosis(dx.displayName);
+          setStagingValues({});
+          setIsDiagnosisPickerCollapsed(true);
+          setShowAllProcedures(false);
+          if (groupSpecialty === "hand_wrist" && dx.clinicalGroup) {
+            setHandCaseType(
+              dx.clinicalGroup === "trauma" ? "trauma" : "elective",
+            );
+          }
+          return;
+        }
+      }
 
       // Auto-resolve diagnosis from fractures if present and no diagnosis yet
       if (newFractures.length > 0 && !selectedDiagnosis) {
@@ -1303,7 +1359,13 @@ export function DiagnosisGroupEditor({
             <SelectedDiagnosisCard
               diagnosis={selectedDiagnosis}
               onClear={clearDiagnosis}
-              sourceLabel={isDiagnosisFromAO ? aoSourceLabel : undefined}
+              sourceLabel={
+                isDiagnosisFromAO
+                  ? aoSourceLabel
+                  : isDiagnosisFromTrauma
+                    ? traumaSourceLabel
+                    : undefined
+              }
             />
           ) : (
             <DiagnosisPicker

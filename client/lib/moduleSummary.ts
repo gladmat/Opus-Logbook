@@ -87,6 +87,54 @@ export function generateHandTraumaSummary(
 }
 
 /**
+ * Unified Hand Trauma Assessment summary — combines fractures, structures,
+ * dislocations, and major soft-tissue injury flags.
+ */
+export function generateHandTraumaAssessmentSummary(
+  details: HandTraumaDetails | undefined,
+  fractures: FractureEntry[] | undefined,
+): string | null {
+  const parts: string[] = [];
+
+  if (fractures && fractures.length > 0) {
+    const first = fractures[0]!;
+    parts.push(`${first.aoCode} ${first.boneName}`);
+    if (fractures.length > 1) {
+      parts.push(
+        `+${fractures.length - 1} fracture${fractures.length > 2 ? "s" : ""}`,
+      );
+    }
+  }
+
+  if (details?.dislocations && details.dislocations.length > 0) {
+    const first = details.dislocations[0]!;
+    parts.push(`${first.joint.toUpperCase()} dislocation`);
+    if (details.dislocations.length > 1) {
+      parts.push(`+${details.dislocations.length - 1} more`);
+    }
+  }
+
+  if (details?.isHighPressureInjection) parts.push("HPI");
+  if (details?.isFightBite) parts.push("Fight bite");
+  if (details?.isCompartmentSyndrome) parts.push("Compartment syndrome");
+  if (details?.isRingAvulsion) parts.push("Ring avulsion");
+  if (details?.amputationLevel) {
+    parts.push(`Amputation (${details.amputationLevel.replace(/_/g, " ")})`);
+  }
+
+  const structureSummary = generateHandTraumaSummary(details);
+  if (structureSummary) {
+    parts.push(structureSummary);
+  }
+
+  if (parts.length === 0 && details?.affectedDigits?.length) {
+    parts.push(`Digits: ${details.affectedDigits.join(", ")}`);
+  }
+
+  return parts.length > 0 ? parts.join(", ") : null;
+}
+
+/**
  * Infection Details summary — e.g. "Skin/Soft Tissue, left hand, 2 episodes"
  */
 export function generateInfectionSummary(

@@ -14,7 +14,13 @@
  * - Outputs updated versions of all three on save
  */
 
-import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import React, {
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
 import {
   View,
   StyleSheet,
@@ -42,10 +48,16 @@ import {
   SMART_DEFAULTS,
   type StructureCategory,
 } from "./structureConfig";
-import type { InjuryCategory, TraumaMappingResult } from "@/lib/handTraumaMapping";
+import type {
+  InjuryCategory,
+  TraumaMappingResult,
+} from "@/lib/handTraumaMapping";
 import { resolveTraumaDiagnosis } from "@/lib/handTraumaMapping";
 import { resolveAOToDiagnosis } from "@/lib/aoToDiagnosisMapping";
-import { findDiagnosisById, evaluateSuggestions } from "@/lib/diagnosisPicklists";
+import {
+  findDiagnosisById,
+  evaluateSuggestions,
+} from "@/lib/diagnosisPicklists";
 
 // Sub-components
 import { DigitSelector } from "./DigitSelector";
@@ -81,11 +93,19 @@ interface HandTraumaAssessmentProps {
   ) => void;
   selectedDiagnosis?: DiagnosisPicklistEntry;
   /** Called when the user accepts suggestions and wants to save */
-  onAccept: () => void;
+  onAccept: (context: HandTraumaAcceptContext) => void;
+}
+
+export interface HandTraumaAcceptContext {
+  mappingResult: TraumaMappingResult | null;
+  selectedSuggestedProcedureIds: string[];
+  mergedProcedures: CaseProcedure[];
 }
 
 // Map InjuryCategory to StructureCategory for the existing section components
-const STRUCTURE_CATEGORY_MAP: Partial<Record<InjuryCategory, StructureCategory[]>> = {
+const STRUCTURE_CATEGORY_MAP: Partial<
+  Record<InjuryCategory, StructureCategory[]>
+> = {
   tendon: ["flexor_tendon", "extensor_tendon"],
   nerve: ["nerve"],
   vessel: ["artery"],
@@ -143,17 +163,26 @@ export function HandTraumaAssessment({
     // Auto-open categories based on existing data
     if (fractures.length > 0) cats.add("fracture");
     if (dislocations.length > 0) cats.add("dislocation");
-    if (injuredStructures.some((s) => s.category === "flexor_tendon" || s.category === "extensor_tendon"))
+    if (
+      injuredStructures.some(
+        (s) =>
+          s.category === "flexor_tendon" || s.category === "extensor_tendon",
+      )
+    )
       cats.add("tendon");
-    if (injuredStructures.some((s) => s.category === "nerve")) cats.add("nerve");
-    if (injuredStructures.some((s) => s.category === "artery")) cats.add("vessel");
+    if (injuredStructures.some((s) => s.category === "nerve"))
+      cats.add("nerve");
+    if (injuredStructures.some((s) => s.category === "artery"))
+      cats.add("vessel");
     if (
       value.isHighPressureInjection ||
       value.isFightBite ||
       value.isCompartmentSyndrome ||
       value.isRingAvulsion ||
       value.amputationLevel ||
-      injuredStructures.some((s) => s.category === "ligament" || s.category === "other")
+      injuredStructures.some(
+        (s) => s.category === "ligament" || s.category === "other",
+      )
     )
       cats.add("soft_tissue");
 
@@ -162,10 +191,12 @@ export function HandTraumaAssessment({
       const defaults = SMART_DEFAULTS[selectedDiagnosis.id];
       if (defaults) {
         for (const cat of defaults) {
-          if (cat === "flexor_tendon" || cat === "extensor_tendon") cats.add("tendon");
+          if (cat === "flexor_tendon" || cat === "extensor_tendon")
+            cats.add("tendon");
           else if (cat === "nerve") cats.add("nerve");
           else if (cat === "artery") cats.add("vessel");
-          else if (cat === "ligament" || cat === "other") cats.add("soft_tissue");
+          else if (cat === "ligament" || cat === "other")
+            cats.add("soft_tissue");
         }
       }
     }
@@ -466,8 +497,64 @@ export function HandTraumaAssessment({
     });
   }, []);
 
+  const mergeSuggestedProcedures = useCallback((): CaseProcedure[] => {
+    if (!mappingResult) {
+      return procedures.map((p, idx) => ({ ...p, sequenceOrder: idx + 1 }));
+    }
+
+    const mappedIds = new Set(
+      mappingResult.suggestedProcedures.map((p) => p.procedurePicklistId),
+    );
+    const selectedIds = [...selectedProcedureIds].filter((id) =>
+      mappedIds.has(id),
+    );
+
+    // Remove previous mapping-driven procedures so we can apply current surgeon selections.
+    const kept = procedures.filter(
+      (p) => !p.picklistEntryId || !mappedIds.has(p.picklistEntryId),
+    );
+
+    const next: CaseProcedure[] = [...kept];
+    for (const picklistId of selectedIds) {
+      const entry = findPicklistEntry(picklistId);
+      if (!entry) continue;
+      next.push({
+        id: uuidv4(),
+        sequenceOrder: 0,
+        procedureName: entry.displayName,
+        specialty: "hand_wrist",
+        surgeonRole: "PS",
+        picklistEntryId: entry.id,
+        snomedCtCode: entry.snomedCtCode,
+        snomedCtDisplay: entry.snomedCtDisplay,
+        subcategory: entry.subcategory,
+        tags: entry.tags,
+      });
+    }
+
+    return next.map((p, idx) => ({ ...p, sequenceOrder: idx + 1 }));
+  }, [mappingResult, selectedProcedureIds, procedures]);
+
+  const handleAccept = useCallback(() => {
+    const mergedProcedures = mergeSuggestedProcedures();
+    onProceduresChange(() => mergedProcedures);
+    onAccept({
+      mappingResult,
+      selectedSuggestedProcedureIds: [...selectedProcedureIds],
+      mergedProcedures,
+    });
+  }, [
+    mergeSuggestedProcedures,
+    onProceduresChange,
+    onAccept,
+    mappingResult,
+    selectedProcedureIds,
+  ]);
+
   // ─── Category counts for badge display ─────────────────────────────────────
-  const categoryCounts = useMemo<Partial<Record<InjuryCategory, number>>>(() => {
+  const categoryCounts = useMemo<
+    Partial<Record<InjuryCategory, number>>
+  >(() => {
     const counts: Partial<Record<InjuryCategory, number>> = {};
     if (fractures.length > 0) counts.fracture = fractures.length;
     if (dislocations.length > 0) counts.dislocation = dislocations.length;
@@ -637,7 +724,7 @@ export function HandTraumaAssessment({
         mappingResult={mappingResult}
         selectedProcedureIds={selectedProcedureIds}
         onToggleProcedure={handleToggleProcedure}
-        onAccept={onAccept}
+        onAccept={handleAccept}
         hasStructureProcedures={structureProcedureCount > 0}
         structureProcedureCount={structureProcedureCount}
       />

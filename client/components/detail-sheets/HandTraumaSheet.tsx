@@ -9,12 +9,16 @@
 import React, { useState, useEffect, useCallback } from "react";
 import * as Haptics from "expo-haptics";
 import { DetailModuleSheet } from "./DetailModuleSheet";
-import { HandTraumaAssessment } from "@/components/hand-trauma/HandTraumaAssessment";
+import {
+  HandTraumaAssessment,
+  type HandTraumaAcceptContext,
+} from "@/components/hand-trauma/HandTraumaAssessment";
 import type {
   CaseProcedure,
   FractureEntry,
   HandTraumaDetails,
 } from "@/types/case";
+import type { TraumaMappingResult } from "@/lib/handTraumaMapping";
 import type { DiagnosisPicklistEntry } from "@/types/diagnosis";
 
 interface HandTraumaSheetProps {
@@ -24,6 +28,7 @@ interface HandTraumaSheetProps {
     details: HandTraumaDetails,
     procedures: CaseProcedure[],
     fractures: FractureEntry[],
+    mappingResult?: TraumaMappingResult | null,
   ) => void;
   initialDetails: HandTraumaDetails;
   selectedDiagnosis?: DiagnosisPicklistEntry;
@@ -56,11 +61,17 @@ export function HandTraumaSheet({
     }
   }, [visible, initialDetails, initialProcedures, initialFractures]);
 
-  const handleSave = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    onSave(localDetails, localProcedures, localFractures);
-    onClose();
-  }, [localDetails, localProcedures, localFractures, onSave, onClose]);
+  const handleSave = useCallback(
+    (context?: HandTraumaAcceptContext) => {
+      const proceduresToSave = context?.mergedProcedures ?? localProcedures;
+      const mappingResult = context?.mappingResult ?? null;
+
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      onSave(localDetails, proceduresToSave, localFractures, mappingResult);
+      onClose();
+    },
+    [localDetails, localProcedures, localFractures, onSave, onClose],
+  );
 
   const handleProceduresChange = useCallback(
     (updater: (prev: CaseProcedure[]) => CaseProcedure[]) => {
