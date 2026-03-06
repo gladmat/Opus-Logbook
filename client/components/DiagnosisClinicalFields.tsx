@@ -159,7 +159,7 @@ export function DiagnosisClinicalFields({
   const [showFractureWizard, setShowFractureWizard] = useState(false);
 
   const clinicalDetails = diagnosis.clinicalDetails || {};
-  const isHandSurgery = specialty === "hand_surgery";
+  const isHandSurgery = specialty === "hand_wrist";
 
   const updateClinicalDetails = (
     updates: Partial<DiagnosisClinicalDetails>,

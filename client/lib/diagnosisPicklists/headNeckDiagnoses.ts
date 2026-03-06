@@ -618,7 +618,7 @@ const HN_DX_FACIAL_FRACTURES: DiagnosisPicklistEntry[] = [
 // CLEFT / CRANIOFACIAL — Deterministic
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const HN_DX_CLEFT_CRANIOFACIAL: DiagnosisPicklistEntry[] = [
+export const HN_DX_CLEFT_CRANIOFACIAL: DiagnosisPicklistEntry[] = [
   {
     id: "hn_dx_cleft_lip_unilateral",
     displayName: "Cleft lip — unilateral",

@@ -606,7 +606,7 @@ export function calculateHandSurgeryStatistics(
 ): HandSurgeryStatistics {
   const base = calculateBaseStatistics(cases);
 
-  const handSurgeryCases = cases.filter((c) => c.specialty === "hand_surgery");
+  const handSurgeryCases = cases.filter((c) => c.specialty === "hand_wrist");
 
   const procedureTypeMap = new Map<string, number>();
   handSurgeryCases.forEach((c) => {
@@ -769,7 +769,7 @@ export function calculateStatistics(
   switch (specialty) {
     case "orthoplastic":
       return calculateOrthoplasticStatistics(cases);
-    case "hand_surgery":
+    case "hand_wrist":
       return calculateHandSurgeryStatistics(cases);
     case "body_contouring":
       return calculateBodyContouringStatistics(cases);

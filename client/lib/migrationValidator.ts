@@ -10,13 +10,19 @@ import { getCases } from "./storage";
 
 const VALID_SPECIALTIES: Set<string> = new Set<string>([
   "breast",
-  "body_contouring",
-  "aesthetics",
-  "hand_surgery",
+  "hand_wrist",
+  "head_neck",
+  "cleft_cranio",
+  "skin_cancer",
   "orthoplastic",
   "burns",
+  "lymphoedema",
+  "body_contouring",
+  "aesthetics",
+  "peripheral_nerve",
   "general",
-  "head_neck",
+  // Legacy value — accepted for backward compat (migration renames to hand_wrist)
+  "hand_surgery",
 ]);
 
 const LEGACY_ROOT_FIELDS = [

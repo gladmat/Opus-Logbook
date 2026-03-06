@@ -230,7 +230,7 @@ export function DiagnosisGroupEditor({
         setSelectedSuggestionIds(new Set(procIds));
 
         // Infer hand case type from loaded diagnosis
-        if (group.specialty === "hand_surgery") {
+        if (group.specialty === "hand_wrist") {
           setHandCaseType(
             dx.clinicalGroup === "trauma" ? "trauma" : "elective",
           );
@@ -240,11 +240,11 @@ export function DiagnosisGroupEditor({
   }, [group]);
 
   const hasFractureSubcategory =
-    groupSpecialty === "hand_surgery" &&
+    groupSpecialty === "hand_wrist" &&
     procedures.some((p) => p.subcategory === "Fracture & Joint Fixation");
 
   useEffect(() => {
-    if (groupSpecialty !== "hand_surgery") {
+    if (groupSpecialty !== "hand_wrist") {
       setHandCaseType(null);
       return;
     }
@@ -445,7 +445,7 @@ export function DiagnosisGroupEditor({
       setIsDiagnosisPickerCollapsed(true);
       setShowAllProcedures(false);
 
-      if (groupSpecialty === "hand_surgery" && dx.clinicalGroup) {
+      if (groupSpecialty === "hand_wrist" && dx.clinicalGroup) {
         setHandCaseType(dx.clinicalGroup === "trauma" ? "trauma" : "elective");
       }
 
@@ -984,7 +984,7 @@ export function DiagnosisGroupEditor({
       // Auto-resolve diagnosis from fractures if present and no diagnosis yet
       if (newFractures.length > 0 && !selectedDiagnosis) {
         const firstFracture = newFractures[0];
-        if (firstFracture?.aoCode && groupSpecialty === "hand_surgery") {
+        if (firstFracture?.aoCode && groupSpecialty === "hand_wrist") {
           const familyCode =
             firstFracture.details?.familyCode ??
             firstFracture.aoCode.slice(0, 2);
@@ -1237,7 +1237,7 @@ export function DiagnosisGroupEditor({
         ) : null}
 
         {/* Feature 3: Hand surgery case type selector */}
-        {groupSpecialty === "hand_surgery" ? (
+        {groupSpecialty === "hand_wrist" ? (
           <View style={styles.caseTypeSelectorContainer}>
             <ThemedText
               style={[styles.caseTypeLabel, { color: theme.textSecondary }]}
@@ -1311,9 +1311,9 @@ export function DiagnosisGroupEditor({
               selectedDiagnosisId={selectedDiagnosis?.id}
               onSelect={handleDiagnosisSelect}
               clinicalGroupFilter={
-                groupSpecialty === "hand_surgery" && handCaseType === "trauma"
+                groupSpecialty === "hand_wrist" && handCaseType === "trauma"
                   ? "trauma"
-                  : groupSpecialty === "hand_surgery" &&
+                  : groupSpecialty === "hand_wrist" &&
                       handCaseType === "elective"
                     ? "non-trauma"
                     : undefined
@@ -1509,7 +1509,8 @@ export function DiagnosisGroupEditor({
 
         {selectedDiagnosis?.hasEnhancedHistology ||
         groupSpecialty === "general" ||
-        groupSpecialty === "head_neck" ? (
+        groupSpecialty === "head_neck" ||
+        groupSpecialty === "skin_cancer" ? (
           <View style={{ marginBottom: Spacing.md }}>
             <Pressable
               onPress={() => {

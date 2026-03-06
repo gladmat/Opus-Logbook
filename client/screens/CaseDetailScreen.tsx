@@ -864,7 +864,7 @@ export default function CaseDetailScreen() {
                               ) : null}
                             </>
                           ) : null}
-                          {proc.specialty === "hand_surgery" &&
+                          {proc.specialty === "hand_wrist" &&
                           proc.clinicalDetails ? (
                             <>
                               <DetailRow

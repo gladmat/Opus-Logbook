@@ -1587,7 +1587,7 @@ export function ProcedureClinicalDetails({
     return null;
   }
 
-  if (specialty === "hand_surgery") {
+  if (specialty === "hand_wrist") {
     const handDetails: HandSurgeryDetails = {
       injuryMechanism: (clinicalDetails as HandSurgeryDetails)?.injuryMechanism,
       fractures: (clinicalDetails as HandSurgeryDetails)?.fractures,

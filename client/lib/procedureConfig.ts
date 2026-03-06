@@ -68,8 +68,8 @@ Return the data as JSON.`,
 };
 
 export const HAND_SURGERY_CONFIG: ProcedureModuleConfig = {
-  id: "hand_surgery",
-  displayName: "Hand Surgery",
+  id: "hand_wrist",
+  displayName: "Hand & Wrist",
   icon: "edit-3",
   aiPrompt: "Extract hand surgery details...",
   fields: [
@@ -206,15 +206,53 @@ Return the data as JSON.`,
 
 export const PROCEDURE_CONFIGS: Record<Specialty, ProcedureModuleConfig> = {
   breast: BREAST_CONFIG,
-  body_contouring: BODY_CONTOURING_CONFIG,
-  aesthetics: {
-    id: "aesthetics",
-    displayName: "Aesthetics",
-    icon: "star",
-    aiPrompt: "Extract aesthetic surgery details...",
+  hand_wrist: HAND_SURGERY_CONFIG,
+  head_neck: HEAD_NECK_CONFIG,
+  cleft_cranio: {
+    id: "cleft_cranio",
+    displayName: "Cleft & Craniofacial",
+    icon: "smile",
+    aiPrompt: "Extract cleft and craniofacial surgery details...",
     fields: [],
   },
-  hand_surgery: HAND_SURGERY_CONFIG,
+  skin_cancer: {
+    id: "skin_cancer",
+    displayName: "Skin Cancer",
+    icon: "sun",
+    aiPrompt: "Extract skin cancer excision details...",
+    fields: [
+      {
+        key: "histologyDiagnosis",
+        label: "Histology Diagnosis",
+        type: "text",
+        placeholder: "e.g., Basal cell carcinoma, nodular type",
+      },
+      {
+        key: "peripheralMarginMm",
+        label: "Peripheral Margin",
+        type: "number",
+        unit: "mm",
+        keyboardType: "decimal-pad",
+      },
+      {
+        key: "deepMarginMm",
+        label: "Deep Margin",
+        type: "number",
+        unit: "mm",
+        keyboardType: "decimal-pad",
+      },
+      {
+        key: "excisionCompleteness",
+        label: "Excision Completeness",
+        type: "select",
+        options: [
+          { value: "complete", label: "Complete" },
+          { value: "incomplete", label: "Incomplete" },
+          { value: "uncertain", label: "Uncertain" },
+        ],
+      },
+    ],
+  },
   orthoplastic: ORTHOPLASTIC_CONFIG,
   burns: {
     id: "burns",
@@ -223,9 +261,31 @@ export const PROCEDURE_CONFIGS: Record<Specialty, ProcedureModuleConfig> = {
     aiPrompt: "Extract burn surgery details...",
     fields: [],
   },
+  lymphoedema: {
+    id: "lymphoedema",
+    displayName: "Lymphoedema",
+    icon: "droplet",
+    aiPrompt: "Extract lymphoedema surgery details...",
+    fields: [],
+  },
+  body_contouring: BODY_CONTOURING_CONFIG,
+  aesthetics: {
+    id: "aesthetics",
+    displayName: "Aesthetics",
+    icon: "star",
+    aiPrompt: "Extract aesthetic surgery details...",
+    fields: [],
+  },
+  peripheral_nerve: {
+    id: "peripheral_nerve",
+    displayName: "Peripheral Nerve",
+    icon: "zap",
+    aiPrompt: "Extract peripheral nerve surgery details...",
+    fields: [],
+  },
   general: {
     id: "general",
-    displayName: "General",
+    displayName: "General / Other",
     icon: "clipboard",
     aiPrompt: "Extract general plastic surgery details...",
     fields: [
@@ -261,7 +321,6 @@ export const PROCEDURE_CONFIGS: Record<Specialty, ProcedureModuleConfig> = {
       },
     ],
   },
-  head_neck: HEAD_NECK_CONFIG,
 };
 
 export function getConfigForSpecialty(

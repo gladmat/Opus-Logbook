@@ -194,7 +194,7 @@ export function HandTraumaStructurePicker({
         id: procId,
         sequenceOrder: 0,
         procedureName: entry.displayName,
-        specialty: "hand_surgery",
+        specialty: "hand_wrist",
         subcategory: entry.subcategory,
         picklistEntryId: entry.id,
         tags: entry.tags as CaseProcedure["tags"],

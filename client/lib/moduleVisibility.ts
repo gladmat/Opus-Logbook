@@ -69,7 +69,7 @@ export function getModuleVisibility(
 
   // Hand Trauma Assessment (unified): hand_surgery specialty + trauma case type
   const handTraumaAssessment =
-    group.specialty === "hand_surgery" && handCaseType === "trauma";
+    group.specialty === "hand_wrist" && handCaseType === "trauma";
 
   // Legacy fields (kept for backward compatibility, both point to same predicate)
   const fractureClassification = handTraumaAssessment;

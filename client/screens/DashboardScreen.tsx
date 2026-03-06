@@ -78,13 +78,17 @@ import {
 const SPECIALTY_FILTERS: (Specialty | "all")[] = [
   "all",
   "breast",
-  "body_contouring",
-  "aesthetics",
-  "hand_surgery",
+  "hand_wrist",
+  "head_neck",
+  "cleft_cranio",
+  "skin_cancer",
   "orthoplastic",
   "burns",
+  "lymphoedema",
+  "body_contouring",
+  "aesthetics",
+  "peripheral_nerve",
   "general",
-  "head_neck",
 ];
 
 const TIME_PERIODS: TimePeriod[] = [

@@ -30,8 +30,12 @@ export { BODY_CONTOURING_DIAGNOSES } from "./bodyContouringDiagnoses";
 export { BREAST_DIAGNOSES } from "./breastDiagnoses";
 export { AESTHETICS_DIAGNOSES } from "./aestheticsDiagnoses";
 export { GENERAL_DIAGNOSES, GEN_DX_SKIN_CANCER } from "./generalDiagnoses";
-export { HEAD_NECK_DIAGNOSES, HN_DX_SKIN_CANCER } from "./headNeckDiagnoses";
+export { HEAD_NECK_DIAGNOSES, HN_DX_SKIN_CANCER, HN_DX_CLEFT_CRANIOFACIAL } from "./headNeckDiagnoses";
 export { ORTHOPLASTIC_DIAGNOSES } from "./orthoplasticDiagnoses";
+export { CLEFT_CRANIO_DIAGNOSES } from "./cleftCranioDiagnoses";
+export { SKIN_CANCER_DIAGNOSES } from "./skinCancerDiagnoses";
+export { LYMPHOEDEMA_DIAGNOSES } from "./lymphoedemaDiagnoses";
+export { PERIPHERAL_NERVE_DIAGNOSES } from "./peripheralNerveDiagnoses";
 
 // Re-export types
 export type {
@@ -50,8 +54,12 @@ import { BREAST_DIAGNOSES } from "./breastDiagnoses";
 import { AESTHETICS_DIAGNOSES } from "./aestheticsDiagnoses";
 import { GENERAL_DIAGNOSES, GEN_DX_SKIN_CANCER } from "./generalDiagnoses";
 
-import { HEAD_NECK_DIAGNOSES, HN_DX_SKIN_CANCER } from "./headNeckDiagnoses";
+import { HEAD_NECK_DIAGNOSES, HN_DX_SKIN_CANCER, HN_DX_CLEFT_CRANIOFACIAL } from "./headNeckDiagnoses";
 import { ORTHOPLASTIC_DIAGNOSES } from "./orthoplasticDiagnoses";
+import { CLEFT_CRANIO_DIAGNOSES } from "./cleftCranioDiagnoses";
+import { SKIN_CANCER_DIAGNOSES } from "./skinCancerDiagnoses";
+import { LYMPHOEDEMA_DIAGNOSES } from "./lymphoedemaDiagnoses";
+import { PERIPHERAL_NERVE_DIAGNOSES } from "./peripheralNerveDiagnoses";
 
 // ─── Master Diagnosis Registry ───────────────────────────────────────────────
 
@@ -68,13 +76,17 @@ export const ALL_DIAGNOSES: DiagnosisPicklistEntry[] = [
   ...GENERAL_DIAGNOSES,
   ...HEAD_NECK_DIAGNOSES,
   ...ORTHOPLASTIC_DIAGNOSES,
+  ...CLEFT_CRANIO_DIAGNOSES,
+  ...SKIN_CANCER_DIAGNOSES,
+  ...LYMPHOEDEMA_DIAGNOSES,
+  ...PERIPHERAL_NERVE_DIAGNOSES,
 ];
 
 // ─── Lookup by specialty ─────────────────────────────────────────────────────
 
 /** Specialty → diagnosis array mapping for direct access */
 const SPECIALTY_MAP: Partial<Record<Specialty, DiagnosisPicklistEntry[]>> = {
-  hand_surgery: HAND_SURGERY_DIAGNOSES,
+  hand_wrist: HAND_SURGERY_DIAGNOSES,
   burns: BURNS_DIAGNOSES,
   body_contouring: BODY_CONTOURING_DIAGNOSES,
   breast: BREAST_DIAGNOSES,
@@ -82,6 +94,10 @@ const SPECIALTY_MAP: Partial<Record<Specialty, DiagnosisPicklistEntry[]>> = {
   general: [...GENERAL_DIAGNOSES, ...HN_DX_SKIN_CANCER],
   head_neck: [...HEAD_NECK_DIAGNOSES, ...GEN_DX_SKIN_CANCER],
   orthoplastic: ORTHOPLASTIC_DIAGNOSES,
+  cleft_cranio: [...CLEFT_CRANIO_DIAGNOSES, ...HN_DX_CLEFT_CRANIOFACIAL],
+  skin_cancer: [...SKIN_CANCER_DIAGNOSES, ...HN_DX_SKIN_CANCER, ...GEN_DX_SKIN_CANCER],
+  lymphoedema: LYMPHOEDEMA_DIAGNOSES,
+  peripheral_nerve: PERIPHERAL_NERVE_DIAGNOSES,
 };
 
 /**

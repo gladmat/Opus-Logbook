@@ -422,7 +422,7 @@ export function formStateToDraft(
   const showInjuryDate =
     state.admissionUrgency === "acute" ||
     state.diagnosisGroups.some(
-      (g) => g.specialty === "hand_surgery" || g.specialty === "orthoplastic",
+      (g) => g.specialty === "hand_wrist" || g.specialty === "orthoplastic" || g.specialty === "peripheral_nerve",
     );
 
   return {
@@ -987,7 +987,7 @@ export function useCaseForm({
   const showInjuryDate =
     state.admissionUrgency === "acute" ||
     state.diagnosisGroups.some(
-      (g) => g.specialty === "hand_surgery" || g.specialty === "orthoplastic",
+      (g) => g.specialty === "hand_wrist" || g.specialty === "orthoplastic" || g.specialty === "peripheral_nerve",
     );
 
   // ── Side effects ────────────────────────────────────────────────────────

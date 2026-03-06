@@ -20,7 +20,7 @@ export const SPECIALTY_ICON_PATHS: Record<
     ],
     circles: [{ cx: 12, cy: 14, r: 1.5 }],
   },
-  hand_surgery: {
+  hand_wrist: {
     strokes: [
       { d: "M9 21V18", strokeWidth: 1.8 },
       { d: "M15 21V18", strokeWidth: 1.8 },
@@ -114,6 +114,55 @@ export const SPECIALTY_ICON_PATHS: Record<
       { d: "M12 9C13 9 14 9 15 8", strokeWidth: 1.26 },
     ],
     circles: [{ cx: 12, cy: 13, r: 0.5, fill: true }],
+  },
+  cleft_cranio: {
+    // Face profile with cleft indicator
+    strokes: [
+      {
+        d: "M12 3C8 3 6 6 6 10C6 13 7 15 9 17L10 19H14L15 17C17 15 18 13 18 10C18 6 16 3 12 3Z",
+        strokeWidth: 1.8,
+      },
+      { d: "M10 11C10 12 11 13 12 13C13 13 14 12 14 11", strokeWidth: 1.26 },
+      { d: "M12 13V15.5", strokeWidth: 1.26 },
+      { d: "M10.5 16C11 16.5 13 16.5 13.5 16", strokeWidth: 1.26 },
+    ],
+    circles: [
+      { cx: 9.5, cy: 8, r: 0.8, fill: true },
+      { cx: 14.5, cy: 8, r: 0.8, fill: true },
+    ],
+  },
+  skin_cancer: {
+    // Sun icon (circle with radiating lines)
+    strokes: [
+      { d: "M12 2V4", strokeWidth: 1.8 },
+      { d: "M12 20V22", strokeWidth: 1.8 },
+      { d: "M4 12H2", strokeWidth: 1.8 },
+      { d: "M22 12H20", strokeWidth: 1.8 },
+      { d: "M5.64 5.64L4.22 4.22", strokeWidth: 1.26 },
+      { d: "M19.78 19.78L18.36 18.36", strokeWidth: 1.26 },
+      { d: "M18.36 5.64L19.78 4.22", strokeWidth: 1.26 },
+      { d: "M4.22 19.78L5.64 18.36", strokeWidth: 1.26 },
+    ],
+    circles: [{ cx: 12, cy: 12, r: 5 }],
+  },
+  lymphoedema: {
+    // Droplet/teardrop shape
+    strokes: [
+      {
+        d: "M12 3L6 12C6 16.5 8.5 20 12 20C15.5 20 18 16.5 18 12L12 3Z",
+        strokeWidth: 1.8,
+      },
+      {
+        d: "M10 14C10 15.5 11 16.5 12 16.5C13 16.5 14 15.5 14 14",
+        strokeWidth: 1.26,
+      },
+    ],
+  },
+  peripheral_nerve: {
+    // Lightning/zap icon (nerve signal)
+    strokes: [
+      { d: "M13 2L4 14H12L11 22L20 10H12L13 2Z", strokeWidth: 1.8 },
+    ],
   },
   general: {
     strokes: [

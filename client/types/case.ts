@@ -68,6 +68,10 @@ export type HeadNeckCategory =
   | "congenital"
   | "other";
 export type GeneralCategory = "other";
+export type CleftCranioCategory = "congenital" | "secondary_revision" | "syndromic" | "other";
+export type SkinCancerCategory = "bcc" | "scc" | "melanoma" | "other_malignant" | "premalignant" | "diagnostic" | "other";
+export type LymphoedemaCategory = "primary" | "secondary" | "combined_treatment" | "other";
+export type PeripheralNerveCategory = "trauma" | "tumour" | "compression" | "reconstruction" | "brachial_plexus" | "other";
 
 export type ProcedureCategory =
   | HandSurgeryCategory
@@ -76,14 +80,18 @@ export type ProcedureCategory =
   | BodyContouringCategory
   | BurnsCategory
   | HeadNeckCategory
-  | GeneralCategory;
+  | GeneralCategory
+  | CleftCranioCategory
+  | SkinCancerCategory
+  | LymphoedemaCategory
+  | PeripheralNerveCategory;
 
 // Procedure category options by specialty
 export const PROCEDURE_CATEGORY_OPTIONS: Record<
   Specialty,
   { value: string; label: string }[]
 > = {
-  hand_surgery: [
+  hand_wrist: [
     { value: "trauma", label: "Trauma" },
     { value: "degenerative", label: "Degenerative" },
     { value: "peripheral_nerve", label: "Peripheral Nerve" },
@@ -133,17 +141,49 @@ export const PROCEDURE_CATEGORY_OPTIONS: Record<
     { value: "other", label: "Other" },
   ],
   general: [{ value: "other", label: "Other" }],
+  cleft_cranio: [
+    { value: "congenital", label: "Congenital" },
+    { value: "secondary_revision", label: "Secondary / Revision" },
+    { value: "syndromic", label: "Syndromic" },
+    { value: "other", label: "Other" },
+  ],
+  skin_cancer: [
+    { value: "bcc", label: "BCC" },
+    { value: "scc", label: "SCC" },
+    { value: "melanoma", label: "Melanoma" },
+    { value: "other_malignant", label: "Other Malignant" },
+    { value: "premalignant", label: "Pre-Malignant" },
+    { value: "diagnostic", label: "Diagnostic / Biopsy" },
+  ],
+  lymphoedema: [
+    { value: "primary", label: "Primary" },
+    { value: "secondary", label: "Secondary" },
+    { value: "combined_treatment", label: "Combined Treatment" },
+    { value: "other", label: "Other" },
+  ],
+  peripheral_nerve: [
+    { value: "trauma", label: "Trauma" },
+    { value: "tumour", label: "Tumour" },
+    { value: "compression", label: "Compression / Entrapment" },
+    { value: "reconstruction", label: "Reconstruction" },
+    { value: "brachial_plexus", label: "Brachial Plexus" },
+    { value: "other", label: "Other" },
+  ],
 };
 
 export type Specialty =
   | "breast"
-  | "body_contouring"
-  | "aesthetics"
-  | "hand_surgery"
+  | "hand_wrist"
+  | "head_neck"
+  | "cleft_cranio"
+  | "skin_cancer"
   | "orthoplastic"
   | "burns"
-  | "general"
-  | "head_neck";
+  | "lymphoedema"
+  | "body_contouring"
+  | "aesthetics"
+  | "peripheral_nerve"
+  | "general";
 
 // Procedure tags for cross-specialty categorization
 export type ProcedureTag =
@@ -1811,13 +1851,17 @@ export const PROM_QUESTIONNAIRE_LABELS: Record<PROMQuestionnaire, string> = {
 
 export const SPECIALTY_LABELS: Record<Specialty, string> = {
   breast: "Breast",
+  hand_wrist: "Hand & Wrist",
+  head_neck: "Head & Neck",
+  cleft_cranio: "Cleft & Craniofacial",
+  skin_cancer: "Skin Cancer",
+  orthoplastic: "Orthoplastic & Limb",
+  burns: "Burns",
+  lymphoedema: "Lymphoedema",
   body_contouring: "Body Contouring",
   aesthetics: "Aesthetics",
-  hand_surgery: "Hand Surgery",
-  orthoplastic: "Orthoplastic",
-  burns: "Burns",
-  general: "General",
-  head_neck: "Head & Neck",
+  peripheral_nerve: "Peripheral Nerve",
+  general: "General / Other",
 };
 
 export const PROCEDURE_TAG_LABELS: Record<ProcedureTag, string> = {
@@ -1958,7 +2002,7 @@ export const PROCEDURE_TYPES: Record<Specialty, string[]> = {
     "Fat Transfer",
     "Otoplasty",
   ],
-  hand_surgery: [
+  hand_wrist: [
     "Fracture Fixation",
     "Tendon Repair",
     "Nerve Repair",
@@ -2009,6 +2053,35 @@ export const PROCEDURE_TYPES: Record<Specialty, string[]> = {
     "Mandible Reconstruction",
     "Lip Reconstruction",
     "Ear Reconstruction",
+  ],
+  cleft_cranio: [
+    "Cleft Lip Repair",
+    "Cleft Palate Repair",
+    "Alveolar Bone Graft",
+    "Craniosynostosis Surgery",
+    "Le Fort Osteotomy",
+    "VPI Surgery",
+  ],
+  skin_cancer: [
+    "BCC Excision",
+    "SCC Excision",
+    "Melanoma Excision",
+    "Wide Local Excision",
+    "Mohs Defect Reconstruction",
+    "Sentinel Lymph Node Biopsy",
+  ],
+  lymphoedema: [
+    "Lymphovenous Anastomosis",
+    "Vascularised Lymph Node Transfer",
+    "Liposuction for Lymphoedema",
+    "Debulking / Charles Procedure",
+  ],
+  peripheral_nerve: [
+    "Nerve Graft",
+    "Nerve Transfer",
+    "Brachial Plexus Repair",
+    "Neuroma Excision",
+    "Nerve Conduit",
   ],
 };
 
