@@ -126,14 +126,14 @@ migrations/                  # SQL migration files
 
 ## Key architecture
 
-- **Navigation:** Auth → Onboarding → Main (bottom tabs: Dashboard, Settings) with modal stack for case entry/detail
+- **Navigation:** Auth → Onboarding → Main (bottom tabs: Dashboard, Settings) with modal stack for case entry/detail. Headers use solid `theme.backgroundRoot` background (no blur/transparency), no shadow. Configured centrally in `useScreenOptions()` (`client/hooks/useScreenOptions.ts`). Screens do NOT use `useHeaderHeight()` for padding — `headerTransparent: false` means content starts below the header automatically.
 - **Data ownership:** Hierarchical: User → Procedure → Flap → Anastomosis. Ownership verified at each API level.
 - **SNOMED CT:** Curated picklists in `snomed_ref` table + live search via Ontoserver FHIR API
 - **Offline-first:** Local AsyncStorage for cases; server sync via API
 - **E2EE scaffolding:** Device key registration in place; media encryption implemented
 - **Multi-specialty:** Hand surgery, orthoplastic, breast, burns, head/neck, aesthetics, general, body contouring
 - **Theme:** ThemeProvider in `client/hooks/useTheme.ts` wraps the app. `useTheme()` returns `{ theme, isDark, colorScheme, preference, toggleColorScheme, setColorScheme }`. Default is dark mode; respects system preference; user override persists to AsyncStorage. `ThemedNavigationContainer` in `App.tsx` maps theme to React Navigation's Theme prop.
-- **Case form:** `CaseFormScreen.tsx` (~240 lines) delegates to 7 section components via `CaseFormContext`. Form state is a `useReducer` in `useCaseForm.ts` with actions: `SET_FIELD`, `SET_FIELDS`, `RESET_FORM`, `LOAD_DRAFT`, `LOAD_CASE`. Draft auto-save via `useCaseDraft.ts` (debounced writes + AppState background flush). Summary view (`CaseSummaryView.tsx`) gates save with validation.
+- **Case form:** `CaseFormScreen.tsx` (~240 lines) delegates to 7 section components via `CaseFormContext`. Form state is a `useReducer` in `useCaseForm.ts` with actions: `SET_FIELD`, `SET_FIELDS`, `RESET_FORM`, `LOAD_DRAFT`, `LOAD_CASE`. Draft auto-save via `useCaseDraft.ts` (debounced writes + AppState background flush). Summary view (`CaseSummaryView.tsx`) gates save with validation. Header right shows "Clear"/"Revert" text button (gray, with confirmation dialog) + "Save" (amber). SectionNavBar has no bottom border — matches dashboard filter pill styling.
 - **Multi-Diagnosis Group Architecture:** Each Case has `diagnosisGroups: DiagnosisGroup[]` instead of flat diagnosis/procedures fields. Each DiagnosisGroup bundles a specialty, diagnosis, staging, fractures, and procedures. Enables multi-specialty cases (e.g., hand surgery + orthoplastic). Old cases auto-migrated on load via `client/lib/migration.ts`. Helpers: `getAllProcedures(c)`, `getCaseSpecialties(c)`, `getPrimaryDiagnosisName(c)` in `client/types/case.ts`.
 - **RACS MALT Data Model:** Comprehensive implementation of RACS MALT requirements including supervision levels.
 
@@ -380,6 +380,8 @@ Per-specialty colors in `theme.specialty[specialty]` — pastel on dark, deeper 
 - Card accent borders: primary group = theme.link full opacity; groups 2+ = theme.link at 60%/35% opacity
 - All cards: Shadows.card + BorderRadius.md (14px) + theme.backgroundElevated
 - No hardcoded colour hex values in components — always reference `theme.*` or `palette.*` from `client/constants/theme.ts`
+- **Headers:** Solid `theme.backgroundRoot`, no blur/transparency, no shadow line. Never use `headerTransparent: true` or `useHeaderHeight()`.
+- **Horizontal pill bars** (SectionNavBar, dashboard filters): No container borders or separator lines — pills float seamlessly on `backgroundRoot`.
 
 ### Typography
 - display: 28/36/700, h1: 22/30/700, h2: 18/26/600, h3: 16/24/600, h4: 15/22/600

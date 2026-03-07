@@ -17,7 +17,6 @@ import DateTimePicker, {
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useHeaderHeight } from "@react-navigation/elements";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
@@ -212,7 +211,6 @@ export default function DashboardScreen() {
   const { profile } = useAuth();
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
-  const headerHeight = useHeaderHeight();
   const tabBarHeight = useBottomTabBarHeight();
 
   const [cases, setCases] = useState<Case[]>([]);
@@ -1676,7 +1674,7 @@ export default function DashboardScreen() {
         contentContainerStyle={[
           styles.scrollContent,
           {
-            paddingTop: headerHeight + Spacing.lg,
+            paddingTop: Spacing.lg,
             paddingBottom: tabBarHeight + Spacing.xl + 80,
           },
         ]}
@@ -1686,7 +1684,7 @@ export default function DashboardScreen() {
             refreshing={refreshing}
             onRefresh={handleRefresh}
             tintColor={theme.link}
-            progressViewOffset={headerHeight}
+            progressViewOffset={0}
           />
         }
         maxToRenderPerBatch={10}

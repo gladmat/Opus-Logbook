@@ -57,7 +57,6 @@ export function SectionNavBar({
         styles.container,
         {
           backgroundColor: theme.backgroundRoot,
-          borderBottomColor: theme.border,
         },
       ]}
     >
@@ -129,7 +128,6 @@ export function SectionNavBar({
 const styles = StyleSheet.create({
   container: {
     height: NAV_BAR_HEIGHT,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   scrollContent: {
     paddingHorizontal: Spacing.lg,

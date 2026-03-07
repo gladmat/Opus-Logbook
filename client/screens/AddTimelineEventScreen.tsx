@@ -3,7 +3,6 @@ import { View, StyleSheet, Alert, Pressable } from "react-native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useHeaderHeight } from "@react-navigation/elements";
 import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
 import { v4 as uuidv4 } from "uuid";
@@ -67,7 +66,6 @@ export default function AddTimelineEventScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteParams>();
   const insets = useSafeAreaInsets();
-  const headerHeight = useHeaderHeight();
 
   const { caseId, initialEventType, caseDischargeDate, editEventId } =
     route.params;
@@ -385,7 +383,7 @@ export default function AddTimelineEventScreen() {
       contentContainerStyle={[
         styles.content,
         {
-          paddingTop: headerHeight + Spacing.lg,
+          paddingTop: Spacing.lg,
           paddingBottom: insets.bottom + Spacing["3xl"],
         },
       ]}

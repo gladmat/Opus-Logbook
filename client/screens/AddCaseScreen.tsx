@@ -3,7 +3,6 @@ import { View, StyleSheet, Pressable } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useHeaderHeight } from "@react-navigation/elements";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
 import { SpecialtyIcon } from "@/components/SpecialtyIcon";
@@ -23,7 +22,6 @@ export default function AddCaseScreen() {
   const { profile } = useAuth();
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
-  const headerHeight = useHeaderHeight();
   const visibleSpecialties = React.useMemo(
     () => getVisibleSpecialties(profile),
     [profile],
@@ -40,7 +38,7 @@ export default function AddCaseScreen() {
       contentContainerStyle={[
         styles.content,
         {
-          paddingTop: headerHeight + Spacing.xl,
+          paddingTop: Spacing.xl,
           paddingBottom: insets.bottom + Spacing.xl,
         },
       ]}

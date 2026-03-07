@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useRef } from "react";
 import { View, StyleSheet, Pressable, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useHeaderHeight } from "@react-navigation/elements";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
@@ -21,7 +20,6 @@ export default function SurgicalPreferencesScreen() {
   const { theme } = useTheme();
   const { profile, updateProfile } = useAuth();
   const insets = useSafeAreaInsets();
-  const headerHeight = useHeaderHeight();
 
   const prefs = profile?.surgicalPreferences?.microsurgery;
   const [selectedAnticoag, setSelectedAnticoag] = useState<
@@ -79,7 +77,7 @@ export default function SurgicalPreferencesScreen() {
     <ScrollView
       style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
       contentContainerStyle={{
-        paddingTop: headerHeight + Spacing.lg,
+        paddingTop: Spacing.lg,
         paddingBottom: insets.bottom + Spacing.xl,
         paddingHorizontal: Spacing.md,
       }}

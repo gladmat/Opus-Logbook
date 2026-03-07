@@ -13,7 +13,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
 import * as LocalAuthentication from "expo-local-authentication";
-import { useHeaderHeight } from "@react-navigation/elements";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { useAppLock } from "@/contexts/AppLockContext";
@@ -45,7 +44,6 @@ type SetupStep = "idle" | "enter_new" | "confirm_new" | "enter_current";
 export default function SetupAppLockScreen() {
   const { theme: colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const headerHeight = useHeaderHeight();
   const { refreshLockState } = useAppLock();
 
   const [hasPinSet, setHasPinSet] = useState(false);
@@ -393,7 +391,7 @@ export default function SetupAppLockScreen() {
       contentContainerStyle={[
         styles.scrollContent,
         {
-          paddingTop: headerHeight + Spacing.lg,
+          paddingTop: Spacing.lg,
           paddingBottom: insets.bottom + Spacing["3xl"],
         },
       ]}

@@ -17,7 +17,6 @@ import {
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useHeaderHeight } from "@react-navigation/elements";
 import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
 import { KeyboardToolbar } from "react-native-keyboard-controller";
@@ -99,7 +98,6 @@ export default function CaseFormScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteParams>();
   const insets = useSafeAreaInsets();
-  const headerHeight = useHeaderHeight();
   const { facilities, profile } = useAuth();
 
   const scrollViewRef = useRef<any>(null);
@@ -424,17 +422,21 @@ export default function CaseFormScreen() {
           ? "Edit Case"
           : `${SPECIALTY_LABELS[form.specialty]} Case`,
       headerRight: () => (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
           <Pressable
             onPress={showOverflowMenu}
             hitSlop={8}
             style={{ padding: 6 }}
           >
-            <Feather
-              name="more-horizontal"
-              size={22}
-              color={theme.textSecondary}
-            />
+            <ThemedText
+              style={{
+                color: theme.textSecondary,
+                fontWeight: "500",
+                fontSize: 15,
+              }}
+            >
+              {form.isEditMode ? "Revert" : "Clear"}
+            </ThemedText>
           </Pressable>
           <Pressable
             onPress={() =>
@@ -533,7 +535,7 @@ export default function CaseFormScreen() {
           style={[
             styles.navBarContainer,
             {
-              top: headerHeight,
+              top: 0,
               backgroundColor: theme.backgroundRoot,
             },
           ]}
@@ -552,9 +554,7 @@ export default function CaseFormScreen() {
         contentContainerStyle={[
           styles.content,
           {
-            paddingTop:
-              headerHeight +
-              (reviewMode ? Spacing.lg : NAV_BAR_HEIGHT + Spacing.lg),
+            paddingTop: reviewMode ? Spacing.lg : NAV_BAR_HEIGHT + Spacing.lg,
             paddingBottom: insets.bottom + Spacing["3xl"],
           },
         ]}

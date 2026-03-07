@@ -1,22 +1,14 @@
-import { Platform } from "react-native";
 import { NativeStackNavigationOptions } from "@react-navigation/native-stack";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 
 import { useTheme } from "@/hooks/useTheme";
 
-interface UseScreenOptionsParams {
-  transparent?: boolean;
-}
-
-export function useScreenOptions({
-  transparent = true,
-}: UseScreenOptionsParams = {}): NativeStackNavigationOptions {
-  const { theme, isDark } = useTheme();
+export function useScreenOptions(): NativeStackNavigationOptions {
+  const { theme } = useTheme();
 
   return {
     headerTitleAlign: "center",
-    headerTransparent: transparent,
-    headerBlurEffect: isDark ? "dark" : "light",
+    headerTransparent: false,
     headerTintColor: theme.link, // Amber for interactive back chevron
     headerTitleStyle: {
       color: theme.text,
@@ -24,13 +16,9 @@ export function useScreenOptions({
       fontSize: 17,
     },
     headerBackTitle: "", // Clean chevron-only back button
-    headerShadowVisible: true,
+    headerShadowVisible: false,
     headerStyle: {
-      backgroundColor: Platform.select({
-        ios: undefined,
-        android: theme.backgroundRoot,
-        web: theme.backgroundRoot,
-      }),
+      backgroundColor: theme.backgroundRoot,
     },
     gestureEnabled: true,
     gestureDirection: "horizontal",
