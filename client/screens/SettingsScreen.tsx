@@ -17,6 +17,7 @@ import type { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
+import * as LocalAuthentication from "expo-local-authentication";
 import * as MailComposer from "expo-mail-composer";
 import Constants from "expo-constants";
 import { ThemedText } from "@/components/ThemedText";
@@ -31,6 +32,7 @@ import { getCodingSystemForProfile } from "@/lib/snomedCt";
 import { getAuthToken } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppLock } from "@/contexts/AppLockContext";
+import { isBiometricPreferenceEnabled } from "@/lib/appLockStorage";
 import {
   getStoredSelectedSpecialties,
   getVisibleSpecialties,
@@ -161,6 +163,38 @@ export default function SettingsScreen() {
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const [deleteAccountPassword, setDeleteAccountPassword] = useState("");
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [appLockIcon, setAppLockIcon] = useState<
+    keyof typeof Feather.glyphMap
+  >("shield");
+
+  useEffect(() => {
+    if (!isAppLockConfigured) {
+      setAppLockIcon("shield");
+      return;
+    }
+    (async () => {
+      const bioPref = await isBiometricPreferenceEnabled();
+      if (!bioPref) {
+        setAppLockIcon("lock");
+        return;
+      }
+      const types =
+        await LocalAuthentication.supportedAuthenticationTypesAsync();
+      if (
+        types.includes(
+          LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION,
+        )
+      ) {
+        setAppLockIcon("smile");
+      } else if (
+        types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)
+      ) {
+        setAppLockIcon("smartphone");
+      } else {
+        setAppLockIcon("lock");
+      }
+    })();
+  }, [isAppLockConfigured]);
 
   const storedSelectedSpecialties = useMemo(
     () => getStoredSelectedSpecialties(profile),
@@ -193,7 +227,7 @@ export default function SettingsScreen() {
 
   const handleExport = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const formats: ExportFormat[] = ["csv", "json", "fhir"];
+    const formats: ExportFormat[] = ["csv", "json", "fhir", "pdf"];
     const labels = formats.map((f) => EXPORT_FORMAT_LABELS[f]);
 
     ActionSheetIOS.showActionSheetWithOptions(
@@ -611,7 +645,7 @@ export default function SettingsScreen() {
             ]}
           >
             <SettingsItem
-              icon="shield"
+              icon={appLockIcon}
               label="App Lock"
               subtitle="PIN and biometric protection"
               value={isAppLockConfigured ? "On" : "Off"}

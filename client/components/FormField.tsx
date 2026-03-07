@@ -566,6 +566,7 @@ function parseIsoDateValue(dateStr?: string): Date | null {
   if (!dateStr) return null;
   const [year, month, day] = dateStr.split("-").map(Number);
   if (!year || !month || !day) return null;
+  if (year < 2000 || year > 2100) return null;
   return new Date(year, month - 1, day, 12, 0, 0, 0);
 }
 

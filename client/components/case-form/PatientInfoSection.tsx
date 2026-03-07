@@ -53,6 +53,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
         placeholder="Select date..."
         required
         error={fieldErrors.procedureDate}
+        maximumDate={new Date()}
       />
 
       {facilities.length > 0 ? (
