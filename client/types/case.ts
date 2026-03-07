@@ -895,10 +895,22 @@ export interface PerfusionStatusEntry {
   status: "impaired" | "absent";
 }
 
+export type CoverageZone =
+  | "fingertip"
+  | "digit_shaft"
+  | "web_space"
+  | "palm"
+  | "dorsum_hand"
+  | "wrist_forearm";
+
+export type CoverageSize = "small" | "medium" | "large";
+
 export interface SoftTissueDescriptor {
   type: "defect" | "loss" | "degloving" | "contamination";
   surfaces?: ("palmar" | "dorsal")[];
   digits?: DigitId[];
+  zone?: CoverageZone;
+  size?: CoverageSize;
 }
 
 export interface HandTraumaStructure {
@@ -927,6 +939,22 @@ export interface DislocationEntry {
   isComplex?: boolean;
 }
 
+export type AmputationLevel =
+  | "fingertip"
+  | "distal_phalanx"
+  | "middle_phalanx"
+  | "proximal_phalanx"
+  | "mcp"
+  | "ray"
+  | "hand_wrist";
+
+export interface DigitAmputation {
+  digit: DigitId;
+  level: AmputationLevel;
+  type: "complete" | "subtotal";
+  isReplantable?: boolean;
+}
+
 export interface HandTraumaDetails {
   /** Deprecated write target. Keep for backward compatibility on read. */
   injuryMechanism?: string;
@@ -939,15 +967,13 @@ export interface HandTraumaDetails {
   isFightBite?: boolean;
   isCompartmentSyndrome?: boolean;
   isRingAvulsion?: boolean;
-  amputationLevel?:
-    | "fingertip"
-    | "distal_phalanx"
-    | "middle_phalanx"
-    | "proximal_phalanx"
-    | "mcp"
-    | "ray"
-    | "hand_wrist";
+  /** Per-digit amputation data (preferred over legacy single-level fields) */
+  digitAmputations?: DigitAmputation[];
+  /** @deprecated Use digitAmputations instead */
+  amputationLevel?: AmputationLevel;
+  /** @deprecated Use digitAmputations instead */
   amputationType?: "complete" | "subtotal";
+  /** @deprecated Use digitAmputations instead */
   isReplantable?: boolean;
 }
 

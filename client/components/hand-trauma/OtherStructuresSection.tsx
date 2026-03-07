@@ -1,15 +1,15 @@
 import React from "react";
 import { View, Pressable, StyleSheet } from "react-native";
 import { Feather } from "@/components/FeatherIcon";
+import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
-import type { DigitId, HandTraumaStructure } from "@/types/case";
-import { DIGIT_LABELS } from "./structureConfig";
+import type { HandTraumaStructure, DigitId } from "@/types/case";
 
 interface OtherStructuresSectionProps {
-  selectedDigits: DigitId[];
   checkedStructures: HandTraumaStructure[];
+  selectedDigits: DigitId[];
   onToggleStructure: (
     structureId: string,
     category: "other",
@@ -19,117 +19,115 @@ interface OtherStructuresSectionProps {
 }
 
 export function OtherStructuresSection({
-  selectedDigits,
   checkedStructures,
+  selectedDigits,
   onToggleStructure,
 }: OtherStructuresSectionProps) {
   const { theme } = useTheme();
 
-  const isChecked = (structureId: string) =>
-    checkedStructures.some(
-      (s) => s.structureId === structureId && s.category === "other",
-    );
+  const nailBedStructures = checkedStructures.filter(
+    (s) => s.structureId === "nail_bed" && s.category === "other",
+  );
+  const hasAnyNailBed = nailBedStructures.length > 0;
 
-  const pipDigits = selectedDigits.filter((d) => d !== "I");
+  const isDigitChecked = (digit: DigitId) =>
+    nailBedStructures.some((s) => s.digit === digit);
+
+  const handleToggleNailBed = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (hasAnyNailBed) {
+      // Remove all nail bed entries (toggle off)
+      for (const s of nailBedStructures) {
+        onToggleStructure("nail_bed", "other", "Nail bed injury", s.digit);
+      }
+    } else if (selectedDigits.length === 0) {
+      // No digits selected — add generic nail bed
+      onToggleStructure("nail_bed", "other", "Nail bed injury");
+    } else if (selectedDigits.length === 1) {
+      // Single digit — add nail bed for that digit
+      onToggleStructure(
+        "nail_bed",
+        "other",
+        `Nail bed injury (${selectedDigits[0]})`,
+        selectedDigits[0],
+      );
+    } else {
+      // Multiple digits — add nail bed for first digit, user picks rest
+      onToggleStructure(
+        "nail_bed",
+        "other",
+        `Nail bed injury (${selectedDigits[0]})`,
+        selectedDigits[0],
+      );
+    }
+  };
+
+  const handleToggleDigit = (digit: DigitId) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onToggleStructure(
+      "nail_bed",
+      "other",
+      `Nail bed injury (${digit})`,
+      digit,
+    );
+  };
 
   return (
     <View style={styles.container}>
-      <View style={styles.group}>
+      <Pressable
+        testID="other-nail_bed"
+        style={[styles.checkRow, { borderColor: theme.border }]}
+        onPress={handleToggleNailBed}
+      >
+        <Feather
+          name={hasAnyNailBed ? "check-square" : "square"}
+          size={20}
+          color={hasAnyNailBed ? theme.link : theme.textTertiary}
+        />
         <ThemedText
           type="small"
-          style={[styles.groupLabel, { color: theme.textSecondary }]}
+          style={[styles.checkLabel, { color: theme.text }]}
         >
-          General
+          Nail bed
         </ThemedText>
+      </Pressable>
 
-        <Pressable
-          testID="other-nail_bed"
-          style={[styles.checkRow, { borderColor: theme.border }]}
-          onPress={() =>
-            onToggleStructure("nail_bed", "other", "Nail bed injury")
-          }
-        >
-          <Feather
-            name={isChecked("nail_bed") ? "check-square" : "square"}
-            size={20}
-            color={isChecked("nail_bed") ? theme.link : theme.textTertiary}
-          />
-          <ThemedText
-            type="small"
-            style={[styles.checkLabel, { color: theme.text }]}
-          >
-            Nail bed
+      {/* Digit sub-picker — shown when nail bed is active and multiple digits available */}
+      {hasAnyNailBed && selectedDigits.length > 1 ? (
+        <View style={styles.digitRow}>
+          <ThemedText style={[styles.hint, { color: theme.textTertiary }]}>
+            Affected digits
           </ThemedText>
-        </Pressable>
-
-        <Pressable
-          testID="other-skin_loss"
-          style={[styles.checkRow, { borderColor: theme.border }]}
-          onPress={() =>
-            onToggleStructure("skin_loss", "other", "Skin / soft tissue loss")
-          }
-        >
-          <Feather
-            name={isChecked("skin_loss") ? "check-square" : "square"}
-            size={20}
-            color={isChecked("skin_loss") ? theme.link : theme.textTertiary}
-          />
-          <View style={styles.labelContainer}>
-            <ThemedText
-              type="small"
-              style={[styles.checkLabel, { color: theme.text }]}
-            >
-              Skin / soft tissue loss
-            </ThemedText>
-            <ThemedText
-              type="small"
-              style={{ color: theme.textTertiary, fontSize: 12 }}
-            >
-              Select coverage procedure manually
-            </ThemedText>
-          </View>
-        </Pressable>
-      </View>
-
-      {pipDigits.length > 0 ? (
-        <View style={styles.group}>
-          <ThemedText
-            type="small"
-            style={[styles.groupLabel, { color: theme.textSecondary }]}
-          >
-            Volar plate (PIP)
-          </ThemedText>
-          {pipDigits.map((digit) => {
-            const vpId = `volar_plate_${digit}`;
-            const checked = isChecked(vpId);
-            return (
-              <Pressable
-                key={digit}
-                testID={`other-${vpId}`}
-                style={[styles.checkRow, { borderColor: theme.border }]}
-                onPress={() =>
-                  onToggleStructure(
-                    vpId,
-                    "other",
-                    `Volar plate PIP - ${DIGIT_LABELS[digit]}`,
-                    digit,
-                  )
-                }
-              >
-                <Feather
-                  name={checked ? "check-square" : "square"}
-                  size={20}
-                  color={checked ? theme.link : theme.textTertiary}
-                />
-                <ThemedText
-                  type="small"
-                  style={[styles.checkLabel, { color: theme.text }]}
+          <View style={styles.pillRow}>
+            {selectedDigits.map((digit) => {
+              const checked = isDigitChecked(digit);
+              return (
+                <Pressable
+                  key={digit}
+                  testID={`nail-bed-digit-${digit}`}
+                  style={[
+                    styles.digitPill,
+                    {
+                      backgroundColor: checked
+                        ? theme.link + "15"
+                        : theme.backgroundTertiary,
+                      borderColor: checked ? theme.link : theme.border,
+                    },
+                  ]}
+                  onPress={() => handleToggleDigit(digit)}
                 >
-                  {DIGIT_LABELS[digit]} ({digit})
-                </ThemedText>
-              </Pressable>
-            );
-          })}
+                  <ThemedText
+                    style={[
+                      styles.digitPillText,
+                      { color: checked ? theme.link : theme.text },
+                    ]}
+                  >
+                    {digit}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
       ) : null}
     </View>
@@ -138,17 +136,7 @@ export function OtherStructuresSection({
 
 const styles = StyleSheet.create({
   container: {
-    gap: Spacing.md,
-  },
-  group: {
-    gap: Spacing.xs,
-  },
-  groupLabel: {
-    fontWeight: "600",
-    marginBottom: Spacing.xs,
-  },
-  labelContainer: {
-    flex: 1,
+    gap: Spacing.sm,
   },
   checkRow: {
     flexDirection: "row",
@@ -160,5 +148,29 @@ const styles = StyleSheet.create({
   },
   checkLabel: {
     flex: 1,
+  },
+  digitRow: {
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.xs,
+  },
+  hint: {
+    fontSize: 13,
+  },
+  pillRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
+  },
+  digitPill: {
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    minWidth: 44,
+    alignItems: "center",
+  },
+  digitPillText: {
+    fontSize: 13,
+    fontWeight: "500",
   },
 });

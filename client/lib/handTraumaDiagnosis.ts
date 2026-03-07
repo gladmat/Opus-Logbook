@@ -1,5 +1,7 @@
 import { FINGER_NAMES, PHALANX_NAMES } from "@/data/aoHandClassification";
 import type {
+  CoverageZone,
+  CoverageSize,
   DigitId,
   DislocationEntry,
   FractureEntry,
@@ -33,6 +35,7 @@ export interface HandTraumaDiagnosisSelection {
   isFightBite?: boolean;
   isCompartmentSyndrome?: boolean;
   isRingAvulsion?: boolean;
+  digitAmputations?: import("@/types/case").DigitAmputation[];
   amputationLevel?: HandTraumaDetails["amputationLevel"];
   amputationType?: HandTraumaDetails["amputationType"];
   isReplantable?: boolean;
@@ -96,6 +99,8 @@ export interface SoftTissueInjury {
   digits?: DigitId[];
   surfaces?: ("palmar" | "dorsal")[];
   structureId?: string;
+  zone?: CoverageZone;
+  size?: CoverageSize;
 }
 
 export interface AmputationInjury {
@@ -595,6 +600,8 @@ function normalizeSoftTissue(
       type: descriptor.type,
       surfaces: descriptor.surfaces,
       digits: descriptor.digits,
+      zone: descriptor.zone,
+      size: descriptor.size,
     });
   }
 
@@ -612,12 +619,6 @@ function normalizeSoftTissue(
           digits: structure.digit ? [structure.digit] : undefined,
           structureId: structure.structureId,
         });
-      } else if (structure.structureId === "skin_loss") {
-        injuries.push({
-          type: "loss",
-          digits: structure.digit ? [structure.digit] : undefined,
-          structureId: structure.structureId,
-        });
       }
     }
     if (structure.category === "ligament") {
@@ -627,6 +628,22 @@ function normalizeSoftTissue(
         structureId: structure.structureId,
       });
     }
+  }
+
+  // Consolidate multiple per-digit nail_bed entries into one with combined digits
+  const nailBedEntries = injuries.filter((i) => i.type === "nail_bed");
+  if (nailBedEntries.length > 1) {
+    const combinedDigits = nailBedEntries
+      .flatMap((e) => e.digits ?? [])
+      .filter((d, i, a) => a.indexOf(d) === i);
+    // Remove all individual nail_bed entries
+    const withoutNailBed = injuries.filter((i) => i.type !== "nail_bed");
+    injuries.length = 0;
+    injuries.push(...withoutNailBed, {
+      type: "nail_bed",
+      digits: combinedDigits.length > 0 ? combinedDigits : undefined,
+      structureId: "nail_bed",
+    });
   }
 
   if (selection.isHighPressureInjection) {
@@ -655,6 +672,16 @@ function normalizeSoftTissue(
 function normalizeAmputations(
   selection: HandTraumaDiagnosisSelection,
 ): AmputationInjury[] {
+  // Prefer per-digit amputations
+  if (selection.digitAmputations && selection.digitAmputations.length > 0) {
+    return selection.digitAmputations.map((da) => ({
+      digits: [da.digit],
+      level: da.level,
+      type: da.type,
+      isReplantable: da.isReplantable,
+    }));
+  }
+  // Legacy fallback
   if (!selection.amputationLevel) return [];
   return [
     {
@@ -1273,6 +1300,24 @@ export function buildVesselBullets(
   return bullets;
 }
 
+const ZONE_LABELS_EN: Record<CoverageZone, string> = {
+  fingertip: "fingertip",
+  digit_shaft: "digit",
+  web_space: "web space",
+  palm: "palmar",
+  dorsum_hand: "dorsum of hand",
+  wrist_forearm: "wrist/forearm",
+};
+
+const ZONE_LABELS_LATIN: Record<CoverageZone, string> = {
+  fingertip: "apicis digiti",
+  digit_shaft: "digiti",
+  web_space: "spatii interdigitalis",
+  palm: "palmae",
+  dorsum_hand: "dorsi manus",
+  wrist_forearm: "carpi et antebrachii",
+};
+
 function describeSoftTissueDescriptor(
   injury: SoftTissueInjury,
   mode: DiagnosisRenderMode,
@@ -1297,17 +1342,26 @@ function describeSoftTissueDescriptor(
 
   switch (injury.type) {
     case "defect":
-    case "loss":
+    case "loss": {
+      const zoneEn = injury.zone ? ZONE_LABELS_EN[injury.zone] : undefined;
+      const zoneLatin = injury.zone
+        ? ZONE_LABELS_LATIN[injury.zone]
+        : undefined;
       if (mode === "latin_medical") {
-        return `${LATIN.softTissueDefect}${latinSurfaceLabel}${digitsLabel}`;
+        return `${LATIN.softTissueDefect}${zoneLatin ? ` ${zoneLatin}` : ""}${latinSurfaceLabel}${digitsLabel}`;
       }
-      return `${
+      const surfacePrefix =
         surfaces && surfaces.length > 0
           ? `${surfaces
-              .map((surface) => `${surface[0]!.toUpperCase()}${surface.slice(1)}`)
+              .map(
+                (surface) =>
+                  `${surface[0]!.toUpperCase()}${surface.slice(1)}`,
+              )
               .join("/")} `
-          : ""
-      }soft-tissue ${injury.type}${digitsLabel}`;
+          : "";
+      const zonePrefix = zoneEn ? `${zoneEn} ` : "";
+      return `${surfacePrefix}${zonePrefix}soft-tissue ${injury.type}${digitsLabel}`;
+    }
     case "degloving":
       return mode === "latin_medical"
         ? `Laesio deglovans${digitsLabel}`

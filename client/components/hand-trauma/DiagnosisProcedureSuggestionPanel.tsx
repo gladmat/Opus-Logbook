@@ -68,7 +68,41 @@ const COMPACT_PROCEDURE_LABELS: Record<string, string> = {
   hand_disloc_perilunate_orif: "Open reduction + repair",
   hand_disloc_druj_reduction_kwire: "Reduction + K-wire",
   hand_disloc_druj_tfcc_repair: "TFCC repair",
+  // Nerve repair strategies
+  hand_nerve_digital_repair: "Primary repair",
+  hand_nerve_median_repair: "Primary repair",
+  hand_nerve_ulnar_repair: "Primary repair",
+  hand_nerve_radial_repair: "Primary repair",
+  hand_nerve_graft: "Nerve graft",
+  hand_nerve_conduit: "Conduit",
+  // Vessel repair strategies
+  hand_vasc_digital_artery_repair: "Primary repair",
+  hand_vasc_radial_artery_repair: "Primary repair",
+  hand_vasc_ulnar_artery_repair: "Primary repair",
+  hand_vasc_palmar_arch_repair: "Primary repair",
+  hand_vasc_vein_graft: "Vein graft",
+  hand_cov_revascularisation: "Revascularisation",
 };
+
+/* ── Composite-key helpers for per-pair procedure selection ── */
+const PAIR_SEP = "::";
+function compositeId(pairKey: string, procedureId: string): string {
+  return `${pairKey}${PAIR_SEP}${procedureId}`;
+}
+function extractProcedureId(composite: string): string {
+  const idx = composite.indexOf(PAIR_SEP);
+  return idx >= 0 ? composite.slice(idx + PAIR_SEP.length) : composite;
+}
+function isSelectedForPair(
+  pairKey: string,
+  procedureId: string,
+  selectedIds: Set<string>,
+): boolean {
+  return selectedIds.has(compositeId(pairKey, procedureId));
+}
+function flattenSelections(selectedIds: Set<string>): string[] {
+  return [...new Set([...selectedIds].map(extractProcedureId))];
+}
 
 function formatCodingSystem(system: string): string {
   return system === "SNOMED_CT" ? "SNOMED CT" : system.replace(/_/g, " ");
@@ -164,7 +198,7 @@ function buildProcedureCodingItems(
 
   for (const pair of mappingResult.pairs) {
     for (const procedure of pair.suggestedProcedures) {
-      if (!selectedProcedureIds.has(procedure.procedurePicklistId)) continue;
+      if (!isSelectedForPair(pair.key, procedure.procedurePicklistId, selectedProcedureIds)) continue;
       if (byId.has(procedure.procedurePicklistId)) continue;
       byId.set(procedure.procedurePicklistId, procedure);
     }
@@ -195,7 +229,7 @@ function getPairSelection(
   selectedProcedureIds: Set<string>,
 ) {
   return pair.suggestedProcedures.filter((procedure) =>
-    selectedProcedureIds.has(procedure.procedurePicklistId),
+    isSelectedForPair(pair.key, procedure.procedurePicklistId, selectedProcedureIds),
   );
 }
 
@@ -510,8 +544,10 @@ export function DiagnosisProcedureSuggestionPanel({
                     <View style={styles.compactProcedureGroup}>
                       <View style={styles.compactProcedureRow}>
                         {pairProcedures.map((procedure) => {
-                          const isChecked = activeProcedureIds.has(
+                          const isChecked = isSelectedForPair(
+                            pair.key,
                             procedure.procedurePicklistId,
+                            activeProcedureIds,
                           );
 
                           return (
@@ -565,8 +601,10 @@ export function DiagnosisProcedureSuggestionPanel({
                     </View>
                   ) : (
                     pairProcedures.map((procedure) => {
-                      const isChecked = activeProcedureIds.has(
+                      const isChecked = isSelectedForPair(
+                        pair.key,
                         procedure.procedurePicklistId,
+                        activeProcedureIds,
                       );
                       const isSingle = pair.selectionMode === "single";
 
@@ -881,7 +919,7 @@ export function DiagnosisProcedureSuggestionPanel({
             style={[styles.acceptButton, { backgroundColor: theme.link }]}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              onAccept(Array.from(selectedProcedureIds));
+              onAccept([...selectedProcedureIds]);
             }}
           >
             <Feather name="check" size={18} color={theme.buttonText} />

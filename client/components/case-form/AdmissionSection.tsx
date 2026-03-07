@@ -151,7 +151,6 @@ export const AdmissionSection = React.memo(function AdmissionSection() {
             label="Admission Date"
             value={state.admissionDate}
             onChange={(v: string) => dispatch(setField("admissionDate", v))}
-            disabled={state.stayType === "day_case"}
           />
         </View>
         <View style={styles.halfField}>
@@ -159,7 +158,11 @@ export const AdmissionSection = React.memo(function AdmissionSection() {
             label="Discharge Date"
             value={state.dischargeDate}
             onChange={(v: string) => dispatch(setField("dischargeDate", v))}
-            disabled={state.stayType === "day_case"}
+            minimumDate={
+              state.admissionDate
+                ? new Date(state.admissionDate + "T00:00:00")
+                : undefined
+            }
             clearable
           />
         </View>

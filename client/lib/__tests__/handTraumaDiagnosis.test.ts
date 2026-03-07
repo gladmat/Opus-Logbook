@@ -555,4 +555,37 @@ describe("hand trauma diagnosis generation", () => {
     expect(result!.diagnosisTextLong).toContain("PIP fracture-dislocation, Dig. IV");
     expect(result!.diagnosisTextLong).toContain("Volar plate injury, Dig. IV");
   });
+
+  it("includes zone in soft tissue diagnosis text when specified", () => {
+    const result = generateHandTraumaDiagnosis({
+      laterality: "left",
+      affectedDigits: ["II"],
+      softTissueDescriptors: [
+        {
+          type: "defect",
+          surfaces: ["palmar"],
+          zone: "fingertip",
+          size: "small",
+        },
+      ],
+    });
+
+    expect(result!.diagnosisTextLong).toContain("fingertip");
+  });
+
+  it("renders soft tissue without zone when zone is undefined", () => {
+    const result = generateHandTraumaDiagnosis({
+      laterality: "right",
+      affectedDigits: ["III"],
+      softTissueDescriptors: [
+        {
+          type: "loss",
+          surfaces: ["dorsal"],
+        },
+      ],
+    });
+
+    expect(result!.diagnosisTextLong).toContain("Dorsal");
+    expect(result!.diagnosisTextLong).not.toContain("fingertip");
+  });
 });

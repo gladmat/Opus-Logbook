@@ -70,6 +70,7 @@ import {
   SoftTissueDescriptorSection,
   SoftTissueSpecialInjurySection,
   type SoftTissueState,
+  type DefectLocation,
 } from "./SoftTissueSection";
 import { DiagnosisProcedureSuggestionPanel } from "./DiagnosisProcedureSuggestionPanel";
 
@@ -135,6 +136,19 @@ const TRAUMA_MECHANISM_OPTIONS = [
   { value: "other", label: "Other" },
 ] as const;
 
+/* ── Composite-key helpers for per-pair procedure selection ── */
+const PAIR_SEP = "::";
+function compositeId(pairKey: string, procedureId: string): string {
+  return `${pairKey}${PAIR_SEP}${procedureId}`;
+}
+function extractProcedureId(composite: string): string {
+  const idx = composite.indexOf(PAIR_SEP);
+  return idx >= 0 ? composite.slice(idx + PAIR_SEP.length) : composite;
+}
+function flattenSelections(selectedIds: Set<string>): string[] {
+  return [...new Set([...selectedIds].map(extractProcedureId))];
+}
+
 interface AcceptedMappingSnapshot {
   selectionSignature: string;
   mappingResult: TraumaMappingResult;
@@ -155,6 +169,7 @@ function buildSelectionSignature({
   isFightBite,
   isCompartmentSyndrome,
   isRingAvulsion,
+  digitAmputations,
   amputationLevel,
   amputationType,
   isReplantable,
@@ -172,6 +187,7 @@ function buildSelectionSignature({
   isFightBite?: boolean;
   isCompartmentSyndrome?: boolean;
   isRingAvulsion?: boolean;
+  digitAmputations?: import("@/types/case").DigitAmputation[];
   amputationLevel?: HandTraumaDetails["amputationLevel"];
   amputationType?: HandTraumaDetails["amputationType"];
   isReplantable?: boolean;
@@ -264,6 +280,7 @@ function buildSelectionSignature({
       isCompartmentSyndrome,
       isRingAvulsion,
     },
+    digitAmputations,
     amputationLevel,
     amputationType,
     isReplantable,
@@ -399,18 +416,37 @@ export function HandTraumaAssessment({
       cats.add("nerve");
     if (injuredStructures.some((s) => s.category === "artery"))
       cats.add("vessel");
+    // Soft tissue: descriptors + nail bed
+    if (
+      (value.softTissueDescriptors?.length ?? 0) > 0 ||
+      injuredStructures.some(
+        (s) => s.category === "other" && s.structureId === "nail_bed",
+      )
+    )
+      cats.add("soft_tissue");
+    // Ligament: ligament structures + volar plate
+    if (
+      injuredStructures.some(
+        (s) =>
+          s.category === "ligament" ||
+          (s.category === "other" &&
+            s.structureId.startsWith("volar_plate_")),
+      )
+    )
+      cats.add("ligament");
+    // Special injuries
     if (
       value.isHighPressureInjection ||
       value.isFightBite ||
       value.isCompartmentSyndrome ||
-      value.isRingAvulsion ||
-      (value.softTissueDescriptors?.length ?? 0) > 0 ||
-      injuredStructures.some(
-        (s) => s.category === "ligament" || s.category === "other",
-      )
+      value.isRingAvulsion
     )
-      cats.add("soft_tissue");
-    if (value.amputationLevel) cats.add("amputation");
+      cats.add("special");
+    if (
+      value.amputationLevel ||
+      (value.digitAmputations && value.digitAmputations.length > 0)
+    )
+      cats.add("amputation");
 
     // Smart defaults from diagnosis
     if (selectedDiagnosis) {
@@ -421,8 +457,8 @@ export function HandTraumaAssessment({
             cats.add("tendon");
           else if (cat === "nerve") cats.add("nerve");
           else if (cat === "artery") cats.add("vessel");
-          else if (cat === "ligament" || cat === "other")
-            cats.add("soft_tissue");
+          else if (cat === "ligament") cats.add("ligament");
+          else if (cat === "other") cats.add("soft_tissue");
         }
       }
     }
@@ -644,7 +680,10 @@ export function HandTraumaAssessment({
       side?: "radial" | "ulnar",
     ) => {
       const existing = injuredStructures.find(
-        (s) => s.category === category && s.structureId === structureId,
+        (s) =>
+          s.category === category &&
+          s.structureId === structureId &&
+          s.digit === digit,
       );
 
       if (existing) {
@@ -685,88 +724,126 @@ export function HandTraumaAssessment({
   );
 
   // ─── Soft tissue state ─────────────────────────────────────────────────────
-  const softTissueState = useMemo(
-    (): SoftTissueState => ({
+  const softTissueState = useMemo((): SoftTissueState => {
+    const descriptors = value.softTissueDescriptors ?? [];
+    // Coverage descriptors (defect/loss/degloving) carry location info
+    const coverageDescriptors = descriptors.filter(
+      (d) => d.type === "defect" || d.type === "loss" || d.type === "degloving",
+    );
+
+    // Group into DefectLocations by unique zone+surfaces+size+digits signature
+    const locationMap = new Map<string, DefectLocation>();
+    for (const d of coverageDescriptors) {
+      const key = JSON.stringify({
+        zone: d.zone ?? null,
+        surfaces: [...(d.surfaces ?? [])].sort(),
+        size: d.size ?? null,
+        digits: [...(d.digits ?? [])].sort(),
+      });
+      if (!locationMap.has(key)) {
+        locationMap.set(key, {
+          digits: d.digits ?? [],
+          zone: d.zone,
+          surfaces: (d.surfaces ?? []) as ("palmar" | "dorsal")[],
+          size: d.size,
+        });
+      }
+    }
+    // If there are coverage types but no locations were derived, add one empty location
+    const defectLocations =
+      locationMap.size > 0
+        ? Array.from(locationMap.values())
+        : coverageDescriptors.length > 0
+          ? [{ digits: [], surfaces: [] as ("palmar" | "dorsal")[] }]
+          : [];
+
+    return {
       isHighPressureInjection: value.isHighPressureInjection ?? false,
       isFightBite: value.isFightBite ?? false,
       isCompartmentSyndrome: value.isCompartmentSyndrome ?? false,
       isRingAvulsion: value.isRingAvulsion ?? false,
-      hasSoftTissueDefect: (value.softTissueDescriptors ?? []).some(
-        (entry) => entry.type === "defect",
-      ),
-      hasSoftTissueLoss: (value.softTissueDescriptors ?? []).some(
-        (entry) => entry.type === "loss",
-      ),
-      hasDegloving: (value.softTissueDescriptors ?? []).some(
-        (entry) => entry.type === "degloving",
-      ),
-      hasGrossContamination: (value.softTissueDescriptors ?? []).some(
-        (entry) => entry.type === "contamination",
-      ),
-      softTissueSurfaces: Array.from(
-        new Set(
-          (value.softTissueDescriptors ?? []).flatMap(
-            (entry) => entry.surfaces ?? [],
-          ),
-        ),
-      ),
-    }),
-    [value],
-  );
+      hasSoftTissueDefect: descriptors.some((e) => e.type === "defect"),
+      hasSoftTissueLoss: descriptors.some((e) => e.type === "loss"),
+      hasDegloving: descriptors.some((e) => e.type === "degloving"),
+      hasGrossContamination: descriptors.some((e) => e.type === "contamination"),
+      defectLocations,
+    };
+  }, [value]);
 
-  const amputationState = useMemo(
-    (): AmputationState => ({
-      amputationLevel: value.amputationLevel,
-      amputationType: value.amputationType,
-      isReplantable: value.isReplantable,
-    }),
-    [value.amputationLevel, value.amputationType, value.isReplantable],
-  );
+  const amputationState = useMemo((): AmputationState => {
+    // Prefer new digitAmputations; fall back to legacy single-level fields
+    if (value.digitAmputations && value.digitAmputations.length > 0) {
+      return {
+        digitAmputations: value.digitAmputations,
+        amputationLevel: value.amputationLevel,
+        amputationType: value.amputationType,
+        isReplantable: value.isReplantable,
+      };
+    }
+    // Legacy migration: wrap single-level in digitAmputations[0]
+    if (value.amputationLevel) {
+      const legacyDigit = selectedDigits[0] ?? ("D1" as DigitId);
+      return {
+        digitAmputations: [
+          {
+            digit: legacyDigit,
+            level: value.amputationLevel,
+            type: value.amputationType ?? "complete",
+            isReplantable: value.isReplantable,
+          },
+        ],
+        amputationLevel: value.amputationLevel,
+        amputationType: value.amputationType,
+        isReplantable: value.isReplantable,
+      };
+    }
+    return {
+      digitAmputations: [],
+      amputationLevel: undefined,
+      amputationType: undefined,
+      isReplantable: undefined,
+    };
+  }, [
+    value.digitAmputations,
+    value.amputationLevel,
+    value.amputationType,
+    value.isReplantable,
+    selectedDigits,
+  ]);
 
   const handleSoftTissueChange = useCallback(
     (state: SoftTissueState) => {
       const descriptors: SoftTissueDescriptor[] = [];
-      const descriptorDigits =
+      const defaultDigits =
         selectedDigits.length > 0 ? selectedDigits : undefined;
 
-      if (state.hasSoftTissueDefect) {
-        descriptors.push({
-          type: "defect",
-          surfaces:
-            state.softTissueSurfaces.length > 0
-              ? state.softTissueSurfaces
-              : undefined,
-          digits: descriptorDigits,
-        });
-      }
+      // Active coverage descriptor types
+      const coverageTypes: ("defect" | "loss" | "degloving")[] = [];
+      if (state.hasSoftTissueDefect) coverageTypes.push("defect");
+      if (state.hasSoftTissueLoss) coverageTypes.push("loss");
+      if (state.hasDegloving) coverageTypes.push("degloving");
 
-      if (state.hasSoftTissueLoss) {
-        descriptors.push({
-          type: "loss",
-          surfaces:
-            state.softTissueSurfaces.length > 0
-              ? state.softTissueSurfaces
-              : undefined,
-          digits: descriptorDigits,
-        });
-      }
-
-      if (state.hasDegloving) {
-        descriptors.push({
-          type: "degloving",
-          surfaces:
-            state.softTissueSurfaces.length > 0
-              ? state.softTissueSurfaces
-              : undefined,
-          digits: descriptorDigits,
-        });
+      // Each coverage type × each defect location = one descriptor
+      const locations = state.defectLocations;
+      for (const type of coverageTypes) {
+        if (locations.length === 0) {
+          // No locations yet — create descriptor with default digits only
+          descriptors.push({ type, digits: defaultDigits });
+        } else {
+          for (const loc of locations) {
+            descriptors.push({
+              type,
+              digits: loc.digits.length > 0 ? loc.digits : defaultDigits,
+              surfaces: loc.surfaces.length > 0 ? loc.surfaces : undefined,
+              zone: loc.zone,
+              size: loc.size,
+            });
+          }
+        }
       }
 
       if (state.hasGrossContamination) {
-        descriptors.push({
-          type: "contamination",
-          digits: descriptorDigits,
-        });
+        descriptors.push({ type: "contamination", digits: defaultDigits });
       }
 
       onChange({
@@ -785,6 +862,11 @@ export function HandTraumaAssessment({
     (state: AmputationState) => {
       onChange({
         ...value,
+        digitAmputations:
+          state.digitAmputations.length > 0
+            ? state.digitAmputations
+            : undefined,
+        // Keep legacy fields in sync for backward compat
         amputationLevel: state.amputationLevel,
         amputationType: state.amputationType,
         isReplantable: state.isReplantable,
@@ -827,6 +909,7 @@ export function HandTraumaAssessment({
       isFightBite: value.isFightBite,
       isCompartmentSyndrome: value.isCompartmentSyndrome,
       isRingAvulsion: value.isRingAvulsion,
+      digitAmputations: value.digitAmputations,
       amputationLevel: value.amputationLevel,
       amputationType: value.amputationType,
       isReplantable: value.isReplantable,
@@ -845,6 +928,7 @@ export function HandTraumaAssessment({
     injuredStructures,
     perfusionStatuses,
     softTissueDescriptors,
+    value.digitAmputations,
     value.amputationLevel,
     value.amputationType,
     value.isCompartmentSyndrome,
@@ -866,7 +950,8 @@ export function HandTraumaAssessment({
           value.isFightBite ||
           value.isCompartmentSyndrome ||
           value.isRingAvulsion ||
-          value.amputationLevel,
+          value.amputationLevel ||
+          (value.digitAmputations && value.digitAmputations.length > 0),
       ),
     [
       dislocations.length,
@@ -874,6 +959,7 @@ export function HandTraumaAssessment({
       injuredStructures.length,
       perfusionStatuses.length,
       softTissueDescriptors.length,
+      value.digitAmputations,
       value.amputationLevel,
       value.isCompartmentSyndrome,
       value.isFightBite,
@@ -898,6 +984,7 @@ export function HandTraumaAssessment({
         isFightBite: value.isFightBite,
         isCompartmentSyndrome: value.isCompartmentSyndrome,
         isRingAvulsion: value.isRingAvulsion,
+        digitAmputations: value.digitAmputations,
         amputationLevel: value.amputationLevel,
         amputationType: value.amputationType,
         isReplantable: value.isReplantable,
@@ -912,6 +999,7 @@ export function HandTraumaAssessment({
       selectedMechanism,
       selectedMechanismOther,
       softTissueDescriptors,
+      value.digitAmputations,
       value.amputationLevel,
       value.amputationType,
       value.isCompartmentSyndrome,
@@ -936,13 +1024,15 @@ export function HandTraumaAssessment({
     setHasPendingReviewChanges(false);
   }, [hasTraumaSelection]);
 
-  // Auto-select default procedures when mapping changes
+  // Auto-select default procedures when mapping changes (per-pair composite keys)
   useEffect(() => {
     if (!mappingResult) return;
     const defaults = new Set<string>();
-    for (const proc of mappingResult.suggestedProcedures) {
-      if (proc.isDefault) {
-        defaults.add(proc.procedurePicklistId);
+    for (const pair of mappingResult.pairs) {
+      for (const proc of pair.suggestedProcedures) {
+        if (proc.isDefault) {
+          defaults.add(compositeId(pair.key, proc.procedurePicklistId));
+        }
       }
     }
     setSelectedProcedureIds(defaults);
@@ -952,21 +1042,23 @@ export function HandTraumaAssessment({
     (pair: TraumaDiagnosisPair, procedureId: string) => {
       setSelectedProcedureIds((prev) => {
         const next = new Set(prev);
+        const composite = compositeId(pair.key, procedureId);
 
         if (pair.selectionMode === "single") {
+          // Remove other procedures for THIS pair only
           for (const procedure of pair.suggestedProcedures) {
             if (procedure.procedurePicklistId !== procedureId) {
-              next.delete(procedure.procedurePicklistId);
+              next.delete(compositeId(pair.key, procedure.procedurePicklistId));
             }
           }
-          next.add(procedureId);
+          next.add(composite);
           return next;
         }
 
-        if (next.has(procedureId)) {
-          next.delete(procedureId);
+        if (next.has(composite)) {
+          next.delete(composite);
         } else {
-          next.add(procedureId);
+          next.add(composite);
         }
         return next;
       });
@@ -997,17 +1089,34 @@ export function HandTraumaAssessment({
     ).length;
     if (vesselCount > 0) counts.vessel = vesselCount;
 
+    // Soft tissue count: descriptors + nail bed
     const softCount =
-      injuredStructures.filter(
-        (s) => s.category === "ligament" || s.category === "other",
-      ).length +
       (value.softTissueDescriptors?.length ?? 0) +
+      injuredStructures.filter(
+        (s) => s.category === "other" && s.structureId === "nail_bed",
+      ).length;
+    if (softCount > 0) counts.soft_tissue = softCount;
+
+    // Ligament count: ligament structures + volar plates
+    const ligamentCount = injuredStructures.filter(
+      (s) =>
+        s.category === "ligament" ||
+        (s.category === "other" && s.structureId.startsWith("volar_plate_")),
+    ).length;
+    if (ligamentCount > 0) counts.ligament = ligamentCount;
+
+    // Special injury count
+    const specialCount =
       (value.isHighPressureInjection ? 1 : 0) +
       (value.isFightBite ? 1 : 0) +
       (value.isCompartmentSyndrome ? 1 : 0) +
       (value.isRingAvulsion ? 1 : 0);
-    if (softCount > 0) counts.soft_tissue = softCount;
-    if (value.amputationLevel) counts.amputation = 1;
+    if (specialCount > 0) counts.special = specialCount;
+
+    const amputationCount =
+      (value.digitAmputations?.length ?? 0) ||
+      (value.amputationLevel ? 1 : 0);
+    if (amputationCount > 0) counts.amputation = amputationCount;
 
     return counts;
   }, [fractures, dislocations, injuredStructures, value]);
@@ -1019,10 +1128,13 @@ export function HandTraumaAssessment({
   const handleAccept = useCallback(
     (acceptedProcedureIds: string[]) => {
       if (!mappingResult) return;
+      // Flatten composite keys to unique procedure IDs for parent payload
+      const flatIds = [...new Set(acceptedProcedureIds.map(extractProcedureId))];
       onAccept({
         mappingResult,
-        selectedProcedureIds: acceptedProcedureIds,
+        selectedProcedureIds: flatIds,
       });
+      // Store composite keys internally for per-pair display
       setAcceptedMapping({
         selectionSignature,
         mappingResult,
@@ -1041,7 +1153,7 @@ export function HandTraumaAssessment({
   const handleReviewProcedures = useCallback(() => {
     onReviewProcedures?.({
       mappingResult,
-      selectedProcedureIds: Array.from(selectedProcedureIds),
+      selectedProcedureIds: flattenSelections(selectedProcedureIds),
     });
   }, [mappingResult, onReviewProcedures, selectedProcedureIds]);
 
@@ -1325,31 +1437,26 @@ export function HandTraumaAssessment({
                 onChange={handleSoftTissueChange}
                 selectedDigits={selectedDigits}
               />
-
-              <View
-                style={[styles.tendonDivider, { backgroundColor: theme.border }]}
+              <OtherStructuresSection
+                checkedStructures={injuredStructures}
+                selectedDigits={selectedDigits}
+                onToggleStructure={handleToggleParamStructure}
               />
-              <View style={styles.ligOtherSections}>
-                <ThemedText
-                  style={[styles.subSectionLabel, { color: theme.textSecondary }]}
-                >
-                  LIGAMENT AND JOINT SOFT TISSUE
-                </ThemedText>
-                <LigamentSection
-                  selectedDigits={selectedDigits}
-                  checkedStructures={injuredStructures}
-                  onToggleStructure={handleToggleParamStructure}
-                />
-                <OtherStructuresSection
-                  selectedDigits={selectedDigits}
-                  checkedStructures={injuredStructures}
-                  onToggleStructure={handleToggleParamStructure}
-                />
-              </View>
+            </SectionWrapper>
+          ) : null}
 
-              <View
-                style={[styles.tendonDivider, { backgroundColor: theme.border }]}
+          {activeCategories.has("ligament") ? (
+            <SectionWrapper title="Ligament" icon="link" theme={theme}>
+              <LigamentSection
+                selectedDigits={selectedDigits}
+                checkedStructures={injuredStructures}
+                onToggleStructure={handleToggleParamStructure}
               />
+            </SectionWrapper>
+          ) : null}
+
+          {activeCategories.has("special") ? (
+            <SectionWrapper title="Special Injuries" icon="alert-triangle" theme={theme}>
               <SoftTissueSpecialInjurySection
                 value={softTissueState}
                 onChange={handleSoftTissueChange}
@@ -1523,14 +1630,5 @@ const styles = StyleSheet.create({
   tendonDivider: {
     height: 1,
     marginVertical: Spacing.xs,
-  },
-  ligOtherSections: {
-    gap: Spacing.md,
-  },
-  subSectionLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
   },
 });

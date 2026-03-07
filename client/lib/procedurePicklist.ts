@@ -1218,6 +1218,16 @@ const HAND_VASCULAR_PROCEDURES: ProcedurePicklistEntry[] = [
     tags: ["microsurgery", "trauma"],
     sortOrder: 4,
   },
+  {
+    id: "hand_vasc_vein_graft",
+    displayName: "Vein graft interposition",
+    snomedCtCode: "36989005",
+    snomedCtDisplay: "Repair of blood vessel with vein graft (procedure)",
+    specialties: ["hand_wrist"],
+    subcategory: "Vascular Repair",
+    tags: ["microsurgery", "trauma"],
+    sortOrder: 5,
+  },
 ];
 
 const HAND_COMPRESSION_NEUROPATHY: ProcedurePicklistEntry[] = [

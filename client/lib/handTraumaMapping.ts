@@ -11,6 +11,8 @@
  */
 
 import type {
+  CoverageSize,
+  CoverageZone,
   DigitId,
   DislocationEntry,
   FractureEntry,
@@ -49,7 +51,9 @@ export type InjuryCategory =
   | "tendon"
   | "nerve"
   | "vessel"
+  | "ligament"
   | "soft_tissue"
+  | "special"
   | "amputation";
 
 export interface HandTraumaSelection {
@@ -76,15 +80,10 @@ export interface HandTraumaSelection {
   isCompartmentSyndrome?: boolean;
   isRingAvulsion?: boolean;
 
-  // Amputation level
-  amputationLevel?:
-    | "fingertip"
-    | "distal_phalanx"
-    | "middle_phalanx"
-    | "proximal_phalanx"
-    | "mcp"
-    | "ray"
-    | "hand_wrist";
+  // Per-digit amputations (preferred)
+  digitAmputations?: import("@/types/case").DigitAmputation[];
+  // Legacy amputation level
+  amputationLevel?: import("@/types/case").AmputationLevel;
   amputationType?: "complete" | "subtotal";
   isReplantable?: boolean;
 }
@@ -111,7 +110,9 @@ export interface TraumaDiagnosisPair {
     | "tendon"
     | "nerve"
     | "vessel"
+    | "ligament"
     | "soft_tissue"
+    | "special"
     | "amputation";
   diagnosis: {
     diagnosisPicklistId?: string;
@@ -374,6 +375,7 @@ function toDiagnosisSelection(
     isFightBite: selection.isFightBite,
     isCompartmentSyndrome: selection.isCompartmentSyndrome,
     isRingAvulsion: selection.isRingAvulsion,
+    digitAmputations: selection.digitAmputations,
     amputationLevel: selection.amputationLevel,
     amputationType: selection.amputationType,
     isReplantable: selection.isReplantable,
@@ -1178,22 +1180,14 @@ function buildFracturePairs(
   const groups = new Map<string, typeof normalized.fractures>();
 
   for (const fracture of normalized.fractures) {
-    const key =
-      fracture.familyCode === "77"
-        ? [
-            fracture.familyCode,
-            fracture.segment ?? "",
-            fracture.openStatus ?? "",
-            fracture.isComminuted ? "1" : "0",
-          ].join("|")
-        : [
-            fracture.familyCode,
-            fracture.phalanx ?? "",
-            fracture.segment ?? "",
-            fracture.openStatus ?? "",
-            fracture.isComminuted ? "1" : "0",
-            fracture.digit ?? "",
-          ].join("|");
+    const key = [
+      fracture.familyCode,
+      fracture.familyCode === "78" ? (fracture.phalanx ?? "") : "",
+      fracture.segment ?? "",
+      fracture.openStatus ?? "",
+      fracture.isComminuted ? "1" : "0",
+      fracture.digit ?? "",
+    ].join("|");
     const current = groups.get(key);
     if (current) {
       current.push(fracture);
@@ -1360,10 +1354,25 @@ function buildNervePairs(
             ? "hand_nerve_radial_repair"
             : "hand_nerve_ulnar_repair";
       const diagnosis = lookup(diagnosisId);
-      const suggestion = createProcedureSuggestion(
+      const suggestions: TraumaProcedureSuggestion[] = [];
+      const repair = createProcedureSuggestion(
         procedureId,
         `${displayName} selected`,
+        true,
       );
+      if (repair) suggestions.push(repair);
+      const graft = createProcedureSuggestion(
+        "hand_nerve_graft",
+        "Nerve graft reconstruction",
+        false,
+      );
+      if (graft) suggestions.push(graft);
+      const conduit = createProcedureSuggestion(
+        "hand_nerve_conduit",
+        "Nerve conduit repair",
+        false,
+      );
+      if (conduit) suggestions.push(conduit);
 
       return {
         key: `nerve:${injury.structureId}`,
@@ -1378,9 +1387,7 @@ function buildNervePairs(
           ),
         },
         selectionMode: "single" as const,
-        suggestedProcedures: suggestion
-          ? normalizeSingleSelectSuggestions([suggestion])
-          : [],
+        suggestedProcedures: normalizeSingleSelectSuggestions(suggestions),
       };
     });
 
@@ -1404,10 +1411,25 @@ function buildNervePairs(
       const displayName =
         buildNerveBullets(injuries, "shorthand_english", "short")[0] ??
         diagnosis.displayName;
-      const suggestion = createProcedureSuggestion(
+      const suggestions: TraumaProcedureSuggestion[] = [];
+      const repair = createProcedureSuggestion(
         "hand_nerve_digital_repair",
         "Digital nerve injury",
+        true,
       );
+      if (repair) suggestions.push(repair);
+      const graft = createProcedureSuggestion(
+        "hand_nerve_graft",
+        "Nerve graft reconstruction",
+        false,
+      );
+      if (graft) suggestions.push(graft);
+      const conduit = createProcedureSuggestion(
+        "hand_nerve_conduit",
+        "Nerve conduit repair",
+        false,
+      );
+      if (conduit) suggestions.push(conduit);
       return {
         key: `nerve:digital:${key}`,
         source: "nerve" as const,
@@ -1421,9 +1443,7 @@ function buildNervePairs(
           ),
         },
         selectionMode: "single" as const,
-        suggestedProcedures: suggestion
-          ? normalizeSingleSelectSuggestions([suggestion])
-          : [],
+        suggestedProcedures: normalizeSingleSelectSuggestions(suggestions),
       };
     },
   );
@@ -1471,27 +1491,39 @@ function buildVesselPairs(
       const repair = createProcedureSuggestion(
         "hand_vasc_digital_artery_repair",
         "Digital artery injury",
+        true,
       );
       if (repair) suggestions.push(repair);
     } else if (sample.structureId === "radial_artery") {
       const repair = createProcedureSuggestion(
         "hand_vasc_radial_artery_repair",
         "Radial artery injury",
+        true,
       );
       if (repair) suggestions.push(repair);
     } else if (sample.structureId === "ulnar_artery") {
       const repair = createProcedureSuggestion(
         "hand_vasc_ulnar_artery_repair",
         "Ulnar artery injury",
+        true,
       );
       if (repair) suggestions.push(repair);
     } else {
       const repair = createProcedureSuggestion(
         "hand_vasc_palmar_arch_repair",
         "Palmar arch injury",
+        true,
       );
       if (repair) suggestions.push(repair);
     }
+
+    // Vein graft interposition as alternative repair strategy
+    const veinGraft = createProcedureSuggestion(
+      "hand_vasc_vein_graft",
+      "Vein graft reconstruction",
+      false,
+    );
+    if (veinGraft) suggestions.push(veinGraft);
 
     if (group.perfusion.length > 0) {
       const revascularisation = createProcedureSuggestion(
@@ -1514,54 +1546,81 @@ function buildVesselPairs(
   });
 }
 
-function buildSoftTissuePairs(
-  selection: HandTraumaSelection,
+/**
+ * Resolve coverage procedure suggestions based on zone, surfaces, and size.
+ */
+function resolveCoverageProcedures(
+  zone: CoverageZone | undefined,
+  surfaces: ("palmar" | "dorsal")[] | undefined,
+  size: CoverageSize | undefined,
+): TraumaProcedureSuggestion[] {
+  if (!zone) return [];
+
+  const isPalmar = surfaces?.includes("palmar") ?? false;
+  const isDorsal = surfaces?.includes("dorsal") ?? false;
+  const suggestions: TraumaProcedureSuggestion[] = [];
+
+  const add = (id: string, reason: string, isDefault = false) => {
+    const s = createProcedureSuggestion(id, reason, isDefault);
+    if (s) suggestions.push(s);
+  };
+
+  switch (zone) {
+    case "fingertip":
+      if (isPalmar) {
+        add("hand_cov_vy_advancement", "Palmar fingertip defect", true);
+        add("hand_cov_cross_finger", "Alternative fingertip coverage");
+        add("hand_cov_moberg", "Thumb tip coverage option");
+      }
+      if (isDorsal || (!isPalmar && !isDorsal)) {
+        add("hand_cov_skin_graft", "Dorsal fingertip coverage", !isPalmar);
+      }
+      break;
+    case "digit_shaft":
+      if (isPalmar) {
+        add("hand_cov_cross_finger", "Palmar digit shaft defect", true);
+        add("hand_cov_homodigital_island", "Homodigital island flap option");
+      }
+      if (isDorsal || (!isPalmar && !isDorsal)) {
+        add("hand_cov_skin_graft", "Dorsal digit coverage", !isPalmar);
+      }
+      break;
+    case "web_space":
+      add("hand_cov_skin_graft", "Web space coverage", true);
+      break;
+    case "palm":
+      add("hand_cov_skin_graft", "Palmar coverage", true);
+      break;
+    case "dorsum_hand":
+      add("hand_cov_skin_graft", "Dorsum of hand coverage", true);
+      add("hand_cov_reverse_radial_forearm", "Reverse radial forearm flap option");
+      add("hand_cov_groin_flap", "Groin flap for larger dorsal defects");
+      break;
+    case "wrist_forearm":
+      add("hand_cov_skin_graft", "Wrist/forearm coverage", true);
+      break;
+  }
+
+  if (size === "large") {
+    add("hand_cov_free_flap", "Large defect — consider free flap");
+  }
+
+  return suggestions;
+}
+
+function buildCoveragePairs(
   normalized: MachineSummary,
 ): TraumaDiagnosisPair[] {
-  return normalized.softTissue.map((injury, index) => {
+  const coverageTypes = new Set([
+    "defect", "loss", "degloving", "contamination", "nail_bed",
+  ]);
+  const injuries = normalized.softTissue.filter((i) => coverageTypes.has(i.type));
+
+  return injuries.map((injury, index) => {
     const displayName =
       buildSoftTissueBullets([injury], "shorthand_english", "short")[0] ??
       "Soft tissue injury";
 
-    if (injury.type === "high_pressure_injection") {
-      return pairFromLegacyResult(
-        `soft_tissue:hpi:${index}`,
-        "soft_tissue",
-        displayName,
-        resolveSpecialInjury({ ...selection, isHighPressureInjection: true })!,
-        "multiple",
-      );
-    }
-    if (injury.type === "fight_bite") {
-      return pairFromLegacyResult(
-        `soft_tissue:fight_bite:${index}`,
-        "soft_tissue",
-        displayName,
-        resolveSpecialInjury({ ...selection, isFightBite: true })!,
-        "single",
-      );
-    }
-    if (injury.type === "compartment_syndrome") {
-      return pairFromLegacyResult(
-        `soft_tissue:compartment:${index}`,
-        "soft_tissue",
-        displayName,
-        resolveSpecialInjury({ ...selection, isCompartmentSyndrome: true })!,
-        "multiple",
-      );
-    }
-    if (injury.type === "ring_avulsion") {
-      return pairFromLegacyResult(
-        `soft_tissue:ring_avulsion:${index}`,
-        "soft_tissue",
-        displayName,
-        resolveAmputationDiagnosis({
-          ...selection,
-          isRingAvulsion: true,
-        }),
-        "single",
-      );
-    }
     if (injury.type === "nail_bed") {
       const diagnosis = lookup("hand_dx_nail_bed_injury");
       const suggestion = createProcedureSuggestion(
@@ -1570,7 +1629,7 @@ function buildSoftTissuePairs(
       );
       return {
         key: `soft_tissue:nail_bed:${index}`,
-        source: "soft_tissue",
+        source: "soft_tissue" as const,
         diagnosis: {
           diagnosisPicklistId: diagnosis.diagnosisPicklistId,
           displayName,
@@ -1586,6 +1645,51 @@ function buildSoftTissuePairs(
           : [],
       };
     }
+
+    const deglovingDiagnosis =
+      injury.type === "degloving" ||
+      injury.type === "loss" ||
+      injury.type === "defect"
+        ? lookup("hand_dx_hand_degloving")
+        : undefined;
+
+    const coverageSuggestions = resolveCoverageProcedures(
+      injury.zone,
+      injury.surfaces,
+      injury.size,
+    );
+
+    return {
+      key: `soft_tissue:${injury.type}:${index}`,
+      source: "soft_tissue" as const,
+      diagnosis: deglovingDiagnosis
+        ? {
+            diagnosisPicklistId: deglovingDiagnosis.diagnosisPicklistId,
+            displayName,
+            snomedCtCode: deglovingDiagnosis.snomedCtCode,
+            codes: buildDiagnosisCodingReferences(deglovingDiagnosis),
+          }
+        : { displayName },
+      selectionMode: "single" as const,
+      suggestedProcedures:
+        coverageSuggestions.length > 0
+          ? normalizeSingleSelectSuggestions(coverageSuggestions)
+          : [],
+    };
+  });
+}
+
+function buildLigamentPairs(
+  normalized: MachineSummary,
+): TraumaDiagnosisPair[] {
+  const ligamentTypes = new Set(["ligament", "volar_plate"]);
+  const injuries = normalized.softTissue.filter((i) => ligamentTypes.has(i.type));
+
+  return injuries.map((injury, index) => {
+    const displayName =
+      buildSoftTissueBullets([injury], "shorthand_english", "short")[0] ??
+      "Ligament injury";
+
     if (injury.type === "ligament" && injury.structureId === "mcp1_ucl") {
       const diagnosis = lookup("hand_dx_ucl_thumb");
       const repair = createProcedureSuggestion(
@@ -1598,8 +1702,8 @@ function buildSoftTissuePairs(
         false,
       );
       return {
-        key: `soft_tissue:ucl:${index}`,
-        source: "soft_tissue",
+        key: `ligament:ucl:${index}`,
+        source: "ligament" as const,
         diagnosis: {
           diagnosisPicklistId: diagnosis.diagnosisPicklistId,
           displayName,
@@ -1618,14 +1722,15 @@ function buildSoftTissuePairs(
         ),
       };
     }
+
     if (injury.type === "volar_plate") {
       const repair = createProcedureSuggestion(
         "hand_joint_volar_plate_repair",
         "Volar plate injury selected",
       );
       return {
-        key: `soft_tissue:volar_plate:${index}`,
-        source: "soft_tissue",
+        key: `ligament:volar_plate:${index}`,
+        source: "ligament" as const,
         diagnosis: { displayName },
         selectionMode: "single" as const,
         suggestedProcedures: repair
@@ -1634,27 +1739,69 @@ function buildSoftTissuePairs(
       };
     }
 
-    const deglovingDiagnosis =
-      injury.type === "degloving" ||
-      injury.type === "loss" ||
-      injury.type === "defect"
-        ? lookup("hand_dx_hand_degloving")
-        : undefined;
-
+    // Generic ligament (PIP collateral, etc.)
     return {
-      key: `soft_tissue:${injury.type}:${index}`,
-      source: "soft_tissue",
-      diagnosis: deglovingDiagnosis
-        ? {
-            diagnosisPicklistId: deglovingDiagnosis.diagnosisPicklistId,
-            displayName,
-            snomedCtCode: deglovingDiagnosis.snomedCtCode,
-            codes: buildDiagnosisCodingReferences(deglovingDiagnosis),
-          }
-        : { displayName },
+      key: `ligament:${injury.structureId ?? injury.type}:${index}`,
+      source: "ligament" as const,
+      diagnosis: { displayName },
       selectionMode: "single" as const,
       suggestedProcedures: [],
     };
+  });
+}
+
+function buildSpecialInjuryPairs(
+  selection: HandTraumaSelection,
+  normalized: MachineSummary,
+): TraumaDiagnosisPair[] {
+  const specialTypes = new Set([
+    "high_pressure_injection", "fight_bite", "compartment_syndrome", "ring_avulsion",
+  ]);
+  const injuries = normalized.softTissue.filter((i) => specialTypes.has(i.type));
+
+  return injuries.map((injury, index) => {
+    const displayName =
+      buildSoftTissueBullets([injury], "shorthand_english", "short")[0] ??
+      "Special injury";
+
+    if (injury.type === "high_pressure_injection") {
+      return pairFromLegacyResult(
+        `special:hpi:${index}`,
+        "special",
+        displayName,
+        resolveSpecialInjury({ ...selection, isHighPressureInjection: true })!,
+        "multiple",
+      );
+    }
+    if (injury.type === "fight_bite") {
+      return pairFromLegacyResult(
+        `special:fight_bite:${index}`,
+        "special",
+        displayName,
+        resolveSpecialInjury({ ...selection, isFightBite: true })!,
+        "single",
+      );
+    }
+    if (injury.type === "compartment_syndrome") {
+      return pairFromLegacyResult(
+        `special:compartment:${index}`,
+        "special",
+        displayName,
+        resolveSpecialInjury({ ...selection, isCompartmentSyndrome: true })!,
+        "multiple",
+      );
+    }
+    // ring_avulsion
+    return pairFromLegacyResult(
+      `special:ring_avulsion:${index}`,
+      "special",
+      displayName,
+      resolveAmputationDiagnosis({
+        ...selection,
+        isRingAvulsion: true,
+      }),
+      "single",
+    );
   });
 }
 
@@ -1663,21 +1810,21 @@ function buildAmputationPairs(
   normalized: MachineSummary,
 ): TraumaDiagnosisPair[] {
   if (normalized.amputations.length === 0) return [];
-  const legacy = resolveAmputationDiagnosis(selection);
-  const displayName =
-    buildAmputationBullets(normalized.amputations, "shorthand_english", "short")[0] ??
-    legacy.primaryDiagnosis.displayName;
-  return [
-    pairFromLegacyResult(
-      "amputation:0",
+
+  // Generate one pair per AmputationInjury (one per digit for per-digit mode)
+  return normalized.amputations.map((amp, index) => {
+    const legacy = resolveAmputationDiagnosis(selection);
+    const displayName =
+      buildAmputationBullets([amp], "shorthand_english", "short")[0] ??
+      legacy.primaryDiagnosis.displayName;
+    return pairFromLegacyResult(
+      `amputation:${index}`,
       "amputation",
       displayName,
       legacy,
-      selection.affectedDigits.length > 1 && !selection.isRingAvulsion
-        ? "multiple"
-        : "single",
-    ),
-  ];
+      normalized.amputations.length > 1 ? "multiple" : "single",
+    );
+  });
 }
 
 /**
@@ -1706,7 +1853,9 @@ export function resolveTraumaDiagnosis(
     ...buildTendonPairs(normalized),
     ...buildNervePairs(normalized),
     ...buildVesselPairs(normalized),
-    ...buildSoftTissuePairs(selection, normalized),
+    ...buildCoveragePairs(normalized),
+    ...buildLigamentPairs(normalized),
+    ...buildSpecialInjuryPairs(selection, normalized),
   ];
 
   return finalizePairs(pairs, diagnosisOutput);

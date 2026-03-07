@@ -30,7 +30,9 @@ const CATEGORY_CONFIG: {
   { key: "tendon", label: "Tendon", icon: "trending-up" },
   { key: "nerve", label: "Nerve", icon: "zap" },
   { key: "vessel", label: "Vessel", icon: "droplet" },
+  { key: "ligament", label: "Ligament", icon: "link" },
   { key: "soft_tissue", label: "Soft Tissue", icon: "layers" },
+  { key: "special", label: "Special", icon: "alert-triangle" },
   { key: "amputation", label: "Amputation", icon: "scissors" },
 ];
 

@@ -12,7 +12,7 @@ interface LigamentSectionProps {
   checkedStructures: HandTraumaStructure[];
   onToggleStructure: (
     structureId: string,
-    category: "ligament",
+    category: "ligament" | "other",
     displayName: string,
     digit?: DigitId,
     side?: "radial" | "ulnar",
@@ -26,9 +26,9 @@ export function LigamentSection({
 }: LigamentSectionProps) {
   const { theme } = useTheme();
 
-  const isChecked = (structureId: string) =>
+  const isChecked = (structureId: string, category: "ligament" | "other" = "ligament") =>
     checkedStructures.some(
-      (s) => s.structureId === structureId && s.category === "ligament",
+      (s) => s.structureId === structureId && s.category === category,
     );
 
   const pipDigits = selectedDigits.filter((d) => d !== "I");
@@ -171,6 +171,49 @@ export function LigamentSection({
               RCL (Radial collateral)
             </ThemedText>
           </Pressable>
+        </View>
+      ) : null}
+
+      {/* Volar plate — stored as category "other" for backward compat */}
+      {pipDigits.length > 0 ? (
+        <View style={styles.group}>
+          <ThemedText
+            type="small"
+            style={[styles.groupLabel, { color: theme.textSecondary }]}
+          >
+            Volar plate (PIP)
+          </ThemedText>
+          {pipDigits.map((digit) => {
+            const vpId = `volar_plate_${digit}`;
+            const checked = isChecked(vpId, "other");
+            return (
+              <Pressable
+                key={digit}
+                testID={`ligament-${vpId}`}
+                style={[styles.checkRow, { borderColor: theme.border }]}
+                onPress={() =>
+                  onToggleStructure(
+                    vpId,
+                    "other",
+                    `Volar plate PIP - ${DIGIT_LABELS[digit]}`,
+                    digit,
+                  )
+                }
+              >
+                <Feather
+                  name={checked ? "check-square" : "square"}
+                  size={20}
+                  color={checked ? theme.link : theme.textTertiary}
+                />
+                <ThemedText
+                  type="small"
+                  style={[styles.checkLabel, { color: theme.text }]}
+                >
+                  {DIGIT_LABELS[digit]} ({digit})
+                </ThemedText>
+              </Pressable>
+            );
+          })}
         </View>
       ) : null}
 

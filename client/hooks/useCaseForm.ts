@@ -699,8 +699,46 @@ function caseFormReducer(
   action: CaseFormAction,
 ): CaseFormState {
   switch (action.type) {
-    case "SET_FIELD":
-      return { ...state, [action.field]: action.value };
+    case "SET_FIELD": {
+      const next = { ...state, [action.field]: action.value };
+
+      // Day case: default both dates to today when stayType switches to day_case
+      if (action.field === "stayType" && action.value === "day_case") {
+        const today = new Date().toISOString().split("T")[0] ?? "";
+        if (!next.admissionDate) next.admissionDate = today;
+        if (!next.dischargeDate) next.dischargeDate = next.admissionDate || today;
+      }
+
+      // Day case: sync discharge to admission when admission date changes
+      if (action.field === "admissionDate" && next.stayType === "day_case") {
+        next.dischargeDate = next.admissionDate;
+      }
+
+      // Hand trauma injury date → admission date
+      if (
+        action.field === "injuryDate" &&
+        typeof action.value === "string" &&
+        action.value
+      ) {
+        next.admissionDate = action.value as string;
+        // Also sync discharge for day case
+        if (next.stayType === "day_case") {
+          next.dischargeDate = action.value as string;
+        }
+      }
+
+      // Discharge date cannot be earlier than admission date
+      if (
+        (action.field === "dischargeDate" || action.field === "admissionDate") &&
+        next.admissionDate &&
+        next.dischargeDate &&
+        next.dischargeDate < next.admissionDate
+      ) {
+        next.dischargeDate = next.admissionDate;
+      }
+
+      return next;
+    }
     case "SET_DIAGNOSIS_GROUPS":
       return { ...state, diagnosisGroups: action.groups };
     case "REORDER_DIAGNOSIS_GROUPS":
@@ -1012,18 +1050,7 @@ export function useCaseForm({
     }
   }, [showInjuryDate, state.injuryDate]);
 
-  // Auto-fill admission/discharge for day case
-  useEffect(() => {
-    if (state.stayType === "day_case" && state.procedureDate) {
-      dispatch({
-        type: "BULK_UPDATE",
-        updates: {
-          admissionDate: state.procedureDate,
-          dischargeDate: state.procedureDate,
-        },
-      });
-    }
-  }, [state.stayType, state.procedureDate]);
+
 
   // Smart default for treatment context timing (Part 4C)
   useEffect(() => {

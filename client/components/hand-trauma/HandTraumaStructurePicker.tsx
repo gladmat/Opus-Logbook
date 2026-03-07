@@ -453,8 +453,8 @@ export function HandTraumaStructurePicker({
                   ) : null}
                   {key === "other" ? (
                     <OtherStructuresSection
-                      selectedDigits={selectedDigits}
                       checkedStructures={injuredStructures}
+                      selectedDigits={selectedDigits}
                       onToggleStructure={handleToggleParamStructure}
                     />
                   ) : null}

@@ -522,6 +522,23 @@ export function FractureSection({
         </View>
       </View>
 
+      {/* Add-next prompt — visible between existing fractures and region buttons */}
+      {fractures.length > 0 && boneCategory === null ? (
+        <View
+          style={[
+            styles.addNextPrompt,
+            { borderColor: theme.textTertiary + "50" },
+          ]}
+        >
+          <Feather name="plus-circle" size={16} color={theme.textTertiary} />
+          <ThemedText
+            style={[styles.addNextText, { color: theme.textTertiary }]}
+          >
+            Tap a bone region below to add another fracture
+          </ThemedText>
+        </View>
+      ) : null}
+
       {/* Bone region picker — 3 large buttons */}
       {boneCategory === null ? (
         <View style={styles.regionPicker}>
@@ -1005,6 +1022,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
     textAlign: "center",
+  },
+  addNextPrompt: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    borderStyle: "dashed",
+  },
+  addNextText: {
+    fontSize: 13,
+    fontWeight: "500",
   },
   addButton: {
     flexDirection: "row",
