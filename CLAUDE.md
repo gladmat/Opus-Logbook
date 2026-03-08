@@ -493,6 +493,115 @@ Serial case tracking via `treatment_episodes` table. Episode status machine: pla
 
 Cases with `stayType === "inpatient"` and no `dischargeDate` shown in collapsible "Current Inpatients" section with day count and quick-discharge button.
 
+### Dashboard redesign (v2)
+
+The dashboard is being rebuilt as a **surgical triage surface** — density-first, optimised for 5–10 second scan sessions. Implementation follows 5 sequential phases, each documented in a standalone markdown file in the project knowledge base.
+
+#### Phase documents (authoritative — implement exactly as specified)
+
+| Phase | File | Scope |
+|-------|------|-------|
+| 1 | `dashboard-phase1-skeleton-filter-fab.md` | SpecialtyFilterBar, AddCaseFAB, header refactor, layout skeleton |
+| 2 | `dashboard-phase2-case-cards.md` | CaseCard with photo thumbnails, RecentCasesList, DashboardEmptyState |
+| 3 | `dashboard-phase3-practice-pulse.md` | PracticePulseRow, PulseMetricCard, usePracticePulse hook |
+| 4 | `dashboard-phase4-needs-attention.md` | NeedsAttentionCarousel, AttentionCard, useAttentionItems hook |
+| 5 | `dashboard-phase5-polish-audit.md` | Dark/light mode audit, animations, haptics, performance, cleanup |
+
+**Read the relevant phase document before starting work.** Each contains exact component specs, TypeScript interfaces, pixel measurements, and testing checklists.
+
+#### Locked architectural decisions
+
+| Decision | Locked value |
+|----------|-------------|
+| Dashboard philosophy | Density-first. NOT clarity-first, NOT feed-first. |
+| Zone order (top→bottom) | Filter Bar → Needs Attention → Practice Pulse → Recent Cases |
+| Primary action | FAB (bottom-right, 56px, amber). NOT a header button. |
+| Header | OpusMark left-aligned. NO text title. NO greeting. |
+| Statistics | Numbers + deltas only on dashboard. NO charts. Charts behind tap on future Analytics screen. |
+| Notifications | Zone 1 presence/absence IS the notification. NO red dots, NO badge counts. |
+| Customisation | None. One excellent default. Specialty filter is the only personalisation. |
+| Zone 1 empty behaviour | Returns `null`. NOT an empty View, NOT a placeholder. Zone does not exist when 0 items. |
+
+#### Component registry
+
+```
+client/components/dashboard/
+  SpecialtyFilterBar.tsx       # Zone 0 — sticky horizontal chip bar
+  NeedsAttentionCarousel.tsx   # Zone 1 — horizontal FlatList of AttentionCards
+  AttentionCard.tsx             # Zone 1 — inpatient or episode card
+  PracticePulseRow.tsx          # Zone 2 — 3-metric row container
+  PulseMetricCard.tsx           # Zone 2 — individual metric card
+  RecentCasesList.tsx           # Zone 3 — mapped CaseCard list
+  CaseCard.tsx                  # Zone 3 — individual case row with thumbnail
+  AddCaseFAB.tsx                # Floating action button overlay
+  DashboardEmptyState.tsx       # Zero-case state
+
+client/hooks/
+  usePracticePulse.ts           # Computes thisMonth/thisWeek/completion metrics
+  useAttentionItems.ts          # Merges inpatients + episodes, sorted by urgency
+```
+
+#### DashboardScreen layout structure
+
+```tsx
+<View style={{ flex: 1 }}>
+  <ScrollView stickyHeaderIndices={[0]}>
+    <SpecialtyFilterBar />          {/* index 0 — sticky */}
+    <NeedsAttentionCarousel />      {/* null when 0 items */}
+    <PracticePulseRow />            {/* null when 0 total cases */}
+    <RecentCasesList />             {/* or DashboardEmptyState */}
+  </ScrollView>
+  <AddCaseFAB />                    {/* position: absolute, outside ScrollView */}
+</View>
+```
+
+#### Design rules specific to dashboard
+
+- **All components use `theme.*` tokens.** The only raw hex values allowed are `#E5A00D` (canonical amber) and the delta colours `#059669` (success green) / `#9B2C2C` (muted destructive red).
+- **No nested FlatList inside the ScrollView.** RecentCasesList renders as a mapped array. Only NeedsAttentionCarousel uses a FlatList (horizontal, doesn't conflict).
+- **React.memo on all list-rendered components:** CaseCard, AttentionCard, PulseMetricCard.
+- **useMemo on all computed data:** case counts per specialty, pulse metrics, attention items merge+sort, filtered cases.
+- **No LayoutAnimation without `configureNext` before state update.** Always call `LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)` before `setState`.
+- **FAB uses `useBottomTabBarHeight()`** for bottom offset. Falls back to 90px if hook unavailable.
+- **Filter bar sticky border:** 1px bottom border appears ONLY in sticky mode (detect via scroll offset), not in default position.
+- **Card dividers in Zone 3:** 1px `theme.border`, inset 80px from left (past thumbnail). NOT full-width.
+- **Attention carousel peek:** Card width = `screenWidth - 48px` to show ~16px peek of next card.
+- **No shadows in dark mode.** AttentionCard shadow only renders in light mode. Dark mode uses elevation through background lightening.
+
+#### Never do (dashboard-specific)
+
+- Never add a greeting header ("Good morning, ..."). The header is OpusMark only.
+- Never show charts, graphs, or sparkline charts (other than the 7-dot sparkline) on the dashboard surface. The pulse metric sparkline is 7 circles, not a line chart.
+- Never show a "Needs Attention" section header when there are 0 items. The entire zone must be `null`.
+- Never use a vertical FlatList for the recent cases inside the ScrollView (VirtualizedList nesting warning).
+- Never reorder filter chips on selection. Order is static: All, then specialties per `categories.ts`.
+- Never put the FAB inside the ScrollView. It is absolutely positioned outside, overlaying scroll content.
+- Never add tutorial cards, onboarding hints, or "tip of the day" to the dashboard.
+- Never use `headerTransparent: true` on the dashboard screen. Solid `theme.backgroundRoot`, consistent with `useScreenOptions()`.
+- Never add notification badges or red dot indicators anywhere on the dashboard.
+- Never duplicate inpatient display — the old Current Inpatients section is REPLACED by Zone 1, not supplemented.
+
+#### Specialty filter effects
+
+When a specialty is selected (non-null), ALL zones filter simultaneously:
+- Zone 1: only inpatients/episodes matching that specialty
+- Zone 2: all three metrics recalculate for that specialty
+- Zone 3: only cases matching that specialty; section header becomes "{Specialty} Cases"
+- FAB: pre-selects that specialty in the new case form
+
+When "All" is selected (null), all zones show unfiltered aggregate data.
+
+#### Incremental implementation
+
+Phases are designed so the dashboard improves incrementally. After each phase, the app must build, run, and be fully functional:
+- After Phase 1: new layout skeleton with old content + filter + FAB
+- After Phase 2: new case cards replace old ones
+- After Phase 3: metrics row appears
+- After Phase 4: attention carousel replaces old inpatient section
+- After Phase 5: polish pass, old components removed
+
+**Do not jump ahead.** Complete each phase, test against its checklist, then proceed. Each phase doc has a "Testing Checklist" section — use it.
+
 ### App lock
 
 PIN and biometric unlock via `AppLockContext`. Setup in `SetupAppLockScreen`, unlock in `LockScreen`. PIN hashed in `appLockStorage.ts`, biometric detection in `biometrics.ts`. Auto-lock timeout management.
