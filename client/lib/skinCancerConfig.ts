@@ -72,8 +72,8 @@ export function shouldActivateSkinCancerModuleForSnomed(
 
 /**
  * Auto-configuration derived from the selected diagnosis.
- * Drives pathway gate filtering, pathology locking, and histology source
- * visibility — eliminating redundant manual selections.
+ * Drives initial assessment seeding, pathology locking, and histology source
+ * visibility.
  */
 export interface DiagnosisAutoConfig {
   /** Pathway stage to auto-set when this diagnosis is selected */
@@ -82,7 +82,7 @@ export interface DiagnosisAutoConfig {
   autoPathologyCategory?: SkinCancerPathologyCategory;
   /** Rare subtype to auto-set (for DFSP, AFX) */
   autoRareSubtype?: RareMalignantSubtype;
-  /** Which pathway stages to show in PathwayGate */
+  /** Legacy metadata for allowed runtime stages */
   availablePathwayStages: SkinCancerPathwayStage[];
   /** Whether the pathology category chips should be locked */
   lockedPathology: boolean;
@@ -94,6 +94,17 @@ export interface DiagnosisAutoConfig {
 const KNOWN_DIAGNOSIS_STAGES: SkinCancerPathwayStage[] = [
   "histology_known",
 ];
+
+/**
+ * Internal routing only: maps the inline diagnosis category to the runtime
+ * pathway stage. The stage is no longer user-selectable in the UI.
+ */
+export function getSkinCancerPathwayStageForCategory(
+  category: SkinCancerPathologyCategory | undefined,
+): SkinCancerPathwayStage | undefined {
+  if (!category) return undefined;
+  return category === "uncertain" ? "excision_biopsy" : "histology_known";
+}
 
 /**
  * Returns auto-config for a skin cancer diagnosis picklist entry.
@@ -750,6 +761,8 @@ const HEAD_NECK_SITES = new Set([
   "Neck",
 ]);
 
+const SLNB_PROCEDURE_IDS = new Set(["hn_skin_slnb", "gen_mel_slnb_body"]);
+
 /**
  * Returns procedure picklist IDs based on assessment state.
  * Uses clinical suspicion for Pathway A, histology for B/C.
@@ -767,7 +780,11 @@ export function getSkinCancerProcedureSuggestions(
   if (assessment.pathwayStage === "excision_biopsy") {
     switch (assessment.biopsyType) {
       case "excision_biopsy":
-        suggestions.push("gen_skin_excision_biopsy");
+        suggestions.push(
+          "gen_skin_excision_biopsy",
+          "orth_ftsg",
+          "orth_ssg_sheet",
+        );
         break;
       case "incisional_biopsy":
         suggestions.push("gen_skin_biopsy_punch");
@@ -819,9 +836,12 @@ export function getSkinCancerProcedureSuggestions(
     );
   }
 
-  // Coverage / reconstruction options (if not already covered by site-specific above)
-  // Most excisions need coverage if not closed primarily — FTSG, STSG, or local flap
+  // Coverage / reconstruction options
+  // Most excisions may need graft or flap coverage, so keep graft options
+  // available alongside the main excision suggestion.
   if (suggestions.length > 0 && !assessment.biopsyType) {
+    suggestions.push("orth_ftsg", "orth_ssg_sheet");
+
     const hasSiteSpecificRecon =
       site === "Upper lip" ||
       site === "Lower lip" ||
@@ -830,19 +850,16 @@ export function getSkinCancerProcedureSuggestions(
 
     if (!hasSiteSpecificRecon) {
       if (hn) {
-        // Head & neck: FTSG preferred, plus local flap options
+        // Head & neck: grafts plus local flap options
         suggestions.push(
-          "orth_ftsg",
           "hn_local_advancement",
           "hn_local_rotation",
           "hn_local_bilobed",
           "hn_local_rhomboid",
         );
       } else {
-        // Body: FTSG, STSG, and orthoplastic local flaps
+        // Body: grafts plus orthoplastic local flaps
         suggestions.push(
-          "orth_ftsg",
-          "orth_ssg_sheet",
           "orth_local_rotation",
           "orth_local_transposition",
         );
@@ -851,6 +868,30 @@ export function getSkinCancerProcedureSuggestions(
   }
 
   return suggestions;
+}
+
+/**
+ * Default mapping selection heuristic for the skin cancer summary panel.
+ * Keeps the primary procedure selected by default, while leaving optional
+ * graft / reconstruction choices unchecked unless the user opts in.
+ */
+export function getDefaultSkinCancerSelectedProcedureIds(
+  assessment: SkinCancerLesionAssessment,
+  suggestedProcedureIds: string[],
+): string[] {
+  if (suggestedProcedureIds.length === 0) return [];
+
+  const selected = new Set<string>([suggestedProcedureIds[0]!]);
+
+  if (assessment.slnb?.performed) {
+    for (const procedureId of suggestedProcedureIds) {
+      if (SLNB_PROCEDURE_IDS.has(procedureId)) {
+        selected.add(procedureId);
+      }
+    }
+  }
+
+  return suggestedProcedureIds.filter((procedureId) => selected.has(procedureId));
 }
 
 // ═══════════════════════════════════════════════════════════

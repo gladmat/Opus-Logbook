@@ -1941,6 +1941,9 @@ export function DiagnosisGroupEditor({
             onAcceptMapping={handleSkinCancerAcceptMapping}
             isAccepted={skinCancerProceduresAccepted}
             procedureCount={procedures.length}
+            procedurePicklistIds={procedures
+              .map((proc) => proc.picklistEntryId)
+              .filter((id): id is string => !!id)}
             onAddLesion={handleAddSkinCancerLesion}
             onPhotoAdded={handleLesionPhotoAdded}
             onEditMapping={() => setSkinCancerProceduresAccepted(false)}
@@ -2193,6 +2196,9 @@ export function DiagnosisGroupEditor({
                 onAcceptProcedures={handleSkinCancerAcceptProcedures}
                 isAccepted={skinCancerProceduresAccepted}
                 procedureCount={procedures.length}
+                procedurePicklistIds={procedures
+                  .map((proc) => proc.picklistEntryId)
+                  .filter((id): id is string => !!id)}
                 onPhotoAdded={handleLesionPhotoAdded}
                 onEditMapping={() => setSkinCancerProceduresAccepted(false)}
                 onCreateFollowUp={handleCreateSkinCancerFollowUp}

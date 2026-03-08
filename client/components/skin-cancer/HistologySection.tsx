@@ -33,6 +33,7 @@ import { quickTStage } from "@/lib/melanomaStaging";
 import { getMarginRecommendation } from "@/lib/skinCancerConfig";
 import { RareTypeSubtypePicker } from "./RareTypeSubtypePicker";
 import { ReExcisionPromptCard } from "./ReExcisionPromptCard";
+import { SkinCancerNumericInput } from "./SkinCancerNumericInput";
 import type {
   SkinCancerHistology,
   SkinCancerPathologyCategory,
@@ -170,6 +171,8 @@ interface HistologySectionProps {
   defaultExpanded?: boolean;
   defaultSource?: HistologySource;
   isPending?: boolean;
+  /** When true, hides the histology source selector and relies on defaultSource */
+  hideSourceSelector?: boolean;
   /** When true, pathology category chips are locked to the current value */
   lockedPathology?: boolean;
   /** When true, "Current procedure" source option is hidden */
@@ -222,6 +225,7 @@ export const HistologySection = React.memo(function HistologySection({
   defaultExpanded = false,
   defaultSource,
   isPending = false,
+  hideSourceSelector = false,
   lockedPathology = false,
   hideCurrentProcedureSource = false,
   hideHeader = false,
@@ -420,7 +424,7 @@ export const HistologySection = React.memo(function HistologySection({
   const contentInner = (
     <>
           {/* 1. Histology Source — hidden in simplified mode */}
-          {!simplifiedMode ? (
+          {!simplifiedMode && !hideSourceSelector ? (
           <View style={styles.section}>
             <ThemedText
               style={[styles.sectionLabel, { color: theme.textSecondary }]}
@@ -529,65 +533,178 @@ export const HistologySection = React.memo(function HistologySection({
 
           {/* 4. Excision Method (always in simplified; otherwise when category set) */}
           {simplifiedMode || base.pathologyCategory ? (
-            <View style={styles.section}>
-              <ThemedText
-                style={[styles.sectionLabel, { color: theme.textSecondary }]}
-              >
-                EXCISION METHOD
-              </ThemedText>
-              <View style={styles.chipRow}>
-                {filteredExcisionOptions.map((opt) => {
-                  const isSelected = base.excisionMethod === opt.value;
-                  return (
-                    <Pressable
-                      key={opt.value}
+            simplifiedMode ? (
+              <View style={styles.section}>
+                <View style={styles.compactExcisionRow}>
+                  <View style={styles.compactExcisionMethodGroup}>
+                    <ThemedText
                       style={[
-                        styles.chip,
-                        {
-                          backgroundColor: isSelected
-                            ? theme.link + "14"
-                            : theme.backgroundElevated,
-                          borderColor: isSelected ? theme.link : theme.border,
-                        },
+                        styles.sectionLabel,
+                        { color: theme.textSecondary },
                       ]}
-                      onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        update({
-                          excisionMethod:
-                            base.excisionMethod === opt.value
-                              ? undefined
-                              : opt.value,
-                        });
-                      }}
                     >
+                      EXCISION METHOD
+                    </ThemedText>
+                    <View style={styles.chipRow}>
+                      {filteredExcisionOptions.map((opt) => {
+                        const isSelected = base.excisionMethod === opt.value;
+                        return (
+                          <Pressable
+                            key={opt.value}
+                            style={[
+                              styles.chip,
+                              styles.compactChip,
+                              {
+                                backgroundColor: isSelected
+                                  ? theme.link + "14"
+                                  : theme.backgroundElevated,
+                                borderColor: isSelected
+                                  ? theme.link
+                                  : theme.border,
+                              },
+                            ]}
+                            onPress={() => {
+                              Haptics.impactAsync(
+                                Haptics.ImpactFeedbackStyle.Light,
+                              );
+                              update({
+                                excisionMethod:
+                                  base.excisionMethod === opt.value
+                                    ? undefined
+                                    : opt.value,
+                              });
+                            }}
+                          >
+                            <ThemedText
+                              style={[
+                                styles.chipText,
+                                { color: isSelected ? theme.link : theme.text },
+                              ]}
+                            >
+                              {opt.label}
+                            </ThemedText>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
+
+                  {base.excisionMethod !== "mohs" ? (
+                    <View style={styles.compactMarginGroup}>
                       <ThemedText
                         style={[
-                          styles.chipText,
-                          { color: isSelected ? theme.link : theme.text },
+                          styles.sectionLabel,
+                          styles.compactMarginLabel,
+                          { color: theme.textSecondary },
                         ]}
                       >
-                        {opt.label}
+                        Peripheral margin
                       </ThemedText>
-                    </Pressable>
-                  );
-                })}
+                      <View style={styles.inputWithUnit}>
+                        <SkinCancerNumericInput
+                          ref={peripheralMarginRef}
+                          style={[
+                            styles.numericInput,
+                            styles.compactMarginInput,
+                            {
+                              backgroundColor: theme.backgroundElevated,
+                              borderColor: theme.border,
+                              color: theme.text,
+                            },
+                          ]}
+                          value={base.excisionPeripheralMarginMm}
+                          onValueChange={(excisionPeripheralMarginMm) =>
+                            update({ excisionPeripheralMarginMm })
+                          }
+                          placeholder="—"
+                          placeholderTextColor={theme.textTertiary}
+                          keyboardType="decimal-pad"
+                          returnKeyType="done"
+                          blurOnSubmit
+                        />
+                        <ThemedText
+                          style={[
+                            styles.unitText,
+                            { color: theme.textSecondary },
+                          ]}
+                        >
+                          mm
+                        </ThemedText>
+                      </View>
+                    </View>
+                  ) : null}
+                </View>
+
+                {showMohsNote ? (
+                  <ThemedText
+                    style={[styles.footnote, { color: theme.info }]}
+                  >
+                    Mohs recommended for this tumour type
+                  </ThemedText>
+                ) : null}
               </View>
-              {showMohsNote ? (
+            ) : (
+              <View style={styles.section}>
                 <ThemedText
-                  style={[styles.footnote, { color: theme.info }]}
+                  style={[styles.sectionLabel, { color: theme.textSecondary }]}
                 >
-                  Mohs recommended for this tumour type
+                  EXCISION METHOD
                 </ThemedText>
-              ) : null}
-            </View>
+                <View style={styles.chipRow}>
+                  {filteredExcisionOptions.map((opt) => {
+                    const isSelected = base.excisionMethod === opt.value;
+                    return (
+                      <Pressable
+                        key={opt.value}
+                        style={[
+                          styles.chip,
+                          {
+                            backgroundColor: isSelected
+                              ? theme.link + "14"
+                              : theme.backgroundElevated,
+                            borderColor: isSelected ? theme.link : theme.border,
+                          },
+                        ]}
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          update({
+                            excisionMethod:
+                              base.excisionMethod === opt.value
+                                ? undefined
+                                : opt.value,
+                          });
+                        }}
+                      >
+                        <ThemedText
+                          style={[
+                            styles.chipText,
+                            { color: isSelected ? theme.link : theme.text },
+                          ]}
+                        >
+                          {opt.label}
+                        </ThemedText>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                {showMohsNote ? (
+                  <ThemedText
+                    style={[styles.footnote, { color: theme.info }]}
+                  >
+                    Mohs recommended for this tumour type
+                  </ThemedText>
+                ) : null}
+              </View>
+            )
           ) : null}
 
           {/* 5. Margin Fields — hidden when Mohs selected (no planned margins) */}
-          {(simplifiedMode || base.pathologyCategory) &&
-           base.excisionMethod !== "mohs" ? (
+          {!simplifiedMode &&
+          base.pathologyCategory &&
+          base.excisionMethod !== "mohs" ? (
             <View style={styles.section}>
               {/* Margin recommendation badge — hidden in simplified mode */}
-              {!simplifiedMode && marginRec ? (
+              {marginRec ? (
                 <View
                   style={[
                     styles.marginRecBanner,
@@ -630,7 +747,7 @@ export const HistologySection = React.memo(function HistologySection({
                       DEEP MARGIN
                     </ThemedText>
                     <View style={styles.inputWithUnit}>
-                      <TextInput
+                      <SkinCancerNumericInput
                         style={[
                           styles.numericInput,
                           {
@@ -639,15 +756,10 @@ export const HistologySection = React.memo(function HistologySection({
                             color: theme.text,
                           },
                         ]}
-                        value={
-                          base.deepMarginMm !== undefined
-                            ? String(base.deepMarginMm)
-                            : ""
+                        value={base.deepMarginMm}
+                        onValueChange={(deepMarginMm) =>
+                          update({ deepMarginMm })
                         }
-                        onChangeText={(t) => {
-                          const n = parseFloat(t);
-                          update({ deepMarginMm: isNaN(n) ? undefined : n });
-                        }}
                         placeholder="—"
                         placeholderTextColor={theme.textTertiary}
                         keyboardType="decimal-pad"
@@ -672,10 +784,10 @@ export const HistologySection = React.memo(function HistologySection({
                       { color: theme.textSecondary },
                     ]}
                   >
-                    {simplifiedMode ? "PERIPHERAL MARGIN TAKEN" : "PERIPHERAL MARGIN"}
+                    PERIPHERAL MARGIN
                   </ThemedText>
                   <View style={styles.inputWithUnit}>
-                    <TextInput
+                    <SkinCancerNumericInput
                       ref={peripheralMarginRef}
                       style={[
                         styles.numericInput,
@@ -685,27 +797,10 @@ export const HistologySection = React.memo(function HistologySection({
                           color: theme.text,
                         },
                       ]}
-                      value={
-                        simplifiedMode
-                          ? (base.excisionPeripheralMarginMm !== undefined
-                              ? String(base.excisionPeripheralMarginMm)
-                              : "")
-                          : (base.peripheralMarginMm !== undefined
-                              ? String(base.peripheralMarginMm)
-                              : "")
+                      value={base.peripheralMarginMm}
+                      onValueChange={(peripheralMarginMm) =>
+                        update({ peripheralMarginMm })
                       }
-                      onChangeText={(t) => {
-                        const n = parseFloat(t);
-                        if (simplifiedMode) {
-                          update({
-                            excisionPeripheralMarginMm: isNaN(n) ? undefined : n,
-                          });
-                        } else {
-                          update({
-                            peripheralMarginMm: isNaN(n) ? undefined : n,
-                          });
-                        }
-                      }}
                       placeholder="—"
                       placeholderTextColor={theme.textTertiary}
                       keyboardType="decimal-pad"
@@ -1011,7 +1106,7 @@ function SCCFields({ histology, update, theme }: FieldProps) {
           TUMOUR DEPTH
         </ThemedText>
         <View style={styles.inputWithUnit}>
-          <TextInput
+          <SkinCancerNumericInput
             style={[
               styles.numericInput,
               {
@@ -1020,15 +1115,8 @@ function SCCFields({ histology, update, theme }: FieldProps) {
                 color: theme.text,
               },
             ]}
-            value={
-              histology.sccDepthMm !== undefined
-                ? String(histology.sccDepthMm)
-                : ""
-            }
-            onChangeText={(t) => {
-              const n = parseFloat(t);
-              update({ sccDepthMm: isNaN(n) ? undefined : n });
-            }}
+            value={histology.sccDepthMm}
+            onValueChange={(sccDepthMm) => update({ sccDepthMm })}
             placeholder="—"
             placeholderTextColor={theme.textTertiary}
             keyboardType="decimal-pad"
@@ -1131,7 +1219,7 @@ function MelanomaFields({
           BRESLOW THICKNESS
         </ThemedText>
         <View style={styles.inputWithUnit}>
-          <TextInput
+          <SkinCancerNumericInput
             style={[
               styles.numericInput,
               {
@@ -1140,15 +1228,10 @@ function MelanomaFields({
                 color: theme.text,
               },
             ]}
-            value={
-              histology.melanomaBreslowMm !== undefined
-                ? String(histology.melanomaBreslowMm)
-                : ""
+            value={histology.melanomaBreslowMm}
+            onValueChange={(melanomaBreslowMm) =>
+              update({ melanomaBreslowMm })
             }
-            onChangeText={(t) => {
-              const n = parseFloat(t);
-              update({ melanomaBreslowMm: isNaN(n) ? undefined : n });
-            }}
             placeholder="—"
             placeholderTextColor={theme.textTertiary}
             keyboardType="decimal-pad"
@@ -1254,7 +1337,7 @@ function MelanomaFields({
               MITOTIC RATE
             </ThemedText>
             <View style={styles.inputWithUnit}>
-              <TextInput
+              <SkinCancerNumericInput
                 style={[
                   styles.numericInput,
                   {
@@ -1263,15 +1346,10 @@ function MelanomaFields({
                     color: theme.text,
                   },
                 ]}
-                value={
-                  histology.melanomaMitoticRate !== undefined
-                    ? String(histology.melanomaMitoticRate)
-                    : ""
+                value={histology.melanomaMitoticRate}
+                onValueChange={(melanomaMitoticRate) =>
+                  update({ melanomaMitoticRate })
                 }
-                onChangeText={(t) => {
-                  const n = parseFloat(t);
-                  update({ melanomaMitoticRate: isNaN(n) ? undefined : n });
-                }}
                 placeholder="—"
                 placeholderTextColor={theme.textTertiary}
                 keyboardType="decimal-pad"
@@ -1418,7 +1496,7 @@ function MerkelFields({ histology, update, theme }: FieldProps) {
           TUMOUR SIZE
         </ThemedText>
         <View style={styles.inputWithUnit}>
-          <TextInput
+          <SkinCancerNumericInput
             style={[
               styles.numericInput,
               {
@@ -1427,15 +1505,10 @@ function MerkelFields({ histology, update, theme }: FieldProps) {
                 color: theme.text,
               },
             ]}
-            value={
-              histology.merkelTumourSizeMm !== undefined
-                ? String(histology.merkelTumourSizeMm)
-                : ""
+            value={histology.merkelTumourSizeMm}
+            onValueChange={(merkelTumourSizeMm) =>
+              update({ merkelTumourSizeMm })
             }
-            onChangeText={(t) => {
-              const n = parseFloat(t);
-              update({ merkelTumourSizeMm: isNaN(n) ? undefined : n });
-            }}
             placeholder="—"
             placeholderTextColor={theme.textTertiary}
             keyboardType="decimal-pad"
@@ -1503,7 +1576,7 @@ function MerkelFields({ histology, update, theme }: FieldProps) {
           TUMOUR DEPTH
         </ThemedText>
         <View style={styles.inputWithUnit}>
-          <TextInput
+          <SkinCancerNumericInput
             style={[
               styles.numericInput,
               {
@@ -1512,15 +1585,8 @@ function MerkelFields({ histology, update, theme }: FieldProps) {
                 color: theme.text,
               },
             ]}
-            value={
-              histology.merkelDepthMm !== undefined
-                ? String(histology.merkelDepthMm)
-                : ""
-            }
-            onChangeText={(t) => {
-              const n = parseFloat(t);
-              update({ merkelDepthMm: isNaN(n) ? undefined : n });
-            }}
+            value={histology.merkelDepthMm}
+            onValueChange={(merkelDepthMm) => update({ merkelDepthMm })}
             placeholder="—"
             placeholderTextColor={theme.textTertiary}
             keyboardType="decimal-pad"
@@ -1622,6 +1688,24 @@ const styles = StyleSheet.create({
   section: {
     gap: Spacing.sm,
   },
+  compactExcisionRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "flex-end",
+    gap: Spacing.md,
+  },
+  compactExcisionMethodGroup: {
+    flex: 1,
+    minWidth: 220,
+    gap: Spacing.sm,
+  },
+  compactMarginGroup: {
+    minWidth: 128,
+    gap: 6,
+  },
+  compactMarginLabel: {
+    fontSize: 11,
+  },
   sectionLabel: {
     fontSize: 12,
     fontWeight: "500",
@@ -1639,6 +1723,10 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.sm,
     borderWidth: 1,
   },
+  compactChip: {
+    minWidth: 72,
+    alignItems: "center",
+  },
   chipText: {
     fontSize: 14,
     fontWeight: "500",
@@ -1654,6 +1742,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     fontSize: 15,
     textAlign: "center",
+  },
+  compactMarginInput: {
+    width: 72,
   },
   inputWithUnit: {
     flexDirection: "row",

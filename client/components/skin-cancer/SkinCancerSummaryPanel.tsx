@@ -11,7 +11,7 @@
  * 4. Post-accept: green border, "Edit mapping" pill
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { View, Pressable, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Feather } from "@/components/FeatherIcon";
@@ -20,6 +20,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { findPicklistEntry } from "@/lib/procedurePicklist";
 import {
+  getDefaultSkinCancerSelectedProcedureIds,
   getSkinCancerPrimaryHistology,
   resolveSkinCancerDiagnosis,
 } from "@/lib/skinCancerConfig";
@@ -32,6 +33,7 @@ import type { SkinCancerLesionAssessment } from "@/types/skinCancer";
 interface SkinCancerSummaryPanelProps {
   assessment: SkinCancerLesionAssessment;
   suggestedProcedureIds: string[];
+  acceptedProcedureIds?: string[];
   isAccepted: boolean;
   onAccept: (procedurePicklistIds: string[]) => void;
   onEditMapping?: () => void;
@@ -110,12 +112,14 @@ function buildKeyFacts(assessment: SkinCancerLesionAssessment): string[] {
 export function SkinCancerSummaryPanel({
   assessment,
   suggestedProcedureIds,
+  acceptedProcedureIds,
   isAccepted,
   onAccept,
   onEditMapping,
 }: SkinCancerSummaryPanelProps) {
   const { theme } = useTheme();
   const [showCodingDetails, setShowCodingDetails] = useState(false);
+  const wasAcceptedRef = useRef(isAccepted);
 
   const headline = useMemo(() => buildHeadline(assessment), [assessment]);
   const keyFacts = useMemo(() => buildKeyFacts(assessment), [assessment]);
@@ -136,6 +140,69 @@ export function SkinCancerSummaryPanel({
         .filter(Boolean) as { id: string; name: string }[],
     [suggestedProcedureIds],
   );
+
+  const [selectedProcedureIds, setSelectedProcedureIds] = useState<Set<string>>(
+    () =>
+      new Set(
+        getDefaultSkinCancerSelectedProcedureIds(
+          assessment,
+          suggestedProcedureIds,
+        ),
+      ),
+  );
+
+  const acceptedProcedureIdSet = useMemo(
+    () => new Set(acceptedProcedureIds ?? []),
+    [acceptedProcedureIds],
+  );
+
+  useEffect(() => {
+    const wasAccepted = wasAcceptedRef.current;
+    wasAcceptedRef.current = isAccepted;
+
+    let nextIds = getDefaultSkinCancerSelectedProcedureIds(
+      assessment,
+      suggestedProcedureIds,
+    );
+    if (isAccepted && acceptedProcedureIds && acceptedProcedureIds.length > 0) {
+      nextIds = acceptedProcedureIds;
+    } else if (
+      !isAccepted &&
+      wasAccepted &&
+      acceptedProcedureIds &&
+      acceptedProcedureIds.length > 0
+    ) {
+      nextIds = acceptedProcedureIds.filter((id) =>
+        suggestedProcedureIds.includes(id),
+      );
+    }
+    setSelectedProcedureIds(new Set(nextIds));
+  }, [acceptedProcedureIds, assessment, isAccepted, suggestedProcedureIds]);
+
+  const displayedProcedures = useMemo(() => {
+    if (!isAccepted) {
+      return resolvedProcedures;
+    }
+
+    return resolvedProcedures.filter((proc) => acceptedProcedureIdSet.has(proc.id));
+  }, [acceptedProcedureIdSet, isAccepted, resolvedProcedures]);
+
+  const selectedProcedureCount = selectedProcedureIds.size;
+
+  const toggleProcedureSelection = (procedureId: string) => {
+    if (isAccepted) return;
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedProcedureIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(procedureId)) {
+        next.delete(procedureId);
+      } else {
+        next.add(procedureId);
+      }
+      return next;
+    });
+  };
 
   return (
     <View
@@ -244,29 +311,95 @@ export function SkinCancerSummaryPanel({
       </View>
 
       {/* ── Suggested procedures ── */}
-      {resolvedProcedures.length > 0 ? (
+      {displayedProcedures.length > 0 || (!isAccepted && resolvedProcedures.length > 0) ? (
         <>
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
           <View style={styles.procedureSection}>
-            <ThemedText
-              style={[styles.sectionLabel, { color: theme.textSecondary }]}
-            >
-              {isAccepted ? "ACCEPTED PROCEDURES" : "SUGGESTED PROCEDURES"}
-            </ThemedText>
-            {resolvedProcedures.map((proc) => (
-              <View key={proc.id} style={styles.procedureRow}>
-                <Feather
-                  name={isAccepted ? "check-circle" : "arrow-right-circle"}
-                  size={15}
-                  color={isAccepted ? theme.success : theme.link}
-                />
+            <View style={styles.procedureHeaderRow}>
+              <ThemedText
+                style={[styles.sectionLabel, { color: theme.textSecondary }]}
+              >
+                {isAccepted ? "ACCEPTED PROCEDURES" : "SUGGESTED PROCEDURES"}
+              </ThemedText>
+              {!isAccepted ? (
                 <ThemedText
-                  style={[styles.procedureName, { color: theme.text }]}
+                  style={[
+                    styles.procedureHeaderHint,
+                    { color: theme.textTertiary },
+                  ]}
                 >
-                  {proc.name}
+                  Tap to include/exclude
                 </ThemedText>
-              </View>
-            ))}
+              ) : null}
+            </View>
+            {(isAccepted ? displayedProcedures : resolvedProcedures).map((proc) => {
+              const isSelected = isAccepted
+                ? acceptedProcedureIdSet.has(proc.id)
+                : selectedProcedureIds.has(proc.id);
+              return (
+                <Pressable
+                  key={proc.id}
+                  style={[
+                    styles.procedureRow,
+                    {
+                      borderColor: isSelected
+                        ? isAccepted
+                          ? theme.success
+                          : theme.link
+                        : theme.border,
+                      backgroundColor: isSelected
+                        ? isAccepted
+                          ? theme.success + "12"
+                          : theme.link + "12"
+                        : theme.backgroundSecondary,
+                    },
+                  ]}
+                  onPress={() => toggleProcedureSelection(proc.id)}
+                  disabled={isAccepted}
+                >
+                  <View
+                    style={[
+                      styles.checkbox,
+                      {
+                        borderColor: isSelected
+                          ? isAccepted
+                            ? theme.success
+                            : theme.link
+                          : theme.border,
+                        backgroundColor: isSelected
+                          ? isAccepted
+                            ? theme.success
+                            : theme.link
+                          : "transparent",
+                      },
+                    ]}
+                  >
+                    {isSelected ? (
+                      <Feather name="check" size={12} color={theme.buttonText} />
+                    ) : null}
+                  </View>
+                  <ThemedText
+                    style={[styles.procedureName, { color: theme.text }]}
+                  >
+                    {proc.name}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+            {!isAccepted && displayedProcedures.length === 0 ? (
+              <ThemedText
+                style={[styles.emptyProcedureText, { color: theme.textTertiary }]}
+              >
+                No suggested procedures for the current assessment.
+              </ThemedText>
+            ) : null}
+            {isAccepted && displayedProcedures.length === 0 ? (
+              <ThemedText
+                style={[styles.emptyProcedureText, { color: theme.textTertiary }]}
+              >
+                No accepted suggested procedures recorded.
+              </ThemedText>
+            ) : null}
           </View>
         </>
       ) : null}
@@ -274,11 +407,20 @@ export function SkinCancerSummaryPanel({
       {/* ── Accept button / post-accept state ── */}
       {isAccepted ? null : (
         <Pressable
-          style={[styles.acceptButton, { backgroundColor: theme.link }]}
+          style={[
+            styles.acceptButton,
+            {
+              backgroundColor:
+                selectedProcedureCount > 0 ? theme.link : theme.backgroundTertiary,
+              opacity: selectedProcedureCount > 0 ? 1 : 0.6,
+            },
+          ]}
           onPress={() => {
+            if (selectedProcedureCount === 0) return;
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            onAccept(suggestedProcedureIds);
+            onAccept([...selectedProcedureIds]);
           }}
+          disabled={selectedProcedureCount === 0}
         >
           <Feather name="check" size={18} color={theme.buttonText} />
           <ThemedText
@@ -359,7 +501,7 @@ export function SkinCancerSummaryPanel({
               ) : null}
 
               {/* Procedure codes */}
-              {resolvedProcedures.length > 0 ? (
+              {displayedProcedures.length > 0 ? (
                 <View style={styles.codingRow}>
                   <ThemedText
                     style={[
@@ -370,7 +512,7 @@ export function SkinCancerSummaryPanel({
                     Procedures
                   </ThemedText>
                   <View style={styles.codingProcedureList}>
-                    {resolvedProcedures.map((proc) => {
+                    {displayedProcedures.map((proc) => {
                       const entry = findPicklistEntry(proc.id);
                       return (
                         <View key={proc.id} style={styles.codingRowValue}>
@@ -498,20 +640,47 @@ const styles = StyleSheet.create({
   procedureSection: {
     gap: Spacing.sm,
   },
+  procedureHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: Spacing.sm,
+  },
   sectionLabel: {
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.5,
   },
+  procedureHeaderHint: {
+    fontSize: 11,
+    fontWeight: "500",
+  },
   procedureRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: Spacing.sm,
+    borderWidth: 1,
+    borderRadius: BorderRadius.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
+  },
+  checkbox: {
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 1,
   },
   procedureName: {
     flex: 1,
     fontSize: 14,
     fontWeight: "500",
+  },
+  emptyProcedureText: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   acceptButton: {
     borderRadius: BorderRadius.sm,

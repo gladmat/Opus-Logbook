@@ -32,6 +32,7 @@ import { quickTStage } from "@/lib/melanomaStaging";
 import { getMarginRecommendation } from "@/lib/skinCancerConfig";
 import { RareTypeSubtypePicker } from "./RareTypeSubtypePicker";
 import { ReExcisionPromptCard } from "./ReExcisionPromptCard";
+import { SkinCancerNumericInput } from "./SkinCancerNumericInput";
 import type {
   SkinCancerHistology,
   SkinCancerPathologyCategory,
@@ -459,7 +460,7 @@ export function PathologySection({
                   DEEP MARGIN
                 </ThemedText>
                 <View style={styles.inputWithUnit}>
-                  <TextInput
+                  <SkinCancerNumericInput
                     style={[
                       styles.numericInput,
                       {
@@ -468,15 +469,8 @@ export function PathologySection({
                         color: theme.text,
                       },
                     ]}
-                    value={
-                      base.deepMarginMm !== undefined
-                        ? String(base.deepMarginMm)
-                        : ""
-                    }
-                    onChangeText={(t) => {
-                      const n = parseFloat(t);
-                      update({ deepMarginMm: isNaN(n) ? undefined : n });
-                    }}
+                    value={base.deepMarginMm}
+                    onValueChange={(deepMarginMm) => update({ deepMarginMm })}
                     placeholder="—"
                     placeholderTextColor={theme.textTertiary}
                     keyboardType="decimal-pad"
@@ -500,7 +494,7 @@ export function PathologySection({
                   PERIPHERAL MARGIN
                 </ThemedText>
                 <View style={styles.inputWithUnit}>
-                  <TextInput
+                  <SkinCancerNumericInput
                     ref={peripheralMarginRef}
                     style={[
                       styles.numericInput,
@@ -510,17 +504,10 @@ export function PathologySection({
                         color: theme.text,
                       },
                     ]}
-                    value={
-                      base.peripheralMarginMm !== undefined
-                        ? String(base.peripheralMarginMm)
-                        : ""
+                    value={base.peripheralMarginMm}
+                    onValueChange={(peripheralMarginMm) =>
+                      update({ peripheralMarginMm })
                     }
-                    onChangeText={(t) => {
-                      const n = parseFloat(t);
-                      update({
-                        peripheralMarginMm: isNaN(n) ? undefined : n,
-                      });
-                    }}
                     placeholder="—"
                     placeholderTextColor={theme.textTertiary}
                     keyboardType="decimal-pad"
@@ -711,7 +698,7 @@ function SCCFields({ histology, update, theme }: FieldProps) {
           TUMOUR DEPTH
         </ThemedText>
         <View style={styles.inputWithUnit}>
-          <TextInput
+          <SkinCancerNumericInput
             style={[
               styles.numericInput,
               {
@@ -720,15 +707,8 @@ function SCCFields({ histology, update, theme }: FieldProps) {
                 color: theme.text,
               },
             ]}
-            value={
-              histology.sccDepthMm !== undefined
-                ? String(histology.sccDepthMm)
-                : ""
-            }
-            onChangeText={(t) => {
-              const n = parseFloat(t);
-              update({ sccDepthMm: isNaN(n) ? undefined : n });
-            }}
+            value={histology.sccDepthMm}
+            onValueChange={(sccDepthMm) => update({ sccDepthMm })}
             placeholder="—"
             placeholderTextColor={theme.textTertiary}
             keyboardType="decimal-pad"
@@ -831,7 +811,7 @@ function MelanomaFields({
           BRESLOW THICKNESS
         </ThemedText>
         <View style={styles.inputWithUnit}>
-          <TextInput
+          <SkinCancerNumericInput
             style={[
               styles.numericInput,
               {
@@ -840,15 +820,10 @@ function MelanomaFields({
                 color: theme.text,
               },
             ]}
-            value={
-              histology.melanomaBreslowMm !== undefined
-                ? String(histology.melanomaBreslowMm)
-                : ""
+            value={histology.melanomaBreslowMm}
+            onValueChange={(melanomaBreslowMm) =>
+              update({ melanomaBreslowMm })
             }
-            onChangeText={(t) => {
-              const n = parseFloat(t);
-              update({ melanomaBreslowMm: isNaN(n) ? undefined : n });
-            }}
             placeholder="—"
             placeholderTextColor={theme.textTertiary}
             keyboardType="decimal-pad"
@@ -954,7 +929,7 @@ function MelanomaFields({
               MITOTIC RATE
             </ThemedText>
             <View style={styles.inputWithUnit}>
-              <TextInput
+              <SkinCancerNumericInput
                 style={[
                   styles.numericInput,
                   {
@@ -963,15 +938,10 @@ function MelanomaFields({
                     color: theme.text,
                   },
                 ]}
-                value={
-                  histology.melanomaMitoticRate !== undefined
-                    ? String(histology.melanomaMitoticRate)
-                    : ""
+                value={histology.melanomaMitoticRate}
+                onValueChange={(melanomaMitoticRate) =>
+                  update({ melanomaMitoticRate })
                 }
-                onChangeText={(t) => {
-                  const n = parseFloat(t);
-                  update({ melanomaMitoticRate: isNaN(n) ? undefined : n });
-                }}
                 placeholder="—"
                 placeholderTextColor={theme.textTertiary}
                 keyboardType="decimal-pad"
@@ -1118,7 +1088,7 @@ function MerkelFields({ histology, update, theme }: FieldProps) {
           TUMOUR SIZE
         </ThemedText>
         <View style={styles.inputWithUnit}>
-          <TextInput
+          <SkinCancerNumericInput
             style={[
               styles.numericInput,
               {
@@ -1127,15 +1097,10 @@ function MerkelFields({ histology, update, theme }: FieldProps) {
                 color: theme.text,
               },
             ]}
-            value={
-              histology.merkelTumourSizeMm !== undefined
-                ? String(histology.merkelTumourSizeMm)
-                : ""
+            value={histology.merkelTumourSizeMm}
+            onValueChange={(merkelTumourSizeMm) =>
+              update({ merkelTumourSizeMm })
             }
-            onChangeText={(t) => {
-              const n = parseFloat(t);
-              update({ merkelTumourSizeMm: isNaN(n) ? undefined : n });
-            }}
             placeholder="—"
             placeholderTextColor={theme.textTertiary}
             keyboardType="decimal-pad"
@@ -1203,7 +1168,7 @@ function MerkelFields({ histology, update, theme }: FieldProps) {
           TUMOUR DEPTH
         </ThemedText>
         <View style={styles.inputWithUnit}>
-          <TextInput
+          <SkinCancerNumericInput
             style={[
               styles.numericInput,
               {
@@ -1212,15 +1177,8 @@ function MerkelFields({ histology, update, theme }: FieldProps) {
                 color: theme.text,
               },
             ]}
-            value={
-              histology.merkelDepthMm !== undefined
-                ? String(histology.merkelDepthMm)
-                : ""
-            }
-            onChangeText={(t) => {
-              const n = parseFloat(t);
-              update({ merkelDepthMm: isNaN(n) ? undefined : n });
-            }}
+            value={histology.merkelDepthMm}
+            onValueChange={(merkelDepthMm) => update({ merkelDepthMm })}
             placeholder="—"
             placeholderTextColor={theme.textTertiary}
             keyboardType="decimal-pad"

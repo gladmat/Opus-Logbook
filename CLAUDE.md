@@ -18,7 +18,7 @@ Key capabilities: multi-specialty case logging, SNOMED CT coded diagnoses and pr
 
 - **Phase 1 COMPLETE** — Form state refactor (useReducer, split context, section components, clear/reset)
 - **Phase 2 COMPLETE** — Charcoal+Amber theme, card-based diagnosis groups, section nav, summary view, reordering, specialty modules
-- **Phase 2.5 COMPLETE** — Skin cancer inline assessment module (14 components, 104 tests, pathway logic, margin CDS, SLNB, procedure suggestions with coverage, collapsible sections)
+- **Phase 2.5 COMPLETE** — Skin cancer inline assessment module hardened after audit (14 components, 116 tests, hidden auto-routed pathways, episode linkage/reuse, biopsy return-to-histology flow, duplicate follow-up prefill, interactive procedure suggestions, margin CDS, SLNB, stable numeric inputs, collapsible sections)
 - **Phase 3 NEXT** — Favourites/recents (partially done), inline validation, keyboard optimisation, haptic audit, duplicate case
 - **Phase 4** — Data migration, export formatting, analytics dashboard
 - **Phase 5** — TestFlight release
@@ -77,7 +77,7 @@ client/
   screens/                       # 18 screens + 9 onboarding sub-screens
     DashboardScreen.tsx           # Case list, filtering, statistics, inpatients (2636 lines)
     CaseDetailScreen.tsx          # Full case view, timeline, flap outcomes (2660 lines)
-    CaseFormScreen.tsx            # Case entry, delegates to section components (774 lines)
+    CaseFormScreen.tsx            # Case entry, delegates to section components (778 lines)
     SettingsScreen.tsx            # Profile, export, legal, app lock config (1558 lines)
     EditProfileScreen.tsx         # Profile editing, picture upload, facilities
     OnboardingScreen.tsx          # Multi-step onboarding coordinator
@@ -109,7 +109,7 @@ client/
     AppLockContext.tsx            # PIN/biometric lock state, auto-lock timeout
     MediaCallbackContext.tsx      # Cross-screen media selection callbacks
   hooks/
-    useCaseForm.ts               # useReducer form state, 15+ actions (1697 lines)
+    useCaseForm.ts               # useReducer form state, 15+ actions (1802 lines)
     useCaseDraft.ts              # Auto-save drafts (debounced + AppState flush)
     useFavouritesRecents.ts      # Recent/favourite diagnosis-procedure pairs
     useTheme.ts                  # ThemeProvider, system/light/dark, AsyncStorage
@@ -153,8 +153,8 @@ client/
     moduleVisibility.ts          # Conditional module visibility
     flapOutcomeDefaults.ts       # Default flap outcome values
     skinCancerDiagnoses.ts       # Skin cancer picklist
-    skinCancerConfig.ts          # Activation, pathway logic, margins, SLNB, procedure suggestions (965 lines)
-    skinCancerEpisodeHelpers.ts  # Episode auto-creation for pending lesions
+    skinCancerConfig.ts          # Activation, pathway logic, margins, SLNB, diagnosis resolution, procedure suggestions (1058 lines)
+    skinCancerEpisodeHelpers.ts  # Episode link/update plans + follow-up transforms (248 lines)
     diagnosisPicklists/          # 12 specialty picklists + lazy-loaded index
       index.ts                   # getDiagnosesForProcedure, reverse mapping
       {specialty}Diagnoses.ts    # Per-specialty (aesthetics, bodyContouring, breast,
@@ -167,7 +167,7 @@ client/
     episode.ts                   # Treatment episode, status machine, encounter classes
     infection.ts                 # Infection episodes, syndromes, microbiology
     wound.ts                     # Wound assessment, TIME, dressings (40+ products)
-    skinCancer.ts                # Assessment, histology, pathology, SLNB, lesion photos (647 lines)
+    skinCancer.ts                # Assessment, histology, pathology, SLNB, lesion photos (629 lines)
     skinCancerStagingConfigs.ts  # Breslow, Clark, TNM configs
     surgicalPreferences.ts       # Training programme, role defaults, protocols
   constants/
@@ -240,7 +240,7 @@ Each Case has `diagnosisGroups: DiagnosisGroup[]` instead of flat diagnosis/proc
 
 ### Case form sections
 
-`CaseFormScreen.tsx` (774 lines) delegates to section components via `CaseFormContext`:
+`CaseFormScreen.tsx` (778 lines) delegates to section components via `CaseFormContext`:
 
 1. `PatientInfoSection` — Demographics, ASA, smoking, BMI
 2. `AdmissionSection` — Urgency, stay type, discharge outcome
@@ -433,39 +433,60 @@ Tests: `client/lib/__tests__/handTraumaDiagnosis.test.ts`, `handTraumaMapping.te
 
 ### Skin cancer assessment module
 
-Inline assessment flow (mirrors hand trauma pattern — no modal, no separate screen) with 14 components in `client/components/skin-cancer/`, config logic in `client/lib/skinCancerConfig.ts` (965 lines), and types in `client/types/skinCancer.ts` (647 lines).
+Inline assessment flow (mirrors hand trauma pattern — no modal, no separate screen) with 14 components in `client/components/skin-cancer/`, config logic in `client/lib/skinCancerConfig.ts` (1058 lines), and types in `client/types/skinCancer.ts` (629 lines).
 
-**Two pathways:**
-- **Excision biopsy** — lesion not yet diagnosed. Biopsy method chips (Excision / Incisional / Shave / Punch), conditional fields (peripheral margin for excision, punch size for punch), then accept mapping.
-- **Histology known** — prior biopsy result available. Tier 2 pathology details, excision method (WLE / Mohs), margin inputs (hidden for Mohs), SLNB assessment, site-specific reconstruction, then accept mapping.
+**Current runtime model: 2 pathways only**
+- **Excision biopsy** — lesion not yet pathologically confirmed. Surgeon records biopsy method (Excision / Incisional / Shave / Punch) and can later return to enter definitive specimen histology in the same pathway.
+- **Histology known** — prior biopsy or previously confirmed pathology is already available. Prior histology is captured separately from the current procedure histology.
+
+There is **no continuing-care pathway** in the product model. Re-excision / follow-up uses duplicate-and-prefill within the same two-pathway system.
 
 **Progressive disclosure sections (numbered, collapsible SectionWrapper cards):**
-1. **Diagnosis** — 7 Tier 1 pathology category chips (BCC, SCC, Melanoma, MCC, Other malig., Benign, Uncertain). Auto-collapses after selection. Switching categories resets all pathway-specific fields but preserves location data.
-2. **Pathology** — Tier 2 type-specific fields per category: BCC subtypes (9), SCC differentiation/risk/depth, Melanoma subtype/Breslow/ulceration/Clark/TNM staging, MCC, rare subtypes (26 via `RareTypeSubtypePicker`). Excision method + margin fields. Collapsible, default collapsed.
-3. **Lesion details** — Site picker (grouped HEAD & NECK / TRUNK / UPPER LIMB / LOWER LIMB), laterality (auto-midline for midline sites), clinical dimensions (length × width mm), lesion photo capture with auto-captioning.
-4. **Margin recommendation badge** — Guideline-based CDS (NCCN melanoma Breslow tiers, BAD BCC/SCC, EXPERT rare types — e.g. DFSP 30mm, EMPD 50mm).
-5. **SLNB** — Auto-offered for melanoma >0.8mm Breslow OR ulcerated, Merkel cell, high-risk SCC. Manual toggle for marginal cases. Site, nodes retrieved, result (pending → negative / positive ITC/micro/macro).
-6. **Excision** — Method chips (WLE / Mohs), peripheral margin input. Margin fields hidden when Mohs selected. In biopsy pathway shows biopsy method + punch size instead.
-7. **Summary & Procedures** — Headline + key facts + suggested procedure IDs. Accept mapping → collapses all sections except summary, populates parent's procedure list. "Edit mapping" pill to revoke acceptance and re-expand.
+1. **Diagnosis** — 7 Tier 1 pathology category chips (BCC, SCC, Melanoma, MCC, Other malig., Benign, Uncertain). Switching categories preserves lesion location/photos but clears incompatible downstream state. Pathway stage is internal only: `Uncertain` auto-routes to `excision_biopsy`; all other categories auto-route to `histology_known`.
+2. **Melanoma quick Breslow** — compact mirrored Breslow thickness row shown before prior histology in the melanoma / histology-known flow so margin and SLNB guidance updates earlier.
+3. **Prior histology** — shown for `histology_known`. Captures prior biopsy pathology, subtype detail, excision method, margin status, and exposes re-excision follow-up CTA when margins are incomplete / close.
+4. **Lesion details** — grouped HEAD & NECK / TRUNK / UPPER LIMB / LOWER LIMB site picker, laterality (auto-midline for midline sites), clinical dimensions, encrypted lesion photo capture with auto-captioning.
+5. **Margin recommendation badge** — guideline CDS using text/range output (`5mm`, `3-4mm`, `1-2cm`, `>=2cm`) instead of collapsing ranges to a single numeric mm value.
+6. **SLNB** — auto-offered for melanoma >0.8mm or ulcerated and for Merkel cell; can also be manually considered for selected high-risk SCC / rare malignant patterns. Existing saved SLNB data keeps the section visible.
+7. **Biopsy / Excision** — biopsy pathway shows biopsy method + conditional fields; histology-known pathway uses simplified current-procedure excision planning (`HistologySection` simplified mode) with compact excision + peripheral margin layout.
+8. **Specimen histology** — full structured `currentHistology` editor used as the return-to-update flow for final pathology and margin status. In biopsy-path initial logging it stays hidden until the case is reopened or current histology already exists.
+9. **MDT toggle** — simple `discussedAtMdt` flag for the histology-known pathway.
+10. **Summary & Procedures** — interactive suggested procedures with only the primary procedure preselected by default, coding details, accept/edit mapping, and completion summary.
 
-**Procedure suggestions** (`getSkinCancerProcedureSuggestions`): Excision type varies by category + head/neck vs body site. Coverage procedures suggested alongside excision: FTSG, STSG, local flaps (advancement, rotation, bilobed, rhomboid for H&N; rotation, transposition for body). Site-specific recon for lip/ear/eyelid. SLNB procedure when performed.
+**Histology precedence rules:**
+- `currentHistology` is the authoritative post-procedure record when present.
+- Summaries, CDS, badges, and lesion captions use `getSkinCancerPrimaryHistology()` to prefer current definitive histology over prior context.
+- `priorHistology` remains contextual history rather than the primary displayed result once current histology exists.
 
-**Diagnosis resolution** (inline flow): `resolveSkinCancerDiagnosis()` maps pathology category + rare subtype → SNOMED diagnosis picklist entry. 9 cancer types with verified SNOMED CT codes in `skinCancerDiagnoses.ts`.
+**Procedure suggestions** (`getSkinCancerProcedureSuggestions`): category + site aware. Head/neck vs body excision variants, coverage suggestions (FTSG, STSG, local flaps) across broader excision flows, site-specific reconstruction for lip/ear/eyelid, and SLNB procedure inclusion when performed.
+
+**Diagnosis resolution** (`resolveSkinCancerDiagnosis`):**
+- biopsy-stage cases remain coded as generic "awaiting histology" until `currentHistology.pathologyCategory` is actually confirmed
+- confirmed histology resolves to the correct picklist diagnosis where supported
+- rare malignant subtypes without a dedicated picklist entry return explicit manual-review metadata instead of silently falling back to "awaiting histology"
+- `client/lib/migration.ts` reconciles legacy single-lesion skin-cancer diagnoses on load
+
+**Follow-up / episode behaviour:**
+- `useCaseForm.ts` now creates or reuses `cancer_pathway` episodes for pending biopsy lesions, persists the linked `episodeId`, recomputes `episodeSequence`, and syncs pending action (`awaiting_histology`, `awaiting_reexcision`, resolve)
+- re-excision CTA launches a duplicate-and-prefill follow-up case seeded from the current in-form skin-cancer state
+- `skinCancerEpisodeHelpers.ts` contains pure helpers for pending lesion collection, episode link/update plans, and follow-up assessment transforms
+
+**Input handling:**
+- skin-cancer numeric fields use a shared draft-preserving `SkinCancerNumericInput` so decimal entry (`0.`, `.5`, deletes, quick edits) does not get rewritten mid-typing by parse-on-change logic
 
 **Key components:**
-- `SkinCancerAssessment` — main orchestrator, section collapse state management, scroll position stabilization via `scrollViewRef` + `scrollPositionRef`, LayoutAnimation transitions
-- `PathologySection` — full Tier 2 pathology editor (BCC/SCC/Melanoma/MCC/Rare subfields, excision method, margins, margin status)
-- `HistologySection` — simplified mode for Excision card (WLE/Mohs + margin only) or full mode (source, category, subfields, margins, lab details)
-- `SkinCancerSummaryPanel` — accept/edit mapping UI with procedure chip selection
-- `SectionWrapper` — shared collapsible card with controlled/uncontrolled modes, compact collapsed state, amber Feather icons
-- `MarginRecommendationBadge` — guideline-based margin recommendation display
-- `SLNBSection` — sentinel lymph node assessment with site/result/date capture
+- `SkinCancerAssessment` — main orchestrator, controlled collapse state, scroll stabilization, internal pathway auto-routing, summary wiring, completion summary
+- `PathologySection` — prior histology editor for `histology_known`
+- `HistologySection` — simplified excision planner or full structured current histology editor
+- `SkinCancerSummaryPanel` — accept/edit mapping UI with diagnosis resolution details and rare-type review notes
+- `MarginRecommendationBadge` — text/range-based margin CDS
+- `SLNBSection` — sentinel lymph node assessment
+- `SkinCancerNumericInput` — draft-preserving numeric field wrapper for Breslow, margins, lesion size, and other decimal inputs
+- `ReExcisionPromptCard` — launches duplicate follow-up flow instead of showing obsolete continuing-care instructions
 
-**Multi-lesion session:** 3-6 skin lesion excisions from one operative session as discrete entries within a single diagnosis group. `MultiLesionEditor` component with collapsible row-per-lesion UI and per-lesion pathway badges.
+**Multi-lesion session:** 3-6 skin lesion excisions from one operative session as discrete entries within a single diagnosis group. `MultiLesionEditor` uses per-lesion `SkinCancerAssessment` rows and pathway badges.
 
-**Episode helpers:** `skinCancerEpisodeHelpers.ts` — auto-collect pending lesions, determine re-excision action (resolve / reexcision / none).
-
-Tests: `client/lib/__tests__/skinCancerConfig.test.ts` (80 tests — margins, SLNB, pathway, procedures, diagnosis resolution), `skinCancerPhase4.test.ts` (11 tests), `skinCancerPhase5.test.ts` (13 tests).
+Tests: `client/lib/__tests__/skinCancerConfig.test.ts` (87 tests), `skinCancerPhase4.test.ts` (11 tests), `skinCancerPhase5.test.ts` (18 tests). Total focused skin-cancer suite: **116 tests**.
 
 ### Free flap / orthoplastic documentation
 

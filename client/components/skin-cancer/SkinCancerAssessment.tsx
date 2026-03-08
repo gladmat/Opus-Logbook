@@ -10,9 +10,10 @@
  *     └ 7 chips: BCC│SCC│Melanoma│MCC│Other malig.│Benign│Uncertain
  *
  *   ── AFTER TIER 1 SELECTED ──
- *   PathwayGate (Biopsy / Histology known)
+ *   Internal pathway routing (hidden from UI)
  *
- *   ── AFTER PATHWAY SELECTED ──
+ *   ── AFTER DIAGNOSIS SELECTED ──
+ *   [Melanoma] SectionWrapper "N. Breslow Thickness" (quick mirrored field)
  *   [Histology known] SectionWrapper "N. Pathology" (Tier 2 details only)
  *   SectionWrapper "N. Lesion" (site, laterality, dimensions)
  *   [conditional] MarginRecommendationBadge
@@ -23,23 +24,24 @@
  */
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import { View, Pressable, Switch, TextInput, LayoutAnimation, Platform, UIManager, StyleSheet } from "react-native";
+import { View, Pressable, Switch, LayoutAnimation, Platform, UIManager, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
+import { useCaseFormState } from "@/contexts/CaseFormContext";
 import {
   shouldOfferSLNB,
   canConsiderSLNB,
   getMarginRecommendation,
   getSkinCancerCompletion,
   getSkinCancerDiagnosisAutoConfig,
+  getSkinCancerPathwayStageForCategory,
   getSkinCancerPrimaryHistology,
   getSkinCancerProcedureSuggestions,
 } from "@/lib/skinCancerConfig";
 import type {
   SkinCancerLesionAssessment,
-  SkinCancerPathwayStage,
   SkinCancerBiopsyType,
   SkinCancerHistology,
   SkinCancerCompletionState,
@@ -57,7 +59,7 @@ import { MarginRecommendationBadge } from "./MarginRecommendationBadge";
 import { SLNBSection } from "./SLNBSection";
 import { SkinCancerSummaryPanel } from "./SkinCancerSummaryPanel";
 import { CompletionSummary } from "./CompletionSummary";
-import { SkinCancerPathwayGate } from "./SkinCancerPathwayGate";
+import { SkinCancerNumericInput } from "./SkinCancerNumericInput";
 
 // ═══════════════════════════════════════════════════════════════
 // Constants
@@ -114,6 +116,8 @@ interface SkinCancerAssessmentProps {
   isAccepted?: boolean;
   /** Number of procedures currently populated on the parent diagnosis group */
   procedureCount?: number;
+  /** Current mapped procedure picklist IDs from the parent diagnosis group */
+  procedurePicklistIds?: string[];
   /** Callback to add another lesion (triggers multi-lesion transition) */
   onAddLesion?: () => void;
   /** Callback when a lesion photo is captured (for case thumbnail wiring) */
@@ -136,6 +140,7 @@ export function SkinCancerAssessment({
   onAcceptMapping,
   isAccepted = false,
   procedureCount = 0,
+  procedurePicklistIds,
   onAddLesion,
   onPhotoAdded,
   onEditMapping: onEditMappingProp,
@@ -144,6 +149,7 @@ export function SkinCancerAssessment({
   scrollPositionRef,
 }: SkinCancerAssessmentProps) {
   const { theme } = useTheme();
+  const { isEditMode } = useCaseFormState();
   const [manualSlnbToggle, setManualSlnbToggle] = useState(false);
   const summaryRef = useRef<View>(null);
 
@@ -169,13 +175,6 @@ export function SkinCancerAssessment({
     () => getSkinCancerDiagnosisAutoConfig(diagnosisId),
     [diagnosisId],
   );
-
-  const filteredPathwayStages = useMemo(() => {
-    return autoConfig.availablePathwayStages ?? [
-      "excision_biopsy" as SkinCancerPathwayStage,
-      "histology_known" as SkinCancerPathwayStage,
-    ];
-  }, [autoConfig.availablePathwayStages]);
 
   // ── Computed values ──
   const relevantHisto = getSkinCancerPrimaryHistology(assessment);
@@ -206,9 +205,6 @@ export function SkinCancerAssessment({
         : undefined,
     [assessment, procedureStatus],
   );
-
-  // ── Has Tier 1 selection? (progressive disclosure gate) ──
-  const hasTier1Selection = !!assessment?.clinicalSuspicion;
 
   // ── Procedure suggestions ──
   const suggestedProcedureIds = useMemo(
@@ -257,7 +253,7 @@ export function SkinCancerAssessment({
 
   // ── Handlers ──
   const handleStageSelect = useCallback(
-    (stage: SkinCancerPathwayStage) => {
+    (stage: SkinCancerLesionAssessment["pathwayStage"]) => {
       if (assessment?.pathwayStage === stage) return;
 
       const priorHistology =
@@ -287,17 +283,14 @@ export function SkinCancerAssessment({
   );
 
   useEffect(() => {
-    if (!assessment?.clinicalSuspicion) return;
-    if (
-      filteredPathwayStages.length === 1 &&
-      assessment.pathwayStage !== filteredPathwayStages[0]
-    ) {
-      handleStageSelect(filteredPathwayStages[0]!);
-    }
+    const nextStage = getSkinCancerPathwayStageForCategory(
+      assessment?.clinicalSuspicion,
+    );
+    if (!nextStage || assessment?.pathwayStage === nextStage) return;
+    handleStageSelect(nextStage);
   }, [
     assessment?.clinicalSuspicion,
     assessment?.pathwayStage,
-    filteredPathwayStages,
     handleStageSelect,
   ]);
 
@@ -323,23 +316,34 @@ export function SkinCancerAssessment({
     (cat: SkinCancerPathologyCategory) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       const newCat = assessment?.clinicalSuspicion === cat ? undefined : cat;
+      const nextPathwayStage = getSkinCancerPathwayStageForCategory(newCat);
       const preserved = {
         site: assessment?.site,
         laterality: assessment?.laterality,
         clinicalLengthMm: assessment?.clinicalLengthMm,
         clinicalWidthMm: assessment?.clinicalWidthMm,
         lesionPhotos: assessment?.lesionPhotos,
-        pathwayStage: newCat ? assessment?.pathwayStage : undefined,
-        biopsyType: newCat ? assessment?.biopsyType : undefined,
-        biopsyPeripheralMarginMm: newCat
+        pathwayStage: nextPathwayStage,
+        biopsyType:
+          nextPathwayStage === "excision_biopsy"
+            ? assessment?.biopsyType
+            : undefined,
+        biopsyPeripheralMarginMm:
+          nextPathwayStage === "excision_biopsy"
           ? assessment?.biopsyPeripheralMarginMm
           : undefined,
-        punchSizeMm: newCat ? assessment?.punchSizeMm : undefined,
-        discussedAtMdt: newCat ? assessment?.discussedAtMdt : undefined,
+        punchSizeMm:
+          nextPathwayStage === "excision_biopsy"
+            ? assessment?.punchSizeMm
+            : undefined,
+        discussedAtMdt:
+          nextPathwayStage === "histology_known"
+            ? assessment?.discussedAtMdt
+            : undefined,
       };
 
       const priorHistology =
-        preserved.pathwayStage === "histology_known" && newCat
+        nextPathwayStage === "histology_known" && newCat
           ? {
               source: "own_biopsy" as const,
               pathologyCategory: newCat,
@@ -371,11 +375,32 @@ export function SkinCancerAssessment({
     [assessment, onAssessmentChange],
   );
 
+  const handlePriorHistologyPartialChange = useCallback(
+    (partial: Partial<SkinCancerHistology>) => {
+      onAssessmentChange({
+        ...(assessment ?? {}),
+        priorHistology: {
+          source: assessment?.priorHistology?.source ?? "own_biopsy",
+          pathologyCategory:
+            assessment?.priorHistology?.pathologyCategory ??
+            assessment?.clinicalSuspicion ??
+            "melanoma",
+          ...(assessment?.priorHistology ?? {}),
+          ...partial,
+        },
+      } as SkinCancerLesionAssessment);
+    },
+    [assessment, onAssessmentChange],
+  );
+
   const handleCurrentHistologyChange = useCallback(
     (histology: SkinCancerHistology) => {
       onAssessmentChange({
         ...(assessment ?? {}),
-        currentHistology: histology,
+        currentHistology: {
+          ...histology,
+          source: "current_procedure",
+        },
       } as SkinCancerLesionAssessment);
     },
     [assessment, onAssessmentChange],
@@ -504,6 +529,13 @@ export function SkinCancerAssessment({
   let sectionNum = 0;
 
   const isBiopsy = assessment?.pathwayStage === "excision_biopsy";
+  const showCurrentHistologySection =
+    isEditMode || !!assessment?.currentHistology?.pathologyCategory;
+  const showMelanomaBreslowQuickField =
+    isHistologyKnown &&
+    (assessment?.priorHistology?.pathologyCategory === "melanoma" ||
+      assessment?.clinicalSuspicion === "melanoma" ||
+      autoConfig.autoPathologyCategory === "melanoma");
 
   return (
     <View style={styles.container}>
@@ -550,17 +582,55 @@ export function SkinCancerAssessment({
         </View>
       </SectionWrapper>
 
-      {hasTier1Selection ? (
-        <SkinCancerPathwayGate
-          selectedStage={assessment?.pathwayStage}
-          onSelectStage={handleStageSelect}
-          availableStages={filteredPathwayStages}
-        />
-      ) : null}
-
-      {/* ── After pathway is set ── */}
+      {/* ── After diagnosis routes into a pathway ── */}
       {assessment?.pathwayStage ? (
         <>
+          {showMelanomaBreslowQuickField ? (
+            <View
+              style={[
+                styles.quickBreslowRow,
+                {
+                  backgroundColor: theme.backgroundSecondary,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <ThemedText
+                style={[styles.quickBreslowLabel, { color: theme.text }]}
+              >
+                Breslow thickness
+              </ThemedText>
+              <View style={styles.marginInputWrap}>
+                <SkinCancerNumericInput
+                  style={[
+                    styles.marginInput,
+                    styles.quickBreslowInput,
+                    {
+                      color: theme.text,
+                      borderColor: theme.border,
+                      backgroundColor: theme.backgroundTertiary,
+                    },
+                  ]}
+                  value={
+                    assessment?.priorHistology?.melanomaBreslowMm
+                  }
+                  onValueChange={(melanomaBreslowMm) =>
+                    handlePriorHistologyPartialChange({ melanomaBreslowMm })
+                  }
+                  keyboardType="decimal-pad"
+                  placeholder="—"
+                  placeholderTextColor={theme.textTertiary}
+                  returnKeyType="done"
+                />
+                <ThemedText
+                  style={[styles.marginUnit, { color: theme.textSecondary }]}
+                >
+                  mm
+                </ThemedText>
+              </View>
+            </View>
+          ) : null}
+
           {/* ── Prior Histology (collapsible, collapsed by default) ── */}
           {isHistologyKnown ? (
             <SectionWrapper
@@ -696,7 +766,7 @@ export function SkinCancerAssessment({
                     PERIPHERAL MARGIN
                   </ThemedText>
                   <View style={styles.marginInputWrap}>
-                    <TextInput
+                    <SkinCancerNumericInput
                       style={[
                         styles.marginInput,
                         {
@@ -705,15 +775,11 @@ export function SkinCancerAssessment({
                           backgroundColor: theme.backgroundTertiary,
                         },
                       ]}
-                      value={
-                        assessment.biopsyPeripheralMarginMm?.toString() ?? ""
-                      }
-                      onChangeText={(t) => {
-                        const v = t ? parseFloat(t) : undefined;
+                      value={assessment.biopsyPeripheralMarginMm}
+                      onValueChange={(biopsyPeripheralMarginMm) => {
                         onAssessmentChange({
                           ...assessment,
-                          biopsyPeripheralMarginMm:
-                            v !== undefined && !isNaN(v) ? v : undefined,
+                          biopsyPeripheralMarginMm,
                         });
                       }}
                       keyboardType="decimal-pad"
@@ -809,31 +875,34 @@ export function SkinCancerAssessment({
             </SectionWrapper>
           )}
 
-          <SectionWrapper
-            title={`${++sectionNum}. Specimen Histology`}
-            icon="file-text"
-            collapsible
-            isCollapsed={isSectionCollapsed("currentHistology")}
-            onCollapsedChange={(v) =>
-              setSectionCollapsedState("currentHistology", v)
-            }
-            subtitle={
-              isBiopsy
-                ? "Enter histology when the specimen report returns"
-                : "Update with final post-excision histology and margins"
-            }
-          >
-            <HistologySection
-              label=""
-              histology={assessment.currentHistology}
-              onHistologyChange={handleCurrentHistologyChange}
-              defaultExpanded={false}
-              defaultSource="current_procedure"
-              lockedPathology={autoConfig.lockedPathology}
-              hideHeader
-              onCreateFollowUp={onCreateFollowUp}
-            />
-          </SectionWrapper>
+          {showCurrentHistologySection ? (
+            <SectionWrapper
+              title={`${++sectionNum}. Specimen Histology`}
+              icon="file-text"
+              collapsible
+              isCollapsed={isSectionCollapsed("currentHistology")}
+              onCollapsedChange={(v) =>
+                setSectionCollapsedState("currentHistology", v)
+              }
+              subtitle={
+                isBiopsy
+                  ? "Enter histology when the specimen report returns"
+                  : "Update with final post-excision histology and margins"
+              }
+            >
+              <HistologySection
+                label=""
+                histology={assessment.currentHistology}
+                onHistologyChange={handleCurrentHistologyChange}
+                defaultExpanded={false}
+                defaultSource="current_procedure"
+                hideSourceSelector
+                lockedPathology={autoConfig.lockedPathology}
+                hideHeader
+                onCreateFollowUp={onCreateFollowUp}
+              />
+            </SectionWrapper>
+          ) : null}
 
           {/* ── Add another lesion (biopsy pathway only) ── */}
           {onAddLesion &&
@@ -892,6 +961,7 @@ export function SkinCancerAssessment({
                 <SkinCancerSummaryPanel
                   assessment={assessment}
                   suggestedProcedureIds={suggestedProcedureIds}
+                  acceptedProcedureIds={procedurePicklistIds}
                   isAccepted={isAccepted}
                   onAccept={handleAccept}
                   onEditMapping={handleEditMapping}
@@ -964,6 +1034,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     textAlign: "center",
+  },
+  quickBreslowRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: Spacing.md,
+    borderWidth: 1,
+    borderRadius: BorderRadius.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  quickBreslowLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  quickBreslowInput: {
+    flex: 0,
+    width: 76,
+    height: 36,
+    fontSize: 15,
   },
   marginRow: {
     marginTop: Spacing.md,

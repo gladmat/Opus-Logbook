@@ -4,10 +4,10 @@
  * Two-option stage selector that gates the rest of the skin cancer assessment.
  * Rendered inline within DiagnosisGroupEditor when the skin cancer module activates.
  *
- * After selection, collapses to a single-line summary with "Change" affordance.
+ * After selection, collapses to a read-only single-line summary.
  */
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   View,
   Pressable,
@@ -65,23 +65,11 @@ export function SkinCancerPathwayGate({
   availableStages,
 }: SkinCancerPathwayGateProps) {
   const { theme } = useTheme();
-  const [isCollapsed, setIsCollapsed] = useState(!!selectedStage);
-
-  useEffect(() => {
-    setIsCollapsed(!!selectedStage);
-  }, [selectedStage]);
 
   const handleSelect = (stage: SkinCancerPathwayStage) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     onSelectStage(stage);
-    setIsCollapsed(true);
-  };
-
-  const handleChange = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setIsCollapsed(false);
   };
 
   const visibleStages = availableStages
@@ -91,7 +79,7 @@ export function SkinCancerPathwayGate({
   const selectedOption = STAGES.find((s) => s.value === selectedStage);
 
   // Collapsed: single-line summary
-  if (isCollapsed && selectedOption) {
+  if (selectedOption) {
     return (
       <View style={styles.container}>
         <ThemedText
@@ -99,7 +87,7 @@ export function SkinCancerPathwayGate({
         >
           PATHWAY STAGE
         </ThemedText>
-        <Pressable
+        <View
           style={[
             styles.collapsedRow,
             {
@@ -107,7 +95,6 @@ export function SkinCancerPathwayGate({
               borderColor: theme.link,
             },
           ]}
-          onPress={handleChange}
         >
           <Feather
             name={selectedOption.icon}
@@ -120,10 +107,7 @@ export function SkinCancerPathwayGate({
           >
             {selectedOption.title}
           </ThemedText>
-          <ThemedText style={[styles.changeButton, { color: theme.link }]}>
-            Change
-          </ThemedText>
-        </Pressable>
+        </View>
       </View>
     );
   }
@@ -241,9 +225,5 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: "500",
-  },
-  changeButton: {
-    fontSize: 13,
-    fontWeight: "600",
   },
 });

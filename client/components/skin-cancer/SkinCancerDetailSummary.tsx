@@ -2,7 +2,7 @@
  * SkinCancerDetailSummary
  * ═══════════════════════════════════════════════════════════
  * Read-only summary component rendered in CaseDetailScreen.
- * Shows per-lesion pathway stage, pathology, margins, SLNB
+ * Shows per-lesion pathology, margins, SLNB
  * using label-value pairs matching existing detail screen patterns.
  */
 
@@ -33,11 +33,6 @@ function getThemeColor(
 }
 
 // ─── Constants ─────────────────────────────────────────────────────
-
-const PATHWAY_LABELS: Record<string, string> = {
-  excision_biopsy: "Excision biopsy",
-  histology_known: "Histology known",
-};
 
 const CATEGORY_LABELS: Record<string, string> = {
   bcc: "BCC",
@@ -163,13 +158,6 @@ export function SkinCancerDetailSummary({
         <ThemedText style={[styles.lesionHeader, { color: theme.link }]}>
           {lesionLabel}
         </ThemedText>
-      )}
-
-      {assessment.pathwayStage && (
-        <DetailRow
-          label="Pathway"
-          value={PATHWAY_LABELS[assessment.pathwayStage] ?? assessment.pathwayStage}
-        />
       )}
 
       {pathologyText ? (

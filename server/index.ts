@@ -3,6 +3,7 @@ import type { Request, Response, NextFunction } from "express";
 import { env } from "./env";
 import { registerRoutes } from "./routes";
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 
 const app = express();
@@ -139,6 +140,58 @@ function getAppName(): string {
   }
 }
 
+function getLanIp(): string | null {
+  const interfaces = os.networkInterfaces();
+
+  for (const network of Object.values(interfaces)) {
+    for (const address of network || []) {
+      if (address.family === "IPv4" && !address.internal) {
+        return address.address;
+      }
+    }
+  }
+
+  return null;
+}
+
+function getPreviewHostname(host: string | undefined): string {
+  if (!host) {
+    return getLanIp() || "127.0.0.1";
+  }
+
+  try {
+    const parsed = new URL(`http://${host}`);
+    if (
+      parsed.hostname === "localhost" ||
+      parsed.hostname === "127.0.0.1" ||
+      parsed.hostname === "::1"
+    ) {
+      return getLanIp() || parsed.hostname;
+    }
+
+    return parsed.hostname;
+  } catch {
+    return host.replace(/:\d+$/, "");
+  }
+}
+
+function getExpoDeepLink({
+  protocol,
+  host,
+}: {
+  protocol: string;
+  host: string | undefined;
+}): string {
+  if (env.NODE_ENV === "development") {
+    const previewHostname = getPreviewHostname(host);
+    const expoPort = Number(process.env.DEV_EXPO_PORT || 8083);
+    return `exp://${previewHostname}:${expoPort}`;
+  }
+
+  const scheme = protocol === "https" ? "exps" : "exp";
+  return `${scheme}://${host}`;
+}
+
 function serveExpoManifest(platform: string, res: Response) {
   const manifestPath = path.resolve(
     process.cwd(),
@@ -178,14 +231,14 @@ function serveLandingPage({
   const forwardedHost = req.header("x-forwarded-host");
   const host = forwardedHost || req.get("host");
   const baseUrl = `${protocol}://${host}`;
-  const expsUrl = `${host}`;
+  const expoDeepLink = getExpoDeepLink({ protocol, host });
 
   log(`baseUrl`, baseUrl);
-  log(`expsUrl`, expsUrl);
+  log(`expoDeepLink`, expoDeepLink);
 
   const html = landingPageTemplate
     .replace(/BASE_URL_PLACEHOLDER/g, baseUrl)
-    .replace(/EXPS_URL_PLACEHOLDER/g, expsUrl)
+    .replace(/EXPO_DEEP_LINK_PLACEHOLDER/g, expoDeepLink)
     .replace(/APP_NAME_PLACEHOLDER/g, appName);
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -285,7 +338,7 @@ function setupSecurityHeaders(app: express.Application) {
     res.setHeader("X-Download-Options", "noopen");
     res.setHeader(
       "Content-Security-Policy",
-      "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'",
+      "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'",
     );
     res.setHeader(
       "Permissions-Policy",

@@ -7,6 +7,8 @@ import {
   toQuickMarginStatus,
   getSkinCancerProcedureSuggestions,
   getSkinCancerDiagnosisAutoConfig,
+  getDefaultSkinCancerSelectedProcedureIds,
+  getSkinCancerPathwayStageForCategory,
   getSkinCancerPrimaryHistology,
   resolveSkinCancerDiagnosis,
 } from "@/lib/skinCancerConfig";
@@ -370,7 +372,7 @@ describe("toQuickMarginStatus", () => {
 // ═══════════════════════════════════════════════════════════
 
 describe("getSkinCancerProcedureSuggestions", () => {
-  it("Biopsy + excision_biopsy type → gen_skin_excision_biopsy", () => {
+  it("Biopsy + excision_biopsy type includes biopsy plus graft suggestions", () => {
     const r = getSkinCancerProcedureSuggestions(
       makeAssessment({
         pathwayStage: "excision_biopsy",
@@ -379,7 +381,11 @@ describe("getSkinCancerProcedureSuggestions", () => {
         site: "Nose",
       }),
     );
-    expect(r).toEqual(["gen_skin_excision_biopsy"]);
+    expect(r).toEqual([
+      "gen_skin_excision_biopsy",
+      "orth_ftsg",
+      "orth_ssg_sheet",
+    ]);
   });
 
   it("Biopsy + punch type → gen_skin_biopsy_punch", () => {
@@ -458,6 +464,20 @@ describe("getSkinCancerProcedureSuggestions", () => {
     expect(r).toContain("orth_ftsg");
   });
 
+  it("site-specific head and neck cases still include graft options", () => {
+    const r = getSkinCancerProcedureSuggestions(
+      makeAssessment({
+        pathwayStage: "histology_known",
+        site: "Ear",
+        priorHistology: makeHistology({ pathologyCategory: "bcc" }),
+      }),
+    );
+    expect(r).toContain("hn_skin_bcc_excision");
+    expect(r).toContain("hn_recon_ear_partial");
+    expect(r).toContain("orth_ftsg");
+    expect(r).toContain("orth_ssg_sheet");
+  });
+
   it("Pathway B + DFSP → gen_mel_dfsp_excision", () => {
     const r = getSkinCancerProcedureSuggestions(
       makeAssessment({
@@ -502,6 +522,94 @@ describe("getSkinCancerProcedureSuggestions", () => {
       }),
     );
     expect(r).toEqual([]);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
+// getDefaultSkinCancerSelectedProcedureIds
+// ═══════════════════════════════════════════════════════════
+
+describe("getDefaultSkinCancerSelectedProcedureIds", () => {
+  it("defaults to the primary excision procedure and leaves graft options unchecked", () => {
+    const assessment = makeAssessment({
+      pathwayStage: "excision_biopsy",
+      clinicalSuspicion: "uncertain",
+      biopsyType: "excision_biopsy",
+      site: "Nose",
+    });
+    const suggestions = getSkinCancerProcedureSuggestions(assessment);
+
+    expect(
+      getDefaultSkinCancerSelectedProcedureIds(assessment, suggestions),
+    ).toEqual(["gen_skin_excision_biopsy"]);
+  });
+
+  it("also defaults SLNB when it is explicitly recorded as performed", () => {
+    const assessment = makeAssessment({
+      pathwayStage: "histology_known",
+      site: "Forearm",
+      priorHistology: makeHistology({
+        pathologyCategory: "melanoma",
+        melanomaBreslowMm: 2,
+      }),
+      slnb: {
+        offered: true,
+        performed: true,
+        sites: ["axillary"],
+        result: "negative",
+      },
+    });
+    const suggestions = getSkinCancerProcedureSuggestions(assessment);
+
+    expect(
+      getDefaultSkinCancerSelectedProcedureIds(assessment, suggestions),
+    ).toEqual(["gen_mel_wle_body", "gen_mel_slnb_body"]);
+  });
+
+  it("returns an empty selection when there are no suggestions", () => {
+    expect(
+      getDefaultSkinCancerSelectedProcedureIds(
+        makeAssessment({ pathwayStage: "excision_biopsy" }),
+        [],
+      ),
+    ).toEqual([]);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
+// getSkinCancerPathwayStageForCategory
+// ═══════════════════════════════════════════════════════════
+
+describe("getSkinCancerPathwayStageForCategory", () => {
+  it("routes uncertain lesions to excision_biopsy", () => {
+    expect(getSkinCancerPathwayStageForCategory("uncertain")).toBe(
+      "excision_biopsy",
+    );
+  });
+
+  it("routes all other inline diagnosis categories to histology_known", () => {
+    expect(getSkinCancerPathwayStageForCategory("bcc")).toBe(
+      "histology_known",
+    );
+    expect(getSkinCancerPathwayStageForCategory("scc")).toBe(
+      "histology_known",
+    );
+    expect(getSkinCancerPathwayStageForCategory("melanoma")).toBe(
+      "histology_known",
+    );
+    expect(getSkinCancerPathwayStageForCategory("merkel_cell")).toBe(
+      "histology_known",
+    );
+    expect(getSkinCancerPathwayStageForCategory("rare_malignant")).toBe(
+      "histology_known",
+    );
+    expect(getSkinCancerPathwayStageForCategory("benign")).toBe(
+      "histology_known",
+    );
+  });
+
+  it("returns undefined when no inline diagnosis category is selected", () => {
+    expect(getSkinCancerPathwayStageForCategory(undefined)).toBeUndefined();
   });
 });
 

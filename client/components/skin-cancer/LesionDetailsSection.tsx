@@ -24,6 +24,7 @@ import { v4 as uuidv4 } from "uuid";
 import { Feather } from "@/components/FeatherIcon";
 import { ThemedText } from "@/components/ThemedText";
 import { EncryptedImage } from "@/components/EncryptedImage";
+import { SkinCancerNumericInput } from "./SkinCancerNumericInput";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { saveEncryptedMedia, deleteEncryptedMedia } from "@/lib/mediaStorage";
@@ -407,7 +408,7 @@ export function LesionDetailsSection({
           CLINICAL SIZE (MM)
         </ThemedText>
         <View style={styles.dimensionRow}>
-          <TextInput
+          <SkinCancerNumericInput
             style={[
               styles.dimensionInput,
               {
@@ -416,16 +417,11 @@ export function LesionDetailsSection({
                 color: theme.text,
               },
             ]}
-            value={
-              assessment.clinicalLengthMm !== undefined
-                ? String(assessment.clinicalLengthMm)
-                : ""
-            }
-            onChangeText={(text) => {
-              const num = parseFloat(text);
+            value={assessment.clinicalLengthMm}
+            onValueChange={(clinicalLengthMm) => {
               onChange({
                 ...assessment,
-                clinicalLengthMm: isNaN(num) ? undefined : num,
+                clinicalLengthMm,
               });
             }}
             placeholder="Length"
@@ -443,7 +439,7 @@ export function LesionDetailsSection({
           >
             ×
           </ThemedText>
-          <TextInput
+          <SkinCancerNumericInput
             ref={widthInputRef}
             style={[
               styles.dimensionInput,
@@ -453,16 +449,11 @@ export function LesionDetailsSection({
                 color: theme.text,
               },
             ]}
-            value={
-              assessment.clinicalWidthMm !== undefined
-                ? String(assessment.clinicalWidthMm)
-                : ""
-            }
-            onChangeText={(text) => {
-              const num = parseFloat(text);
+            value={assessment.clinicalWidthMm}
+            onValueChange={(clinicalWidthMm) => {
               onChange({
                 ...assessment,
-                clinicalWidthMm: isNaN(num) ? undefined : num,
+                clinicalWidthMm,
               });
             }}
             placeholder="Width"
