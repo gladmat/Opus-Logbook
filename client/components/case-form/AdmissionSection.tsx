@@ -12,6 +12,7 @@ import {
 import { setField } from "@/hooks/useCaseForm";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
+import { parseDateOnlyValue } from "@/lib/dateValues";
 import {
   AdmissionUrgency,
   StayType,
@@ -159,11 +160,7 @@ export const AdmissionSection = React.memo(function AdmissionSection() {
             label="Discharge Date"
             value={state.dischargeDate}
             onChange={(v: string) => dispatch(setField("dischargeDate", v))}
-            minimumDate={
-              state.admissionDate
-                ? new Date(state.admissionDate + "T00:00:00")
-                : undefined
-            }
+            minimumDate={parseDateOnlyValue(state.admissionDate) ?? undefined}
             clearable
           />
         </View>

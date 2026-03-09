@@ -21,7 +21,7 @@ describe("case draft persistence", () => {
     ];
 
     const serializedMedia = serializeDraftOperativeMedia(operativeMedia);
-    const restoredDate = restoreDraftProcedureDate("1988-06-14");
+    const restoredDate = restoreDraftProcedureDate("1988-06-14T09:00:00.000Z");
     const restoredMedia = restoreDraftOperativeMedia(serializedMedia);
 
     expect(restoredDate).toBe("1988-06-14");

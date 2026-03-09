@@ -30,6 +30,7 @@ import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { OperativeMediaType } from "@/types/case";
 import { DatePickerField } from "@/components/FormField";
 import { useMediaCallback } from "@/contexts/MediaCallbackContext";
+import { normalizeDateOnlyValue, toIsoDateValue } from "@/lib/dateValues";
 
 type AddOperativeMediaRouteProp = RouteProp<
   RootStackParamList,
@@ -78,9 +79,8 @@ export default function AddOperativeMediaScreen() {
   );
   const [captionInput, setCaptionInput] = useState(existingCaption || "");
   const [mediaDate, setMediaDate] = useState(
-    existingTimestamp
-      ? existingTimestamp.split("T")[0]
-      : new Date().toISOString().split("T")[0],
+    () =>
+      normalizeDateOnlyValue(existingTimestamp) ?? toIsoDateValue(new Date()),
   );
   const [cameraPermission, requestCameraPermission] =
     ImagePicker.useCameraPermissions();
@@ -173,7 +173,7 @@ export default function AddOperativeMediaScreen() {
       }
 
       // Build timestamp from selected date
-      const today = new Date().toISOString().split("T")[0];
+      const today = toIsoDateValue(new Date());
       const timestamp =
         mediaDate === today
           ? new Date().toISOString()

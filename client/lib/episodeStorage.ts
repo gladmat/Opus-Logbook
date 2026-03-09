@@ -4,6 +4,7 @@ import type { Case } from "@/types/case";
 import { encryptData, decryptData } from "./encryption";
 import { getCasesByEpisodeId } from "./storage";
 import * as Crypto from "expo-crypto";
+import { normalizeEpisodeDateOnlyFields } from "./dateFieldNormalization";
 
 const EPISODE_INDEX_KEY = "@opus_episode_index";
 const EPISODE_PREFIX = "@opus_episode_";
@@ -53,7 +54,9 @@ export async function getEpisode(id: string): Promise<TreatmentEpisode | null> {
     const encrypted = await AsyncStorage.getItem(`${EPISODE_PREFIX}${id}`);
     if (!encrypted) return null;
     const decrypted = await decryptData(encrypted);
-    return JSON.parse(decrypted) as TreatmentEpisode;
+    return normalizeEpisodeDateOnlyFields(
+      JSON.parse(decrypted) as TreatmentEpisode,
+    );
   } catch (error) {
     console.error("Error reading episode:", error);
     return null;
@@ -63,7 +66,10 @@ export async function getEpisode(id: string): Promise<TreatmentEpisode | null> {
 export async function saveEpisode(episode: TreatmentEpisode): Promise<void> {
   try {
     const now = new Date().toISOString();
-    const updatedEpisode = { ...episode, updatedAt: now };
+    const updatedEpisode = normalizeEpisodeDateOnlyFields({
+      ...episode,
+      updatedAt: now,
+    });
 
     const encrypted = await encryptData(JSON.stringify(updatedEpisode));
     await AsyncStorage.setItem(`${EPISODE_PREFIX}${episode.id}`, encrypted);

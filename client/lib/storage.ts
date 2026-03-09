@@ -9,7 +9,8 @@ import {
 import { encryptData, decryptData } from "./encryption";
 import { deleteMultipleEncryptedMedia } from "./mediaStorage";
 import * as Crypto from "expo-crypto";
-import { migrateCase } from "./migration";
+import { normalizeTimelineEventDateOnlyFields } from "./dateFieldNormalization";
+import { migrateCase, normalizeCaseDateOnlyFields } from "./migration";
 
 const CASE_INDEX_KEY = "@surgical_logbook_case_index";
 const CASE_PREFIX = "@surgical_logbook_case_";
@@ -253,7 +254,10 @@ export async function getCase(id: string): Promise<Case | null> {
 export async function saveCase(caseData: Case): Promise<void> {
   try {
     const now = new Date().toISOString();
-    const updatedCase = { ...caseData, updatedAt: now };
+    const updatedCase = normalizeCaseDateOnlyFields({
+      ...caseData,
+      updatedAt: now,
+    });
 
     const encrypted = await encryptData(JSON.stringify(updatedCase));
     await AsyncStorage.setItem(`${CASE_PREFIX}${caseData.id}`, encrypted);
@@ -468,7 +472,9 @@ export async function getTimelineEvents(
     const data = await AsyncStorage.getItem(TIMELINE_KEY);
     if (!data) return [];
     const decrypted = await decryptData(data);
-    const allEvents: TimelineEvent[] = JSON.parse(decrypted);
+    const allEvents = (JSON.parse(decrypted) as TimelineEvent[]).map(
+      normalizeTimelineEventDateOnlyFields,
+    );
     return allEvents
       .filter((e) => e.caseId === caseId)
       .sort(
@@ -489,7 +495,7 @@ export async function saveTimelineEvent(event: TimelineEvent): Promise<void> {
       const decrypted = await decryptData(data);
       events = JSON.parse(decrypted);
     }
-    events.unshift(event);
+    events.unshift(normalizeTimelineEventDateOnlyFields(event));
     const encrypted = await encryptData(JSON.stringify(events));
     await AsyncStorage.setItem(TIMELINE_KEY, encrypted);
   } catch (error) {
@@ -509,11 +515,11 @@ export async function updateTimelineEvent(
     const events: TimelineEvent[] = JSON.parse(decrypted);
     const index = events.findIndex((e) => e.id === id);
     if (index < 0) return;
-    events[index] = {
+    events[index] = normalizeTimelineEventDateOnlyFields({
       ...events[index]!,
       ...updates,
       updatedAt: new Date().toISOString(),
-    };
+    });
     const encrypted = await encryptData(JSON.stringify(events));
     await AsyncStorage.setItem(TIMELINE_KEY, encrypted);
   } catch (error) {

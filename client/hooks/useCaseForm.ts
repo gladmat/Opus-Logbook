@@ -66,7 +66,9 @@ import { findDiagnosisById } from "@/lib/diagnosisPicklists";
 import { UserProfile } from "@/lib/auth";
 import { syncFlapOutcomeToServer } from "@/lib/outcomeSync";
 import { withDefaultFlapOutcome } from "@/lib/flapOutcomeDefaults";
+import { toIsoDateValue } from "@/lib/dateValues";
 import {
+  restoreDraftDateOnlyValue,
   restoreDraftOperativeMedia,
   restoreDraftProcedureDate,
   serializeDraftOperativeMedia,
@@ -262,7 +264,7 @@ export function getDefaultFormState(
 ): CaseFormState {
   return {
     patientIdentifier: "",
-    procedureDate: new Date().toISOString().split("T")[0] ?? "",
+    procedureDate: toIsoDateValue(new Date()),
     facility: primaryFacility,
     procedureType: "",
     gender: "",
@@ -566,11 +568,11 @@ export function draftToFormState(
   result.gender = draft.gender ?? "";
   result.age = draft.age ? String(draft.age) : "";
   result.ethnicity = draft.ethnicity ?? "";
-  result.admissionDate = draft.admissionDate ?? "";
-  result.dischargeDate = draft.dischargeDate ?? "";
+  result.admissionDate = restoreDraftDateOnlyValue(draft.admissionDate) ?? "";
+  result.dischargeDate = restoreDraftDateOnlyValue(draft.dischargeDate) ?? "";
   result.admissionUrgency = draft.admissionUrgency ?? "";
   result.stayType = draft.stayType ?? "";
-  result.injuryDate = draft.injuryDate ?? "";
+  result.injuryDate = restoreDraftDateOnlyValue(draft.injuryDate) ?? "";
   result.unplannedReadmission = draft.unplannedReadmission ?? "no";
   result.isUnplannedReadmission = (draft.unplannedReadmission ?? "no") !== "no";
   result.selectedComorbidities = draft.comorbidities ?? [];
@@ -720,7 +722,7 @@ function caseFormReducer(
 
       // Day case: default both dates to today when stayType switches to day_case
       if (action.field === "stayType" && action.value === "day_case") {
-        const today = new Date().toISOString().split("T")[0] ?? "";
+        const today = toIsoDateValue(new Date());
         if (!next.admissionDate) next.admissionDate = today;
         if (!next.dischargeDate)
           next.dischargeDate = next.admissionDate || today;
@@ -967,7 +969,7 @@ export function buildDuplicateState(
     patientIdentifier: skinCancerFollowUpPrefill
       ? source.patientIdentifier
       : "",
-    procedureDate: new Date().toISOString().split("T")[0] ?? "",
+    procedureDate: toIsoDateValue(new Date()),
     gender: "",
     age: "",
     ethnicity: "",

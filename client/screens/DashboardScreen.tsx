@@ -30,11 +30,8 @@ import {
   type MediaAttachment,
 } from "@/types/case";
 import { INFECTION_SYNDROME_LABELS } from "@/types/infection";
-import {
-  getCases,
-  updateCase,
-  saveTimelineEvent,
-} from "@/lib/storage";
+import { getCases, updateCase, saveTimelineEvent } from "@/lib/storage";
+import { toIsoDateValue } from "@/lib/dateValues";
 import { MediaCapture } from "@/components/MediaCapture";
 import { useActiveEpisodes } from "@/hooks/useActiveEpisodes";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
@@ -173,7 +170,7 @@ export default function DashboardScreen() {
   const handleConfirmDischarge = async () => {
     if (!dischargeCase) return;
 
-    const dateStr = dischargeDate.toISOString().split("T")[0] ?? "";
+    const dateStr = toIsoDateValue(dischargeDate);
 
     try {
       await updateCase(dischargeCase.id, {

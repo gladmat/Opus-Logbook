@@ -1,9 +1,4 @@
-import React, {
-  useState,
-  useCallback,
-  useMemo,
-  useLayoutEffect,
-} from "react";
+import React, { useState, useCallback, useMemo, useLayoutEffect } from "react";
 import {
   View,
   SectionList,
@@ -14,7 +9,9 @@ import {
   Alert,
   Modal,
 } from "react-native";
-import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
+import DateTimePicker, {
+  DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
 import {
   useNavigation,
   useFocusEffect,
@@ -30,6 +27,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { getCases, updateCase, saveTimelineEvent } from "@/lib/storage";
+import { toIsoDateValue } from "@/lib/dateValues";
 import { useActiveEpisodes } from "@/hooks/useActiveEpisodes";
 import { useAttentionItems } from "@/hooks/useAttentionItems";
 import { getFirstHistologyTarget } from "@/lib/skinCancerConfig";
@@ -196,7 +194,7 @@ export default function NeedsAttentionListScreen() {
   const handleConfirmDischarge = async () => {
     if (!dischargeCase) return;
 
-    const dateStr = dischargeDate.toISOString().split("T")[0] ?? "";
+    const dateStr = toIsoDateValue(dischargeDate);
 
     try {
       await updateCase(dischargeCase.id, {
@@ -288,11 +286,19 @@ export default function NeedsAttentionListScreen() {
       return { bg: theme.error + "20", text: theme.error, label: "Infection" };
     }
     if (item.type === "inpatient") {
-      return { bg: theme.accent + "20", text: theme.accent, label: "Inpatient" };
+      return {
+        bg: theme.accent + "20",
+        text: theme.accent,
+        label: "Inpatient",
+      };
     }
     switch (item.episodeStatus) {
       case "active":
-        return { bg: theme.success + "20", text: theme.success, label: "Active" };
+        return {
+          bg: theme.success + "20",
+          text: theme.success,
+          label: "Active",
+        };
       case "on_hold":
         return {
           bg: theme.warning + "20",
@@ -302,7 +308,11 @@ export default function NeedsAttentionListScreen() {
       case "planned":
         return { bg: theme.info + "20", text: theme.info, label: "Planned" };
       default:
-        return { bg: theme.success + "20", text: theme.success, label: "Active" };
+        return {
+          bg: theme.success + "20",
+          text: theme.success,
+          label: "Active",
+        };
     }
   };
 
@@ -311,7 +321,9 @@ export default function NeedsAttentionListScreen() {
       const badge = getBadge(item);
       const actionCaseId = item.caseId || item.lastCaseId;
       const canLogCase =
-        item.type === "inpatient" || item.type === "episode" || !!item.episodeId;
+        item.type === "inpatient" ||
+        item.type === "episode" ||
+        !!item.episodeId;
       const logCaseLabel =
         item.type === "episode" || item.episodeId ? "Next Episode" : "Log Case";
 
@@ -549,8 +561,7 @@ export default function NeedsAttentionListScreen() {
             ]}
           >
             <ThemedText style={styles.modalTitle}>
-              Discharge{" "}
-              {dischargeCase?.patientIdentifier}
+              Discharge {dischargeCase?.patientIdentifier}
             </ThemedText>
 
             <Pressable

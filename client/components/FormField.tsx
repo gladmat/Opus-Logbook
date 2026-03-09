@@ -17,7 +17,13 @@ import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { BorderRadius, Spacing } from "@/constants/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { parseIsoDateValue, toIsoDateValue } from "@/lib/dateValues";
+import {
+  clampDateToBounds,
+  normalizeDateOnlyValue,
+  parseDateOnlyValue,
+  sanitizeDateBounds,
+  toIsoDateValue,
+} from "@/lib/dateValues";
 
 interface FormFieldProps {
   label: string;
@@ -552,7 +558,7 @@ export function PickerField({
 // Date picker field
 interface DatePickerFieldProps {
   label: string;
-  value?: string; // ISO date string YYYY-MM-DD
+  value?: string; // Canonical YYYY-MM-DD, tolerant of legacy ISO timestamps
   onChange: (date: string) => void;
   placeholder?: string;
   required?: boolean;
@@ -561,24 +567,6 @@ interface DatePickerFieldProps {
   clearable?: boolean;
   minimumDate?: Date;
   maximumDate?: Date;
-}
-
-function clampDate(
-  date: Date,
-  minimumDate?: Date,
-  maximumDate?: Date,
-): Date {
-  const timestamp = date.getTime();
-  const min = minimumDate?.getTime();
-  const max = maximumDate?.getTime();
-
-  if (typeof min === "number" && timestamp < min) {
-    return minimumDate!;
-  }
-  if (typeof max === "number" && timestamp > max) {
-    return maximumDate!;
-  }
-  return date;
 }
 
 export function DatePickerField({
@@ -595,15 +583,12 @@ export function DatePickerField({
 }: DatePickerFieldProps) {
   const { theme, isDark } = useTheme();
   const [showPicker, setShowPicker] = useState(false);
-
-  const dateValue =
-    parseIsoDateValue(value) ??
-    clampDate(new Date(), minimumDate, maximumDate);
-  const [draftDate, setDraftDate] = useState<Date>(dateValue);
+  const { minimumDate: safeMinimumDate, maximumDate: safeMaximumDate } =
+    sanitizeDateBounds(minimumDate, maximumDate);
 
   const formatDisplayDate = (dateStr: string) => {
-    if (!dateStr) return "";
-    const date = parseIsoDateValue(dateStr) ?? new Date();
+    const date = parseDateOnlyValue(dateStr);
+    if (!date) return "";
     return date.toLocaleDateString("en-NZ", {
       day: "numeric",
       month: "short",
@@ -611,15 +596,30 @@ export function DatePickerField({
     });
   };
 
+  const normalizedValue = normalizeDateOnlyValue(value);
+  const displayValue = normalizedValue
+    ? formatDisplayDate(normalizedValue)
+    : "";
+  const hasDisplayValue = Boolean(displayValue);
+  const hasStoredValue = Boolean(value?.trim());
+
+  const parsedValue = parseDateOnlyValue(value);
+  const dateValue = clampDateToBounds(
+    parsedValue ?? new Date(),
+    safeMinimumDate,
+    safeMaximumDate,
+  );
+  const [draftDate, setDraftDate] = useState<Date>(dateValue);
+
   const handleDateChange = useCallback(
     (event: any, selectedDate?: Date) => {
       if (Platform.OS === "android") {
         setShowPicker(false);
         if (selectedDate) {
-          const boundedDate = clampDate(
+          const boundedDate = clampDateToBounds(
             selectedDate,
-            minimumDate,
-            maximumDate,
+            safeMinimumDate,
+            safeMaximumDate,
           );
           const isoDate = toIsoDateValue(boundedDate);
           onChange(isoDate);
@@ -627,10 +627,12 @@ export function DatePickerField({
         return;
       }
       if (selectedDate) {
-        setDraftDate(clampDate(selectedDate, minimumDate, maximumDate));
+        setDraftDate(
+          clampDateToBounds(selectedDate, safeMinimumDate, safeMaximumDate),
+        );
       }
     },
-    [maximumDate, minimumDate, onChange],
+    [onChange, safeMaximumDate, safeMinimumDate],
   );
 
   const openDatePicker = useCallback(() => {
@@ -643,10 +645,12 @@ export function DatePickerField({
   }, []);
 
   const handleDatePickerDone = useCallback(() => {
-    const isoDate = toIsoDateValue(draftDate);
+    const isoDate = toIsoDateValue(
+      clampDateToBounds(draftDate, safeMinimumDate, safeMaximumDate),
+    );
     closeDatePicker();
     requestAnimationFrame(() => onChange(isoDate));
-  }, [closeDatePicker, draftDate, onChange]);
+  }, [closeDatePicker, draftDate, onChange, safeMaximumDate, safeMinimumDate]);
 
   return (
     <View style={styles.container}>
@@ -677,13 +681,13 @@ export function DatePickerField({
           onPress={() => !disabled && openDatePicker()}
           disabled={disabled}
           accessibilityRole="button"
-          accessibilityLabel={`${label}: ${value ? formatDisplayDate(value) : "not set"}`}
+          accessibilityLabel={`${label}: ${hasDisplayValue ? displayValue : "not set"}`}
           accessibilityHint="Double tap to select date"
           accessibilityState={{ disabled }}
         >
-          {value ? (
+          {hasDisplayValue ? (
             <ThemedText style={[styles.dateButtonText, { color: theme.text }]}>
-              {formatDisplayDate(value)}
+              {displayValue}
             </ThemedText>
           ) : (
             <ThemedText
@@ -694,7 +698,7 @@ export function DatePickerField({
           )}
           <Feather name="calendar" size={20} color={theme.textSecondary} />
         </Pressable>
-        {clearable && value && !disabled ? (
+        {clearable && hasStoredValue && !disabled ? (
           <Pressable
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -757,8 +761,8 @@ export function DatePickerField({
                   mode="date"
                   display="spinner"
                   onChange={handleDateChange}
-                  minimumDate={minimumDate}
-                  maximumDate={maximumDate}
+                  minimumDate={safeMinimumDate}
+                  maximumDate={safeMaximumDate}
                   textColor={theme.text}
                   themeVariant={isDark ? "dark" : "light"}
                   style={{ height: 200 }}
@@ -772,8 +776,8 @@ export function DatePickerField({
             mode="date"
             display="default"
             onChange={handleDateChange}
-            minimumDate={minimumDate}
-            maximumDate={maximumDate}
+            minimumDate={safeMinimumDate}
+            maximumDate={safeMaximumDate}
           />
         )
       ) : null}

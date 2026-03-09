@@ -749,6 +749,12 @@ Per-field validate-on-blur with errors displayed below fields. Required fields: 
 
 `buildDuplicateState()` in `useCaseForm.ts` deep-clones case data for quick re-entry. Available from action menu in `CaseDetailScreen`.
 
+### Date handling invariants
+
+- **Date-only picker values are canonical `YYYY-MM-DD`.** Produce them with `toIsoDateValue()` and normalize legacy persisted values with `normalizeDateOnlyValue()` / `parseDateOnlyValue()` from `client/lib/dateValues.ts`.
+- **Do not build picker bounds from raw strings.** Never use patterns like `new Date(value + "T00:00:00")` or rely on `toISOString().split("T")[0]` for date-only fields; invalid `Date` objects passed to `DatePickerField` / native pickers can surface as epoch/1970 lockups.
+- **Timestamp fields stay timestamps.** Fields such as `createdAt`, `updatedAt`, timeline/media timestamps, and flap `assessedAt` remain ISO timestamps and should only be converted to date-only at the UI boundary when feeding a date picker.
+
 ### Statistics tab (COMPLETE)
 
 Dedicated bottom tab with 3-tier analytics. Middle tab between Dashboard and Settings, icon `bar-chart-2`.

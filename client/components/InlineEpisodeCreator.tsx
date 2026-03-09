@@ -11,6 +11,7 @@ import { Button } from "@/components/Button";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { Spacing, BorderRadius, Shadows } from "@/constants/theme";
+import { normalizeDateOnlyValue, toIsoDateValue } from "@/lib/dateValues";
 import { saveEpisode } from "@/lib/episodeStorage";
 import { suggestEpisodeType, suggestEpisodeTitle } from "@/lib/episodeHelpers";
 import type { Specialty } from "@/types/case";
@@ -54,7 +55,7 @@ export function InlineEpisodeCreator({
   const [title, setTitle] = useState("");
   const [episodeType, setEpisodeType] = useState<EpisodeType>("other");
   const [onsetDate, setOnsetDate] = useState(
-    procedureDate || new Date().toISOString(),
+    () => normalizeDateOnlyValue(procedureDate) ?? toIsoDateValue(new Date()),
   );
   const [pendingAction, setPendingAction] = useState<PendingAction | "">("");
   const [saving, setSaving] = useState(false);

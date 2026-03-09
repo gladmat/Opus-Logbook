@@ -38,6 +38,7 @@ import {
   getTimelineEvents,
   updateTimelineEvent,
 } from "@/lib/storage";
+import { normalizeDateOnlyValue, toIsoDateValue } from "@/lib/dateValues";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 
 type RouteParams = RouteProp<RootStackParamList, "AddTimelineEvent">;
@@ -78,9 +79,7 @@ export default function AddTimelineEventScreen() {
   const [eventType, setEventType] = useState<TimelineEventType | "">(
     initialEventType || "",
   );
-  const [eventDate, setEventDate] = useState(
-    new Date().toISOString().split("T")[0],
-  );
+  const [eventDate, setEventDate] = useState(() => toIsoDateValue(new Date()));
   const [note, setNote] = useState("");
   const [followUpInterval, setFollowUpInterval] = useState<
     FollowUpInterval | ""
@@ -121,7 +120,10 @@ export default function AddTimelineEventScreen() {
         if (!existing) return;
         setEditingEvent(existing);
         setEventType(existing.eventType);
-        setEventDate(existing.createdAt.split("T")[0]);
+        setEventDate(
+          normalizeDateOnlyValue(existing.createdAt) ??
+            toIsoDateValue(new Date()),
+        );
         setNote(existing.note || "");
         if (existing.followUpInterval)
           setFollowUpInterval(existing.followUpInterval);
@@ -149,7 +151,7 @@ export default function AddTimelineEventScreen() {
 
   const isDischargeDay = useMemo(() => {
     if (!caseDischargeDate) return false;
-    return new Date().toISOString().split("T")[0] === caseDischargeDate;
+    return toIsoDateValue(new Date()) === caseDischargeDate;
   }, [caseDischargeDate]);
 
   const getSubtitle = () => {
@@ -281,14 +283,14 @@ export default function AddTimelineEventScreen() {
 
       if (isEditMode && editEventId) {
         // Preserve original time if date unchanged, otherwise use selected date
-        const existingDate = editingEvent?.createdAt?.split("T")[0];
+        const existingDate = normalizeDateOnlyValue(editingEvent?.createdAt);
         if (existingDate !== eventDate) {
           updates.createdAt = new Date(eventDate + "T12:00:00").toISOString();
         }
         await updateTimelineEvent(editEventId, updates);
       } else {
         // Build timestamp: use current time if today, otherwise noon on selected date
-        const today = new Date().toISOString().split("T")[0];
+        const today = toIsoDateValue(new Date());
         const createdAt =
           eventDate === today
             ? new Date().toISOString()
