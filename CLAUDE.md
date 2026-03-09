@@ -1029,7 +1029,7 @@ Touch targets: minimum 48px (`Spacing.touchTarget`)
 - **Expo slug:** surgical-logbook
 - **EAS Project ID:** 0bc1b91c-c240-4f4e-b030-31d16389cd1e
 - **Expo account:** @gladmat
-- **Version:** 2.0.0, buildNumber 3
+- **Version:** 2.0.0, buildNumber 4
 - **New Architecture:** enabled
 - **React Compiler:** enabled (experimental)
 
