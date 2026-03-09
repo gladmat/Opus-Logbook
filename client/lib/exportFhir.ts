@@ -23,6 +23,8 @@ import {
   EncounterClass,
   EPISODE_TYPE_LABELS,
 } from "@/types/episode";
+import { IMPLANT_CATALOGUE } from "@/data/implantCatalogue";
+import { JOINT_TYPE_LABELS } from "@/types/jointImplant";
 
 // ─── FHIR R4 Type Stubs ───────────────────────────────────────────────────
 
@@ -354,6 +356,51 @@ function buildProcedure(
   return procedure;
 }
 
+function buildDevice(proc: CaseProcedure): FhirResource | undefined {
+  const implant = proc.implantDetails;
+  if (!implant?.implantSystemId) return undefined;
+
+  const implantEntry = IMPLANT_CATALOGUE[implant.implantSystemId];
+  const device: FhirResource = {
+    resourceType: "Device",
+    id: `device-${proc.id}`,
+    type: {
+      text:
+        implantEntry?.displayName ??
+        implant.implantSystemOther ??
+        "Joint implant",
+    },
+    status: "active",
+  };
+
+  if (implantEntry?.manufacturer) {
+    device.manufacturer = implantEntry.manufacturer;
+  }
+  if (implant.udi) {
+    device.udiCarrier = [{ carrierHRF: implant.udi }];
+  }
+  if (implant.lotBatchNumber) {
+    device.lotNumber = implant.lotBatchNumber;
+  }
+  if (implant.catalogueNumber) {
+    device.modelNumber = implant.catalogueNumber;
+  }
+  if (implant.jointType) {
+    device.property = [
+      {
+        type: { text: "jointType" },
+        valueCode: [
+          {
+            text: JOINT_TYPE_LABELS[implant.jointType],
+          },
+        ],
+      },
+    ];
+  }
+
+  return device;
+}
+
 // ─── Bundle Builders ───────────────────────────────────────────────────────
 
 function caseToFhirBundle(c: Case): FhirBundle {
@@ -374,15 +421,27 @@ function caseToFhirBundle(c: Case): FhirBundle {
 
     for (const proc of group.procedures) {
       if (!proc.procedureName.trim()) continue;
-      entries.push({
-        resource: buildProcedure(
-          proc,
-          group,
-          c.patientIdentifier,
-          c.procedureDate,
-          c.ownerId,
-        ),
-      });
+      const procedure = buildProcedure(
+        proc,
+        group,
+        c.patientIdentifier,
+        c.procedureDate,
+        c.ownerId,
+      );
+
+      // Attach Device resource for implant tracking
+      const device = buildDevice(proc);
+      if (device) {
+        procedure.focalDevice = [
+          {
+            manipulated: { reference: `Device/${device.id}` },
+          },
+        ];
+        entries.push({ resource: procedure });
+        entries.push({ resource: device });
+      } else {
+        entries.push({ resource: procedure });
+      }
     }
   }
 

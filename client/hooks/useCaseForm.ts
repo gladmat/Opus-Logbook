@@ -722,7 +722,8 @@ function caseFormReducer(
       if (action.field === "stayType" && action.value === "day_case") {
         const today = new Date().toISOString().split("T")[0] ?? "";
         if (!next.admissionDate) next.admissionDate = today;
-        if (!next.dischargeDate) next.dischargeDate = next.admissionDate || today;
+        if (!next.dischargeDate)
+          next.dischargeDate = next.admissionDate || today;
       }
 
       // Day case: sync discharge to admission when admission date changes
@@ -745,7 +746,8 @@ function caseFormReducer(
 
       // Discharge date cannot be earlier than admission date
       if (
-        (action.field === "dischargeDate" || action.field === "admissionDate") &&
+        (action.field === "dischargeDate" ||
+          action.field === "admissionDate") &&
         next.admissionDate &&
         next.dischargeDate &&
         next.dischargeDate < next.admissionDate
@@ -898,6 +900,7 @@ export function buildDuplicateState(
       ...p,
       id: uuidv4(),
       clinicalDetails: p.clinicalDetails ? { ...p.clinicalDetails } : undefined,
+      implantDetails: p.implantDetails ? { ...p.implantDetails } : undefined,
     })),
     diagnosisClinicalDetails: g.diagnosisClinicalDetails
       ? { ...g.diagnosisClinicalDetails }
@@ -989,9 +992,9 @@ export function buildDuplicateState(
     outcome: "",
     mortalityClassification: "",
     discussedAtMDM: false,
-    episodeId: skinCancerFollowUpPrefill ? source.episodeId ?? "" : "",
+    episodeId: skinCancerFollowUpPrefill ? (source.episodeId ?? "") : "",
     episodeSequence: skinCancerFollowUpPrefill
-      ? source.episodeSequence ?? 0
+      ? (source.episodeSequence ?? 0)
       : 0,
     encounterClass: "",
     saving: false,
@@ -1072,7 +1075,9 @@ async function ensureSkinCancerEpisodeLink(savedCase: Case): Promise<Case> {
   }
 
   const episodeCases = await getCasesByEpisodeId(linkPlan.linkedEpisodeId);
-  const existingCount = episodeCases.filter((c) => c.id !== savedCase.id).length;
+  const existingCount = episodeCases.filter(
+    (c) => c.id !== savedCase.id,
+  ).length;
   const linkedCase: Case = {
     ...savedCase,
     episodeId: linkPlan.linkedEpisodeId,
@@ -1145,7 +1150,7 @@ export function useCaseForm({
           )
         : quickPrefill
           ? buildQuickPrefillState(specialty, quickPrefill, primaryFacility)
-        : getDefaultFormState(specialty, primaryFacility),
+          : getDefaultFormState(specialty, primaryFacility),
   );
 
   // ── Derived values ──────────────────────────────────────────────────────
@@ -1181,8 +1186,6 @@ export function useCaseForm({
       dispatch(setField("injuryDate", ""));
     }
   }, [showInjuryDate, state.injuryDate]);
-
-
 
   // Smart default for treatment context timing (Part 4C)
   useEffect(() => {

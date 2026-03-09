@@ -6,6 +6,7 @@ import type {
   FlapMonitoringProtocolId,
 } from "@/types/surgicalPreferences";
 import type { SkinCancerLesionAssessment } from "./skinCancer";
+import type { JointImplantDetails } from "./jointImplant";
 
 // Case status for active patient tracking
 export type CaseStatus = "active" | "discharged" | "incomplete";
@@ -1553,6 +1554,7 @@ export interface CaseProcedure {
   localCodeSystem?: string;
   surgeonRole: Role;
   clinicalDetails?: ClinicalDetails;
+  implantDetails?: JointImplantDetails;
   notes?: string;
 }
 

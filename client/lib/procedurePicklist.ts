@@ -23,6 +23,8 @@ export interface ProcedurePicklistEntry {
   hasFreeFlap?: boolean;
   /** Triggers the SLNB basin detail form in ProcedureClinicalDetails */
   hasSlnb?: boolean;
+  /** Triggers the JointImplantSection for arthroplasty implant tracking */
+  hasImplant?: boolean;
   sortOrder: number;
 }
 
@@ -1000,13 +1002,14 @@ const HAND_JOINT_PROCEDURES: ProcedurePicklistEntry[] = [
   },
   {
     id: "hand_joint_cmc1_prosthesis",
-    displayName: "CMC1 joint prosthesis (e.g., Ivory / Touch / Maïa)",
+    displayName: "CMC1 joint prosthesis (e.g., Ivory / Touch / Ma\u00EFa)",
     snomedCtCode: "74589006", // VERIFY
     snomedCtDisplay:
       "Arthroplasty of carpometacarpal joint of thumb (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Joint Procedures",
     tags: ["elective"],
+    hasImplant: true,
     sortOrder: 2,
   },
   {
@@ -1018,6 +1021,7 @@ const HAND_JOINT_PROCEDURES: ProcedurePicklistEntry[] = [
     specialties: ["hand_wrist"],
     subcategory: "Joint Procedures",
     tags: ["elective"],
+    hasImplant: true,
     sortOrder: 3,
   },
   {
@@ -1028,6 +1032,7 @@ const HAND_JOINT_PROCEDURES: ProcedurePicklistEntry[] = [
     specialties: ["hand_wrist"],
     subcategory: "Joint Procedures",
     tags: ["elective"],
+    hasImplant: true,
     sortOrder: 4,
   },
   {
@@ -1174,6 +1179,69 @@ const HAND_JOINT_PROCEDURES: ProcedurePicklistEntry[] = [
     subcategory: "Joint Procedures",
     tags: ["elective"],
     sortOrder: 18,
+  },
+  {
+    id: "hand_elective_vascularised_bone_graft",
+    displayName: "Vascularised bone graft (scaphoid / lunate)",
+    snomedCtCode: "833322005",
+    snomedCtDisplay:
+      "Pedicle vascularised bone graft to carpal bone (procedure)",
+    specialties: ["hand_wrist"],
+    subcategory: "Joint Procedures",
+    tags: ["elective", "microsurgery"],
+    sortOrder: 20,
+  },
+  {
+    id: "hand_elective_druj_reconstruction",
+    displayName: "DRUJ stabilisation / reconstruction",
+    snomedCtCode: "847281000168104",
+    snomedCtDisplay:
+      "Stabilisation of distal radioulnar joint (procedure)",
+    specialties: ["hand_wrist"],
+    subcategory: "Joint Procedures",
+    tags: ["elective"],
+    sortOrder: 21,
+  },
+  {
+    id: "hand_elective_sauve_kapandji",
+    displayName: "Sauvé-Kapandji procedure",
+    snomedCtCode: "442931000",
+    snomedCtDisplay:
+      "Arthrodesis of distal radioulnar joint and segmental resection of ulna with bone graft (procedure)",
+    specialties: ["hand_wrist"],
+    subcategory: "Joint Procedures",
+    tags: ["elective"],
+    sortOrder: 22,
+  },
+  {
+    id: "hand_elective_darrach",
+    displayName: "Darrach procedure (distal ulna excision)",
+    snomedCtCode: "89852008",
+    snomedCtDisplay: "Excision of distal ulna (procedure)",
+    specialties: ["hand_wrist"],
+    subcategory: "Joint Procedures",
+    tags: ["elective"],
+    sortOrder: 23,
+  },
+  {
+    id: "hand_elective_four_corner_fusion",
+    displayName: "Scaphoid excision + 4-corner fusion",
+    snomedCtCode: "1550661000168108",
+    snomedCtDisplay: "Four corner wrist fusion (procedure)",
+    specialties: ["hand_wrist"],
+    subcategory: "Joint Procedures",
+    tags: ["elective"],
+    sortOrder: 24,
+  },
+  {
+    id: "hand_elective_mucous_cyst_excision",
+    displayName: "Mucous cyst excision ± osteophyte removal",
+    snomedCtCode: "450804001",
+    snomedCtDisplay: "Excision of mucocele of finger (procedure)",
+    specialties: ["hand_wrist"],
+    subcategory: "Joint Procedures",
+    tags: ["elective"],
+    sortOrder: 25,
   },
 ];
 
@@ -1725,6 +1793,42 @@ const HAND_CONGENITAL: ProcedurePicklistEntry[] = [
   },
 ];
 
+const HAND_RHEUMATOID: ProcedurePicklistEntry[] = [
+  {
+    id: "hand_rheumatoid_mcp_synovectomy",
+    displayName: "MCP joint synovectomy (rheumatoid)",
+    snomedCtCode: "46896006",
+    snomedCtDisplay:
+      "Excision of synovium of joint of hand (procedure)",
+    specialties: ["hand_wrist"],
+    subcategory: "Rheumatoid Hand",
+    tags: ["elective"],
+    sortOrder: 1,
+  },
+  {
+    id: "hand_rheumatoid_wrist_synovectomy",
+    displayName: "Wrist / dorsal tenosynovectomy",
+    snomedCtCode: "74278002",
+    snomedCtDisplay:
+      "Synovectomy of tendon sheath of hand (procedure)",
+    specialties: ["hand_wrist"],
+    subcategory: "Rheumatoid Hand",
+    tags: ["elective"],
+    sortOrder: 2,
+  },
+  {
+    id: "hand_rheumatoid_nodule_excision",
+    displayName: "Rheumatoid nodule excision (hand / wrist)",
+    snomedCtCode: "1303629009",
+    snomedCtDisplay:
+      "Excision of subcutaneous rheumatoid nodule (procedure)",
+    specialties: ["hand_wrist"],
+    subcategory: "Rheumatoid Hand",
+    tags: ["elective"],
+    sortOrder: 3,
+  },
+];
+
 const HAND_OTHER: ProcedurePicklistEntry[] = [
   {
     id: "hand_other_ganglion",
@@ -1762,7 +1866,7 @@ const HAND_OTHER: ProcedurePicklistEntry[] = [
     snomedCtCode: "54936004", // VERIFY
     snomedCtDisplay: "Synovectomy of hand (procedure)",
     specialties: ["hand_wrist"],
-    subcategory: "Other Hand",
+    subcategory: "Rheumatoid Hand",
     tags: ["elective"],
     sortOrder: 4,
   },
@@ -1812,7 +1916,7 @@ const HAND_OTHER: ProcedurePicklistEntry[] = [
     snomedCtCode: "91602001", // VERIFY
     snomedCtDisplay: "Injection of steroid into joint (procedure)",
     specialties: ["hand_wrist"],
-    subcategory: "Other Hand",
+    subcategory: "Compression Neuropathies",
     tags: ["elective"],
     sortOrder: 9,
   },
@@ -1895,6 +1999,26 @@ const HAND_OTHER: ProcedurePicklistEntry[] = [
     subcategory: "Other Hand",
     tags: ["trauma"],
     sortOrder: 14,
+  },
+  {
+    id: "hand_elective_curettage_bone_graft",
+    displayName: "Curettage + bone graft (enchondroma)",
+    snomedCtCode: "81372006",
+    snomedCtDisplay: "Curettage of bone (procedure)",
+    specialties: ["hand_wrist"],
+    subcategory: "Tumours & Other",
+    tags: ["elective", "oncological"],
+    sortOrder: 18,
+  },
+  {
+    id: "hand_elective_glomus_excision",
+    displayName: "Glomus tumour excision",
+    snomedCtCode: "866911000168105",
+    snomedCtDisplay: "Excision of glomus tumour of finger (procedure)",
+    specialties: ["hand_wrist"],
+    subcategory: "Tumours & Other",
+    tags: ["elective", "oncological"],
+    sortOrder: 19,
   },
 ];
 
@@ -5392,6 +5516,7 @@ export const PROCEDURE_PICKLIST: ProcedurePicklistEntry[] = [
   ...HAND_DISLOCATION_MANAGEMENT,
   ...HAND_AMPUTATION_REPLANTATION,
   ...HAND_CONGENITAL,
+  ...HAND_RHEUMATOID,
   ...HAND_OTHER,
   // Head & Neck
   ...HEAD_NECK_SKIN_CANCER,

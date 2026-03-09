@@ -84,6 +84,15 @@ import {
   caseCanAddHistology,
   getFirstHistologyTarget,
 } from "@/lib/skinCancerConfig";
+import { IMPLANT_CATALOGUE } from "@/data/implantCatalogue";
+import {
+  APPROACH_LABELS as IMPLANT_APPROACH_LABELS,
+  FIXATION_LABELS as IMPLANT_FIXATION_LABELS,
+  BEARING_LABELS as IMPLANT_BEARING_LABELS,
+  JOINT_TYPE_LABELS,
+  INDICATION_LABELS as IMPLANT_INDICATION_LABELS,
+  REVISION_REASON_LABELS,
+} from "@/types/jointImplant";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 
 type RouteParams = RouteProp<RootStackParamList, "CaseDetail">;
@@ -917,6 +926,113 @@ export default function CaseDetailScreen() {
                                 unit="ml"
                               />
                             </>
+                          ) : null}
+                        </View>
+                      ) : null}
+                      {proc.implantDetails?.implantSystemId ? (
+                        <View
+                          style={[
+                            styles.procedureClinicalDetails,
+                            { borderTopColor: theme.border },
+                          ]}
+                        >
+                          <DetailRow
+                            label="Implant"
+                            value={
+                              IMPLANT_CATALOGUE[
+                                proc.implantDetails.implantSystemId
+                              ]?.displayName ??
+                              proc.implantDetails.implantSystemOther ??
+                              "Unknown"
+                            }
+                          />
+                          <DetailRow
+                            label="Joint"
+                            value={
+                              JOINT_TYPE_LABELS[proc.implantDetails.jointType]
+                            }
+                          />
+                          <DetailRow
+                            label="Indication"
+                            value={
+                              IMPLANT_INDICATION_LABELS[
+                                proc.implantDetails.indication
+                              ]
+                            }
+                          />
+                          {proc.implantDetails.sizeUnified ? (
+                            <DetailRow
+                              label="Size"
+                              value={proc.implantDetails.sizeUnified}
+                            />
+                          ) : proc.implantDetails.cupSize ? (
+                            <DetailRow
+                              label="Size"
+                              value={`Cup ${proc.implantDetails.cupSize} · Stem ${proc.implantDetails.stemSize ?? "—"}`}
+                            />
+                          ) : null}
+                          {proc.implantDetails.approach ? (
+                            <DetailRow
+                              label="Approach"
+                              value={
+                                IMPLANT_APPROACH_LABELS[
+                                  proc.implantDetails.approach
+                                ]
+                              }
+                            />
+                          ) : null}
+                          {proc.implantDetails.fixation ? (
+                            <DetailRow
+                              label="Fixation"
+                              value={
+                                IMPLANT_FIXATION_LABELS[
+                                  proc.implantDetails.fixation
+                                ]
+                              }
+                            />
+                          ) : null}
+                          {proc.implantDetails.bearingSurface ? (
+                            <DetailRow
+                              label="Bearing"
+                              value={
+                                IMPLANT_BEARING_LABELS[
+                                  proc.implantDetails.bearingSurface
+                                ]
+                              }
+                            />
+                          ) : null}
+                          {proc.implantDetails.procedureType === "revision" ? (
+                            <>
+                              <DetailRow label="Type" value="Revision" />
+                              {proc.implantDetails.revisionReason ? (
+                                <DetailRow
+                                  label="Revision Reason"
+                                  value={
+                                    REVISION_REASON_LABELS[
+                                      proc.implantDetails.revisionReason
+                                    ]
+                                  }
+                                />
+                              ) : null}
+                            </>
+                          ) : null}
+                          {proc.implantDetails.catalogueNumber ? (
+                            <DetailRow
+                              label="Catalogue #"
+                              value={proc.implantDetails.catalogueNumber}
+                            />
+                          ) : null}
+                          {proc.implantDetails.lotBatchNumber ? (
+                            <DetailRow
+                              label="Lot/Batch #"
+                              value={proc.implantDetails.lotBatchNumber}
+                            />
+                          ) : null}
+                          {proc.implantDetails.udi ? (
+                            <DetailRow
+                              label="UDI"
+                              value={proc.implantDetails.udi}
+                            />
                           ) : null}
                         </View>
                       ) : null}

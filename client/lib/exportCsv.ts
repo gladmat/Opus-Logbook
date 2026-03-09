@@ -7,6 +7,13 @@ import {
   HAND_ANTIBIOTIC_LABELS,
   countKanavelSigns,
 } from "@/types/handInfection";
+import { IMPLANT_CATALOGUE } from "@/data/implantCatalogue";
+import {
+  FIXATION_LABELS,
+  APPROACH_LABELS,
+  BEARING_LABELS,
+  JOINT_TYPE_LABELS,
+} from "@/types/jointImplant";
 
 export interface CsvExportOptions {
   includePatientId: boolean;
@@ -62,6 +69,12 @@ const CSV_HEADERS = [
   "hand_infection_antibiotic",
   "hand_infection_severity",
   "hand_infection_kanavel",
+  "implant_system",
+  "implant_size",
+  "implant_fixation",
+  "implant_approach",
+  "implant_bearing",
+  "implant_joint_type",
 ] as const;
 
 function escapeCsvField(
@@ -120,6 +133,15 @@ function caseToRow(c: Case, options: CsvExportOptions): string {
   // Hand infection data (from primary group)
   const handInfection = primaryGroup?.handInfectionDetails;
 
+  // Implant data (from first procedure with implant details)
+  const implantProc = (primaryGroup?.procedures ?? []).find(
+    (p) => p.implantDetails?.implantSystemId,
+  );
+  const implant = implantProc?.implantDetails;
+  const implantEntry = implant?.implantSystemId
+    ? IMPLANT_CATALOGUE[implant.implantSystemId]
+    : undefined;
+
   const values: (string | number | boolean | undefined | null)[] = [
     c.id,
     options.includePatientId ? c.patientIdentifier : undefined,
@@ -159,9 +181,7 @@ function caseToRow(c: Case, options: CsvExportOptions): string {
       ? HAND_INFECTION_TYPE_LABELS[handInfection.infectionType]
       : "",
     handInfection?.affectedDigits?.join("; ") ?? "",
-    handInfection?.organism
-      ? HAND_ORGANISM_LABELS[handInfection.organism]
-      : "",
+    handInfection?.organism ? HAND_ORGANISM_LABELS[handInfection.organism] : "",
     handInfection?.empiricalAntibiotic
       ? HAND_ANTIBIOTIC_LABELS[handInfection.empiricalAntibiotic]
       : "",
@@ -169,6 +189,15 @@ function caseToRow(c: Case, options: CsvExportOptions): string {
     handInfection?.kanavelSigns
       ? `${countKanavelSigns(handInfection.kanavelSigns)}/4`
       : "",
+    implantEntry?.displayName ?? implant?.implantSystemOther ?? "",
+    implant?.sizeUnified ??
+      (implant?.cupSize && implant?.stemSize
+        ? `Cup ${implant.cupSize} / Stem ${implant.stemSize}`
+        : ""),
+    implant?.fixation ? FIXATION_LABELS[implant.fixation] : "",
+    implant?.approach ? APPROACH_LABELS[implant.approach] : "",
+    implant?.bearingSurface ? BEARING_LABELS[implant.bearingSurface] : "",
+    implant?.jointType ? JOINT_TYPE_LABELS[implant.jointType] : "",
   ];
 
   return values.map(escapeCsvField).join(",");
