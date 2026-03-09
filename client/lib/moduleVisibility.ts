@@ -6,7 +6,10 @@
 import type { DiagnosisGroup } from "@/types/case";
 import type { InfectionOverlay } from "@/types/infection";
 import type { EpisodeType } from "@/types/episode";
-import { PICKLIST_TO_FLAP_TYPE } from "@/lib/procedurePicklist";
+import {
+  PICKLIST_TO_FLAP_TYPE,
+  PROCEDURE_PICKLIST,
+} from "@/lib/procedurePicklist";
 import { shouldActivateSkinCancerModuleForSnomed } from "@/lib/skinCancerConfig";
 
 export interface ModuleVisibility {
@@ -18,6 +21,8 @@ export interface ModuleVisibility {
   woundAssessment: boolean;
   /** Skin cancer assessment module — diagnosis-metadata driven */
   skinCancerAssessment: boolean;
+  /** Joint implant tracking for arthroplasty procedures */
+  implant: boolean;
 }
 
 /**
@@ -32,6 +37,19 @@ export function procedureHasFreeFlap(proc: {
     return true;
   }
   return proc.tags?.includes("free_flap") ?? false;
+}
+
+/**
+ * Check if a single procedure is a joint implant (arthroplasty) procedure.
+ */
+export function procedureHasImplant(proc: {
+  picklistEntryId?: string;
+}): boolean {
+  if (!proc.picklistEntryId) return false;
+  const entry = PROCEDURE_PICKLIST.find(
+    (p) => p.id === proc.picklistEntryId,
+  );
+  return entry?.hasImplant ?? false;
 }
 
 /**
@@ -123,6 +141,9 @@ export function getModuleVisibility(
       group.diagnosis?.displayName,
     ) || !!group.skinCancerAssessment;
 
+  // Joint Implant: any procedure with hasImplant flag (arthroplasty procedures)
+  const implant = procedures.some(procedureHasImplant);
+
   return {
     flapDetails,
     flapOutcome,
@@ -130,5 +151,6 @@ export function getModuleVisibility(
     infection,
     woundAssessment,
     skinCancerAssessment,
+    implant,
   };
 }

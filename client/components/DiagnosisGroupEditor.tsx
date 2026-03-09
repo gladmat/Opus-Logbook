@@ -58,6 +58,7 @@ import type { DiagnosisPicklistEntry } from "@/types/diagnosis";
 import {
   findPicklistEntry,
   PICKLIST_TO_FLAP_TYPE,
+  PROCEDURE_PICKLIST,
 } from "@/lib/procedurePicklist";
 import {
   DIAGNOSIS_TO_RECIPIENT_SITE,
@@ -109,6 +110,8 @@ import {
 } from "@/lib/skinCancerConfig";
 import { SkinCancerAssessment } from "@/components/skin-cancer/SkinCancerAssessment";
 import { AcuteHandAssessment } from "@/components/acute-hand/AcuteHandAssessment";
+import { HandElectivePicker } from "@/components/hand-elective/HandElectivePicker";
+import { JointImplantSection } from "@/components/joint-implant/JointImplantSection";
 import type { SkinCancerLesionAssessment, LesionPhoto } from "@/types/skinCancer";
 import { generateFlapOutcomeSummary } from "@/components/FlapOutcomeSection";
 import { withDefaultFlapOutcome } from "@/lib/flapOutcomeDefaults";
@@ -2157,6 +2160,8 @@ export function DiagnosisGroupEditor({
                         : undefined
                   }
                 />
+              ) : groupSpecialty === "hand_wrist" && handCaseType === "elective" ? (
+                <HandElectivePicker onSelect={handleDiagnosisSelect} />
               ) : (
                 <DiagnosisPicker
                   specialty={groupSpecialty}
@@ -2168,10 +2173,7 @@ export function DiagnosisGroupEditor({
                       : groupSpecialty === "hand_wrist" &&
                           handCaseType === "acute"
                         ? "acute"
-                        : groupSpecialty === "hand_wrist" &&
-                            handCaseType === "elective"
-                          ? "non-trauma"
-                          : undefined
+                        : undefined
                   }
                 />
               )
@@ -2725,6 +2727,32 @@ export function DiagnosisGroupEditor({
                             }
                           />
                         ))}
+
+                        {/* Joint implant section — auto-appears for arthroplasty procedures */}
+                        {(() => {
+                          const implantProc = procedures.find((p) => {
+                            const entry = p.picklistEntryId
+                              ? PROCEDURE_PICKLIST.find(
+                                  (pe) => pe.id === p.picklistEntryId,
+                                )
+                              : undefined;
+                            return entry?.hasImplant;
+                          });
+                          if (!implantProc?.picklistEntryId) return null;
+                          return (
+                            <JointImplantSection
+                              procedurePicklistId={implantProc.picklistEntryId}
+                              diagnosisId={selectedDiagnosis?.id}
+                              value={implantProc.implantDetails}
+                              onChange={(details) =>
+                                updateProcedure({
+                                  ...implantProc,
+                                  implantDetails: details,
+                                })
+                              }
+                            />
+                          );
+                        })()}
 
                         <Pressable
                           style={[styles.addButton, { borderColor: theme.link }]}

@@ -20,7 +20,8 @@ Key capabilities: multi-specialty case logging, SNOMED CT coded diagnoses and pr
 - **Phase 2 COMPLETE** — Charcoal+Amber theme, card-based diagnosis groups, section nav, summary view, reordering, specialty modules
 - **Acute Hand Category COMPLETE** — 3-way hand surgery branching (Trauma/Acute/Elective), 13 curated acute diagnoses with chip-based progressive disclosure, hand infection 4-layer inline assessment (type/digits/organism/antibiotic/severity/Kanavel), infection-to-overlay bridge, accept-mapping flow with coding details, dashboard attention surfacing for severe hand infections, CSV/FHIR export of hand infection data, 42 infection tests
 - **Phase 3 COMPLETE** — Inline validation, keyboard optimisation (react-native-keyboard-controller), haptic audit (244 occurrences across 57 files), duplicate case, testing (Vitest), favourites/recents (DiagnosisPicker + ProcedureSubcategoryPicker chips, recording on save)
-- **Phase 4 COMPLETE** — Data migration (schemaVersion 4, lazy on load), CSV export (32 columns), FHIR R4 export, PDF export, analytics dashboard (base stats + specialty-specific stats + entry time + suggestion acceptance + top dx-proc pairs)
+- **Phase 4 COMPLETE** — Data migration (schemaVersion 4, lazy on load), CSV export (38 columns), FHIR R4 export (with Device resources for implants), PDF export (with implant column), analytics dashboard (base stats + specialty-specific stats + entry time + suggestion acceptance + top dx-proc pairs)
+- **Elective Hand + Joint Implant COMPLETE** — 38 elective hand diagnoses across 7 subcategories (Dupuytren's, CTS/nerve, arthritis, tendon, ganglion/tumour, deformity, other), 11 new procedures (3 arthroplasty with `hasImplant` flag), 3 staging configs (Tubiana-Dupuytren, CTS-Severity, Quinnell-Trigger), HandElectivePicker chip-based UI, JointImplantSection with 3-layer progressive disclosure (26 implant catalogue entries for CMC1/PIP/MCP), full integration: implant data in CSV/FHIR/PDF exports, CaseDetailScreen display, duplicate case cloning, 89 tests (50 elective hand + 39 implant)
 - **Phase 5 IN PROGRESS** — Version 2.0.0, EAS config done (dev/preview/production profiles), pending manual regression + TestFlight submission
 
 ## Tech stack
@@ -99,13 +100,15 @@ client/
     NeedsAttentionListScreen.tsx  # Full-screen needs attention list with sections
     onboarding/                   # 9 files: Welcome, FeaturePager, Auth, EmailSignup,
                                   #   Categories, Training, Hospital, Privacy, FeatureSlide
-  components/                    # 120+ files across 11 subdirectories
+  components/                    # 120+ files across 13 subdirectories
     case-form/                   # 10 section components (see "Case form" below)
     dashboard/                   # 10 files — dashboard v2 components (see "Dashboard redesign")
     statistics/                  # 6 files — BarChart, HorizontalBarChart, StatCard, MilestoneTimeline, SpecialtyDeepDiveCard, EmptyStatistics
     hand-trauma/                 # 15 files — unified hand trauma assessment
     hand-infection/              # HandInfectionCard — 4-layer progressive disclosure
+    hand-elective/               # HandElectivePicker — chip-based elective hand diagnosis selector
     acute-hand/                  # AcuteHandAssessment + AcuteHandSummaryPanel
+    joint-implant/               # JointImplantSection — 3-layer progressive disclosure implant tracking
     skin-cancer/                 # 14 files — inline skin cancer assessment module
     detail-sheets/               # 7 bottom-sheet detail views
     brand/                       # OpusMark, OpusLogo, index
@@ -124,14 +127,14 @@ client/
     useActiveEpisodes.ts         # Query hook for active episodes
     useScreenOptions.ts          # Shared navigation header options
     useColorScheme.ts            # System colour scheme detection
-    useStatistics.ts             # Memoized statistics computation from cases (career, specialty, operational, milestones)
+    useStatistics.ts             # Memoized statistics computation from cases (career, free flap, specialty, operational, milestones)
     useAttentionItems.ts         # Shared selector wrapper for dashboard attention items
     usePracticePulse.ts          # Shared selector wrapper for thisMonth/thisWeek/completion metrics
   lib/
     storage.ts                   # AsyncStorage CRUD, encryption, drafts, case index
     dashboardSelectors.ts        # Shared dashboard selector layer (counts, filters, attention items, pulse, quick-log params)
-    procedurePicklist.ts         # 490 procedures across 12 specialties
-    statistics.ts                # Case analytics, filtering, calculations (1053 lines)
+    procedurePicklist.ts         # 500+ procedures across 12 specialties
+    statistics.ts                # Case analytics, filtering, calculations (specialty-scoped + free-flap analytics)
     statisticsHelpers.ts         # Career overview, monthly volume, operational insights, milestones, specialty insights (454 lines)
     handTraumaDiagnosis.ts       # MachineSummary + deterministic rendering (1570 lines)
     handTraumaMapping.ts         # Trauma → diagnosis-procedure pairs (1862 lines)
@@ -178,7 +181,7 @@ client/
       {specialty}Diagnoses.ts    # Per-specialty (aesthetics, bodyContouring, breast,
                                  #   burns, cleftCranio, general, handSurgery, headNeck,
                                  #   lymphoedema, orthoplastic, peripheralNerve, skinCancer)
-    __tests__/                   # 7 test files (handTrauma ×3, skinCancer ×3, handInfection)
+    __tests__/                   # 15 test files incl. hand trauma, skin cancer, dashboard, dateValues, operative media, statistics, hand elective, and joint implant
   types/
     case.ts                      # Case, DiagnosisGroup, Procedure, Timeline, Media (2322 lines)
     diagnosis.ts                 # Diagnosis picklist entry
@@ -187,6 +190,7 @@ client/
     handInfection.ts             # HandInfectionDetails, 4-layer assessment, label maps, bridge helpers
     wound.ts                     # Wound assessment, TIME, dressings (40+ products)
     skinCancer.ts                # Assessment, histology, pathology, SLNB, lesion photos (629 lines)
+    jointImplant.ts              # JointImplantDetails, implant catalogue entry, size configs, label maps
     skinCancerStagingConfigs.ts  # Breslow, Clark, TNM configs
     surgicalPreferences.ts       # Training programme, role defaults, protocols
   constants/
@@ -203,6 +207,7 @@ client/
     facilities.ts                # Master facility database
     flapFieldConfig.ts           # Flap-specific form configs (~100 typed fields)
     handInfectionClinicalData.ts # Kanavel signs, organism presets, antibiotic defaults
+    implantCatalogue.ts          # 26 joint implant entries (CMC1/PIP/MCP systems)
   navigation/
     RootStackNavigator.tsx       # Auth → Onboarding → Main, modal stack
     MainTabNavigator.tsx         # Bottom tabs: Dashboard + Statistics + Settings
@@ -467,6 +472,45 @@ Single inline `HandTraumaAssessment` inside `DiagnosisGroupEditor`.
 
 Tests: `client/lib/__tests__/handTraumaDiagnosis.test.ts`, `handTraumaMapping.test.ts`, `handTraumaUx.test.ts`.
 
+**Elective flow** (`HandElectivePicker`, `client/components/hand-elective/`):
+- 38 structured diagnoses across 7 subcategories: Dupuytren's Disease (7), CTS & Nerve Compression (7), Arthritis & Joint (8), Tendon Conditions (5), Ganglion & Tumour (4), Deformity & Reconstruction (4), Other Elective (3)
+- Chip-based subcategory picker with expandable diagnosis list per category
+- 11 new procedures including 3 arthroplasty procedures with `hasImplant: true` flag (CMC1, PIP, MCP arthroplasty)
+- 3 new staging configurations: Tubiana-Dupuytren (5 grades), CTS-Severity (3 levels), Quinnell-Trigger (5 grades)
+- Staging auto-activates when diagnosis has `stagingSnomedCode` matching server config
+- Integrates with `JointImplantSection` for arthroplasty procedures (see Joint Implant Tracking below)
+- Tests: `client/lib/__tests__/handElective.test.ts` (50 tests)
+
+### Joint implant tracking
+
+Registry-grade implant documentation for arthroplasty procedures, activated when any procedure has `hasImplant: true` in the picklist.
+
+**Architecture:**
+- `JointImplantSection` (`client/components/joint-implant/`) — 3-layer progressive disclosure
+- `implantCatalogue.ts` (`client/data/`) — 26 entries across 3 joint types (CMC1, PIP, MCP) from 5 manufacturers
+- `jointImplant.ts` (`client/types/`) — `JointImplantDetails` type, `ImplantCatalogueEntry`, `ImplantSizeConfig` union (`"unified"` | `"components"` | `"matched"`)
+
+**Activation chain:**
+1. Diagnosis selected with arthroplasty procedure suggestion → procedure has `hasImplant: true`
+2. `procedureHasImplant()` in `moduleVisibility.ts` detects the flag
+3. `DiagnosisGroupEditor` renders `JointImplantSection` below procedure list
+4. `PROCEDURE_TO_JOINT_TYPE` auto-derives joint type; `DIAGNOSIS_TO_INDICATION` auto-derives indication
+
+**3-layer progressive disclosure:**
+- Layer 0 (auto-derived): joint type + indication set from procedure/diagnosis context
+- Layer 1 (always visible): implant system picker, size picker (adapts to `ImplantSizeConfig` type), approach selector
+- Layer 2 (expandable): fixation, bearing surface, procedure type (primary/revision), revision fields, grommets toggle (Swanson MCP only), catalogue/lot/UDI tracking
+
+**Data integration:**
+- `implantDetails` stored on `CaseProcedure` alongside `clinicalDetails`
+- `buildDuplicateState()` clones `implantDetails` for case duplication
+- CSV export: 6 columns (implant_system, implant_size, implant_fixation, implant_approach, implant_bearing, implant_joint_type)
+- FHIR export: `Device` resource with manufacturer, UDI carrier, lot number, model number, linked to Procedure via `focalDevice`
+- PDF export: "Implant" column with compact summary (system · size · approach · fixation · bearing)
+- CaseDetailScreen: full implant detail rows (system, joint, indication, size, approach, fixation, bearing, revision info, catalogue/lot/UDI)
+
+Tests: `client/lib/__tests__/jointImplant.test.ts` (39 tests)
+
 ### Skin cancer assessment module
 
 Inline assessment flow (mirrors hand trauma pattern — no modal, no separate screen) with 14 components in `client/components/skin-cancer/`, config logic in `client/lib/skinCancerConfig.ts` (1058 lines), and types in `client/types/skinCancer.ts` (629 lines).
@@ -683,11 +727,11 @@ PIN and biometric unlock via `AppLockContext`. Setup in `SetupAppLockScreen`, un
 
 ### Staging configurations
 
-14 systems: Tubiana, Gustilo-Anderson, Breslow, CTS Severity, Quinnell, TNM, NPUAP, Burns Depth/TBSA, Baker Classification, Hurley Stage, ISL Stage, House-Brackmann Grade, Wagner Grade, Le Fort Classification.
+17 systems: Tubiana, Gustilo-Anderson, Breslow, CTS Severity, Quinnell, TNM, NPUAP, Burns Depth/TBSA, Baker Classification, Hurley Stage, ISL Stage, House-Brackmann Grade, Wagner Grade, Le Fort Classification, Tubiana-Dupuytren (elective hand), CTS-Severity (elective hand), Quinnell-Trigger (elective hand).
 
 ### Data export
 
-CSV (`exportCsv.ts`, 32 columns with primary dx/proc dedicated columns, semicolon-delimited secondary), FHIR R4 (`exportFhir.ts`, full Bundle with Condition, Procedure, Encounter resources), and PDF (`exportPdf.ts`, HTML-to-PDF via expo-print, shared via expo-sharing). Export orchestration in `export.ts`. Configurable via `PersonalisationScreen`.
+CSV (`exportCsv.ts`, 38 columns with primary dx/proc dedicated columns, semicolon-delimited secondary, 6 hand infection columns, 6 implant columns), FHIR R4 (`exportFhir.ts`, full Bundle with Condition, Procedure, Encounter, Device resources), and PDF (`exportPdf.ts`, HTML-to-PDF via expo-print with implant column, shared via expo-sharing). Export orchestration in `export.ts`. Configurable via `PersonalisationScreen`.
 
 ### Procedure outcomes
 
@@ -712,22 +756,28 @@ Dedicated bottom tab with 3-tier analytics. Middle tab between Dashboard and Set
 #### Architecture
 
 - **Screen:** `StatisticsScreen.tsx` — single scrollable screen with collapsible specialty sections
-- **Hook:** `useStatistics.ts` — loads all cases via `useFocusEffect`, computes all metrics via `useMemo`. Returns career overview, monthly volume, base stats, per-specialty stats, operational insights, milestones, entry time stats, and specialty-specific insights (skin cancer, burns, hand case types)
+- **Hook:** `useStatistics.ts` — loads all cases via `useFocusEffect`, computes all metrics via `useMemo`. Returns career overview, monthly volume, base stats, dedicated `freeFlapStats`, per-specialty stats, operational insights, milestones, entry time stats, and specialty-specific insights (skin cancer, burns, hand case types)
 - **Helpers:** `statisticsHelpers.ts` (454 lines) — pure compute functions: `computeCareerOverview`, `computeMonthlyVolume`, `computeOperationalInsights`, `computeMilestones`, `computeSkinCancerInsights`, `computeBurnsInsights`, `computeHandCaseTypeInsights`
-- **Base stats:** `statistics.ts` (1053 lines) — `calculateBaseStatistics`, `calculateStatistics` (per-specialty dispatcher), `calculateEntryTimeStats`, `calculateTopDiagnosisProcedurePairs`
+- **Base stats:** `statistics.ts` — `calculateBaseStatistics`, `calculateFreeFlapStatistics`, `calculateStatistics` (per-specialty dispatcher), `calculateEntryTimeStats`, `calculateTopDiagnosisProcedurePairs`, shared filter helpers
+
+#### Statistics invariants
+
+- **Date-only case values must use `parseIsoDateValue()`.** Statistics code should never parse `YYYY-MM-DD` with `new Date(...)`; use `client/lib/dateValues.ts` so month buckets, milestone dates, and rolling filters stay timezone-safe.
+- **Specialty card inclusion is case-level, but specialty metrics are diagnosis-group scoped.** A mixed case can appear in multiple specialty cards via `getCaseSpecialties(c)`, but each card must derive its internal metrics only from diagnosis groups/procedures matching that specialty.
+- **Free flap analytics are a dedicated aggregate, not a specialty proxy.** `freeFlapStats` comes from `calculateFreeFlapStatistics(cases)` and only includes cases with analytics-bearing free flap data: tagged free-flap procedures with flap details, or legacy case-level `clinicalDetails.flapType`.
 
 #### 3-tier content
 
 **Tier 1 — Career Overview:** Total cases, active months, cases/month rate, specialties used. `StatCard` grid with hero metric (total cases or specialty-specific metric).
 
-**Tier 2 — Specialty Deep-Dives:** `SpecialtyDeepDiveCard` per specialty used, collapsible with animated `LayoutAnimation`. Each shows specialty-specific content:
+**Tier 2 — Specialty Deep-Dives:** Dedicated free-flap card first when `freeFlapStats` exists, then `SpecialtyDeepDiveCard` per specialty used, collapsible with animated `LayoutAnimation`. Each shows specialty-specific content:
 - **Hand surgery:** Trauma/acute/elective split, nerve + tendon repair counts, top procedures as `HorizontalBarChart`
 - **Skin cancer:** Pathology category distribution (BCC/SCC/melanoma/etc) as `HorizontalBarChart`, histology completion rate
 - **Burns:** Acute/reconstruction split, grafting rate
 - **Orthoplastic/Breast/Body contouring:** Specialty-specific stats from `calculateStatistics`
 - **Other specialties:** Base statistics (complication rate, facility breakdown)
 
-**Tier 3 — Operational Insights:** Monthly volume `BarChart` (animated SVG bars, short labels for >6 bars), avg case duration, data completeness %, complication rate, top 10 diagnosis-procedure pairs (shows both diagnosis and procedure name), `MilestoneTimeline` (ordinal labels, up to 8 visible).
+**Tier 3 — Operational Insights:** Monthly volume `BarChart` (animated SVG bars, short labels for >6 bars), avg case duration, data completeness %, complication rate, "Your Top 10" procedure list, `MilestoneTimeline` (ordinal labels, 5 visible before "See all").
 
 #### Chart components (`client/components/statistics/`)
 
@@ -1025,7 +1075,7 @@ Configured in both `tsconfig.json` and `babel.config.js` (module-resolver plugin
 
 ## Testing
 
-- **Framework:** Vitest 4.0.18, **227 tests** across 13 files
-- **Client tests:** `client/lib/__tests__/` — handTraumaDiagnosis, handTraumaMapping, handTraumaUx, skinCancerConfig (87 tests), skinCancerPhase4 (11 tests), skinCancerPhase5 (18 tests), dashboardSelectors (7 tests), handInfection (42 tests), dateValues (3 tests), operativeMedia (2 tests), caseDraftPersistence (1 test)
-- **Server tests:** `server/__tests__/` — auth, validation
+- **Framework:** Vitest 4.0.18, **316 tests** across 15 files
+- **Client tests:** `client/lib/__tests__/` — handTraumaDiagnosis, handTraumaMapping, handTraumaUx, skinCancerConfig (87 tests), skinCancerPhase4 (11 tests), skinCancerPhase5 (18 tests), dashboardSelectors (7 tests), handInfection (42 tests), handElective (50 tests), jointImplant (39 tests), dateValues (3 tests), operativeMedia (2 tests), caseDraftPersistence (1 test)
+- **Server tests:** `server/__tests__/` — auth (17 tests), validation (7 tests)
 - **Run:** `npm run test` (once) or `npm run test:watch` (watch mode)

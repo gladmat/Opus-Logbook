@@ -698,6 +698,127 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
       },
     ],
   },
+
+  // CMC1 Osteoarthritis (Eaton-Littler Classification)
+  {
+    snomedCtCodes: [
+      "202363001", // Osteoarthritis of first carpometacarpal joint
+    ],
+    keywords: ["CMC1", "thumb base", "Eaton", "trapeziometacarpal"],
+    stagingSystems: [
+      {
+        name: "Eaton-Littler Stage",
+        description: "Radiographic staging of thumb CMC osteoarthritis",
+        options: [
+          {
+            value: "1",
+            label: "Stage I",
+            description:
+              "Normal joint contour, widened joint space (synovitis)",
+          },
+          {
+            value: "2",
+            label: "Stage II",
+            description:
+              "Joint space narrowing, osteophytes <2mm, slight subluxation",
+          },
+          {
+            value: "3",
+            label: "Stage III",
+            description:
+              "Marked narrowing, osteophytes >2mm, subluxation, sclerosis",
+          },
+          {
+            value: "4",
+            label: "Stage IV",
+            description: "Stage III + STT joint involvement",
+          },
+        ],
+      },
+    ],
+  },
+
+  // Scaphoid Non-Union (Herbert Classification)
+  {
+    snomedCtCodes: [
+      "263225007", // Non-union of fracture of scaphoid
+    ],
+    keywords: ["scaphoid non-union", "scaphoid pseudarthrosis", "Herbert"],
+    stagingSystems: [
+      {
+        name: "Herbert Classification",
+        description: "Classification of scaphoid non-union",
+        options: [
+          {
+            value: "D1",
+            label: "D1 — Fibrous union",
+            description: "Stable fibrous non-union",
+          },
+          {
+            value: "D2",
+            label: "D2 — Pseudarthrosis",
+            description: "Unstable non-union, no sclerosis",
+          },
+          {
+            value: "D3",
+            label: "D3 — Sclerotic",
+            description: "Sclerotic non-union",
+          },
+          {
+            value: "D4",
+            label: "D4 — AVN",
+            description: "Avascular necrosis of proximal pole",
+          },
+          {
+            value: "D5",
+            label: "D5 — SNAC",
+            description: "Non-union with secondary arthritis",
+          },
+        ],
+      },
+    ],
+  },
+
+  // Kienböck's Disease (Lichtman Classification)
+  {
+    snomedCtCodes: [
+      "30886002", // Kienbock disease
+    ],
+    keywords: ["Kienbock", "Lichtman", "lunate AVN", "lunate necrosis"],
+    stagingSystems: [
+      {
+        name: "Lichtman Stage",
+        description: "Staging of Kienböck's disease (lunate AVN)",
+        options: [
+          {
+            value: "1",
+            label: "Stage I",
+            description: "Normal X-ray, MRI shows AVN",
+          },
+          {
+            value: "2",
+            label: "Stage II",
+            description: "Lunate sclerosis, no collapse",
+          },
+          {
+            value: "3a",
+            label: "Stage IIIA",
+            description: "Lunate collapse, no carpal malalignment",
+          },
+          {
+            value: "3b",
+            label: "Stage IIIB",
+            description: "Lunate collapse + fixed scaphoid rotation",
+          },
+          {
+            value: "4",
+            label: "Stage IV",
+            description: "Generalised degenerative changes",
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 /**

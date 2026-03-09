@@ -1,6 +1,12 @@
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { Case, SPECIALTY_LABELS } from "@/types/case";
+import { IMPLANT_CATALOGUE } from "@/data/implantCatalogue";
+import {
+  APPROACH_LABELS,
+  FIXATION_LABELS,
+  BEARING_LABELS,
+} from "@/types/jointImplant";
 
 export interface PdfExportOptions {
   includePatientId?: boolean;
@@ -38,6 +44,7 @@ function buildHtml(cases: Case[], options: PdfExportOptions): string {
     "Specialty",
     "Primary Diagnosis",
     "Primary Procedure",
+    "Implant",
     "Complications",
     "Outcome",
   ];
@@ -51,6 +58,29 @@ function buildHtml(cases: Case[], options: PdfExportOptions): string {
           .join(", ")
       : "None";
 
+    // Implant summary for procedure with implant details
+    const implantProc = (primary?.procedures ?? []).find(
+      (p) => p.implantDetails?.implantSystemId,
+    );
+    const implant = implantProc?.implantDetails;
+    const implantEntry = implant?.implantSystemId
+      ? IMPLANT_CATALOGUE[implant.implantSystemId]
+      : undefined;
+    let implantSummary = "";
+    if (implant?.implantSystemId) {
+      const parts: string[] = [
+        implantEntry?.displayName ?? implant.implantSystemOther ?? "",
+      ];
+      if (implant.sizeUnified) parts.push(`Size ${implant.sizeUnified}`);
+      else if (implant.cupSize && implant.stemSize)
+        parts.push(`Cup ${implant.cupSize} / Stem ${implant.stemSize}`);
+      if (implant.approach) parts.push(APPROACH_LABELS[implant.approach]);
+      if (implant.fixation) parts.push(FIXATION_LABELS[implant.fixation]);
+      if (implant.bearingSurface)
+        parts.push(BEARING_LABELS[implant.bearingSurface]);
+      implantSummary = parts.filter(Boolean).join(" · ");
+    }
+
     const cells = [
       String(idx + 1),
       ...(options.includePatientId
@@ -61,6 +91,7 @@ function buildHtml(cases: Case[], options: PdfExportOptions): string {
       escapeHtml(SPECIALTY_LABELS[c.specialty] || c.specialty),
       escapeHtml(primary?.diagnosis?.displayName || ""),
       escapeHtml(primaryProc?.procedureName || ""),
+      escapeHtml(implantSummary),
       escapeHtml(complications),
       escapeHtml(c.outcome || ""),
     ];
