@@ -18,6 +18,7 @@ import {
   migratePinIfNeeded,
 } from "@/lib/appLockStorage";
 import { isFaceIdUnsupportedInCurrentRuntime } from "@/lib/biometrics";
+import { clearDecryptedCache } from "@/components/EncryptedImage";
 
 interface AppLockContextType {
   isLocked: boolean;
@@ -70,9 +71,17 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
   // Listen to AppState changes
   useEffect(() => {
     const handleAppStateChange = async (nextState: AppStateStatus) => {
+      if (nextState === "background" || nextState === "inactive") {
+        // Always clear decrypted media from temp files and memory,
+        // regardless of app lock configuration — clinical photos should
+        // never persist as plaintext in the cache directory.
+        clearDecryptedCache();
+      }
+
       if (!isAppLockConfigured) return;
 
       if (nextState === "background" || nextState === "inactive") {
+
         // Only record background time when the app is actually unlocked.
         // While locked, the biometric prompt causes inactive→active transitions
         // that would otherwise create an immediate re-lock loop.
