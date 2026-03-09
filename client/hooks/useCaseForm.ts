@@ -533,7 +533,13 @@ export function draftToFormState(
 
   if (draft.patientIdentifier != null)
     result.patientIdentifier = draft.patientIdentifier;
-  if (draft.procedureDate != null) result.procedureDate = draft.procedureDate;
+  if (draft.procedureDate != null) {
+    const parsedParts = draft.procedureDate.split("-").map(Number);
+    const draftYear = parsedParts[0];
+    if (draftYear && draftYear >= 2000 && draftYear <= 2100) {
+      result.procedureDate = draft.procedureDate;
+    }
+  }
   result.facility = draft.facility ?? primaryFacility;
   if (draft.procedureType != null) result.procedureType = draft.procedureType;
   if (draft.asaScore != null) result.asaScore = String(draft.asaScore);

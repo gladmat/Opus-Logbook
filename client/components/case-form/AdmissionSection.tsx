@@ -151,6 +151,7 @@ export const AdmissionSection = React.memo(function AdmissionSection() {
             label="Admission Date"
             value={state.admissionDate}
             onChange={(v: string) => dispatch(setField("admissionDate", v))}
+            maximumDate={new Date()}
           />
         </View>
         <View style={styles.halfField}>
@@ -176,6 +177,7 @@ export const AdmissionSection = React.memo(function AdmissionSection() {
               value={state.injuryDate}
               onChange={(v: string) => dispatch(setField("injuryDate", v))}
               placeholder="Select date..."
+              maximumDate={new Date()}
             />
           </View>
         </View>

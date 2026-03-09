@@ -3,9 +3,10 @@ import { getCases } from "./storage";
 import { getEpisodes } from "./episodeStorage";
 import { exportCasesAsCsv } from "./exportCsv";
 import { exportCasesAsFhir } from "./exportFhir";
+import { exportCasesAsPdf } from "./exportPdf";
 import { TreatmentEpisode } from "@/types/episode";
 
-export type ExportFormat = "json" | "csv" | "fhir";
+export type ExportFormat = "json" | "csv" | "fhir" | "pdf";
 
 export interface ExportOptions {
   format: ExportFormat;
@@ -16,6 +17,7 @@ export const EXPORT_FORMAT_LABELS: Record<ExportFormat, string> = {
   json: "JSON (Raw data)",
   csv: "CSV (Spreadsheet)",
   fhir: "FHIR R4 (Interoperability)",
+  pdf: "PDF (Document)",
 };
 
 export async function exportCases(options: ExportOptions): Promise<void> {
@@ -32,6 +34,13 @@ export async function exportCases(options: ExportOptions): Promise<void> {
     // Episodes are optional — export proceeds without them
   }
   const episodeMap = new Map(episodes.map((e) => [e.id, e]));
+
+  if (options.format === "pdf") {
+    await exportCasesAsPdf(cases, {
+      includePatientId: options.includePatientId ?? true,
+    });
+    return;
+  }
 
   let content: string;
   let title: string;
