@@ -130,6 +130,7 @@ client/
     useStatistics.ts             # Memoized statistics computation from cases (career, free flap, specialty, operational, milestones)
     useAttentionItems.ts         # Shared selector wrapper for dashboard attention items
     usePracticePulse.ts          # Shared selector wrapper for thisMonth/thisWeek/completion metrics
+    useDecryptedImage.ts         # Decrypt-on-demand hook for v2 encrypted media (file URI cache)
   lib/
     storage.ts                   # AsyncStorage CRUD, encryption, drafts, case index
     dashboardSelectors.ts        # Shared dashboard selector layer (counts, filters, attention items, pulse, quick-log params)
@@ -140,7 +141,13 @@ client/
     handTraumaMapping.ts         # Trauma → diagnosis-procedure pairs (1862 lines)
     handTraumaUx.ts              # Hand trauma UX helpers
     aoToDiagnosisMapping.ts      # AO code → diagnosis mapping
-    encryption.ts                # XChaCha20-Poly1305 AEAD, envelope format
+    encryption.ts                # XChaCha20-Poly1305 AEAD, envelope format, master key export
+    mediaEncryption.ts           # AES-256-GCM primitives, per-image DEK, DEK wrap/unwrap
+    mediaFileStorage.ts          # File-system CRUD for v2 encrypted media (opus-media:{uuid})
+    mediaDecryptCache.ts         # LRU temp-file cache for decrypted v2 media
+    thumbnailGenerator.ts        # Thumbnail byte extraction at capture time (300px/0.6)
+    mediaMigration.ts            # Lazy v1→v2 media migration with deferred cleanup
+    binaryUtils.ts               # Shared base64↔Uint8Array conversion utilities
     e2ee.ts                      # Device key pair generation, X25519
     auth.ts                      # JWT token management, device key registration
     query-client.ts              # TanStack React Query + API base URL
@@ -149,7 +156,7 @@ client/
     snomedCodeMigration.ts       # Old→new SNOMED code mapping
     migration.ts                 # Auto-migrate old case formats on load
     migrationValidator.ts        # Migration validation
-    mediaStorage.ts              # Encrypted media AsyncStorage CRUD + URI-based import + thumbnails
+    mediaStorage.ts              # Encrypted media routing (v1 AsyncStorage + v2 file-based) + URI-based import
     dateValues.ts                # Safe YYYY-MM-DD parsing/formatting (local-noon semantics)
     caseDraftFields.ts           # Draft procedure-date/media restore helpers
     operativeMedia.ts            # MediaAttachment <> OperativeMediaItem mapping helpers
@@ -181,7 +188,7 @@ client/
       {specialty}Diagnoses.ts    # Per-specialty (aesthetics, bodyContouring, breast,
                                  #   burns, cleftCranio, general, handSurgery, headNeck,
                                  #   lymphoedema, orthoplastic, peripheralNerve, skinCancer)
-    __tests__/                   # 15 test files incl. hand trauma, skin cancer, dashboard, dateValues, operative media, statistics, hand elective, and joint implant
+    __tests__/                   # 16 test files incl. hand trauma, skin cancer, dashboard, dateValues, operative media, statistics, hand elective, joint implant, and mediaEncryption
   types/
     case.ts                      # Case, DiagnosisGroup, Procedure, Timeline, Media (2322 lines)
     diagnosis.ts                 # Diagnosis picklist entry
@@ -997,14 +1004,36 @@ Touch targets: minimum 48px (`Spacing.touchTarget`)
 - Public keys registered with server, revocable
 - Case key wrapping infrastructure in place
 
-### Encrypted media
-- Photos encrypted with XChaCha20-Poly1305, stored in AsyncStorage (`@surgical_logbook_media_[uuid]`)
-- `encrypted-media:[uuid]` URI scheme; `EncryptedImage` component handles async decryption with in-memory cache
-- URI-based import path: picker returns file URIs, `mediaStorage.ts` converts/encrypts them on save/import instead of requesting base64 up front
-- Thumbnail generation/backfill stored separately (`@surgical_logbook_thumb_[uuid]`) and used for dashboard/case/media strip previews
+### Encrypted media (v2 — file-based AES-256-GCM)
+
+**Architecture:** Per-image DEK model with file-system storage. Each photo gets a random 256-bit DEK, encrypted via AES-256-GCM (`@noble/ciphers`). The DEK is wrapped with the master key (AES-256-GCM) and stored in plaintext `meta.json`. Cipher provider isolated in `mediaEncryption.ts` for future swap to native `react-native-aes-gcm-crypto` if profiling warrants it.
+
+**Storage layout:**
+```
+{Paths.document}/opus-media/{uuid}/
+  image.enc    — AES-256-GCM encrypted full image (nonce||ciphertext||tag)
+  thumb.enc    — AES-256-GCM encrypted 300px JPEG thumbnail
+  meta.json    — { version:2, mediaId, wrappedDEK (hex), mimeType, width, height, hasThumb, createdAt }
+```
+
+**URI scheme:** `opus-media:{uuid}` (v2) — routed by `mediaStorage.ts`. Legacy `encrypted-media:{uuid}` (v1) still supported with lazy migration on access.
+
+**Display pipeline:** `EncryptedImage` → v2 branch uses `useDecryptedImage` hook → decrypts to temp file in `Paths.cache` → renders via `expo-image` with `file:///` URI. LRU temp-file cache: 80 thumbnails (~2MB), 10 full images (~50MB). Max 2 concurrent decryptions.
+
+**Security lifecycle:**
+- DEK zeroed after use (`dek.fill(0)`)
+- Decrypted temp files cleared on every app background transition (regardless of app lock config)
+- Thumbnails encrypted (v1 stored unencrypted — v2 fixes this gap)
+- No plaintext on persistent storage — only in `Paths.cache` (OS-reclaimable)
+
+**v1 → v2 migration:** Lazy on-access via `mediaMigration.ts`. When a v1 URI is loaded, transparently re-encrypts to v2 file format. V1 AsyncStorage blobs deferred for explicit cleanup via `cleanupMigratedV1Data()`. Concurrent migrations coalesced per-ID.
+
+**Capture pipeline:** ImagePicker returns file URIs → `thumbnailGenerator.ts` extracts image bytes + generates 300px/0.6 thumbnail → `saveMediaV2()` encrypts both with per-image DEK → writes `image.enc` + `thumb.enc` + `meta.json`. Base64 is transient (decoded immediately, never stored).
+
+**Operational:**
 - `MediaManagementScreen` stages edits locally, prompts Save/Discard on dirty exit, deletes removed media on save, and cleans up newly imported media on discard
 - User-facing batch media cap standardised to 15 across case/discharge/media-management surfaces
-- Cleanup on case/photo delete
+- Cleanup on case/photo delete (v2 deletes directory, v1 deletes AsyncStorage keys)
 
 ### Server security
 - Security headers: HSTS (1yr), CSP, X-Frame-Options DENY, strict Referrer-Policy
@@ -1076,12 +1105,12 @@ Configured in both `tsconfig.json` and `babel.config.js` (module-resolver plugin
 - **Split context pattern** — state and dispatch contexts separated for memo optimization
 - **Unconditional field setters** (`?? ""`) to ensure cleared fields persist
 - **Header save ref pattern** — `handleSaveRef.current` always latest closure
-- **Encrypted URIs** — `encrypted-media:[uuid]` scheme for media references
+- **Encrypted URIs** — `opus-media:{uuid}` (v2 file-based) and `encrypted-media:{uuid}` (v1 legacy) schemes for media references
 - **Draft auto-save** — debounced + AppState background flush
 
 ## Testing
 
-- **Framework:** Vitest 4.0.18, **316 tests** across 15 files
-- **Client tests:** `client/lib/__tests__/` — handTraumaDiagnosis, handTraumaMapping, handTraumaUx, skinCancerConfig (87 tests), skinCancerPhase4 (11 tests), skinCancerPhase5 (18 tests), dashboardSelectors (7 tests), handInfection (42 tests), handElective (50 tests), jointImplant (39 tests), dateValues (3 tests), operativeMedia (2 tests), caseDraftPersistence (1 test)
+- **Framework:** Vitest 4.0.18, **342 tests** across 18 files
+- **Client tests:** `client/lib/__tests__/` — handTraumaDiagnosis, handTraumaMapping, handTraumaUx, skinCancerConfig (87 tests), skinCancerPhase4 (11 tests), skinCancerPhase5 (18 tests), dashboardSelectors (7 tests), handInfection (42 tests), handElective (50 tests), jointImplant (39 tests), mediaEncryption (16 tests), statisticsHelpers (3 tests), statistics (7 tests), dateValues (3 tests), operativeMedia (2 tests), caseDraftPersistence (1 test)
 - **Server tests:** `server/__tests__/` — auth (17 tests), validation (7 tests)
 - **Run:** `npm run test` (once) or `npm run test:watch` (watch mode)

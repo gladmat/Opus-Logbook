@@ -176,3 +176,8 @@ export async function decryptData(encryptedData: string): Promise<string> {
 export async function isEncrypted(data: string): Promise<boolean> {
   return data.startsWith(`${ENVELOPE_PREFIX}:`);
 }
+
+/** Expose the cached master key bytes for media DEK wrapping */
+export async function getMasterKeyBytes(): Promise<Uint8Array> {
+  return getKeyBytes();
+}
