@@ -4,11 +4,13 @@ import { Feather } from "@/components/FeatherIcon";
 import { BlurView } from "expo-blur";
 import { Platform, StyleSheet } from "react-native";
 import DashboardStackNavigator from "@/navigation/DashboardStackNavigator";
+import StatisticsStackNavigator from "@/navigation/StatisticsStackNavigator";
 import SettingsStackNavigator from "@/navigation/SettingsStackNavigator";
 import { useTheme } from "@/hooks/useTheme";
 
 export type MainTabParamList = {
   DashboardTab: undefined;
+  StatisticsTab: undefined;
   SettingsTab: undefined;
 };
 
@@ -48,6 +50,16 @@ export default function MainTabNavigator() {
           title: "Cases",
           tabBarIcon: ({ color, size }) => (
             <Feather name="folder" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="StatisticsTab"
+        component={StatisticsStackNavigator}
+        options={{
+          title: "Statistics",
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="bar-chart-2" size={size} color={color} />
           ),
         }}
       />
