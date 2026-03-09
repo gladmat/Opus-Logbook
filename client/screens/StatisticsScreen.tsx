@@ -1,10 +1,5 @@
 import React, { useMemo } from "react";
-import {
-  View,
-  ScrollView,
-  StyleSheet,
-  ActivityIndicator,
-} from "react-native";
+import { View, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { ThemedText } from "@/components/ThemedText";
@@ -110,9 +105,21 @@ function HandContent({
     <>
       {caseTypeInsights && (
         <View style={styles.metricRow}>
-          <StatCard label="Trauma" value={caseTypeInsights.traumaCount} size="small" />
-          <StatCard label="Acute" value={caseTypeInsights.acuteCount} size="small" />
-          <StatCard label="Elective" value={caseTypeInsights.electiveCount} size="small" />
+          <StatCard
+            label="Trauma"
+            value={caseTypeInsights.traumaCount}
+            size="small"
+          />
+          <StatCard
+            label="Acute"
+            value={caseTypeInsights.acuteCount}
+            size="small"
+          />
+          <StatCard
+            label="Elective"
+            value={caseTypeInsights.electiveCount}
+            size="small"
+          />
         </View>
       )}
       {stats.casesByProcedureType.length > 0 && (
@@ -237,7 +244,10 @@ function GenericSpecialtyContent({ stats }: { stats: BaseStatistics }) {
 
 // ─── Role colour mapping ─────────────────────────────────────────────────
 
-const ROLE_COLOR_MAP: Record<string, (theme: ReturnType<typeof useTheme>["theme"]) => string> = {
+const ROLE_COLOR_MAP: Record<
+  string,
+  (theme: ReturnType<typeof useTheme>["theme"]) => string
+> = {
   PS: (t) => t.rolePrimary,
   PP: (t) => t.rolePrimary,
   SS: (t) => t.roleSupervising,
@@ -259,6 +269,7 @@ export default function StatisticsScreen() {
     totalCases,
     careerOverview,
     monthlyVolume,
+    freeFlapStats,
     specialtyStats,
     operationalInsights,
     milestones,
@@ -282,7 +293,7 @@ export default function StatisticsScreen() {
       value: s.count,
       color: theme.specialty[s.specialty as keyof typeof theme.specialty],
     }));
-  }, [careerOverview, theme.specialty]);
+  }, [careerOverview, theme]);
 
   // Facility data
   const facilityBarData = useMemo(() => {
@@ -322,9 +333,6 @@ export default function StatisticsScreen() {
     if (specialty === "burns" && burnsInsights) {
       return <BurnsContent insights={burnsInsights} />;
     }
-    if ("flapSurvivalRate" in stats) {
-      return <FreeFlapContent stats={stats as FreeFlapStatistics} />;
-    }
     if ("nerveRepairCount" in stats) {
       return (
         <HandContent
@@ -359,12 +367,6 @@ export default function StatisticsScreen() {
         value: formatPercentage(burnsInsights.graftingRate),
       };
     }
-    if ("flapSurvivalRate" in stats) {
-      return {
-        label: "Flap survival",
-        value: formatPercentage(stats.flapSurvivalRate),
-      };
-    }
     if ("nerveRepairCount" in stats) {
       const hand = stats as HandSurgeryStatistics;
       const topProc = hand.casesByProcedureType[0];
@@ -388,10 +390,7 @@ export default function StatisticsScreen() {
   if (isLoading) {
     return (
       <View
-        style={[
-          styles.centered,
-          { backgroundColor: theme.backgroundRoot },
-        ]}
+        style={[styles.centered, { backgroundColor: theme.backgroundRoot }]}
       >
         <ActivityIndicator color={theme.accent} />
       </View>
@@ -477,12 +476,26 @@ export default function StatisticsScreen() {
       {careerOverview && careerOverview.specialtyDistribution.length > 0 && (
         <>
           <SectionHeader title="Specialty Breakdown" />
+          {freeFlapStats && (
+            <View style={styles.cardGap}>
+              <SpecialtyDeepDiveCard
+                label="Free Flap"
+                caseCount={freeFlapStats.totalCases}
+                color={theme.accent}
+                heroMetric={{
+                  label: "Flap survival",
+                  value: formatPercentage(freeFlapStats.flapSurvivalRate),
+                }}
+              >
+                <FreeFlapContent stats={freeFlapStats} />
+              </SpecialtyDeepDiveCard>
+            </View>
+          )}
           {careerOverview.specialtyDistribution.map(
             ({ specialty, label, count }) => {
               const color =
-                theme.specialty[
-                  specialty as keyof typeof theme.specialty
-                ] ?? theme.accent;
+                theme.specialty[specialty as keyof typeof theme.specialty] ??
+                theme.accent;
               const stats = specialtyStats[specialty];
               const heroMetric = getHeroMetric(specialty, stats);
 
@@ -522,87 +535,60 @@ export default function StatisticsScreen() {
       )}
 
       {/* Logging Efficiency */}
-      {entryTimeStats &&
-        entryTimeStats.averageEntryTimeSeconds != null && (
-          <>
-            <SectionHeader title="Logging Efficiency" />
-            <View style={styles.metricRow}>
-              <StatCard
-                label="Avg. Entry Time"
-                value={formatEntryTime(
-                  entryTimeStats.averageEntryTimeSeconds,
-                )}
-                size="small"
-              />
-              <StatCard
-                label="Median Entry Time"
-                value={formatEntryTime(
-                  entryTimeStats.medianEntryTimeSeconds,
-                )}
-                size="small"
-              />
-            </View>
-            {operationalInsights && (
-              <ThemedText
-                style={[styles.footnote, { color: theme.textTertiary }]}
-              >
-                Based on {operationalInsights.timedEntryCount} timed{" "}
-                {operationalInsights.timedEntryCount === 1
-                  ? "entry"
-                  : "entries"}
-              </ThemedText>
-            )}
-          </>
-        )}
+      {entryTimeStats && entryTimeStats.averageEntryTimeSeconds != null && (
+        <>
+          <SectionHeader title="Logging Efficiency" />
+          <View style={styles.metricRow}>
+            <StatCard
+              label="Avg. Entry Time"
+              value={formatEntryTime(entryTimeStats.averageEntryTimeSeconds)}
+              size="small"
+            />
+            <StatCard
+              label="Median Entry Time"
+              value={formatEntryTime(entryTimeStats.medianEntryTimeSeconds)}
+              size="small"
+            />
+          </View>
+          {operationalInsights && (
+            <ThemedText
+              style={[styles.footnote, { color: theme.textTertiary }]}
+            >
+              Based on {operationalInsights.timedEntryCount} timed{" "}
+              {operationalInsights.timedEntryCount === 1 ? "entry" : "entries"}
+            </ThemedText>
+          )}
+        </>
+      )}
 
       {/* Your Top 10 */}
-      {operationalInsights &&
-        operationalInsights.topDxProcPairs.length > 0 && (
-          <>
-            <SectionHeader title="Your Top 10" />
-            <View style={styles.topList}>
-              {operationalInsights.topDxProcPairs.map((pair, i) => (
-                <View key={`${pair.procedureName}-${i}`} style={styles.topRow}>
+      {operationalInsights && operationalInsights.topDxProcPairs.length > 0 && (
+        <>
+          <SectionHeader title="Your Top 10" />
+          <View style={styles.topList}>
+            {operationalInsights.topDxProcPairs.map((pair, i) => (
+              <View key={`${pair.procedureName}-${i}`} style={styles.topRow}>
+                <ThemedText style={[styles.topRank, { color: theme.accent }]}>
+                  {i + 1}.
+                </ThemedText>
+                <View style={styles.topContent}>
                   <ThemedText
-                    style={[styles.topRank, { color: theme.accent }]}
+                    style={[styles.topName, { color: theme.text }]}
+                    numberOfLines={1}
                   >
-                    {i + 1}.
-                  </ThemedText>
-                  <View style={styles.topContent}>
-                    {pair.diagnosisName ? (
-                      <>
-                        <ThemedText
-                          style={[styles.topName, { color: theme.text }]}
-                          numberOfLines={1}
-                        >
-                          {pair.diagnosisName}
-                        </ThemedText>
-                        <ThemedText
-                          style={[styles.topProcedure, { color: theme.textSecondary }]}
-                          numberOfLines={1}
-                        >
-                          {pair.procedureName}
-                        </ThemedText>
-                      </>
-                    ) : (
-                      <ThemedText
-                        style={[styles.topName, { color: theme.text }]}
-                        numberOfLines={1}
-                      >
-                        {pair.procedureName}
-                      </ThemedText>
-                    )}
-                  </View>
-                  <ThemedText
-                    style={[styles.topCount, { color: theme.textSecondary }]}
-                  >
-                    {pair.count}
+                    {pair.procedureName}
                   </ThemedText>
                 </View>
-              ))}
-            </View>
-          </>
-        )}
+                <ThemedText
+                  style={[styles.topCount, { color: theme.textSecondary }]}
+                >
+                  {pair.count}
+                </ThemedText>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
 
       {/* Data Completeness */}
       {operationalInsights && (
@@ -616,9 +602,7 @@ export default function StatisticsScreen() {
               size="small"
             />
           </View>
-          <ThemedText
-            style={[styles.footnote, { color: theme.textTertiary }]}
-          >
+          <ThemedText style={[styles.footnote, { color: theme.textTertiary }]}>
             Complete = patient ID, date, facility, diagnosis, and procedure
             recorded.
           </ThemedText>
@@ -689,10 +673,6 @@ const styles = StyleSheet.create({
   },
   topName: {
     fontSize: 14,
-  },
-  topProcedure: {
-    fontSize: 12,
-    marginTop: 1,
   },
   topCount: {
     fontSize: 14,

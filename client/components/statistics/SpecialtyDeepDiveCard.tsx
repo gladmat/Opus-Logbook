@@ -1,5 +1,12 @@
 import React, { useState } from "react";
-import { View, Pressable, StyleSheet, LayoutAnimation } from "react-native";
+import {
+  View,
+  Pressable,
+  StyleSheet,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+} from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -19,100 +26,99 @@ interface SpecialtyDeepDiveCardProps {
   children: React.ReactNode;
 }
 
-export const SpecialtyDeepDiveCard = React.memo(
-  function SpecialtyDeepDiveCard({
-    label,
-    caseCount,
-    color,
-    heroMetric,
-    minCasesForDetail = 5,
-    children,
-  }: SpecialtyDeepDiveCardProps) {
-    const { theme, isDark } = useTheme();
-    const [expanded, setExpanded] = useState(false);
-    const chevronRotation = useSharedValue(0);
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
-    const toggleExpand = () => {
-      LayoutAnimation.configureNext(
-        LayoutAnimation.Presets.easeInEaseOut,
-      );
-      const next = !expanded;
-      setExpanded(next);
-      chevronRotation.value = withTiming(next ? 90 : 0, { duration: 200 });
-    };
+export const SpecialtyDeepDiveCard = React.memo(function SpecialtyDeepDiveCard({
+  label,
+  caseCount,
+  color,
+  heroMetric,
+  minCasesForDetail = 5,
+  children,
+}: SpecialtyDeepDiveCardProps) {
+  const { theme, isDark } = useTheme();
+  const [expanded, setExpanded] = useState(false);
+  const chevronRotation = useSharedValue(0);
 
-    const chevronStyle = useAnimatedStyle(() => ({
-      transform: [{ rotate: `${chevronRotation.value}deg` }],
-    }));
+  const toggleExpand = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    const next = !expanded;
+    setExpanded(next);
+    chevronRotation.value = withTiming(next ? 90 : 0, { duration: 200 });
+  };
 
-    const hasSufficientData = caseCount >= minCasesForDetail;
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${chevronRotation.value}deg` }],
+  }));
 
-    return (
-      <View
-        style={[
-          styles.card,
-          {
-            backgroundColor: theme.backgroundDefault,
-            borderColor: theme.border,
-          },
-          !isDark && Shadows.card,
-        ]}
+  const hasSufficientData = caseCount >= minCasesForDetail;
+
+  return (
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: theme.backgroundDefault,
+          borderColor: theme.border,
+        },
+        !isDark && Shadows.card,
+      ]}
+    >
+      <Pressable
+        onPress={hasSufficientData ? toggleExpand : undefined}
+        style={styles.header}
+        accessibilityRole="button"
+        accessibilityLabel={`${label}, ${caseCount} cases`}
+        accessibilityState={{ expanded }}
       >
-        <Pressable
-          onPress={hasSufficientData ? toggleExpand : undefined}
-          style={styles.header}
-          accessibilityRole="button"
-          accessibilityLabel={`${label}, ${caseCount} cases`}
-          accessibilityState={{ expanded }}
-        >
-          <View style={[styles.dot, { backgroundColor: color }]} />
-          <View style={styles.headerText}>
-            <View style={styles.headerRow}>
-              <ThemedText style={[styles.name, { color: theme.text }]}>
-                {label}
-              </ThemedText>
-              <ThemedText
-                style={[styles.count, { color: theme.textSecondary }]}
-              >
-                {caseCount} case{caseCount !== 1 ? "s" : ""}
-              </ThemedText>
-              {hasSufficientData && (
-                <Animated.View style={chevronStyle}>
-                  <Feather
-                    name="chevron-right"
-                    size={16}
-                    color={theme.textTertiary}
-                  />
-                </Animated.View>
-              )}
-            </View>
-            {heroMetric && (
-              <ThemedText
-                style={[styles.hero, { color: theme.textTertiary }]}
-                numberOfLines={1}
-              >
-                {heroMetric.label}: {heroMetric.value}
-              </ThemedText>
-            )}
-            {!hasSufficientData && (
-              <ThemedText
-                style={[styles.hero, { color: theme.textTertiary }]}
-              >
-                Log more {label.toLowerCase()} cases for detailed metrics
-              </ThemedText>
+        <View style={[styles.dot, { backgroundColor: color }]} />
+        <View style={styles.headerText}>
+          <View style={styles.headerRow}>
+            <ThemedText style={[styles.name, { color: theme.text }]}>
+              {label}
+            </ThemedText>
+            <ThemedText style={[styles.count, { color: theme.textSecondary }]}>
+              {caseCount} case{caseCount !== 1 ? "s" : ""}
+            </ThemedText>
+            {hasSufficientData && (
+              <Animated.View style={chevronStyle}>
+                <Feather
+                  name="chevron-right"
+                  size={16}
+                  color={theme.textTertiary}
+                />
+              </Animated.View>
             )}
           </View>
-        </Pressable>
+          {heroMetric && (
+            <ThemedText
+              style={[styles.hero, { color: theme.textTertiary }]}
+              numberOfLines={1}
+            >
+              {heroMetric.label}: {heroMetric.value}
+            </ThemedText>
+          )}
+          {!hasSufficientData && (
+            <ThemedText style={[styles.hero, { color: theme.textTertiary }]}>
+              Log more {label.toLowerCase()} cases for detailed metrics
+            </ThemedText>
+          )}
+        </View>
+      </Pressable>
 
-        {expanded && hasSufficientData && (
-          <View style={[styles.body, { borderTopColor: theme.border }]}>
-            {children}
-          </View>
-        )}
-      </View>
-    );
-  },
-);
+      {expanded && hasSufficientData && (
+        <View style={[styles.body, { borderTopColor: theme.border }]}>
+          {children}
+        </View>
+      )}
+    </View>
+  );
+});
 
 const styles = StyleSheet.create({
   card: {

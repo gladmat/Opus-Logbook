@@ -5,9 +5,11 @@ import { Case, Specialty, getCaseSpecialties } from "@/types/case";
 import { getCases } from "@/lib/storage";
 import {
   calculateBaseStatistics,
+  calculateFreeFlapStatistics,
   calculateStatistics,
   calculateEntryTimeStats,
   type BaseStatistics,
+  type FreeFlapStatistics,
   type SpecialtyStatistics,
   type EntryTimeStats,
 } from "@/lib/statistics";
@@ -35,6 +37,7 @@ export interface UseStatisticsReturn {
   careerOverview: CareerOverview | null;
   monthlyVolume: MonthlyVolume[];
   baseStats: BaseStatistics | null;
+  freeFlapStats: FreeFlapStatistics | null;
   specialtyStats: Record<Specialty, SpecialtyStatistics | null>;
   operationalInsights: OperationalInsights | null;
   milestones: MilestoneEvent[];
@@ -82,22 +85,32 @@ export function useStatistics(): UseStatisticsReturn {
     [cases, isEmpty],
   );
 
-  const specialtyStats = useMemo<Record<Specialty, SpecialtyStatistics | null>>(() => {
+  const freeFlapStats = useMemo<FreeFlapStatistics | null>(() => {
+    if (isEmpty) return null;
+    const stats = calculateFreeFlapStatistics(cases);
+    return stats.totalCases > 0 ? stats : null;
+  }, [cases, isEmpty]);
+
+  const specialtyStats = useMemo<
+    Record<Specialty, SpecialtyStatistics | null>
+  >(() => {
     if (isEmpty || !careerOverview) {
       return {} as Record<Specialty, SpecialtyStatistics | null>;
     }
     const result = {} as Record<Specialty, SpecialtyStatistics | null>;
     for (const s of careerOverview.specialtiesUsed) {
-      const specCases = cases.filter((c) =>
-        getCaseSpecialties(c).includes(s),
-      );
-      result[s] = specCases.length > 0 ? calculateStatistics(specCases, s) : null;
+      const specCases = cases.filter((c) => getCaseSpecialties(c).includes(s));
+      result[s] =
+        specCases.length > 0 ? calculateStatistics(specCases, s) : null;
     }
     return result;
   }, [cases, isEmpty, careerOverview]);
 
   const operationalInsights = useMemo<OperationalInsights | null>(
-    () => (isEmpty ? null : computeOperationalInsights(cases, baseStats ?? undefined)),
+    () =>
+      isEmpty
+        ? null
+        : computeOperationalInsights(cases, baseStats ?? undefined),
     [cases, isEmpty, baseStats],
   );
 
@@ -113,7 +126,8 @@ export function useStatistics(): UseStatisticsReturn {
 
   const skinCancerInsights = useMemo<SkinCancerInsights | null>(() => {
     if (isEmpty || !careerOverview) return null;
-    if (!careerOverview.specialtiesUsed.includes("skin_cancer" as Specialty)) return null;
+    if (!careerOverview.specialtiesUsed.includes("skin_cancer" as Specialty))
+      return null;
     const scCases = cases.filter((c) =>
       getCaseSpecialties(c).includes("skin_cancer" as Specialty),
     );
@@ -122,7 +136,8 @@ export function useStatistics(): UseStatisticsReturn {
 
   const burnsInsights = useMemo<BurnsInsights | null>(() => {
     if (isEmpty || !careerOverview) return null;
-    if (!careerOverview.specialtiesUsed.includes("burns" as Specialty)) return null;
+    if (!careerOverview.specialtiesUsed.includes("burns" as Specialty))
+      return null;
     const burnsCases = cases.filter((c) =>
       getCaseSpecialties(c).includes("burns" as Specialty),
     );
@@ -131,7 +146,8 @@ export function useStatistics(): UseStatisticsReturn {
 
   const handCaseTypeInsights = useMemo<HandCaseTypeInsights | null>(() => {
     if (isEmpty || !careerOverview) return null;
-    if (!careerOverview.specialtiesUsed.includes("hand_wrist" as Specialty)) return null;
+    if (!careerOverview.specialtiesUsed.includes("hand_wrist" as Specialty))
+      return null;
     const handCases = cases.filter((c) =>
       getCaseSpecialties(c).includes("hand_wrist" as Specialty),
     );
@@ -145,6 +161,7 @@ export function useStatistics(): UseStatisticsReturn {
     careerOverview,
     monthlyVolume,
     baseStats,
+    freeFlapStats,
     specialtyStats,
     operationalInsights,
     milestones,

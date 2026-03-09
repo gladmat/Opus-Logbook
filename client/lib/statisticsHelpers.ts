@@ -15,6 +15,7 @@ import {
   type BaseStatistics,
   type DiagnosisProcedurePair,
 } from "@/lib/statistics";
+import { parseIsoDateValue } from "@/lib/dateValues";
 
 // ─── Ordinal suffix helper ──────────────────────────────────────────────
 
@@ -31,27 +32,33 @@ export interface CareerOverview {
   firstCaseDate: string | null;
   monthsActive: number;
   specialtiesUsed: Specialty[];
-  specialtyDistribution: { specialty: Specialty; label: string; count: number }[];
+  specialtyDistribution: {
+    specialty: Specialty;
+    label: string;
+    count: number;
+  }[];
 }
 
 export function computeCareerOverview(cases: Case[]): CareerOverview {
   const totalCases = cases.length;
 
   // Sort by procedureDate ascending
-  const sorted = [...cases].sort((a, b) =>
-    a.procedureDate.localeCompare(b.procedureDate),
-  );
+  const sorted = [...cases]
+    .filter((c) => parseIsoDateValue(c.procedureDate) !== null)
+    .sort((a, b) => a.procedureDate.localeCompare(b.procedureDate));
 
   const firstCaseDate = sorted.length > 0 ? sorted[0]!.procedureDate : null;
 
   let monthsActive = 0;
   if (firstCaseDate) {
-    const first = new Date(firstCaseDate);
+    const first = parseIsoDateValue(firstCaseDate);
     const now = new Date();
-    monthsActive =
-      (now.getFullYear() - first.getFullYear()) * 12 +
-      (now.getMonth() - first.getMonth());
-    if (monthsActive < 1 && totalCases > 0) monthsActive = 1;
+    if (first) {
+      monthsActive =
+        (now.getFullYear() - first.getFullYear()) * 12 +
+        (now.getMonth() - first.getMonth());
+      if (monthsActive < 1 && totalCases > 0) monthsActive = 1;
+    }
   }
 
   // Count per specialty using getCaseSpecialties (handles multi-specialty cases)
@@ -90,15 +97,26 @@ export interface MonthlyVolume {
 }
 
 const MONTH_SHORT = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
 ] as const;
 
 export function computeMonthlyVolume(cases: Case[]): MonthlyVolume[] {
   // Group cases by YYYY-MM
   const counts = new Map<string, number>();
   for (const c of cases) {
-    const date = new Date(c.procedureDate);
+    const date = parseIsoDateValue(c.procedureDate);
+    if (!date) continue;
     const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
@@ -119,6 +137,12 @@ export function computeMonthlyVolume(cases: Case[]): MonthlyVolume[] {
   }
 
   return result;
+}
+
+export function formatMilestoneDate(dateStr: string): string {
+  const date = parseIsoDateValue(dateStr);
+  if (!date) return dateStr;
+  return `${date.getDate()} ${MONTH_SHORT[date.getMonth()]} ${date.getFullYear()}`;
 }
 
 // ─── Operational Insights ────────────────────────────────────────────────
@@ -304,9 +328,7 @@ const PATHOLOGY_LABELS: Record<SkinCancerPathologyCategory, string> = {
   uncertain: "Uncertain",
 };
 
-export function computeSkinCancerInsights(
-  cases: Case[],
-): SkinCancerInsights {
+export function computeSkinCancerInsights(cases: Case[]): SkinCancerInsights {
   const catCounts = new Map<SkinCancerPathologyCategory, number>();
   let totalLesions = 0;
   let lesionsWithHistology = 0;
@@ -360,7 +382,12 @@ export function computeSkinCancerInsights(
   const histologyCompletionRate =
     totalLesions > 0 ? (lesionsWithHistology / totalLesions) * 100 : 100;
 
-  return { pathologyCounts, histologyCompletionRate, totalLesions, lesionsWithHistology };
+  return {
+    pathologyCounts,
+    histologyCompletionRate,
+    totalLesions,
+    lesionsWithHistology,
+  };
 }
 
 // ─── Burns Insights ─────────────────────────────────────────────────────

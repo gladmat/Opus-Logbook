@@ -124,14 +124,14 @@ client/
     useActiveEpisodes.ts         # Query hook for active episodes
     useScreenOptions.ts          # Shared navigation header options
     useColorScheme.ts            # System colour scheme detection
-    useStatistics.ts             # Memoized statistics computation from cases (career, specialty, operational, milestones)
+    useStatistics.ts             # Memoized statistics computation from cases (career, free flap, specialty, operational, milestones)
     useAttentionItems.ts         # Shared selector wrapper for dashboard attention items
     usePracticePulse.ts          # Shared selector wrapper for thisMonth/thisWeek/completion metrics
   lib/
     storage.ts                   # AsyncStorage CRUD, encryption, drafts, case index
     dashboardSelectors.ts        # Shared dashboard selector layer (counts, filters, attention items, pulse, quick-log params)
     procedurePicklist.ts         # 490 procedures across 12 specialties
-    statistics.ts                # Case analytics, filtering, calculations (1053 lines)
+    statistics.ts                # Case analytics, filtering, calculations (specialty-scoped + free-flap analytics)
     statisticsHelpers.ts         # Career overview, monthly volume, operational insights, milestones, specialty insights (454 lines)
     handTraumaDiagnosis.ts       # MachineSummary + deterministic rendering (1570 lines)
     handTraumaMapping.ts         # Trauma → diagnosis-procedure pairs (1862 lines)
@@ -178,7 +178,7 @@ client/
       {specialty}Diagnoses.ts    # Per-specialty (aesthetics, bodyContouring, breast,
                                  #   burns, cleftCranio, general, handSurgery, headNeck,
                                  #   lymphoedema, orthoplastic, peripheralNerve, skinCancer)
-    __tests__/                   # 7 test files (handTrauma ×3, skinCancer ×3, handInfection)
+    __tests__/                   # 13 test files incl. hand trauma, skin cancer, dashboard, dateValues, operative media, and statistics regressions
   types/
     case.ts                      # Case, DiagnosisGroup, Procedure, Timeline, Media (2322 lines)
     diagnosis.ts                 # Diagnosis picklist entry
@@ -712,22 +712,28 @@ Dedicated bottom tab with 3-tier analytics. Middle tab between Dashboard and Set
 #### Architecture
 
 - **Screen:** `StatisticsScreen.tsx` — single scrollable screen with collapsible specialty sections
-- **Hook:** `useStatistics.ts` — loads all cases via `useFocusEffect`, computes all metrics via `useMemo`. Returns career overview, monthly volume, base stats, per-specialty stats, operational insights, milestones, entry time stats, and specialty-specific insights (skin cancer, burns, hand case types)
+- **Hook:** `useStatistics.ts` — loads all cases via `useFocusEffect`, computes all metrics via `useMemo`. Returns career overview, monthly volume, base stats, dedicated `freeFlapStats`, per-specialty stats, operational insights, milestones, entry time stats, and specialty-specific insights (skin cancer, burns, hand case types)
 - **Helpers:** `statisticsHelpers.ts` (454 lines) — pure compute functions: `computeCareerOverview`, `computeMonthlyVolume`, `computeOperationalInsights`, `computeMilestones`, `computeSkinCancerInsights`, `computeBurnsInsights`, `computeHandCaseTypeInsights`
-- **Base stats:** `statistics.ts` (1053 lines) — `calculateBaseStatistics`, `calculateStatistics` (per-specialty dispatcher), `calculateEntryTimeStats`, `calculateTopDiagnosisProcedurePairs`
+- **Base stats:** `statistics.ts` — `calculateBaseStatistics`, `calculateFreeFlapStatistics`, `calculateStatistics` (per-specialty dispatcher), `calculateEntryTimeStats`, `calculateTopDiagnosisProcedurePairs`, shared filter helpers
+
+#### Statistics invariants
+
+- **Date-only case values must use `parseIsoDateValue()`.** Statistics code should never parse `YYYY-MM-DD` with `new Date(...)`; use `client/lib/dateValues.ts` so month buckets, milestone dates, and rolling filters stay timezone-safe.
+- **Specialty card inclusion is case-level, but specialty metrics are diagnosis-group scoped.** A mixed case can appear in multiple specialty cards via `getCaseSpecialties(c)`, but each card must derive its internal metrics only from diagnosis groups/procedures matching that specialty.
+- **Free flap analytics are a dedicated aggregate, not a specialty proxy.** `freeFlapStats` comes from `calculateFreeFlapStatistics(cases)` and only includes cases with analytics-bearing free flap data: tagged free-flap procedures with flap details, or legacy case-level `clinicalDetails.flapType`.
 
 #### 3-tier content
 
 **Tier 1 — Career Overview:** Total cases, active months, cases/month rate, specialties used. `StatCard` grid with hero metric (total cases or specialty-specific metric).
 
-**Tier 2 — Specialty Deep-Dives:** `SpecialtyDeepDiveCard` per specialty used, collapsible with animated `LayoutAnimation`. Each shows specialty-specific content:
+**Tier 2 — Specialty Deep-Dives:** Dedicated free-flap card first when `freeFlapStats` exists, then `SpecialtyDeepDiveCard` per specialty used, collapsible with animated `LayoutAnimation`. Each shows specialty-specific content:
 - **Hand surgery:** Trauma/acute/elective split, nerve + tendon repair counts, top procedures as `HorizontalBarChart`
 - **Skin cancer:** Pathology category distribution (BCC/SCC/melanoma/etc) as `HorizontalBarChart`, histology completion rate
 - **Burns:** Acute/reconstruction split, grafting rate
 - **Orthoplastic/Breast/Body contouring:** Specialty-specific stats from `calculateStatistics`
 - **Other specialties:** Base statistics (complication rate, facility breakdown)
 
-**Tier 3 — Operational Insights:** Monthly volume `BarChart` (animated SVG bars, short labels for >6 bars), avg case duration, data completeness %, complication rate, top 10 diagnosis-procedure pairs (shows both diagnosis and procedure name), `MilestoneTimeline` (ordinal labels, up to 8 visible).
+**Tier 3 — Operational Insights:** Monthly volume `BarChart` (animated SVG bars, short labels for >6 bars), avg case duration, data completeness %, complication rate, "Your Top 10" procedure list, `MilestoneTimeline` (ordinal labels, 5 visible before "See all").
 
 #### Chart components (`client/components/statistics/`)
 

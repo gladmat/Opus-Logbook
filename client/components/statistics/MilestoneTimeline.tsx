@@ -1,28 +1,35 @@
 import React, { useState } from "react";
-import { View, Pressable, StyleSheet, LayoutAnimation } from "react-native";
+import {
+  View,
+  Pressable,
+  StyleSheet,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+} from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing } from "@/constants/theme";
-import type { MilestoneEvent } from "@/lib/statisticsHelpers";
+import {
+  formatMilestoneDate,
+  type MilestoneEvent,
+} from "@/lib/statisticsHelpers";
 
 interface MilestoneTimelineProps {
   milestones: MilestoneEvent[];
   maxVisible?: number;
 }
 
-function formatMilestoneDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
-  const months = [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-  ];
-  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
 export const MilestoneTimeline = React.memo(function MilestoneTimeline({
   milestones,
-  maxVisible = 8,
+  maxVisible = 5,
 }: MilestoneTimelineProps) {
   const { theme } = useTheme();
   const [showAll, setShowAll] = useState(false);
@@ -38,21 +45,13 @@ export const MilestoneTimeline = React.memo(function MilestoneTimeline({
           <View style={styles.timeline}>
             {i > 0 && (
               <View
-                style={[
-                  styles.lineTop,
-                  { backgroundColor: theme.border },
-                ]}
+                style={[styles.lineTop, { backgroundColor: theme.border }]}
               />
             )}
-            <View
-              style={[styles.dot, { backgroundColor: theme.accent }]}
-            />
+            <View style={[styles.dot, { backgroundColor: theme.accent }]} />
             {i < visible.length - 1 && (
               <View
-                style={[
-                  styles.lineBottom,
-                  { backgroundColor: theme.border },
-                ]}
+                style={[styles.lineBottom, { backgroundColor: theme.border }]}
               />
             )}
           </View>
@@ -62,9 +61,7 @@ export const MilestoneTimeline = React.memo(function MilestoneTimeline({
             <ThemedText style={[styles.label, { color: theme.text }]}>
               {m.label}
             </ThemedText>
-            <ThemedText
-              style={[styles.date, { color: theme.textTertiary }]}
-            >
+            <ThemedText style={[styles.date, { color: theme.textTertiary }]}>
               {formatMilestoneDate(m.date)}
             </ThemedText>
           </View>

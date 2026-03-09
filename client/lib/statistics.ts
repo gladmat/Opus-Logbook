@@ -1,5 +1,7 @@
 import {
   Case,
+  CaseProcedure,
+  DiagnosisGroup,
   Specialty,
   Role,
   FreeFlapDetails,
@@ -16,6 +18,7 @@ import {
   FLAP_MONITORING_PROTOCOLS,
 } from "@/types/surgicalPreferences";
 import { INFECTION_SYNDROME_LABELS } from "@/types/infection";
+import { parseIsoDateValue } from "@/lib/dateValues";
 
 export type TimePeriod =
   | "all_time"
@@ -126,34 +129,52 @@ export const ROLE_FILTER_LABELS: Record<Role | "all", string> = {
   A: "Available",
 };
 
+function getLocalDateAnchor(reference: Date = new Date()): Date {
+  return new Date(
+    reference.getFullYear(),
+    reference.getMonth(),
+    reference.getDate(),
+    12,
+    0,
+    0,
+    0,
+  );
+}
+
+function shiftLocalDateAnchorByMonths(reference: Date, months: number): Date {
+  const shifted = getLocalDateAnchor(reference);
+  shifted.setMonth(shifted.getMonth() + months);
+  return shifted;
+}
+
 function isWithinTimePeriod(
   dateString: string,
   timePeriod: TimePeriod,
   customStart?: string,
   customEnd?: string,
 ): boolean {
-  const date = new Date(dateString);
-  const now = new Date();
+  const date = parseIsoDateValue(dateString);
+  if (!date) return false;
+  const today = getLocalDateAnchor();
 
   switch (timePeriod) {
     case "all_time":
       return true;
     case "this_year":
-      return date.getFullYear() === now.getFullYear();
+      return date.getFullYear() === today.getFullYear();
     case "last_6_months": {
-      const sixMonthsAgo = new Date();
-      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      const sixMonthsAgo = shiftLocalDateAnchorByMonths(today, -6);
       return date >= sixMonthsAgo;
     }
     case "last_12_months": {
-      const twelveMonthsAgo = new Date();
-      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+      const twelveMonthsAgo = shiftLocalDateAnchorByMonths(today, -12);
       return date >= twelveMonthsAgo;
     }
     case "custom":
       if (customStart && customEnd) {
-        const start = new Date(customStart);
-        const end = new Date(customEnd);
+        const start = parseIsoDateValue(customStart);
+        const end = parseIsoDateValue(customEnd);
+        if (!start || !end) return false;
         return date >= start && date <= end;
       }
       return true;
@@ -176,6 +197,71 @@ function getPrimaryRole(caseData: Case): Role {
     if (supervising) return supervising.role as Role;
   }
   return "PS";
+}
+
+function caseMatchesSpecialty(caseData: Case, specialty: Specialty): boolean {
+  return getCaseSpecialties(caseData).includes(specialty);
+}
+
+function getDiagnosisGroupsForSpecialty(
+  caseData: Case,
+  specialty: Specialty,
+): DiagnosisGroup[] {
+  return caseData.diagnosisGroups.filter(
+    (group) => group.specialty === specialty,
+  );
+}
+
+function getProceduresForSpecialty(
+  caseData: Case,
+  specialty: Specialty,
+): CaseProcedure[] {
+  return getDiagnosisGroupsForSpecialty(caseData, specialty).flatMap(
+    (group) => group.procedures ?? [],
+  );
+}
+
+function getPrimarySpecialtyProcedureLabel(
+  caseData: Case,
+  specialty: Specialty,
+): string | null {
+  const procedures = getProceduresForSpecialty(caseData, specialty);
+  if (procedures.length > 0) {
+    const primaryProcedure = procedures[0]!;
+    return (
+      primaryProcedure.subcategory ||
+      primaryProcedure.procedureName ||
+      "Unknown"
+    );
+  }
+
+  if (caseData.specialty === specialty && caseData.procedureType) {
+    return caseData.procedureType;
+  }
+
+  return null;
+}
+
+function isProcedureTaggedAsFreeFlap(procedure: CaseProcedure): boolean {
+  return procedure.tags?.includes("free_flap") === true;
+}
+
+function isBreastReconstructionProcedure(procedure: CaseProcedure): boolean {
+  const searchableText =
+    `${procedure.subcategory ?? ""} ${procedure.procedureName}`.toLowerCase();
+
+  if (searchableText.includes("augmentation")) {
+    return false;
+  }
+
+  return (
+    searchableText.includes("reconstruction") ||
+    searchableText.includes("direct-to-implant") ||
+    searchableText.includes("expander-to-implant") ||
+    (searchableText.includes("implant") && searchableText.includes("breast")) ||
+    procedure.tags?.includes("free_flap") === true ||
+    procedure.tags?.includes("pedicled_flap") === true
+  );
 }
 
 export function filterCases(cases: Case[], filters: StatisticsFilters): Case[] {
@@ -238,7 +324,8 @@ export function calculateBaseStatistics(cases: Case[]): BaseStatistics {
 
   const casesByMonthMap = new Map<string, number>();
   cases.forEach((c) => {
-    const date = new Date(c.procedureDate);
+    const date = parseIsoDateValue(c.procedureDate);
+    if (!date) return;
     const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
     casesByMonthMap.set(monthKey, (casesByMonthMap.get(monthKey) || 0) + 1);
   });
@@ -261,9 +348,10 @@ export function calculateBaseStatistics(cases: Case[]): BaseStatistics {
     .map(([facility, count]) => ({ facility, count }));
 
   const casesNeedingFollowUp = cases.filter((c) => {
+    const procedureDate = parseIsoDateValue(c.procedureDate);
+    if (!procedureDate) return false;
     const daysSinceProcedure = Math.floor(
-      (Date.now() - new Date(c.procedureDate).getTime()) /
-        (1000 * 60 * 60 * 24),
+      (Date.now() - procedureDate.getTime()) / (1000 * 60 * 60 * 24),
     );
     return daysSinceProcedure >= 30;
   });
@@ -290,11 +378,15 @@ export function calculateBaseStatistics(cases: Case[]): BaseStatistics {
  */
 function extractFreeFlapProcedures(
   c: Case,
+  specialty?: Specialty,
 ): { details: FreeFlapDetails; procId?: string }[] {
   const results: { details: FreeFlapDetails; procId?: string }[] = [];
   for (const group of c.diagnosisGroups) {
+    if (specialty && group.specialty !== specialty) {
+      continue;
+    }
     for (const proc of group.procedures) {
-      if (proc.tags?.includes("free_flap") && proc.clinicalDetails) {
+      if (isProcedureTaggedAsFreeFlap(proc) && proc.clinicalDetails) {
         results.push({
           details: proc.clinicalDetails as FreeFlapDetails,
           procId: proc.id,
@@ -305,24 +397,21 @@ function extractFreeFlapProcedures(
   // Legacy flat structure fallback
   if (results.length === 0) {
     const legacy = c.clinicalDetails as FreeFlapDetails | undefined;
-    if (legacy?.flapType) {
+    if (legacy?.flapType && (!specialty || c.specialty === specialty)) {
       results.push({ details: legacy });
     }
   }
   return results;
 }
 
-export function calculateFreeFlapStatistics(cases: Case[]): FreeFlapStatistics {
-  const base = calculateBaseStatistics(cases);
+function hasFreeFlapAnalyticsData(caseData: Case): boolean {
+  return extractFreeFlapProcedures(caseData).length > 0;
+}
 
-  // Identify cases containing at least one free flap procedure
-  const freeFlapCases = cases.filter(
-    (c) =>
-      getAllProcedures(c).some((p) => p.tags?.includes("free_flap")) ||
-      c.specialty === "orthoplastic" ||
-      c.specialty === "head_neck" ||
-      c.specialty === "breast",
-  );
+export function calculateFreeFlapStatistics(cases: Case[]): FreeFlapStatistics {
+  // Identify cases containing analytics-eligible free flap data
+  const freeFlapCases = cases.filter(hasFreeFlapAnalyticsData);
+  const base = calculateBaseStatistics(freeFlapCases);
 
   // ─── Survival analysis: structured first, legacy fallback ───────────
   let structuredOutcomeCount = 0;
@@ -587,24 +676,19 @@ export function calculateFreeFlapStatistics(cases: Case[]): FreeFlapStatistics {
 export function calculateHandSurgeryStatistics(
   cases: Case[],
 ): HandSurgeryStatistics {
-  const base = calculateBaseStatistics(cases);
-
-  const handSurgeryCases = cases.filter((c) => c.specialty === "hand_wrist");
+  const handSurgeryCases = cases.filter((c) =>
+    caseMatchesSpecialty(c, "hand_wrist"),
+  );
+  const base = calculateBaseStatistics(handSurgeryCases);
 
   const procedureTypeMap = new Map<string, number>();
   handSurgeryCases.forEach((c) => {
-    const procs = getAllProcedures(c);
-    if (procs.length > 0) {
-      // Derive procedure type from the actual procedure subcategory or name
-      const subcategory =
-        procs[0]!.subcategory || procs[0]!.procedureName || "Unknown";
+    const procedureLabel = getPrimarySpecialtyProcedureLabel(c, "hand_wrist");
+    if (procedureLabel) {
       procedureTypeMap.set(
-        subcategory,
-        (procedureTypeMap.get(subcategory) || 0) + 1,
+        procedureLabel,
+        (procedureTypeMap.get(procedureLabel) || 0) + 1,
       );
-    } else {
-      const pt = c.procedureType || "Unknown";
-      procedureTypeMap.set(pt, (procedureTypeMap.get(pt) || 0) + 1);
     }
   });
   const casesByProcedureType = Array.from(procedureTypeMap.entries())
@@ -612,7 +696,7 @@ export function calculateHandSurgeryStatistics(
     .map(([procedureType, count]) => ({ procedureType, count }));
 
   const nerveRepairCount = handSurgeryCases.filter((c) =>
-    getAllProcedures(c).some(
+    getProceduresForSpecialty(c, "hand_wrist").some(
       (p) =>
         p.tags?.includes("nerve_repair") ||
         p.subcategory?.toLowerCase().includes("nerve"),
@@ -620,7 +704,7 @@ export function calculateHandSurgeryStatistics(
   ).length;
 
   const tendonRepairCount = handSurgeryCases.filter((c) =>
-    getAllProcedures(c).some(
+    getProceduresForSpecialty(c, "hand_wrist").some(
       (p) =>
         p.tags?.includes("tendon_repair") ||
         p.subcategory?.toLowerCase().includes("tendon"),
@@ -638,24 +722,18 @@ export function calculateHandSurgeryStatistics(
 export function calculateOrthoplasticStatistics(
   cases: Case[],
 ): OrthoplasticStatistics {
-  const base = calculateBaseStatistics(cases);
+  const orthoplasticCases = cases.filter((c) =>
+    caseMatchesSpecialty(c, "orthoplastic"),
+  );
+  const base = calculateBaseStatistics(orthoplasticCases);
 
-  const orthoplasticCases = cases.filter((c) => c.specialty === "orthoplastic");
-
-  const freeFlapCount = orthoplasticCases.filter((c) =>
-    getAllProcedures(c).some(
-      (p) =>
-        p.tags?.includes("free_flap") ||
-        p.subcategory?.toLowerCase().includes("free flap"),
-    ),
+  const freeFlapCount = orthoplasticCases.filter(
+    (c) => extractFreeFlapProcedures(c, "orthoplastic").length > 0,
   ).length;
 
   const ischemiaTimesMinutes = orthoplasticCases
-    .flatMap((c) => getAllProcedures(c))
-    .map((p) => {
-      const details = p.clinicalDetails as FreeFlapDetails | undefined;
-      return details?.ischemiaTimeMinutes;
-    })
+    .flatMap((c) => extractFreeFlapProcedures(c, "orthoplastic"))
+    .map(({ details }) => details.ischemiaTimeMinutes)
     .filter((t): t is number => t !== undefined && t !== null && t > 0);
 
   const averageIschemiaTimeMinutes =
@@ -668,8 +746,9 @@ export function calculateOrthoplasticStatistics(
 
   const coverageMap = new Map<string, number>();
   orthoplasticCases.forEach((c) => {
-    const procedureType = c.procedureType || "Unknown";
-    coverageMap.set(procedureType, (coverageMap.get(procedureType) || 0) + 1);
+    const coverage = getPrimarySpecialtyProcedureLabel(c, "orthoplastic");
+    if (!coverage) return;
+    coverageMap.set(coverage, (coverageMap.get(coverage) || 0) + 1);
   });
   const casesByCoverage = Array.from(coverageMap.entries())
     .sort((a, b) => b[1] - a[1])
@@ -684,17 +763,25 @@ export function calculateOrthoplasticStatistics(
 }
 
 export function calculateBreastStatistics(cases: Case[]): BreastStatistics {
-  const base = calculateBaseStatistics(cases);
+  const breastCases = cases.filter((c) => caseMatchesSpecialty(c, "breast"));
+  const base = calculateBaseStatistics(breastCases);
 
-  const breastCases = cases.filter((c) => c.specialty === "breast");
+  const reconstructionCount = breastCases.filter((c) => {
+    const breastProcedures = getProceduresForSpecialty(c, "breast");
+    if (breastProcedures.length > 0) {
+      return breastProcedures.some(isBreastReconstructionProcedure);
+    }
 
-  const reconstructionCount = breastCases.filter((c) =>
-    c.procedureType?.toLowerCase().includes("reconstruction"),
-  ).length;
+    return (
+      c.specialty === "breast" &&
+      c.procedureType?.toLowerCase().includes("reconstruction") === true
+    );
+  }).length;
 
   const procedureTypeMap = new Map<string, number>();
   breastCases.forEach((c) => {
-    const procedureType = c.procedureType || "Unknown";
+    const procedureType = getPrimarySpecialtyProcedureLabel(c, "breast");
+    if (!procedureType) return;
     procedureTypeMap.set(
       procedureType,
       (procedureTypeMap.get(procedureType) || 0) + 1,
@@ -714,15 +801,14 @@ export function calculateBreastStatistics(cases: Case[]): BreastStatistics {
 export function calculateBodyContouringStatistics(
   cases: Case[],
 ): BodyContouringStatistics {
-  const base = calculateBaseStatistics(cases);
-
-  const bodyContouringCases = cases.filter(
-    (c) => c.specialty === "body_contouring",
+  const bodyContouringCases = cases.filter((c) =>
+    caseMatchesSpecialty(c, "body_contouring"),
   );
+  const base = calculateBaseStatistics(bodyContouringCases);
 
   const resectionWeights: number[] = [];
   bodyContouringCases.forEach((c) => {
-    getAllProcedures(c).forEach((proc) => {
+    getProceduresForSpecialty(c, "body_contouring").forEach((proc) => {
       const details = proc.clinicalDetails as
         | { resectionWeightGrams?: number }
         | undefined;
