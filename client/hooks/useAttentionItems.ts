@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { Case } from "@/types/case";
+import type { Case, Specialty } from "@/types/case";
 import { getCaseSpecialties } from "@/types/case";
 import type { EpisodeWithCases } from "@/hooks/useActiveEpisodes";
 import { PENDING_ACTION_LABELS } from "@/types/episode";
@@ -12,7 +12,8 @@ export interface AttentionItem {
   type: "inpatient" | "episode" | "infection";
   patientIdentifier: string;
   diagnosisTitle: string;
-  specialty: string;
+  specialty: Specialty;
+  facility?: string;
   caseId?: string;
   postOpDay?: number;
   hasEpisodeLink?: boolean;
@@ -65,6 +66,7 @@ export function useAttentionItems(
         patientIdentifier: c.patientIdentifier,
         diagnosisTitle: getCasePrimaryTitle(c) || c.procedureType || "Unknown",
         specialty: c.diagnosisGroups[0]?.specialty ?? c.specialty,
+        facility: c.facility,
         caseId: c.id,
         postOpDay,
         hasEpisodeLink: !!c.episodeId,
@@ -112,6 +114,7 @@ export function useAttentionItems(
         patientIdentifier: c.patientIdentifier,
         diagnosisTitle: getCasePrimaryTitle(c) || c.procedureType || "Unknown",
         specialty: c.diagnosisGroups[0]?.specialty ?? c.specialty,
+        facility: c.facility,
         caseId: c.id,
         hasEpisodeLink: !!c.episodeId,
         infectionSyndrome: syndromeLabel,
@@ -135,6 +138,7 @@ export function useAttentionItems(
       let lastCaseDate: string | undefined;
       let lastCaseId: string | undefined;
       let lastCaseCanAddHistology = false;
+      let facility: string | undefined;
 
       if (linkedCases.length > 0) {
         const sorted = [...linkedCases].sort(
@@ -155,6 +159,7 @@ export function useAttentionItems(
           lastCaseDate = mostRecent.procedureDate;
           lastCaseId = mostRecent.id;
           lastCaseCanAddHistology = caseCanAddHistology(mostRecent);
+          facility = mostRecent.facility;
         }
       }
 
@@ -164,6 +169,7 @@ export function useAttentionItems(
         patientIdentifier: episode.patientIdentifier,
         diagnosisTitle: episode.title || episode.primaryDiagnosisDisplay,
         specialty: episode.specialty,
+        facility,
         episodeId: episode.id,
         episodeStatus: episode.status as "active" | "on_hold" | "planned",
         daysSinceLastEncounter,
