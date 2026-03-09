@@ -18,6 +18,7 @@ import { ThemedText } from "@/components/ThemedText";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "@/hooks/useTheme";
 import { BorderRadius, Spacing } from "@/constants/theme";
+import type { DigitId, Laterality } from "@/types/case";
 import type {
   JointImplantDetails,
   ImplantFixation,
@@ -28,6 +29,7 @@ import {
   APPROACH_LABELS,
   FIXATION_LABELS,
   BEARING_LABELS,
+  JOINT_TYPE_LABELS,
   REVISION_REASON_LABELS,
   INDICATION_LABELS,
   getApproachesForJoint,
@@ -36,9 +38,16 @@ import {
   IMPLANT_CATALOGUE,
   getImplantsForJoint,
   DIAGNOSIS_TO_INDICATION,
-  PROCEDURE_TO_JOINT_TYPE,
   type ImplantCatalogueEntry,
 } from "@/data/implantCatalogue";
+import {
+  IMPLANT_DIGIT_LABELS,
+  IMPLANT_LATERALITY_LABELS,
+  formatImplantSize,
+  getDefaultImplantDetails,
+  getImplantCompletionIssues,
+  getImplantJointType,
+} from "@/lib/jointImplant";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PROPS
@@ -47,6 +56,7 @@ import {
 interface JointImplantSectionProps {
   procedurePicklistId: string;
   diagnosisId?: string;
+  diagnosisLaterality?: Laterality;
   value?: JointImplantDetails;
   onChange: (details: JointImplantDetails) => void;
 }
@@ -63,6 +73,15 @@ const FIXATION_OPTIONS: ImplantFixation[] = [
   "hybrid",
   "not_applicable",
 ];
+
+const LATERALITY_OPTIONS: Laterality[] = [
+  "left",
+  "right",
+  "bilateral",
+  "not_applicable",
+];
+
+const DIGIT_OPTIONS: DigitId[] = ["I", "II", "III", "IV", "V"];
 
 const REVISION_REASONS: RevisionReason[] = [
   "loosening",
@@ -86,6 +105,7 @@ const REVISION_REASONS: RevisionReason[] = [
 export function JointImplantSection({
   procedurePicklistId,
   diagnosisId,
+  diagnosisLaterality,
   value,
   onChange,
 }: JointImplantSectionProps) {
@@ -93,7 +113,7 @@ export function JointImplantSection({
   const [showTechnical, setShowTechnical] = useState(false);
 
   // ── Derived state ─────────────────────────────────────────────────────
-  const jointType = PROCEDURE_TO_JOINT_TYPE[procedurePicklistId];
+  const jointType = getImplantJointType(procedurePicklistId);
   const indication = diagnosisId
     ? (DIAGNOSIS_TO_INDICATION[diagnosisId] ?? "other")
     : "other";
@@ -101,17 +121,27 @@ export function JointImplantSection({
   // Initialize on mount or when joint type / indication changes
   useEffect(() => {
     if (!jointType) return;
-    if (!value || value.jointType !== jointType) {
-      onChange({
-        jointType,
-        indication,
-        procedureType: value?.procedureType ?? "primary",
-        implantSystemId: value?.implantSystemId ?? "",
-      });
-    } else if (value.indication !== indication) {
-      onChange({ ...value, indication });
+    const nextValue = getDefaultImplantDetails({
+      procedurePicklistId,
+      diagnosisId,
+      diagnosisLaterality,
+      indication,
+      existingDetails: value,
+    });
+    if (!nextValue) return;
+
+    if (!value || JSON.stringify(nextValue) !== JSON.stringify(value)) {
+      onChange(nextValue);
     }
-  }, [jointType, indication]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [
+    diagnosisId,
+    diagnosisLaterality,
+    indication,
+    jointType,
+    onChange,
+    procedurePicklistId,
+    value,
+  ]);
 
   const implants = useMemo(
     () => (jointType ? getImplantsForJoint(jointType) : []),
@@ -126,6 +156,11 @@ export function JointImplantSection({
     () => (jointType ? getApproachesForJoint(jointType) : []),
     [jointType],
   );
+  const completionIssues = useMemo(
+    () => getImplantCompletionIssues(value, procedurePicklistId),
+    [procedurePicklistId, value],
+  );
+  const isComplete = completionIssues.length === 0;
 
   // ── Helpers ───────────────────────────────────────────────────────────
 
@@ -172,6 +207,8 @@ export function JointImplantSection({
   const technicalSummary = useMemo(() => {
     if (!value || !selectedImplant) return null;
     const parts: string[] = [];
+    const sizeSummary = formatImplantSize(value);
+    if (sizeSummary) parts.push(sizeSummary);
     if (value.fixation) parts.push(FIXATION_LABELS[value.fixation]);
     if (value.bearingSurface) parts.push(BEARING_LABELS[value.bearingSurface]);
     return parts.length > 0 ? parts.join(" \u00B7 ") : null;
@@ -208,6 +245,23 @@ export function JointImplantSection({
         <ThemedText style={[styles.headerTitle, { color: theme.text }]}>
           Implant Details
         </ThemedText>
+        {!isComplete ? (
+          <View
+            style={[
+              styles.incompleteBadge,
+              {
+                backgroundColor: theme.warning + "18",
+                borderColor: theme.warning,
+              },
+            ]}
+          >
+            <ThemedText
+              style={[styles.incompleteBadgeText, { color: theme.warning }]}
+            >
+              Incomplete
+            </ThemedText>
+          </View>
+        ) : null}
         {/* Primary/Revision toggle */}
         <Pressable
           style={[
@@ -255,6 +309,48 @@ export function JointImplantSection({
             }
           />
         </Pressable>
+      </View>
+
+      {!isComplete ? (
+        <View
+          style={[
+            styles.warningBanner,
+            {
+              backgroundColor: theme.warning + "12",
+              borderBottomColor: theme.border,
+            },
+          ]}
+        >
+          <Feather name="alert-triangle" size={14} color={theme.warning} />
+          <ThemedText
+            style={[styles.warningText, { color: theme.textSecondary }]}
+          >
+            Missing: {completionIssues.join(", ")}
+          </ThemedText>
+        </View>
+      ) : null}
+
+      <View style={[styles.metaRow, { borderBottomColor: theme.border }]}>
+        <View style={styles.metaItem}>
+          <ThemedText
+            style={[styles.metaLabel, { color: theme.textSecondary }]}
+          >
+            Joint
+          </ThemedText>
+          <ThemedText style={[styles.metaValue, { color: theme.text }]}>
+            {JOINT_TYPE_LABELS[value.jointType]}
+          </ThemedText>
+        </View>
+        <View style={styles.metaItem}>
+          <ThemedText
+            style={[styles.metaLabel, { color: theme.textSecondary }]}
+          >
+            Indication
+          </ThemedText>
+          <ThemedText style={[styles.metaValue, { color: theme.text }]}>
+            {INDICATION_LABELS[value.indication]}
+          </ThemedText>
+        </View>
       </View>
 
       {/* ── Layer 1: Implant System ──────────────────────────────── */}
@@ -564,6 +660,113 @@ export function JointImplantSection({
         </View>
       ) : null}
 
+      <View style={styles.section}>
+        <ThemedText
+          style={[styles.sectionLabel, { color: theme.textSecondary }]}
+        >
+          Laterality
+        </ThemedText>
+        <View style={styles.chipRow}>
+          {LATERALITY_OPTIONS.map((laterality) => {
+            const selected = value.laterality === laterality;
+            return (
+              <Pressable
+                key={laterality}
+                style={[
+                  styles.chip,
+                  {
+                    backgroundColor: selected
+                      ? theme.link + "15"
+                      : "transparent",
+                    borderColor: selected ? theme.link : theme.border,
+                  },
+                ]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  update({
+                    laterality: selected ? undefined : laterality,
+                  });
+                }}
+              >
+                <ThemedText
+                  style={[
+                    styles.chipText,
+                    { color: selected ? theme.link : theme.text },
+                  ]}
+                >
+                  {IMPLANT_LATERALITY_LABELS[laterality]}
+                </ThemedText>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      {jointType === "cmc1" ? (
+        <View style={styles.section}>
+          <ThemedText
+            style={[styles.sectionLabel, { color: theme.textSecondary }]}
+          >
+            Digit
+          </ThemedText>
+          <View
+            style={[
+              styles.derivedValue,
+              {
+                backgroundColor: theme.backgroundElevated,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <ThemedText
+              style={[styles.derivedValueText, { color: theme.text }]}
+            >
+              {IMPLANT_DIGIT_LABELS.I}
+            </ThemedText>
+          </View>
+        </View>
+      ) : (
+        <View style={styles.section}>
+          <ThemedText
+            style={[styles.sectionLabel, { color: theme.textSecondary }]}
+          >
+            Digit
+          </ThemedText>
+          <View style={styles.chipRow}>
+            {DIGIT_OPTIONS.map((digit) => {
+              const selected = value.digit === digit;
+              return (
+                <Pressable
+                  key={digit}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: selected
+                        ? theme.link + "15"
+                        : "transparent",
+                      borderColor: selected ? theme.link : theme.border,
+                    },
+                  ]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    update({ digit: selected ? undefined : digit });
+                  }}
+                >
+                  <ThemedText
+                    style={[
+                      styles.chipText,
+                      { color: selected ? theme.link : theme.text },
+                    ]}
+                  >
+                    {IMPLANT_DIGIT_LABELS[digit]}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      )}
+
       {/* ── Layer 1: Approach ────────────────────────────────────── */}
       <View style={styles.section}>
         <ThemedText
@@ -605,18 +808,6 @@ export function JointImplantSection({
             );
           })}
         </View>
-      </View>
-
-      {/* ── Indication badge ─────────────────────────────────────── */}
-      <View style={[styles.indicationRow, { borderTopColor: theme.border }]}>
-        <ThemedText
-          style={[styles.indicationLabel, { color: theme.textSecondary }]}
-        >
-          Indication
-        </ThemedText>
-        <ThemedText style={[styles.indicationValue, { color: theme.text }]}>
-          {INDICATION_LABELS[value.indication]}
-        </ThemedText>
       </View>
 
       {/* ── Layer 2: Technical Details ───────────────────────────── */}
@@ -976,6 +1167,16 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     flex: 1,
   },
+  incompleteBadge: {
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+  },
+  incompleteBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
   procedureTypeBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -988,6 +1189,39 @@ const styles = StyleSheet.create({
   procedureTypeText: {
     fontSize: 12,
     fontWeight: "600",
+  },
+  warningBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+  },
+  warningText: {
+    fontSize: 12,
+    flex: 1,
+  },
+  metaRow: {
+    flexDirection: "row",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    gap: Spacing.md,
+  },
+  metaItem: {
+    flex: 1,
+    gap: 2,
+  },
+  metaLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  metaValue: {
+    fontSize: 14,
+    fontWeight: "500",
   },
   section: {
     paddingHorizontal: Spacing.md,
@@ -1049,19 +1283,13 @@ const styles = StyleSheet.create({
   implantCategory: {
     fontSize: 12,
   },
-  indicationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderTopWidth: 1,
+  derivedValue: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
-  indicationLabel: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  indicationValue: {
+  derivedValueText: {
     fontSize: 14,
     fontWeight: "500",
   },

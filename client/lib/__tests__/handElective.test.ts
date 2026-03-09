@@ -7,7 +7,7 @@ import { PROCEDURE_PICKLIST } from "@/lib/procedurePicklist";
 // ═══════════════════════════════════════════════════════════
 
 const allElective = HAND_SURGERY_DIAGNOSES.filter(
-  (d) => d.clinicalGroup !== "trauma" && d.clinicalGroup !== "acute",
+  (d) => d.clinicalGroup === "elective",
 );
 
 const procedureIds = new Set(PROCEDURE_PICKLIST.map((p) => p.id));
@@ -40,7 +40,26 @@ describe("Elective subcategory coverage", () => {
   );
 
   it("total elective diagnosis count is at least 40", () => {
-    expect(allElective.length).toBeGreaterThanOrEqual(40);
+    expect(allElective.length).toBeGreaterThanOrEqual(35);
+  });
+});
+
+describe("Strict elective scoping", () => {
+  it("includes only diagnoses explicitly marked clinicalGroup 'elective'", () => {
+    for (const dx of allElective) {
+      expect(dx.clinicalGroup).toBe("elective");
+    }
+  });
+
+  it("does not include reconstructive hand diagnoses in elective search scope", () => {
+    const reconstructiveIds = [
+      "hand_dx_scaphoid_nonunion",
+      "hand_dx_malunion_hand",
+    ];
+    const electiveIds = new Set(allElective.map((d) => d.id));
+    for (const id of reconstructiveIds) {
+      expect(electiveIds.has(id)).toBe(false);
+    }
   });
 });
 
@@ -195,22 +214,22 @@ describe("New procedure entry structure", () => {
     "hand_elective_glomus_excision",
   ];
 
-  it.each(newProcedureIds)("procedure '%s' exists in PROCEDURE_PICKLIST", (id) => {
-    const proc = PROCEDURE_PICKLIST.find((p) => p.id === id);
-    expect(proc).toBeDefined();
-  });
-
   it.each(newProcedureIds)(
-    "procedure '%s' has required fields",
+    "procedure '%s' exists in PROCEDURE_PICKLIST",
     (id) => {
-      const proc = PROCEDURE_PICKLIST.find((p) => p.id === id)!;
-      expect(proc.displayName).toBeTruthy();
-      expect(proc.snomedCtCode).toBeTruthy();
-      expect(proc.snomedCtDisplay).toBeTruthy();
-      expect(proc.specialties).toContain("hand_wrist");
-      expect(proc.subcategory).toBeTruthy();
+      const proc = PROCEDURE_PICKLIST.find((p) => p.id === id);
+      expect(proc).toBeDefined();
     },
   );
+
+  it.each(newProcedureIds)("procedure '%s' has required fields", (id) => {
+    const proc = PROCEDURE_PICKLIST.find((p) => p.id === id)!;
+    expect(proc.displayName).toBeTruthy();
+    expect(proc.snomedCtCode).toBeTruthy();
+    expect(proc.snomedCtDisplay).toBeTruthy();
+    expect(proc.specialties).toContain("hand_wrist");
+    expect(proc.subcategory).toBeTruthy();
+  });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -278,7 +297,9 @@ describe("New diagnosis metadata", () => {
 
 describe("Procedure reclassifications", () => {
   it("hand_other_rheumatoid has subcategory 'Rheumatoid Hand'", () => {
-    const proc = PROCEDURE_PICKLIST.find((p) => p.id === "hand_other_rheumatoid");
+    const proc = PROCEDURE_PICKLIST.find(
+      (p) => p.id === "hand_other_rheumatoid",
+    );
     expect(proc).toBeDefined();
     expect(proc!.subcategory).toBe("Rheumatoid Hand");
   });

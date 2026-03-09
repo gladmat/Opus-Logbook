@@ -93,6 +93,11 @@ import {
   INDICATION_LABELS as IMPLANT_INDICATION_LABELS,
   REVISION_REASON_LABELS,
 } from "@/types/jointImplant";
+import {
+  IMPLANT_DIGIT_LABELS,
+  IMPLANT_LATERALITY_LABELS,
+  formatImplantSize,
+} from "@/lib/jointImplant";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 
 type RouteParams = RouteProp<RootStackParamList, "CaseDetail">;
@@ -929,7 +934,7 @@ export default function CaseDetailScreen() {
                           ) : null}
                         </View>
                       ) : null}
-                      {proc.implantDetails?.implantSystemId ? (
+                      {proc.implantDetails ? (
                         <View
                           style={[
                             styles.procedureClinicalDetails,
@@ -939,11 +944,13 @@ export default function CaseDetailScreen() {
                           <DetailRow
                             label="Implant"
                             value={
-                              IMPLANT_CATALOGUE[
-                                proc.implantDetails.implantSystemId
-                              ]?.displayName ??
-                              proc.implantDetails.implantSystemOther ??
-                              "Unknown"
+                              proc.implantDetails.implantSystemId
+                                ? (IMPLANT_CATALOGUE[
+                                    proc.implantDetails.implantSystemId
+                                  ]?.displayName ??
+                                  proc.implantDetails.implantSystemOther ??
+                                  "Unknown")
+                                : "Incomplete implant details"
                             }
                           />
                           <DetailRow
@@ -952,6 +959,24 @@ export default function CaseDetailScreen() {
                               JOINT_TYPE_LABELS[proc.implantDetails.jointType]
                             }
                           />
+                          {proc.implantDetails.laterality ? (
+                            <DetailRow
+                              label="Laterality"
+                              value={
+                                IMPLANT_LATERALITY_LABELS[
+                                  proc.implantDetails.laterality
+                                ]
+                              }
+                            />
+                          ) : null}
+                          {proc.implantDetails.digit ? (
+                            <DetailRow
+                              label="Digit"
+                              value={
+                                IMPLANT_DIGIT_LABELS[proc.implantDetails.digit]
+                              }
+                            />
+                          ) : null}
                           <DetailRow
                             label="Indication"
                             value={
@@ -960,15 +985,10 @@ export default function CaseDetailScreen() {
                               ]
                             }
                           />
-                          {proc.implantDetails.sizeUnified ? (
+                          {formatImplantSize(proc.implantDetails) ? (
                             <DetailRow
                               label="Size"
-                              value={proc.implantDetails.sizeUnified}
-                            />
-                          ) : proc.implantDetails.cupSize ? (
-                            <DetailRow
-                              label="Size"
-                              value={`Cup ${proc.implantDetails.cupSize} · Stem ${proc.implantDetails.stemSize ?? "—"}`}
+                              value={formatImplantSize(proc.implantDetails)}
                             />
                           ) : null}
                           {proc.implantDetails.approach ? (
@@ -1014,7 +1034,34 @@ export default function CaseDetailScreen() {
                                   }
                                 />
                               ) : null}
+                              {proc.implantDetails.componentsRevised?.length ? (
+                                <DetailRow
+                                  label="Components Revised"
+                                  value={proc.implantDetails.componentsRevised
+                                    .map((component) =>
+                                      component === "all"
+                                        ? "All"
+                                        : component.charAt(0).toUpperCase() +
+                                          component.slice(1),
+                                    )
+                                    .join(", ")}
+                                />
+                              ) : null}
                             </>
+                          ) : null}
+                          {proc.implantDetails.cementBrand ? (
+                            <DetailRow
+                              label="Cement Brand"
+                              value={proc.implantDetails.cementBrand}
+                            />
+                          ) : null}
+                          {proc.implantDetails.grommetsUsed !== undefined ? (
+                            <DetailRow
+                              label="Grommets"
+                              value={
+                                proc.implantDetails.grommetsUsed ? "Yes" : "No"
+                              }
+                            />
                           ) : null}
                           {proc.implantDetails.catalogueNumber ? (
                             <DetailRow

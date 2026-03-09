@@ -1,8 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  getApproachesForJoint,
-  generateImplantSummary,
-} from "@/types/jointImplant";
+import { getApproachesForJoint } from "@/types/jointImplant";
 import type { JointImplantDetails } from "@/types/jointImplant";
 import {
   IMPLANT_CATALOGUE,
@@ -11,6 +8,13 @@ import {
   PROCEDURE_TO_JOINT_TYPE,
 } from "@/data/implantCatalogue";
 import { PROCEDURE_PICKLIST } from "@/lib/procedurePicklist";
+import {
+  generateImplantSummary,
+  getDefaultImplantDetails,
+  getImplantBearingProcedures,
+  getImplantCompletionIssues,
+  isImplantDetailsComplete,
+} from "@/lib/jointImplant";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 1. Catalogue filtering by joint type
@@ -178,17 +182,14 @@ describe("Procedure mapping", () => {
 
 describe("Summary generation", () => {
   it("returns null when no implant selected", () => {
-    expect(generateImplantSummary(undefined, IMPLANT_CATALOGUE)).toBeNull();
+    expect(generateImplantSummary(undefined)).toBeNull();
     expect(
-      generateImplantSummary(
-        {
-          jointType: "cmc1",
-          indication: "oa",
-          procedureType: "primary",
-          implantSystemId: "",
-        },
-        IMPLANT_CATALOGUE,
-      ),
+      generateImplantSummary({
+        jointType: "cmc1",
+        indication: "oa",
+        procedureType: "primary",
+        implantSystemId: "",
+      }),
     ).toBeNull();
   });
 
@@ -198,14 +199,20 @@ describe("Summary generation", () => {
       indication: "oa",
       procedureType: "primary",
       implantSystemId: "cmc1_touch",
+      laterality: "left",
+      digit: "I",
       cupSize: "9mm",
       stemSize: "Size 3",
+      neckVariant: "Standard straight",
       approach: "dorsal",
     };
-    const summary = generateImplantSummary(details, IMPLANT_CATALOGUE);
+    const summary = generateImplantSummary(details);
     expect(summary).toContain("Touch (KeriMedical)");
+    expect(summary).toContain("Left");
+    expect(summary).toContain("Thumb");
     expect(summary).toContain("Cup 9mm");
     expect(summary).toContain("Stem Size 3");
+    expect(summary).toContain("Neck Standard straight");
     expect(summary).toContain("Dorsal");
   });
 
@@ -215,10 +222,12 @@ describe("Summary generation", () => {
       indication: "ra",
       procedureType: "primary",
       implantSystemId: "mcp_swanson",
+      digit: "III",
       sizeUnified: "4",
     };
-    const summary = generateImplantSummary(details, IMPLANT_CATALOGUE);
+    const summary = generateImplantSummary(details);
     expect(summary).toContain("Swanson");
+    expect(summary).toContain("Middle");
     expect(summary).toContain("Size 4");
   });
 
@@ -227,11 +236,13 @@ describe("Summary generation", () => {
       jointType: "pip",
       indication: "oa",
       procedureType: "primary",
-      implantSystemId: "unknown_id",
+      implantSystemId: "other",
       implantSystemOther: "Custom Implant X",
+      digit: "II",
     };
-    const summary = generateImplantSummary(details, IMPLANT_CATALOGUE);
-    expect(summary).toBe("Custom Implant X");
+    const summary = generateImplantSummary(details);
+    expect(summary).toContain("Custom Implant X");
+    expect(summary).toContain("Index");
   });
 });
 
@@ -270,7 +281,103 @@ describe("hasImplant flag", () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 7. Size config validity
+// 7. Implant helpers
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe("Implant helpers", () => {
+  it("defaults CMC1 digit to thumb and inherits diagnosis laterality", () => {
+    const details = getDefaultImplantDetails({
+      procedurePicklistId: "hand_joint_cmc1_prosthesis",
+      diagnosisLaterality: "left",
+      indication: "oa",
+    });
+    expect(details).toBeDefined();
+    expect(details?.digit).toBe("I");
+    expect(details?.laterality).toBe("left");
+  });
+
+  it("requires digit for PIP and MCP implants", () => {
+    const details: JointImplantDetails = {
+      jointType: "pip",
+      indication: "oa",
+      procedureType: "primary",
+      implantSystemId: "pip_swanson",
+      sizeUnified: "2",
+    };
+    expect(
+      isImplantDetailsComplete(details, "hand_joint_pip_arthroplasty"),
+    ).toBe(false);
+    expect(
+      getImplantCompletionIssues(details, "hand_joint_pip_arthroplasty"),
+    ).toContain("digit");
+  });
+
+  it("requires size when the selected implant exposes size options", () => {
+    const details: JointImplantDetails = {
+      jointType: "mcp",
+      indication: "ra",
+      procedureType: "primary",
+      implantSystemId: "mcp_swanson",
+      digit: "II",
+    };
+    expect(
+      isImplantDetailsComplete(details, "hand_joint_mcp_arthroplasty"),
+    ).toBe(false);
+    expect(
+      getImplantCompletionIssues(details, "hand_joint_mcp_arthroplasty"),
+    ).toContain("size");
+  });
+
+  it("marks a complete MCP implant record as complete", () => {
+    const details: JointImplantDetails = {
+      jointType: "mcp",
+      indication: "ra",
+      procedureType: "revision",
+      implantSystemId: "mcp_swanson",
+      digit: "III",
+      laterality: "right",
+      sizeUnified: "4",
+      fixation: "not_applicable",
+      bearingSurface: "silicone",
+    };
+    expect(
+      isImplantDetailsComplete(details, "hand_joint_mcp_arthroplasty"),
+    ).toBe(true);
+  });
+
+  it("returns implant-bearing procedures in input order", () => {
+    const procedures = [
+      {
+        id: "1",
+        sequenceOrder: 1,
+        procedureName: "CTR",
+        picklistEntryId: "hand_nerve_carpal_tunnel_open",
+        surgeonRole: "PS",
+      },
+      {
+        id: "2",
+        sequenceOrder: 2,
+        procedureName: "PIP arthroplasty",
+        picklistEntryId: "hand_joint_pip_arthroplasty",
+        surgeonRole: "PS",
+      },
+      {
+        id: "3",
+        sequenceOrder: 3,
+        procedureName: "MCP arthroplasty",
+        picklistEntryId: "hand_joint_mcp_arthroplasty",
+        surgeonRole: "PS",
+      },
+    ];
+
+    expect(
+      getImplantBearingProcedures(procedures as any).map((p) => p.id),
+    ).toEqual(["2", "3"]);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 8. Size config validity
 // ═══════════════════════════════════════════════════════════════════════════════
 
 describe("Size config validity", () => {
@@ -303,7 +410,7 @@ describe("Size config validity", () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 8. No duplicate catalogue IDs
+// 9. No duplicate catalogue IDs
 // ═══════════════════════════════════════════════════════════════════════════════
 
 describe("No duplicate catalogue IDs", () => {
@@ -321,7 +428,7 @@ describe("No duplicate catalogue IDs", () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 9. Auto-fill defaults
+// 10. Auto-fill defaults
 // ═══════════════════════════════════════════════════════════════════════════════
 
 describe("Auto-fill defaults", () => {

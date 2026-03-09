@@ -7,13 +7,10 @@ import {
   HAND_ANTIBIOTIC_LABELS,
   countKanavelSigns,
 } from "@/types/handInfection";
-import { IMPLANT_CATALOGUE } from "@/data/implantCatalogue";
 import {
-  FIXATION_LABELS,
-  APPROACH_LABELS,
-  BEARING_LABELS,
-  JOINT_TYPE_LABELS,
-} from "@/types/jointImplant";
+  getImplantBearingProcedures,
+  getImplantDisplayFields,
+} from "@/lib/jointImplant";
 
 export interface CsvExportOptions {
   includePatientId: boolean;
@@ -98,6 +95,39 @@ function formatStagingSelections(
     .join("|");
 }
 
+function getCaseImplantExportFields(c: Case) {
+  const implantProcedures = (c.diagnosisGroups ?? []).flatMap((group) =>
+    getImplantBearingProcedures(group.procedures ?? []),
+  );
+  if (implantProcedures.length === 0) {
+    return {
+      system: "",
+      size: "",
+      fixation: "",
+      approach: "",
+      bearing: "",
+      jointType: "",
+    };
+  }
+
+  const displayFields = implantProcedures.map((procedure) =>
+    getImplantDisplayFields(procedure.implantDetails),
+  );
+
+  return {
+    system: displayFields
+      .map((fields) => fields.system || "Incomplete")
+      .join("; "),
+    size: displayFields.map((fields) => fields.size || "-").join("; "),
+    fixation: displayFields.map((fields) => fields.fixation || "-").join("; "),
+    approach: displayFields.map((fields) => fields.approach || "-").join("; "),
+    bearing: displayFields.map((fields) => fields.bearing || "-").join("; "),
+    jointType: displayFields
+      .map((fields) => fields.jointType || "-")
+      .join("; "),
+  };
+}
+
 function caseToRow(c: Case, options: CsvExportOptions): string {
   const groups = c.diagnosisGroups || [];
   const primaryGroup = groups[0];
@@ -133,14 +163,7 @@ function caseToRow(c: Case, options: CsvExportOptions): string {
   // Hand infection data (from primary group)
   const handInfection = primaryGroup?.handInfectionDetails;
 
-  // Implant data (from first procedure with implant details)
-  const implantProc = (primaryGroup?.procedures ?? []).find(
-    (p) => p.implantDetails?.implantSystemId,
-  );
-  const implant = implantProc?.implantDetails;
-  const implantEntry = implant?.implantSystemId
-    ? IMPLANT_CATALOGUE[implant.implantSystemId]
-    : undefined;
+  const implantFields = getCaseImplantExportFields(c);
 
   const values: (string | number | boolean | undefined | null)[] = [
     c.id,
@@ -189,15 +212,12 @@ function caseToRow(c: Case, options: CsvExportOptions): string {
     handInfection?.kanavelSigns
       ? `${countKanavelSigns(handInfection.kanavelSigns)}/4`
       : "",
-    implantEntry?.displayName ?? implant?.implantSystemOther ?? "",
-    implant?.sizeUnified ??
-      (implant?.cupSize && implant?.stemSize
-        ? `Cup ${implant.cupSize} / Stem ${implant.stemSize}`
-        : ""),
-    implant?.fixation ? FIXATION_LABELS[implant.fixation] : "",
-    implant?.approach ? APPROACH_LABELS[implant.approach] : "",
-    implant?.bearingSurface ? BEARING_LABELS[implant.bearingSurface] : "",
-    implant?.jointType ? JOINT_TYPE_LABELS[implant.jointType] : "",
+    implantFields.system,
+    implantFields.size,
+    implantFields.fixation,
+    implantFields.approach,
+    implantFields.bearing,
+    implantFields.jointType,
   ];
 
   return values.map(escapeCsvField).join(",");

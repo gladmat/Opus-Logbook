@@ -4,7 +4,7 @@
  * Aligned with LROI, Norwegian Arthroplasty Registry, and HAKIR data models.
  */
 
-import type { ImplantCatalogueEntry } from "@/data/implantCatalogue";
+import type { DigitId, Laterality } from "./case";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CORE TYPE
@@ -15,6 +15,8 @@ export interface JointImplantDetails {
   jointType: ImplantJointType;
   indication: ImplantIndication;
   procedureType: "primary" | "revision";
+  laterality?: Laterality;
+  digit?: DigitId;
 
   // ── Implant identity (Layer 1) ────────────────────────────────────────
   implantSystemId: string; // Key into IMPLANT_CATALOGUE
@@ -191,31 +193,4 @@ export function getApproachesForJoint(
     case "mcp":
       return ["dorsal_longitudinal", "dorsal_transverse", "other"];
   }
-}
-
-export function generateImplantSummary(
-  details: JointImplantDetails | undefined,
-  catalogue: Record<string, ImplantCatalogueEntry>,
-): string | null {
-  if (!details?.implantSystemId) return null;
-
-  const implant = catalogue[details.implantSystemId];
-  if (!implant) return details.implantSystemOther ?? "Unknown implant";
-
-  const parts: string[] = [implant.displayName];
-
-  // Size
-  if (details.sizeUnified) parts.push(`Size ${details.sizeUnified}`);
-  if (details.cupSize && details.stemSize)
-    parts.push(`Cup ${details.cupSize} \u00B7 Stem ${details.stemSize}`);
-
-  // Approach
-  if (details.approach) parts.push(APPROACH_LABELS[details.approach]);
-
-  // Fixation (only if non-obvious)
-  if (details.fixation && details.fixation !== implant.defaultFixation) {
-    parts.push(FIXATION_LABELS[details.fixation]);
-  }
-
-  return parts.join(" \u00B7 ");
 }

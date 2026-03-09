@@ -90,6 +90,7 @@ export function ProcedureEntryCard({
       subcategory: undefined,
       snomedCtCode: undefined,
       snomedCtDisplay: undefined,
+      implantDetails: undefined,
     });
   };
 
@@ -205,6 +206,10 @@ export function ProcedureEntryCard({
       snomedCtCode: entry.snomedCtCode,
       snomedCtDisplay: entry.snomedCtDisplay,
       clinicalDetails,
+      implantDetails:
+        entry.hasImplant && entry.id === procedure.picklistEntryId
+          ? procedure.implantDetails
+          : undefined,
     });
   };
 
@@ -214,6 +219,7 @@ export function ProcedureEntryCard({
       procedureName: value,
       picklistEntryId: undefined,
       subcategory: undefined,
+      implantDetails: undefined,
     });
   };
 

@@ -23,6 +23,7 @@ import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
 import { Feather } from "@/components/FeatherIcon";
 import { useTheme } from "@/hooks/useTheme";
+import { SnomedSearchPicker } from "@/components/SnomedSearchPicker";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { HAND_SURGERY_DIAGNOSES } from "@/lib/diagnosisPicklists/handSurgeryDiagnoses";
 import type { DiagnosisPicklistEntry } from "@/types/diagnosis";
@@ -36,7 +37,11 @@ const ELECTIVE_SUBCATEGORIES: {
   icon: string;
   label: string;
 }[] = [
-  { key: "Compression Neuropathies", icon: "zap", label: "Compression Neuropathies" },
+  {
+    key: "Compression Neuropathies",
+    icon: "zap",
+    label: "Compression Neuropathies",
+  },
   { key: "Dupuytren's Disease", icon: "layers", label: "Dupuytren's Disease" },
   { key: "Joint & Degenerative", icon: "disc", label: "Joint & Degenerative" },
   { key: "Elective Tendon", icon: "link", label: "Elective Tendon" },
@@ -51,13 +56,19 @@ const ELECTIVE_SUBCATEGORIES: {
 
 interface HandElectivePickerProps {
   onSelect: (diagnosis: DiagnosisPicklistEntry) => void;
+  onSnomedSelect?: (
+    concept: { conceptId: string; term: string } | null,
+  ) => void;
 }
 
 // ═══════════════════════════════════════════════════════════════
 // Component
 // ═══════════════════════════════════════════════════════════════
 
-export function HandElectivePicker({ onSelect }: HandElectivePickerProps) {
+export function HandElectivePicker({
+  onSelect,
+  onSnomedSelect,
+}: HandElectivePickerProps) {
   const { theme } = useTheme();
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(
     null,
@@ -66,10 +77,7 @@ export function HandElectivePicker({ onSelect }: HandElectivePickerProps) {
 
   // All elective hand diagnoses (excludes trauma + acute)
   const allElective = useMemo(
-    () =>
-      HAND_SURGERY_DIAGNOSES.filter(
-        (d) => d.clinicalGroup !== "trauma" && d.clinicalGroup !== "acute",
-      ),
+    () => HAND_SURGERY_DIAGNOSES.filter((d) => d.clinicalGroup === "elective"),
     [],
   );
 
@@ -100,6 +108,8 @@ export function HandElectivePicker({ onSelect }: HandElectivePickerProps) {
     }
     return [];
   }, [searchQuery, selectedSubcategory, isSearching, allElective]);
+
+  const showNoSearchResults = isSearching && visibleDiagnoses.length === 0;
 
   const handleSubcategoryPress = useCallback((key: string) => {
     Haptics.selectionAsync();
@@ -214,10 +224,7 @@ export function HandElectivePicker({ onSelect }: HandElectivePickerProps) {
       {selectedSubcategory && !isSearching ? (
         <Pressable
           onPress={handleBack}
-          style={[
-            styles.backRow,
-            { borderBottomColor: theme.border },
-          ]}
+          style={[styles.backRow, { borderBottomColor: theme.border }]}
           testID="button-elective-back"
         >
           <Feather name="arrow-left" size={16} color={theme.link} />
@@ -251,10 +258,7 @@ export function HandElectivePicker({ onSelect }: HandElectivePickerProps) {
                 </ThemedText>
                 {isSearching ? (
                   <ThemedText
-                    style={[
-                      styles.subcatLabel,
-                      { color: theme.textTertiary },
-                    ]}
+                    style={[styles.subcatLabel, { color: theme.textTertiary }]}
                   >
                     {dx.subcategory}
                   </ThemedText>
@@ -267,10 +271,7 @@ export function HandElectivePicker({ onSelect }: HandElectivePickerProps) {
                     ]}
                   >
                     <ThemedText
-                      style={[
-                        styles.stagingBadgeText,
-                        { color: theme.link },
-                      ]}
+                      style={[styles.stagingBadgeText, { color: theme.link }]}
                     >
                       Has staging
                     </ThemedText>
@@ -285,12 +286,56 @@ export function HandElectivePicker({ onSelect }: HandElectivePickerProps) {
             </Pressable>
           ))}
         </View>
-      ) : isSearching ? (
-        <ThemedText
-          style={[styles.emptyText, { color: theme.textSecondary }]}
+      ) : showNoSearchResults ? (
+        <View
+          style={[
+            styles.emptyState,
+            {
+              backgroundColor: theme.backgroundSecondary,
+              borderColor: theme.border,
+            },
+          ]}
         >
-          No matching diagnoses found
-        </ThemedText>
+          <Feather name="inbox" size={18} color={theme.textTertiary} />
+          <ThemedText style={[styles.emptyTitle, { color: theme.text }]}>
+            No curated elective diagnoses matched
+          </ThemedText>
+          <ThemedText
+            style={[styles.emptyText, { color: theme.textSecondary }]}
+          >
+            Search SNOMED CT below if this elective diagnosis is not yet in the
+            curated hand catalogue.
+          </ThemedText>
+        </View>
+      ) : null}
+
+      {onSnomedSelect ? (
+        <View
+          style={[
+            styles.fallbackSection,
+            {
+              backgroundColor: theme.backgroundSecondary,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <ThemedText style={[styles.fallbackTitle, { color: theme.text }]}>
+            SNOMED CT fallback
+          </ThemedText>
+          <ThemedText
+            style={[styles.fallbackBody, { color: theme.textSecondary }]}
+          >
+            Use this when the elective hand picker does not contain the
+            diagnosis you need.
+          </ThemedText>
+          <SnomedSearchPicker
+            label="Search diagnosis"
+            onSelect={onSnomedSelect}
+            searchType="diagnosis"
+            specialty="hand_wrist"
+            placeholder="Search SNOMED CT diagnoses..."
+          />
+        </View>
       ) : null}
     </View>
   );
@@ -388,9 +433,36 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
   },
-  emptyText: {
+  emptyState: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    alignItems: "center",
+    gap: Spacing.xs,
+  },
+  emptyTitle: {
     fontSize: 14,
+    fontWeight: "600",
+  },
+  emptyText: {
+    fontSize: 13,
     textAlign: "center",
-    paddingVertical: Spacing.lg,
+    lineHeight: 18,
+  },
+  fallbackSection: {
+    marginTop: Spacing.md,
+    borderWidth: 1,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+  },
+  fallbackTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: Spacing.xs,
+  },
+  fallbackBody: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: Spacing.md,
   },
 });

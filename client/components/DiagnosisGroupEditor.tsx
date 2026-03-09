@@ -58,7 +58,6 @@ import type { DiagnosisPicklistEntry } from "@/types/diagnosis";
 import {
   findPicklistEntry,
   PICKLIST_TO_FLAP_TYPE,
-  PROCEDURE_PICKLIST,
 } from "@/lib/procedurePicklist";
 import {
   DIAGNOSIS_TO_RECIPIENT_SITE,
@@ -99,6 +98,11 @@ import {
 } from "@/types/handInfection";
 import { handInfectionToOverlay } from "@/lib/handInfectionBridge";
 import {
+  getImplantBearingProcedures,
+  isImplantDetailsComplete,
+  procedureHasImplant,
+} from "@/lib/jointImplant";
+import {
   getModuleVisibility,
   procedureHasFreeFlap,
 } from "@/lib/moduleVisibility";
@@ -112,7 +116,10 @@ import { SkinCancerAssessment } from "@/components/skin-cancer/SkinCancerAssessm
 import { AcuteHandAssessment } from "@/components/acute-hand/AcuteHandAssessment";
 import { HandElectivePicker } from "@/components/hand-elective/HandElectivePicker";
 import { JointImplantSection } from "@/components/joint-implant/JointImplantSection";
-import type { SkinCancerLesionAssessment, LesionPhoto } from "@/types/skinCancer";
+import type {
+  SkinCancerLesionAssessment,
+  LesionPhoto,
+} from "@/types/skinCancer";
 import { generateFlapOutcomeSummary } from "@/components/FlapOutcomeSection";
 import { withDefaultFlapOutcome } from "@/lib/flapOutcomeDefaults";
 import {
@@ -489,9 +496,7 @@ export function DiagnosisGroupEditor({
   useEffect(() => {
     if (!initializedRef.current) return;
     onChangeRef.current(buildCurrentDiagnosisGroup());
-  }, [
-    buildCurrentDiagnosisGroup,
-  ]);
+  }, [buildCurrentDiagnosisGroup]);
 
   const buildDefaultProcedures = useCallback(
     (): CaseProcedure[] => [
@@ -698,6 +703,27 @@ export function DiagnosisGroupEditor({
       }
     },
     [groupSpecialty, buildDefaultProcedures, buildFreeFlapClinicalDetails],
+  );
+
+  const handleElectiveSnomedSelect = useCallback(
+    (result: { conceptId: string; term: string } | null) => {
+      if (!result) return;
+
+      setSelectedDiagnosis(null);
+      setPrimaryDiagnosis(result);
+      setDiagnosis(result.term);
+      setDiagnosisStaging(null);
+      setStagingValues({});
+      setSelectedSuggestionIds(new Set());
+      setIsDiagnosisPickerCollapsed(true);
+      setShowAllProcedures(false);
+      setHandCaseType("elective");
+      setHandInfectionDetails(undefined);
+      setAcuteProceduresAccepted(false);
+      setShowAcuteFullProcedurePicker(false);
+      setProcedures(buildDefaultProcedures());
+    },
+    [buildDefaultProcedures],
   );
 
   const handleStagingChangeForSuggestions = useCallback(
@@ -925,6 +951,23 @@ export function DiagnosisGroupEditor({
     [procedures],
   );
 
+  const implantBearingProcedures = useMemo(
+    () => getImplantBearingProcedures(procedures),
+    [procedures],
+  );
+
+  const hasIncompleteImplantDetails = useMemo(
+    () =>
+      implantBearingProcedures.some(
+        (procedure) =>
+          !isImplantDetailsComplete(
+            procedure.implantDetails,
+            procedure.picklistEntryId,
+          ),
+      ),
+    [implantBearingProcedures],
+  );
+
   const activeFlapSheetProcedure = useMemo(
     () =>
       activeFlapSheetProcedureId
@@ -1067,7 +1110,11 @@ export function DiagnosisGroupEditor({
       isSkinCancerInlineFlow ||
       shouldActivateSkinCancerModule(selectedDiagnosis) ||
       moduleVisibility.skinCancerAssessment,
-    [isSkinCancerInlineFlow, selectedDiagnosis, moduleVisibility.skinCancerAssessment],
+    [
+      isSkinCancerInlineFlow,
+      selectedDiagnosis,
+      moduleVisibility.skinCancerAssessment,
+    ],
   );
 
   // Skin cancer procedure suggestions (assessment-driven, not diagnosis-driven)
@@ -1083,11 +1130,7 @@ export function DiagnosisGroupEditor({
         return entry ? { id, displayName: entry.displayName } : null;
       })
       .filter((s): s is { id: string; displayName: string } => s !== null);
-  }, [
-    isSkinCancerModule,
-    skinCancerAssessment,
-    lesionInstances,
-  ]);
+  }, [isSkinCancerModule, skinCancerAssessment, lesionInstances]);
 
   // Skin cancer sequential disclosure: hide procedure section until diagnosis selected
   const skinCancerHasDiagnosis =
@@ -1168,10 +1211,12 @@ export function DiagnosisGroupEditor({
 
   const openTraumaProcedureEditor = useCallback(() => {
     setProcedures((prev) =>
-      pruneDisposableTraumaPlaceholderProcedures(prev).map((procedure, idx) => ({
-        ...procedure,
-        sequenceOrder: idx + 1,
-      })),
+      pruneDisposableTraumaPlaceholderProcedures(prev).map(
+        (procedure, idx) => ({
+          ...procedure,
+          sequenceOrder: idx + 1,
+        }),
+      ),
     );
     setShowManualTraumaProcedureEditor(true);
     setShowAllProcedures(true);
@@ -1183,8 +1228,11 @@ export function DiagnosisGroupEditor({
   }, []);
 
   const updateProcedure = (updated: CaseProcedure) => {
+    const sanitized = procedureHasImplant(updated)
+      ? updated
+      : { ...updated, implantDetails: undefined };
     setProcedures((prev) =>
-      prev.map((p) => (p.id === updated.id ? updated : p)),
+      prev.map((p) => (p.id === sanitized.id ? sanitized : p)),
     );
   };
 
@@ -1645,7 +1693,10 @@ export function DiagnosisGroupEditor({
         setIsDiagnosisFromTrauma(true);
         setTraumaSourceLabel(mappingResult.summaryDiagnosisDisplay);
       }
-      applyTraumaProcedureSelection(mappingResult, selectedSuggestedProcedureIds);
+      applyTraumaProcedureSelection(
+        mappingResult,
+        selectedSuggestedProcedureIds,
+      );
 
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     },
@@ -1653,7 +1704,10 @@ export function DiagnosisGroupEditor({
   );
 
   const handleTraumaProcedureReview = useCallback(
-    ({ mappingResult, selectedProcedureIds }: HandTraumaAssessmentAcceptPayload) => {
+    ({
+      mappingResult,
+      selectedProcedureIds,
+    }: HandTraumaAssessmentAcceptPayload) => {
       if (mappingResult) {
         applyTraumaProcedureSelection(mappingResult, selectedProcedureIds);
       }
@@ -1768,8 +1822,7 @@ export function DiagnosisGroupEditor({
                   marginTop: 2,
                 }}
               >
-                {currentGroupTitle} ·{" "}
-                {procedures.length} procedure
+                {currentGroupTitle} · {procedures.length} procedure
                 {procedures.length !== 1 ? "s" : ""}
               </ThemedText>
             </View>
@@ -2096,7 +2149,12 @@ export function DiagnosisGroupEditor({
             onDiagnosisClear={clearDiagnosis}
             handInfectionDetails={handInfectionDetails}
             onHandInfectionChange={setHandInfectionDetails}
-            laterality={diagnosisClinicalDetails.laterality as "left" | "right" | undefined}
+            laterality={
+              diagnosisClinicalDetails.laterality as
+                | "left"
+                | "right"
+                | undefined
+            }
             infectionOverlay={infectionOverlay}
             onInfectionChange={onInfectionChange}
             onShowInfectionSheet={() => setShowInfectionSheet(true)}
@@ -2148,9 +2206,24 @@ export function DiagnosisGroupEditor({
 
             {/* Feature 1: collapsed card OR full picker */}
             {hasDiagnosisPicklist(groupSpecialty) ? (
-              isDiagnosisPickerCollapsed && selectedDiagnosis ? (
+              isDiagnosisPickerCollapsed &&
+              (selectedDiagnosis ||
+                (groupSpecialty === "hand_wrist" &&
+                  handCaseType === "elective" &&
+                  primaryDiagnosis)) ? (
                 <SelectedDiagnosisCard
-                  diagnosis={selectedDiagnosis}
+                  diagnosis={
+                    selectedDiagnosis ??
+                    (primaryDiagnosis
+                      ? {
+                          displayName: primaryDiagnosis.term,
+                          snomedCtCode: primaryDiagnosis.conceptId,
+                        }
+                      : {
+                          displayName: "",
+                          snomedCtCode: "",
+                        })
+                  }
                   onClear={clearDiagnosis}
                   sourceLabel={
                     isDiagnosisFromAO
@@ -2160,8 +2233,12 @@ export function DiagnosisGroupEditor({
                         : undefined
                   }
                 />
-              ) : groupSpecialty === "hand_wrist" && handCaseType === "elective" ? (
-                <HandElectivePicker onSelect={handleDiagnosisSelect} />
+              ) : groupSpecialty === "hand_wrist" &&
+                handCaseType === "elective" ? (
+                <HandElectivePicker
+                  onSelect={handleDiagnosisSelect}
+                  onSnomedSelect={handleElectiveSnomedSelect}
+                />
               ) : (
                 <DiagnosisPicker
                   specialty={groupSpecialty}
@@ -2232,7 +2309,10 @@ export function DiagnosisGroupEditor({
               >
                 <Feather name="zap" size={16} color={theme.link} />
                 <ThemedText
-                  style={[styles.suggestionText, { color: theme.textSecondary }]}
+                  style={[
+                    styles.suggestionText,
+                    { color: theme.textSecondary },
+                  ]}
                 >
                   Auto-suggested from AO code
                 </ThemedText>
@@ -2315,7 +2395,9 @@ export function DiagnosisGroupEditor({
                             Haptics.ImpactFeedbackStyle.Light,
                           );
                           setClinicalSuspicion(
-                            isSelected ? undefined : (value as ClinicalSuspicion),
+                            isSelected
+                              ? undefined
+                              : (value as ClinicalSuspicion),
                           );
                         }}
                       >
@@ -2403,7 +2485,9 @@ export function DiagnosisGroupEditor({
         ) : null}
 
         {/* Visual connector between diagnosis and procedures */}
-        {hasSelectedHandCaseType && showTraumaDiagnosisEditor && !isAcuteHandFlow ? (
+        {hasSelectedHandCaseType &&
+        showTraumaDiagnosisEditor &&
+        !isAcuteHandFlow ? (
           <View style={styles.connector}>
             <Feather name="arrow-down" size={16} color={theme.textTertiary} />
           </View>
@@ -2436,11 +2520,15 @@ export function DiagnosisGroupEditor({
             <View style={styles.traumaProcedureSummaryHeader}>
               <Feather name="check-circle" size={16} color={theme.success} />
               <ThemedText
-                style={[styles.traumaProcedureSummaryTitle, { color: theme.text }]}
+                style={[
+                  styles.traumaProcedureSummaryTitle,
+                  { color: theme.text },
+                ]}
               >
                 {procedures.filter((proc) => proc.procedureName.trim()).length}{" "}
                 mapped procedure
-                {procedures.filter((proc) => proc.procedureName.trim()).length !== 1
+                {procedures.filter((proc) => proc.procedureName.trim())
+                  .length !== 1
                   ? "s"
                   : ""}
               </ThemedText>
@@ -2501,7 +2589,10 @@ export function DiagnosisGroupEditor({
           </View>
         ) : null}
 
-        {hasSelectedHandCaseType && skinCancerHasDiagnosis && acuteHandAllowsProcedures && !showTraumaProcedureSummary ? (
+        {hasSelectedHandCaseType &&
+        skinCancerHasDiagnosis &&
+        acuteHandAllowsProcedures &&
+        !showTraumaProcedureSummary ? (
           <>
             {isInlineHandTraumaFlow && showManualTraumaProcedureEditor ? (
               <Pressable
@@ -2522,8 +2613,8 @@ export function DiagnosisGroupEditor({
 
             {!isSkinCancerInlineFlow &&
             (selectedDiagnosis?.hasEnhancedHistology ||
-            groupSpecialty === "general" ||
-            groupSpecialty === "head_neck") ? (
+              groupSpecialty === "general" ||
+              groupSpecialty === "head_neck") ? (
               <View style={{ marginBottom: Spacing.md }}>
                 <Pressable
                   onPress={() => {
@@ -2590,28 +2681,42 @@ export function DiagnosisGroupEditor({
               <MultiLesionEditor
                 lesions={lesionInstances}
                 onChange={setLesionInstances}
-                defaultPathologyType={deriveDefaultPathologyType(selectedDiagnosis)}
+                defaultPathologyType={deriveDefaultPathologyType(
+                  selectedDiagnosis,
+                )}
                 isSkinCancer={isSkinCancerModule}
                 diagnosisId={selectedDiagnosis?.id}
               />
             ) : !isMultiLesion ? (
               (() => {
                 // Feature 2: procedure filtering
-                const hasSkinCancerSuggestions = skinCancerSuggestions.length > 0;
+                const hasSkinCancerSuggestions =
+                  skinCancerSuggestions.length > 0;
                 const hasSuggestedProcedures =
                   (showDefaultProcedureSuggestions &&
-                    (selectedDiagnosis?.suggestedProcedures?.length ?? 0) > 0) ||
+                    (selectedDiagnosis?.suggestedProcedures?.length ?? 0) >
+                      0) ||
                   hasSkinCancerSuggestions;
-                const showFiltered = hasSuggestedProcedures && !showAllProcedures;
+                const showFiltered =
+                  hasSuggestedProcedures && !showAllProcedures;
 
                 return (
                   <>
                     {hasSkinCancerSuggestions ? (
                       <View style={{ marginTop: Spacing.md }}>
-                        <ThemedText type="h4" style={{ marginBottom: Spacing.sm }}>
+                        <ThemedText
+                          type="h4"
+                          style={{ marginBottom: Spacing.sm }}
+                        >
                           Suggested Procedures
                         </ThemedText>
-                        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm }}>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            flexWrap: "wrap",
+                            gap: Spacing.sm,
+                          }}
+                        >
                           {skinCancerSuggestions.map((s) => {
                             const isSelected = selectedSuggestionIds.has(s.id);
                             return (
@@ -2635,20 +2740,29 @@ export function DiagnosisGroupEditor({
                                   },
                                 ]}
                                 onPress={() => {
-                                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                                  handleToggleProcedureSuggestion(s.id, !isSelected);
+                                  Haptics.impactAsync(
+                                    Haptics.ImpactFeedbackStyle.Light,
+                                  );
+                                  handleToggleProcedureSuggestion(
+                                    s.id,
+                                    !isSelected,
+                                  );
                                 }}
                               >
                                 <Feather
                                   name={isSelected ? "check-circle" : "circle"}
                                   size={16}
-                                  color={isSelected ? theme.buttonText : theme.link}
+                                  color={
+                                    isSelected ? theme.buttonText : theme.link
+                                  }
                                   style={{ marginRight: Spacing.xs }}
                                 />
                                 <ThemedText
                                   type="small"
                                   style={{
-                                    color: isSelected ? theme.buttonText : theme.text,
+                                    color: isSelected
+                                      ? theme.buttonText
+                                      : theme.text,
                                     flexShrink: 1,
                                   }}
                                 >
@@ -2674,7 +2788,11 @@ export function DiagnosisGroupEditor({
                         onPress={() => setShowAllProcedures(true)}
                         testID="button-show-all-procedures"
                       >
-                        <Feather name="chevron-down" size={16} color={theme.link} />
+                        <Feather
+                          name="chevron-down"
+                          size={16}
+                          color={theme.link}
+                        />
                         <ThemedText
                           style={[
                             styles.showAllProceduresText,
@@ -2709,58 +2827,81 @@ export function DiagnosisGroupEditor({
                         ) : null}
 
                         {procedures.map((proc, idx) => (
-                          <ProcedureEntryCard
-                            key={proc.id}
-                            procedure={proc}
-                            index={idx}
-                            isOnlyProcedure={procedures.length === 1}
-                            onUpdate={updateProcedure}
-                            onDelete={() => removeProcedure(proc.id)}
-                            onMoveUp={() => moveProcedureUp(proc.id)}
-                            onMoveDown={() => moveProcedureDown(proc.id)}
-                            canMoveUp={idx > 0}
-                            canMoveDown={idx < procedures.length - 1}
-                            diagnosisId={selectedDiagnosis?.id}
-                            clinicalGroup={selectedDiagnosis?.clinicalGroup}
-                            diagnosisLaterality={
-                              diagnosisClinicalDetails.laterality
-                            }
-                          />
-                        ))}
-
-                        {/* Joint implant section — auto-appears for arthroplasty procedures */}
-                        {(() => {
-                          const implantProc = procedures.find((p) => {
-                            const entry = p.picklistEntryId
-                              ? PROCEDURE_PICKLIST.find(
-                                  (pe) => pe.id === p.picklistEntryId,
-                                )
-                              : undefined;
-                            return entry?.hasImplant;
-                          });
-                          if (!implantProc?.picklistEntryId) return null;
-                          return (
-                            <JointImplantSection
-                              procedurePicklistId={implantProc.picklistEntryId}
+                          <React.Fragment key={proc.id}>
+                            <ProcedureEntryCard
+                              procedure={proc}
+                              index={idx}
+                              isOnlyProcedure={procedures.length === 1}
+                              onUpdate={updateProcedure}
+                              onDelete={() => removeProcedure(proc.id)}
+                              onMoveUp={() => moveProcedureUp(proc.id)}
+                              onMoveDown={() => moveProcedureDown(proc.id)}
+                              canMoveUp={idx > 0}
+                              canMoveDown={idx < procedures.length - 1}
                               diagnosisId={selectedDiagnosis?.id}
-                              value={implantProc.implantDetails}
-                              onChange={(details) =>
-                                updateProcedure({
-                                  ...implantProc,
-                                  implantDetails: details,
-                                })
+                              clinicalGroup={selectedDiagnosis?.clinicalGroup}
+                              diagnosisLaterality={
+                                diagnosisClinicalDetails.laterality
                               }
                             />
-                          );
-                        })()}
+                            {proc.picklistEntryId &&
+                            procedureHasImplant(proc) ? (
+                              <JointImplantSection
+                                procedurePicklistId={proc.picklistEntryId}
+                                diagnosisId={selectedDiagnosis?.id}
+                                diagnosisLaterality={
+                                  diagnosisClinicalDetails.laterality
+                                }
+                                value={proc.implantDetails}
+                                onChange={(details) =>
+                                  updateProcedure({
+                                    ...proc,
+                                    implantDetails: details,
+                                  })
+                                }
+                              />
+                            ) : null}
+                          </React.Fragment>
+                        ))}
+
+                        {hasIncompleteImplantDetails ? (
+                          <View
+                            style={[
+                              styles.suggestionBanner,
+                              { backgroundColor: theme.warning + "12" },
+                            ]}
+                          >
+                            <Feather
+                              name="alert-triangle"
+                              size={16}
+                              color={theme.warning}
+                            />
+                            <ThemedText
+                              style={[
+                                styles.suggestionText,
+                                { color: theme.textSecondary },
+                              ]}
+                            >
+                              One or more implant procedures are missing
+                              registry details. Saving is allowed, but the case
+                              will remain incomplete for implant reporting.
+                            </ThemedText>
+                          </View>
+                        ) : null}
 
                         <Pressable
-                          style={[styles.addButton, { borderColor: theme.link }]}
+                          style={[
+                            styles.addButton,
+                            { borderColor: theme.link },
+                          ]}
                           onPress={addProcedure}
                         >
                           <Feather name="plus" size={18} color={theme.link} />
                           <ThemedText
-                            style={[styles.addButtonText, { color: theme.link }]}
+                            style={[
+                              styles.addButtonText,
+                              { color: theme.link },
+                            ]}
                           >
                             Add Another Procedure
                           </ThemedText>

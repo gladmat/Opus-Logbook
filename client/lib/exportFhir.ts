@@ -25,6 +25,10 @@ import {
 } from "@/types/episode";
 import { IMPLANT_CATALOGUE } from "@/data/implantCatalogue";
 import { JOINT_TYPE_LABELS } from "@/types/jointImplant";
+import {
+  IMPLANT_DIGIT_LABELS,
+  IMPLANT_LATERALITY_LABELS,
+} from "@/lib/jointImplant";
 
 // ─── FHIR R4 Type Stubs ───────────────────────────────────────────────────
 
@@ -341,14 +345,27 @@ function buildProcedure(
     ],
   };
 
-  // bodySite with laterality qualifier
-  const laterality = group.diagnosisClinicalDetails?.laterality as
-    | Laterality
-    | undefined;
+  // bodySite with implant-aware laterality and digit context
+  const laterality = (proc.implantDetails?.laterality ??
+    group.diagnosisClinicalDetails?.laterality) as Laterality | undefined;
+  const digit = proc.implantDetails?.digit;
   if (laterality && LATERALITY_SNOMED[laterality]) {
     procedure.bodySite = [
       {
         coding: [LATERALITY_SNOMED[laterality]],
+        ...(digit
+          ? {
+              text: `${IMPLANT_DIGIT_LABELS[digit]}${
+                proc.implantDetails?.jointType === "cmc1" ? " CMC1" : ""
+              }`,
+            }
+          : {}),
+      },
+    ];
+  } else if (digit) {
+    procedure.bodySite = [
+      {
+        text: IMPLANT_DIGIT_LABELS[digit],
       },
     ];
   }
@@ -385,17 +402,39 @@ function buildDevice(proc: CaseProcedure): FhirResource | undefined {
   if (implant.catalogueNumber) {
     device.modelNumber = implant.catalogueNumber;
   }
+  const properties: Array<Record<string, unknown>> = [];
   if (implant.jointType) {
-    device.property = [
-      {
-        type: { text: "jointType" },
-        valueCode: [
-          {
-            text: JOINT_TYPE_LABELS[implant.jointType],
-          },
-        ],
-      },
-    ];
+    properties.push({
+      type: { text: "jointType" },
+      valueCode: [
+        {
+          text: JOINT_TYPE_LABELS[implant.jointType],
+        },
+      ],
+    });
+  }
+  if (implant.digit) {
+    properties.push({
+      type: { text: "digit" },
+      valueCode: [
+        {
+          text: IMPLANT_DIGIT_LABELS[implant.digit],
+        },
+      ],
+    });
+  }
+  if (implant.laterality) {
+    properties.push({
+      type: { text: "laterality" },
+      valueCode: [
+        {
+          text: IMPLANT_LATERALITY_LABELS[implant.laterality],
+        },
+      ],
+    });
+  }
+  if (properties.length > 0) {
+    device.property = properties;
   }
 
   return device;

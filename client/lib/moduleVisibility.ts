@@ -6,10 +6,8 @@
 import type { DiagnosisGroup } from "@/types/case";
 import type { InfectionOverlay } from "@/types/infection";
 import type { EpisodeType } from "@/types/episode";
-import {
-  PICKLIST_TO_FLAP_TYPE,
-  PROCEDURE_PICKLIST,
-} from "@/lib/procedurePicklist";
+import { procedureHasImplant } from "@/lib/jointImplant";
+import { PICKLIST_TO_FLAP_TYPE } from "@/lib/procedurePicklist";
 import { shouldActivateSkinCancerModuleForSnomed } from "@/lib/skinCancerConfig";
 
 export interface ModuleVisibility {
@@ -37,19 +35,6 @@ export function procedureHasFreeFlap(proc: {
     return true;
   }
   return proc.tags?.includes("free_flap") ?? false;
-}
-
-/**
- * Check if a single procedure is a joint implant (arthroplasty) procedure.
- */
-export function procedureHasImplant(proc: {
-  picklistEntryId?: string;
-}): boolean {
-  if (!proc.picklistEntryId) return false;
-  const entry = PROCEDURE_PICKLIST.find(
-    (p) => p.id === proc.picklistEntryId,
-  );
-  return entry?.hasImplant ?? false;
 }
 
 /**
@@ -118,9 +103,7 @@ export function getModuleVisibility(
     group.handInfectionDetails?.escalatedToFullModule === true;
   const infection =
     isFirstInfectionGroup !== false &&
-    (hasInfectionDiagnosis ||
-      !!infectionOverlay ||
-      hasEscalatedHandInfection);
+    (hasInfectionDiagnosis || !!infectionOverlay || hasEscalatedHandInfection);
 
   // Wound Assessment: procedure has complex_wound tag, or episode is wound/burns type,
   // or wound data already exists on the group (re-editing)
@@ -139,7 +122,8 @@ export function getModuleVisibility(
     shouldActivateSkinCancerModuleForSnomed(
       group.diagnosis?.snomedCtCode,
       group.diagnosis?.displayName,
-    ) || !!group.skinCancerAssessment;
+    ) ||
+    !!group.skinCancerAssessment;
 
   // Joint Implant: any procedure with hasImplant flag (arthroplasty procedures)
   const implant = procedures.some(procedureHasImplant);
