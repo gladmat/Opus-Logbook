@@ -18,6 +18,8 @@ import {
 } from "@/types/infection";
 import type { WoundAssessment } from "@/types/wound";
 import { WOUND_BED_TISSUE_LABELS, HEALING_TREND_LABELS } from "@/types/wound";
+import type { HandInfectionDetails } from "@/types/handInfection";
+import { generateHandInfectionSummary as _generateHandInfectionSummary } from "@/types/handInfection";
 
 /**
  * Flap Details summary — e.g. "DIEP, Left, ischaemia 42 min"
@@ -209,6 +211,16 @@ export function generateInfectionSummary(
   }
 
   return parts.join(", ");
+}
+
+/**
+ * Hand Infection summary — e.g. "Tendon sheath · Index · Kanavel 3/4 · Spreading"
+ * Re-exports from types/handInfection for co-location with other module summaries.
+ */
+export function generateHandInfectionModuleSummary(
+  details: HandInfectionDetails | undefined,
+): string | null {
+  return _generateHandInfectionSummary(details);
 }
 
 /**

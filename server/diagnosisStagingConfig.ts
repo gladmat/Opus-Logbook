@@ -654,6 +654,50 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
       },
     ],
   },
+  // Septic Flexor Tenosynovitis — Kanavel Signs
+  {
+    snomedCtCodes: ["18165001"],
+    keywords: [
+      "flexor sheath infection",
+      "septic tenosynovitis",
+      "Kanavel",
+      "pyogenic tenosynovitis",
+    ],
+    stagingSystems: [
+      {
+        name: "Kanavel Signs",
+        description:
+          "Cardinal signs of pyogenic flexor tenosynovitis",
+        options: [
+          {
+            value: "0",
+            label: "0/4",
+            description: "No Kanavel signs",
+          },
+          {
+            value: "1",
+            label: "1/4",
+            description: "One sign present",
+          },
+          {
+            value: "2",
+            label: "2/4",
+            description: "Two signs present",
+          },
+          {
+            value: "3",
+            label: "3/4",
+            description: "Three signs present",
+          },
+          {
+            value: "4",
+            label: "4/4",
+            description: "All four signs present",
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 /**

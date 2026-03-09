@@ -224,6 +224,7 @@ export type ProcedureTag =
   | "tendon_repair"
   | "oncological"
   | "trauma"
+  | "acute"
   | "elective"
   | "revision"
   | "complex_wound";
@@ -1600,7 +1601,7 @@ export interface DiagnosisGroup {
   diagnosisPicklistId?: string;
   diagnosisStagingSelections?: Record<string, string>;
   diagnosisClinicalDetails?: DiagnosisClinicalDetails;
-  procedureSuggestionSource?: "picklist" | "skinCancer" | "manual";
+  procedureSuggestionSource?: "picklist" | "skinCancer" | "acuteHand" | "manual";
   pathologicalDiagnosis?: Diagnosis;
   fractures?: FractureEntry[];
   procedures: CaseProcedure[];
@@ -1616,6 +1617,8 @@ export interface DiagnosisGroup {
   skinCancerAssessment?: SkinCancerLesionAssessment;
   /** General histology result for non-skin-cancer cases (enchondroma, neuroma, etc.) */
   histologyResult?: GeneralHistologyResult;
+  /** Hand infection inline assessment data (acute hand cases) */
+  handInfectionDetails?: import("./handInfection").HandInfectionDetails;
 }
 
 export type GeneralHistologyCategory =
@@ -1970,6 +1973,7 @@ export const PROCEDURE_TAG_LABELS: Record<ProcedureTag, string> = {
   tendon_repair: "Tendon Repair",
   oncological: "Oncological",
   trauma: "Trauma",
+  acute: "Acute",
   elective: "Elective",
   revision: "Revision",
   complex_wound: "Complex Wound",

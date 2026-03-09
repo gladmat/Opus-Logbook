@@ -1,5 +1,12 @@
 import { Case, SPECIALTY_LABELS } from "@/types/case";
 import { TreatmentEpisode, ENCOUNTER_CLASS_LABELS } from "@/types/episode";
+import {
+  HAND_INFECTION_TYPE_LABELS,
+  SEVERITY_LABELS as HAND_SEVERITY_LABELS,
+  HAND_ORGANISM_LABELS,
+  HAND_ANTIBIOTIC_LABELS,
+  countKanavelSigns,
+} from "@/types/handInfection";
 
 export interface CsvExportOptions {
   includePatientId: boolean;
@@ -49,6 +56,12 @@ const CSV_HEADERS = [
   "episode_title",
   "encounter_class",
   "entry_duration_seconds",
+  "hand_infection_type",
+  "hand_infection_digits",
+  "hand_infection_organism",
+  "hand_infection_antibiotic",
+  "hand_infection_severity",
+  "hand_infection_kanavel",
 ] as const;
 
 function escapeCsvField(
@@ -104,6 +117,9 @@ function caseToRow(c: Case, options: CsvExportOptions): string {
     ? ENCOUNTER_CLASS_LABELS[c.encounterClass]
     : "";
 
+  // Hand infection data (from primary group)
+  const handInfection = primaryGroup?.handInfectionDetails;
+
   const values: (string | number | boolean | undefined | null)[] = [
     c.id,
     options.includePatientId ? c.patientIdentifier : undefined,
@@ -139,6 +155,20 @@ function caseToRow(c: Case, options: CsvExportOptions): string {
     episodeTitle,
     encounterClassLabel,
     c.entryDurationSeconds,
+    handInfection
+      ? HAND_INFECTION_TYPE_LABELS[handInfection.infectionType]
+      : "",
+    handInfection?.affectedDigits?.join("; ") ?? "",
+    handInfection?.organism
+      ? HAND_ORGANISM_LABELS[handInfection.organism]
+      : "",
+    handInfection?.empiricalAntibiotic
+      ? HAND_ANTIBIOTIC_LABELS[handInfection.empiricalAntibiotic]
+      : "",
+    handInfection ? HAND_SEVERITY_LABELS[handInfection.severity] : "",
+    handInfection?.kanavelSigns
+      ? `${countKanavelSigns(handInfection.kanavelSigns)}/4`
+      : "",
   ];
 
   return values.map(escapeCsvField).join(",");

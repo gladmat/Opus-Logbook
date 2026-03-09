@@ -86,6 +86,7 @@ export interface DiagnosisPicklistEntry {
    */
   clinicalGroup?:
     | "trauma"
+    | "acute"
     | "elective"
     | "oncological"
     | "congenital"

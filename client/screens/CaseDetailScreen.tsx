@@ -58,6 +58,13 @@ import {
 } from "@/types/case";
 import { getCasePrimaryTitle } from "@/lib/caseDiagnosisSummary";
 import {
+  generateHandInfectionSummary,
+  HAND_ANTIBIOTIC_LABELS,
+  ANTIBIOTIC_ROUTE_LABELS,
+  SEVERITY_LABELS as HAND_INFECTION_SEVERITY_LABELS,
+  countKanavelSigns,
+} from "@/types/handInfection";
+import {
   getCase,
   getTimelineEvents,
   deleteCase,
@@ -1218,6 +1225,90 @@ export default function CaseDetailScreen() {
                           />
                         ))}
                     </>
+                  ) : null}
+
+                  {/* Hand infection details */}
+                  {group.handInfectionDetails ? (
+                    <View
+                      style={[
+                        styles.handInfectionSummary,
+                        {
+                          backgroundColor: theme.warning + "10",
+                          borderColor: theme.warning + "30",
+                        },
+                      ]}
+                    >
+                      <View style={styles.handInfectionHeader}>
+                        <Feather
+                          name="alert-triangle"
+                          size={14}
+                          color={theme.warning}
+                        />
+                        <ThemedText
+                          style={[
+                            styles.handInfectionTitle,
+                            { color: theme.text },
+                          ]}
+                        >
+                          {generateHandInfectionSummary(
+                            group.handInfectionDetails,
+                          ) ?? "Hand Infection"}
+                        </ThemedText>
+                      </View>
+                      <View style={styles.handInfectionFields}>
+                        {group.handInfectionDetails.severity !== "local" ? (
+                          <ThemedText
+                            style={[
+                              styles.handInfectionField,
+                              {
+                                color:
+                                  group.handInfectionDetails.severity ===
+                                  "systemic"
+                                    ? theme.error
+                                    : theme.warning,
+                              },
+                            ]}
+                          >
+                            {
+                              HAND_INFECTION_SEVERITY_LABELS[
+                                group.handInfectionDetails.severity
+                              ]
+                            }
+                          </ThemedText>
+                        ) : null}
+                        {group.handInfectionDetails.kanavelSigns ? (
+                          <ThemedText
+                            style={[
+                              styles.handInfectionField,
+                              { color: theme.textSecondary },
+                            ]}
+                          >
+                            Kanavel{" "}
+                            {countKanavelSigns(
+                              group.handInfectionDetails.kanavelSigns,
+                            )}
+                            /4
+                          </ThemedText>
+                        ) : null}
+                        {group.handInfectionDetails.empiricalAntibiotic ? (
+                          <ThemedText
+                            style={[
+                              styles.handInfectionField,
+                              { color: theme.textSecondary },
+                            ]}
+                          >
+                            {
+                              HAND_ANTIBIOTIC_LABELS[
+                                group.handInfectionDetails.empiricalAntibiotic
+                              ]
+                            }
+                            {group.handInfectionDetails.antibioticRoute
+                              ? ` (${ANTIBIOTIC_ROUTE_LABELS[group.handInfectionDetails.antibioticRoute]})`
+                              : ""}
+                          </ThemedText>
+                        ) : null}
+                      </View>
+                    </View>
                   ) : null}
                 </View>
               );
@@ -2755,5 +2846,30 @@ const styles = StyleSheet.create({
   histologyButtonSubtitle: {
     fontSize: 13,
     marginTop: 2,
+  },
+  handInfectionSummary: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.sm,
+    padding: Spacing.md,
+    marginTop: Spacing.sm,
+  },
+  handInfectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+  },
+  handInfectionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    flex: 1,
+  },
+  handInfectionFields: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  handInfectionField: {
+    fontSize: 13,
   },
 });

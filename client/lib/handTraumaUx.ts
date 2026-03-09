@@ -1,6 +1,6 @@
 import type { AdmissionUrgency, CaseProcedure } from "@/types/case";
 
-export type HandTraumaCaseType = "trauma" | "elective";
+export type HandTraumaCaseType = "trauma" | "acute" | "elective";
 
 function hasMeaningfulValue(value: unknown): boolean {
   if (value === null || value === undefined) return false;
@@ -42,5 +42,11 @@ export function pruneDisposableTraumaPlaceholderProcedures(
 export function getDefaultAdmissionUrgencyForHandCaseType(
   caseType: HandTraumaCaseType,
 ): AdmissionUrgency {
-  return caseType === "trauma" ? "acute" : "elective";
+  switch (caseType) {
+    case "trauma":
+    case "acute":
+      return "acute";
+    case "elective":
+      return "elective";
+  }
 }

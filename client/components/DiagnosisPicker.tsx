@@ -27,16 +27,18 @@ interface DiagnosisPickerProps {
   specialty: Specialty;
   selectedDiagnosisId?: string;
   onSelect: (diagnosis: DiagnosisPicklistEntry) => void;
-  clinicalGroupFilter?: "trauma" | "non-trauma";
+  clinicalGroupFilter?: "trauma" | "acute" | "non-trauma";
 }
 
 function matchesGroupFilter(
   dx: DiagnosisPicklistEntry,
-  filter: "trauma" | "non-trauma" | undefined,
+  filter: "trauma" | "acute" | "non-trauma" | undefined,
 ): boolean {
   if (!filter) return true;
   if (filter === "trauma") return dx.clinicalGroup === "trauma";
-  return dx.clinicalGroup !== "trauma";
+  if (filter === "acute") return dx.clinicalGroup === "acute";
+  // "non-trauma" = elective: exclude both trauma and acute
+  return dx.clinicalGroup !== "trauma" && dx.clinicalGroup !== "acute";
 }
 
 export function DiagnosisPicker({

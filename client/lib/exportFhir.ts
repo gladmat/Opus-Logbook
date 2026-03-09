@@ -11,6 +11,13 @@
 
 import { Case, DiagnosisGroup, CaseProcedure, Laterality } from "@/types/case";
 import {
+  HAND_INFECTION_TYPE_LABELS,
+  SEVERITY_LABELS as HAND_SEVERITY_LABELS,
+  HAND_ORGANISM_LABELS,
+  HAND_ANTIBIOTIC_LABELS,
+  countKanavelSigns,
+} from "@/types/handInfection";
+import {
   TreatmentEpisode,
   EpisodeStatus,
   EncounterClass,
@@ -231,6 +238,51 @@ function buildCondition(
         } as FhirCodeableConcept,
       }));
     }
+  }
+
+  // Hand infection details as extension
+  if (group.handInfectionDetails) {
+    const hi = group.handInfectionDetails;
+    const extensions: { url: string; valueString: string }[] = [
+      {
+        url: "infectionType",
+        valueString: HAND_INFECTION_TYPE_LABELS[hi.infectionType],
+      },
+      {
+        url: "severity",
+        valueString: HAND_SEVERITY_LABELS[hi.severity],
+      },
+    ];
+    if (hi.affectedDigits.length > 0) {
+      extensions.push({
+        url: "affectedDigits",
+        valueString: hi.affectedDigits.join(", "),
+      });
+    }
+    if (hi.organism) {
+      extensions.push({
+        url: "organism",
+        valueString: HAND_ORGANISM_LABELS[hi.organism],
+      });
+    }
+    if (hi.empiricalAntibiotic) {
+      extensions.push({
+        url: "empiricalAntibiotic",
+        valueString: HAND_ANTIBIOTIC_LABELS[hi.empiricalAntibiotic],
+      });
+    }
+    if (hi.kanavelSigns) {
+      extensions.push({
+        url: "kanavelSigns",
+        valueString: `${countKanavelSigns(hi.kanavelSigns)}/4`,
+      });
+    }
+    condition.extension = [
+      {
+        url: "opus:handInfectionDetails",
+        extension: extensions,
+      },
+    ];
   }
 
   return condition;

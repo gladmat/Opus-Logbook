@@ -20,6 +20,7 @@ Key capabilities: multi-specialty case logging, SNOMED CT coded diagnoses and pr
 - **Phase 2 COMPLETE** — Charcoal+Amber theme, card-based diagnosis groups, section nav, summary view, reordering, specialty modules
 - **Phase 2.5 COMPLETE** — Skin cancer inline assessment module hardened after audit (14 components, 116 tests, hidden auto-routed pathways, episode linkage/reuse, biopsy return-to-histology flow, duplicate follow-up prefill, interactive procedure suggestions, margin CDS, SLNB, stable numeric inputs, collapsible sections)
 - **Dashboard v2 COMPLETE** — Surgical triage surface with 5 phases + refinements (shared selector layer for counts/filters/attention items, needs attention carousel with infections, month-to-date practice pulse metrics, case cards with thumbnails, FAB, quick actions for histology/events/discharge/next episode, standalone histology screen, needs attention full list with specialty handoff, case search, centered HeaderTitle lockup)
+- **Acute Hand Category COMPLETE** — 3-way hand surgery branching (Trauma/Acute/Elective), 13 curated acute diagnoses with chip-based progressive disclosure, hand infection 4-layer inline assessment (type/digits/organism/antibiotic/severity/Kanavel), infection-to-overlay bridge, accept-mapping flow with coding details, dashboard attention surfacing for severe hand infections, CSV/FHIR export of hand infection data, 42 infection tests
 - **Phase 3 NEXT** — Favourites/recents (partially done), inline validation, keyboard optimisation, haptic audit, duplicate case
 - **Phase 4** — Data migration, export formatting, analytics dashboard
 - **Phase 5** — TestFlight release
@@ -99,10 +100,12 @@ client/
     NeedsAttentionListScreen.tsx  # Full-screen needs attention list with sections
     onboarding/                   # 9 files: Welcome, FeaturePager, Auth, EmailSignup,
                                   #   Categories, Training, Hospital, Privacy, FeatureSlide
-  components/                    # 116+ files across 8 subdirectories
+  components/                    # 120+ files across 10 subdirectories
     case-form/                   # 10 section components (see "Case form" below)
     dashboard/                   # 10 files — dashboard v2 components (see "Dashboard redesign")
     hand-trauma/                 # 15 files — unified hand trauma assessment
+    hand-infection/              # HandInfectionCard — 4-layer progressive disclosure
+    acute-hand/                  # AcuteHandAssessment + AcuteHandSummaryPanel
     skin-cancer/                 # 14 files — inline skin cancer assessment module
     detail-sheets/               # 7 bottom-sheet detail views
     brand/                       # OpusMark, OpusLogo, index
@@ -163,17 +166,19 @@ client/
     skinCancerDiagnoses.ts       # Skin cancer picklist
     skinCancerConfig.ts          # Activation, pathway logic, margins, SLNB, diagnosis resolution, procedure suggestions, caseCanAddHistology
     skinCancerEpisodeHelpers.ts  # Episode link/update plans + follow-up transforms
+    handInfectionBridge.ts       # HandInfectionDetails ↔ InfectionOverlay bridge functions
     diagnosisPicklists/          # 12 specialty picklists + lazy-loaded index
       index.ts                   # getDiagnosesForProcedure, reverse mapping
       {specialty}Diagnoses.ts    # Per-specialty (aesthetics, bodyContouring, breast,
                                  #   burns, cleftCranio, general, handSurgery, headNeck,
                                  #   lymphoedema, orthoplastic, peripheralNerve, skinCancer)
-    __tests__/                   # 6 test files (handTrauma ×3, skinCancer ×3)
+    __tests__/                   # 7 test files (handTrauma ×3, skinCancer ×3, handInfection)
   types/
     case.ts                      # Case, DiagnosisGroup, Procedure, Timeline, Media (2322 lines)
     diagnosis.ts                 # Diagnosis picklist entry
     episode.ts                   # Treatment episode, status machine, encounter classes
     infection.ts                 # Infection episodes, syndromes, microbiology
+    handInfection.ts             # HandInfectionDetails, 4-layer assessment, label maps, bridge helpers
     wound.ts                     # Wound assessment, TIME, dressings (40+ products)
     skinCancer.ts                # Assessment, histology, pathology, SLNB, lesion photos (629 lines)
     skinCancerStagingConfigs.ts  # Breslow, Clark, TNM configs
@@ -191,6 +196,7 @@ client/
     autoFillMappings.ts          # Auto-fill field mappings
     facilities.ts                # Master facility database
     flapFieldConfig.ts           # Flap-specific form configs (~100 typed fields)
+    handInfectionClinicalData.ts # Kanavel signs, organism presets, antibiotic defaults
   navigation/
     RootStackNavigator.tsx       # Auth → Onboarding → Main, modal stack
     MainTabNavigator.tsx         # Bottom tabs: Dashboard + Settings
@@ -244,7 +250,7 @@ Auth → Onboarding → Main (bottom tabs: Dashboard, Settings) with modal stack
 
 ### Multi-diagnosis group architecture
 
-Each Case has `diagnosisGroups: DiagnosisGroup[]` instead of flat diagnosis/procedures fields. Each group bundles: specialty, diagnosis, staging, fractures, and procedures. Enables multi-specialty cases (e.g., hand surgery + orthoplastic in one session). Old cases auto-migrated on load via `client/lib/migration.ts`. Helpers: `getAllProcedures(c)`, `getCaseSpecialties(c)`, `getPrimaryDiagnosisName(c)` in `client/types/case.ts`.
+Each Case has `diagnosisGroups: DiagnosisGroup[]` instead of flat diagnosis/procedures fields. Each group bundles: specialty, diagnosis, staging, fractures, procedures, and optional `handInfectionDetails`. `procedureSuggestionSource` tracks origin: `"picklist"`, `"skinCancer"`, `"acuteHand"`, or `"manual"`. Enables multi-specialty cases (e.g., hand surgery + orthoplastic in one session). Old cases auto-migrated on load via `client/lib/migration.ts`. Helpers: `getAllProcedures(c)`, `getCaseSpecialties(c)`, `getPrimaryDiagnosisName(c)` in `client/types/case.ts`.
 
 ### Case form sections
 
@@ -422,9 +428,24 @@ Each has: dedicated diagnosis picklist, specialty colour, SVG icon, procedure su
 
 When procedures are picked without a diagnosis, a "What's the diagnosis?" card appears with smart suggestions via reverse-mapping. Built lazily in `client/lib/diagnosisPicklists/index.ts` (`getDiagnosesForProcedure`). UI: `DiagnosisSuggestions.tsx` wired into `DiagnosisGroupEditor.tsx`.
 
-### Unified hand trauma workflow
+### Unified hand surgery workflow
 
-Single inline `HandTraumaAssessment` (`client/components/hand-trauma/HandTraumaAssessment.tsx`) inside `DiagnosisGroupEditor`. For `hand_wrist` specialty, user must choose Trauma vs Elective before any diagnosis UI appears.
+3-way case type selector for `hand_wrist` specialty: **Trauma** / **Acute** / **Elective**. Selection gates all downstream UI.
+
+**Acute flow** (`AcuteHandAssessment`, `client/components/acute-hand/`):
+- 13 curated diagnosis chips in 2 groups: Hand Infections (10) and Acute Non-Infection (3)
+- SNOMED search fallback below curated chips for rare diagnoses
+- Infection diagnoses auto-populate `HandInfectionCard` (4-layer progressive disclosure: type/digits/organism/antibiotic/severity/Kanavel)
+- `handInfectionToOverlay` / `overlayToHandInfection` bridge (`client/lib/handInfectionBridge.ts`) syncs to case-level `InfectionOverlay`
+- Escalation to full infection module when complexity exceeds inline card
+- Accept-mapping flow with `AcuteHandSummaryPanel` (diagnosis headline, infection key facts, procedure checkboxes, coding details with SNOMED codes)
+- Dashboard surfaces non-escalated hand infections with spreading/systemic severity in Needs Attention
+- CSV export: 6 new columns (hand_infection_type/digits/organism/antibiotic/severity/kanavel)
+- FHIR export: hand infection as extension on Condition resource
+- Tests: `client/lib/__tests__/handInfection.test.ts` (42 tests)
+
+**Trauma flow** (`HandTraumaAssessment`, `client/components/hand-trauma/`):
+Single inline `HandTraumaAssessment` inside `DiagnosisGroupEditor`.
 
 **Trauma flow:**
 1. Mandatory Left/Right selection, injury mechanism, injury date
@@ -762,7 +783,7 @@ Touch targets: minimum 48px (`Spacing.touchTarget`)
 - **Expo slug:** surgical-logbook
 - **EAS Project ID:** 0bc1b91c-c240-4f4e-b030-31d16389cd1e
 - **Expo account:** @gladmat
-- **Version:** 1.3.0, buildNumber 2
+- **Version:** 1.3.0, buildNumber 3
 - **New Architecture:** enabled
 - **React Compiler:** enabled (experimental)
 
@@ -808,7 +829,7 @@ Configured in both `tsconfig.json` and `babel.config.js` (module-resolver plugin
 
 ## Testing
 
-- **Framework:** Vitest 4.0.18, **179 tests** across 9 files
-- **Client tests:** `client/lib/__tests__/` — handTraumaDiagnosis, handTraumaMapping, handTraumaUx, skinCancerConfig (87 tests), skinCancerPhase4 (11 tests), skinCancerPhase5 (18 tests), dashboardSelectors (7 tests)
+- **Framework:** Vitest 4.0.18, **214 tests** across 10 files
+- **Client tests:** `client/lib/__tests__/` — handTraumaDiagnosis, handTraumaMapping, handTraumaUx, skinCancerConfig (87 tests), skinCancerPhase4 (11 tests), skinCancerPhase5 (18 tests), dashboardSelectors (7 tests), handInfection (42 tests)
 - **Server tests:** `server/__tests__/` — auth, validation
 - **Run:** `npm run test` (once) or `npm run test:watch` (watch mode)

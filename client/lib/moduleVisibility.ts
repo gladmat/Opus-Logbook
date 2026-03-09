@@ -65,14 +65,14 @@ export function caseHasFreeFlap(groups: DiagnosisGroup[]): boolean {
  * Compute which detail module hub rows should be visible for a diagnosis group.
  *
  * @param group - The diagnosis group to evaluate
- * @param handCaseType - The hand surgery case type ("trauma" | "elective") when specialty is hand_surgery
+ * @param handCaseType - The hand surgery case type ("trauma" | "acute" | "elective") when specialty is hand_surgery
  * @param infectionOverlay - The case-level infection overlay (shared across groups)
  * @param isFirstInfectionGroup - Whether this is the first group that triggers infection visibility
  * @param episodeType - The linked episode's type, if any (triggers wound module for wound/burns episodes)
  */
 export function getModuleVisibility(
   group: DiagnosisGroup,
-  handCaseType?: "trauma" | "elective",
+  handCaseType?: "trauma" | "acute" | "elective",
   infectionOverlay?: InfectionOverlay,
   isFirstInfectionGroup?: boolean,
   episodeType?: EpisodeType,
@@ -91,12 +91,18 @@ export function getModuleVisibility(
 
   // Infection: diagnosis from infection subcategory OR infectionOverlay exists
   // Only shown on the first matching group (infection data is case-level)
+  // For acute hand cases, the inline HandInfectionCard handles infection data —
+  // only show the full module if the user has explicitly escalated.
   const hasInfectionDiagnosis = group.procedures.some(
     (p) => p.subcategory === "Chronic Wounds / Infection",
   );
+  const hasEscalatedHandInfection =
+    group.handInfectionDetails?.escalatedToFullModule === true;
   const infection =
     isFirstInfectionGroup !== false &&
-    (hasInfectionDiagnosis || !!infectionOverlay);
+    (hasInfectionDiagnosis ||
+      !!infectionOverlay ||
+      hasEscalatedHandInfection);
 
   // Wound Assessment: procedure has complex_wound tag, or episode is wound/burns type,
   // or wound data already exists on the group (re-editing)

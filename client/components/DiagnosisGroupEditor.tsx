@@ -90,6 +90,13 @@ import {
 } from "@/components/hand-trauma/HandTraumaAssessment";
 import { InfectionSheet } from "@/components/detail-sheets/InfectionSheet";
 import { WoundAssessmentSheet } from "@/components/detail-sheets/WoundAssessmentSheet";
+import { HandInfectionCard } from "@/components/hand-infection/HandInfectionCard";
+import type { HandInfectionDetails } from "@/types/handInfection";
+import {
+  isHandInfectionDiagnosis,
+  createDefaultHandInfectionDetails,
+} from "@/types/handInfection";
+import { handInfectionToOverlay } from "@/lib/handInfectionBridge";
 import {
   getModuleVisibility,
   procedureHasFreeFlap,
@@ -101,6 +108,7 @@ import {
   resolveSkinCancerDiagnosis,
 } from "@/lib/skinCancerConfig";
 import { SkinCancerAssessment } from "@/components/skin-cancer/SkinCancerAssessment";
+import { AcuteHandAssessment } from "@/components/acute-hand/AcuteHandAssessment";
 import type { SkinCancerLesionAssessment, LesionPhoto } from "@/types/skinCancer";
 import { generateFlapOutcomeSummary } from "@/components/FlapOutcomeSection";
 import { withDefaultFlapOutcome } from "@/lib/flapOutcomeDefaults";
@@ -258,6 +266,14 @@ export function DiagnosisGroupEditor({
         group.procedures.some((procedure) => procedure.procedureName.trim()),
     );
 
+  // Acute hand accept-mapping state
+  const [acuteProceduresAccepted, setAcuteProceduresAccepted] = useState(
+    group.procedureSuggestionSource === "acuteHand" &&
+      group.procedures.some((procedure) => procedure.procedureName.trim()),
+  );
+  const [showAcuteFullProcedurePicker, setShowAcuteFullProcedurePicker] =
+    useState(false);
+
   // Hub-and-spoke sheet visibility
   const [activeFlapSheetProcedureId, setActiveFlapSheetProcedureId] = useState<
     string | null
@@ -274,10 +290,14 @@ export function DiagnosisGroupEditor({
   // Feature 2: procedure filtering
   const [showAllProcedures, setShowAllProcedures] = useState<boolean>(false);
 
-  // Feature 3: hand surgery trauma/elective branching
+  // Feature 3: hand surgery trauma/acute/elective branching
   const [handCaseType, setHandCaseType] = useState<
-    "trauma" | "elective" | null
+    "trauma" | "acute" | "elective" | null
   >(null);
+  // Hand infection inline assessment state (acute hand cases)
+  const [handInfectionDetails, setHandInfectionDetails] = useState<
+    HandInfectionDetails | undefined
+  >(group.handInfectionDetails);
   const [isDiagnosisFromAO, setIsDiagnosisFromAO] = useState<boolean>(false);
   const [aoSourceLabel, setAoSourceLabel] = useState<string | undefined>(
     undefined,
@@ -320,7 +340,11 @@ export function DiagnosisGroupEditor({
         // Infer hand case type from loaded diagnosis
         if (group.specialty === "hand_wrist") {
           setHandCaseType(
-            dx.clinicalGroup === "trauma" ? "trauma" : "elective",
+            dx.clinicalGroup === "trauma"
+              ? "trauma"
+              : dx.clinicalGroup === "acute"
+                ? "acute"
+                : "elective",
           );
         }
       }
@@ -331,6 +355,13 @@ export function DiagnosisGroupEditor({
       group.procedures.some((procedure) => procedure.procedureName.trim())
     ) {
       setSkinCancerProceduresAccepted(true);
+    }
+
+    if (
+      group.procedureSuggestionSource === "acuteHand" &&
+      group.procedures.some((procedure) => procedure.procedureName.trim())
+    ) {
+      setAcuteProceduresAccepted(true);
     }
   }, [group]);
 
@@ -346,7 +377,11 @@ export function DiagnosisGroupEditor({
 
     if (selectedDiagnosis?.clinicalGroup) {
       setHandCaseType(
-        selectedDiagnosis.clinicalGroup === "trauma" ? "trauma" : "elective",
+        selectedDiagnosis.clinicalGroup === "trauma"
+          ? "trauma"
+          : selectedDiagnosis.clinicalGroup === "acute"
+            ? "acute"
+            : "elective",
       );
       return;
     }
@@ -407,9 +442,11 @@ export function DiagnosisGroupEditor({
           : undefined,
       procedureSuggestionSource: skinCancerProceduresAccepted
         ? "skinCancer"
-        : selectedDiagnosis
-          ? "picklist"
-          : "manual",
+        : acuteProceduresAccepted
+          ? "acuteHand"
+          : selectedDiagnosis
+            ? "picklist"
+            : "manual",
       fractures: fractures.length > 0 ? fractures : undefined,
       procedures,
       isMultiLesion,
@@ -423,6 +460,8 @@ export function DiagnosisGroupEditor({
         !!skinCancerAssessment
           ? skinCancerAssessment
           : undefined,
+      handInfectionDetails:
+        handCaseType === "acute" ? handInfectionDetails : undefined,
     };
   }, [
     groupSpecialty,
@@ -439,6 +478,9 @@ export function DiagnosisGroupEditor({
     histologyPending,
     skinCancerAssessment,
     skinCancerProceduresAccepted,
+    acuteProceduresAccepted,
+    handCaseType,
+    handInfectionDetails,
   ]);
 
   useEffect(() => {
@@ -557,7 +599,24 @@ export function DiagnosisGroupEditor({
       setShowAllProcedures(false);
 
       if (groupSpecialty === "hand_wrist" && dx.clinicalGroup) {
-        setHandCaseType(dx.clinicalGroup === "trauma" ? "trauma" : "elective");
+        setHandCaseType(
+          dx.clinicalGroup === "trauma"
+            ? "trauma"
+            : dx.clinicalGroup === "acute"
+              ? "acute"
+              : "elective",
+        );
+      }
+
+      // Auto-populate hand infection details for acute infection diagnoses
+      if (
+        groupSpecialty === "hand_wrist" &&
+        dx.clinicalGroup === "acute" &&
+        isHandInfectionDiagnosis(dx.id)
+      ) {
+        setHandInfectionDetails(createDefaultHandInfectionDetails(dx.id));
+      } else {
+        setHandInfectionDetails(undefined);
       }
 
       // Apply AO procedure hints if provided (promote/demote defaults)
@@ -572,37 +631,47 @@ export function DiagnosisGroupEditor({
       const activeIds = getActiveProcedureIds(effectiveDx, {});
       setSelectedSuggestionIds(new Set(activeIds));
 
-      const newProcedures: CaseProcedure[] = activeIds.map(
-        (picklistId, idx) => {
-          const entry = findPicklistEntry(picklistId);
-          let clinicalDetails: FreeFlapDetails | undefined = undefined;
-          if (
-            entry?.hasFreeFlap ||
-            procedureHasFreeFlap({
+      // Acute hand flow: procedures come from accept-mapping, not auto-population
+      const isAcute =
+        groupSpecialty === "hand_wrist" && dx.clinicalGroup === "acute";
+      if (isAcute) {
+        // Reset procedures and accepted state — accept-mapping will set them
+        setProcedures(buildDefaultProcedures());
+        setAcuteProceduresAccepted(false);
+        setShowAcuteFullProcedurePicker(false);
+      } else {
+        const newProcedures: CaseProcedure[] = activeIds.map(
+          (picklistId, idx) => {
+            const entry = findPicklistEntry(picklistId);
+            let clinicalDetails: FreeFlapDetails | undefined = undefined;
+            if (
+              entry?.hasFreeFlap ||
+              procedureHasFreeFlap({
+                picklistEntryId: picklistId,
+                tags: entry?.tags,
+              })
+            ) {
+              clinicalDetails = buildFreeFlapClinicalDetails(picklistId, dx);
+            }
+            return {
+              id: uuidv4(),
+              sequenceOrder: idx + 1,
+              procedureName: entry?.displayName || "",
+              specialty: groupSpecialty,
+              surgeonRole: "PS" as Role,
               picklistEntryId: picklistId,
+              snomedCtCode: entry?.snomedCtCode,
+              snomedCtDisplay: entry?.snomedCtDisplay,
+              subcategory: entry?.subcategory,
               tags: entry?.tags,
-            })
-          ) {
-            clinicalDetails = buildFreeFlapClinicalDetails(picklistId, dx);
-          }
-          return {
-            id: uuidv4(),
-            sequenceOrder: idx + 1,
-            procedureName: entry?.displayName || "",
-            specialty: groupSpecialty,
-            surgeonRole: "PS" as Role,
-            picklistEntryId: picklistId,
-            snomedCtCode: entry?.snomedCtCode,
-            snomedCtDisplay: entry?.snomedCtDisplay,
-            subcategory: entry?.subcategory,
-            tags: entry?.tags,
-            clinicalDetails,
-          };
-        },
-      );
-      setProcedures(
-        newProcedures.length > 0 ? newProcedures : buildDefaultProcedures(),
-      );
+              clinicalDetails,
+            };
+          },
+        );
+        setProcedures(
+          newProcedures.length > 0 ? newProcedures : buildDefaultProcedures(),
+        );
+      }
 
       // Auto-populate skin cancer assessment from diagnosis config
       if (shouldActivateSkinCancerModule(dx)) {
@@ -804,6 +873,9 @@ export function DiagnosisGroupEditor({
 
   const isInlineHandTraumaFlow =
     groupSpecialty === "hand_wrist" && handCaseType === "trauma";
+
+  const isAcuteHandFlow =
+    groupSpecialty === "hand_wrist" && handCaseType === "acute";
 
   const isSkinCancerInlineFlow = groupSpecialty === "skin_cancer";
 
@@ -1020,6 +1092,10 @@ export function DiagnosisGroupEditor({
     (!isSkinCancerInlineFlow && !!selectedDiagnosis) ||
     skinCancerProceduresAccepted;
 
+  // Acute hand progressive disclosure: hide procedure section until accept-mapping
+  const acuteHandAllowsProcedures =
+    !isAcuteHandFlow || acuteProceduresAccepted || showAcuteFullProcedurePicker;
+
   const handleReverseDiagnosisSelect = useCallback(
     (dx: DiagnosisPicklistEntry) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -1205,6 +1281,9 @@ export function DiagnosisGroupEditor({
     setAutoAppliedTraumaSuggestionIds(new Set());
     setSkinCancerAssessment(undefined);
     setSkinCancerProceduresAccepted(false);
+    setAcuteProceduresAccepted(false);
+    setShowAcuteFullProcedurePicker(false);
+    setHandInfectionDetails(undefined);
   }, [handCaseType]);
 
   // Skin cancer accept-mapping handler
@@ -1286,6 +1365,34 @@ export function DiagnosisGroupEditor({
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     },
     [skinCancerAssessment, groupSpecialty],
+  );
+
+  // Acute hand accept-mapping handler
+  const handleAcuteAcceptMapping = useCallback(
+    (procedurePicklistIds: string[]) => {
+      const newProcedures: CaseProcedure[] = procedurePicklistIds
+        .map((picklistId, idx) => {
+          const entry = findPicklistEntry(picklistId);
+          if (!entry) return null;
+          return {
+            id: uuidv4(),
+            sequenceOrder: idx + 1,
+            procedureName: entry.displayName,
+            specialty: groupSpecialty,
+            surgeonRole: "PS" as Role,
+            picklistEntryId: picklistId,
+            snomedCtCode: entry.snomedCtCode,
+            snomedCtDisplay: entry.snomedCtDisplay,
+            subcategory: entry.subcategory,
+            tags: entry.tags,
+          };
+        })
+        .filter(Boolean) as CaseProcedure[];
+      setProcedures(newProcedures);
+      setAcuteProceduresAccepted(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    },
+    [groupSpecialty],
   );
 
   // Skin cancer inline flow — add another lesion (transitions to multi-lesion)
@@ -1812,8 +1919,14 @@ export function DiagnosisGroupEditor({
               Case Type
             </ThemedText>
             <View style={styles.caseTypeButtons}>
-              {(["trauma", "elective"] as const).map((type) => {
+              {(["trauma", "acute", "elective"] as const).map((type) => {
                 const isActive = handCaseType === type;
+                const label =
+                  type === "trauma"
+                    ? "Trauma"
+                    : type === "acute"
+                      ? "Acute"
+                      : "Elective";
                 return (
                   <Pressable
                     key={type}
@@ -1823,6 +1936,7 @@ export function DiagnosisGroupEditor({
                         clearDiagnosis();
                         setAoHints([]);
                         setAutoAppliedTraumaSuggestionIds(new Set());
+                        setHandInfectionDetails(undefined);
                         caseFormDispatch(
                           setField(
                             "admissionUrgency",
@@ -1857,7 +1971,7 @@ export function DiagnosisGroupEditor({
                         },
                       ]}
                     >
-                      {type === "trauma" ? "Trauma" : "Elective"}
+                      {label}
                     </ThemedText>
                   </Pressable>
                 );
@@ -1877,7 +1991,7 @@ export function DiagnosisGroupEditor({
             <ThemedText
               style={[styles.suggestionText, { color: theme.textSecondary }]}
             >
-              Select `Trauma` or `Elective` above to open diagnosis and
+              Select Trauma, Acute, or Elective above to open diagnosis and
               procedure entry.
             </ThemedText>
           </View>
@@ -1971,9 +2085,32 @@ export function DiagnosisGroupEditor({
           />
         ) : null}
 
+        {/* Inline acute hand flow — replaces DiagnosisPicker + HandInfectionCard + procedure picker */}
+        {isAcuteHandFlow ? (
+          <AcuteHandAssessment
+            selectedDiagnosis={selectedDiagnosis}
+            onDiagnosisSelect={(dx) => handleDiagnosisSelect(dx)}
+            onDiagnosisClear={clearDiagnosis}
+            handInfectionDetails={handInfectionDetails}
+            onHandInfectionChange={setHandInfectionDetails}
+            laterality={diagnosisClinicalDetails.laterality as "left" | "right" | undefined}
+            infectionOverlay={infectionOverlay}
+            onInfectionChange={onInfectionChange}
+            onShowInfectionSheet={() => setShowInfectionSheet(true)}
+            isAccepted={acuteProceduresAccepted}
+            acceptedProcedureIds={procedures
+              .map((proc) => proc.picklistEntryId)
+              .filter((id): id is string => !!id)}
+            onAcceptMapping={handleAcuteAcceptMapping}
+            onEditMapping={() => setAcuteProceduresAccepted(false)}
+            onBrowseFullPicker={() => setShowAcuteFullProcedurePicker(true)}
+          />
+        ) : null}
+
         {hasSelectedHandCaseType &&
         showTraumaDiagnosisEditor &&
-        !isSkinCancerInlineFlow ? (
+        !isSkinCancerInlineFlow &&
+        !isAcuteHandFlow ? (
           <>
             {isInlineHandTraumaFlow && showManualTraumaDiagnosisPicker ? (
               <View
@@ -2029,9 +2166,12 @@ export function DiagnosisGroupEditor({
                     groupSpecialty === "hand_wrist" && handCaseType === "trauma"
                       ? "trauma"
                       : groupSpecialty === "hand_wrist" &&
-                          handCaseType === "elective"
-                        ? "non-trauma"
-                        : undefined
+                          handCaseType === "acute"
+                        ? "acute"
+                        : groupSpecialty === "hand_wrist" &&
+                            handCaseType === "elective"
+                          ? "non-trauma"
+                          : undefined
                   }
                 />
               )
@@ -2261,17 +2401,17 @@ export function DiagnosisGroupEditor({
         ) : null}
 
         {/* Visual connector between diagnosis and procedures */}
-        {hasSelectedHandCaseType && showTraumaDiagnosisEditor ? (
+        {hasSelectedHandCaseType && showTraumaDiagnosisEditor && !isAcuteHandFlow ? (
           <View style={styles.connector}>
             <Feather name="arrow-down" size={16} color={theme.textTertiary} />
           </View>
         ) : null}
 
-        {hasSelectedHandCaseType ? (
+        {hasSelectedHandCaseType && !isAcuteHandFlow ? (
           <SectionHeader title="Procedures Performed" />
         ) : null}
 
-        {hasSelectedHandCaseType ? (
+        {hasSelectedHandCaseType && !isAcuteHandFlow ? (
           <ThemedText
             style={[styles.sectionDescription, { color: theme.textSecondary }]}
           >
@@ -2359,7 +2499,7 @@ export function DiagnosisGroupEditor({
           </View>
         ) : null}
 
-        {hasSelectedHandCaseType && skinCancerHasDiagnosis && !showTraumaProcedureSummary ? (
+        {hasSelectedHandCaseType && skinCancerHasDiagnosis && acuteHandAllowsProcedures && !showTraumaProcedureSummary ? (
           <>
             {isInlineHandTraumaFlow && showManualTraumaProcedureEditor ? (
               <Pressable
