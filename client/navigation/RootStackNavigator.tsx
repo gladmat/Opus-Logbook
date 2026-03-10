@@ -157,9 +157,13 @@ export type RootStackParamList = {
   AddTimelineEvent: {
     caseId: string;
     initialEventType?: TimelineEventType;
+    /** @deprecated Use hasSkinCancerAssessment instead */
     isSkinLesion?: boolean;
     caseDischargeDate?: string;
     editEventId?: string;
+    specialty?: string;
+    procedureTags?: string[];
+    hasSkinCancerAssessment?: boolean;
   };
   MediaManagement: {
     existingAttachments?: MediaAttachment[];

@@ -22,13 +22,11 @@ import { EncryptedImage } from "@/components/EncryptedImage";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
-import {
-  MediaAttachment,
-  MEDIA_CATEGORY_LABELS,
-  TimelineEventType,
-} from "@/types/case";
+import { MediaAttachment, TimelineEventType } from "@/types/case";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useMediaCallback } from "@/contexts/MediaCallbackContext";
+import { MediaTagBadge } from "@/components/media";
+import { resolveMediaTag } from "@/lib/mediaTagMigration";
 
 interface MediaCaptureProps {
   attachments: MediaAttachment[];
@@ -36,6 +34,9 @@ interface MediaCaptureProps {
   maxAttachments?: number;
   mediaType?: "photo" | "imaging" | "all";
   eventType?: TimelineEventType;
+  specialty?: string;
+  procedureTags?: string[];
+  hasSkinCancerAssessment?: boolean;
 }
 
 export function MediaCapture({
@@ -44,6 +45,9 @@ export function MediaCapture({
   maxAttachments = 15,
   mediaType = "all",
   eventType,
+  specialty,
+  procedureTags,
+  hasSkinCancerAssessment,
 }: MediaCaptureProps) {
   const { theme } = useTheme();
   const navigation =
@@ -61,6 +65,9 @@ export function MediaCapture({
       maxAttachments,
       context: "case",
       eventType,
+      specialty,
+      procedureTags,
+      hasSkinCancerAssessment,
     });
   };
 
@@ -204,37 +211,14 @@ export function MediaCapture({
                 style={[styles.removeButton, { backgroundColor: theme.error }]}
                 hitSlop={8}
               >
-                <Feather name="x" size={12} color="#fff" />
+                <Feather name="x" size={12} color={theme.buttonText} />
               </Pressable>
-              {attachment.category ? (
-                <View
-                  style={[
-                    styles.categoryBadge,
-                    { backgroundColor: theme.link },
-                  ]}
-                >
-                  <ThemedText
-                    style={styles.categoryBadgeText}
-                    numberOfLines={1}
-                  >
-                    {MEDIA_CATEGORY_LABELS[attachment.category]}
-                  </ThemedText>
-                </View>
-              ) : (
-                <View
-                  style={[
-                    styles.categoryBadge,
-                    { backgroundColor: theme.warning },
-                  ]}
-                >
-                  <ThemedText
-                    style={styles.categoryBadgeText}
-                    numberOfLines={1}
-                  >
-                    Uncategorized
-                  </ThemedText>
-                </View>
-              )}
+              <View style={styles.tagBadgeContainer}>
+                <MediaTagBadge
+                  tag={resolveMediaTag(attachment)}
+                  size="small"
+                />
+              </View>
             </Pressable>
           ))}
           <View style={styles.addButtonsColumn}>
@@ -372,19 +356,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: "center",
   },
-  categoryBadge: {
+  tagBadgeContainer: {
     position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-  },
-  categoryBadgeText: {
-    fontSize: 9,
-    color: "#fff",
-    fontWeight: "600",
-    textAlign: "center",
+    bottom: 2,
+    left: 2,
+    right: 2,
   },
   manageButton: {
     flexDirection: "row",

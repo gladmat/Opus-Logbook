@@ -304,7 +304,10 @@ export default function DashboardScreen() {
 
   const handleAddEventFromCase = useCallback(
     (caseData: Case) => {
-      navigation.navigate("AddTimelineEvent", { caseId: caseData.id });
+      navigation.navigate("AddTimelineEvent", {
+        caseId: caseData.id,
+        specialty: caseData.specialty,
+      });
     },
     [navigation],
   );

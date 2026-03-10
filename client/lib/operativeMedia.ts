@@ -7,6 +7,7 @@ import type {
 import type { MediaTag } from "@/types/media";
 import { resolveMediaTag } from "@/lib/mediaTagMigration";
 
+/** @deprecated Use MediaTag from @/types/media instead. Kept for backward compatibility. */
 export const MEDIA_TYPE_TO_CATEGORY: Record<OperativeMediaType, MediaCategory> =
   {
     preoperative_photo: "preop",
@@ -19,6 +20,7 @@ export const MEDIA_TYPE_TO_CATEGORY: Record<OperativeMediaType, MediaCategory> =
     other: "other",
   };
 
+/** @deprecated Use MediaTag from @/types/media instead. Kept for backward compatibility. */
 export const CATEGORY_TO_MEDIA_TYPE: Partial<
   Record<MediaCategory, OperativeMediaType>
 > = {

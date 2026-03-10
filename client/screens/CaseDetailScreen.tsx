@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   StyleSheet,
@@ -332,12 +332,34 @@ export default function CaseDetailScreen() {
     );
   }, [caseData]);
 
+  const caseMediaContext = useMemo(() => {
+    if (!caseData) return {};
+    const procedureTags = Array.from(
+      new Set(
+        (caseData.diagnosisGroups ?? []).flatMap((g) =>
+          (g.procedures ?? []).flatMap((p) => p.tags ?? []),
+        ),
+      ),
+    );
+    const hasSkinCancerAssessment = (caseData.diagnosisGroups ?? []).some(
+      (g) =>
+        !!g.skinCancerAssessment ||
+        (g.lesionInstances ?? []).some((l) => !!l.skinCancerAssessment),
+    );
+    return {
+      specialty: caseData.specialty,
+      procedureTags,
+      hasSkinCancerAssessment,
+    };
+  }, [caseData]);
+
   const handleAddEvent = () => {
     if (caseData) {
       navigation.navigate("AddTimelineEvent", {
         caseId: caseData.id,
         isSkinLesion: isSkinLesionCase(),
         caseDischargeDate: caseData.dischargeDate,
+        ...caseMediaContext,
       });
     }
   };
@@ -350,6 +372,7 @@ export default function CaseDetailScreen() {
         isSkinLesion: isSkinLesionCase(),
         caseDischargeDate: caseData.dischargeDate,
         editEventId: event.id,
+        ...caseMediaContext,
       });
     }
   };

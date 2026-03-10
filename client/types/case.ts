@@ -1832,6 +1832,7 @@ export const MEDIA_CATEGORY_OPTIONS: {
   { value: "other", label: "Other", group: "Other" },
 ];
 
+/** @deprecated Use MEDIA_TAG_REGISTRY from @/types/media for tag labels instead. */
 export const MEDIA_CATEGORY_LABELS: Record<MediaCategory, string> = {
   preop: "Pre-op",
   flap_harvest: "Flap Harvest",

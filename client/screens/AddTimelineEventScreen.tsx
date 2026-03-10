@@ -70,8 +70,15 @@ export default function AddTimelineEventScreen() {
   const route = useRoute<RouteParams>();
   const insets = useSafeAreaInsets();
 
-  const { caseId, initialEventType, caseDischargeDate, editEventId } =
-    route.params;
+  const {
+    caseId,
+    initialEventType,
+    caseDischargeDate,
+    editEventId,
+    specialty,
+    procedureTags,
+    hasSkinCancerAssessment,
+  } = route.params;
 
   const isEditMode = !!editEventId;
 
@@ -403,28 +410,32 @@ export default function AddTimelineEventScreen() {
             flexDirection: "row",
             alignItems: "flex-start",
             gap: Spacing.sm,
-            backgroundColor: "#FFF8E1",
+            backgroundColor: theme.warning + "1A",
             borderRadius: BorderRadius.md,
             padding: Spacing.md,
             marginTop: Spacing.md,
             borderLeftWidth: 4,
-            borderLeftColor: "#F57F17",
+            borderLeftColor: theme.warning,
           }}
         >
           <Feather
             name="log-out"
             size={18}
-            color="#F57F17"
+            color={theme.warning}
             style={{ marginTop: 2 }}
           />
           <View style={{ flex: 1 }}>
             <ThemedText
-              style={{ fontWeight: "600", fontSize: 14, color: "#E65100" }}
+              style={{ fontWeight: "600", fontSize: 14, color: theme.warning }}
             >
               Discharge day
             </ThemedText>
             <ThemedText
-              style={{ fontSize: 13, color: "#795548", marginTop: 2 }}
+              style={{
+                fontSize: 13,
+                color: theme.textSecondary,
+                marginTop: 2,
+              }}
             >
               This event will be tagged to discharge. Use Discharge Photo for a
               quick wound record.
@@ -456,6 +467,9 @@ export default function AddTimelineEventScreen() {
             attachments={mediaAttachments}
             onAttachmentsChange={setMediaAttachments}
             mediaType={eventType === "imaging" ? "imaging" : "photo"}
+            specialty={specialty}
+            procedureTags={procedureTags}
+            hasSkinCancerAssessment={hasSkinCancerAssessment}
           />
           <FormField
             label="Caption / Notes"
@@ -521,6 +535,9 @@ export default function AddTimelineEventScreen() {
             attachments={mediaAttachments}
             onAttachmentsChange={setMediaAttachments}
             mediaType="photo"
+            specialty={specialty}
+            procedureTags={procedureTags}
+            hasSkinCancerAssessment={hasSkinCancerAssessment}
           />
           <FormField
             label="Clinical Notes"
@@ -551,6 +568,9 @@ export default function AddTimelineEventScreen() {
             onAttachmentsChange={setMediaAttachments}
             mediaType="photo"
             eventType="discharge_photo"
+            specialty={specialty}
+            procedureTags={procedureTags}
+            hasSkinCancerAssessment={hasSkinCancerAssessment}
           />
 
           <ThemedText style={[styles.label, { color: theme.textSecondary }]}>
@@ -562,28 +582,24 @@ export default function AddTimelineEventScreen() {
             {(
               [
                 {
-                  value: "dry_healing",
+                  value: "dry_healing" as const,
                   label: "Dry & healing",
-                  color: "#2E7D32",
-                  bg: "#E8F5E9",
+                  color: theme.success,
                 },
                 {
-                  value: "moist",
+                  value: "moist" as const,
                   label: "Moist / exudate",
-                  color: "#F57F17",
-                  bg: "#FFF3E0",
+                  color: theme.warning,
                 },
                 {
-                  value: "redness",
+                  value: "redness" as const,
                   label: "Redness / concern",
-                  color: "#E65100",
-                  bg: "#FBE9E7",
+                  color: theme.error,
                 },
                 {
-                  value: "breakdown",
+                  value: "breakdown" as const,
                   label: "Wound breakdown",
-                  color: "#B71C1C",
-                  bg: "#FFEBEE",
+                  color: theme.error,
                 },
               ] as const
             ).map((opt) => (
@@ -604,7 +620,7 @@ export default function AddTimelineEventScreen() {
                       : theme.border,
                   backgroundColor:
                     dischargeWoundStatus === opt.value
-                      ? opt.bg
+                      ? opt.color + "1A"
                       : theme.backgroundElevated,
                 }}
               >
