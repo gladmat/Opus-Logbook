@@ -203,7 +203,7 @@ export type RootStackParamList = {
     diagnosisGroupIndex: number;
     lesionIndex?: number;
   };
-  Inbox: { pickMode?: boolean; callbackId?: string } | undefined;
+  Inbox: { pickMode?: boolean; callbackId?: string; procedureDate?: string } | undefined;
   SmartImport: undefined;
   OpusCamera:
     | {

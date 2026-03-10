@@ -34,6 +34,16 @@ import {
 } from "@/lib/inboxStorage";
 import { getCases, getCase, saveCase } from "@/lib/storage";
 import { getPrimaryDiagnosisName, getCaseSpecialties } from "@/types/case";
+import {
+  inferMediaTagForInboxItem,
+  inboxItemToOperativeMediaSmart,
+  extractPatientIdHint,
+} from "@/lib/inboxAssignment";
+import { buildMediaContextFromCase } from "@/lib/mediaContext";
+
+// White-on-photo overlay — intentionally theme-independent
+// (always white text with shadow on photo thumbnails / dark modal backdrops)
+const OVERLAY_TEXT = "#FFFFFF";
 
 // ═══════════════════════════════════════════════════════════
 // Types
@@ -99,6 +109,7 @@ function groupByDate(items: InboxItem[]): DateGroup[] {
   return groupOrder.map((label) => ({ label, items: groups.get(label)! }));
 }
 
+/** @deprecated Use inferMediaTagForInboxItem + inboxItemToOperativeMediaSmart instead */
 function inboxItemToOperativeMedia(item: InboxItem): OperativeMediaItem {
   return {
     id: item.id,
@@ -131,6 +142,7 @@ export default function InboxScreen() {
 
   const pickMode = route.params?.pickMode ?? false;
   const callbackId = route.params?.callbackId;
+  const procedureDateParam = route.params?.procedureDate;
 
   const [items, setItems] = useState<InboxItem[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -215,6 +227,12 @@ export default function InboxScreen() {
 
   // ── Assign to case (standalone mode) ─────────────────
 
+  const patientIdHint = useMemo(() => {
+    if (selectedIds.size === 0) return undefined;
+    const selected = items.filter((item) => selectedIds.has(item.id));
+    return extractPatientIdHint(selected);
+  }, [selectedIds, items]);
+
   const handleAssignToCase = useCallback(() => {
     if (selectedIds.size === 0) return;
     setShowCasePicker(true);
@@ -227,8 +245,11 @@ export default function InboxScreen() {
         const selectedItems = items.filter((item) =>
           selectedIds.has(item.id),
         );
-        const newMedia: OperativeMediaItem[] =
-          selectedItems.map(inboxItemToOperativeMedia);
+        const caseProcDate = caseData.procedureDate;
+        const newMedia: OperativeMediaItem[] = selectedItems.map((item) => {
+          const tag = inferMediaTagForInboxItem(item, caseProcDate);
+          return inboxItemToOperativeMediaSmart(item, tag);
+        });
 
         const existingMedia = caseData.operativeMedia ?? [];
         const updatedCase: Case = {
@@ -262,8 +283,10 @@ export default function InboxScreen() {
   const handlePickConfirm = useCallback(() => {
     if (selectedIds.size === 0 || !callbackId) return;
     const selectedItems = items.filter((item) => selectedIds.has(item.id));
-    const newMedia: OperativeMediaItem[] =
-      selectedItems.map(inboxItemToOperativeMedia);
+    const newMedia: OperativeMediaItem[] = selectedItems.map((item) => {
+      const tag = inferMediaTagForInboxItem(item, procedureDateParam);
+      return inboxItemToOperativeMediaSmart(item, tag);
+    });
 
     // Remove from inbox index — files now belong to the calling case
     removeFromInbox([...selectedIds]);
@@ -271,7 +294,7 @@ export default function InboxScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     executeGenericCallback(callbackId, newMedia);
     navigation.goBack();
-  }, [selectedIds, items, callbackId, executeGenericCallback, navigation]);
+  }, [selectedIds, items, callbackId, executeGenericCallback, navigation, procedureDateParam]);
 
   // ── Tap / long-press handlers ────────────────────────
 
@@ -438,7 +461,7 @@ export default function InboxScreen() {
                         </View>
                       ) : (
                         <ThemedText
-                          style={[styles.timeStamp, { color: "#fff" }]}
+                          style={[styles.timeStamp, { color: OVERLAY_TEXT }]}
                         >
                           {formatTime(item.capturedAt)}
                         </ThemedText>
@@ -598,7 +621,7 @@ export default function InboxScreen() {
               { top: insets.top + Spacing.md },
             ]}
           >
-            <Feather name="x" size={24} color="#fff" />
+            <Feather name="x" size={24} color={OVERLAY_TEXT} />
           </Pressable>
         </Pressable>
       </Modal>
@@ -608,6 +631,7 @@ export default function InboxScreen() {
         visible={showCasePicker}
         onClose={() => setShowCasePicker(false)}
         onSelectCase={handleCaseSelected}
+        initialSearch={patientIdHint}
       />
     </ThemedView>
   );
@@ -621,22 +645,27 @@ function CasePickerModal({
   visible,
   onClose,
   onSelectCase,
+  initialSearch,
 }: {
   visible: boolean;
   onClose: () => void;
   onSelectCase: (c: Case) => void;
+  initialSearch?: string;
 }) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const [cases, setCases] = useState<Case[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [totalCases, setTotalCases] = useState(0);
 
   useEffect(() => {
     if (!visible) return;
+    setSearch(initialSearch ?? "");
     setLoading(true);
     getCases()
       .then((all) => {
+        setTotalCases(all.length);
         // Sort newest first, limit to 50 most recent
         const sorted = all
           .sort(
@@ -649,7 +678,7 @@ function CasePickerModal({
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [visible]);
+  }, [visible, initialSearch]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return cases;
@@ -767,6 +796,18 @@ function CasePickerModal({
             keyExtractor={(c) => c.id}
             renderItem={renderCase}
             contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.lg }}
+            ListFooterComponent={
+              totalCases > 50 && !search ? (
+                <ThemedText
+                  style={[
+                    styles.casePickerHint,
+                    { color: theme.textTertiary },
+                  ]}
+                >
+                  Showing 50 most recent. Use search to find older cases.
+                </ThemedText>
+              ) : null
+            }
           />
         )}
       </ThemedView>
@@ -1039,5 +1080,11 @@ const styles = StyleSheet.create({
   },
   caseMeta: {
     fontSize: 13,
+  },
+  casePickerHint: {
+    fontSize: 13,
+    textAlign: "center",
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
   },
 });

@@ -211,7 +211,11 @@ export function OperativeMediaSection({
         onMediaChange([...media, ...newMedia]);
       },
     );
-    navigation.navigate("Inbox", { pickMode: true, callbackId });
+    navigation.navigate("Inbox", {
+      pickMode: true,
+      callbackId,
+      procedureDate: mediaContext?.procedureDate,
+    });
   };
 
   return (
