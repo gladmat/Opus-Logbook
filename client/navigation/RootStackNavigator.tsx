@@ -188,6 +188,7 @@ export type RootStackParamList = {
     specialty?: string;
     procedureTags?: string[];
     hasSkinCancerAssessment?: boolean;
+    procedureDate?: string;
   };
   EpisodeDetail: { episodeId: string };
   EpisodeList: undefined;

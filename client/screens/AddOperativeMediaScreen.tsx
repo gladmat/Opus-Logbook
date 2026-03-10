@@ -31,7 +31,7 @@ import { DatePickerField } from "@/components/FormField";
 import { useMediaCallback } from "@/contexts/MediaCallbackContext";
 import { normalizeDateOnlyValue, toIsoDateValue } from "@/lib/dateValues";
 import { MediaTagPicker } from "@/components/media";
-import { resolveMediaTag } from "@/lib/mediaTagMigration";
+import { resolveMediaTag, suggestTemporalTag } from "@/lib/mediaTagMigration";
 import { TAG_TO_MEDIA_TYPE } from "@/lib/operativeMedia";
 import type { MediaTag } from "@/types/media";
 import type { OperativeMediaType } from "@/types/case";
@@ -65,6 +65,7 @@ export default function AddOperativeMediaScreen() {
     specialty,
     procedureTags,
     hasSkinCancerAssessment,
+    procedureDate,
   } = route.params;
 
   // Resolve initial tag from existingTag or legacy existingMediaType
@@ -74,7 +75,7 @@ export default function AddOperativeMediaScreen() {
       ? resolveMediaTag({
           mediaType: existingMediaType as OperativeMediaType,
         })
-      : "intraop";
+      : suggestTemporalTag(procedureDate);
 
   const [selectedTag, setSelectedTag] = useState<MediaTag>(initialTag);
   const [captionInput, setCaptionInput] = useState(existingCaption || "");

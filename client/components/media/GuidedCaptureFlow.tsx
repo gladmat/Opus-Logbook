@@ -20,6 +20,7 @@ import { useMediaCallback } from "@/contexts/MediaCallbackContext";
 import {
   operativeMediaToAttachments,
 } from "@/lib/operativeMedia";
+import { deleteEncryptedMedia } from "@/lib/mediaStorage";
 import { resolveMediaTag } from "@/lib/mediaTagMigration";
 
 // ═══════════════════════════════════════════════════════════
@@ -154,7 +155,8 @@ function GuidedCaptureFlowInner({
             hasSkinCancerAssessment,
           });
         }
-      } catch {
+      } catch (error) {
+        console.warn("[GuidedCaptureFlow] Capture failed:", error);
         Alert.alert("Error", "Failed to capture image.");
       }
     },
@@ -181,9 +183,6 @@ function GuidedCaptureFlowInner({
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             const item = existingMedia.find((m) => m.id === mediaId);
             if (item) {
-              const { deleteEncryptedMedia } = await import(
-                "@/lib/mediaStorage"
-              );
               await deleteEncryptedMedia(item.localUri);
             }
             onMediaChange(existingMedia.filter((m) => m.id !== mediaId));

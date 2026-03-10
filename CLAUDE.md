@@ -23,7 +23,8 @@ Key capabilities: multi-specialty case logging, SNOMED CT coded diagnoses and pr
 - **Phase 4 COMPLETE** — Data migration (schemaVersion 4, lazy on load), CSV export (38 columns), FHIR R4 export (with Device resources for implants), PDF export (with implant column), analytics dashboard (base stats + specialty-specific stats + entry time + suggestion acceptance + top dx-proc pairs)
 - **Elective Hand + Joint Implant COMPLETE** — 38 elective hand diagnoses across 7 subcategories with strict elective-only picker scoping and SNOMED fallback, 11 new procedures (3 arthroplasty with `hasImplant` flag), 3 staging configs (Tubiana-Dupuytren, CTS-Severity, Quinnell-Trigger), HandElectivePicker chip-based UI, per-procedure JointImplantSection workflow with digit/laterality anatomy capture and completeness warnings, 26 implant catalogue entries for CMC1/PIP/MCP, multi-implant aggregation in CSV/FHIR/PDF exports, expanded CaseDetailScreen implant display, duplicate case cloning, and 99 tests (52 elective hand + 44 implant + 3 export)
 - **Skin Cancer Terminology Repair COMPLETE** — corrected skin-cancer SNOMED CT parent/subtype diagnoses, rare malignancy runtime metadata, melanoma staging lookups, UK-extension skin oncology procedure codes, and Mohs migration mapping; added 17 rare cutaneous subtype entries and targeted regression coverage for diagnosis resolution, staging lookup, and procedure terminology
-- **Media Overhaul Phase 1-4 COMPLETE** — unified MediaTag taxonomy (67 tags across 7 groups replacing dual OperativeMediaType + MediaCategory), 7 capture protocols (free flap, skin cancer, rhinoplasty, face, breast, body contouring, hand surgery), legacy migration mappers, EXIF stripping fix (removed double-encoding), `getRelevantGroups()` diagnosis-driven skin cancer support, 5 UI components (MediaTagBadge, MediaTagPicker, ProtocolBadge, CaptureStepCard, GuidedCaptureFlow), wired into all screens (AddOperativeMediaScreen, MediaManagementScreen, OperativeMediaSection, MediaCapture, AddTimelineEventScreen), TAG_TO_MEDIA_TYPE/TAG_TO_CATEGORY backward-compat reverse mappings, CaseFormScreen/CaseDetailScreen/DashboardScreen derive and pass media context (specialty, procedureTags, hasSkinCancerAssessment), MediaCapture uses MediaTagBadge+resolveMediaTag for legacy migration, AddTimelineEventScreen hardcoded hex colours replaced with theme tokens, legacy MEDIA_CATEGORY_LABELS/MEDIA_TYPE_TO_CATEGORY/CATEGORY_TO_MEDIA_TYPE marked @deprecated, 84 media tests (445 total)
+- **Media Overhaul Phase 1-4 COMPLETE** — unified MediaTag taxonomy (64 tags across 7 groups replacing dual OperativeMediaType + MediaCategory), 7 capture protocols (free flap, skin cancer, rhinoplasty, face, breast, body contouring, hand surgery), legacy migration mappers, EXIF stripping fix (removed double-encoding), `getRelevantGroups()` diagnosis-driven skin cancer support, 5 UI components (MediaTagBadge, MediaTagPicker, ProtocolBadge, CaptureStepCard, GuidedCaptureFlow), wired into all screens (AddOperativeMediaScreen, MediaManagementScreen, OperativeMediaSection, MediaCapture, AddTimelineEventScreen), TAG_TO_MEDIA_TYPE/TAG_TO_CATEGORY backward-compat reverse mappings, CaseFormScreen/CaseDetailScreen/DashboardScreen derive and pass media context (specialty, procedureTags, hasSkinCancerAssessment), MediaCapture uses MediaTagBadge+resolveMediaTag for legacy migration, AddTimelineEventScreen hardcoded hex colours replaced with theme tokens, legacy MEDIA_CATEGORY_LABELS/MEDIA_TYPE_TO_CATEGORY/CATEGORY_TO_MEDIA_TYPE marked @deprecated
+- **Media Overhaul Phase 5 COMPLETE** — temporal tag auto-suggestion (`suggestTemporalTag()` with date-range-based default tag selection, wired through CaseFormScreen → OperativeMediaSection → AddOperativeMediaScreen), DashboardScreen hardcoded hex fix (`#fff` → `theme.buttonText`), GuidedCaptureFlow error handling improvement (top-level import, console.warn), expanded test coverage (operativeMedia 2→16, mediaTagMigration 49→73, mediaCaptureProtocols 23→27), 126 media tests (487 total)
 - **Phase 5 IN PROGRESS** — Version 2.0.0, EAS config done (dev/preview/production profiles), pending manual regression + TestFlight submission
 
 ## Tech stack
@@ -149,7 +150,7 @@ client/
     mediaFileStorage.ts          # File-system CRUD for v2 encrypted media (opus-media:{uuid})
     mediaDecryptCache.ts         # LRU temp-file cache for decrypted v2 media
     thumbnailGenerator.ts        # Thumbnail + full image byte extraction, EXIF stripping via re-encoding (300px/0.6)
-    mediaTagMigration.ts         # Legacy OperativeMediaType/MediaCategory → MediaTag mappers, resolveMediaTag()
+    mediaTagMigration.ts         # Legacy OperativeMediaType/MediaCategory → MediaTag mappers, resolveMediaTag(), suggestTemporalTag()
     mediaMigration.ts            # Lazy v1→v2 media migration with deferred cleanup
     binaryUtils.ts               # Shared base64↔Uint8Array conversion utilities
     e2ee.ts                      # Device key pair generation, X25519
@@ -195,7 +196,7 @@ client/
     __tests__/                   # 22 test files incl. hand trauma, skin cancer, dashboard, dateValues, operative media, statistics, hand elective, joint implant, mediaEncryption, staging/terminology regressions, mediaTagMigration, mediaCaptureProtocols
   types/
     case.ts                      # Case, DiagnosisGroup, Procedure, Timeline, Media (2322 lines)
-    media.ts                     # MediaTag taxonomy (67 tags, 7 groups), MEDIA_TAG_REGISTRY, getTagsForGroup, getRelevantGroups
+    media.ts                     # MediaTag taxonomy (64 tags, 7 groups), MEDIA_TAG_REGISTRY, getTagsForGroup, getRelevantGroups
     diagnosis.ts                 # Diagnosis picklist entry
     episode.ts                   # Treatment episode, status machine, encounter classes
     infection.ts                 # Infection episodes, syndromes, microbiology
@@ -594,10 +595,10 @@ Tests: `client/lib/__tests__/skinCancerConfig.test.ts` (87 tests), `skinCancerPh
 
 ### Media tag system & capture protocols
 
-**Unified MediaTag taxonomy** replaces the legacy dual `OperativeMediaType` (8 values) + `MediaCategory` (20 values) system with a single `MediaTag` type (67 tags across 7 groups: temporal, imaging, flap_surgery, skin_cancer, aesthetic, hand_function, other). Defined in `client/types/media.ts` — single source of truth.
+**Unified MediaTag taxonomy** replaces the legacy dual `OperativeMediaType` (8 values) + `MediaCategory` (20 values) system with a single `MediaTag` type (64 tags across 7 groups: temporal, imaging, flap_surgery, skin_cancer, aesthetic, hand_function, other). Defined in `client/types/media.ts` — single source of truth.
 
 **Key types & exports:**
-- `MediaTag` — union of 67 string literals, one per media item
+- `MediaTag` — union of 64 string literals, one per media item
 - `MediaTagGroup` — 7 group identifiers for UI sectioning
 - `MEDIA_TAG_REGISTRY` — complete metadata: label, group, sortOrder, captureHint per tag
 - `MEDIA_TAG_GROUP_LABELS` — display names for group tabs
@@ -608,6 +609,7 @@ Tests: `client/lib/__tests__/skinCancerConfig.test.ts` (87 tests), `skinCancerPh
 - `migrateOperativeMediaType(type)` — maps all 8 old types to MediaTag
 - `migrateMediaCategory(category)` — maps all 20 old categories to MediaTag
 - `resolveMediaTag({ tag?, category?, mediaType? })` — cascading fallback: tag → category → mediaType → "other"
+- `suggestTemporalTag(procedureDate?)` — auto-suggests temporal MediaTag based on days since procedure (preop → intraop → postop_early → postop_mid → followup_3m/6m/12m → followup_late). Uses `parseDateOnlyValue()` for timezone-safe parsing.
 - Both `MediaAttachment.tag` and `OperativeMediaItem.tag` fields added; legacy fields `@deprecated`
 
 **Capture protocols** (`client/data/mediaCaptureProtocols.ts`):
@@ -1151,7 +1153,7 @@ Configured in both `tsconfig.json` and `babel.config.js` (module-resolver plugin
 
 ## Testing
 
-- **Framework:** Vitest 4.0.18, **445 tests** across 24 files
-- **Client tests:** `client/lib/__tests__/` — handTraumaDiagnosis, handTraumaMapping, handTraumaUx, skinCancerConfig (89 tests), skinCancerPhase4 (11 tests), skinCancerPhase5 (18 tests), dashboardSelectors (7 tests), handInfection (42 tests), handElective (52 tests), jointImplant (44 tests), mediaEncryption (16 tests), statisticsHelpers (3 tests), statistics (7 tests), dateValues (8 tests), operativeMedia (2 tests), caseDraftPersistence (1 test), mediaTagMigration (49 tests), mediaCaptureProtocols (23 tests), implantExport (3 tests), dateFieldNormalization (4 tests), skinCancerDiagnoses (7 tests)
+- **Framework:** Vitest 4.0.18, **487 tests** across 24 files
+- **Client tests:** `client/lib/__tests__/` — handTraumaDiagnosis, handTraumaMapping, handTraumaUx, skinCancerConfig (89 tests), skinCancerPhase4 (11 tests), skinCancerPhase5 (18 tests), dashboardSelectors (7 tests), handInfection (42 tests), handElective (52 tests), jointImplant (44 tests), mediaEncryption (16 tests), statisticsHelpers (3 tests), statistics (7 tests), dateValues (8 tests), operativeMedia (16 tests), caseDraftPersistence (1 test), mediaTagMigration (73 tests), mediaCaptureProtocols (27 tests), implantExport (3 tests), dateFieldNormalization (4 tests), skinCancerDiagnoses (7 tests)
 - **Server tests:** `server/__tests__/` — auth (17 tests), validation (7 tests), diagnosisStagingConfig (3 tests)
 - **Run:** `npm run test` (once) or `npm run test:watch` (watch mode)

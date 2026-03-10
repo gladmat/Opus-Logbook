@@ -243,4 +243,72 @@ describe("mergeProtocols", () => {
     expect(result.label).toContain(SKIN_CANCER_EXCISION_PROTOCOL.label);
     expect(result.label).toContain(FREE_FLAP_PROTOCOL.label);
   });
+
+  it("merges 3+ protocols with deduplication and section labels", () => {
+    const result = mergeProtocols([
+      FREE_FLAP_PROTOCOL,
+      SKIN_CANCER_EXCISION_PROTOCOL,
+      HAND_SURGERY_PROTOCOL,
+    ]);
+
+    // All tags should be unique after dedup
+    const tags = result.steps.map((s) => s.tag);
+    expect(new Set(tags).size).toBe(tags.length);
+
+    // Total should be <= sum of all three
+    const maxTotal =
+      FREE_FLAP_PROTOCOL.steps.length +
+      SKIN_CANCER_EXCISION_PROTOCOL.steps.length +
+      HAND_SURGERY_PROTOCOL.steps.length;
+    expect(result.steps.length).toBeLessThanOrEqual(maxTotal);
+    expect(result.steps.length).toBeGreaterThan(0);
+
+    // All three protocol IDs should appear
+    const sourceIds = new Set(result.steps.map((s) => s.sourceProtocolId));
+    expect(sourceIds.has("free_flap")).toBe(true);
+    expect(sourceIds.has("skin_cancer_excision")).toBe(true);
+    expect(sourceIds.has("hand_surgery")).toBe(true);
+
+    // Label should contain all three
+    expect(result.label).toContain(FREE_FLAP_PROTOCOL.label);
+    expect(result.label).toContain(SKIN_CANCER_EXCISION_PROTOCOL.label);
+    expect(result.label).toContain(HAND_SURGERY_PROTOCOL.label);
+  });
+
+  it("sectionLabel only appears on first step of each protocol", () => {
+    const result = mergeProtocols([
+      SKIN_CANCER_EXCISION_PROTOCOL,
+      FREE_FLAP_PROTOCOL,
+    ]);
+
+    // Count how many steps per protocol have sectionLabel
+    const skinCancerWithLabel = result.steps.filter(
+      (s) =>
+        s.sourceProtocolId === "skin_cancer_excision" && s.sectionLabel,
+    );
+    const flapWithLabel = result.steps.filter(
+      (s) =>
+        s.sourceProtocolId === "free_flap" && s.sectionLabel,
+    );
+
+    expect(skinCancerWithLabel).toHaveLength(1);
+    expect(flapWithLabel).toHaveLength(1);
+  });
+
+  it("all merged steps have sourceProtocolId set", () => {
+    const result = mergeProtocols([
+      AESTHETIC_BREAST_PROTOCOL,
+      AESTHETIC_BODY_PROTOCOL,
+    ]);
+
+    for (const step of result.steps) {
+      expect(step.sourceProtocolId).toBeDefined();
+      expect(step.sourceProtocolId!.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("step count is correct for single protocol after merge", () => {
+    const result = mergeProtocols([FREE_FLAP_PROTOCOL]);
+    expect(result.steps.length).toBe(FREE_FLAP_PROTOCOL.steps.length);
+  });
 });

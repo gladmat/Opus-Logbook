@@ -532,8 +532,8 @@ export default function DashboardScreen() {
                     onPress={handleConfirmDischarge}
                     testID="confirm-discharge-button"
                   >
-                    <Feather name="check" size={18} color="#fff" />
-                    <ThemedText style={styles.dischargeConfirmText}>
+                    <Feather name="check" size={18} color={theme.buttonText} />
+                    <ThemedText style={[styles.dischargeConfirmText, { color: theme.buttonText }]}>
                       Confirm Discharge
                     </ThemedText>
                   </Pressable>
@@ -629,7 +629,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   dischargeConfirmText: {
-    color: "#fff",
     fontSize: 15,
     fontWeight: "600",
   },

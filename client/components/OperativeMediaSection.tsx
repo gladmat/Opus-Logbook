@@ -40,6 +40,7 @@ interface OperativeMediaSectionProps {
   specialty?: string;
   procedureTags?: string[];
   hasSkinCancerAssessment?: boolean;
+  procedureDate?: string;
 }
 
 export function OperativeMediaSection({
@@ -49,6 +50,7 @@ export function OperativeMediaSection({
   specialty,
   procedureTags,
   hasSkinCancerAssessment,
+  procedureDate,
 }: OperativeMediaSectionProps) {
   const { theme } = useTheme();
   const navigation =
@@ -99,6 +101,7 @@ export function OperativeMediaSection({
       specialty,
       procedureTags,
       hasSkinCancerAssessment,
+      procedureDate,
     });
   };
 
@@ -221,6 +224,7 @@ export function OperativeMediaSection({
       specialty,
       procedureTags,
       hasSkinCancerAssessment,
+      procedureDate,
     });
   };
 

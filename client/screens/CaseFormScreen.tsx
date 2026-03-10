@@ -693,6 +693,7 @@ export default function CaseFormScreen() {
                 specialty={form.specialty}
                 procedureTags={mediaProcedureTags}
                 hasSkinCancerAssessment={mediaHasSkinCancerAssessment}
+                procedureDate={form.state.procedureDate}
               />
             </SectionWrapper>
 

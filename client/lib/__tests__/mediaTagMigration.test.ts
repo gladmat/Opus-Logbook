@@ -4,6 +4,7 @@ import {
   migrateOperativeMediaType,
   migrateMediaCategory,
   resolveMediaTag,
+  suggestTemporalTag,
 } from "@/lib/mediaTagMigration";
 import { MEDIA_TAG_REGISTRY, getRelevantGroups } from "@/types/media";
 import type { MediaCategory, OperativeMediaType } from "@/types/case";
@@ -241,6 +242,10 @@ describe("resolveMediaTag", () => {
 // ═══════════════════════════════════════════════════════════
 
 describe("registry completeness", () => {
+  it("has exactly 64 tags in the registry", () => {
+    expect(Object.keys(MEDIA_TAG_REGISTRY)).toHaveLength(64);
+  });
+
   it("has no duplicate tags in the registry", () => {
     const tags = Object.keys(MEDIA_TAG_REGISTRY);
     const unique = new Set(tags);
@@ -362,5 +367,134 @@ describe("getRelevantGroups", () => {
   it("does not include skin_cancer for head_neck or general without assessment", () => {
     expect(getRelevantGroups("head_neck")).not.toContain("skin_cancer");
     expect(getRelevantGroups("general")).not.toContain("skin_cancer");
+  });
+
+  it("always returns temporal as the first group", () => {
+    const groups = getRelevantGroups();
+    expect(groups[0]).toBe("temporal");
+  });
+
+  it("always returns other as the last group", () => {
+    const groups = getRelevantGroups();
+    expect(groups[groups.length - 1]).toBe("other");
+  });
+
+  it("returns groups as an array of valid MediaTagGroup values", () => {
+    const validGroups: MediaTagGroup[] = [
+      "temporal",
+      "imaging",
+      "flap_surgery",
+      "skin_cancer",
+      "aesthetic",
+      "hand_function",
+      "other",
+    ];
+    const groups = getRelevantGroups("hand_wrist", ["free_flap"], true);
+    for (const group of groups) {
+      expect(validGroups).toContain(group);
+    }
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
+// suggestTemporalTag
+// ═══════════════════════════════════════════════════════════
+
+describe("suggestTemporalTag", () => {
+  function daysAgo(days: number): string {
+    const d = new Date();
+    d.setDate(d.getDate() - days);
+    return d.toISOString().split("T")[0]!;
+  }
+
+  it('returns "preop_clinical" when no procedureDate is provided', () => {
+    expect(suggestTemporalTag()).toBe("preop_clinical");
+    expect(suggestTemporalTag(undefined)).toBe("preop_clinical");
+  });
+
+  it('returns "preop_clinical" for invalid date string', () => {
+    expect(suggestTemporalTag("not-a-date")).toBe("preop_clinical");
+  });
+
+  it('returns "preop_clinical" for future date', () => {
+    const future = new Date();
+    future.setDate(future.getDate() + 7);
+    const futureStr = future.toISOString().split("T")[0]!;
+    expect(suggestTemporalTag(futureStr)).toBe("preop_clinical");
+  });
+
+  it('returns "intraop" for today', () => {
+    expect(suggestTemporalTag(daysAgo(0))).toBe("intraop");
+  });
+
+  it('returns "postop_early" for 1 day ago', () => {
+    expect(suggestTemporalTag(daysAgo(1))).toBe("postop_early");
+  });
+
+  it('returns "postop_early" for 7 days ago', () => {
+    expect(suggestTemporalTag(daysAgo(7))).toBe("postop_early");
+  });
+
+  it('returns "postop_mid" for 8 days ago', () => {
+    expect(suggestTemporalTag(daysAgo(8))).toBe("postop_mid");
+  });
+
+  it('returns "postop_mid" for 42 days ago (6 weeks)', () => {
+    expect(suggestTemporalTag(daysAgo(42))).toBe("postop_mid");
+  });
+
+  it('returns "followup_3m" for 43 days ago', () => {
+    expect(suggestTemporalTag(daysAgo(43))).toBe("followup_3m");
+  });
+
+  it('returns "followup_3m" for 90 days ago (~3 months)', () => {
+    expect(suggestTemporalTag(daysAgo(90))).toBe("followup_3m");
+  });
+
+  it('returns "followup_3m" for 135 days ago', () => {
+    expect(suggestTemporalTag(daysAgo(135))).toBe("followup_3m");
+  });
+
+  it('returns "followup_6m" for 136 days ago', () => {
+    expect(suggestTemporalTag(daysAgo(136))).toBe("followup_6m");
+  });
+
+  it('returns "followup_6m" for 180 days ago (~6 months)', () => {
+    expect(suggestTemporalTag(daysAgo(180))).toBe("followup_6m");
+  });
+
+  it('returns "followup_6m" for 270 days ago', () => {
+    expect(suggestTemporalTag(daysAgo(270))).toBe("followup_6m");
+  });
+
+  it('returns "followup_12m" for 271 days ago', () => {
+    expect(suggestTemporalTag(daysAgo(271))).toBe("followup_12m");
+  });
+
+  it('returns "followup_12m" for 365 days ago (~12 months)', () => {
+    expect(suggestTemporalTag(daysAgo(365))).toBe("followup_12m");
+  });
+
+  it('returns "followup_12m" for 450 days ago', () => {
+    expect(suggestTemporalTag(daysAgo(450))).toBe("followup_12m");
+  });
+
+  it('returns "followup_late" for 451 days ago', () => {
+    expect(suggestTemporalTag(daysAgo(451))).toBe("followup_late");
+  });
+
+  it('returns "followup_late" for 730 days ago (2 years)', () => {
+    expect(suggestTemporalTag(daysAgo(730))).toBe("followup_late");
+  });
+
+  it("all returned tags are valid MediaTags in the registry", () => {
+    const testDays = [0, 1, 7, 8, 42, 43, 90, 135, 136, 270, 271, 365, 450, 451, 730];
+    for (const d of testDays) {
+      const tag = suggestTemporalTag(daysAgo(d));
+      expect(
+        tag in MEDIA_TAG_REGISTRY,
+        `suggestTemporalTag(${d} days ago) returned invalid tag: ${tag}`,
+      ).toBe(true);
+    }
   });
 });
