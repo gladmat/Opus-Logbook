@@ -6,6 +6,7 @@ import {
   Pressable,
   Animated,
   AppState,
+  BackHandler,
   InteractionManager,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -136,6 +137,15 @@ export default function LockScreen() {
       }
     };
   }, [runBiometricAutoPrompt]);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => true,
+    );
+
+    return () => subscription.remove();
+  }, []);
 
   const triggerShake = useCallback(() => {
     Animated.sequence([

@@ -500,279 +500,289 @@ export default function RootStackNavigator() {
     );
   }
 
-  // Show lock screen when authenticated, app lock is configured, and currently locked
-  if (isAuthenticated && isAppLockConfigured && isLocked) {
-    return <LockScreen />;
-  }
-
   return (
-    <Stack.Navigator screenOptions={screenOptions}>
-      {isAuthenticated && replayIntroStep === "welcome" ? (
-        <Stack.Screen
-          key="replay-welcome"
-          name="Welcome"
-          options={{ headerShown: false }}
-        >
-          {() => (
-            <WelcomeScreen
-              onComplete={handleWelcomeComplete}
-              onSignIn={handleWelcomeSignIn}
-              showSignIn={false}
-            />
-          )}
-        </Stack.Screen>
-      ) : isAuthenticated && replayIntroStep === "features" ? (
-        <Stack.Screen
-          key="replay-features"
-          name="Features"
-          options={{ headerShown: false }}
-        >
-          {() => <FeaturePager onComplete={handleFeaturesComplete} />}
-        </Stack.Screen>
-      ) : !hasSeenWelcome && !isAuthenticated ? (
-        <Stack.Screen
-          key="welcome"
-          name="Welcome"
-          options={{ headerShown: false }}
-        >
-          {() => (
-            <WelcomeScreen
-              onComplete={handleWelcomeComplete}
-              onSignIn={handleWelcomeSignIn}
-            />
-          )}
-        </Stack.Screen>
-      ) : !hasSeenFeatures && !isAuthenticated ? (
-        <Stack.Screen
-          key="features"
-          name="Features"
-          options={{ headerShown: false }}
-        >
-          {() => <FeaturePager onComplete={handleFeaturesComplete} />}
-        </Stack.Screen>
-      ) : !isAuthenticated && showEmailAuth ? (
-        <Stack.Screen
-          key={`email-auth-${emailAuthMode}`}
-          name="EmailSignup"
-          options={{ headerShown: false }}
-        >
-          {() => <EmailSignupScreen initialMode={emailAuthMode} />}
-        </Stack.Screen>
-      ) : !isAuthenticated ? (
-        <Stack.Screen key="auth" name="Auth" options={{ headerShown: false }}>
-          {() => (
-            <OnboardingAuthScreen
-              onContinueWithEmail={() => {
-                setEmailAuthMode("signup");
-                setShowEmailAuth(true);
-              }}
-              onSignIn={() => {
-                setEmailAuthMode("signin");
-                setShowEmailAuth(true);
-              }}
-            />
-          )}
-        </Stack.Screen>
-      ) : !onboardingComplete && activeOnboardingStep === "categories" ? (
-        <Stack.Screen
-          key="onboarding-categories"
-          name="Categories"
-          options={{ headerShown: false }}
-        >
-          {() => (
-            <CategoriesScreen
-              initialSelectedCategories={onboardingDraft.selectedCategories}
-              onComplete={handleCategoriesComplete}
-            />
-          )}
-        </Stack.Screen>
-      ) : !onboardingComplete && activeOnboardingStep === "training" ? (
-        <Stack.Screen
-          key="onboarding-training"
-          name="Training"
-          options={{ headerShown: false }}
-        >
-          {() => (
-            <TrainingScreen
-              initialSelectionId={onboardingDraft.trainingSelectionId}
-              initialOtherText={
-                onboardingDraft.trainingSelectionId === "other"
-                  ? (onboardingDraft.trainingProgramme ?? "")
-                  : ""
-              }
-              onBack={() => setCurrentOnboardingStep("categories")}
-              onComplete={handleTrainingComplete}
-            />
-          )}
-        </Stack.Screen>
-      ) : !onboardingComplete && activeOnboardingStep === "hospital" ? (
-        <Stack.Screen
-          key="onboarding-hospital"
-          name="Hospital"
-          options={{ headerShown: false }}
-        >
-          {() => (
-            <HospitalScreen
-              initialHospitals={onboardingDraft.selectedHospitals}
-              onBack={() => setCurrentOnboardingStep("training")}
-              onComplete={handleHospitalComplete}
-              trainingProgramme={onboardingDraft.trainingProgramme}
-            />
-          )}
-        </Stack.Screen>
-      ) : !onboardingComplete ? (
-        <Stack.Screen
-          key="onboarding-privacy"
-          name="Privacy"
-          options={{ headerShown: false }}
-        >
-          {() => (
-            <PrivacyScreen
-              onBack={() => setCurrentOnboardingStep("hospital")}
-              onComplete={() => undefined}
-            />
-          )}
-        </Stack.Screen>
-      ) : (
-        <>
+    <View style={styles.container}>
+      <Stack.Navigator screenOptions={screenOptions}>
+        {isAuthenticated && replayIntroStep === "welcome" ? (
           <Stack.Screen
-            name="Main"
-            component={MainTabNavigator}
+            key="replay-welcome"
+            name="Welcome"
             options={{ headerShown: false }}
-          />
+          >
+            {() => (
+              <WelcomeScreen
+                onComplete={handleWelcomeComplete}
+                onSignIn={handleWelcomeSignIn}
+                showSignIn={false}
+              />
+            )}
+          </Stack.Screen>
+        ) : isAuthenticated && replayIntroStep === "features" ? (
           <Stack.Screen
-            name="CaseDetail"
-            component={CaseDetailScreen}
-            options={{
-              headerTitle: "Case Details",
-            }}
-          />
+            key="replay-features"
+            name="Features"
+            options={{ headerShown: false }}
+          >
+            {() => <FeaturePager onComplete={handleFeaturesComplete} />}
+          </Stack.Screen>
+        ) : !hasSeenWelcome && !isAuthenticated ? (
           <Stack.Screen
-            name="CaseForm"
-            component={CaseFormScreen}
-            options={{
-              headerTitle: "New Case",
-            }}
-          />
+            key="welcome"
+            name="Welcome"
+            options={{ headerShown: false }}
+          >
+            {() => (
+              <WelcomeScreen
+                onComplete={handleWelcomeComplete}
+                onSignIn={handleWelcomeSignIn}
+              />
+            )}
+          </Stack.Screen>
+        ) : !hasSeenFeatures && !isAuthenticated ? (
           <Stack.Screen
-            name="AddCase"
-            component={AddCaseScreen}
-            options={{
-              headerTitle: "Add Case",
-            }}
-          />
+            key="features"
+            name="Features"
+            options={{ headerShown: false }}
+          >
+            {() => <FeaturePager onComplete={handleFeaturesComplete} />}
+          </Stack.Screen>
+        ) : !isAuthenticated && showEmailAuth ? (
           <Stack.Screen
-            name="AddTimelineEvent"
-            component={AddTimelineEventScreen}
-            options={{
-              headerTitle: "Add Event",
-              presentation: "modal",
-            }}
-          />
+            key={`email-auth-${emailAuthMode}`}
+            name="EmailSignup"
+            options={{ headerShown: false }}
+          >
+            {() => <EmailSignupScreen initialMode={emailAuthMode} />}
+          </Stack.Screen>
+        ) : !isAuthenticated ? (
+          <Stack.Screen key="auth" name="Auth" options={{ headerShown: false }}>
+            {() => (
+              <OnboardingAuthScreen
+                onContinueWithEmail={() => {
+                  setEmailAuthMode("signup");
+                  setShowEmailAuth(true);
+                }}
+                onSignIn={() => {
+                  setEmailAuthMode("signin");
+                  setShowEmailAuth(true);
+                }}
+              />
+            )}
+          </Stack.Screen>
+        ) : !onboardingComplete && activeOnboardingStep === "categories" ? (
           <Stack.Screen
-            name="MediaManagement"
-            component={MediaManagementScreen}
-            options={{
-              headerShown: false,
-              presentation: "fullScreenModal",
-            }}
-          />
+            key="onboarding-categories"
+            name="Categories"
+            options={{ headerShown: false }}
+          >
+            {() => (
+              <CategoriesScreen
+                initialSelectedCategories={onboardingDraft.selectedCategories}
+                onComplete={handleCategoriesComplete}
+              />
+            )}
+          </Stack.Screen>
+        ) : !onboardingComplete && activeOnboardingStep === "training" ? (
           <Stack.Screen
-            name="AddOperativeMedia"
-            component={AddOperativeMediaScreen}
-            options={{
-              headerShown: false,
-              presentation: "fullScreenModal",
-            }}
-          />
+            key="onboarding-training"
+            name="Training"
+            options={{ headerShown: false }}
+          >
+            {() => (
+              <TrainingScreen
+                initialSelectionId={onboardingDraft.trainingSelectionId}
+                initialOtherText={
+                  onboardingDraft.trainingSelectionId === "other"
+                    ? (onboardingDraft.trainingProgramme ?? "")
+                    : ""
+                }
+                onBack={() => setCurrentOnboardingStep("categories")}
+                onComplete={handleTrainingComplete}
+              />
+            )}
+          </Stack.Screen>
+        ) : !onboardingComplete && activeOnboardingStep === "hospital" ? (
           <Stack.Screen
-            name="EpisodeDetail"
-            component={EpisodeDetailScreen}
-            options={{
-              headerTitle: "Episode",
-            }}
-          />
+            key="onboarding-hospital"
+            name="Hospital"
+            options={{ headerShown: false }}
+          >
+            {() => (
+              <HospitalScreen
+                initialHospitals={onboardingDraft.selectedHospitals}
+                onBack={() => setCurrentOnboardingStep("training")}
+                onComplete={handleHospitalComplete}
+                trainingProgramme={onboardingDraft.trainingProgramme}
+              />
+            )}
+          </Stack.Screen>
+        ) : !onboardingComplete ? (
           <Stack.Screen
-            name="EpisodeList"
-            component={EpisodeListScreen}
-            options={{
-              headerTitle: "All Episodes",
-            }}
-          />
-          <Stack.Screen
-            name="SetupAppLock"
-            component={SetupAppLockScreen}
-            options={{
-              headerTitle: "App Lock",
-            }}
-          />
-          <Stack.Screen
-            name="EditProfile"
-            component={EditProfileScreen}
-            options={{
-              headerTitle: "Edit Profile",
-            }}
-          />
-          <Stack.Screen
-            name="ManageFacilities"
-            component={ManageFacilitiesScreen}
-            options={{
-              headerTitle: "My Hospitals",
-            }}
-          />
-          <Stack.Screen
-            name="SurgicalPreferences"
-            component={SurgicalPreferencesScreen}
-            options={{
-              headerTitle: "Surgical Preferences",
-            }}
-          />
-          <Stack.Screen
-            name="Personalisation"
-            component={PersonalisationScreen}
-            options={{
-              headerTitle: "Personalisation",
-            }}
-          />
-          <Stack.Screen
-            name="CaseSearch"
-            component={CaseSearchScreen}
-            options={{
-              headerTitle: "Search Cases",
-              presentation: "modal",
-            }}
-          />
-          <Stack.Screen
-            name="NeedsAttentionList"
-            component={NeedsAttentionListScreen}
-            options={{
-              headerTitle: "Needs Attention",
-            }}
-          />
-          <Stack.Screen
-            name="Inbox"
-            component={InboxScreen}
-            options={{
-              headerTitle: "Photo Inbox",
-            }}
-          />
-          <Stack.Screen
-            name="AddHistology"
-            component={AddHistologyScreen}
-            options={{
-              headerTitle: "Add Histology",
-            }}
-          />
-        </>
-      )}
-    </Stack.Navigator>
+            key="onboarding-privacy"
+            name="Privacy"
+            options={{ headerShown: false }}
+          >
+            {() => (
+              <PrivacyScreen
+                onBack={() => setCurrentOnboardingStep("hospital")}
+                onComplete={() => undefined}
+              />
+            )}
+          </Stack.Screen>
+        ) : (
+          <>
+            <Stack.Screen
+              name="Main"
+              component={MainTabNavigator}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="CaseDetail"
+              component={CaseDetailScreen}
+              options={{
+                headerTitle: "Case Details",
+              }}
+            />
+            <Stack.Screen
+              name="CaseForm"
+              component={CaseFormScreen}
+              options={{
+                headerTitle: "New Case",
+              }}
+            />
+            <Stack.Screen
+              name="AddCase"
+              component={AddCaseScreen}
+              options={{
+                headerTitle: "Add Case",
+              }}
+            />
+            <Stack.Screen
+              name="AddTimelineEvent"
+              component={AddTimelineEventScreen}
+              options={{
+                headerTitle: "Add Event",
+                presentation: "modal",
+              }}
+            />
+            <Stack.Screen
+              name="MediaManagement"
+              component={MediaManagementScreen}
+              options={{
+                headerShown: false,
+                presentation: "fullScreenModal",
+              }}
+            />
+            <Stack.Screen
+              name="AddOperativeMedia"
+              component={AddOperativeMediaScreen}
+              options={{
+                headerShown: false,
+                presentation: "fullScreenModal",
+              }}
+            />
+            <Stack.Screen
+              name="EpisodeDetail"
+              component={EpisodeDetailScreen}
+              options={{
+                headerTitle: "Episode",
+              }}
+            />
+            <Stack.Screen
+              name="EpisodeList"
+              component={EpisodeListScreen}
+              options={{
+                headerTitle: "All Episodes",
+              }}
+            />
+            <Stack.Screen
+              name="SetupAppLock"
+              component={SetupAppLockScreen}
+              options={{
+                headerTitle: "App Lock",
+              }}
+            />
+            <Stack.Screen
+              name="EditProfile"
+              component={EditProfileScreen}
+              options={{
+                headerTitle: "Edit Profile",
+              }}
+            />
+            <Stack.Screen
+              name="ManageFacilities"
+              component={ManageFacilitiesScreen}
+              options={{
+                headerTitle: "My Hospitals",
+              }}
+            />
+            <Stack.Screen
+              name="SurgicalPreferences"
+              component={SurgicalPreferencesScreen}
+              options={{
+                headerTitle: "Surgical Preferences",
+              }}
+            />
+            <Stack.Screen
+              name="Personalisation"
+              component={PersonalisationScreen}
+              options={{
+                headerTitle: "Personalisation",
+              }}
+            />
+            <Stack.Screen
+              name="CaseSearch"
+              component={CaseSearchScreen}
+              options={{
+                headerTitle: "Search Cases",
+                presentation: "modal",
+              }}
+            />
+            <Stack.Screen
+              name="NeedsAttentionList"
+              component={NeedsAttentionListScreen}
+              options={{
+                headerTitle: "Needs Attention",
+              }}
+            />
+            <Stack.Screen
+              name="Inbox"
+              component={InboxScreen}
+              options={{
+                headerTitle: "Photo Inbox",
+              }}
+            />
+            <Stack.Screen
+              name="AddHistology"
+              component={AddHistologyScreen}
+              options={{
+                headerTitle: "Add Histology",
+              }}
+            />
+          </>
+        )}
+      </Stack.Navigator>
+
+      {isAuthenticated && isAppLockConfigured && isLocked ? (
+        <View style={styles.lockOverlay}>
+          <LockScreen />
+        </View>
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  lockOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1,
   },
 });
