@@ -34,6 +34,7 @@ import {
 import { ProtocolBadge, GuidedCaptureFlow } from "@/components/media";
 import { findProtocols, mergeProtocols } from "@/data/mediaCaptureProtocols";
 import type { MediaContext } from "@/lib/mediaContext";
+import { getInboxCount } from "@/lib/inboxStorage";
 
 interface OperativeMediaSectionProps {
   media: OperativeMediaItem[];
@@ -249,6 +250,21 @@ export function OperativeMediaSection({
     ]);
   };
 
+  const handleFromInbox = () => {
+    const count = getInboxCount();
+    if (count === 0) {
+      Alert.alert("Inbox Empty", "No photos in the inbox. Take or import photos to the inbox first.");
+      return;
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const callbackId = registerGenericCallback(
+      (newMedia: OperativeMediaItem[]) => {
+        onMediaChange([...media, ...newMedia]);
+      },
+    );
+    navigation.navigate("Inbox", { pickMode: true, callbackId });
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -388,6 +404,15 @@ export function OperativeMediaSection({
               >
                 <Feather name="image" size={18} color={theme.text} />
               </Pressable>
+              <Pressable
+                onPress={handleFromInbox}
+                style={[
+                  styles.smallAddButton,
+                  { backgroundColor: theme.backgroundDefault },
+                ]}
+              >
+                <Feather name="inbox" size={18} color={theme.text} />
+              </Pressable>
             </View>
           ) : null}
         </ScrollView>
@@ -414,6 +439,16 @@ export function OperativeMediaSection({
             >
               <Feather name="image" size={20} color={theme.text} />
               <ThemedText style={styles.addButtonText}>From Gallery</ThemedText>
+            </Pressable>
+            <Pressable
+              onPress={handleFromInbox}
+              style={[
+                styles.addButton,
+                { backgroundColor: theme.backgroundDefault },
+              ]}
+            >
+              <Feather name="inbox" size={20} color={theme.text} />
+              <ThemedText style={styles.addButtonText}>From Inbox</ThemedText>
             </Pressable>
           </View>
           <ThemedText

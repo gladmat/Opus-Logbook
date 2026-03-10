@@ -58,6 +58,7 @@ import {
   filterDashboardCases,
 } from "@/lib/dashboardSelectors";
 import { buildMediaContextFromCase } from "@/lib/mediaContext";
+import { getInboxCount } from "@/lib/inboxStorage";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -75,6 +76,7 @@ export default function DashboardScreen() {
     null,
   );
   const [isFilterSticky, setIsFilterSticky] = useState(false);
+  const [inboxCount, setInboxCount] = useState(0);
 
   const { episodes: activeEpisodes, refresh: refreshEpisodes } =
     useActiveEpisodes();
@@ -103,6 +105,7 @@ export default function DashboardScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      setInboxCount(getInboxCount());
       const task = InteractionManager.runAfterInteractions(() => {
         loadCases();
       });
@@ -112,6 +115,7 @@ export default function DashboardScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
+    setInboxCount(getInboxCount());
     await Promise.all([loadCases(), refreshEpisodes()]);
     setRefreshing(false);
   };
@@ -152,11 +156,24 @@ export default function DashboardScreen() {
     [selectedSpecialty],
   );
   const pulseData = usePracticePulse(filteredCases);
-  const attentionItems = useAttentionItems(
+  const caseAttentionItems = useAttentionItems(
     personalizedCases,
     visibleEpisodes,
     selectedSpecialty,
   );
+
+  const attentionItems = useMemo(() => {
+    if (inboxCount <= 0) return caseAttentionItems;
+    const inboxItem: AttentionItem = {
+      id: "inbox-photos",
+      type: "inbox_photos",
+      patientIdentifier: "",
+      diagnosisTitle: "",
+      specialty: "general" as Specialty,
+      inboxCount,
+    };
+    return [inboxItem, ...caseAttentionItems];
+  }, [caseAttentionItems, inboxCount]);
 
   // --- Handlers ---
 
@@ -278,6 +295,10 @@ export default function DashboardScreen() {
 
   const handleAttentionCardPress = useCallback(
     (item: AttentionItem) => {
+      if (item.type === "inbox_photos") {
+        navigation.navigate("Inbox");
+        return;
+      }
       if (
         (item.type === "inpatient" || item.type === "infection") &&
         item.caseId
@@ -289,6 +310,10 @@ export default function DashboardScreen() {
     },
     [navigation],
   );
+
+  const handleOpenInbox = useCallback(() => {
+    navigation.navigate("Inbox");
+  }, [navigation]);
 
   const handleViewAllAttention = useCallback(() => {
     navigation.navigate("NeedsAttentionList", {
@@ -388,6 +413,7 @@ export default function DashboardScreen() {
           onViewAll={handleViewAllAttention}
           onAddEvent={handleAddEvent}
           onAddHistology={handleAddHistology}
+          onOpenInbox={handleOpenInbox}
         />
 
         {/* Zone 2 — Practice Pulse */}

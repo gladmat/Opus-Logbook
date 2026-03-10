@@ -147,7 +147,7 @@ function CaptureStepCardInner({
               />
             ) : null}
 
-            <Feather name="camera" size={24} color={theme.link} />
+            <Feather name="plus-circle" size={24} color={theme.link} />
             <ThemedText
               style={[styles.emptyLabel, { color: theme.textSecondary }]}
               numberOfLines={2}

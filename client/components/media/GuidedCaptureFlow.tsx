@@ -1,5 +1,12 @@
 import React, { useMemo, useCallback } from "react";
-import { View, ScrollView, StyleSheet, Alert, Platform } from "react-native";
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  Alert,
+  ActionSheetIOS,
+  Platform,
+} from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import { useNavigation } from "@react-navigation/native";
@@ -168,6 +175,76 @@ function GuidedCaptureFlowInner({
     ],
   );
 
+  const handleGalleryPick = useCallback(
+    async (tag: MediaTag) => {
+      if (existingMedia.length >= maxItems) {
+        Alert.alert("Limit reached", `Maximum ${maxItems} photos allowed.`);
+        return;
+      }
+
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ["images"],
+          quality: 0.7,
+        });
+
+        if (!result.canceled && result.assets.length > 0) {
+          const asset = result.assets[0];
+          if (!asset) return;
+
+          const callbackId = registerGenericCallback(
+            (newMedia: OperativeMediaItem) => {
+              onMediaChange([...existingMedia, newMedia]);
+            },
+          );
+          navigation.navigate("AddOperativeMedia", {
+            imageUri: asset.uri,
+            mimeType: asset.mimeType || "image/jpeg",
+            callbackId,
+            existingTag: tag,
+            mediaContext,
+          });
+        }
+      } catch (error) {
+        console.warn("[GuidedCaptureFlow] Gallery pick failed:", error);
+        Alert.alert("Error", "Failed to select image.");
+      }
+    },
+    [
+      existingMedia,
+      maxItems,
+      navigation,
+      onMediaChange,
+      registerGenericCallback,
+      mediaContext,
+    ],
+  );
+
+  const handleStepPress = useCallback(
+    (tag: MediaTag) => {
+      if (Platform.OS === "ios") {
+        ActionSheetIOS.showActionSheetWithOptions(
+          {
+            options: ["Take Photo", "Choose from Gallery", "Cancel"],
+            cancelButtonIndex: 2,
+          },
+          (buttonIndex) => {
+            if (buttonIndex === 0) handleCapture(tag);
+            else if (buttonIndex === 1) handleGalleryPick(tag);
+          },
+        );
+      } else {
+        Alert.alert("Add Photo", "How would you like to add a photo?", [
+          { text: "Take Photo", onPress: () => handleCapture(tag) },
+          { text: "From Gallery", onPress: () => handleGalleryPick(tag) },
+          { text: "Cancel", style: "cancel" },
+        ]);
+      }
+    },
+    [handleCapture, handleGalleryPick],
+  );
+
   const handleRemove = useCallback(
     (mediaId: string) => {
       Alert.alert("Remove Photo", "Remove this photo from the protocol?", [
@@ -210,7 +287,7 @@ function GuidedCaptureFlowInner({
             key={`${step.sourceProtocolId}-${step.tag}-${index}`}
             step={step}
             capturedMedia={getAttachmentForStep(step)}
-            onCapture={handleCapture}
+            onCapture={handleStepPress}
             onRemove={handleRemove}
             sectionLabel={step.sectionLabel}
           />

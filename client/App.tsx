@@ -71,6 +71,12 @@ export default function App() {
       KeyboardController.preload();
       // Preload onboarding feature images when they exist
       // await Asset.loadAsync([...]);
+
+      // Inbox orphan cleanup — async, non-blocking
+      import("@/lib/inboxStorage")
+        .then((m) => m.cleanupOrphanedInboxItems())
+        .catch(console.warn);
+
       setReady(true);
     }
     prepare();

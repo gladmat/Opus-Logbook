@@ -28,6 +28,7 @@ import PersonalisationScreen from "@/screens/PersonalisationScreen";
 import CaseSearchScreen from "@/screens/CaseSearchScreen";
 import AddHistologyScreen from "@/screens/AddHistologyScreen";
 import NeedsAttentionListScreen from "@/screens/NeedsAttentionListScreen";
+import InboxScreen from "@/screens/InboxScreen";
 import SurgicalPreferencesScreen from "@/screens/SurgicalPreferencesScreen";
 import { WelcomeScreen } from "@/screens/onboarding/WelcomeScreen";
 import { FeaturePager } from "@/screens/onboarding/FeaturePager";
@@ -200,6 +201,7 @@ export type RootStackParamList = {
     diagnosisGroupIndex: number;
     lesionIndex?: number;
   };
+  Inbox: { pickMode?: boolean; callbackId?: string } | undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -745,6 +747,13 @@ export default function RootStackNavigator() {
             component={NeedsAttentionListScreen}
             options={{
               headerTitle: "Needs Attention",
+            }}
+          />
+          <Stack.Screen
+            name="Inbox"
+            component={InboxScreen}
+            options={{
+              headerTitle: "Photo Inbox",
             }}
           />
           <Stack.Screen

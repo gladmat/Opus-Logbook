@@ -12,7 +12,7 @@ export const HISTOLOGY_FILTER_ID = "__histology__";
 
 export interface AttentionItem {
   id: string;
-  type: "inpatient" | "episode" | "infection";
+  type: "inpatient" | "episode" | "infection" | "inbox_photos";
   patientIdentifier: string;
   diagnosisTitle: string;
   specialty: Specialty;
@@ -30,6 +30,7 @@ export interface AttentionItem {
   lastCaseId?: string;
   infectionSyndrome?: string;
   canAddHistology?: boolean;
+  inboxCount?: number;
 }
 
 export interface DashboardEpisodeWithCases {
