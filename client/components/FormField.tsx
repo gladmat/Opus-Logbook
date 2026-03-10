@@ -558,7 +558,7 @@ export function PickerField({
 // Date picker field
 interface DatePickerFieldProps {
   label: string;
-  value?: string; // Canonical YYYY-MM-DD, tolerant of legacy ISO timestamps
+  value?: string | number; // Canonical YYYY-MM-DD, tolerant of legacy ISO/timestamp values
   onChange: (date: string) => void;
   placeholder?: string;
   required?: boolean;
@@ -601,7 +601,9 @@ export function DatePickerField({
     ? formatDisplayDate(normalizedValue)
     : "";
   const hasDisplayValue = Boolean(displayValue);
-  const hasStoredValue = Boolean(value?.trim());
+  const hasStoredValue =
+    (typeof value === "string" && value.trim().length > 0) ||
+    (typeof value === "number" && Number.isFinite(value));
 
   const parsedValue = parseDateOnlyValue(value);
   const dateValue = clampDateToBounds(

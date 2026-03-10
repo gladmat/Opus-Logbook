@@ -4,6 +4,7 @@ import {
   clampDateToBounds,
   isValidDateInstance,
   normalizeDateOnlyValue,
+  normalizeIsoTimestampValue,
   parseIsoDateValue,
   sanitizeDateBounds,
   toIsoDateValue,
@@ -32,6 +33,16 @@ describe("dateValues", () => {
     expect(normalizeDateOnlyValue("1987-04-12 06:30:00")).toBe("1987-04-12");
   });
 
+  it("normalizes legacy numeric timestamps for date-only picker inputs", () => {
+    expect(normalizeDateOnlyValue("545207400")).toBe("1987-04-12");
+    expect(normalizeDateOnlyValue("1773144000000")).toBe("2026-03-10");
+  });
+
+  it("rejects ambiguous short numeric strings instead of treating them as epoch dates", () => {
+    expect(normalizeDateOnlyValue("20260310")).toBeUndefined();
+    expect(normalizeIsoTimestampValue("20260310")).toBeUndefined();
+  });
+
   it("returns undefined for invalid date-only strings", () => {
     expect(normalizeDateOnlyValue("not-a-date")).toBeUndefined();
     expect(normalizeDateOnlyValue("1987-02-31T06:30:00.000Z")).toBeUndefined();
@@ -47,6 +58,15 @@ describe("dateValues", () => {
   it("builds stable UTC-noon timestamps for date-only values", () => {
     expect(toUtcNoonIsoTimestamp("1976-11-08")).toBe(
       "1976-11-08T12:00:00.000Z",
+    );
+  });
+
+  it("normalizes valid numeric epoch timestamps to ISO timestamps", () => {
+    expect(normalizeIsoTimestampValue("545207400")).toBe(
+      "1987-04-12T06:30:00.000Z",
+    );
+    expect(normalizeIsoTimestampValue("1773144000000")).toBe(
+      "2026-03-10T12:00:00.000Z",
     );
   });
 

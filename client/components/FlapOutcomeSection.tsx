@@ -36,6 +36,10 @@ import {
   FLAP_MONITORING_PROTOCOLS,
 } from "@/types/surgicalPreferences";
 import { CollapsibleFormSection } from "@/components/case-form/CollapsibleFormSection";
+import {
+  normalizeDateOnlyValue,
+  toUtcNoonIsoTimestamp,
+} from "@/lib/dateValues";
 
 interface FlapOutcomeSectionProps {
   outcome: FreeFlapOutcomeDetails;
@@ -366,9 +370,7 @@ export function FlapOutcomeSection({
   onUpdate,
 }: FlapOutcomeSectionProps) {
   const { theme } = useTheme();
-  const assessedDate = outcome.assessedAt
-    ? outcome.assessedAt.split("T")[0] || ""
-    : "";
+  const assessedDate = normalizeDateOnlyValue(outcome.assessedAt) ?? "";
 
   const handleAssessedDateChange = useCallback(
     (date: string) => {
@@ -380,7 +382,7 @@ export function FlapOutcomeSection({
       }
       onUpdate({
         ...outcome,
-        assessedAt: `${date}T00:00:00.000Z`,
+        assessedAt: toUtcNoonIsoTimestamp(date) ?? new Date().toISOString(),
       });
     },
     [outcome, onUpdate],

@@ -542,9 +542,7 @@ export default function MediaManagementScreen() {
             <DatePickerField
               label="Date"
               value={
-                selectedAttachment.timestamp
-                  ? selectedAttachment.timestamp.split("T")[0]
-                  : selectedAttachment.createdAt.split("T")[0]
+                selectedAttachment.timestamp ?? selectedAttachment.createdAt
               }
               onChange={(date) => handleDateChange(selectedAttachment.id, date)}
               placeholder="Select date..."

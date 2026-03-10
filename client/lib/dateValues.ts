@@ -1,10 +1,28 @@
 const ISO_DATE_VALUE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 const ISO_DATE_PREFIX_PATTERN = /^(\d{4}-\d{2}-\d{2})(?:[T\s].*)$/;
+const NUMERIC_TIMESTAMP_PATTERN = /^-?\d+$/;
 
-export function parseIsoDateValue(dateStr?: string): Date | null {
-  if (!dateStr) return null;
+function coerceTrimmedDateLikeValue(
+  value?: string | number | null,
+): string | undefined {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed || undefined;
+  }
 
-  const trimmed = dateStr.trim();
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return `${value}`;
+  }
+
+  return undefined;
+}
+
+export function parseIsoDateValue(
+  dateStr?: string | number | null,
+): Date | null {
+  const trimmed = coerceTrimmedDateLikeValue(dateStr);
+  if (!trimmed) return null;
+
   const match = ISO_DATE_VALUE_PATTERN.exec(trimmed);
   if (!match) return null;
 
@@ -32,10 +50,10 @@ export function parseIsoDateValue(dateStr?: string): Date | null {
   return date;
 }
 
-export function normalizeDateOnlyValue(dateStr?: string): string | undefined {
-  if (!dateStr) return undefined;
-
-  const trimmed = dateStr.trim();
+export function normalizeDateOnlyValue(
+  dateStr?: string | number | null,
+): string | undefined {
+  const trimmed = coerceTrimmedDateLikeValue(dateStr);
   if (!trimmed) return undefined;
 
   const strictDate = parseIsoDateValue(trimmed);
@@ -44,13 +62,24 @@ export function normalizeDateOnlyValue(dateStr?: string): string | undefined {
   }
 
   const prefixedMatch = ISO_DATE_PREFIX_PATTERN.exec(trimmed);
-  if (!prefixedMatch) return undefined;
+  if (prefixedMatch) {
+    const normalized = parseIsoDateValue(prefixedMatch[1]);
+    return normalized ? toIsoDateValue(normalized) : undefined;
+  }
 
-  const normalized = parseIsoDateValue(prefixedMatch[1]);
+  const normalizedTimestamp = normalizeIsoTimestampValue(trimmed);
+  if (!normalizedTimestamp) return undefined;
+
+  const timestampMatch = ISO_DATE_PREFIX_PATTERN.exec(normalizedTimestamp);
+  if (!timestampMatch) return undefined;
+
+  const normalized = parseIsoDateValue(timestampMatch[1]);
   return normalized ? toIsoDateValue(normalized) : undefined;
 }
 
-export function parseDateOnlyValue(dateStr?: string): Date | null {
+export function parseDateOnlyValue(
+  dateStr?: string | number | null,
+): Date | null {
   const normalized = normalizeDateOnlyValue(dateStr);
   return normalized ? parseIsoDateValue(normalized) : null;
 }
@@ -77,6 +106,40 @@ export function toUtcNoonIsoTimestamp(dateValue: string): string | undefined {
       0,
     ),
   ).toISOString();
+}
+
+export function normalizeIsoTimestampValue(
+  timestampValue?: string | number | null,
+): string | undefined {
+  const trimmed = coerceTrimmedDateLikeValue(timestampValue);
+  if (!trimmed) return undefined;
+
+  if (NUMERIC_TIMESTAMP_PATTERN.test(trimmed)) {
+    const rawNumeric = Number(trimmed);
+    const numericDigits = trimmed.startsWith("-") ? trimmed.slice(1) : trimmed;
+
+    if (Number.isFinite(rawNumeric)) {
+      let milliseconds: number | undefined;
+
+      if (numericDigits.length >= 9 && numericDigits.length <= 10) {
+        milliseconds = rawNumeric * 1000;
+      } else if (numericDigits.length >= 12 && numericDigits.length <= 13) {
+        milliseconds = rawNumeric;
+      }
+
+      if (milliseconds === undefined) {
+        return undefined;
+      }
+
+      const numericDate = new Date(milliseconds);
+      if (isValidDateInstance(numericDate)) {
+        return numericDate.toISOString();
+      }
+    }
+  }
+
+  const parsed = new Date(trimmed);
+  return isValidDateInstance(parsed) ? parsed.toISOString() : undefined;
 }
 
 export function isValidDateInstance(value: unknown): value is Date {
