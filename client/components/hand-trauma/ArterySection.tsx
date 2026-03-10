@@ -99,9 +99,7 @@ export function ArterySection({
                             backgroundColor: isSelected
                               ? theme.link
                               : theme.backgroundTertiary,
-                            borderColor: isSelected
-                              ? theme.link
-                              : theme.border,
+                            borderColor: isSelected ? theme.link : theme.border,
                           },
                         ]}
                         onPress={() => onPerfusionChange?.(digit, option.value)}

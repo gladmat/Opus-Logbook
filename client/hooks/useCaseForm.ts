@@ -74,6 +74,14 @@ import {
   serializeDraftOperativeMedia,
 } from "@/lib/caseDraftFields";
 
+// ─── Skin Cancer Episode Helpers ────────────────────────────────────────────
+
+import {
+  buildSkinCancerFollowUpDiagnosisGroup,
+  buildSkinCancerEpisodeLinkPlan,
+  buildSkinCancerEpisodeUpdatePlan,
+} from "@/lib/skinCancerEpisodeHelpers";
+
 // ─── Default Donor Vessels ──────────────────────────────────────────────────
 
 const DEFAULT_DONOR_VESSELS: Record<string, { artery: string; vein: string }> =
@@ -1037,14 +1045,6 @@ export interface UseCaseFormReturn {
   // Clinical detail callback
   updateClinicalDetail: (key: string, value: any) => void;
 }
-
-// ─── Skin Cancer Episode Helpers ────────────────────────────────────────────
-
-import {
-  buildSkinCancerFollowUpDiagnosisGroup,
-  buildSkinCancerEpisodeLinkPlan,
-  buildSkinCancerEpisodeUpdatePlan,
-} from "@/lib/skinCancerEpisodeHelpers";
 
 /**
  * Create or reuse a cancer_pathway episode for cases that still have

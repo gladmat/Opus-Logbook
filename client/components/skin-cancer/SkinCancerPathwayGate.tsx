@@ -96,11 +96,7 @@ export function SkinCancerPathwayGate({
             },
           ]}
         >
-          <Feather
-            name={selectedOption.icon}
-            size={16}
-            color={theme.link}
-          />
+          <Feather name={selectedOption.icon} size={16} color={theme.link} />
           <ThemedText
             style={[styles.collapsedTitle, { color: theme.text }]}
             numberOfLines={1}
@@ -115,9 +111,7 @@ export function SkinCancerPathwayGate({
   // Expanded: cards
   return (
     <View style={styles.container}>
-      <ThemedText
-        style={[styles.sectionLabel, { color: theme.textSecondary }]}
-      >
+      <ThemedText style={[styles.sectionLabel, { color: theme.textSecondary }]}>
         PATHWAY STAGE
       </ThemedText>
       <View style={styles.stageList}>
@@ -153,10 +147,7 @@ export function SkinCancerPathwayGate({
                   {stage.title}
                 </ThemedText>
                 <ThemedText
-                  style={[
-                    styles.stageSubtitle,
-                    { color: theme.textSecondary },
-                  ]}
+                  style={[styles.stageSubtitle, { color: theme.textSecondary }]}
                 >
                   {stage.subtitle}
                 </ThemedText>

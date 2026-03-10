@@ -57,6 +57,7 @@ import {
   filterCasesByVisibleSpecialties,
   filterDashboardCases,
 } from "@/lib/dashboardSelectors";
+import { buildMediaContextFromCase } from "@/lib/mediaContext";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -297,16 +298,22 @@ export default function DashboardScreen() {
 
   const handleAddEvent = useCallback(
     (caseId: string) => {
-      navigation.navigate("AddTimelineEvent", { caseId });
+      const caseData = personalizedCases.find((item) => item.id === caseId);
+      if (!caseData) return;
+
+      navigation.navigate("AddTimelineEvent", {
+        caseId: caseData.id,
+        mediaContext: buildMediaContextFromCase(caseData),
+      });
     },
-    [navigation],
+    [navigation, personalizedCases],
   );
 
   const handleAddEventFromCase = useCallback(
     (caseData: Case) => {
       navigation.navigate("AddTimelineEvent", {
         caseId: caseData.id,
-        specialty: caseData.specialty,
+        mediaContext: buildMediaContextFromCase(caseData),
       });
     },
     [navigation],
@@ -511,6 +518,12 @@ export default function DashboardScreen() {
                     maxAttachments={15}
                     mediaType="photo"
                     eventType="discharge_photo"
+                    defaultMediaDate={toIsoDateValue(dischargeDate)}
+                    mediaContext={
+                      dischargeCase
+                        ? buildMediaContextFromCase(dischargeCase)
+                        : undefined
+                    }
                   />
                 </View>
 
@@ -533,7 +546,12 @@ export default function DashboardScreen() {
                     testID="confirm-discharge-button"
                   >
                     <Feather name="check" size={18} color={theme.buttonText} />
-                    <ThemedText style={[styles.dischargeConfirmText, { color: theme.buttonText }]}>
+                    <ThemedText
+                      style={[
+                        styles.dischargeConfirmText,
+                        { color: theme.buttonText },
+                      ]}
+                    >
                       Confirm Discharge
                     </ThemedText>
                   </Pressable>

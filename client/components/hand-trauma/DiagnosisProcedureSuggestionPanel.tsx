@@ -26,10 +26,7 @@ interface DiagnosisProcedureSuggestionPanelProps {
   acceptedProcedureIds?: Set<string>;
   isAccepted?: boolean;
   hasPendingChanges?: boolean;
-  onSelectProcedure: (
-    pair: TraumaDiagnosisPair,
-    procedureId: string,
-  ) => void;
+  onSelectProcedure: (pair: TraumaDiagnosisPair, procedureId: string) => void;
   onAccept: (selectedProcedureIds: string[]) => void;
   onEditMapping?: () => void;
   onEditDiagnosis?: () => void;
@@ -89,10 +86,6 @@ const PAIR_SEP = "::";
 function compositeId(pairKey: string, procedureId: string): string {
   return `${pairKey}${PAIR_SEP}${procedureId}`;
 }
-function extractProcedureId(composite: string): string {
-  const idx = composite.indexOf(PAIR_SEP);
-  return idx >= 0 ? composite.slice(idx + PAIR_SEP.length) : composite;
-}
 function isSelectedForPair(
   pairKey: string,
   procedureId: string,
@@ -100,10 +93,6 @@ function isSelectedForPair(
 ): boolean {
   return selectedIds.has(compositeId(pairKey, procedureId));
 }
-function flattenSelections(selectedIds: Set<string>): string[] {
-  return [...new Set([...selectedIds].map(extractProcedureId))];
-}
-
 function formatCodingSystem(system: string): string {
   return system === "SNOMED_CT" ? "SNOMED CT" : system.replace(/_/g, " ");
 }
@@ -198,7 +187,14 @@ function buildProcedureCodingItems(
 
   for (const pair of mappingResult.pairs) {
     for (const procedure of pair.suggestedProcedures) {
-      if (!isSelectedForPair(pair.key, procedure.procedurePicklistId, selectedProcedureIds)) continue;
+      if (
+        !isSelectedForPair(
+          pair.key,
+          procedure.procedurePicklistId,
+          selectedProcedureIds,
+        )
+      )
+        continue;
       if (byId.has(procedure.procedurePicklistId)) continue;
       byId.set(procedure.procedurePicklistId, procedure);
     }
@@ -220,7 +216,11 @@ function buildRenderedDiagnosis(
   }
 
   const headerLine = buildHeaderLine(mappingResult.machineSummary, mode);
-  const bullets = generateDiagnosisText(mappingResult.machineSummary, mode, "long");
+  const bullets = generateDiagnosisText(
+    mappingResult.machineSummary,
+    mode,
+    "long",
+  );
   return [headerLine, ...bullets.map((line) => `- ${line}`)];
 }
 
@@ -229,7 +229,11 @@ function getPairSelection(
   selectedProcedureIds: Set<string>,
 ) {
   return pair.suggestedProcedures.filter((procedure) =>
-    isSelectedForPair(pair.key, procedure.procedurePicklistId, selectedProcedureIds),
+    isSelectedForPair(
+      pair.key,
+      procedure.procedurePicklistId,
+      selectedProcedureIds,
+    ),
   );
 }
 
@@ -321,7 +325,9 @@ export function DiagnosisProcedureSuggestionPanel({
           ]}
         >
           <Feather name="alert-circle" size={15} color={theme.warning} />
-          <ThemedText style={[styles.stateBannerText, { color: theme.warning }]}>
+          <ThemedText
+            style={[styles.stateBannerText, { color: theme.warning }]}
+          >
             Trauma selections changed. Review and accept the mapping again to
             refresh the coded diagnosis and procedures.
           </ThemedText>
@@ -367,7 +373,9 @@ export function DiagnosisProcedureSuggestionPanel({
                 >
                   {isAccepted ? "MAPPING ACCEPTED" : "TRAUMA SUMMARY"}
                 </ThemedText>
-                <ThemedText style={[styles.summaryHeadline, { color: theme.text }]}>
+                <ThemedText
+                  style={[styles.summaryHeadline, { color: theme.text }]}
+                >
                   {activeMappingResult.summaryDiagnosisDisplay}
                 </ThemedText>
               </View>
@@ -388,7 +396,9 @@ export function DiagnosisProcedureSuggestionPanel({
                 }}
               >
                 <Feather name="edit-3" size={13} color={theme.link} />
-                <ThemedText style={[styles.inlineActionText, { color: theme.link }]}>
+                <ThemedText
+                  style={[styles.inlineActionText, { color: theme.link }]}
+                >
                   Edit mapping
                 </ThemedText>
               </Pressable>
@@ -464,11 +474,15 @@ export function DiagnosisProcedureSuggestionPanel({
                   <ThemedText
                     key={`${renderMode}-${index}`}
                     style={[
-                      index === 0 ? styles.renderedHeader : styles.renderedBullet,
+                      index === 0
+                        ? styles.renderedHeader
+                        : styles.renderedBullet,
                       {
                         color: index === 0 ? theme.text : theme.textSecondary,
                         fontFamily:
-                          renderMode === "latin_medical" ? Fonts?.mono : undefined,
+                          renderMode === "latin_medical"
+                            ? Fonts?.mono
+                            : undefined,
                       },
                     ]}
                   >
@@ -528,10 +542,7 @@ export function DiagnosisProcedureSuggestionPanel({
                     pair.suggestedProcedures.length > 1 &&
                     !isAccepted ? (
                       <ThemedText
-                        style={[
-                          styles.pairMeta,
-                          { color: theme.textTertiary },
-                        ]}
+                        style={[styles.pairMeta, { color: theme.textTertiary }]}
                       >
                         Select one fixation / procedure option
                       </ThemedText>
@@ -590,9 +601,14 @@ export function DiagnosisProcedureSuggestionPanel({
                           );
                         })}
                       </View>
-                      {pairProcedures.some((procedure) => procedure.isDefault) ? (
+                      {pairProcedures.some(
+                        (procedure) => procedure.isDefault,
+                      ) ? (
                         <ThemedText
-                          style={[styles.pairMeta, { color: theme.textTertiary }]}
+                          style={[
+                            styles.pairMeta,
+                            { color: theme.textTertiary },
+                          ]}
                         >
                           Default option is preselected. Open the full procedure
                           editor only if the mapping is wrong.
@@ -614,7 +630,9 @@ export function DiagnosisProcedureSuggestionPanel({
                           style={[
                             styles.procedureRow,
                             {
-                              borderColor: isChecked ? theme.link : theme.border,
+                              borderColor: isChecked
+                                ? theme.link
+                                : theme.border,
                               backgroundColor: isChecked
                                 ? theme.link + "12"
                                 : theme.backgroundSecondary,
@@ -623,7 +641,9 @@ export function DiagnosisProcedureSuggestionPanel({
                           ]}
                           onPress={() => {
                             if (isAccepted) return;
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            Haptics.impactAsync(
+                              Haptics.ImpactFeedbackStyle.Light,
+                            );
                             onSelectProcedure(
                               pair,
                               procedure.procedurePicklistId,
@@ -635,7 +655,9 @@ export function DiagnosisProcedureSuggestionPanel({
                             style={[
                               isSingle ? styles.radio : styles.checkbox,
                               {
-                                borderColor: isChecked ? theme.link : theme.border,
+                                borderColor: isChecked
+                                  ? theme.link
+                                  : theme.border,
                                 backgroundColor: isChecked
                                   ? theme.link
                                   : "transparent",
@@ -698,13 +720,19 @@ export function DiagnosisProcedureSuggestionPanel({
                   )
                 ) : isAccepted ? (
                   <ThemedText
-                    style={[styles.emptyPairText, { color: theme.textTertiary }]}
+                    style={[
+                      styles.emptyPairText,
+                      { color: theme.textTertiary },
+                    ]}
                   >
                     No mapped procedure selected for this injury pattern
                   </ThemedText>
                 ) : (
                   <ThemedText
-                    style={[styles.emptyPairText, { color: theme.textTertiary }]}
+                    style={[
+                      styles.emptyPairText,
+                      { color: theme.textTertiary },
+                    ]}
                   >
                     No direct procedure suggestion for this injury pattern
                   </ThemedText>
@@ -722,8 +750,8 @@ export function DiagnosisProcedureSuggestionPanel({
             style={[styles.structureNoteText, { color: theme.textSecondary }]}
           >
             {structureProcedureCount} procedure
-            {structureProcedureCount !== 1 ? "s" : ""} already added from
-            direct structure selections
+            {structureProcedureCount !== 1 ? "s" : ""} already added from direct
+            structure selections
           </ThemedText>
         </View>
       ) : null}
@@ -789,7 +817,9 @@ export function DiagnosisProcedureSuggestionPanel({
                       },
                     ]}
                   >
-                    <ThemedText style={[styles.codeValue, { color: theme.text }]}>
+                    <ThemedText
+                      style={[styles.codeValue, { color: theme.text }]}
+                    >
                       {item.title}
                     </ThemedText>
                     {item.codes.length > 0 ? (
@@ -821,7 +851,10 @@ export function DiagnosisProcedureSuggestionPanel({
                       </View>
                     ) : (
                       <ThemedText
-                        style={[styles.emptyPairText, { color: theme.textTertiary }]}
+                        style={[
+                          styles.emptyPairText,
+                          { color: theme.textTertiary },
+                        ]}
                       >
                         No structured code linked to this diagnosis yet
                       </ThemedText>
@@ -848,7 +881,9 @@ export function DiagnosisProcedureSuggestionPanel({
                         },
                       ]}
                     >
-                      <ThemedText style={[styles.codeValue, { color: theme.text }]}>
+                      <ThemedText
+                        style={[styles.codeValue, { color: theme.text }]}
+                      >
                         {item.title}
                       </ThemedText>
                       {item.codes.length > 0 ? (
@@ -880,7 +915,10 @@ export function DiagnosisProcedureSuggestionPanel({
                         </View>
                       ) : (
                         <ThemedText
-                          style={[styles.emptyPairText, { color: theme.textTertiary }]}
+                          style={[
+                            styles.emptyPairText,
+                            { color: theme.textTertiary },
+                          ]}
                         >
                           No structured code linked to this procedure yet
                         </ThemedText>
@@ -889,7 +927,10 @@ export function DiagnosisProcedureSuggestionPanel({
                   ))
                 ) : (
                   <ThemedText
-                    style={[styles.emptyPairText, { color: theme.textTertiary }]}
+                    style={[
+                      styles.emptyPairText,
+                      { color: theme.textTertiary },
+                    ]}
                   >
                     No accepted procedure codes yet
                   </ThemedText>

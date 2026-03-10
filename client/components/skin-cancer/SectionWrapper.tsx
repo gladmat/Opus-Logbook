@@ -75,7 +75,12 @@ export function SectionWrapper({
     >
       <HeaderTag
         style={[styles.header, collapsed && styles.headerCollapsed]}
-        {...(collapsible ? { onPress: handleToggle, hitSlop: { top: 8, bottom: 8, left: 4, right: 4 } } : {})}
+        {...(collapsible
+          ? {
+              onPress: handleToggle,
+              hitSlop: { top: 8, bottom: 8, left: 4, right: 4 },
+            }
+          : {})}
       >
         <Feather name={icon as any} size={16} color={theme.link} />
         <ThemedText style={[styles.title, { color: theme.text, flex: 1 }]}>

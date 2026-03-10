@@ -41,7 +41,6 @@ import {
   GENDER_LABELS,
   ADMISSION_URGENCY_LABELS,
   UNPLANNED_READMISSION_LABELS,
-  OPERATIVE_MEDIA_TYPE_LABELS,
   WOUND_INFECTION_RISK_LABELS,
   ANAESTHETIC_TYPE_LABELS,
   UNPLANNED_ICU_LABELS,
@@ -79,6 +78,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SkinCancerDetailSummary } from "@/components/skin-cancer/SkinCancerDetailSummary";
 import { HeaderTitleText } from "@/components/HeaderTitleText";
+import { MediaTagBadge } from "@/components/media";
 import {
   caseNeedsHistology,
   caseCanAddHistology,
@@ -93,6 +93,8 @@ import {
   INDICATION_LABELS as IMPLANT_INDICATION_LABELS,
   REVISION_REASON_LABELS,
 } from "@/types/jointImplant";
+import { buildMediaContextFromCase } from "@/lib/mediaContext";
+import { resolveMediaTag } from "@/lib/mediaTagMigration";
 import {
   IMPLANT_DIGIT_LABELS,
   IMPLANT_LATERALITY_LABELS,
@@ -334,23 +336,7 @@ export default function CaseDetailScreen() {
 
   const caseMediaContext = useMemo(() => {
     if (!caseData) return {};
-    const procedureTags = Array.from(
-      new Set(
-        (caseData.diagnosisGroups ?? []).flatMap((g) =>
-          (g.procedures ?? []).flatMap((p) => p.tags ?? []),
-        ),
-      ),
-    );
-    const hasSkinCancerAssessment = (caseData.diagnosisGroups ?? []).some(
-      (g) =>
-        !!g.skinCancerAssessment ||
-        (g.lesionInstances ?? []).some((l) => !!l.skinCancerAssessment),
-    );
-    return {
-      specialty: caseData.specialty,
-      procedureTags,
-      hasSkinCancerAssessment,
-    };
+    return buildMediaContextFromCase(caseData);
   }, [caseData]);
 
   const handleAddEvent = () => {
@@ -359,7 +345,7 @@ export default function CaseDetailScreen() {
         caseId: caseData.id,
         isSkinLesion: isSkinLesionCase(),
         caseDischargeDate: caseData.dischargeDate,
-        ...caseMediaContext,
+        mediaContext: caseMediaContext,
       });
     }
   };
@@ -372,7 +358,7 @@ export default function CaseDetailScreen() {
         isSkinLesion: isSkinLesionCase(),
         caseDischargeDate: caseData.dischargeDate,
         editEventId: event.id,
-        ...caseMediaContext,
+        mediaContext: caseMediaContext,
       });
     }
   };
@@ -1138,15 +1124,8 @@ export default function CaseDetailScreen() {
                       console.warn("Media file missing:", media.localUri)
                     }
                   />
-                  <View
-                    style={[
-                      styles.mediaTypeBadge,
-                      { backgroundColor: theme.link },
-                    ]}
-                  >
-                    <ThemedText style={styles.mediaTypeBadgeText}>
-                      {OPERATIVE_MEDIA_TYPE_LABELS[media.mediaType]}
-                    </ThemedText>
+                  <View style={styles.mediaTypeBadge}>
+                    <MediaTagBadge tag={resolveMediaTag(media)} size="small" />
                   </View>
                   {media.caption ? (
                     <View

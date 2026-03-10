@@ -43,7 +43,12 @@ export function useCaseDraft({
   // ── Load draft on mount (new case only) ───────────────────────────────
 
   useEffect(() => {
-    if (isEditMode || isEpisodePrefill || isQuickPrefill || draftLoadedRef.current)
+    if (
+      isEditMode ||
+      isEpisodePrefill ||
+      isQuickPrefill ||
+      draftLoadedRef.current
+    )
       return;
 
     const loadDraft = async () => {

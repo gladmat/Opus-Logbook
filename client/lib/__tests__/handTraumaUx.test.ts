@@ -20,7 +20,9 @@ function createProcedure(
 
 describe("hand trauma UX helpers", () => {
   it("treats the default empty procedure row as disposable", () => {
-    expect(isDisposableTraumaPlaceholderProcedure(createProcedure())).toBe(true);
+    expect(isDisposableTraumaPlaceholderProcedure(createProcedure())).toBe(
+      true,
+    );
   });
 
   it("preserves manual procedures when they contain user-entered content", () => {

@@ -81,7 +81,6 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
       if (!isAppLockConfigured) return;
 
       if (nextState === "background" || nextState === "inactive") {
-
         // Only record background time when the app is actually unlocked.
         // While locked, the biometric prompt causes inactive→active transitions
         // that would otherwise create an immediate re-lock loop.

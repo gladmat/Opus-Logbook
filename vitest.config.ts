@@ -5,7 +5,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-    include: ["server/__tests__/**/*.test.ts", "client/**/*.test.ts"],
+    include: ["server/__tests__/**/*.test.ts", "client/**/*.test.{ts,tsx}"],
     testTimeout: 10000,
     env: {
       DATABASE_URL: "postgresql://test:test@localhost:5432/testdb",
@@ -15,6 +15,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      "react-native": "react-native-web",
       "@": path.resolve(__dirname, "client"),
       "@shared": path.resolve(__dirname, "shared"),
     },

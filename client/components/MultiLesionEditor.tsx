@@ -133,17 +133,13 @@ function getSkinCancerSummaryParts(lesion: LesionInstance): string[] | null {
   if (lesion.site) parts.push(lesion.site);
   const histo = getSkinCancerPrimaryHistology(assessment);
   if (histo?.pathologyCategory) {
-    if (
-      histo.pathologyCategory === "rare_malignant" &&
-      histo.rareSubtype
-    ) {
+    if (histo.pathologyCategory === "rare_malignant" && histo.rareSubtype) {
       parts.push(
         RARE_TYPE_METADATA[histo.rareSubtype]?.label ?? "Rare malignant",
       );
     } else {
       parts.push(
-        PATHOLOGY_LABELS[histo.pathologyCategory] ??
-          histo.pathologyCategory,
+        PATHOLOGY_LABELS[histo.pathologyCategory] ?? histo.pathologyCategory,
       );
     }
   } else if (assessment.clinicalSuspicion) {
@@ -291,8 +287,7 @@ function LesionRow({
         {pathwayBadge ? (
           <View
             style={{
-              backgroundColor:
-                theme[pathwayBadge.colorKey] + "26",
+              backgroundColor: theme[pathwayBadge.colorKey] + "26",
               paddingHorizontal: 8,
               paddingVertical: 3,
               borderRadius: BorderRadius.xs,
@@ -403,7 +398,9 @@ function LesionRow({
                   <ThemedText
                     style={[styles.quickPickToggleText, { color: theme.link }]}
                   >
-                    {showSitePicker ? "Hide quick-pick" : "Quick-pick site \u25BE"}
+                    {showSitePicker
+                      ? "Hide quick-pick"
+                      : "Quick-pick site \u25BE"}
                   </ThemedText>
                 </Pressable>
                 {showSitePicker && (
@@ -788,8 +785,7 @@ export function MultiLesionEditor({
           }
 
           // Sync pathology type from clinical suspicion or histology
-          const cat =
-            histo?.pathologyCategory ?? assessment.clinicalSuspicion;
+          const cat = histo?.pathologyCategory ?? assessment.clinicalSuspicion;
           if (cat) {
             updated.pathologyType =
               CATEGORY_TO_LESION_TYPE[cat as SkinCancerPathologyCategory] ??

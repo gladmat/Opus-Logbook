@@ -1604,7 +1604,11 @@ export interface DiagnosisGroup {
   diagnosisPicklistId?: string;
   diagnosisStagingSelections?: Record<string, string>;
   diagnosisClinicalDetails?: DiagnosisClinicalDetails;
-  procedureSuggestionSource?: "picklist" | "skinCancer" | "acuteHand" | "manual";
+  procedureSuggestionSource?:
+    | "picklist"
+    | "skinCancer"
+    | "acuteHand"
+    | "manual";
   pathologicalDiagnosis?: Diagnosis;
   fractures?: FractureEntry[];
   procedures: CaseProcedure[];

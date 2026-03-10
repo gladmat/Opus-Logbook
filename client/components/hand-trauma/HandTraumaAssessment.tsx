@@ -81,10 +81,7 @@ import { NerveSection } from "./NerveSection";
 import { ArterySection } from "./ArterySection";
 import { LigamentSection } from "./LigamentSection";
 import { OtherStructuresSection } from "./OtherStructuresSection";
-import {
-  AmputationSection,
-  type AmputationState,
-} from "./AmputationSection";
+import { AmputationSection, type AmputationState } from "./AmputationSection";
 
 if (
   Platform.OS === "android" &&
@@ -135,6 +132,8 @@ const TRAUMA_MECHANISM_OPTIONS = [
   { value: "work_related", label: "Work-related" },
   { value: "other", label: "Other" },
 ] as const;
+
+const EMPTY_INCIDENT: HandTraumaIncidentValue = {};
 
 /* ── Composite-key helpers for per-pair procedure selection ── */
 const PAIR_SEP = "::";
@@ -335,11 +334,13 @@ export function HandTraumaAssessment({
   );
   const [acceptedMapping, setAcceptedMapping] =
     useState<AcceptedMappingSnapshot | null>(null);
-  const [hasPendingReviewChanges, setHasPendingReviewChanges] =
-    useState(false);
+  const [hasPendingReviewChanges, setHasPendingReviewChanges] = useState(false);
 
   const initializedRef = useRef(false);
-  const effectiveIncident = onIncidentChange ? incident ?? {} : localIncident;
+  const effectiveIncident = useMemo(
+    () => (onIncidentChange ? (incident ?? EMPTY_INCIDENT) : localIncident),
+    [incident, localIncident, onIncidentChange],
+  );
   const selectedLaterality =
     effectiveIncident.laterality === "left" ||
     effectiveIncident.laterality === "right"
@@ -387,13 +388,8 @@ export function HandTraumaAssessment({
   );
 
   useEffect(() => {
-    setLocalIncident(incident ?? {});
-  }, [
-    incident?.laterality,
-    incident?.injuryMechanism,
-    incident?.injuryMechanismOther,
-    incident?.injuryDate,
-  ]);
+    setLocalIncident(incident ?? EMPTY_INCIDENT);
+  }, [incident]);
 
   // ─── Initialize from existing data ─────────────────────────────────────────
   useEffect(() => {
@@ -429,8 +425,7 @@ export function HandTraumaAssessment({
       injuredStructures.some(
         (s) =>
           s.category === "ligament" ||
-          (s.category === "other" &&
-            s.structureId.startsWith("volar_plate_")),
+          (s.category === "other" && s.structureId.startsWith("volar_plate_")),
       )
     )
       cats.add("ligament");
@@ -545,8 +540,7 @@ export function HandTraumaAssessment({
             ),
           }))
           .filter(
-            (descriptor) =>
-              !descriptor.digits || descriptor.digits.length > 0,
+            (descriptor) => !descriptor.digits || descriptor.digits.length > 0,
           );
         onChange({
           ...value,
@@ -765,7 +759,9 @@ export function HandTraumaAssessment({
       hasSoftTissueDefect: descriptors.some((e) => e.type === "defect"),
       hasSoftTissueLoss: descriptors.some((e) => e.type === "loss"),
       hasDegloving: descriptors.some((e) => e.type === "degloving"),
-      hasGrossContamination: descriptors.some((e) => e.type === "contamination"),
+      hasGrossContamination: descriptors.some(
+        (e) => e.type === "contamination",
+      ),
       defectLocations,
     };
   }, [value]);
@@ -1114,8 +1110,7 @@ export function HandTraumaAssessment({
     if (specialCount > 0) counts.special = specialCount;
 
     const amputationCount =
-      (value.digitAmputations?.length ?? 0) ||
-      (value.amputationLevel ? 1 : 0);
+      (value.digitAmputations?.length ?? 0) || (value.amputationLevel ? 1 : 0);
     if (amputationCount > 0) counts.amputation = amputationCount;
 
     return counts;
@@ -1129,7 +1124,9 @@ export function HandTraumaAssessment({
     (acceptedProcedureIds: string[]) => {
       if (!mappingResult) return;
       // Flatten composite keys to unique procedure IDs for parent payload
-      const flatIds = [...new Set(acceptedProcedureIds.map(extractProcedureId))];
+      const flatIds = [
+        ...new Set(acceptedProcedureIds.map(extractProcedureId)),
+      ];
       onAccept({
         mappingResult,
         selectedProcedureIds: flatIds,
@@ -1199,7 +1196,8 @@ export function HandTraumaAssessment({
                     ]}
                     onPress={() =>
                       updateIncident({
-                        laterality: selectedLaterality === side ? undefined : side,
+                        laterality:
+                          selectedLaterality === side ? undefined : side,
                       })
                     }
                   >
@@ -1301,7 +1299,9 @@ export function HandTraumaAssessment({
               ]}
             >
               <Feather name="check-circle" size={15} color={theme.link} />
-              <ThemedText style={[styles.sideSummaryText, { color: theme.link }]}>
+              <ThemedText
+                style={[styles.sideSummaryText, { color: theme.link }]}
+              >
                 All selected injuries belong to the {sideLabel} hand.
               </ThemedText>
             </View>
@@ -1328,7 +1328,11 @@ export function HandTraumaAssessment({
 
       {isIncidentReady ? (
         <>
-          <SectionWrapper title="2. Injured Structures" icon="grid" theme={theme}>
+          <SectionWrapper
+            title="2. Injured Structures"
+            icon="grid"
+            theme={theme}
+          >
             <InjuryCategoryChips
               activeCategories={activeCategories}
               onToggle={handleCategoryToggle}
@@ -1371,7 +1375,10 @@ export function HandTraumaAssessment({
             <SectionWrapper title="Tendons" icon="trending-up" theme={theme}>
               <View style={styles.tendonSubSections}>
                 <ThemedText
-                  style={[styles.tendonSubLabel, { color: theme.textSecondary }]}
+                  style={[
+                    styles.tendonSubLabel,
+                    { color: theme.textSecondary },
+                  ]}
                 >
                   FLEXOR
                 </ThemedText>
@@ -1391,7 +1398,10 @@ export function HandTraumaAssessment({
                   ]}
                 />
                 <ThemedText
-                  style={[styles.tendonSubLabel, { color: theme.textSecondary }]}
+                  style={[
+                    styles.tendonSubLabel,
+                    { color: theme.textSecondary },
+                  ]}
                 >
                   EXTENSOR
                 </ThemedText>
@@ -1456,7 +1466,11 @@ export function HandTraumaAssessment({
           ) : null}
 
           {activeCategories.has("special") ? (
-            <SectionWrapper title="Special Injuries" icon="alert-triangle" theme={theme}>
+            <SectionWrapper
+              title="Special Injuries"
+              icon="alert-triangle"
+              theme={theme}
+            >
               <SoftTissueSpecialInjurySection
                 value={softTissueState}
                 onChange={handleSoftTissueChange}

@@ -1589,8 +1589,7 @@ const HAND_DX_JOINT: DiagnosisPicklistEntry[] = [
     displayName: "MCP joint osteoarthritis / destruction",
     shortName: "MCP OA",
     snomedCtCode: "201840001",
-    snomedCtDisplay:
-      "Osteoarthritis of metacarpophalangeal joint (disorder)",
+    snomedCtDisplay: "Osteoarthritis of metacarpophalangeal joint (disorder)",
     specialty: "hand_wrist",
     subcategory: "Joint & Degenerative",
     clinicalGroup: "elective",
@@ -2154,8 +2153,7 @@ const HAND_DX_ELECTIVE_TENDON: DiagnosisPicklistEntry[] = [
     displayName: "EPL rupture (attritional / post-fracture)",
     shortName: "EPL rupture",
     snomedCtCode: "239161003",
-    snomedCtDisplay:
-      "Rupture of extensor pollicis longus tendon (disorder)",
+    snomedCtDisplay: "Rupture of extensor pollicis longus tendon (disorder)",
     specialty: "hand_wrist",
     subcategory: "Elective Tendon",
     clinicalGroup: "elective",
@@ -2269,8 +2267,7 @@ const HAND_DX_ELECTIVE_TENDON: DiagnosisPicklistEntry[] = [
     displayName: "Flexor tendon — late reconstruction",
     shortName: "Late flexor recon",
     snomedCtCode: "41727003",
-    snomedCtDisplay:
-      "Reconstruction of flexor tendon of hand (disorder)",
+    snomedCtDisplay: "Reconstruction of flexor tendon of hand (disorder)",
     specialty: "hand_wrist",
     subcategory: "Elective Tendon",
     clinicalGroup: "elective",
@@ -2285,8 +2282,7 @@ const HAND_DX_ELECTIVE_TENDON: DiagnosisPicklistEntry[] = [
     suggestedProcedures: [
       {
         procedurePicklistId: "hand_tend_staged_reconstruction",
-        displayName:
-          "Staged flexor tendon reconstruction (Hunter rod)",
+        displayName: "Staged flexor tendon reconstruction (Hunter rod)",
         isDefault: true,
         sortOrder: 1,
       },
@@ -2342,12 +2338,10 @@ const HAND_DX_RHEUMATOID: DiagnosisPicklistEntry[] = [
   },
   {
     id: "hand_dx_vaughan_jackson",
-    displayName:
-      "Extensor tendon rupture — rheumatoid (Vaughan-Jackson)",
+    displayName: "Extensor tendon rupture — rheumatoid (Vaughan-Jackson)",
     shortName: "Vaughan-Jackson",
     snomedCtCode: "239161003",
-    snomedCtDisplay:
-      "Rheumatoid rupture of extensor tendon (disorder)",
+    snomedCtDisplay: "Rheumatoid rupture of extensor tendon (disorder)",
     specialty: "hand_wrist",
     subcategory: "Rheumatoid Hand",
     clinicalGroup: "elective",
@@ -2380,8 +2374,7 @@ const HAND_DX_RHEUMATOID: DiagnosisPicklistEntry[] = [
     displayName: "Caput ulnae syndrome",
     shortName: "Caput ulnae",
     snomedCtCode: "201783003",
-    snomedCtDisplay:
-      "Rheumatoid disease of distal radioulnar joint (disorder)",
+    snomedCtDisplay: "Rheumatoid disease of distal radioulnar joint (disorder)",
     specialty: "hand_wrist",
     subcategory: "Rheumatoid Hand",
     clinicalGroup: "elective",
@@ -2444,11 +2437,7 @@ const HAND_DX_RHEUMATOID: DiagnosisPicklistEntry[] = [
     subcategory: "Rheumatoid Hand",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: [
-      "rheumatoid nodule",
-      "RA nodule",
-      "subcutaneous nodule",
-    ],
+    searchSynonyms: ["rheumatoid nodule", "RA nodule", "subcutaneous nodule"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hand_rheumatoid_nodule_excision",
@@ -2603,11 +2592,7 @@ const HAND_DX_OTHER: DiagnosisPicklistEntry[] = [
     subcategory: "Tumours & Other",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: [
-      "lipoma hand",
-      "soft tissue lump",
-      "fatty tumour",
-    ],
+    searchSynonyms: ["lipoma hand", "soft tissue lump", "fatty tumour"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hand_other_tumour_excision",

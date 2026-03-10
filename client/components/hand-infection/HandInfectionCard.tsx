@@ -28,7 +28,6 @@ import {
   type HandOrganism,
   type HandInfectionImaging,
   type HandInfectionSeverity,
-  type SensitivityResult,
   DIGIT_LABELS,
   HAND_SPACE_LABELS,
   KANAVEL_SIGN_LABELS,
@@ -41,7 +40,6 @@ import {
   countKanavelSigns,
   createDefaultHandInfectionDetails,
   generateHandInfectionSummary,
-  DIAGNOSIS_TO_INFECTION_TYPE,
   DIAGNOSIS_TO_EMPIRICAL_ANTIBIOTICS,
   DIAGNOSIS_TO_LIKELY_ORGANISMS,
 } from "@/types/handInfection";
@@ -67,17 +65,9 @@ interface HandInfectionCardProps {
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const DIGIT_KEYS: DigitKey[] = [
-  "thumb",
-  "index",
-  "middle",
-  "ring",
-  "little",
-];
+const DIGIT_KEYS: DigitKey[] = ["thumb", "index", "middle", "ring", "little"];
 
-const ALL_SPACES: HandSpace[] = Object.keys(
-  HAND_SPACE_LABELS,
-) as HandSpace[];
+const ALL_SPACES: HandSpace[] = Object.keys(HAND_SPACE_LABELS) as HandSpace[];
 
 const ALL_ANTIBIOTICS: HandAntibioticRegimen[] = Object.keys(
   HAND_ANTIBIOTIC_LABELS,
@@ -230,7 +220,11 @@ export const HandInfectionCard = React.memo(function HandInfectionCard({
     return parts.length > 0
       ? parts.join(" · ")
       : "Tap to add cultures & antibiotics";
-  }, [details.culturesTaken, details.empiricalAntibiotic, details.antibioticRoute]);
+  }, [
+    details.culturesTaken,
+    details.empiricalAntibiotic,
+    details.antibioticRoute,
+  ]);
 
   // ── Layer 3 summary ─────────────────────────────────────────────────────
 
@@ -266,10 +260,7 @@ export const HandInfectionCard = React.memo(function HandInfectionCard({
         ]}
       >
         <View
-          style={[
-            styles.header,
-            { backgroundColor: theme.warning + "15" },
-          ]}
+          style={[styles.header, { backgroundColor: theme.warning + "15" }]}
         >
           <Feather name="alert-triangle" size={16} color={theme.warning} />
           <ThemedText style={[styles.headerTitle, { color: theme.text }]}>
@@ -279,13 +270,19 @@ export const HandInfectionCard = React.memo(function HandInfectionCard({
             <ThemedText
               style={[styles.headerBadge, { color: theme.textSecondary }]}
             >
-              {laterality === "left" ? "Left" : laterality === "right" ? "Right" : laterality}
+              {laterality === "left"
+                ? "Left"
+                : laterality === "right"
+                  ? "Right"
+                  : laterality}
             </ThemedText>
           ) : null}
         </View>
         <View style={styles.section}>
           {summary ? (
-            <ThemedText style={{ color: theme.text, fontSize: 14, lineHeight: 20 }}>
+            <ThemedText
+              style={{ color: theme.text, fontSize: 14, lineHeight: 20 }}
+            >
               {summary}
             </ThemedText>
           ) : null}
@@ -306,12 +303,14 @@ export const HandInfectionCard = React.memo(function HandInfectionCard({
           }}
           style={[
             styles.escalateButton,
-            { borderColor: theme.border, marginHorizontal: Spacing.md, marginBottom: Spacing.md },
+            {
+              borderColor: theme.border,
+              marginHorizontal: Spacing.md,
+              marginBottom: Spacing.md,
+            },
           ]}
         >
-          <ThemedText
-            style={[styles.escalateText, { color: theme.link }]}
-          >
+          <ThemedText style={[styles.escalateText, { color: theme.link }]}>
             Edit in full module
           </ThemedText>
           <Feather name="arrow-right" size={16} color={theme.link} />
@@ -335,21 +334,23 @@ export const HandInfectionCard = React.memo(function HandInfectionCard({
       ]}
     >
       {/* ── Header ──────────────────────────────────────────────────── */}
-      <View
-        style={[
-          styles.header,
-          { backgroundColor: theme.warning + "15" },
-        ]}
-      >
+      <View style={[styles.header, { backgroundColor: theme.warning + "15" }]}>
         <Feather name="alert-triangle" size={16} color={theme.warning} />
         <ThemedText style={[styles.headerTitle, { color: theme.text }]}>
           Hand Infection Details
         </ThemedText>
         {laterality ? (
           <ThemedText
-            style={[styles.headerBadge, { color: theme.textSecondary, marginRight: Spacing.xs }]}
+            style={[
+              styles.headerBadge,
+              { color: theme.textSecondary, marginRight: Spacing.xs },
+            ]}
           >
-            {laterality === "left" ? "Left" : laterality === "right" ? "Right" : laterality}
+            {laterality === "left"
+              ? "Left"
+              : laterality === "right"
+                ? "Right"
+                : laterality}
           </ThemedText>
         ) : null}
         <ThemedText
@@ -460,38 +461,30 @@ export const HandInfectionCard = React.memo(function HandInfectionCard({
               Kanavel signs
             </ThemedText>
             <View
-              style={[
-                styles.kanavelContainer,
-                { borderColor: theme.border },
-              ]}
+              style={[styles.kanavelContainer, { borderColor: theme.border }]}
             >
-              {(
-                Object.keys(KANAVEL_SIGN_LABELS) as Array<
-                  keyof KanavelSigns
-                >
-              ).map((sign) => (
-                <View key={sign} style={styles.kanavelRow}>
-                  <ThemedText
-                    style={[styles.kanavelLabel, { color: theme.text }]}
-                  >
-                    {KANAVEL_SIGN_LABELS[sign]}
-                  </ThemedText>
-                  <Switch
-                    value={details.kanavelSigns?.[sign] ?? false}
-                    onValueChange={() => toggleKanavel(sign)}
-                    trackColor={{
-                      false: theme.backgroundTertiary,
-                      true: theme.link,
-                    }}
-                  />
-                </View>
-              ))}
+              {(Object.keys(KANAVEL_SIGN_LABELS) as (keyof KanavelSigns)[]).map(
+                (sign) => (
+                  <View key={sign} style={styles.kanavelRow}>
+                    <ThemedText
+                      style={[styles.kanavelLabel, { color: theme.text }]}
+                    >
+                      {KANAVEL_SIGN_LABELS[sign]}
+                    </ThemedText>
+                    <Switch
+                      value={details.kanavelSigns?.[sign] ?? false}
+                      onValueChange={() => toggleKanavel(sign)}
+                      trackColor={{
+                        false: theme.backgroundTertiary,
+                        true: theme.link,
+                      }}
+                    />
+                  </View>
+                ),
+              )}
               <View style={styles.kanavelSummary}>
                 <ThemedText
-                  style={[
-                    styles.kanavelBadge,
-                    { color: kanavelColor },
-                  ]}
+                  style={[styles.kanavelBadge, { color: kanavelColor }]}
                 >
                   Kanavel {kanavelCount}/4
                 </ThemedText>
@@ -599,45 +592,43 @@ export const HandInfectionCard = React.memo(function HandInfectionCard({
             );
           })}
           {/* Other antibiotics */}
-          {ALL_ANTIBIOTICS.filter(
-            (abx) => !recommendedAbx.includes(abx),
-          ).map((abx) => {
-            const active = details.empiricalAntibiotic === abx;
-            return (
-              <Pressable
-                key={abx}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  update({
-                    empiricalAntibiotic: active ? undefined : abx,
-                  });
-                }}
-                style={[
-                  styles.chip,
-                  {
-                    backgroundColor: active
-                      ? theme.link
-                      : theme.backgroundTertiary,
-                    borderColor: active ? theme.link : theme.border,
-                  },
-                ]}
-              >
-                <ThemedText
+          {ALL_ANTIBIOTICS.filter((abx) => !recommendedAbx.includes(abx)).map(
+            (abx) => {
+              const active = details.empiricalAntibiotic === abx;
+              return (
+                <Pressable
+                  key={abx}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    update({
+                      empiricalAntibiotic: active ? undefined : abx,
+                    });
+                  }}
                   style={[
-                    styles.chipText,
+                    styles.chip,
                     {
-                      color: active
-                        ? theme.buttonText
-                        : theme.textSecondary,
-                      fontSize: 13,
+                      backgroundColor: active
+                        ? theme.link
+                        : theme.backgroundTertiary,
+                      borderColor: active ? theme.link : theme.border,
                     },
                   ]}
                 >
-                  {HAND_ANTIBIOTIC_LABELS[abx]}
-                </ThemedText>
-              </Pressable>
-            );
-          })}
+                  <ThemedText
+                    style={[
+                      styles.chipText,
+                      {
+                        color: active ? theme.buttonText : theme.textSecondary,
+                        fontSize: 13,
+                      },
+                    ]}
+                  >
+                    {HAND_ANTIBIOTIC_LABELS[abx]}
+                  </ThemedText>
+                </Pressable>
+              );
+            },
+          )}
         </View>
 
         {/* Route */}
@@ -722,9 +713,7 @@ export const HandInfectionCard = React.memo(function HandInfectionCard({
                       backgroundColor: active
                         ? theme.link
                         : theme.backgroundTertiary,
-                      borderColor: active
-                        ? theme.link
-                        : theme.warning + "60",
+                      borderColor: active ? theme.link : theme.warning + "60",
                     },
                   ]}
                 >
@@ -743,46 +732,48 @@ export const HandInfectionCard = React.memo(function HandInfectionCard({
               );
             })}
             {/* Other organisms */}
-            {ALL_ORGANISMS.filter(
-              (org) => !likelyOrganisms.includes(org),
-            ).map((org) => {
-              const active = details.organism === org;
-              return (
-                <Pressable
-                  key={org}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    update({
-                      organism: active ? undefined : org,
-                      sensitivities: active ? undefined : details.sensitivities,
-                    });
-                  }}
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor: active
-                        ? theme.link
-                        : theme.backgroundTertiary,
-                      borderColor: active ? theme.link : theme.border,
-                    },
-                  ]}
-                >
-                  <ThemedText
+            {ALL_ORGANISMS.filter((org) => !likelyOrganisms.includes(org)).map(
+              (org) => {
+                const active = details.organism === org;
+                return (
+                  <Pressable
+                    key={org}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      update({
+                        organism: active ? undefined : org,
+                        sensitivities: active
+                          ? undefined
+                          : details.sensitivities,
+                      });
+                    }}
                     style={[
-                      styles.chipText,
+                      styles.chip,
                       {
-                        color: active
-                          ? theme.buttonText
-                          : theme.textSecondary,
-                        fontSize: 12,
+                        backgroundColor: active
+                          ? theme.link
+                          : theme.backgroundTertiary,
+                        borderColor: active ? theme.link : theme.border,
                       },
                     ]}
                   >
-                    {HAND_ORGANISM_LABELS[org]}
-                  </ThemedText>
-                </Pressable>
-              );
-            })}
+                    <ThemedText
+                      style={[
+                        styles.chipText,
+                        {
+                          color: active
+                            ? theme.buttonText
+                            : theme.textSecondary,
+                          fontSize: 12,
+                        },
+                      ]}
+                    >
+                      {HAND_ORGANISM_LABELS[org]}
+                    </ThemedText>
+                  </Pressable>
+                );
+              },
+            )}
           </View>
 
           {/* Other organism text input */}
@@ -807,10 +798,7 @@ export const HandInfectionCard = React.memo(function HandInfectionCard({
           {sensitivityPanel.length > 0 ? (
             <View style={{ marginTop: Spacing.md }}>
               <ThemedText
-                style={[
-                  styles.sectionLabel,
-                  { color: theme.textSecondary },
-                ]}
+                style={[styles.sectionLabel, { color: theme.textSecondary }]}
               >
                 Sensitivities
               </ThemedText>
@@ -855,55 +843,55 @@ export const HandInfectionCard = React.memo(function HandInfectionCard({
                     >
                       {HAND_ANTIBIOTIC_LABELS[abx]}
                     </ThemedText>
-                    {(
-                      ["sensitive", "resistant", "intermediate"] as const
-                    ).map((result) => {
-                      const active = currentVal === result;
-                      return (
-                        <Pressable
-                          key={result}
-                          onPress={() => {
-                            Haptics.impactAsync(
-                              Haptics.ImpactFeedbackStyle.Light,
-                            );
-                            update({
-                              sensitivities: {
-                                ...details.sensitivities,
-                                [abx]: active ? "unknown" : result,
-                              },
-                            });
-                          }}
-                          style={[
-                            styles.sensitivityRadio,
-                            {
-                              borderColor: active
-                                ? result === "sensitive"
-                                  ? theme.success
-                                  : result === "resistant"
-                                    ? theme.error
-                                    : theme.warning
-                                : theme.border,
-                            },
-                          ]}
-                        >
-                          {active ? (
-                            <View
-                              style={[
-                                styles.sensitivityDot,
-                                {
-                                  backgroundColor:
-                                    result === "sensitive"
-                                      ? theme.success
-                                      : result === "resistant"
-                                        ? theme.error
-                                        : theme.warning,
+                    {(["sensitive", "resistant", "intermediate"] as const).map(
+                      (result) => {
+                        const active = currentVal === result;
+                        return (
+                          <Pressable
+                            key={result}
+                            onPress={() => {
+                              Haptics.impactAsync(
+                                Haptics.ImpactFeedbackStyle.Light,
+                              );
+                              update({
+                                sensitivities: {
+                                  ...details.sensitivities,
+                                  [abx]: active ? "unknown" : result,
                                 },
-                              ]}
-                            />
-                          ) : null}
-                        </Pressable>
-                      );
-                    })}
+                              });
+                            }}
+                            style={[
+                              styles.sensitivityRadio,
+                              {
+                                borderColor: active
+                                  ? result === "sensitive"
+                                    ? theme.success
+                                    : result === "resistant"
+                                      ? theme.error
+                                      : theme.warning
+                                  : theme.border,
+                              },
+                            ]}
+                          >
+                            {active ? (
+                              <View
+                                style={[
+                                  styles.sensitivityDot,
+                                  {
+                                    backgroundColor:
+                                      result === "sensitive"
+                                        ? theme.success
+                                        : result === "resistant"
+                                          ? theme.error
+                                          : theme.warning,
+                                  },
+                                ]}
+                              />
+                            ) : null}
+                          </Pressable>
+                        );
+                      },
+                    )}
                   </View>
                 );
               })}
@@ -999,9 +987,7 @@ export const HandInfectionCard = React.memo(function HandInfectionCard({
                   style={[
                     styles.chipText,
                     {
-                      color: active
-                        ? theme.buttonText
-                        : theme.textSecondary,
+                      color: active ? theme.buttonText : theme.textSecondary,
                     },
                   ]}
                 >
@@ -1059,14 +1045,9 @@ export const HandInfectionCard = React.memo(function HandInfectionCard({
               update({ escalatedToFullModule: true });
             }
           }}
-          style={[
-            styles.escalateButton,
-            { borderColor: theme.border },
-          ]}
+          style={[styles.escalateButton, { borderColor: theme.border }]}
         >
-          <ThemedText
-            style={[styles.escalateText, { color: theme.link }]}
-          >
+          <ThemedText style={[styles.escalateText, { color: theme.link }]}>
             Open full infection module
           </ThemedText>
           <Feather name="arrow-right" size={16} color={theme.link} />
@@ -1097,16 +1078,11 @@ function CollapsibleSection({
 }) {
   return (
     <View
-      style={[
-        styles.collapsibleContainer,
-        { borderTopColor: theme.border },
-      ]}
+      style={[styles.collapsibleContainer, { borderTopColor: theme.border }]}
     >
       <Pressable onPress={onToggle} style={styles.collapsibleHeader}>
         <View style={{ flex: 1 }}>
-          <ThemedText
-            style={[styles.collapsibleTitle, { color: theme.text }]}
-          >
+          <ThemedText style={[styles.collapsibleTitle, { color: theme.text }]}>
             {title}
           </ThemedText>
           {!expanded && summary ? (

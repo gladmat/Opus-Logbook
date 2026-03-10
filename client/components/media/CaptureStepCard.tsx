@@ -113,10 +113,7 @@ function CaptureStepCardInner({
 
             {/* Green check overlay */}
             <View
-              style={[
-                styles.checkOverlay,
-                { backgroundColor: theme.success },
-              ]}
+              style={[styles.checkOverlay, { backgroundColor: theme.success }]}
             >
               <Feather name="check" size={10} color={theme.buttonText} />
             </View>

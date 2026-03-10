@@ -57,14 +57,7 @@ export const SkinCancerNumericInput = forwardRef<
   TextInput,
   SkinCancerNumericInputProps
 >(function SkinCancerNumericInput(
-  {
-    value,
-    onValueChange,
-    integer = false,
-    onBlur,
-    onFocus,
-    ...textInputProps
-  },
+  { value, onValueChange, integer = false, onBlur, onFocus, ...textInputProps },
   ref,
 ) {
   const [draft, setDraft] = useState(() => formatNumericValue(value, integer));

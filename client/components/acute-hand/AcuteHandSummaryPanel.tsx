@@ -91,7 +91,11 @@ export function AcuteHandSummaryPanel({
       .map((s) => {
         const entry = findPicklistEntry(s.procedurePicklistId);
         return entry
-          ? { id: s.procedurePicklistId, name: entry.displayName, isDefault: s.isDefault }
+          ? {
+              id: s.procedurePicklistId,
+              name: entry.displayName,
+              isDefault: s.isDefault,
+            }
           : null;
       })
       .filter(Boolean) as { id: string; name: string; isDefault: boolean }[];
@@ -100,9 +104,7 @@ export function AcuteHandSummaryPanel({
   // Default selection: only procedures marked isDefault
   const [selectedProcedureIds, setSelectedProcedureIds] = useState<Set<string>>(
     () =>
-      new Set(
-        suggestedProcedures.filter((p) => p.isDefault).map((p) => p.id),
-      ),
+      new Set(suggestedProcedures.filter((p) => p.isDefault).map((p) => p.id)),
   );
 
   const acceptedProcedureIdSet = useMemo(
@@ -136,7 +138,9 @@ export function AcuteHandSummaryPanel({
     if (!isAccepted) {
       return suggestedProcedures;
     }
-    return suggestedProcedures.filter((proc) => acceptedProcedureIdSet.has(proc.id));
+    return suggestedProcedures.filter((proc) =>
+      acceptedProcedureIdSet.has(proc.id),
+    );
   }, [acceptedProcedureIdSet, isAccepted, suggestedProcedures]);
 
   const selectedProcedureCount = selectedProcedureIds.size;
@@ -398,9 +402,7 @@ export function AcuteHandSummaryPanel({
       {/* ── Coding details (collapsed by default) ── */}
       {isAccepted ? (
         <>
-          <View
-            style={[styles.divider, { backgroundColor: theme.border }]}
-          />
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
           <Pressable
             style={styles.codingDisclosureRow}
             onPress={() => {

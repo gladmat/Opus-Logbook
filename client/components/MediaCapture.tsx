@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -12,7 +12,6 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@/components/FeatherIcon";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
-import { v4 as uuidv4 } from "uuid";
 import {
   deleteEncryptedMedia,
   importMediaAssets,
@@ -27,6 +26,8 @@ import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useMediaCallback } from "@/contexts/MediaCallbackContext";
 import { MediaTagBadge } from "@/components/media";
 import { resolveMediaTag } from "@/lib/mediaTagMigration";
+import { buildDefaultMediaAttachment } from "@/lib/mediaAttachmentDefaults";
+import type { MediaContext } from "@/lib/mediaContext";
 
 interface MediaCaptureProps {
   attachments: MediaAttachment[];
@@ -34,9 +35,8 @@ interface MediaCaptureProps {
   maxAttachments?: number;
   mediaType?: "photo" | "imaging" | "all";
   eventType?: TimelineEventType;
-  specialty?: string;
-  procedureTags?: string[];
-  hasSkinCancerAssessment?: boolean;
+  defaultMediaDate?: string;
+  mediaContext?: MediaContext;
 }
 
 export function MediaCapture({
@@ -45,9 +45,8 @@ export function MediaCapture({
   maxAttachments = 15,
   mediaType = "all",
   eventType,
-  specialty,
-  procedureTags,
-  hasSkinCancerAssessment,
+  defaultMediaDate,
+  mediaContext,
 }: MediaCaptureProps) {
   const { theme } = useTheme();
   const navigation =
@@ -56,6 +55,21 @@ export function MediaCapture({
   const [cameraPermission, requestCameraPermission] =
     ImagePicker.useCameraPermissions();
 
+  const buildDefaultAttachment = useCallback(
+    (
+      savedMedia: { localUri: string; mimeType: string },
+      createdAt: string,
+    ): MediaAttachment =>
+      buildDefaultMediaAttachment({
+        savedMedia,
+        createdAt,
+        eventType,
+        procedureDate: mediaContext?.procedureDate,
+        mediaDate: defaultMediaDate,
+      }),
+    [defaultMediaDate, eventType, mediaContext?.procedureDate],
+  );
+
   const handleOpenMediaManager = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const callbackId = registerCallback(onAttachmentsChange);
@@ -63,11 +77,10 @@ export function MediaCapture({
       existingAttachments: attachments,
       callbackId,
       maxAttachments,
-      context: "case",
+      context: eventType ? "timeline" : "case",
       eventType,
-      specialty,
-      procedureTags,
-      hasSkinCancerAssessment,
+      defaultMediaDate,
+      mediaContext,
     });
   };
 
@@ -118,12 +131,10 @@ export function MediaCapture({
           asset.uri,
           asset.mimeType || "image/jpeg",
         );
-        const newAttachment: MediaAttachment = {
-          id: uuidv4(),
-          localUri: savedMedia.localUri,
-          mimeType: savedMedia.mimeType,
-          createdAt: new Date().toISOString(),
-        };
+        const newAttachment = buildDefaultAttachment(
+          savedMedia,
+          new Date().toISOString(),
+        );
         onAttachmentsChange([...attachments, newAttachment]);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
@@ -133,7 +144,7 @@ export function MediaCapture({
     }
   };
 
-  const handleGalleryPick = async () => {
+  const handleGalleryPick = useCallback(async () => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -147,12 +158,9 @@ export function MediaCapture({
         const startingAttachments = [...attachments];
         const importedAttachments: MediaAttachment[] = [];
         await importMediaAssets(result.assets, (savedAsset) => {
-          importedAttachments.push({
-            id: uuidv4(),
-            localUri: savedAsset.localUri,
-            mimeType: savedAsset.mimeType,
-            createdAt: new Date().toISOString(),
-          });
+          importedAttachments.push(
+            buildDefaultAttachment(savedAsset, new Date().toISOString()),
+          );
           onAttachmentsChange([...startingAttachments, ...importedAttachments]);
         });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -161,7 +169,12 @@ export function MediaCapture({
       console.error("Error picking image:", error);
       Alert.alert("Error", "Failed to select image. Please try again.");
     }
-  };
+  }, [
+    attachments,
+    buildDefaultAttachment,
+    maxAttachments,
+    onAttachmentsChange,
+  ]);
 
   const handleRemove = async (attachmentId: string) => {
     const item = attachments.find((a) => a.id === attachmentId);
@@ -214,10 +227,7 @@ export function MediaCapture({
                 <Feather name="x" size={12} color={theme.buttonText} />
               </Pressable>
               <View style={styles.tagBadgeContainer}>
-                <MediaTagBadge
-                  tag={resolveMediaTag(attachment)}
-                  size="small"
-                />
+                <MediaTagBadge tag={resolveMediaTag(attachment)} size="small" />
               </View>
             </Pressable>
           ))}

@@ -83,9 +83,9 @@ describe("findProtocols", () => {
     expect(protocols).toContain(AESTHETIC_FACE_PROTOCOL);
   });
 
-  it("returns rhinoplasty protocol for rhinoplasty diagnosis", () => {
+  it("returns rhinoplasty protocol for rhinoplasty procedure picklist IDs", () => {
     const protocols = findProtocols({
-      diagnosisPicklistIds: ["aes_rhinoplasty_open"],
+      procedurePicklistIds: ["aes_rhino_open"],
     });
     expect(protocols).toContain(AESTHETIC_RHINOPLASTY_PROTOCOL);
   });
@@ -283,12 +283,10 @@ describe("mergeProtocols", () => {
 
     // Count how many steps per protocol have sectionLabel
     const skinCancerWithLabel = result.steps.filter(
-      (s) =>
-        s.sourceProtocolId === "skin_cancer_excision" && s.sectionLabel,
+      (s) => s.sourceProtocolId === "skin_cancer_excision" && s.sectionLabel,
     );
     const flapWithLabel = result.steps.filter(
-      (s) =>
-        s.sourceProtocolId === "free_flap" && s.sectionLabel,
+      (s) => s.sourceProtocolId === "free_flap" && s.sectionLabel,
     );
 
     expect(skinCancerWithLabel).toHaveLength(1);

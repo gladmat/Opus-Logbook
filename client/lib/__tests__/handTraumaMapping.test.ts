@@ -38,10 +38,14 @@ describe("hand trauma mapping pairs", () => {
       fractures: [createMetacarpalFracture("fx-1", "III", "77.3.2C")],
     });
 
-    const fracturePair = result?.pairs.find((pair) => pair.source === "fracture");
+    const fracturePair = result?.pairs.find(
+      (pair) => pair.source === "fracture",
+    );
     expect(fracturePair?.selectionMode).toBe("single");
     expect(
-      fracturePair?.suggestedProcedures.filter((procedure) => procedure.isDefault),
+      fracturePair?.suggestedProcedures.filter(
+        (procedure) => procedure.isDefault,
+      ),
     ).toHaveLength(1);
   });
 
@@ -66,10 +70,9 @@ describe("hand trauma mapping pairs", () => {
 
     expect(uclPair?.source).toBe("ligament");
     expect(uclPair?.selectionMode).toBe("single");
-    expect(uclPair?.suggestedProcedures.map((procedure) => procedure.isDefault)).toEqual([
-      true,
-      false,
-    ]);
+    expect(
+      uclPair?.suggestedProcedures.map((procedure) => procedure.isDefault),
+    ).toEqual([true, false]);
   });
 
   it("keeps vascular repair and revascularisation complementary when perfusion is impaired", () => {
@@ -92,7 +95,9 @@ describe("hand trauma mapping pairs", () => {
     const vesselPair = result?.pairs.find((pair) => pair.source === "vessel");
     expect(vesselPair?.selectionMode).toBe("multiple");
     expect(
-      vesselPair?.suggestedProcedures.map((procedure) => procedure.procedurePicklistId),
+      vesselPair?.suggestedProcedures.map(
+        (procedure) => procedure.procedurePicklistId,
+      ),
     ).toEqual(
       expect.arrayContaining([
         "hand_cov_revascularisation",
@@ -121,7 +126,9 @@ describe("hand trauma mapping pairs", () => {
     const vesselPair = result?.pairs.find((pair) => pair.source === "vessel");
     expect(vesselPair?.selectionMode).toBe("single");
     expect(
-      vesselPair?.suggestedProcedures.map((procedure) => procedure.procedurePicklistId),
+      vesselPair?.suggestedProcedures.map(
+        (procedure) => procedure.procedurePicklistId,
+      ),
     ).toEqual(
       expect.arrayContaining([
         "hand_vasc_digital_artery_repair",
@@ -150,7 +157,8 @@ describe("hand trauma mapping pairs", () => {
       ],
     });
 
-    const nervePairs = result?.pairs.filter((pair) => pair.source === "nerve") ?? [];
+    const nervePairs =
+      result?.pairs.filter((pair) => pair.source === "nerve") ?? [];
 
     expect(nervePairs).toHaveLength(2);
     expect(nervePairs.map((pair) => pair.diagnosis.displayName)).toEqual(
@@ -298,7 +306,9 @@ describe("hand trauma mapping pairs", () => {
       fractures: [createMetacarpalFracture("fx-1", "III", "77.3.2C")],
     });
 
-    const fracturePair = result?.pairs.find((pair) => pair.source === "fracture");
+    const fracturePair = result?.pairs.find(
+      (pair) => pair.source === "fracture",
+    );
 
     expect(fracturePair?.diagnosis.codes?.[0]).toMatchObject({
       system: "SNOMED_CT",

@@ -48,9 +48,7 @@ function formatRelativeDate(dateStr: string): string {
   const month = Number(monthRaw);
   const day = Number(dayRaw);
   const date =
-    Number.isFinite(year) &&
-    Number.isFinite(month) &&
-    Number.isFinite(day)
+    Number.isFinite(year) && Number.isFinite(month) && Number.isFinite(day)
       ? new Date(year, month - 1, day, 12, 0, 0, 0)
       : new Date(dateStr);
   const now = new Date();
@@ -211,7 +209,9 @@ function DashboardCaseCardInner({
         <View style={styles.contentText}>
           {hasMeta ? (
             <View style={styles.metaRow}>
-              {showRoleBadge ? <RoleBadge role={userRole} size="small" /> : null}
+              {showRoleBadge ? (
+                <RoleBadge role={userRole} size="small" />
+              ) : null}
               {skinCancerBadge ? (
                 <View
                   style={[
@@ -315,7 +315,10 @@ function DashboardCaseCardInner({
                 >
                   <Feather name="plus" size={12} color={theme.textSecondary} />
                   <ThemedText
-                    style={[styles.actionChipText, { color: theme.textSecondary }]}
+                    style={[
+                      styles.actionChipText,
+                      { color: theme.textSecondary },
+                    ]}
                   >
                     Event
                   </ThemedText>

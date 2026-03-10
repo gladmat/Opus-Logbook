@@ -1,10 +1,5 @@
 import React, { useState, useMemo, useCallback } from "react";
-import {
-  View,
-  StyleSheet,
-  Pressable,
-  TextInput,
-} from "react-native";
+import { View, StyleSheet, Pressable, TextInput } from "react-native";
 import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";

@@ -52,8 +52,7 @@ function AnimatedBar({
     }
   }, [animate, progress]);
 
-  const targetHeight =
-    maxValue > 0 ? (value / maxValue) * plotHeight : 0;
+  const targetHeight = maxValue > 0 ? (value / maxValue) * plotHeight : 0;
 
   const animatedProps = useAnimatedProps(() => {
     const h = targetHeight * progress.value;
@@ -145,9 +144,7 @@ export const BarChart = React.memo(function BarChart({
                   y={
                     paddingTop +
                     plotHeight -
-                    (maxValue > 0
-                      ? (item.value / maxValue) * plotHeight
-                      : 0) -
+                    (maxValue > 0 ? (item.value / maxValue) * plotHeight : 0) -
                     4
                   }
                   fontSize={11}

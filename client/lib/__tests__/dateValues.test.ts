@@ -7,6 +7,7 @@ import {
   parseIsoDateValue,
   sanitizeDateBounds,
   toIsoDateValue,
+  toUtcNoonIsoTimestamp,
 } from "@/lib/dateValues";
 
 describe("dateValues", () => {
@@ -41,6 +42,12 @@ describe("dateValues", () => {
 
     expect(parsed).not.toBeNull();
     expect(toIsoDateValue(parsed!)).toBe("1976-11-08");
+  });
+
+  it("builds stable UTC-noon timestamps for date-only values", () => {
+    expect(toUtcNoonIsoTimestamp("1976-11-08")).toBe(
+      "1976-11-08T12:00:00.000Z",
+    );
   });
 
   it("rejects invalid Date instances", () => {

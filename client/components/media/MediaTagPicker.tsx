@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { View, Pressable, ScrollView, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
@@ -6,9 +6,9 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import {
   MEDIA_TAG_GROUP_LABELS,
-  MEDIA_TAG_REGISTRY,
   getTagsForGroup,
   getRelevantGroups,
+  getPreferredMediaTagGroup,
 } from "@/types/media";
 import type { MediaTag, MediaTagGroup } from "@/types/media";
 
@@ -46,16 +46,16 @@ function MediaTagPickerInner({
     [explicitGroups, specialty, procedureTags, hasSkinCancerAssessment],
   );
 
-  // Auto-select active group: prefer the group containing selectedTag
-  const initialGroup = useMemo(() => {
-    if (selectedTag) {
-      const meta = MEDIA_TAG_REGISTRY[selectedTag];
-      if (meta && groups.includes(meta.group)) return meta.group;
-    }
-    return groups[0] ?? "temporal";
-  }, [selectedTag, groups]);
+  const preferredGroup = useMemo(
+    () => getPreferredMediaTagGroup(selectedTag, groups),
+    [selectedTag, groups],
+  );
 
-  const [activeGroup, setActiveGroup] = useState<MediaTagGroup>(initialGroup);
+  const [activeGroup, setActiveGroup] = useState<MediaTagGroup>(preferredGroup);
+
+  useEffect(() => {
+    setActiveGroup(preferredGroup);
+  }, [preferredGroup]);
 
   const tagsForGroup = useMemo(
     () => getTagsForGroup(activeGroup),
@@ -89,6 +89,7 @@ function MediaTagPickerInner({
           return (
             <Pressable
               key={group}
+              testID={`media-tag-group-${group}`}
               onPress={() => handleGroupPress(group)}
               style={[
                 styles.tab,
@@ -121,6 +122,7 @@ function MediaTagPickerInner({
           return (
             <Pressable
               key={meta.tag}
+              testID={`media-tag-chip-${meta.tag}`}
               onPress={() => handleTagPress(meta.tag)}
               style={[
                 styles.chip,
@@ -128,9 +130,7 @@ function MediaTagPickerInner({
                   backgroundColor: isSelected
                     ? theme.link
                     : theme.backgroundTertiary,
-                  borderColor: isSelected
-                    ? theme.link
-                    : theme.border,
+                  borderColor: isSelected ? theme.link : theme.border,
                 },
               ]}
             >

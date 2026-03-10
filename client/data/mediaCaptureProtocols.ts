@@ -28,6 +28,8 @@ export interface ProtocolActivationRule {
   specialties?: string[];
   /** Matches if ANY of these procedure tags are present */
   procedureTags?: string[];
+  /** Matches if ANY of these procedure picklist IDs are present */
+  procedurePicklistIds?: string[];
   /** Matches if ANY of these diagnosis picklist IDs are present */
   diagnosisPicklistIds?: string[];
   /** Matches if case has skin cancer assessment */
@@ -196,12 +198,12 @@ export const AESTHETIC_RHINOPLASTY_PROTOCOL: CaptureProtocol = {
   label: "Aesthetic \u2014 Rhinoplasty (7-view)",
   description: "Full rhinoplasty series including base and bird's eye",
   activationRules: {
-    diagnosisPicklistIds: [
-      "aes_rhinoplasty_open",
-      "aes_rhinoplasty_closed",
-      "aes_rhinoplasty_revision",
-      "aes_septorhinoplasty",
-      "hn_rhinoplasty",
+    procedurePicklistIds: [
+      "aes_rhino_open",
+      "aes_rhino_closed",
+      "aes_rhino_revision",
+      "aes_rhino_septorhinoplasty",
+      "aes_rhino_tip",
     ],
   },
   steps: [
@@ -415,6 +417,7 @@ export const ALL_PROTOCOLS: CaptureProtocol[] = [
 export function findProtocols(context: {
   specialties?: string[];
   procedureTags?: string[];
+  procedurePicklistIds?: string[];
   diagnosisPicklistIds?: string[];
   hasSkinCancerAssessment?: boolean;
 }): CaptureProtocol[] {
@@ -430,6 +433,13 @@ export function findProtocols(context: {
 
     if (rules.hasSkinCancerAssessment && context.hasSkinCancerAssessment) {
       return true;
+    }
+
+    if (rules.procedurePicklistIds?.length) {
+      const match = rules.procedurePicklistIds.some((id) =>
+        context.procedurePicklistIds?.includes(id),
+      );
+      if (match) return true;
     }
 
     if (rules.diagnosisPicklistIds?.length) {

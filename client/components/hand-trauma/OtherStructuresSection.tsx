@@ -64,12 +64,7 @@ export function OtherStructuresSection({
 
   const handleToggleDigit = (digit: DigitId) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onToggleStructure(
-      "nail_bed",
-      "other",
-      `Nail bed injury (${digit})`,
-      digit,
-    );
+    onToggleStructure("nail_bed", "other", `Nail bed injury (${digit})`, digit);
   };
 
   return (

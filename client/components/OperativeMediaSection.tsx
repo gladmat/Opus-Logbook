@@ -18,39 +18,35 @@ import { EncryptedImage } from "@/components/EncryptedImage";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
-import {
-  OperativeMediaItem,
-  MediaAttachment,
-} from "@/types/case";
+import { OperativeMediaItem, MediaAttachment } from "@/types/case";
 import { MEDIA_TAG_REGISTRY } from "@/types/media";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useMediaCallback } from "@/contexts/MediaCallbackContext";
 import {
   operativeMediaToAttachments,
   attachmentsToOperativeMedia,
+  TAG_TO_MEDIA_TYPE,
 } from "@/lib/operativeMedia";
-import { resolveMediaTag } from "@/lib/mediaTagMigration";
+import {
+  resolveMediaTag,
+  suggestDefaultMediaTag,
+} from "@/lib/mediaTagMigration";
 import { ProtocolBadge, GuidedCaptureFlow } from "@/components/media";
-import { findProtocols } from "@/data/mediaCaptureProtocols";
+import { findProtocols, mergeProtocols } from "@/data/mediaCaptureProtocols";
+import type { MediaContext } from "@/lib/mediaContext";
 
 interface OperativeMediaSectionProps {
   media: OperativeMediaItem[];
   onMediaChange: (media: OperativeMediaItem[]) => void;
   maxItems?: number;
-  specialty?: string;
-  procedureTags?: string[];
-  hasSkinCancerAssessment?: boolean;
-  procedureDate?: string;
+  mediaContext?: MediaContext;
 }
 
 export function OperativeMediaSection({
   media,
   onMediaChange,
   maxItems = 15,
-  specialty,
-  procedureTags,
-  hasSkinCancerAssessment,
-  procedureDate,
+  mediaContext,
 }: OperativeMediaSectionProps) {
   const { theme } = useTheme();
   const navigation =
@@ -63,12 +59,22 @@ export function OperativeMediaSection({
   const protocols = useMemo(
     () =>
       findProtocols({
-        specialties: specialty ? [specialty] : undefined,
-        procedureTags,
-        hasSkinCancerAssessment,
+        specialties: mediaContext?.specialty
+          ? [mediaContext.specialty]
+          : undefined,
+        procedureTags: mediaContext?.procedureTags,
+        procedurePicklistIds: mediaContext?.procedurePicklistIds,
+        diagnosisPicklistIds: mediaContext?.diagnosisPicklistIds,
+        hasSkinCancerAssessment: mediaContext?.hasSkinCancerAssessment,
       }),
-    [specialty, procedureTags, hasSkinCancerAssessment],
+    [mediaContext],
   );
+  const mergedProtocol = useMemo(() => mergeProtocols(protocols), [protocols]);
+  const capturedProtocolSteps = useMemo(() => {
+    const protocolTags = new Set(mergedProtocol.steps.map((step) => step.tag));
+    const mediaTags = new Set(media.map((item) => resolveMediaTag(item)));
+    return Array.from(mediaTags).filter((tag) => protocolTags.has(tag)).length;
+  }, [media, mergedProtocol.steps]);
 
   const handleManageMedia = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -82,9 +88,7 @@ export function OperativeMediaSection({
       callbackId,
       maxAttachments: maxItems,
       context: "case",
-      specialty,
-      procedureTags,
-      hasSkinCancerAssessment,
+      mediaContext,
     });
   };
 
@@ -98,10 +102,7 @@ export function OperativeMediaSection({
       imageUri: uri,
       mimeType,
       callbackId,
-      specialty,
-      procedureTags,
-      hasSkinCancerAssessment,
-      procedureDate,
+      mediaContext,
     });
   };
 
@@ -180,12 +181,15 @@ export function OperativeMediaSection({
           const startingMedia = [...media];
           const importedItems: OperativeMediaItem[] = [];
           await importMediaAssets(result.assets, (savedAsset) => {
+            const tag = suggestDefaultMediaTag({
+              procedureDate: mediaContext?.procedureDate,
+            });
             importedItems.push({
               id: uuidv4(),
               localUri: savedAsset.localUri,
               mimeType: savedAsset.mimeType,
-              tag: "intraop",
-              mediaType: "intraoperative_photo",
+              tag,
+              mediaType: TAG_TO_MEDIA_TYPE[tag],
               createdAt: new Date().toISOString(),
             });
             onMediaChange([...startingMedia, ...importedItems]);
@@ -221,10 +225,8 @@ export function OperativeMediaSection({
       existingTag: item.tag,
       existingCaption: item.caption,
       existingTimestamp: item.timestamp,
-      specialty,
-      procedureTags,
-      hasSkinCancerAssessment,
-      procedureDate,
+      existingCreatedAt: item.createdAt,
+      mediaContext,
     });
   };
 
@@ -255,9 +257,9 @@ export function OperativeMediaSection({
           <ThemedText style={styles.headerTitle}>Operative Media</ThemedText>
           {protocols.length > 0 ? (
             <ProtocolBadge
-              label={protocols[0]!.label}
-              capturedCount={media.length}
-              totalSteps={protocols.reduce((sum, p) => sum + p.steps.length, 0)}
+              label={mergedProtocol.label}
+              capturedCount={capturedProtocolSteps}
+              totalSteps={mergedProtocol.steps.length}
             />
           ) : null}
         </View>
@@ -292,9 +294,7 @@ export function OperativeMediaSection({
           existingMedia={media}
           onMediaChange={onMediaChange}
           maxItems={maxItems}
-          specialty={specialty}
-          procedureTags={procedureTags}
-          hasSkinCancerAssessment={hasSkinCancerAssessment}
+          mediaContext={mediaContext}
         />
       ) : null}
 
@@ -330,10 +330,7 @@ export function OperativeMediaSection({
                   style={[styles.typeBadge, { backgroundColor: theme.link }]}
                 >
                   <ThemedText
-                    style={[
-                      styles.typeBadgeText,
-                      { color: theme.buttonText },
-                    ]}
+                    style={[styles.typeBadgeText, { color: theme.buttonText }]}
                   >
                     {tagLabel}
                   </ThemedText>

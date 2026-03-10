@@ -1,13 +1,4 @@
-import { describe, expect, it, vi, beforeAll } from "vitest";
-
-// Mock expo-crypto before importing the module under test
-vi.mock("expo-crypto", () => ({
-  getRandomBytes: (length: number) => {
-    const bytes = new Uint8Array(length);
-    globalThis.crypto.getRandomValues(bytes);
-    return bytes;
-  },
-}));
+import { describe, expect, it, vi } from "vitest";
 
 import {
   generateDEK,
@@ -17,6 +8,15 @@ import {
   unwrapDEK,
   MediaEncryptionError,
 } from "@/lib/mediaEncryption";
+
+// Mock expo-crypto before importing the module under test
+vi.mock("expo-crypto", () => ({
+  getRandomBytes: (length: number) => {
+    const bytes = new Uint8Array(length);
+    globalThis.crypto.getRandomValues(bytes);
+    return bytes;
+  },
+}));
 
 // Generate a stable test key
 function makeKey(): Uint8Array {

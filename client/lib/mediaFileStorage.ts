@@ -197,7 +197,8 @@ export function loadDecryptedImageV2(
   if (!meta) throw new Error(`No metadata for media ${mediaId}`);
 
   const paths = getMediaPaths(mediaId);
-  if (!paths.image.exists) throw new Error(`No image file for media ${mediaId}`);
+  if (!paths.image.exists)
+    throw new Error(`No image file for media ${mediaId}`);
 
   const wrappedDEK = hexToBytes(meta.wrappedDEK);
   const dek = unwrapDEK(wrappedDEK, masterKey);

@@ -122,7 +122,9 @@ function SpecialtyFilterBarInner({
                   style={[
                     styles.chipText,
                     {
-                      color: isSelected ? theme.accentContrast : theme.textSecondary,
+                      color: isSelected
+                        ? theme.accentContrast
+                        : theme.textSecondary,
                     },
                   ]}
                 >

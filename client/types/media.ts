@@ -538,6 +538,20 @@ export function getTagsForGroup(group: MediaTagGroup): MediaTagMeta[] {
     .sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
+export function getPreferredMediaTagGroup(
+  selectedTag: MediaTag | undefined,
+  groups: MediaTagGroup[],
+): MediaTagGroup {
+  if (selectedTag) {
+    const meta = MEDIA_TAG_REGISTRY[selectedTag];
+    if (meta && groups.includes(meta.group)) {
+      return meta.group;
+    }
+  }
+
+  return groups[0] ?? "temporal";
+}
+
 /**
  * Helper: get the groups relevant to a given specialty/procedure context.
  * "temporal", "imaging", and "other" are always included.

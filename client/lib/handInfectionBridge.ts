@@ -15,7 +15,6 @@ import type {
   InfectionSyndrome,
   InfectionExtent,
   InfectionSeverity,
-  InfectionLaterality,
   MicrobiologyData,
   OrganismEntry,
 } from "@/types/infection";
@@ -156,9 +155,7 @@ const SYNDROME_TO_INFECTION_TYPE: Partial<
   wound_infection_dehiscence: "post_operative",
 };
 
-function reverseSeverity(
-  severity: InfectionSeverity,
-): HandInfectionSeverity {
+function reverseSeverity(severity: InfectionSeverity): HandInfectionSeverity {
   switch (severity) {
     case "local":
       return "local";
@@ -196,9 +193,9 @@ export function overlayToHandInfection(
   const organism = overlay.microbiology?.organisms
     ? reverseOrganism(overlay.microbiology.organisms)
     : overlay.microbiology?.cultureStatus === "negative"
-      ? "no_growth" as HandOrganism
+      ? ("no_growth" as HandOrganism)
       : overlay.microbiology?.cultureStatus === "pending"
-        ? "pending" as HandOrganism
+        ? ("pending" as HandOrganism)
         : undefined;
 
   return {

@@ -19,7 +19,7 @@ import * as Haptics from "expo-haptics";
 import { v4 as uuidv4 } from "uuid";
 import {
   saveEncryptedMediaFromUri,
-  isEncryptedMediaUri,
+  deleteEncryptedMedia,
 } from "@/lib/mediaStorage";
 import { EncryptedImage } from "@/components/EncryptedImage";
 import { ThemedText } from "@/components/ThemedText";
@@ -29,12 +29,23 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { DatePickerField } from "@/components/FormField";
 import { useMediaCallback } from "@/contexts/MediaCallbackContext";
-import { normalizeDateOnlyValue, toIsoDateValue } from "@/lib/dateValues";
+import {
+  normalizeDateOnlyValue,
+  toIsoDateValue,
+  toUtcNoonIsoTimestamp,
+} from "@/lib/dateValues";
 import { MediaTagPicker } from "@/components/media";
-import { resolveMediaTag, suggestTemporalTag } from "@/lib/mediaTagMigration";
-import { TAG_TO_MEDIA_TYPE } from "@/lib/operativeMedia";
+import {
+  resolveMediaTag,
+  suggestDefaultMediaTag,
+} from "@/lib/mediaTagMigration";
 import type { MediaTag } from "@/types/media";
 import type { OperativeMediaType } from "@/types/case";
+import {
+  buildOperativeMediaItemRecord,
+  isPersistedMediaUriValue,
+  resolveOperativeMediaSavePlan,
+} from "@/lib/operativeMediaForm";
 
 type AddOperativeMediaRouteProp = RouteProp<
   RootStackParamList,
@@ -62,10 +73,8 @@ export default function AddOperativeMediaScreen() {
     existingTag,
     existingCaption,
     existingTimestamp,
-    specialty,
-    procedureTags,
-    hasSkinCancerAssessment,
-    procedureDate,
+    existingCreatedAt,
+    mediaContext,
   } = route.params;
 
   // Resolve initial tag from existingTag or legacy existingMediaType
@@ -75,7 +84,9 @@ export default function AddOperativeMediaScreen() {
       ? resolveMediaTag({
           mediaType: existingMediaType as OperativeMediaType,
         })
-      : suggestTemporalTag(procedureDate);
+      : suggestDefaultMediaTag({
+          procedureDate: mediaContext?.procedureDate,
+        });
 
   const [selectedTag, setSelectedTag] = useState<MediaTag>(initialTag);
   const [captionInput, setCaptionInput] = useState(existingCaption || "");
@@ -160,17 +171,23 @@ export default function AddOperativeMediaScreen() {
     setSaving(true);
 
     try {
+      const savePlan = resolveOperativeMediaSavePlan({
+        editMode,
+        originalUri: imageUri,
+        currentUri,
+      });
+
       let finalUri = currentUri;
       let finalMimeType = currentMimeType;
-      if (editMode && isEncryptedMediaUri(currentUri)) {
-        finalUri = currentUri;
-      } else {
+      let savedReplacementUri: string | undefined;
+      if (!savePlan.reuseExistingUri) {
         const savedMedia = await saveEncryptedMediaFromUri(
           currentUri,
           currentMimeType,
         );
         finalUri = savedMedia.localUri;
         finalMimeType = savedMedia.mimeType;
+        savedReplacementUri = savedMedia.localUri;
       }
 
       // Build timestamp from selected date
@@ -178,24 +195,36 @@ export default function AddOperativeMediaScreen() {
       const timestamp =
         mediaDate === today
           ? new Date().toISOString()
-          : new Date(mediaDate + "T12:00:00").toISOString();
+          : (toUtcNoonIsoTimestamp(mediaDate) ?? new Date().toISOString());
 
-      const mediaData = {
+      const mediaData = buildOperativeMediaItemRecord({
         id: editMode && existingMediaId ? existingMediaId : uuidv4(),
         localUri: finalUri,
         mimeType: finalMimeType,
         tag: selectedTag,
-        mediaType: TAG_TO_MEDIA_TYPE[selectedTag],
-        caption: captionInput.trim() || undefined,
+        caption: captionInput,
         timestamp,
-        createdAt: editMode
-          ? existingTimestamp || new Date().toISOString()
-          : new Date().toISOString(),
-      };
+        createdAt:
+          editMode && existingCreatedAt
+            ? existingCreatedAt
+            : new Date().toISOString(),
+      });
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      if (callbackId) {
-        executeGenericCallback(callbackId, mediaData);
+      const committed = callbackId
+        ? executeGenericCallback(callbackId, mediaData)
+        : true;
+      if (!committed) {
+        if (savedReplacementUri) {
+          await deleteEncryptedMedia(savedReplacementUri);
+        }
+        setSaving(false);
+        Alert.alert("Error", "Failed to save media changes. Please try again.");
+        return;
+      }
+
+      if (committed && savePlan.uriToDeleteAfterCommit) {
+        await deleteEncryptedMedia(savePlan.uriToDeleteAfterCommit);
       }
       navigation.goBack();
     } catch (error: any) {
@@ -255,7 +284,7 @@ export default function AddOperativeMediaScreen() {
               { backgroundColor: theme.backgroundRoot },
             ]}
           >
-            {isEncryptedMediaUri(currentUri) ? (
+            {isPersistedMediaUriValue(currentUri) ? (
               <EncryptedImage
                 uri={currentUri}
                 style={styles.previewImage}
@@ -296,9 +325,9 @@ export default function AddOperativeMediaScreen() {
           <MediaTagPicker
             selectedTag={selectedTag}
             onSelectTag={setSelectedTag}
-            specialty={specialty}
-            procedureTags={procedureTags}
-            hasSkinCancerAssessment={hasSkinCancerAssessment}
+            specialty={mediaContext?.specialty}
+            procedureTags={mediaContext?.procedureTags}
+            hasSkinCancerAssessment={mediaContext?.hasSkinCancerAssessment}
           />
 
           <DatePickerField

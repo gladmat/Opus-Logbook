@@ -78,8 +78,11 @@ export async function getImageBytesFromUri(
   width: number;
   height: number;
 }> {
-  const { format, mimeType: normalizedMime, compress } =
-    getSaveFormat(mimeType);
+  const {
+    format,
+    mimeType: normalizedMime,
+    compress,
+  } = getSaveFormat(mimeType);
 
   const context = ImageManipulator.manipulate(sourceUri);
   const image = await context.renderAsync();

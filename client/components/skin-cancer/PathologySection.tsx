@@ -16,13 +16,7 @@
  */
 
 import React, { useState, useRef, useCallback, useMemo } from "react";
-import {
-  View,
-  Pressable,
-  TextInput,
-  Switch,
-  StyleSheet,
-} from "react-native";
+import { View, Pressable, TextInput, Switch, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Feather } from "@/components/FeatherIcon";
 import { ThemedText } from "@/components/ThemedText";
@@ -139,11 +133,7 @@ const MARGIN_STATUS_OPTIONS: {
   { value: "unknown", label: "Unknown" },
 ];
 
-const MOHS_RECOMMENDED: Set<string> = new Set([
-  "mac",
-  "dfsp",
-  "empd",
-]);
+const MOHS_RECOMMENDED: Set<string> = new Set(["mac", "dfsp", "empd"]);
 
 const BCC_AGGRESSIVE: Set<BCCSubtype> = new Set([
   "infiltrative",
@@ -160,7 +150,9 @@ interface PathologySectionProps {
   pathwayStage: SkinCancerPathwayStage;
   /** Pathway A: clinical suspicion (excision biopsy) */
   clinicalSuspicion?: SkinCancerPathologyCategory;
-  onClinicalSuspicionChange: (v: SkinCancerPathologyCategory | undefined) => void;
+  onClinicalSuspicionChange: (
+    v: SkinCancerPathologyCategory | undefined,
+  ) => void;
   /** Pathway B/C: prior histology */
   priorHistology?: SkinCancerHistology;
   onPriorHistologyChange: (h: SkinCancerHistology) => void;
@@ -238,12 +230,14 @@ export function PathologySection({
           clinicalSuspicion === value ? undefined : value,
         );
       } else {
-        const newCategory = base.pathologyCategory === value ? undefined : value;
+        const newCategory =
+          base.pathologyCategory === value ? undefined : value;
         // Clear category-specific fields, keep common
         onPriorHistologyChange({
           source: base.source,
           pathologyCategory:
-            newCategory ?? (undefined as unknown as SkinCancerPathologyCategory),
+            newCategory ??
+            (undefined as unknown as SkinCancerPathologyCategory),
           marginStatus: base.marginStatus,
           excisionMethod: base.excisionMethod,
           deepMarginMm: base.deepMarginMm,
@@ -297,7 +291,12 @@ export function PathologySection({
     )
       return undefined;
     return quickTStage(base.melanomaBreslowMm, base.melanomaUlceration);
-  }, [isPathwayA, base.pathologyCategory, base.melanomaBreslowMm, base.melanomaUlceration]);
+  }, [
+    isPathwayA,
+    base.pathologyCategory,
+    base.melanomaBreslowMm,
+    base.melanomaUlceration,
+  ]);
 
   // ── Show Tier 2 ──
   const showTier2 = !isPathwayA && !!activeCategory;
@@ -423,161 +422,171 @@ export function PathologySection({
           </View>
 
           {/* ── Margin Fields — hidden when Mohs selected ── */}
-          {base.excisionMethod !== "mohs" ? <View style={styles.section}>
-            {/* Margin recommendation */}
-            {marginRec ? (
-              <View
-                style={[
-                  styles.marginRecBanner,
-                  {
-                    backgroundColor: theme.info + "10",
-                    borderLeftColor: theme.info,
-                  },
-                ]}
-              >
-                <ThemedText
-                  style={[styles.marginRecTitle, { color: theme.info }]}
+          {base.excisionMethod !== "mohs" ? (
+            <View style={styles.section}>
+              {/* Margin recommendation */}
+              {marginRec ? (
+                <View
+                  style={[
+                    styles.marginRecBanner,
+                    {
+                      backgroundColor: theme.info + "10",
+                      borderLeftColor: theme.info,
+                    },
+                  ]}
                 >
-                  Recommended:{" "}
-                  {marginRec.recommendedText}{" "}
-                  ({marginRec.guidelineSource})
-                </ThemedText>
-                {marginRec.guidelineNote ? (
                   <ThemedText
-                    style={[styles.marginRecNote, { color: theme.textSecondary }]}
+                    style={[styles.marginRecTitle, { color: theme.info }]}
                   >
-                    {marginRec.guidelineNote}
+                    Recommended: {marginRec.recommendedText} (
+                    {marginRec.guidelineSource})
                   </ThemedText>
-                ) : null}
-              </View>
-            ) : null}
-
-            <View style={styles.marginInputRow}>
-              <View style={styles.marginInputGroup}>
-                <ThemedText
-                  style={[styles.sectionLabel, { color: theme.textSecondary }]}
-                >
-                  DEEP MARGIN
-                </ThemedText>
-                <View style={styles.inputWithUnit}>
-                  <SkinCancerNumericInput
-                    style={[
-                      styles.numericInput,
-                      {
-                        backgroundColor: theme.backgroundElevated,
-                        borderColor: theme.border,
-                        color: theme.text,
-                      },
-                    ]}
-                    value={base.deepMarginMm}
-                    onValueChange={(deepMarginMm) => update({ deepMarginMm })}
-                    placeholder="—"
-                    placeholderTextColor={theme.textTertiary}
-                    keyboardType="decimal-pad"
-                    returnKeyType="next"
-                    blurOnSubmit={false}
-                    onSubmitEditing={() =>
-                      peripheralMarginRef.current?.focus()
-                    }
-                  />
-                  <ThemedText
-                    style={[styles.unitText, { color: theme.textSecondary }]}
-                  >
-                    mm
-                  </ThemedText>
-                </View>
-              </View>
-              <View style={styles.marginInputGroup}>
-                <ThemedText
-                  style={[styles.sectionLabel, { color: theme.textSecondary }]}
-                >
-                  PERIPHERAL MARGIN
-                </ThemedText>
-                <View style={styles.inputWithUnit}>
-                  <SkinCancerNumericInput
-                    ref={peripheralMarginRef}
-                    style={[
-                      styles.numericInput,
-                      {
-                        backgroundColor: theme.backgroundElevated,
-                        borderColor: theme.border,
-                        color: theme.text,
-                      },
-                    ]}
-                    value={base.peripheralMarginMm}
-                    onValueChange={(peripheralMarginMm) =>
-                      update({ peripheralMarginMm })
-                    }
-                    placeholder="—"
-                    placeholderTextColor={theme.textTertiary}
-                    keyboardType="decimal-pad"
-                    returnKeyType="done"
-                    blurOnSubmit
-                  />
-                  <ThemedText
-                    style={[styles.unitText, { color: theme.textSecondary }]}
-                  >
-                    mm
-                  </ThemedText>
-                </View>
-              </View>
-            </View>
-
-            <ThemedText
-              style={[styles.sectionLabel, { color: theme.textSecondary }]}
-            >
-              MARGIN STATUS
-            </ThemedText>
-            <View style={styles.chipRow}>
-              {MARGIN_STATUS_OPTIONS.map((opt) => {
-                const isSelected = base.marginStatus === opt.value;
-                return (
-                  <Pressable
-                    key={opt.value}
-                    style={[
-                      styles.chip,
-                      {
-                        backgroundColor: isSelected
-                          ? theme.link
-                          : theme.backgroundTertiary,
-                        borderColor: isSelected ? theme.link : theme.border,
-                      },
-                    ]}
-                    onPress={() => {
-                      if (
-                        opt.value === "incomplete" ||
-                        opt.value === "close"
-                      ) {
-                        Haptics.notificationAsync(
-                          Haptics.NotificationFeedbackType.Warning,
-                        );
-                      } else {
-                        Haptics.impactAsync(
-                          Haptics.ImpactFeedbackStyle.Light,
-                        );
-                      }
-                      update({ marginStatus: opt.value });
-                    }}
-                  >
+                  {marginRec.guidelineNote ? (
                     <ThemedText
                       style={[
-                        styles.chipText,
-                        { color: isSelected ? theme.buttonText : theme.text },
+                        styles.marginRecNote,
+                        { color: theme.textSecondary },
                       ]}
                     >
-                      {opt.label}
+                      {marginRec.guidelineNote}
                     </ThemedText>
-                  </Pressable>
-                );
-              })}
-            </View>
+                  ) : null}
+                </View>
+              ) : null}
 
-            {/* Re-excision prompt for incomplete/close margins */}
-            {(base.marginStatus === "incomplete" ||
-              base.marginStatus === "close") && (
-              <ReExcisionPromptCard onCreateFollowUp={onCreateFollowUp} />
-            )}
-          </View> : null}
+              <View style={styles.marginInputRow}>
+                <View style={styles.marginInputGroup}>
+                  <ThemedText
+                    style={[
+                      styles.sectionLabel,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
+                    DEEP MARGIN
+                  </ThemedText>
+                  <View style={styles.inputWithUnit}>
+                    <SkinCancerNumericInput
+                      style={[
+                        styles.numericInput,
+                        {
+                          backgroundColor: theme.backgroundElevated,
+                          borderColor: theme.border,
+                          color: theme.text,
+                        },
+                      ]}
+                      value={base.deepMarginMm}
+                      onValueChange={(deepMarginMm) => update({ deepMarginMm })}
+                      placeholder="—"
+                      placeholderTextColor={theme.textTertiary}
+                      keyboardType="decimal-pad"
+                      returnKeyType="next"
+                      blurOnSubmit={false}
+                      onSubmitEditing={() =>
+                        peripheralMarginRef.current?.focus()
+                      }
+                    />
+                    <ThemedText
+                      style={[styles.unitText, { color: theme.textSecondary }]}
+                    >
+                      mm
+                    </ThemedText>
+                  </View>
+                </View>
+                <View style={styles.marginInputGroup}>
+                  <ThemedText
+                    style={[
+                      styles.sectionLabel,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
+                    PERIPHERAL MARGIN
+                  </ThemedText>
+                  <View style={styles.inputWithUnit}>
+                    <SkinCancerNumericInput
+                      ref={peripheralMarginRef}
+                      style={[
+                        styles.numericInput,
+                        {
+                          backgroundColor: theme.backgroundElevated,
+                          borderColor: theme.border,
+                          color: theme.text,
+                        },
+                      ]}
+                      value={base.peripheralMarginMm}
+                      onValueChange={(peripheralMarginMm) =>
+                        update({ peripheralMarginMm })
+                      }
+                      placeholder="—"
+                      placeholderTextColor={theme.textTertiary}
+                      keyboardType="decimal-pad"
+                      returnKeyType="done"
+                      blurOnSubmit
+                    />
+                    <ThemedText
+                      style={[styles.unitText, { color: theme.textSecondary }]}
+                    >
+                      mm
+                    </ThemedText>
+                  </View>
+                </View>
+              </View>
+
+              <ThemedText
+                style={[styles.sectionLabel, { color: theme.textSecondary }]}
+              >
+                MARGIN STATUS
+              </ThemedText>
+              <View style={styles.chipRow}>
+                {MARGIN_STATUS_OPTIONS.map((opt) => {
+                  const isSelected = base.marginStatus === opt.value;
+                  return (
+                    <Pressable
+                      key={opt.value}
+                      style={[
+                        styles.chip,
+                        {
+                          backgroundColor: isSelected
+                            ? theme.link
+                            : theme.backgroundTertiary,
+                          borderColor: isSelected ? theme.link : theme.border,
+                        },
+                      ]}
+                      onPress={() => {
+                        if (
+                          opt.value === "incomplete" ||
+                          opt.value === "close"
+                        ) {
+                          Haptics.notificationAsync(
+                            Haptics.NotificationFeedbackType.Warning,
+                          );
+                        } else {
+                          Haptics.impactAsync(
+                            Haptics.ImpactFeedbackStyle.Light,
+                          );
+                        }
+                        update({ marginStatus: opt.value });
+                      }}
+                    >
+                      <ThemedText
+                        style={[
+                          styles.chipText,
+                          { color: isSelected ? theme.buttonText : theme.text },
+                        ]}
+                      >
+                        {opt.label}
+                      </ThemedText>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {/* Re-excision prompt for incomplete/close margins */}
+              {(base.marginStatus === "incomplete" ||
+                base.marginStatus === "close") && (
+                <ReExcisionPromptCard onCreateFollowUp={onCreateFollowUp} />
+              )}
+            </View>
+          ) : null}
         </>
       ) : null}
     </View>
@@ -597,9 +606,7 @@ interface FieldProps {
 function BCCFields({ histology, update, theme }: FieldProps) {
   return (
     <View style={styles.section}>
-      <ThemedText
-        style={[styles.sectionLabel, { color: theme.textSecondary }]}
-      >
+      <ThemedText style={[styles.sectionLabel, { color: theme.textSecondary }]}>
         BCC SUBTYPE
       </ThemedText>
       <View style={styles.chipRow}>
@@ -714,9 +721,7 @@ function SCCFields({ histology, update, theme }: FieldProps) {
             keyboardType="decimal-pad"
             returnKeyType="done"
           />
-          <ThemedText
-            style={[styles.unitText, { color: theme.textSecondary }]}
-          >
+          <ThemedText style={[styles.unitText, { color: theme.textSecondary }]}>
             mm
           </ThemedText>
         </View>
@@ -821,17 +826,13 @@ function MelanomaFields({
               },
             ]}
             value={histology.melanomaBreslowMm}
-            onValueChange={(melanomaBreslowMm) =>
-              update({ melanomaBreslowMm })
-            }
+            onValueChange={(melanomaBreslowMm) => update({ melanomaBreslowMm })}
             placeholder="—"
             placeholderTextColor={theme.textTertiary}
             keyboardType="decimal-pad"
             returnKeyType="done"
           />
-          <ThemedText
-            style={[styles.unitText, { color: theme.textSecondary }]}
-          >
+          <ThemedText style={[styles.unitText, { color: theme.textSecondary }]}>
             mm
           </ThemedText>
         </View>
@@ -904,10 +905,7 @@ function MelanomaFields({
       {/* More details disclosure */}
       <Pressable
         onPress={onToggleExtras}
-        style={[
-          styles.disclosureHeader,
-          { borderBottomColor: theme.border },
-        ]}
+        style={[styles.disclosureHeader, { borderBottomColor: theme.border }]}
       >
         <ThemedText style={[styles.disclosureText, { color: theme.link }]}>
           {showExtras ? "Less details" : "More details"}
@@ -1106,9 +1104,7 @@ function MerkelFields({ histology, update, theme }: FieldProps) {
             keyboardType="decimal-pad"
             returnKeyType="done"
           />
-          <ThemedText
-            style={[styles.unitText, { color: theme.textSecondary }]}
-          >
+          <ThemedText style={[styles.unitText, { color: theme.textSecondary }]}>
             mm
           </ThemedText>
         </View>
@@ -1184,9 +1180,7 @@ function MerkelFields({ histology, update, theme }: FieldProps) {
             keyboardType="decimal-pad"
             returnKeyType="done"
           />
-          <ThemedText
-            style={[styles.unitText, { color: theme.textSecondary }]}
-          >
+          <ThemedText style={[styles.unitText, { color: theme.textSecondary }]}>
             mm
           </ThemedText>
         </View>

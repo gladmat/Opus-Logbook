@@ -2,13 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import {
   attachmentsToOperativeMedia,
+  getLegacyCategoryForTag,
   operativeMediaToAttachments,
   TAG_TO_MEDIA_TYPE,
-  TAG_TO_CATEGORY,
 } from "@/lib/operativeMedia";
 import type { MediaAttachment, OperativeMediaItem } from "@/types/case";
 import { MEDIA_TAG_REGISTRY } from "@/types/media";
 import type { MediaTag } from "@/types/media";
+import { resolveMediaTag } from "@/lib/mediaTagMigration";
 
 // ═══════════════════════════════════════════════════════════
 // TAG_TO_MEDIA_TYPE completeness
@@ -76,7 +77,7 @@ describe("operativeMediaToAttachments", () => {
         createdAt: "2026-03-09T00:00:00Z",
         caption: "Pre-fixation",
         tag: "xray_preop",
-        category: "xray",
+        category: "preop_xray",
         thumbnailUri: "encrypted-media:1-thumb",
         timestamp: "2026-03-09T12:00:00Z",
       },
@@ -184,6 +185,22 @@ describe("operativeMediaToAttachments", () => {
       expect(attachments[0]?.tag).toBeDefined();
       expect(attachments[0]?.tag! in MEDIA_TAG_REGISTRY).toBe(true);
     }
+  });
+
+  it("derives legacy category from the specific tag when present", () => {
+    const media: OperativeMediaItem[] = [
+      {
+        id: "precise",
+        localUri: "opus-media:precise",
+        mimeType: "image/jpeg",
+        mediaType: "intraoperative_photo",
+        createdAt: "2026-03-09T00:00:00Z",
+        tag: "flap_harvest",
+      },
+    ];
+
+    const attachments = operativeMediaToAttachments(media);
+    expect(attachments[0]?.category).toBe("flap_harvest");
   });
 });
 
@@ -356,5 +373,27 @@ describe("roundtrip mapping", () => {
       operativeMediaToAttachments([]),
     );
     expect(roundtripped).toEqual([]);
+  });
+});
+
+describe("resolved display tag behaviour", () => {
+  it("prefers the specific tag label over the coarse legacy media type", () => {
+    const item: OperativeMediaItem = {
+      id: "media-display",
+      localUri: "opus-media:display",
+      mimeType: "image/jpeg",
+      mediaType: "intraoperative_photo",
+      createdAt: "2026-03-09T00:00:00Z",
+      tag: "flap_perfusion",
+    };
+
+    const resolved = resolveMediaTag(item);
+    expect(resolved).toBe("flap_perfusion");
+    expect(MEDIA_TAG_REGISTRY[resolved].label).toBe("Perfusion check");
+  });
+
+  it("returns the expected legacy category for a tag when available", () => {
+    expect(getLegacyCategoryForTag("xray_preop")).toBe("preop_xray");
+    expect(getLegacyCategoryForTag("flap_perfusion")).toBeUndefined();
   });
 });

@@ -11,13 +11,7 @@
  */
 
 import React, { useCallback, useEffect, useRef } from "react";
-import {
-  View,
-  Pressable,
-  TextInput,
-  StyleSheet,
-  Alert,
-} from "react-native";
+import { View, Pressable, TextInput, StyleSheet, Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import { v4 as uuidv4 } from "uuid";
@@ -200,7 +194,13 @@ export function LesionDetailsSection({
       console.error("Error capturing lesion photo:", error);
       Alert.alert("Error", "Failed to capture photo.");
     }
-  }, [assessment, onChange, onPhotoAdded, cameraPermission, requestCameraPermission]);
+  }, [
+    assessment,
+    onChange,
+    onPhotoAdded,
+    cameraPermission,
+    requestCameraPermission,
+  ]);
 
   const pickFromGallery = useCallback(async () => {
     try {
@@ -429,10 +429,7 @@ export function LesionDetailsSection({
             onSubmitEditing={() => widthInputRef.current?.focus()}
           />
           <ThemedText
-            style={[
-              styles.dimensionSeparator,
-              { color: theme.textSecondary },
-            ]}
+            style={[styles.dimensionSeparator, { color: theme.textSecondary }]}
           >
             ×
           </ThemedText>

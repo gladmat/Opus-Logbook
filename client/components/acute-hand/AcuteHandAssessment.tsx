@@ -19,7 +19,7 @@
  *     └ AcuteHandSummaryPanel (accept-mapping flow)
  */
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback } from "react";
 import { View, Pressable, LayoutAnimation, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
@@ -107,13 +107,10 @@ export function AcuteHandAssessment({
     [collapsedSections],
   );
 
-  const setSectionCollapsed = useCallback(
-    (key: string, collapsed: boolean) => {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      setCollapsedSections((prev) => ({ ...prev, [key]: collapsed }));
-    },
-    [],
-  );
+  const setSectionCollapsed = useCallback((key: string, collapsed: boolean) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setCollapsedSections((prev) => ({ ...prev, [key]: collapsed }));
+  }, []);
 
   const isInfection = selectedDiagnosis
     ? isHandInfectionDiagnosis(selectedDiagnosis.id)
@@ -193,12 +190,12 @@ export function AcuteHandAssessment({
         collapsible
         isCollapsed={isSectionCollapsed("diagnosis")}
         onCollapsedChange={(v) => setSectionCollapsed("diagnosis", v)}
-        subtitle={selectedDiagnosis?.shortName ?? selectedDiagnosis?.displayName}
+        subtitle={
+          selectedDiagnosis?.shortName ?? selectedDiagnosis?.displayName
+        }
       >
         {/* Infection group */}
-        <ThemedText
-          style={[styles.groupLabel, { color: theme.textSecondary }]}
-        >
+        <ThemedText style={[styles.groupLabel, { color: theme.textSecondary }]}>
           HAND INFECTIONS
         </ThemedText>
         <View style={styles.chipGrid}>
@@ -276,10 +273,7 @@ export function AcuteHandAssessment({
 
         {/* SNOMED fallback */}
         <Pressable
-          style={[
-            styles.snomedFallbackRow,
-            { borderTopColor: theme.border },
-          ]}
+          style={[styles.snomedFallbackRow, { borderTopColor: theme.border }]}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             LayoutAnimation.configureNext(
@@ -293,7 +287,9 @@ export function AcuteHandAssessment({
             size={14}
             color={theme.link}
           />
-          <ThemedText style={[styles.snomedFallbackText, { color: theme.link }]}>
+          <ThemedText
+            style={[styles.snomedFallbackText, { color: theme.link }]}
+          >
             {showSnomedFallback
               ? "Hide diagnosis search"
               : "Search all diagnoses"}

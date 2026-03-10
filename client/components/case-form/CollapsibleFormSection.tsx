@@ -125,10 +125,7 @@ export const CollapsibleFormSection = React.memo(
         </Pressable>
 
         {!isMeasured && !expanded ? (
-          <View
-            pointerEvents="none"
-            style={styles.hiddenMeasurementContainer}
-          >
+          <View pointerEvents="none" style={styles.hiddenMeasurementContainer}>
             <View onLayout={handleLayout}>{children}</View>
           </View>
         ) : null}

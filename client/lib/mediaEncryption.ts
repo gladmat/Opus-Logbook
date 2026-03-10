@@ -83,10 +83,7 @@ export function decryptMediaBytes(
  * Returns: nonce(12) || wrappedDEK || tag(16)
  * The wrapped output is small (~60 bytes) — fast even in pure JS.
  */
-export function wrapDEK(
-  dek: Uint8Array,
-  masterKey: Uint8Array,
-): Uint8Array {
+export function wrapDEK(dek: Uint8Array, masterKey: Uint8Array): Uint8Array {
   const nonce = Crypto.getRandomBytes(GCM_NONCE_LENGTH);
   const cipher = gcm(masterKey, nonce);
   const ct = cipher.encrypt(dek);

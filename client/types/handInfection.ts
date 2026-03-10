@@ -229,9 +229,7 @@ export function generateHandInfectionSummary(
 
   if (details.affectedDigits.length > 0) {
     if (details.affectedDigits.length <= 2) {
-      parts.push(
-        details.affectedDigits.map((d) => DIGIT_LABELS[d]).join(", "),
-      );
+      parts.push(details.affectedDigits.map((d) => DIGIT_LABELS[d]).join(", "));
     } else {
       parts.push(`${details.affectedDigits.length} digits`);
     }
@@ -340,11 +338,7 @@ export const DIAGNOSIS_TO_EMPIRICAL_ANTIBIOTICS: Record<
     "co_amoxiclav",
     "piperacillin_tazobactam",
   ],
-  hand_dx_septic_arthritis_hand: [
-    "cefazolin",
-    "flucloxacillin",
-    "vancomycin",
-  ],
+  hand_dx_septic_arthritis_hand: ["cefazolin", "flucloxacillin", "vancomycin"],
   hand_dx_osteomyelitis_hand: [
     "cefazolin",
     "flucloxacillin",
@@ -362,15 +356,8 @@ export const DIAGNOSIS_TO_EMPIRICAL_ANTIBIOTICS: Record<
     "cefazolin_metronidazole",
     "ciprofloxacin_metronidazole",
   ],
-  hand_dx_animal_bite_hand: [
-    "co_amoxiclav",
-    "ciprofloxacin_metronidazole",
-  ],
-  hand_dx_post_op_infection_hand: [
-    "cefazolin",
-    "flucloxacillin",
-    "vancomycin",
-  ],
+  hand_dx_animal_bite_hand: ["co_amoxiclav", "ciprofloxacin_metronidazole"],
+  hand_dx_post_op_infection_hand: ["cefazolin", "flucloxacillin", "vancomycin"],
 };
 
 /**

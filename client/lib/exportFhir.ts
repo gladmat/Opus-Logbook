@@ -402,7 +402,7 @@ function buildDevice(proc: CaseProcedure): FhirResource | undefined {
   if (implant.catalogueNumber) {
     device.modelNumber = implant.catalogueNumber;
   }
-  const properties: Array<Record<string, unknown>> = [];
+  const properties: Record<string, unknown>[] = [];
   if (implant.jointType) {
     properties.push({
       type: { text: "jointType" },

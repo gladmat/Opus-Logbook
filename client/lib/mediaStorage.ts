@@ -67,26 +67,6 @@ async function generateThumbnailBase64(
   }
 }
 
-function getSaveFormat(mimeType: string): {
-  format: SaveFormat;
-  mimeType: string;
-  compress: number;
-} {
-  if (mimeType.toLowerCase().includes("png")) {
-    return {
-      format: SaveFormat.PNG,
-      mimeType: "image/png",
-      compress: 1,
-    };
-  }
-
-  return {
-    format: SaveFormat.JPEG,
-    mimeType: "image/jpeg",
-    compress: 0.72,
-  };
-}
-
 export async function saveEncryptedMediaFromUri(
   sourceUri: string,
   mimeType: string = "image/jpeg",
@@ -274,9 +254,7 @@ export async function deleteMultipleEncryptedMedia(
   uris: string[],
 ): Promise<void> {
   // v2
-  const v2Ids = uris
-    .filter(isOpusMediaUri)
-    .map(opusMediaIdFromUri);
+  const v2Ids = uris.filter(isOpusMediaUri).map(opusMediaIdFromUri);
   if (v2Ids.length > 0) {
     deleteMultipleMediaV2(v2Ids);
   }

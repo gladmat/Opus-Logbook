@@ -1,7 +1,11 @@
 import type { MediaTag } from "@/types/media";
-import type { MediaCategory, OperativeMediaType } from "@/types/case";
+import type {
+  MediaCategory,
+  OperativeMediaType,
+  TimelineEventType,
+} from "@/types/case";
 import { MEDIA_TAG_REGISTRY } from "@/types/media";
-import { parseDateOnlyValue } from "@/lib/dateValues";
+import { parseDateOnlyValue, toIsoDateValue } from "@/lib/dateValues";
 
 /**
  * Maps legacy OperativeMediaType to the new MediaTag.
@@ -83,15 +87,45 @@ export function resolveMediaTag(item: {
  * - 271–450 days (~9–15 months) → "followup_12m"
  * - >450 days → "followup_late"
  */
-export function suggestTemporalTag(procedureDate?: string): MediaTag {
+function resolveReferenceDate(referenceDate?: string | Date): Date {
+  if (referenceDate instanceof Date) {
+    return new Date(
+      referenceDate.getFullYear(),
+      referenceDate.getMonth(),
+      referenceDate.getDate(),
+      12,
+      0,
+      0,
+      0,
+    );
+  }
+
+  const parsed = parseDateOnlyValue(referenceDate);
+  if (parsed) return parsed;
+
+  const now = new Date();
+  return new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    12,
+    0,
+    0,
+    0,
+  );
+}
+
+export function suggestTemporalTag(
+  procedureDate?: string,
+  referenceDate?: string | Date,
+): MediaTag {
   if (!procedureDate) return "preop_clinical";
 
   const procDate = parseDateOnlyValue(procedureDate);
   if (!procDate) return "preop_clinical";
 
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0);
-  const diffMs = today.getTime() - procDate.getTime();
+  const effectiveDate = resolveReferenceDate(referenceDate);
+  const diffMs = effectiveDate.getTime() - procDate.getTime();
   const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
 
   if (diffDays < 0) return "preop_clinical";
@@ -102,4 +136,33 @@ export function suggestTemporalTag(procedureDate?: string): MediaTag {
   if (diffDays <= 270) return "followup_6m";
   if (diffDays <= 450) return "followup_12m";
   return "followup_late";
+}
+
+export function suggestDefaultMediaTag(args: {
+  eventType?: TimelineEventType;
+  procedureDate?: string;
+  mediaDate?: string | Date;
+}): MediaTag {
+  switch (args.eventType) {
+    case "discharge_photo":
+      return "discharge";
+    case "imaging":
+      return "xray_followup";
+    case "photo":
+    case "follow_up_visit":
+    case undefined:
+      return suggestTemporalTag(
+        args.procedureDate,
+        args.mediaDate instanceof Date
+          ? toIsoDateValue(args.mediaDate)
+          : args.mediaDate,
+      );
+    default:
+      return suggestTemporalTag(
+        args.procedureDate,
+        args.mediaDate instanceof Date
+          ? toIsoDateValue(args.mediaDate)
+          : args.mediaDate,
+      );
+  }
 }

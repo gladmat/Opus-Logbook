@@ -5,9 +5,18 @@ import {
   migrateMediaCategory,
   resolveMediaTag,
   suggestTemporalTag,
+  suggestDefaultMediaTag,
 } from "@/lib/mediaTagMigration";
-import { MEDIA_TAG_REGISTRY, getRelevantGroups } from "@/types/media";
-import type { MediaCategory, OperativeMediaType } from "@/types/case";
+import {
+  MEDIA_TAG_REGISTRY,
+  getPreferredMediaTagGroup,
+  getRelevantGroups,
+} from "@/types/media";
+import type {
+  MediaCategory,
+  OperativeMediaType,
+  TimelineEventType,
+} from "@/types/case";
 import type { MediaTag, MediaTagGroup } from "@/types/media";
 
 // ═══════════════════════════════════════════════════════════
@@ -487,8 +496,14 @@ describe("suggestTemporalTag", () => {
     expect(suggestTemporalTag(daysAgo(730))).toBe("followup_late");
   });
 
+  it("uses the provided reference date instead of today", () => {
+    expect(suggestTemporalTag("2026-01-01", "2026-04-15")).toBe("followup_3m");
+  });
+
   it("all returned tags are valid MediaTags in the registry", () => {
-    const testDays = [0, 1, 7, 8, 42, 43, 90, 135, 136, 270, 271, 365, 450, 451, 730];
+    const testDays = [
+      0, 1, 7, 8, 42, 43, 90, 135, 136, 270, 271, 365, 450, 451, 730,
+    ];
     for (const d of testDays) {
       const tag = suggestTemporalTag(daysAgo(d));
       expect(
@@ -496,5 +511,79 @@ describe("suggestTemporalTag", () => {
         `suggestTemporalTag(${d} days ago) returned invalid tag: ${tag}`,
       ).toBe(true);
     }
+  });
+});
+
+describe("suggestDefaultMediaTag", () => {
+  it('defaults discharge_photo to "discharge"', () => {
+    expect(
+      suggestDefaultMediaTag({
+        eventType: "discharge_photo",
+        procedureDate: "2026-01-01",
+        mediaDate: "2026-01-05",
+      }),
+    ).toBe("discharge");
+  });
+
+  it('defaults imaging to "xray_followup"', () => {
+    expect(
+      suggestDefaultMediaTag({
+        eventType: "imaging",
+        procedureDate: "2026-01-01",
+        mediaDate: "2026-01-05",
+      }),
+    ).toBe("xray_followup");
+  });
+
+  it("uses temporal suggestion for follow_up_visit", () => {
+    expect(
+      suggestDefaultMediaTag({
+        eventType: "follow_up_visit",
+        procedureDate: "2026-01-01",
+        mediaDate: "2026-04-15",
+      }),
+    ).toBe("followup_3m");
+  });
+
+  it("uses temporal suggestion for generic photo events", () => {
+    expect(
+      suggestDefaultMediaTag({
+        eventType: "photo",
+        procedureDate: "2026-01-01",
+        mediaDate: "2026-01-01",
+      }),
+    ).toBe("intraop");
+  });
+
+  it("falls back to temporal suggestion when event type is unrelated", () => {
+    expect(
+      suggestDefaultMediaTag({
+        eventType: "complication" as TimelineEventType,
+        procedureDate: "2026-01-01",
+        mediaDate: "2026-01-15",
+      }),
+    ).toBe("postop_mid");
+  });
+});
+
+describe("getPreferredMediaTagGroup", () => {
+  it("prefers the selected tag group when available", () => {
+    expect(
+      getPreferredMediaTagGroup("flap_harvest", [
+        "temporal",
+        "flap_surgery",
+        "other",
+      ]),
+    ).toBe("flap_surgery");
+  });
+
+  it("falls back to the first allowed group when the selected tag group is hidden", () => {
+    expect(
+      getPreferredMediaTagGroup("flap_harvest", ["temporal", "other"]),
+    ).toBe("temporal");
+  });
+
+  it('falls back to "temporal" when no groups are provided', () => {
+    expect(getPreferredMediaTagGroup(undefined, [])).toBe("temporal");
   });
 });

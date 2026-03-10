@@ -17,11 +17,10 @@ import type { OperativeMediaItem } from "@/types/case";
 import type { MediaTag } from "@/types/media";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useMediaCallback } from "@/contexts/MediaCallbackContext";
-import {
-  operativeMediaToAttachments,
-} from "@/lib/operativeMedia";
+import { operativeMediaToAttachments } from "@/lib/operativeMedia";
 import { deleteEncryptedMedia } from "@/lib/mediaStorage";
 import { resolveMediaTag } from "@/lib/mediaTagMigration";
+import type { MediaContext } from "@/lib/mediaContext";
 
 // ═══════════════════════════════════════════════════════════
 // Props
@@ -32,9 +31,7 @@ interface GuidedCaptureFlowProps {
   existingMedia: OperativeMediaItem[];
   onMediaChange: (media: OperativeMediaItem[]) => void;
   maxItems?: number;
-  specialty?: string;
-  procedureTags?: string[];
-  hasSkinCancerAssessment?: boolean;
+  mediaContext?: MediaContext;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -46,9 +43,7 @@ function GuidedCaptureFlowInner({
   existingMedia,
   onMediaChange,
   maxItems = 15,
-  specialty,
-  procedureTags,
-  hasSkinCancerAssessment,
+  mediaContext,
 }: GuidedCaptureFlowProps) {
   const { theme } = useTheme();
   const navigation =
@@ -88,7 +83,7 @@ function GuidedCaptureFlowInner({
     [mediaByTag],
   );
 
-  const ensureCameraPermission = async (): Promise<boolean> => {
+  const ensureCameraPermission = useCallback(async (): Promise<boolean> => {
     if (cameraPermission?.granted) return true;
     if (cameraPermission?.canAskAgain !== false) {
       const result = await requestCameraPermission();
@@ -115,7 +110,11 @@ function GuidedCaptureFlowInner({
       ],
     );
     return false;
-  };
+  }, [
+    cameraPermission?.canAskAgain,
+    cameraPermission?.granted,
+    requestCameraPermission,
+  ]);
 
   const handleCapture = useCallback(
     async (tag: MediaTag) => {
@@ -150,9 +149,7 @@ function GuidedCaptureFlowInner({
             mimeType: asset.mimeType || "image/jpeg",
             callbackId,
             existingTag: tag,
-            specialty,
-            procedureTags,
-            hasSkinCancerAssessment,
+            mediaContext,
           });
         }
       } catch (error) {
@@ -166,9 +163,8 @@ function GuidedCaptureFlowInner({
       navigation,
       onMediaChange,
       registerGenericCallback,
-      specialty,
-      procedureTags,
-      hasSkinCancerAssessment,
+      mediaContext,
+      ensureCameraPermission,
     ],
   );
 

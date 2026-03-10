@@ -5,11 +5,7 @@ import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { BorderRadius, Spacing } from "@/constants/theme";
-import type {
-  DigitId,
-  AmputationLevel,
-  DigitAmputation,
-} from "@/types/case";
+import type { DigitId, AmputationLevel, DigitAmputation } from "@/types/case";
 
 export interface AmputationState {
   digitAmputations: DigitAmputation[];
@@ -55,7 +51,10 @@ function SingleAmputationUI({
       onChange(undefined);
       return;
     }
-    onChange({ ...(entry ?? { digit: "D1" as DigitId, type: "complete" }), level });
+    onChange({
+      ...(entry ?? { digit: "D1" as DigitId, type: "complete" }),
+      level,
+    });
   };
 
   return (
@@ -178,9 +177,7 @@ function MultiAmputationUI({
             size={18}
             color={sameForAll ? theme.link : theme.textTertiary}
           />
-          <ThemedText
-            style={[styles.sameForAllText, { color: theme.text }]}
-          >
+          <ThemedText style={[styles.sameForAllText, { color: theme.text }]}>
             Same level for all digits
           </ThemedText>
         </Pressable>
@@ -188,7 +185,8 @@ function MultiAmputationUI({
         {sameForAll ? (
           <View style={styles.pillRow}>
             {AMPUTATION_LEVELS.map(({ key, label }) => {
-              const allSame = value.digitAmputations.length > 0 &&
+              const allSame =
+                value.digitAmputations.length > 0 &&
                 value.digitAmputations.every((e) => e.level === key);
               return (
                 <Pressable
@@ -440,7 +438,9 @@ function ReplantPicker({
           { key: false, label: "Non-replantable", icon: "x-circle" },
         ].map(({ key, label, icon }) => {
           const isSelected = value === key;
-          const pillStyle = small ? styles.smallReplantPill : styles.replantPill;
+          const pillStyle = small
+            ? styles.smallReplantPill
+            : styles.replantPill;
           const textStyle = small ? styles.smallPillText : styles.pillText;
           return (
             <Pressable
@@ -531,7 +531,9 @@ export function AmputationSection({
       <SingleAmputationUI
         entry={entry}
         onChange={(e) => {
-          const next = e ? [{ ...e, digit: singleDigit ?? ("D1" as DigitId) }] : [];
+          const next = e
+            ? [{ ...e, digit: singleDigit ?? ("D1" as DigitId) }]
+            : [];
           onChange({
             ...value,
             digitAmputations: next,

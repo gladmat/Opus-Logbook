@@ -1,4 +1,4 @@
-import { FINGER_NAMES, PHALANX_NAMES } from "@/data/aoHandClassification";
+import { PHALANX_NAMES } from "@/data/aoHandClassification";
 import type {
   CoverageZone,
   CoverageSize,
@@ -141,14 +141,6 @@ const DIGIT_INDEX: Record<DigitId, number> = {
   V: 5,
 };
 
-const DIGIT_WORDS: Record<DigitId, string> = {
-  I: "thumb",
-  II: "index",
-  III: "middle",
-  IV: "ring",
-  V: "little",
-};
-
 const ORDINAL_DIGITS: Record<string, string> = {
   "1": "first",
   "2": "second",
@@ -286,7 +278,10 @@ const LATIN_JOINT_LABELS: Record<JointInjury["joint"], string> = {
   lunate: "lunati",
 };
 
-const DIGITAL_NERVE_LABELS: Record<string, { side: "radial" | "ulnar"; digit: DigitId }> = {
+const DIGITAL_NERVE_LABELS: Record<
+  string,
+  { side: "radial" | "ulnar"; digit: DigitId }
+> = {
   N1: { digit: "I", side: "radial" },
   N2: { digit: "I", side: "ulnar" },
   N3: { digit: "II", side: "radial" },
@@ -299,7 +294,10 @@ const DIGITAL_NERVE_LABELS: Record<string, { side: "radial" | "ulnar"; digit: Di
   N10: { digit: "V", side: "ulnar" },
 };
 
-const DIGITAL_ARTERY_LABELS: Record<string, { side: "radial" | "ulnar"; digit: DigitId }> = {
+const DIGITAL_ARTERY_LABELS: Record<
+  string,
+  { side: "radial" | "ulnar"; digit: DigitId }
+> = {
   A1: { digit: "I", side: "radial" },
   A2: { digit: "I", side: "ulnar" },
   A3: { digit: "II", side: "radial" },
@@ -318,10 +316,7 @@ function sortDigits(digits: readonly DigitId[]): DigitId[] {
   );
 }
 
-function sortByDigit(
-  a: DigitId | undefined,
-  b: DigitId | undefined,
-): number {
+function sortByDigit(a: DigitId | undefined, b: DigitId | undefined): number {
   if (!a && !b) return 0;
   if (!a) return -1;
   if (!b) return 1;
@@ -392,7 +387,9 @@ function mechanismLabel(
   mode: DiagnosisRenderMode = "shorthand_english",
 ): string | undefined {
   const raw =
-    mechanism === "other" ? otherText?.trim() : mechanism && MECHANISM_LABELS[mechanism];
+    mechanism === "other"
+      ? otherText?.trim()
+      : mechanism && MECHANISM_LABELS[mechanism];
   if (!raw) return undefined;
   if (mode !== "latin_medical") return raw;
   if (mechanism === "saw_blade" || raw.toLowerCase().includes("saw")) {
@@ -417,7 +414,9 @@ function fractureDigit(entry: FractureEntry): DigitId | undefined {
   return fractureRay(entry);
 }
 
-function deriveAffectedDigits(selection: HandTraumaDiagnosisSelection): DigitId[] {
+function deriveAffectedDigits(
+  selection: HandTraumaDiagnosisSelection,
+): DigitId[] {
   const digits = new Set<DigitId>(selection.affectedDigits ?? []);
 
   for (const fracture of selection.fractures ?? []) {
@@ -479,7 +478,8 @@ function normalizeFractures(fractures: FractureEntry[] = []): FractureInjury[] {
       isComminuted: fracture.details.isComminuted,
     }))
     .sort((a, b) => {
-      if (a.familyCode !== b.familyCode) return a.familyCode.localeCompare(b.familyCode);
+      if (a.familyCode !== b.familyCode)
+        return a.familyCode.localeCompare(b.familyCode);
       return sortByDigit(a.digit ?? a.ray, b.digit ?? b.ray);
     });
 }
@@ -525,7 +525,10 @@ function normalizeTendons(
 
     const current = map.get(key);
     if (current) {
-      current.structures = [...current.structures, structure.structureId].sort();
+      current.structures = [
+        ...current.structures,
+        structure.structureId,
+      ].sort();
       continue;
     }
 
@@ -540,11 +543,7 @@ function normalizeTendons(
 
   return Array.from(map.values()).sort((a, b) => {
     const categoryOrder =
-      a.category === b.category
-        ? 0
-        : a.category === "flexor_tendon"
-          ? -1
-          : 1;
+      a.category === b.category ? 0 : a.category === "flexor_tendon" ? -1 : 1;
     if (categoryOrder !== 0) return categoryOrder;
     return sortByDigit(a.digit, b.digit);
   });
@@ -554,7 +553,10 @@ function normalizeNerves(
   structures: HandTraumaStructure[] = [],
 ): NerveInjury[] {
   return structures
-    .filter((structure): structure is HandTraumaStructure & { category: "nerve" } => structure.category === "nerve")
+    .filter(
+      (structure): structure is HandTraumaStructure & { category: "nerve" } =>
+        structure.category === "nerve",
+    )
     .map((structure) => ({
       structureId: structure.structureId,
       digit: structure.digit,
@@ -574,7 +576,10 @@ function normalizeVessels(
   structures: HandTraumaStructure[] = [],
 ): VesselInjury[] {
   return structures
-    .filter((structure): structure is HandTraumaStructure & { category: "artery" } => structure.category === "artery")
+    .filter(
+      (structure): structure is HandTraumaStructure & { category: "artery" } =>
+        structure.category === "artery",
+    )
     .map((structure) => ({
       structureId: structure.structureId,
       digit: structure.digit,
@@ -658,7 +663,9 @@ function normalizeSoftTissue(
   if (selection.isRingAvulsion) {
     injuries.push({
       type: "ring_avulsion",
-      digits: selection.affectedDigits ? sortDigits(selection.affectedDigits) : undefined,
+      digits: selection.affectedDigits
+        ? sortDigits(selection.affectedDigits)
+        : undefined,
     });
   }
 
@@ -728,10 +735,7 @@ export function normalizeSelection(
   };
 }
 
-function labelSide(
-  side: "left" | "right",
-  mode: DiagnosisRenderMode,
-): string {
+function labelSide(side: "left" | "right", mode: DiagnosisRenderMode): string {
   if (mode === "latin_medical") {
     return LATIN.side[side];
   }
@@ -754,7 +758,9 @@ function buildTopographicSummary(
   }
 
   const wristLevel =
-    normalized.fractures.some((fracture) => fracture.familyCode !== "77" && !fracture.digit) ||
+    normalized.fractures.some(
+      (fracture) => fracture.familyCode !== "77" && !fracture.digit,
+    ) ||
     normalized.dislocations.some((entry) =>
       ["druj", "perilunate", "lunate"].includes(entry.joint),
     ) ||
@@ -787,7 +793,11 @@ export function buildHeaderLine(
   const amputation = normalized.amputations[0];
 
   if (mode === "latin_medical") {
-    if (amputation && amputation.digits.length === 1 && amputation.digits[0] === "I") {
+    if (
+      amputation &&
+      amputation.digits.length === 1 &&
+      amputation.digits[0] === "I"
+    ) {
       return `Laesio amputationis pollicis ${side}`;
     }
     if (normalized.digits.length === 1 && !mechanism && topographic) {
@@ -799,10 +809,18 @@ export function buildHeaderLine(
     return topographic ? `${base} - ${topographic}` : base;
   }
 
-  if (amputation && amputation.digits.length === 1 && amputation.digits[0] === "I") {
+  if (
+    amputation &&
+    amputation.digits.length === 1 &&
+    amputation.digits[0] === "I"
+  ) {
     return `${side} thumb amputation injury`;
   }
-  if (normalized.digits.length === 1 && !mechanism && topographic?.startsWith("Dig.")) {
+  if (
+    normalized.digits.length === 1 &&
+    !mechanism &&
+    topographic?.startsWith("Dig.")
+  ) {
     return `${side} ${topographic} injury`;
   }
   if (topographic === "thumb" && !mechanism) {
@@ -821,7 +839,7 @@ function aoLabel(codes: string[]): string {
 }
 
 function segmentLabel(segment?: string): string {
-  return segment ? SEGMENT_LABELS[segment] ?? segment : "fracture";
+  return segment ? (SEGMENT_LABELS[segment] ?? segment) : "fracture";
 }
 
 function fractureQualifiers(
@@ -832,11 +850,7 @@ function fractureQualifiers(
   const parts: string[] = [];
   if (fracture.openStatus === "open") {
     parts.push(
-      mode === "latin_medical"
-        ? isPlural
-          ? "apertae"
-          : LATIN.open
-        : "Open",
+      mode === "latin_medical" ? (isPlural ? "apertae" : LATIN.open) : "Open",
     );
   } else if (fracture.openStatus === "closed") {
     parts.push(
@@ -933,15 +947,18 @@ export function buildFractureBullets(
   for (const entry of grouped.values()) {
     const sample = entry[0]!;
     const qualifiers = fractureQualifiers(sample, mode, entry.length > 1);
-    const qualifierText = qualifiers.length > 0 ? `${qualifiers.join(" ")} ` : "";
+    const qualifierText =
+      qualifiers.length > 0 ? `${qualifiers.join(" ")} ` : "";
     const aoCodes = entry.map((fracture) => fracture.aoCode);
 
     if (sample.familyCode === "77" && entry.every((fracture) => fracture.ray)) {
-      const rays = entry.map((fracture) => fracture.ray!).sort(
-        (a, b) => DIGIT_INDEX[a] - DIGIT_INDEX[b],
-      );
+      const rays = entry
+        .map((fracture) => fracture.ray!)
+        .sort((a, b) => DIGIT_INDEX[a] - DIGIT_INDEX[b]);
       const rayText =
-        entry.length > 1 ? groupRays(rays, mode) : metacarpalLabel(sample, mode);
+        entry.length > 1
+          ? groupRays(rays, mode)
+          : metacarpalLabel(sample, mode);
 
       if (mode === "latin_medical") {
         const latinSegment =
@@ -986,10 +1003,7 @@ export function buildFractureBullets(
   return bullets;
 }
 
-function jointLabel(
-  injury: JointInjury,
-  mode: DiagnosisRenderMode,
-): string {
+function jointLabel(injury: JointInjury, mode: DiagnosisRenderMode): string {
   const digitPart = injury.digit
     ? `, ${mode === "latin_medical" ? `dig. ${injury.digit}` : `Dig. ${injury.digit}`}`
     : "";
@@ -1026,7 +1040,11 @@ export function buildDislocationBullets(
   _verbosity: DiagnosisVerbosity,
 ): string[] {
   return dislocations.map((injury) => {
-    if (injury.isComplex && injury.joint === "mcp" && mode !== "latin_medical") {
+    if (
+      injury.isComplex &&
+      injury.joint === "mcp" &&
+      mode !== "latin_medical"
+    ) {
       return `Complex MCP dislocation${injury.digit ? `, Dig. ${injury.digit}` : ""}`;
     }
     return jointLabel(injury, mode);
@@ -1061,8 +1079,7 @@ function tendonPatternLabel(
   const structures = injury.structures.join("/");
   if (mode === "latin_medical") {
     const sortedStructures = [...injury.structures].sort();
-    const isPlural =
-      groupedDigits.length > 1 || sortedStructures.length > 1;
+    const isPlural = groupedDigits.length > 1 || sortedStructures.length > 1;
     const latinCompleteness =
       injury.completeness === "complete"
         ? isPlural
@@ -1153,7 +1170,10 @@ export function buildTendonBullets(
   return bullets;
 }
 
-function namedNerveLabel(structureId: string, mode: DiagnosisRenderMode): string {
+function namedNerveLabel(
+  structureId: string,
+  mode: DiagnosisRenderMode,
+): string {
   const base =
     structureId === "median"
       ? "Median nerve"
@@ -1161,11 +1181,11 @@ function namedNerveLabel(structureId: string, mode: DiagnosisRenderMode): string
         ? "Ulnar nerve"
         : structureId === "radial"
           ? "Radial nerve"
-        : structureId === "pin"
-          ? "Posterior interosseous nerve (PIN)"
-          : structureId === "srn"
-            ? "Superficial radial nerve (SRN)"
-            : "Dorsal branch of ulnar nerve";
+          : structureId === "pin"
+            ? "Posterior interosseous nerve (PIN)"
+            : structureId === "srn"
+              ? "Superficial radial nerve (SRN)"
+              : "Dorsal branch of ulnar nerve";
 
   if (mode === "latin_medical") {
     return LATIN_NAMED_NERVE_LABELS[structureId] ?? base;
@@ -1233,7 +1253,8 @@ export function buildVesselBullets(
   const byDigit = new Map<DigitId, VesselInjury[]>();
 
   for (const vessel of vessels) {
-    const digit = vessel.digit || DIGITAL_ARTERY_LABELS[vessel.structureId]?.digit;
+    const digit =
+      vessel.digit || DIGITAL_ARTERY_LABELS[vessel.structureId]?.digit;
     if (!digit) {
       const label =
         vessel.structureId === "radial_artery"
@@ -1328,15 +1349,16 @@ function describeSoftTissueDescriptor(
         ? ` ${latinDigitReference(injury.digits)}`
         : `, ${groupDigits(injury.digits, mode)}`
       : "";
-  const surfaces = injury.surfaces && injury.surfaces.length > 0
-    ? injury.surfaces.map((surface) =>
-        mode === "latin_medical"
-          ? surface === "palmar"
-            ? "volaris"
-            : "dorsalis"
-          : surface,
-      )
-    : undefined;
+  const surfaces =
+    injury.surfaces && injury.surfaces.length > 0
+      ? injury.surfaces.map((surface) =>
+          mode === "latin_medical"
+            ? surface === "palmar"
+              ? "volaris"
+              : "dorsalis"
+            : surface,
+        )
+      : undefined;
   const latinSurfaceLabel =
     surfaces && surfaces.length > 0 ? ` ${joinNatural(surfaces, "et")}` : "";
 
@@ -1354,8 +1376,7 @@ function describeSoftTissueDescriptor(
         surfaces && surfaces.length > 0
           ? `${surfaces
               .map(
-                (surface) =>
-                  `${surface[0]!.toUpperCase()}${surface.slice(1)}`,
+                (surface) => `${surface[0]!.toUpperCase()}${surface.slice(1)}`,
               )
               .join("/")} `
           : "";
@@ -1505,7 +1526,12 @@ export function generateDiagnosisText(
     ...buildDislocationBullets(normalized.dislocations, mode, verbosity),
     ...buildTendonBullets(normalized.tendons, mode, verbosity),
     ...buildNerveBullets(normalized.nerves, mode, verbosity),
-    ...buildVesselBullets(normalized.vessels, normalized.perfusion, mode, verbosity),
+    ...buildVesselBullets(
+      normalized.vessels,
+      normalized.perfusion,
+      mode,
+      verbosity,
+    ),
     ...buildSoftTissueBullets(normalized.softTissue, mode, verbosity),
     ...buildAmputationBullets(normalized.amputations, mode, verbosity),
   ]);
@@ -1524,8 +1550,14 @@ export function generateHandTraumaDiagnosis(
 
   return {
     headerLine,
-    diagnosisTextShort: [headerLine, ...shortBullets.map((line) => `- ${line}`)].join("\n"),
-    diagnosisTextLong: [headerLine, ...longBullets.map((line) => `- ${line}`)].join("\n"),
+    diagnosisTextShort: [
+      headerLine,
+      ...shortBullets.map((line) => `- ${line}`),
+    ].join("\n"),
+    diagnosisTextLong: [
+      headerLine,
+      ...longBullets.map((line) => `- ${line}`),
+    ].join("\n"),
     machineSummary: normalized,
   };
 }

@@ -38,7 +38,11 @@ import {
   getTimelineEvents,
   updateTimelineEvent,
 } from "@/lib/storage";
-import { normalizeDateOnlyValue, toIsoDateValue } from "@/lib/dateValues";
+import {
+  normalizeDateOnlyValue,
+  toIsoDateValue,
+  toUtcNoonIsoTimestamp,
+} from "@/lib/dateValues";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 
 type RouteParams = RouteProp<RootStackParamList, "AddTimelineEvent">;
@@ -75,9 +79,7 @@ export default function AddTimelineEventScreen() {
     initialEventType,
     caseDischargeDate,
     editEventId,
-    specialty,
-    procedureTags,
-    hasSkinCancerAssessment,
+    mediaContext,
   } = route.params;
 
   const isEditMode = !!editEventId;
@@ -292,7 +294,8 @@ export default function AddTimelineEventScreen() {
         // Preserve original time if date unchanged, otherwise use selected date
         const existingDate = normalizeDateOnlyValue(editingEvent?.createdAt);
         if (existingDate !== eventDate) {
-          updates.createdAt = new Date(eventDate + "T12:00:00").toISOString();
+          updates.createdAt =
+            toUtcNoonIsoTimestamp(eventDate) ?? new Date().toISOString();
         }
         await updateTimelineEvent(editEventId, updates);
       } else {
@@ -301,7 +304,7 @@ export default function AddTimelineEventScreen() {
         const createdAt =
           eventDate === today
             ? new Date().toISOString()
-            : new Date(eventDate + "T12:00:00").toISOString();
+            : (toUtcNoonIsoTimestamp(eventDate) ?? new Date().toISOString());
 
         const event: TimelineEvent = {
           id: uuidv4(),
@@ -467,9 +470,9 @@ export default function AddTimelineEventScreen() {
             attachments={mediaAttachments}
             onAttachmentsChange={setMediaAttachments}
             mediaType={eventType === "imaging" ? "imaging" : "photo"}
-            specialty={specialty}
-            procedureTags={procedureTags}
-            hasSkinCancerAssessment={hasSkinCancerAssessment}
+            eventType={eventType}
+            defaultMediaDate={eventDate}
+            mediaContext={mediaContext}
           />
           <FormField
             label="Caption / Notes"
@@ -535,9 +538,9 @@ export default function AddTimelineEventScreen() {
             attachments={mediaAttachments}
             onAttachmentsChange={setMediaAttachments}
             mediaType="photo"
-            specialty={specialty}
-            procedureTags={procedureTags}
-            hasSkinCancerAssessment={hasSkinCancerAssessment}
+            eventType="follow_up_visit"
+            defaultMediaDate={eventDate}
+            mediaContext={mediaContext}
           />
           <FormField
             label="Clinical Notes"
@@ -568,9 +571,8 @@ export default function AddTimelineEventScreen() {
             onAttachmentsChange={setMediaAttachments}
             mediaType="photo"
             eventType="discharge_photo"
-            specialty={specialty}
-            procedureTags={procedureTags}
-            hasSkinCancerAssessment={hasSkinCancerAssessment}
+            defaultMediaDate={eventDate}
+            mediaContext={mediaContext}
           />
 
           <ThemedText style={[styles.label, { color: theme.textSecondary }]}>

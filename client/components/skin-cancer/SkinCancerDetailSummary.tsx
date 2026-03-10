@@ -102,7 +102,8 @@ export function SkinCancerDetailSummary({
   // Pathology label
   let pathologyText = "";
   if (histo?.pathologyCategory) {
-    pathologyText = CATEGORY_LABELS[histo.pathologyCategory] ?? histo.pathologyCategory;
+    pathologyText =
+      CATEGORY_LABELS[histo.pathologyCategory] ?? histo.pathologyCategory;
     if (histo.pathologyCategory === "rare_malignant" && histo.rareSubtype) {
       const meta = RARE_TYPE_METADATA[histo.rareSubtype];
       if (meta) pathologyText = meta.label;
@@ -115,7 +116,8 @@ export function SkinCancerDetailSummary({
 
   // Breslow
   const breslow =
-    histo?.pathologyCategory === "melanoma" && histo.melanomaBreslowMm !== undefined
+    histo?.pathologyCategory === "melanoma" &&
+    histo.melanomaBreslowMm !== undefined
       ? `${histo.melanomaBreslowMm} mm`
       : undefined;
 
@@ -151,9 +153,7 @@ export function SkinCancerDetailSummary({
   }
 
   return (
-    <View
-      style={[styles.container, { borderTopColor: theme.border }]}
-    >
+    <View style={[styles.container, { borderTopColor: theme.border }]}>
       {lesionLabel && (
         <ThemedText style={[styles.lesionHeader, { color: theme.link }]}>
           {lesionLabel}

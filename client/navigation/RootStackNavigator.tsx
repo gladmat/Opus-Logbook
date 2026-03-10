@@ -49,6 +49,7 @@ import {
 } from "@/types/case";
 import type { MediaTag } from "@/types/media";
 import type { EpisodePrefillData } from "@/types/episode";
+import type { MediaContext } from "@/lib/mediaContext";
 import { useTheme } from "@/hooks/useTheme";
 
 const WELCOME_SEEN_KEY = "@opus_has_seen_welcome";
@@ -161,9 +162,7 @@ export type RootStackParamList = {
     isSkinLesion?: boolean;
     caseDischargeDate?: string;
     editEventId?: string;
-    specialty?: string;
-    procedureTags?: string[];
-    hasSkinCancerAssessment?: boolean;
+    mediaContext?: MediaContext;
   };
   MediaManagement: {
     existingAttachments?: MediaAttachment[];
@@ -171,9 +170,8 @@ export type RootStackParamList = {
     maxAttachments?: number;
     context?: "case" | "timeline";
     eventType?: TimelineEventType;
-    specialty?: string;
-    procedureTags?: string[];
-    hasSkinCancerAssessment?: boolean;
+    mediaContext?: MediaContext;
+    defaultMediaDate?: string;
   };
   AddOperativeMedia: {
     imageUri: string;
@@ -185,10 +183,8 @@ export type RootStackParamList = {
     existingTag?: MediaTag;
     existingCaption?: string;
     existingTimestamp?: string;
-    specialty?: string;
-    procedureTags?: string[];
-    hasSkinCancerAssessment?: boolean;
-    procedureDate?: string;
+    existingCreatedAt?: string;
+    mediaContext?: MediaContext;
   };
   EpisodeDetail: { episodeId: string };
   EpisodeList: undefined;

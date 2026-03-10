@@ -57,7 +57,7 @@ function buildHeadline(assessment: SkinCancerLesionAssessment): string {
   const pathology =
     getSkinCancerPrimaryHistology(assessment)?.pathologyCategory ??
     assessment.clinicalSuspicion;
-  const label = pathology ? CATEGORY_LABELS[pathology] ?? pathology : "—";
+  const label = pathology ? (CATEGORY_LABELS[pathology] ?? pathology) : "—";
   const site = assessment.site;
   const lat = assessment.laterality;
 
@@ -93,7 +93,9 @@ function buildKeyFacts(assessment: SkinCancerLesionAssessment): string[] {
   if (assessment.slnb?.performed) {
     const result = assessment.slnb.result;
     if (result && result !== "pending") {
-      facts.push(`SLNB ${result.replace("positive_", "+").replace("negative", "−")}`);
+      facts.push(
+        `SLNB ${result.replace("positive_", "+").replace("negative", "−")}`,
+      );
     } else {
       facts.push("SLNB pending");
     }
@@ -184,7 +186,9 @@ export function SkinCancerSummaryPanel({
       return resolvedProcedures;
     }
 
-    return resolvedProcedures.filter((proc) => acceptedProcedureIdSet.has(proc.id));
+    return resolvedProcedures.filter((proc) =>
+      acceptedProcedureIdSet.has(proc.id),
+    );
   }, [acceptedProcedureIdSet, isAccepted, resolvedProcedures]);
 
   const selectedProcedureCount = selectedProcedureIds.size;
@@ -311,7 +315,8 @@ export function SkinCancerSummaryPanel({
       </View>
 
       {/* ── Suggested procedures ── */}
-      {displayedProcedures.length > 0 || (!isAccepted && resolvedProcedures.length > 0) ? (
+      {displayedProcedures.length > 0 ||
+      (!isAccepted && resolvedProcedures.length > 0) ? (
         <>
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
           <View style={styles.procedureSection}>
@@ -332,34 +337,16 @@ export function SkinCancerSummaryPanel({
                 </ThemedText>
               ) : null}
             </View>
-            {(isAccepted ? displayedProcedures : resolvedProcedures).map((proc) => {
-              const isSelected = isAccepted
-                ? acceptedProcedureIdSet.has(proc.id)
-                : selectedProcedureIds.has(proc.id);
-              return (
-                <Pressable
-                  key={proc.id}
-                  style={[
-                    styles.procedureRow,
-                    {
-                      borderColor: isSelected
-                        ? isAccepted
-                          ? theme.success
-                          : theme.link
-                        : theme.border,
-                      backgroundColor: isSelected
-                        ? isAccepted
-                          ? theme.success + "12"
-                          : theme.link + "12"
-                        : theme.backgroundSecondary,
-                    },
-                  ]}
-                  onPress={() => toggleProcedureSelection(proc.id)}
-                  disabled={isAccepted}
-                >
-                  <View
+            {(isAccepted ? displayedProcedures : resolvedProcedures).map(
+              (proc) => {
+                const isSelected = isAccepted
+                  ? acceptedProcedureIdSet.has(proc.id)
+                  : selectedProcedureIds.has(proc.id);
+                return (
+                  <Pressable
+                    key={proc.id}
                     style={[
-                      styles.checkbox,
+                      styles.procedureRow,
                       {
                         borderColor: isSelected
                           ? isAccepted
@@ -368,34 +355,64 @@ export function SkinCancerSummaryPanel({
                           : theme.border,
                         backgroundColor: isSelected
                           ? isAccepted
-                            ? theme.success
-                            : theme.link
-                          : "transparent",
+                            ? theme.success + "12"
+                            : theme.link + "12"
+                          : theme.backgroundSecondary,
                       },
                     ]}
+                    onPress={() => toggleProcedureSelection(proc.id)}
+                    disabled={isAccepted}
                   >
-                    {isSelected ? (
-                      <Feather name="check" size={12} color={theme.buttonText} />
-                    ) : null}
-                  </View>
-                  <ThemedText
-                    style={[styles.procedureName, { color: theme.text }]}
-                  >
-                    {proc.name}
-                  </ThemedText>
-                </Pressable>
-              );
-            })}
+                    <View
+                      style={[
+                        styles.checkbox,
+                        {
+                          borderColor: isSelected
+                            ? isAccepted
+                              ? theme.success
+                              : theme.link
+                            : theme.border,
+                          backgroundColor: isSelected
+                            ? isAccepted
+                              ? theme.success
+                              : theme.link
+                            : "transparent",
+                        },
+                      ]}
+                    >
+                      {isSelected ? (
+                        <Feather
+                          name="check"
+                          size={12}
+                          color={theme.buttonText}
+                        />
+                      ) : null}
+                    </View>
+                    <ThemedText
+                      style={[styles.procedureName, { color: theme.text }]}
+                    >
+                      {proc.name}
+                    </ThemedText>
+                  </Pressable>
+                );
+              },
+            )}
             {!isAccepted && displayedProcedures.length === 0 ? (
               <ThemedText
-                style={[styles.emptyProcedureText, { color: theme.textTertiary }]}
+                style={[
+                  styles.emptyProcedureText,
+                  { color: theme.textTertiary },
+                ]}
               >
                 No suggested procedures for the current assessment.
               </ThemedText>
             ) : null}
             {isAccepted && displayedProcedures.length === 0 ? (
               <ThemedText
-                style={[styles.emptyProcedureText, { color: theme.textTertiary }]}
+                style={[
+                  styles.emptyProcedureText,
+                  { color: theme.textTertiary },
+                ]}
               >
                 No accepted suggested procedures recorded.
               </ThemedText>
@@ -411,7 +428,9 @@ export function SkinCancerSummaryPanel({
             styles.acceptButton,
             {
               backgroundColor:
-                selectedProcedureCount > 0 ? theme.link : theme.backgroundTertiary,
+                selectedProcedureCount > 0
+                  ? theme.link
+                  : theme.backgroundTertiary,
               opacity: selectedProcedureCount > 0 ? 1 : 0.6,
             },
           ]}
@@ -434,9 +453,7 @@ export function SkinCancerSummaryPanel({
       {/* ── Coding details (collapsed by default) ── */}
       {isAccepted ? (
         <>
-          <View
-            style={[styles.divider, { backgroundColor: theme.border }]}
-          />
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
           <Pressable
             style={styles.codingDisclosureRow}
             onPress={() => {

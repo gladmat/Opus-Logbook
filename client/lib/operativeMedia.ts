@@ -149,20 +149,33 @@ export const TAG_TO_CATEGORY: Partial<Record<MediaTag, MediaCategory>> = {
   other: "other",
 };
 
+export function getLegacyCategoryForTag(
+  tag?: MediaTag,
+): MediaCategory | undefined {
+  return tag ? TAG_TO_CATEGORY[tag] : undefined;
+}
+
 export function operativeMediaToAttachments(
   media: OperativeMediaItem[],
 ): MediaAttachment[] {
-  return media.map((item) => ({
-    id: item.id,
-    localUri: item.localUri,
-    thumbnailUri: item.thumbnailUri,
-    mimeType: item.mimeType,
-    caption: item.caption,
-    createdAt: item.createdAt,
-    tag: item.tag ?? resolveMediaTag(item),
-    category: MEDIA_TYPE_TO_CATEGORY[item.mediaType],
-    timestamp: item.timestamp,
-  }));
+  return media.map((item) => {
+    const tag = item.tag ?? resolveMediaTag(item);
+    const category = item.tag
+      ? getLegacyCategoryForTag(tag)
+      : MEDIA_TYPE_TO_CATEGORY[item.mediaType];
+
+    return {
+      id: item.id,
+      localUri: item.localUri,
+      thumbnailUri: item.thumbnailUri,
+      mimeType: item.mimeType,
+      caption: item.caption,
+      createdAt: item.createdAt,
+      tag,
+      ...(category ? { category } : {}),
+      timestamp: item.timestamp,
+    };
+  });
 }
 
 export function attachmentsToOperativeMedia(

@@ -7,13 +7,7 @@
  */
 
 import React, { useState, useRef, useCallback } from "react";
-import {
-  View,
-  Pressable,
-  TextInput,
-  Switch,
-  StyleSheet,
-} from "react-native";
+import { View, Pressable, TextInput, StyleSheet } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -154,7 +148,12 @@ export const SLNBSection = React.memo(function SLNBSection({
         // If un-offering, reset downstream
         ...(offered
           ? {}
-          : { performed: false, sites: [], result: "pending", declinedReason: undefined }),
+          : {
+              performed: false,
+              sites: [],
+              result: "pending",
+              declinedReason: undefined,
+            }),
       });
     },
     [ensureSlnb, onSLNBChange],
@@ -391,9 +390,7 @@ export const SLNBSection = React.memo(function SLNBSection({
                             backgroundColor: isSelected
                               ? theme.link
                               : theme.backgroundTertiary,
-                            borderColor: isSelected
-                              ? theme.link
-                              : theme.border,
+                            borderColor: isSelected ? theme.link : theme.border,
                           },
                         ]}
                         onPress={() => handleSiteToggle(opt.value)}
@@ -468,9 +465,7 @@ export const SLNBSection = React.memo(function SLNBSection({
                             backgroundColor: isSelected
                               ? theme.link
                               : theme.backgroundTertiary,
-                            borderColor: isSelected
-                              ? theme.link
-                              : theme.border,
+                            borderColor: isSelected ? theme.link : theme.border,
                           },
                         ]}
                         onPress={() => handleResultChange(opt.value)}

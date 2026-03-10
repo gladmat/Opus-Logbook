@@ -69,7 +69,8 @@ function AttentionCardInner({
     item.type === "episode" && item.lastProcedureSummary
       ? item.lastProcedureSummary
       : undefined;
-  const canLogCase = item.type === "inpatient" || item.type === "episode" || !!item.episodeId;
+  const canLogCase =
+    item.type === "inpatient" || item.type === "episode" || !!item.episodeId;
   const logCaseLabel =
     item.type === "episode" || item.episodeId ? "Next Episode" : "Log Case";
 
@@ -108,9 +109,7 @@ function AttentionCardInner({
             {item.infectionSyndrome}
           </ThemedText>
         ) : (
-          <ThemedText
-            style={[styles.metaText, { color: theme.textSecondary }]}
-          >
+          <ThemedText style={[styles.metaText, { color: theme.textSecondary }]}>
             {item.daysSinceLastEncounter != null
               ? `${item.daysSinceLastEncounter}d since last`
               : "No cases"}
@@ -222,10 +221,7 @@ function AttentionCardInner({
         ) : null}
         {canLogCase ? (
           <Pressable
-            style={[
-              styles.logCaseButton,
-              { backgroundColor: theme.accent },
-            ]}
+            style={[styles.logCaseButton, { backgroundColor: theme.accent }]}
             onPress={(e) => {
               e.stopPropagation();
               onLogCase(item);
@@ -234,7 +230,9 @@ function AttentionCardInner({
             accessibilityLabel={`${logCaseLabel} for ${item.patientIdentifier}`}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <ThemedText style={[styles.logCaseText, { color: theme.accentContrast }]}>
+            <ThemedText
+              style={[styles.logCaseText, { color: theme.accentContrast }]}
+            >
               {logCaseLabel}
             </ThemedText>
           </Pressable>

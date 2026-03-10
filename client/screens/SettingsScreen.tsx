@@ -163,9 +163,8 @@ export default function SettingsScreen() {
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const [deleteAccountPassword, setDeleteAccountPassword] = useState("");
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
-  const [appLockIcon, setAppLockIcon] = useState<
-    keyof typeof Feather.glyphMap
-  >("shield");
+  const [appLockIcon, setAppLockIcon] =
+    useState<keyof typeof Feather.glyphMap>("shield");
 
   useEffect(() => {
     if (!isAppLockConfigured) {

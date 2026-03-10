@@ -52,8 +52,6 @@ const PATHWAY_LABELS: Record<string, string> = {
   complex_mdt: "complex MDT",
 };
 
-const MOHS_TYPES: Set<RareMalignantSubtype> = new Set(["mac", "dfsp", "empd"]);
-
 export const RareTypeSubtypePicker = React.memo(function RareTypeSubtypePicker({
   selectedSubtype,
   onSelectSubtype,

@@ -25,19 +25,11 @@ export const EmptyStatistics = React.memo(function EmptyStatistics({
 
   return (
     <View style={styles.container}>
-      <Feather
-        name="bar-chart-2"
-        size={48}
-        color={theme.textTertiary}
-      />
-      <ThemedText
-        style={[styles.title, { color: theme.text }]}
-      >
+      <Feather name="bar-chart-2" size={48} color={theme.textTertiary} />
+      <ThemedText style={[styles.title, { color: theme.text }]}>
         Your practice profile builds as you log cases.
       </ThemedText>
-      <ThemedText
-        style={[styles.progress, { color: theme.textSecondary }]}
-      >
+      <ThemedText style={[styles.progress, { color: theme.textSecondary }]}>
         {totalCases} of {threshold} cases logged
       </ThemedText>
 

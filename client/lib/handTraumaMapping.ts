@@ -33,7 +33,6 @@ import {
   normalizeSelection,
   type HandTraumaDiagnosisSelection,
   type MachineSummary,
-  type SoftTissueInjury,
   type TendonInjury,
 } from "@/lib/handTraumaDiagnosis";
 import { resolveAOToDiagnosis } from "@/lib/aoToDiagnosisMapping";
@@ -484,7 +483,9 @@ function buildRepresentativeDiagnosis(
   pairs: TraumaDiagnosisPair[],
   summaryDiagnosisDisplay: string,
 ): TraumaMappingResult["representativeDiagnosis"] {
-  const firstStructured = pairs.find((pair) => pair.diagnosis.diagnosisPicklistId);
+  const firstStructured = pairs.find(
+    (pair) => pair.diagnosis.diagnosisPicklistId,
+  );
   if (firstStructured?.diagnosis.diagnosisPicklistId) {
     return {
       diagnosisPicklistId: firstStructured.diagnosis.diagnosisPicklistId,
@@ -999,152 +1000,6 @@ function resolveSpecialInjury(
   return null;
 }
 
-// ─── Structure-Driven Diagnosis Resolution ────────────────────────────────────
-
-function resolveStructureDrivenDiagnosis(
-  selection: HandTraumaSelection,
-): LegacyTraumaResult | null {
-  const structures = selection.injuredStructures ?? [];
-  if (structures.length === 0) return null;
-
-  const hasStructure = (predicate: (id: string) => boolean) =>
-    structures.some((s) => predicate(s.structureId));
-
-  if (hasStructure((id) => id === "mcp1_ucl")) {
-    return {
-      primaryDiagnosis: lookup("hand_dx_ucl_thumb"),
-      suggestedProcedures: [
-        {
-          procedurePicklistId: "hand_lig_ucl_repair",
-          displayName: "UCL repair — thumb MCP",
-          isDefault: true,
-          reason: "Thumb MCP UCL selected",
-        },
-        {
-          procedurePicklistId: "hand_lig_ucl_reconstruction",
-          displayName: "UCL reconstruction — thumb MCP (chronic)",
-          isDefault: false,
-          reason: "Alternative for chronic insufficiency",
-        },
-      ],
-    };
-  }
-
-  if (structures.some((s) => s.category === "flexor_tendon")) {
-    return {
-      primaryDiagnosis: lookup("hand_dx_flexor_tendon_lac"),
-      suggestedProcedures: [
-        {
-          procedurePicklistId: "hand_tend_flexor_primary",
-          displayName: "Flexor tendon repair",
-          isDefault: true,
-          reason: "Flexor tendon injury selected",
-        },
-      ],
-    };
-  }
-
-  if (structures.some((s) => s.category === "extensor_tendon")) {
-    return {
-      primaryDiagnosis: lookup("hand_dx_extensor_tendon_lac"),
-      suggestedProcedures: [
-        {
-          procedurePicklistId: "hand_tend_extensor_primary",
-          displayName: "Extensor tendon repair",
-          isDefault: true,
-          reason: "Extensor tendon injury selected",
-        },
-      ],
-    };
-  }
-
-  if (hasStructure((id) => id === "median")) {
-    return {
-      primaryDiagnosis: lookup("hand_dx_median_nerve_lac"),
-      suggestedProcedures: [
-        {
-          procedurePicklistId: "hand_nerve_median_repair",
-          displayName: "Median nerve repair",
-          isDefault: true,
-          reason: "Median nerve selected",
-        },
-      ],
-    };
-  }
-
-  if (hasStructure((id) => id === "ulnar" || id === "dbun")) {
-    return {
-      primaryDiagnosis: hasStructure((id) => id === "dbun")
-        ? lookup("hand_dx_dbun_injury")
-        : lookup("hand_dx_ulnar_nerve_lac"),
-      suggestedProcedures: [
-        {
-          procedurePicklistId: "hand_nerve_ulnar_repair",
-          displayName: "Ulnar nerve repair",
-          isDefault: true,
-          reason: "Ulnar nerve branch selected",
-        },
-      ],
-    };
-  }
-
-  if (hasStructure((id) => id === "pin" || id === "srn")) {
-    return {
-      primaryDiagnosis: lookup("hand_dx_radial_nerve_lac"),
-      suggestedProcedures: [
-        {
-          procedurePicklistId: "hand_nerve_radial_repair",
-          displayName: "Radial branch repair",
-          isDefault: true,
-          reason: "Radial nerve branch selected",
-        },
-      ],
-    };
-  }
-
-  if (structures.some((s) => s.category === "nerve")) {
-    return {
-      primaryDiagnosis: lookup("hand_dx_digital_nerve_lac"),
-      suggestedProcedures: [
-        {
-          procedurePicklistId: "hand_nerve_digital_repair",
-          displayName: "Digital nerve repair",
-          isDefault: true,
-          reason: "Digital nerve injury selected",
-        },
-      ],
-    };
-  }
-
-  if (hasStructure((id) => id === "nail_bed")) {
-    return {
-      primaryDiagnosis: lookup("hand_dx_nail_bed_injury"),
-      suggestedProcedures: [
-        {
-          procedurePicklistId: "hand_cov_nail_bed_repair",
-          displayName: "Nail bed repair",
-          isDefault: true,
-          reason: "Nail bed injury selected",
-        },
-      ],
-    };
-  }
-
-  if (
-    hasStructure((id) => id === "skin_loss") ||
-    structures.some((s) => s.category === "artery")
-  ) {
-    return {
-      primaryDiagnosis: hasStructure((id) => id === "skin_loss")
-        ? lookup("hand_dx_hand_degloving")
-        : lookup("hand_dx_complex_laceration"),
-      suggestedProcedures: [],
-    };
-  }
-
-  return null;
-}
-
 // ─── Main Mapping Function ───────────────────────────────────────────────────
 
 function pairFromLegacyResult(
@@ -1174,9 +1029,7 @@ function pairFromLegacyResult(
   };
 }
 
-function buildFracturePairs(
-  normalized: MachineSummary,
-): TraumaDiagnosisPair[] {
+function buildFracturePairs(normalized: MachineSummary): TraumaDiagnosisPair[] {
   const groups = new Map<string, typeof normalized.fractures>();
 
   for (const fracture of normalized.fractures) {
@@ -1241,9 +1094,8 @@ function buildFracturePairs(
           }
         : { displayName },
       selectionMode: "single" as const,
-      suggestedProcedures: normalizeSingleSelectSuggestions(
-        procedureSuggestions,
-      ),
+      suggestedProcedures:
+        normalizeSingleSelectSuggestions(procedureSuggestions),
     };
   });
 }
@@ -1266,9 +1118,7 @@ function buildDislocationPairs(
   });
 }
 
-function buildTendonPairs(
-  normalized: MachineSummary,
-): TraumaDiagnosisPair[] {
+function buildTendonPairs(normalized: MachineSummary): TraumaDiagnosisPair[] {
   const groups = new Map<string, TendonInjury[]>();
 
   for (const injury of normalized.tendons) {
@@ -1326,9 +1176,7 @@ function buildTendonPairs(
   });
 }
 
-function buildNervePairs(
-  normalized: MachineSummary,
-): TraumaDiagnosisPair[] {
+function buildNervePairs(normalized: MachineSummary): TraumaDiagnosisPair[] {
   const namedPairs = normalized.nerves
     .filter((injury) => !DIGITAL_NERVE_LABELS[injury.structureId])
     .map((injury) => {
@@ -1342,7 +1190,7 @@ function buildNervePairs(
               injury.structureId === "srn" ||
               injury.structureId === "radial"
             ? "hand_dx_radial_nerve_lac"
-          : injury.structureId === "dbun"
+            : injury.structureId === "dbun"
               ? "hand_dx_dbun_injury"
               : "hand_dx_ulnar_nerve_lac";
       const procedureId =
@@ -1396,7 +1244,9 @@ function buildNervePairs(
     Boolean(DIGITAL_NERVE_LABELS[entry.structureId]),
   )) {
     const key =
-      injury.side ?? DIGITAL_NERVE_LABELS[injury.structureId]?.side ?? "digital";
+      injury.side ??
+      DIGITAL_NERVE_LABELS[injury.structureId]?.side ??
+      "digital";
     const current = digitalBySide.get(key);
     if (current) {
       current.push(injury);
@@ -1451,9 +1301,7 @@ function buildNervePairs(
   return [...namedPairs, ...digitalPairs];
 }
 
-function buildVesselPairs(
-  normalized: MachineSummary,
-): TraumaDiagnosisPair[] {
+function buildVesselPairs(normalized: MachineSummary): TraumaDiagnosisPair[] {
   const groups = new Map<
     string,
     { vessels: typeof normalized.vessels; perfusion: PerfusionStatusEntry[] }
@@ -1593,7 +1441,10 @@ function resolveCoverageProcedures(
       break;
     case "dorsum_hand":
       add("hand_cov_skin_graft", "Dorsum of hand coverage", true);
-      add("hand_cov_reverse_radial_forearm", "Reverse radial forearm flap option");
+      add(
+        "hand_cov_reverse_radial_forearm",
+        "Reverse radial forearm flap option",
+      );
       add("hand_cov_groin_flap", "Groin flap for larger dorsal defects");
       break;
     case "wrist_forearm":
@@ -1608,13 +1459,17 @@ function resolveCoverageProcedures(
   return suggestions;
 }
 
-function buildCoveragePairs(
-  normalized: MachineSummary,
-): TraumaDiagnosisPair[] {
+function buildCoveragePairs(normalized: MachineSummary): TraumaDiagnosisPair[] {
   const coverageTypes = new Set([
-    "defect", "loss", "degloving", "contamination", "nail_bed",
+    "defect",
+    "loss",
+    "degloving",
+    "contamination",
+    "nail_bed",
   ]);
-  const injuries = normalized.softTissue.filter((i) => coverageTypes.has(i.type));
+  const injuries = normalized.softTissue.filter((i) =>
+    coverageTypes.has(i.type),
+  );
 
   return injuries.map((injury, index) => {
     const displayName =
@@ -1679,11 +1534,11 @@ function buildCoveragePairs(
   });
 }
 
-function buildLigamentPairs(
-  normalized: MachineSummary,
-): TraumaDiagnosisPair[] {
+function buildLigamentPairs(normalized: MachineSummary): TraumaDiagnosisPair[] {
   const ligamentTypes = new Set(["ligament", "volar_plate"]);
-  const injuries = normalized.softTissue.filter((i) => ligamentTypes.has(i.type));
+  const injuries = normalized.softTissue.filter((i) =>
+    ligamentTypes.has(i.type),
+  );
 
   return injuries.map((injury, index) => {
     const displayName =
@@ -1755,9 +1610,14 @@ function buildSpecialInjuryPairs(
   normalized: MachineSummary,
 ): TraumaDiagnosisPair[] {
   const specialTypes = new Set([
-    "high_pressure_injection", "fight_bite", "compartment_syndrome", "ring_avulsion",
+    "high_pressure_injection",
+    "fight_bite",
+    "compartment_syndrome",
+    "ring_avulsion",
   ]);
-  const injuries = normalized.softTissue.filter((i) => specialTypes.has(i.type));
+  const injuries = normalized.softTissue.filter((i) =>
+    specialTypes.has(i.type),
+  );
 
   return injuries.map((injury, index) => {
     const displayName =

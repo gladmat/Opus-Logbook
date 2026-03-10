@@ -1,4 +1,10 @@
-import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  useRef,
+} from "react";
 import {
   View,
   StyleSheet,
@@ -16,7 +22,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@/components/FeatherIcon";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
-import { v4 as uuidv4 } from "uuid";
 import {
   deleteMultipleEncryptedMedia,
   importMediaAssets,
@@ -28,13 +33,15 @@ import { ThemedView } from "@/components/ThemedView";
 import { DatePickerField } from "@/components/FormField";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
+import { toUtcNoonIsoTimestamp } from "@/lib/dateValues";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useMediaCallback } from "@/contexts/MediaCallbackContext";
 import { MediaAttachment } from "@/types/case";
-import { MediaTagPicker, MediaTagBadge } from "@/components/media";
+import { MediaTagPicker } from "@/components/media";
 import { MEDIA_TAG_REGISTRY } from "@/types/media";
 import { resolveMediaTag } from "@/lib/mediaTagMigration";
-import { TAG_TO_CATEGORY } from "@/lib/operativeMedia";
+import { getLegacyCategoryForTag } from "@/lib/operativeMedia";
+import { buildDefaultMediaAttachment } from "@/lib/mediaAttachmentDefaults";
 import type { MediaTag } from "@/types/media";
 
 type MediaManagementRouteProp = RouteProp<
@@ -57,18 +64,17 @@ export default function MediaManagementScreen() {
     existingAttachments,
     callbackId,
     maxAttachments = 15,
-    specialty,
-    procedureTags,
-    hasSkinCancerAssessment,
+    eventType,
+    mediaContext,
+    defaultMediaDate,
   } = route.params || {};
   const initialAttachments = useMemo(
     () => existingAttachments || [],
     [existingAttachments],
   );
 
-  const [attachments, setAttachments] = useState<MediaAttachment[]>(
-    initialAttachments,
-  );
+  const [attachments, setAttachments] =
+    useState<MediaAttachment[]>(initialAttachments);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [lastSelectedTag, setLastSelectedTag] = useState<MediaTag | null>(null);
   const [saving, setSaving] = useState(false);
@@ -153,12 +159,13 @@ export default function MediaManagementScreen() {
           asset.uri,
           asset.mimeType || "image/jpeg",
         );
-        const newAttachment: MediaAttachment = {
-          id: uuidv4(),
-          localUri: savedMedia.localUri,
-          mimeType: savedMedia.mimeType,
+        const newAttachment = buildDefaultMediaAttachment({
+          savedMedia,
           createdAt: new Date().toISOString(),
-        };
+          eventType,
+          procedureDate: mediaContext?.procedureDate,
+          mediaDate: defaultMediaDate,
+        });
         addedUrisRef.current.add(newAttachment.localUri);
         setAttachments((prev) => [...prev, newAttachment]);
         setSelectedId(newAttachment.id);
@@ -184,12 +191,13 @@ export default function MediaManagementScreen() {
         const startingAttachments = [...attachments];
         const importedAttachments: MediaAttachment[] = [];
         await importMediaAssets(result.assets, (savedAsset) => {
-          const newAttachment: MediaAttachment = {
-            id: uuidv4(),
-            localUri: savedAsset.localUri,
-            mimeType: savedAsset.mimeType,
+          const newAttachment = buildDefaultMediaAttachment({
+            savedMedia: savedAsset,
             createdAt: new Date().toISOString(),
-          };
+            eventType,
+            procedureDate: mediaContext?.procedureDate,
+            mediaDate: defaultMediaDate,
+          });
           addedUrisRef.current.add(newAttachment.localUri);
           importedAttachments.push(newAttachment);
           setAttachments([...startingAttachments, ...importedAttachments]);
@@ -214,10 +222,15 @@ export default function MediaManagementScreen() {
   const handleSetTag = (id: string, tag: MediaTag) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setLastSelectedTag(tag);
-    const category = TAG_TO_CATEGORY[tag];
+    const category = getLegacyCategoryForTag(tag);
     setAttachments((prev) =>
       prev.map((a) =>
-        a.id === id ? { ...a, tag, ...(category ? { category } : {}) } : a,
+        a.id === id
+          ? (() => {
+              const { category: _existingCategory, ...rest } = a;
+              return category ? { ...rest, tag, category } : { ...rest, tag };
+            })()
+          : a,
       ),
     );
   };
@@ -231,11 +244,16 @@ export default function MediaManagementScreen() {
       return;
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const category = TAG_TO_CATEGORY[lastSelectedTag];
+    const category = getLegacyCategoryForTag(lastSelectedTag);
     setAttachments((prev) =>
       prev.map((a) =>
         !a.tag
-          ? { ...a, tag: lastSelectedTag, ...(category ? { category } : {}) }
+          ? (() => {
+              const { category: _existingCategory, ...rest } = a;
+              return category
+                ? { ...rest, tag: lastSelectedTag, category }
+                : { ...rest, tag: lastSelectedTag };
+            })()
           : a,
       ),
     );
@@ -248,7 +266,7 @@ export default function MediaManagementScreen() {
   };
 
   const handleDateChange = (id: string, date: string) => {
-    const timestamp = new Date(date + "T12:00:00").toISOString();
+    const timestamp = toUtcNoonIsoTimestamp(date) ?? new Date().toISOString();
     setAttachments((prev) =>
       prev.map((a) => (a.id === id ? { ...a, timestamp } : a)),
     );
@@ -297,22 +315,26 @@ export default function MediaManagementScreen() {
       return;
     }
 
-    Alert.alert("Save media changes?", "Your photo edits have not been saved.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Discard",
-        style: "destructive",
-        onPress: () => {
-          void discardChanges();
+    Alert.alert(
+      "Save media changes?",
+      "Your photo edits have not been saved.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Discard",
+          style: "destructive",
+          onPress: () => {
+            void discardChanges();
+          },
         },
-      },
-      {
-        text: "Save",
-        onPress: () => {
-          void handleSave();
+        {
+          text: "Save",
+          onPress: () => {
+            void handleSave();
+          },
         },
-      },
-    ]);
+      ],
+    );
   }, [discardChanges, handleSave, isDirty, navigation, saving]);
 
   useEffect(() => {
@@ -332,7 +354,10 @@ export default function MediaManagementScreen() {
 
   const renderThumbnail = ({ item }: { item: MediaAttachment }) => {
     const resolvedTag = item.tag ?? resolveMediaTag(item);
-    const tagLabel = resolvedTag !== "other" ? MEDIA_TAG_REGISTRY[resolvedTag]?.label : undefined;
+    const tagLabel =
+      resolvedTag !== "other"
+        ? MEDIA_TAG_REGISTRY[resolvedTag]?.label
+        : undefined;
 
     return (
       <Pressable
@@ -379,10 +404,7 @@ export default function MediaManagementScreen() {
         keyboardVerticalOffset={0}
       >
         <View style={[styles.header, { paddingTop: insets.top + Spacing.md }]}>
-          <Pressable
-            onPress={handleAttemptClose}
-            style={styles.headerButton}
-          >
+          <Pressable onPress={handleAttemptClose} style={styles.headerButton}>
             <Feather name="x" size={24} color={theme.text} />
           </Pressable>
           <ThemedText style={styles.headerTitle}>Manage Media</ThemedText>
@@ -439,9 +461,7 @@ export default function MediaManagementScreen() {
               <ThemedText
                 style={{
                   fontSize: 13,
-                  color: lastSelectedTag
-                    ? theme.link
-                    : theme.textSecondary,
+                  color: lastSelectedTag ? theme.link : theme.textSecondary,
                   fontWeight: "500",
                 }}
               >
@@ -468,11 +488,7 @@ export default function MediaManagementScreen() {
                     onPress={handleCameraCapture}
                     style={[styles.addButton, { backgroundColor: theme.link }]}
                   >
-                    <Feather
-                      name="camera"
-                      size={20}
-                      color={theme.buttonText}
-                    />
+                    <Feather name="camera" size={20} color={theme.buttonText} />
                   </Pressable>
                   <Pressable
                     onPress={handleGalleryPick}
@@ -535,11 +551,13 @@ export default function MediaManagementScreen() {
             />
 
             <MediaTagPicker
-              selectedTag={selectedAttachment.tag ?? resolveMediaTag(selectedAttachment)}
+              selectedTag={
+                selectedAttachment.tag ?? resolveMediaTag(selectedAttachment)
+              }
               onSelectTag={(tag) => handleSetTag(selectedAttachment.id, tag)}
-              specialty={specialty}
-              procedureTags={procedureTags}
-              hasSkinCancerAssessment={hasSkinCancerAssessment}
+              specialty={mediaContext?.specialty}
+              procedureTags={mediaContext?.procedureTags}
+              hasSkinCancerAssessment={mediaContext?.hasSkinCancerAssessment}
             />
           </ScrollView>
         ) : (
@@ -565,11 +583,7 @@ export default function MediaManagementScreen() {
                       { backgroundColor: theme.link },
                     ]}
                   >
-                    <Feather
-                      name="camera"
-                      size={20}
-                      color={theme.buttonText}
-                    />
+                    <Feather name="camera" size={20} color={theme.buttonText} />
                     <ThemedText
                       style={[
                         styles.emptyActionText,

@@ -10,7 +10,7 @@ import React from "react";
 import { View, StyleSheet } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { BorderRadius } from "@/constants/theme";
 import type { MarginRecommendation } from "@/types/skinCancer";
 
 interface MarginRecommendationBadgeProps {
@@ -44,9 +44,7 @@ export const MarginRecommendationBadge = React.memo(
             {title}
           </ThemedText>
           {recommendation.guidelineNote ? (
-            <ThemedText
-              style={[styles.note, { color: theme.textSecondary }]}
-            >
+            <ThemedText style={[styles.note, { color: theme.textSecondary }]}>
               {recommendation.guidelineNote}
             </ThemedText>
           ) : null}

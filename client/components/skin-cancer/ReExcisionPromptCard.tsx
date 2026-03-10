@@ -62,10 +62,7 @@ export function ReExcisionPromptCard({
 
       <Pressable
         onPress={handlePress}
-        style={[
-          styles.button,
-          { backgroundColor: theme.warning },
-        ]}
+        style={[styles.button, { backgroundColor: theme.warning }]}
         accessibilityRole="button"
         accessibilityLabel="Pre-fill re-excision case"
       >

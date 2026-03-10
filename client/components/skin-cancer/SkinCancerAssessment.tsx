@@ -23,8 +23,22 @@
  *   SectionWrapper "N. Summary & Procedures" (accept-mapping)
  */
 
-import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import { View, Pressable, Switch, LayoutAnimation, Platform, UIManager, StyleSheet } from "react-native";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  useRef,
+} from "react";
+import {
+  View,
+  Pressable,
+  Switch,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+  StyleSheet,
+} from "react-native";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
@@ -50,10 +64,12 @@ import type {
   SLNBDetails,
   LesionPhoto,
 } from "@/types/skinCancer";
-import { generateLesionCaption } from "./LesionDetailsSection";
+import {
+  generateLesionCaption,
+  LesionDetailsSection,
+} from "./LesionDetailsSection";
 import { SectionWrapper } from "./SectionWrapper";
 import { PathologySection } from "./PathologySection";
-import { LesionDetailsSection } from "./LesionDetailsSection";
 import { HistologySection } from "./HistologySection";
 import { MarginRecommendationBadge } from "./MarginRecommendationBadge";
 import { SLNBSection } from "./SLNBSection";
@@ -88,7 +104,10 @@ const DIAGNOSIS_CATEGORIES: {
 ];
 
 // Enable LayoutAnimation on Android
-if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
@@ -154,7 +173,9 @@ export function SkinCancerAssessment({
   const summaryRef = useRef<View>(null);
 
   // ── Section collapse state (controlled mode for all collapsible sections) ──
-  const [sectionCollapse, setSectionCollapse] = useState<Record<string, boolean>>({
+  const [sectionCollapse, setSectionCollapse] = useState<
+    Record<string, boolean>
+  >({
     diagnosis: false,
     pathology: true, // collapsed by default
   });
@@ -162,13 +183,10 @@ export function SkinCancerAssessment({
     (key: string) => sectionCollapse[key] ?? false,
     [sectionCollapse],
   );
-  const setSectionCollapsedState = useCallback(
-    (key: string, val: boolean) => {
-      LayoutAnimation.configureNext(SMOOTH_LAYOUT_ANIM);
-      setSectionCollapse((prev) => ({ ...prev, [key]: val }));
-    },
-    [],
-  );
+  const setSectionCollapsedState = useCallback((key: string, val: boolean) => {
+    LayoutAnimation.configureNext(SMOOTH_LAYOUT_ANIM);
+    setSectionCollapse((prev) => ({ ...prev, [key]: val }));
+  }, []);
 
   // ── Diagnosis auto-config ──
   const autoConfig = useMemo(
@@ -244,12 +262,14 @@ export function SkinCancerAssessment({
     }));
     onAssessmentChange({ ...assessment, lesionPhotos: updated });
   }, [
+    assessment,
     assessment?.priorHistology?.pathologyCategory,
     assessment?.currentHistology?.pathologyCategory,
     assessment?.clinicalSuspicion,
     assessment?.site,
     assessment?.laterality,
-  ]); // eslint-disable-line react-hooks/exhaustive-deps
+    onAssessmentChange,
+  ]);
 
   // ── Handlers ──
   const handleStageSelect = useCallback(
@@ -330,8 +350,8 @@ export function SkinCancerAssessment({
             : undefined,
         biopsyPeripheralMarginMm:
           nextPathwayStage === "excision_biopsy"
-          ? assessment?.biopsyPeripheralMarginMm
-          : undefined,
+            ? assessment?.biopsyPeripheralMarginMm
+            : undefined,
         punchSizeMm:
           nextPathwayStage === "excision_biopsy"
             ? assessment?.punchSizeMm
@@ -546,12 +566,17 @@ export function SkinCancerAssessment({
         collapsible
         isCollapsed={isSectionCollapsed("diagnosis")}
         onCollapsedChange={(v) => setSectionCollapsedState("diagnosis", v)}
-        subtitle={assessment?.clinicalSuspicion ? DIAGNOSIS_CATEGORIES.find(c => c.value === assessment.clinicalSuspicion)?.label : undefined}
+        subtitle={
+          assessment?.clinicalSuspicion
+            ? DIAGNOSIS_CATEGORIES.find(
+                (c) => c.value === assessment.clinicalSuspicion,
+              )?.label
+            : undefined
+        }
       >
         <View style={styles.tier1Grid}>
           {DIAGNOSIS_CATEGORIES.map((opt) => {
-            const isSelected =
-              assessment?.clinicalSuspicion === opt.value;
+            const isSelected = assessment?.clinicalSuspicion === opt.value;
             return (
               <Pressable
                 key={opt.value}
@@ -611,9 +636,7 @@ export function SkinCancerAssessment({
                       backgroundColor: theme.backgroundTertiary,
                     },
                   ]}
-                  value={
-                    assessment?.priorHistology?.melanomaBreslowMm
-                  }
+                  value={assessment?.priorHistology?.melanomaBreslowMm}
                   onValueChange={(melanomaBreslowMm) =>
                     handlePriorHistologyPartialChange({ melanomaBreslowMm })
                   }
@@ -638,7 +661,9 @@ export function SkinCancerAssessment({
               icon="file-text"
               collapsible
               isCollapsed={isSectionCollapsed("pathology")}
-              onCollapsedChange={(v) => setSectionCollapsedState("pathology", v)}
+              onCollapsedChange={(v) =>
+                setSectionCollapsedState("pathology", v)
+              }
               subtitle="Optional — prior biopsy report details"
             >
               <PathologySection
@@ -696,9 +721,7 @@ export function SkinCancerAssessment({
             </SectionWrapper>
           ) : considerSlnb ? (
             <View style={styles.considerRow}>
-              <ThemedText
-                style={[styles.considerLabel, { color: theme.text }]}
-              >
+              <ThemedText style={[styles.considerLabel, { color: theme.text }]}>
                 Consider SLNB
               </ThemedText>
               <Switch
@@ -708,9 +731,7 @@ export function SkinCancerAssessment({
                   false: theme.border,
                   true: theme.link + "60",
                 }}
-                thumbColor={
-                  manualSlnbToggle ? theme.link : theme.textSecondary
-                }
+                thumbColor={manualSlnbToggle ? theme.link : theme.textSecondary}
               />
             </View>
           ) : null}
@@ -910,10 +931,7 @@ export function SkinCancerAssessment({
             assessment.biopsyType &&
             assessment.site && (
               <Pressable
-                style={[
-                  styles.addLesionButton,
-                  { borderColor: theme.border },
-                ]}
+                style={[styles.addLesionButton, { borderColor: theme.border }]}
                 onPress={onAddLesion}
               >
                 <ThemedText
@@ -940,9 +958,7 @@ export function SkinCancerAssessment({
                   true: theme.link + "60",
                 }}
                 thumbColor={
-                  assessment.discussedAtMdt
-                    ? theme.link
-                    : theme.textSecondary
+                  assessment.discussedAtMdt ? theme.link : theme.textSecondary
                 }
               />
             </View>
@@ -956,7 +972,9 @@ export function SkinCancerAssessment({
                 icon="check-square"
                 collapsible
                 isCollapsed={isSectionCollapsed("summary")}
-                onCollapsedChange={(v) => setSectionCollapsedState("summary", v)}
+                onCollapsedChange={(v) =>
+                  setSectionCollapsedState("summary", v)
+                }
               >
                 <SkinCancerSummaryPanel
                   assessment={assessment}

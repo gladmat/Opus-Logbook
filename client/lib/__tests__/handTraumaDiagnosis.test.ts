@@ -254,7 +254,11 @@ describe("hand trauma diagnosis generation", () => {
           },
         ],
         softTissueDescriptors: [
-          { type: "loss", surfaces: ["palmar", "dorsal"], digits: ["II", "III"] },
+          {
+            type: "loss",
+            surfaces: ["palmar", "dorsal"],
+            digits: ["II", "III"],
+          },
         ],
       },
       "latin_medical",
@@ -386,7 +390,11 @@ describe("hand trauma diagnosis generation", () => {
         },
       ],
       softTissueDescriptors: [
-        { type: "loss", surfaces: ["palmar", "dorsal"], digits: ["II", "III", "IV"] },
+        {
+          type: "loss",
+          surfaces: ["palmar", "dorsal"],
+          digits: ["II", "III", "IV"],
+        },
         { type: "contamination" },
       ],
     };
@@ -417,7 +425,10 @@ describe("hand trauma diagnosis generation", () => {
       ],
     };
 
-    const shorthand = generateHandTraumaDiagnosis(selection, "shorthand_english");
+    const shorthand = generateHandTraumaDiagnosis(
+      selection,
+      "shorthand_english",
+    );
     const latin = generateHandTraumaDiagnosis(selection, "latin_medical");
 
     expect(shorthand!.machineSummary).toEqual(latin!.machineSummary);
@@ -510,13 +521,19 @@ describe("hand trauma diagnosis generation", () => {
       ],
       perfusionStatuses: [{ digit: "III", status: "impaired" }],
       softTissueDescriptors: [
-        { type: "loss", surfaces: ["palmar", "dorsal"], digits: ["II", "III", "IV"] },
+        {
+          type: "loss",
+          surfaces: ["palmar", "dorsal"],
+          digits: ["II", "III", "IV"],
+        },
         { type: "contamination" },
       ],
     });
 
     expect(result!.headerLine).toBe("Left hand saw/blade injury - rays II–IV");
-    expect(result!.diagnosisTextShort).toContain("Complete extensor tendon lacerations, Dig. II–IV");
+    expect(result!.diagnosisTextShort).toContain(
+      "Complete extensor tendon lacerations, Dig. II–IV",
+    );
     expect(result!.diagnosisTextShort).toContain(
       "Digital vessel injury with impaired perfusion of Dig. III",
     );
@@ -552,7 +569,9 @@ describe("hand trauma diagnosis generation", () => {
     });
 
     expect(result!.headerLine).toBe("Right Dig. IV injury");
-    expect(result!.diagnosisTextLong).toContain("PIP fracture-dislocation, Dig. IV");
+    expect(result!.diagnosisTextLong).toContain(
+      "PIP fracture-dislocation, Dig. IV",
+    );
     expect(result!.diagnosisTextLong).toContain("Volar plate injury, Dig. IV");
   });
 

@@ -50,7 +50,9 @@ export const HorizontalBarChart = React.memo(function HorizontalBarChart({
               />
             </View>
             {showValues && (
-              <ThemedText style={[styles.value, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[styles.value, { color: theme.textSecondary }]}
+              >
                 {item.value}
               </ThemedText>
             )}

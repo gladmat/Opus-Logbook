@@ -9,7 +9,7 @@ interface MediaCallbackContextType {
   executeCallback: (callbackId: string, attachments: MediaAttachment[]) => void;
   clearCallback: (callbackId: string) => void;
   registerGenericCallback: (callback: GenericCallback) => string;
-  executeGenericCallback: (callbackId: string, ...args: any[]) => void;
+  executeGenericCallback: (callbackId: string, ...args: any[]) => boolean;
 }
 
 const MediaCallbackContext = createContext<MediaCallbackContextType | null>(
@@ -62,12 +62,15 @@ export function MediaCallbackProvider({
       if (callback) {
         try {
           callback(...args);
+          genericCallbacksRef.current.delete(callbackId);
+          return true;
         } catch (error) {
           console.error("Media callback error:", error);
+          return false;
         }
-        genericCallbacksRef.current.delete(callbackId);
       } else {
         console.warn("Media callback not found for id:", callbackId);
+        return false;
       }
     },
     [],

@@ -42,8 +42,9 @@ function makeCase(
     facility: overrides.facility ?? "Test Hospital",
     specialty,
     procedureType: overrides.procedureType ?? "Primary procedure",
-    diagnosisGroups:
-      overrides.diagnosisGroups ?? [makeDiagnosisGroup(specialty)],
+    diagnosisGroups: overrides.diagnosisGroups ?? [
+      makeDiagnosisGroup(specialty),
+    ],
     teamMembers: overrides.teamMembers ?? [],
     schemaVersion: 5,
     createdAt: overrides.createdAt ?? "2026-03-09T00:00:00Z",

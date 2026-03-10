@@ -10,14 +10,7 @@
  */
 
 import React, { useState, useRef, useCallback, useMemo } from "react";
-import {
-  View,
-  Pressable,
-  TextInput,
-  Switch,
-  StyleSheet,
-  Platform,
-} from "react-native";
+import { View, Pressable, TextInput, Switch, StyleSheet } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -44,7 +37,6 @@ import type {
   MCPyVStatus,
   DetailedMarginStatus,
   HistologySource,
-  RareMalignantSubtype,
 } from "@/types/skinCancer";
 
 // ═══════════════════════════════════════════════════════════════
@@ -146,11 +138,7 @@ const MARGIN_STATUS_OPTIONS: {
   { value: "unknown", label: "Unknown" },
 ];
 
-const MOHS_RECOMMENDED: Set<string> = new Set([
-  "mac",
-  "dfsp",
-  "empd",
-]);
+const MOHS_RECOMMENDED: Set<string> = new Set(["mac", "dfsp", "empd"]);
 
 const BCC_AGGRESSIVE: Set<BCCSubtype> = new Set([
   "infiltrative",
@@ -413,11 +401,7 @@ export const HistologySection = React.memo(function HistologySection({
     )
       return undefined;
     return quickTStage(base.melanomaBreslowMm, base.melanomaUlceration);
-  }, [
-    base.pathologyCategory,
-    base.melanomaBreslowMm,
-    base.melanomaUlceration,
-  ]);
+  }, [base.pathologyCategory, base.melanomaBreslowMm, base.melanomaUlceration]);
 
   // ═══════════════════════════════════════════════════════════
   // Render
@@ -425,309 +409,299 @@ export const HistologySection = React.memo(function HistologySection({
 
   const contentInner = (
     <>
-          {/* 1. Histology Source — hidden in simplified mode or when hideSource/hideSourceSelector */}
-          {!simplifiedMode && !hideSource && !hideSourceSelector ? (
-          <View style={styles.section}>
-            <ThemedText
-              style={[styles.sectionLabel, { color: theme.textSecondary }]}
-            >
-              HISTOLOGY SOURCE
-            </ThemedText>
-            <View style={styles.chipRow}>
-              {filteredSources.map((opt) => {
-                const isSelected = base.source === opt.value;
-                return (
-                  <Pressable
-                    key={opt.value}
-                    style={[
-                      styles.chip,
-                      {
-                        backgroundColor: isSelected
-                          ? theme.link + "14"
-                          : theme.backgroundElevated,
-                        borderColor: isSelected ? theme.link : theme.border,
-                      },
-                    ]}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      update({ source: opt.value });
-                    }}
-                  >
-                    <ThemedText
-                      style={[
-                        styles.chipText,
-                        { color: isSelected ? theme.link : theme.text },
-                      ]}
-                    >
-                      {opt.label}
-                    </ThemedText>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-          ) : null}
-
-          {/* 2. Pathology Category — hidden in simplified mode */}
-          {!simplifiedMode ? (
-          <View style={styles.section}>
-            <ThemedText
-              style={[styles.sectionLabel, { color: theme.textSecondary }]}
-            >
-              PATHOLOGY CATEGORY
-            </ThemedText>
-            <View style={styles.chipRow}>
-              {filteredCategories.map((opt) => {
-                const isSelected = base.pathologyCategory === opt.value;
-                return (
-                  <Pressable
-                    key={opt.value}
-                    style={[
-                      styles.chip,
-                      {
-                        backgroundColor: isSelected
-                          ? theme.link + "14"
-                          : theme.backgroundElevated,
-                        borderColor: isSelected ? theme.link : theme.border,
-                      },
-                    ]}
-                    onPress={() => handleCategoryChange(opt.value)}
-                  >
-                    <ThemedText
-                      style={[
-                        styles.chipText,
-                        { color: isSelected ? theme.link : theme.text },
-                      ]}
-                    >
-                      {opt.label}
-                    </ThemedText>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-          ) : null}
-
-          {/* 3. Category-specific fields — hidden in simplified mode */}
-          {!simplifiedMode && base.pathologyCategory === "bcc" ? (
-            <BCCFields histology={base} update={update} theme={theme} />
-          ) : !simplifiedMode && base.pathologyCategory === "scc" ? (
-            <SCCFields histology={base} update={update} theme={theme} />
-          ) : !simplifiedMode && base.pathologyCategory === "melanoma" ? (
-            <MelanomaFields
-              histology={base}
-              update={update}
-              theme={theme}
-              showExtras={showMelanomaExtras}
-              onToggleExtras={() => setShowMelanomaExtras((p) => !p)}
-              tStageDisplay={tStageDisplay}
-            />
-          ) : !simplifiedMode && base.pathologyCategory === "merkel_cell" ? (
-            <MerkelFields histology={base} update={update} theme={theme} />
-          ) : !simplifiedMode && base.pathologyCategory === "rare_malignant" ? (
-            <View style={styles.section}>
-              <RareTypeSubtypePicker
-                selectedSubtype={base.rareSubtype}
-                onSelectSubtype={(sub) => update({ rareSubtype: sub })}
-              />
-            </View>
-          ) : null}
-
-          {/* 4. Excision Method (always in simplified; otherwise when category set) */}
-          {simplifiedMode || base.pathologyCategory ? (
-            <View style={styles.section}>
-              <ThemedText
-                style={[styles.sectionLabel, { color: theme.textSecondary }]}
-              >
-                EXCISION METHOD
-              </ThemedText>
-              <View style={styles.chipRow}>
-                {filteredExcisionOptions.map((opt) => {
-                  const isSelected = base.excisionMethod === opt.value;
-                  return (
-                    <Pressable
-                      key={opt.value}
-                      style={[
-                        styles.chip,
-                        {
-                          backgroundColor: isSelected
-                            ? theme.link + "14"
-                            : theme.backgroundElevated,
-                          borderColor: isSelected ? theme.link : theme.border,
-                        },
-                      ]}
-                      onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        update({
-                          excisionMethod:
-                            base.excisionMethod === opt.value
-                              ? undefined
-                              : opt.value,
-                        });
-                      }}
-                    >
-                      <ThemedText
-                        style={[
-                          styles.chipText,
-                          { color: isSelected ? theme.link : theme.text },
-                        ]}
-                      >
-                        {opt.label}
-                      </ThemedText>
-                    </Pressable>
-                  );
-                })}
-              </View>
-              {showMohsNote ? (
-                <ThemedText
-                  style={[styles.footnote, { color: theme.info }]}
+      {/* 1. Histology Source — hidden in simplified mode or when hideSource/hideSourceSelector */}
+      {!simplifiedMode && !hideSource && !hideSourceSelector ? (
+        <View style={styles.section}>
+          <ThemedText
+            style={[styles.sectionLabel, { color: theme.textSecondary }]}
+          >
+            HISTOLOGY SOURCE
+          </ThemedText>
+          <View style={styles.chipRow}>
+            {filteredSources.map((opt) => {
+              const isSelected = base.source === opt.value;
+              return (
+                <Pressable
+                  key={opt.value}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: isSelected
+                        ? theme.link + "14"
+                        : theme.backgroundElevated,
+                      borderColor: isSelected ? theme.link : theme.border,
+                    },
+                  ]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    update({ source: opt.value });
+                  }}
                 >
-                  Mohs recommended for this tumour type
+                  <ThemedText
+                    style={[
+                      styles.chipText,
+                      { color: isSelected ? theme.link : theme.text },
+                    ]}
+                  >
+                    {opt.label}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
+
+      {/* 2. Pathology Category — hidden in simplified mode */}
+      {!simplifiedMode ? (
+        <View style={styles.section}>
+          <ThemedText
+            style={[styles.sectionLabel, { color: theme.textSecondary }]}
+          >
+            PATHOLOGY CATEGORY
+          </ThemedText>
+          <View style={styles.chipRow}>
+            {filteredCategories.map((opt) => {
+              const isSelected = base.pathologyCategory === opt.value;
+              return (
+                <Pressable
+                  key={opt.value}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: isSelected
+                        ? theme.link + "14"
+                        : theme.backgroundElevated,
+                      borderColor: isSelected ? theme.link : theme.border,
+                    },
+                  ]}
+                  onPress={() => handleCategoryChange(opt.value)}
+                >
+                  <ThemedText
+                    style={[
+                      styles.chipText,
+                      { color: isSelected ? theme.link : theme.text },
+                    ]}
+                  >
+                    {opt.label}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
+
+      {/* 3. Category-specific fields — hidden in simplified mode */}
+      {!simplifiedMode && base.pathologyCategory === "bcc" ? (
+        <BCCFields histology={base} update={update} theme={theme} />
+      ) : !simplifiedMode && base.pathologyCategory === "scc" ? (
+        <SCCFields histology={base} update={update} theme={theme} />
+      ) : !simplifiedMode && base.pathologyCategory === "melanoma" ? (
+        <MelanomaFields
+          histology={base}
+          update={update}
+          theme={theme}
+          showExtras={showMelanomaExtras}
+          onToggleExtras={() => setShowMelanomaExtras((p) => !p)}
+          tStageDisplay={tStageDisplay}
+        />
+      ) : !simplifiedMode && base.pathologyCategory === "merkel_cell" ? (
+        <MerkelFields histology={base} update={update} theme={theme} />
+      ) : !simplifiedMode && base.pathologyCategory === "rare_malignant" ? (
+        <View style={styles.section}>
+          <RareTypeSubtypePicker
+            selectedSubtype={base.rareSubtype}
+            onSelectSubtype={(sub) => update({ rareSubtype: sub })}
+          />
+        </View>
+      ) : null}
+
+      {/* 4. Excision Method (always in simplified; otherwise when category set) */}
+      {simplifiedMode || base.pathologyCategory ? (
+        <View style={styles.section}>
+          <ThemedText
+            style={[styles.sectionLabel, { color: theme.textSecondary }]}
+          >
+            EXCISION METHOD
+          </ThemedText>
+          <View style={styles.chipRow}>
+            {filteredExcisionOptions.map((opt) => {
+              const isSelected = base.excisionMethod === opt.value;
+              return (
+                <Pressable
+                  key={opt.value}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: isSelected
+                        ? theme.link + "14"
+                        : theme.backgroundElevated,
+                      borderColor: isSelected ? theme.link : theme.border,
+                    },
+                  ]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    update({
+                      excisionMethod:
+                        base.excisionMethod === opt.value
+                          ? undefined
+                          : opt.value,
+                    });
+                  }}
+                >
+                  <ThemedText
+                    style={[
+                      styles.chipText,
+                      { color: isSelected ? theme.link : theme.text },
+                    ]}
+                  >
+                    {opt.label}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+          {showMohsNote ? (
+            <ThemedText style={[styles.footnote, { color: theme.info }]}>
+              Mohs recommended for this tumour type
+            </ThemedText>
+          ) : null}
+        </View>
+      ) : null}
+
+      {/* 5. Margin Fields — hidden when Mohs selected (no planned margins) */}
+      {(simplifiedMode || base.pathologyCategory) &&
+      base.excisionMethod !== "mohs" ? (
+        <View style={styles.section}>
+          {/* Margin recommendation badge — hidden in simplified mode */}
+          {!simplifiedMode && marginRec ? (
+            <View
+              style={[
+                styles.marginRecBanner,
+                {
+                  backgroundColor: theme.info + "10",
+                  borderLeftColor: theme.info,
+                },
+              ]}
+            >
+              <ThemedText
+                style={[styles.marginRecTitle, { color: theme.info }]}
+              >
+                Recommended: {marginRec.recommendedText} (
+                {marginRec.guidelineSource})
+              </ThemedText>
+              {marginRec.guidelineNote ? (
+                <ThemedText
+                  style={[styles.marginRecNote, { color: theme.textSecondary }]}
+                >
+                  {marginRec.guidelineNote}
                 </ThemedText>
               ) : null}
             </View>
           ) : null}
 
-          {/* 5. Margin Fields — hidden when Mohs selected (no planned margins) */}
-          {(simplifiedMode || base.pathologyCategory) &&
-           base.excisionMethod !== "mohs" ? (
-            <View style={styles.section}>
-              {/* Margin recommendation badge — hidden in simplified mode */}
-              {!simplifiedMode && marginRec ? (
-                <View
-                  style={[
-                    styles.marginRecBanner,
-                    {
-                      backgroundColor: theme.info + "10",
-                      borderLeftColor: theme.info,
-                    },
-                  ]}
+          <View style={styles.marginInputRow}>
+            {/* Deep margin — hidden in simplified (excision) mode */}
+            {!simplifiedMode ? (
+              <View style={styles.marginInputGroup}>
+                <ThemedText
+                  style={[styles.sectionLabel, { color: theme.textSecondary }]}
                 >
-                  <ThemedText
-                    style={[styles.marginRecTitle, { color: theme.info }]}
-                  >
-                    Recommended: {marginRec.recommendedText} ({marginRec.guidelineSource})
-                  </ThemedText>
-                  {marginRec.guidelineNote ? (
-                    <ThemedText
-                      style={[
-                        styles.marginRecNote,
-                        { color: theme.textSecondary },
-                      ]}
-                    >
-                      {marginRec.guidelineNote}
-                    </ThemedText>
-                  ) : null}
-                </View>
-              ) : null}
-
-              <View style={styles.marginInputRow}>
-                {/* Deep margin — hidden in simplified (excision) mode */}
-                {!simplifiedMode ? (
-                  <View style={styles.marginInputGroup}>
-                    <ThemedText
-                      style={[
-                        styles.sectionLabel,
-                        { color: theme.textSecondary },
-                      ]}
-                    >
-                      DEEP MARGIN
-                    </ThemedText>
-                    <View style={styles.inputWithUnit}>
-                      <TextInput
-                        style={[
-                          styles.numericInput,
-                          {
-                            backgroundColor: theme.backgroundElevated,
-                            borderColor: theme.border,
-                            color: theme.text,
-                          },
-                        ]}
-                        value={
-                          base.deepMarginMm !== undefined
-                            ? String(base.deepMarginMm)
-                            : ""
-                        }
-                        onChangeText={(t) => {
-                          const n = parseFloat(t);
-                          update({ deepMarginMm: isNaN(n) ? undefined : n });
-                        }}
-                        placeholder="—"
-                        placeholderTextColor={theme.textTertiary}
-                        keyboardType="decimal-pad"
-                        returnKeyType="next"
-                        blurOnSubmit={false}
-                        onSubmitEditing={() =>
-                          peripheralMarginRef.current?.focus()
-                        }
-                      />
-                      <ThemedText
-                        style={[styles.unitText, { color: theme.textSecondary }]}
-                      >
-                        mm
-                      </ThemedText>
-                    </View>
-                  </View>
-                ) : null}
-                <View style={styles.marginInputGroup}>
-                  <ThemedText
+                  DEEP MARGIN
+                </ThemedText>
+                <View style={styles.inputWithUnit}>
+                  <TextInput
                     style={[
-                      styles.sectionLabel,
-                      { color: theme.textSecondary },
+                      styles.numericInput,
+                      {
+                        backgroundColor: theme.backgroundElevated,
+                        borderColor: theme.border,
+                        color: theme.text,
+                      },
                     ]}
+                    value={
+                      base.deepMarginMm !== undefined
+                        ? String(base.deepMarginMm)
+                        : ""
+                    }
+                    onChangeText={(t) => {
+                      const n = parseFloat(t);
+                      update({ deepMarginMm: isNaN(n) ? undefined : n });
+                    }}
+                    placeholder="—"
+                    placeholderTextColor={theme.textTertiary}
+                    keyboardType="decimal-pad"
+                    returnKeyType="next"
+                    blurOnSubmit={false}
+                    onSubmitEditing={() => peripheralMarginRef.current?.focus()}
+                  />
+                  <ThemedText
+                    style={[styles.unitText, { color: theme.textSecondary }]}
                   >
-                    {simplifiedMode ? "PERIPHERAL MARGIN TAKEN" : "PERIPHERAL MARGIN"}
+                    mm
                   </ThemedText>
-                  <View style={styles.inputWithUnit}>
-                    <TextInput
-                      ref={peripheralMarginRef}
-                      style={[
-                        styles.numericInput,
-                        {
-                          backgroundColor: theme.backgroundElevated,
-                          borderColor: theme.border,
-                          color: theme.text,
-                        },
-                      ]}
-                      value={
-                        simplifiedMode
-                          ? (base.excisionPeripheralMarginMm !== undefined
-                              ? String(base.excisionPeripheralMarginMm)
-                              : "")
-                          : (base.peripheralMarginMm !== undefined
-                              ? String(base.peripheralMarginMm)
-                              : "")
-                      }
-                      onChangeText={(t) => {
-                        const n = parseFloat(t);
-                        if (simplifiedMode) {
-                          update({
-                            excisionPeripheralMarginMm: isNaN(n) ? undefined : n,
-                          });
-                        } else {
-                          update({
-                            peripheralMarginMm: isNaN(n) ? undefined : n,
-                          });
-                        }
-                      }}
-                      placeholder="—"
-                      placeholderTextColor={theme.textTertiary}
-                      keyboardType="decimal-pad"
-                      returnKeyType="done"
-                      blurOnSubmit
-                    />
-                    <ThemedText
-                      style={[styles.unitText, { color: theme.textSecondary }]}
-                    >
-                      mm
-                    </ThemedText>
-                  </View>
                 </View>
               </View>
+            ) : null}
+            <View style={styles.marginInputGroup}>
+              <ThemedText
+                style={[styles.sectionLabel, { color: theme.textSecondary }]}
+              >
+                {simplifiedMode
+                  ? "PERIPHERAL MARGIN TAKEN"
+                  : "PERIPHERAL MARGIN"}
+              </ThemedText>
+              <View style={styles.inputWithUnit}>
+                <TextInput
+                  ref={peripheralMarginRef}
+                  style={[
+                    styles.numericInput,
+                    {
+                      backgroundColor: theme.backgroundElevated,
+                      borderColor: theme.border,
+                      color: theme.text,
+                    },
+                  ]}
+                  value={
+                    simplifiedMode
+                      ? base.excisionPeripheralMarginMm !== undefined
+                        ? String(base.excisionPeripheralMarginMm)
+                        : ""
+                      : base.peripheralMarginMm !== undefined
+                        ? String(base.peripheralMarginMm)
+                        : ""
+                  }
+                  onChangeText={(t) => {
+                    const n = parseFloat(t);
+                    if (simplifiedMode) {
+                      update({
+                        excisionPeripheralMarginMm: isNaN(n) ? undefined : n,
+                      });
+                    } else {
+                      update({
+                        peripheralMarginMm: isNaN(n) ? undefined : n,
+                      });
+                    }
+                  }}
+                  placeholder="—"
+                  placeholderTextColor={theme.textTertiary}
+                  keyboardType="decimal-pad"
+                  returnKeyType="done"
+                  blurOnSubmit
+                />
+                <ThemedText
+                  style={[styles.unitText, { color: theme.textSecondary }]}
+                >
+                  mm
+                </ThemedText>
+              </View>
+            </View>
+          </View>
 
-              {/* Margin status + re-excision — hidden in simplified mode */}
-              {!simplifiedMode ? (
-              <>
+          {/* Margin status + re-excision — hidden in simplified mode */}
+          {!simplifiedMode ? (
+            <>
               <ThemedText
                 style={[styles.sectionLabel, { color: theme.textSecondary }]}
               >
@@ -779,73 +753,68 @@ export const HistologySection = React.memo(function HistologySection({
 
               {/* Re-excision prompt for incomplete/close margins */}
               {(base.marginStatus === "incomplete" ||
-                base.marginStatus === "close") && <ReExcisionPromptCard onCreateFollowUp={onCreateFollowUp} />}
-              </>
-              ) : null}
-            </View>
+                base.marginStatus === "close") && (
+                <ReExcisionPromptCard onCreateFollowUp={onCreateFollowUp} />
+              )}
+            </>
           ) : null}
+        </View>
+      ) : null}
 
-          {/* 6. Lab Details (disclosure) — hidden in simplified mode */}
-          {!simplifiedMode && base.pathologyCategory ? (
-            <View style={styles.section}>
-              <Pressable
-                onPress={() => setShowLabDetails((p) => !p)}
-                style={[
-                  styles.disclosureHeader,
-                  { borderBottomColor: theme.border },
-                ]}
-              >
+      {/* 6. Lab Details (disclosure) — hidden in simplified mode */}
+      {!simplifiedMode && base.pathologyCategory ? (
+        <View style={styles.section}>
+          <Pressable
+            onPress={() => setShowLabDetails((p) => !p)}
+            style={[
+              styles.disclosureHeader,
+              { borderBottomColor: theme.border },
+            ]}
+          >
+            <ThemedText style={[styles.disclosureText, { color: theme.link }]}>
+              {showLabDetails ? "Hide lab details" : "Lab details"}
+            </ThemedText>
+            <Feather
+              name={showLabDetails ? "chevron-up" : "chevron-down"}
+              size={14}
+              color={theme.link}
+            />
+          </Pressable>
+          {showLabDetails ? (
+            <View style={styles.disclosureContent}>
+              <DatePickerField
+                label="Report date"
+                value={base.reportDate}
+                onChange={(d) => update({ reportDate: d })}
+                clearable
+                maximumDate={new Date()}
+              />
+              <View style={styles.labRefField}>
                 <ThemedText
-                  style={[styles.disclosureText, { color: theme.link }]}
+                  style={[styles.sectionLabel, { color: theme.textSecondary }]}
                 >
-                  {showLabDetails ? "Hide lab details" : "Lab details"}
+                  LAB REFERENCE
                 </ThemedText>
-                <Feather
-                  name={showLabDetails ? "chevron-up" : "chevron-down"}
-                  size={14}
-                  color={theme.link}
+                <TextInput
+                  style={[
+                    styles.labRefInput,
+                    {
+                      backgroundColor: theme.backgroundElevated,
+                      borderColor: theme.border,
+                      color: theme.text,
+                    },
+                  ]}
+                  value={base.labReference ?? ""}
+                  onChangeText={(t) => update({ labReference: t || undefined })}
+                  placeholder="e.g. H-2024-12345"
+                  placeholderTextColor={theme.textTertiary}
+                  returnKeyType="done"
                 />
-              </Pressable>
-              {showLabDetails ? (
-                <View style={styles.disclosureContent}>
-                  <DatePickerField
-                    label="Report date"
-                    value={base.reportDate}
-                    onChange={(d) => update({ reportDate: d })}
-                    clearable
-                    maximumDate={new Date()}
-                  />
-                  <View style={styles.labRefField}>
-                    <ThemedText
-                      style={[
-                        styles.sectionLabel,
-                        { color: theme.textSecondary },
-                      ]}
-                    >
-                      LAB REFERENCE
-                    </ThemedText>
-                    <TextInput
-                      style={[
-                        styles.labRefInput,
-                        {
-                          backgroundColor: theme.backgroundElevated,
-                          borderColor: theme.border,
-                          color: theme.text,
-                        },
-                      ]}
-                      value={base.labReference ?? ""}
-                      onChangeText={(t) =>
-                        update({ labReference: t || undefined })
-                      }
-                      placeholder="e.g. H-2024-12345"
-                      placeholderTextColor={theme.textTertiary}
-                      returnKeyType="done"
-                    />
-                  </View>
-                </View>
-              ) : null}
+              </View>
             </View>
           ) : null}
+        </View>
+      ) : null}
     </>
   );
 
@@ -912,9 +881,7 @@ interface FieldProps {
 function BCCFields({ histology, update, theme }: FieldProps) {
   return (
     <View style={styles.section}>
-      <ThemedText
-        style={[styles.sectionLabel, { color: theme.textSecondary }]}
-      >
+      <ThemedText style={[styles.sectionLabel, { color: theme.textSecondary }]}>
         BCC SUBTYPE
       </ThemedText>
       <View style={styles.chipRow}>
@@ -1036,9 +1003,7 @@ function SCCFields({ histology, update, theme }: FieldProps) {
             keyboardType="decimal-pad"
             returnKeyType="done"
           />
-          <ThemedText
-            style={[styles.unitText, { color: theme.textSecondary }]}
-          >
+          <ThemedText style={[styles.unitText, { color: theme.textSecondary }]}>
             mm
           </ThemedText>
         </View>
@@ -1156,9 +1121,7 @@ function MelanomaFields({
             keyboardType="decimal-pad"
             returnKeyType="done"
           />
-          <ThemedText
-            style={[styles.unitText, { color: theme.textSecondary }]}
-          >
+          <ThemedText style={[styles.unitText, { color: theme.textSecondary }]}>
             mm
           </ThemedText>
         </View>
@@ -1231,10 +1194,7 @@ function MelanomaFields({
       {/* More details disclosure */}
       <Pressable
         onPress={onToggleExtras}
-        style={[
-          styles.disclosureHeader,
-          { borderBottomColor: theme.border },
-        ]}
+        style={[styles.disclosureHeader, { borderBottomColor: theme.border }]}
       >
         <ThemedText style={[styles.disclosureText, { color: theme.link }]}>
           {showExtras ? "Less details" : "More details"}
@@ -1443,9 +1403,7 @@ function MerkelFields({ histology, update, theme }: FieldProps) {
             keyboardType="decimal-pad"
             returnKeyType="done"
           />
-          <ThemedText
-            style={[styles.unitText, { color: theme.textSecondary }]}
-          >
+          <ThemedText style={[styles.unitText, { color: theme.textSecondary }]}>
             mm
           </ThemedText>
         </View>
@@ -1528,9 +1486,7 @@ function MerkelFields({ histology, update, theme }: FieldProps) {
             keyboardType="decimal-pad"
             returnKeyType="done"
           />
-          <ThemedText
-            style={[styles.unitText, { color: theme.textSecondary }]}
-          >
+          <ThemedText style={[styles.unitText, { color: theme.textSecondary }]}>
             mm
           </ThemedText>
         </View>

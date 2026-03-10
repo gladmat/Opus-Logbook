@@ -106,7 +106,9 @@ export function FractureSection({
       : "";
   const availableFingerOptions = useMemo(() => {
     if (selectedDigits.length === 0) return FINGER_OPTIONS;
-    const allowed = new Set(selectedDigits.map((digit) => DIGIT_TO_FINGER[digit]));
+    const allowed = new Set(
+      selectedDigits.map((digit) => DIGIT_TO_FINGER[digit]),
+    );
     return FINGER_OPTIONS.filter((finger) => allowed.has(finger.key));
   }, [selectedDigits]);
   const shouldSimplifyToSelectedRays = selectedDigits.length > 0;

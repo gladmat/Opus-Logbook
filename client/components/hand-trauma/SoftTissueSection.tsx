@@ -372,7 +372,12 @@ export function SoftTissueDescriptorSection({
       next.hasSoftTissueDefect || next.hasSoftTissueLoss || next.hasDegloving;
     if (hasCoverage && next.defectLocations.length === 0) {
       next.defectLocations = [
-        { digits: [...selectedDigits], zone: undefined, surfaces: [], size: undefined },
+        {
+          digits: [...selectedDigits],
+          zone: undefined,
+          surfaces: [],
+          size: undefined,
+        },
       ];
     }
     onChange(next);
@@ -396,9 +401,7 @@ export function SoftTissueDescriptorSection({
   const addLocation = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     // New location starts with unassigned digits
-    const usedDigits = new Set(
-      value.defectLocations.flatMap((l) => l.digits),
-    );
+    const usedDigits = new Set(value.defectLocations.flatMap((l) => l.digits));
     const remaining = selectedDigits.filter((d) => !usedDigits.has(d));
     onChange({
       ...value,

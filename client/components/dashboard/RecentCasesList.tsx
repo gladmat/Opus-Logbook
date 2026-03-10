@@ -36,7 +36,8 @@ function RecentCasesListInner({
     ? `${
         selectedSpecialty === HISTOLOGY_FILTER_ID
           ? "Histology"
-          : SPECIALTY_LABELS[selectedSpecialty as Specialty] ?? selectedSpecialty
+          : (SPECIALTY_LABELS[selectedSpecialty as Specialty] ??
+            selectedSpecialty)
       } Cases`
     : "Recent Cases";
 

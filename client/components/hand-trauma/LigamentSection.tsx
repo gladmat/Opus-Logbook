@@ -26,7 +26,10 @@ export function LigamentSection({
 }: LigamentSectionProps) {
   const { theme } = useTheme();
 
-  const isChecked = (structureId: string, category: "ligament" | "other" = "ligament") =>
+  const isChecked = (
+    structureId: string,
+    category: "ligament" | "other" = "ligament",
+  ) =>
     checkedStructures.some(
       (s) => s.structureId === structureId && s.category === category,
     );

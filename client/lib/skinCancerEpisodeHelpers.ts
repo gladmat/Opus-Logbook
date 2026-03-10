@@ -101,12 +101,10 @@ export function buildSkinCancerEpisodeLinkPlan(
   existingEpisodes: TreatmentEpisode[],
   now: string,
   episodeId: string,
-):
-  | {
-      linkedEpisodeId: string;
-      episodeToCreate?: TreatmentEpisode;
-    }
-  | null {
+): {
+  linkedEpisodeId: string;
+  episodeToCreate?: TreatmentEpisode;
+} | null {
   const pendingLesions = collectPendingSkinCancerLesions(savedCase);
   if (pendingLesions.length === 0) return null;
   if (savedCase.episodeId) {
@@ -192,18 +190,17 @@ export function buildSkinCancerFollowUpAssessment(
 ): SkinCancerLesionAssessment | undefined {
   if (!assessment) return undefined;
 
-  const priorHistology =
-    assessment.currentHistology?.pathologyCategory
-      ? {
-          ...assessment.currentHistology,
-          source:
-            assessment.currentHistology.source === "current_procedure"
-              ? "own_biopsy"
-              : assessment.currentHistology.source,
-        }
-      : assessment.priorHistology
-        ? { ...assessment.priorHistology }
-        : undefined;
+  const priorHistology = assessment.currentHistology?.pathologyCategory
+    ? {
+        ...assessment.currentHistology,
+        source:
+          assessment.currentHistology.source === "current_procedure"
+            ? "own_biopsy"
+            : assessment.currentHistology.source,
+      }
+    : assessment.priorHistology
+      ? { ...assessment.priorHistology }
+      : undefined;
 
   return {
     ...assessment,

@@ -60,6 +60,7 @@ import { resolveFacilityName } from "@/lib/facilities";
 import { useFavouritesRecents } from "@/hooks/useFavouritesRecents";
 import type { TreatmentEpisode } from "@/types/episode";
 import { HeaderTitleText } from "@/components/HeaderTitleText";
+import { buildMediaContext } from "@/lib/mediaContext";
 
 type RouteParams = RouteProp<RootStackParamList, "CaseForm">;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -231,26 +232,14 @@ export default function CaseFormScreen() {
 
   // ── Media context for protocol detection ───────────────────────────────
 
-  const mediaProcedureTags = useMemo(
+  const mediaContext = useMemo(
     () =>
-      Array.from(
-        new Set(
-          form.state.diagnosisGroups.flatMap((g) =>
-            g.procedures.flatMap((p) => p.tags ?? []),
-          ),
-        ),
-      ),
-    [form.state.diagnosisGroups],
-  );
-
-  const mediaHasSkinCancerAssessment = useMemo(
-    () =>
-      form.state.diagnosisGroups.some(
-        (g) =>
-          !!g.skinCancerAssessment ||
-          (g.lesionInstances ?? []).some((l) => !!l.skinCancerAssessment),
-      ),
-    [form.state.diagnosisGroups],
+      buildMediaContext({
+        specialty: form.specialty,
+        procedureDate: form.state.procedureDate,
+        diagnosisGroups: form.state.diagnosisGroups,
+      }),
+    [form.specialty, form.state.diagnosisGroups, form.state.procedureDate],
   );
 
   const completionMap: CompletionMap = useMemo(() => {
@@ -460,11 +449,7 @@ export default function CaseFormScreen() {
   useEffect(() => {
     navigation.setOptions({
       headerTitle: () => (
-        <HeaderTitleText
-          title={headerTitle}
-          reserveWidth={210}
-          fontSize={15}
-        />
+        <HeaderTitleText title={headerTitle} reserveWidth={210} fontSize={15} />
       ),
       headerRight: () => (
         <View style={styles.headerActions}>
@@ -473,7 +458,9 @@ export default function CaseFormScreen() {
             hitSlop={8}
             style={styles.headerIconButton}
             accessibilityRole="button"
-            accessibilityLabel={form.isEditMode ? "Revert changes" : "Clear form"}
+            accessibilityLabel={
+              form.isEditMode ? "Revert changes" : "Clear form"
+            }
           >
             <Feather
               name="more-horizontal"
@@ -690,10 +677,7 @@ export default function CaseFormScreen() {
                   form.dispatch(setField("operativeMedia", media))
                 }
                 maxItems={15}
-                specialty={form.specialty}
-                procedureTags={mediaProcedureTags}
-                hasSkinCancerAssessment={mediaHasSkinCancerAssessment}
-                procedureDate={form.state.procedureDate}
+                mediaContext={mediaContext}
               />
             </SectionWrapper>
 

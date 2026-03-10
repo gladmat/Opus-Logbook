@@ -193,7 +193,9 @@ export function FlexorTendonSection({
                     testID={`flexor-${digit}-${tendon}`}
                     style={[
                       styles.tendonChip,
-                      isTwoColumn ? styles.tendonChipHalf : styles.tendonChipAuto,
+                      isTwoColumn
+                        ? styles.tendonChipHalf
+                        : styles.tendonChipAuto,
                       {
                         backgroundColor: checked
                           ? theme.link + "14"

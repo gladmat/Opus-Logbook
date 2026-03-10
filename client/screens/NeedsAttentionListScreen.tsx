@@ -41,6 +41,7 @@ import {
   buildAttentionCaseFormParams,
   filterCasesByVisibleSpecialties,
 } from "@/lib/dashboardSelectors";
+import { buildMediaContextFromCase } from "@/lib/mediaContext";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteParams = RouteProp<RootStackParamList, "NeedsAttentionList">;
@@ -259,9 +260,15 @@ export default function NeedsAttentionListScreen() {
 
   const handleAddEvent = useCallback(
     (caseId: string) => {
-      navigation.navigate("AddTimelineEvent", { caseId });
+      const caseData = personalizedCases.find((item) => item.id === caseId);
+      if (!caseData) return;
+
+      navigation.navigate("AddTimelineEvent", {
+        caseId,
+        mediaContext: buildMediaContextFromCase(caseData),
+      });
     },
-    [navigation],
+    [navigation, personalizedCases],
   );
 
   const handleAddHistology = useCallback(
@@ -281,40 +288,47 @@ export default function NeedsAttentionListScreen() {
     [navigation, personalizedCases],
   );
 
-  const getBadge = (item: AttentionItem) => {
-    if (item.type === "infection") {
-      return { bg: theme.error + "20", text: theme.error, label: "Infection" };
-    }
-    if (item.type === "inpatient") {
-      return {
-        bg: theme.accent + "20",
-        text: theme.accent,
-        label: "Inpatient",
-      };
-    }
-    switch (item.episodeStatus) {
-      case "active":
+  const getBadge = useCallback(
+    (item: AttentionItem) => {
+      if (item.type === "infection") {
         return {
-          bg: theme.success + "20",
-          text: theme.success,
-          label: "Active",
+          bg: theme.error + "20",
+          text: theme.error,
+          label: "Infection",
         };
-      case "on_hold":
+      }
+      if (item.type === "inpatient") {
         return {
-          bg: theme.warning + "20",
-          text: theme.warning,
-          label: "On Hold",
+          bg: theme.accent + "20",
+          text: theme.accent,
+          label: "Inpatient",
         };
-      case "planned":
-        return { bg: theme.info + "20", text: theme.info, label: "Planned" };
-      default:
-        return {
-          bg: theme.success + "20",
-          text: theme.success,
-          label: "Active",
-        };
-    }
-  };
+      }
+      switch (item.episodeStatus) {
+        case "active":
+          return {
+            bg: theme.success + "20",
+            text: theme.success,
+            label: "Active",
+          };
+        case "on_hold":
+          return {
+            bg: theme.warning + "20",
+            text: theme.warning,
+            label: "On Hold",
+          };
+        case "planned":
+          return { bg: theme.info + "20", text: theme.info, label: "Planned" };
+        default:
+          return {
+            bg: theme.success + "20",
+            text: theme.success,
+            label: "Active",
+          };
+      }
+    },
+    [theme.accent, theme.error, theme.info, theme.success, theme.warning],
+  );
 
   const renderItem = useCallback(
     ({ item }: { item: AttentionItem }) => {
@@ -467,6 +481,7 @@ export default function NeedsAttentionListScreen() {
       handleDischarge,
       handleAddEvent,
       handleAddHistology,
+      getBadge,
     ],
   );
 
@@ -600,6 +615,14 @@ export default function NeedsAttentionListScreen() {
                 attachments={dischargePhotos}
                 onAttachmentsChange={setDischargePhotos}
                 maxAttachments={15}
+                mediaType="photo"
+                eventType="discharge_photo"
+                defaultMediaDate={toIsoDateValue(dischargeDate)}
+                mediaContext={
+                  dischargeCase
+                    ? buildMediaContextFromCase(dischargeCase)
+                    : undefined
+                }
               />
             </View>
 

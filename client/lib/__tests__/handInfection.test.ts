@@ -84,9 +84,7 @@ describe("createDefaultHandInfectionDetails", () => {
   });
 
   it("deep space infection → deep_space, spreading", () => {
-    const d = createDefaultHandInfectionDetails(
-      "hand_dx_deep_space_infection",
-    );
+    const d = createDefaultHandInfectionDetails("hand_dx_deep_space_infection");
     expect(d.infectionType).toBe("deep_space");
     expect(d.severity).toBe("spreading");
   });
@@ -414,9 +412,7 @@ describe("overlayToHandInfection", () => {
         microbiology: {
           culturesTaken: true,
           cultureStatus: "positive",
-          organisms: [
-            { id: "1", organismName: "S. aureus (MSSA)" },
-          ],
+          organisms: [{ id: "1", organismName: "S. aureus (MSSA)" }],
         },
       }),
     );

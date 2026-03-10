@@ -1,5 +1,11 @@
 import React from "react";
-import { View, FlatList, Pressable, Dimensions, StyleSheet } from "react-native";
+import {
+  View,
+  FlatList,
+  Pressable,
+  Dimensions,
+  StyleSheet,
+} from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { AttentionCard } from "@/components/dashboard/AttentionCard";

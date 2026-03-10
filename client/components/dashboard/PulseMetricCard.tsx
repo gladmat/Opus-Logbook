@@ -26,7 +26,13 @@ function PulseMetricCardInner({
 }: PulseMetricCardProps) {
   const { theme } = useTheme();
   const deltaText =
-    delta == null ? null : delta > 0 ? `+${delta}` : delta < 0 ? `${delta}` : "0";
+    delta == null
+      ? null
+      : delta > 0
+        ? `+${delta}`
+        : delta < 0
+          ? `${delta}`
+          : "0";
   const deltaColor =
     delta == null
       ? theme.textTertiary

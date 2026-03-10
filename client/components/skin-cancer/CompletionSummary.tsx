@@ -14,7 +14,10 @@ import { View, StyleSheet } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing } from "@/constants/theme";
-import type { SkinCancerCompletionState, SectionStatus } from "@/types/skinCancer";
+import type {
+  SkinCancerCompletionState,
+  SectionStatus,
+} from "@/types/skinCancer";
 
 // ─── Props ───────────────────────────────────────────────────────────────
 
@@ -74,9 +77,7 @@ function CompletionSummaryInner({
 
           return (
             <View key={section.key} style={styles.item}>
-              <View
-                style={[styles.dot, { backgroundColor: color }]}
-              />
+              <View style={[styles.dot, { backgroundColor: color }]} />
               <ThemedText style={[styles.label, { color }]}>
                 {section.label}
                 {showDayCount ? ` (Day ${daysSinceCase})` : ""}

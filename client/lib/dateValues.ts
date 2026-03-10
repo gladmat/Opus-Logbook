@@ -62,6 +62,23 @@ export function toIsoDateValue(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+export function toUtcNoonIsoTimestamp(dateValue: string): string | undefined {
+  const parsed = parseIsoDateValue(dateValue);
+  if (!parsed) return undefined;
+
+  return new Date(
+    Date.UTC(
+      parsed.getFullYear(),
+      parsed.getMonth(),
+      parsed.getDate(),
+      12,
+      0,
+      0,
+      0,
+    ),
+  ).toISOString();
+}
+
 export function isValidDateInstance(value: unknown): value is Date {
   return value instanceof Date && Number.isFinite(value.getTime());
 }

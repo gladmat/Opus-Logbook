@@ -108,7 +108,7 @@ export function DislocationSection({
 
     const entry: DislocationEntry = {
       joint: selectedJoint,
-      digit: requiresDigit ? selectedDigit ?? undefined : undefined,
+      digit: requiresDigit ? (selectedDigit ?? undefined) : undefined,
       direction: selectedDirection ?? undefined,
       hasFracture: hasFracture || undefined,
       isComplex: isMCPStyle ? isComplex || undefined : undefined,
@@ -217,8 +217,9 @@ export function DislocationSection({
                     key === "thumb_cmc"
                       ? "I"
                       : key === "cmc"
-                        ? selectedDigits.find((digit) => digit !== "I") ?? null
-                        : selectedDigits[0] ?? null,
+                        ? (selectedDigits.find((digit) => digit !== "I") ??
+                          null)
+                        : (selectedDigits[0] ?? null),
                   );
                 }}
               >

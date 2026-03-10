@@ -90,13 +90,11 @@ import {
 } from "@/components/hand-trauma/HandTraumaAssessment";
 import { InfectionSheet } from "@/components/detail-sheets/InfectionSheet";
 import { WoundAssessmentSheet } from "@/components/detail-sheets/WoundAssessmentSheet";
-import { HandInfectionCard } from "@/components/hand-infection/HandInfectionCard";
 import type { HandInfectionDetails } from "@/types/handInfection";
 import {
   isHandInfectionDiagnosis,
   createDefaultHandInfectionDetails,
 } from "@/types/handInfection";
-import { handInfectionToOverlay } from "@/lib/handInfectionBridge";
 import {
   getImplantBearingProcedures,
   isImplantDetailsComplete,

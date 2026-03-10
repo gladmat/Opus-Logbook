@@ -3,11 +3,7 @@ import { caseCanAddHistology } from "@/lib/skinCancerConfig";
 import type { EpisodePrefillData, TreatmentEpisode } from "@/types/episode";
 import { PENDING_ACTION_LABELS } from "@/types/episode";
 import { INFECTION_SYNDROME_LABELS } from "@/types/infection";
-import type {
-  Case,
-  QuickCasePrefillData,
-  Specialty,
-} from "@/types/case";
+import type { Case, QuickCasePrefillData, Specialty } from "@/types/case";
 import { getCaseSpecialties } from "@/types/case";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
@@ -81,11 +77,7 @@ function parseCaseDate(dateValue: string): Date {
   const month = Number(monthRaw);
   const day = Number(dayRaw);
 
-  if (
-    Number.isFinite(year) &&
-    Number.isFinite(month) &&
-    Number.isFinite(day)
-  ) {
+  if (Number.isFinite(year) && Number.isFinite(month) && Number.isFinite(day)) {
     return new Date(year, month - 1, day, 12, 0, 0, 0);
   }
 
@@ -207,7 +199,9 @@ export function buildAttentionItems(
     });
   }
 
-  inpatientItems.sort((left, right) => (right.postOpDay ?? 0) - (left.postOpDay ?? 0));
+  inpatientItems.sort(
+    (left, right) => (right.postOpDay ?? 0) - (left.postOpDay ?? 0),
+  );
 
   const infectionItems: AttentionItem[] = [];
 
@@ -243,7 +237,7 @@ export function buildAttentionItems(
       hasEpisodeLink: !!caseData.episodeId,
       episodeId: caseData.episodeId,
       infectionSyndrome: syndromePrimary
-        ? INFECTION_SYNDROME_LABELS[syndromePrimary] ?? syndromePrimary
+        ? (INFECTION_SYNDROME_LABELS[syndromePrimary] ?? syndromePrimary)
         : undefined,
       canAddHistology: caseCanAddHistology(caseData),
     });
@@ -257,7 +251,10 @@ export function buildAttentionItems(
       continue;
     }
 
-    if (selectedSpecialty && !isSelectedSpecialty(selectedSpecialty, episode.specialty)) {
+    if (
+      selectedSpecialty &&
+      !isSelectedSpecialty(selectedSpecialty, episode.specialty)
+    ) {
       continue;
     }
 
@@ -272,7 +269,9 @@ export function buildAttentionItems(
     let facility: string | undefined;
 
     if (mostRecentCase) {
-      const caseDate = atStartOfDay(parseCaseDate(mostRecentCase.procedureDate));
+      const caseDate = atStartOfDay(
+        parseCaseDate(mostRecentCase.procedureDate),
+      );
       daysSinceLastEncounter = Math.max(0, getDiffDays(caseDate, today));
       lastProcedureSummary =
         getCasePrimaryTitle(mostRecentCase) || mostRecentCase.procedureType;
@@ -322,7 +321,11 @@ export function calculatePracticePulse(
   monday.setDate(monday.getDate() - todayIndex);
 
   const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-  const previousMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const previousMonthStart = new Date(
+    today.getFullYear(),
+    today.getMonth() - 1,
+    1,
+  );
   const previousMonthDayCount = new Date(
     today.getFullYear(),
     today.getMonth(),
@@ -380,7 +383,9 @@ export function calculatePracticePulse(
     },
     completion: {
       percentage:
-        totalLast90 === 0 ? 0 : Math.round((completedLast90 / totalLast90) * 100),
+        totalLast90 === 0
+          ? 0
+          : Math.round((completedLast90 / totalLast90) * 100),
       completedCount: completedLast90,
       totalCount: totalLast90,
     },
