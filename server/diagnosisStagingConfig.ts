@@ -31,7 +31,7 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
   // Dupuytren's Contracture
   {
     snomedCtCodes: [
-      "79426006", // Dupuytren's contracture
+      "274142002", // Dupuytren's contracture
       "240078005", // Dupuytren's disease of palm
     ],
     keywords: ["dupuytren"],
@@ -87,7 +87,6 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
     snomedCtCodes: [
       "397181002", // Open fracture (disorder)
       "22640007", // Open fracture of tibia
-      "21947006", // Open fracture of fibula
       "46866001", // Open fracture of femur
       "263225007", // Open fracture of humerus
       "46199005", // Open fracture of radius
@@ -239,8 +238,8 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
   // Trigger Finger
   {
     snomedCtCodes: [
-      "60849009", // Trigger finger
-      "202855006", // Stenosing tenosynovitis of finger
+      "1539003", // Trigger finger
+      "42786005", // Snapping thumb
     ],
     keywords: ["trigger finger", "trigger thumb", "stenosing tenosynovitis"],
     stagingSystems: [
@@ -709,7 +708,7 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
   // CMC1 Osteoarthritis (Eaton-Littler Classification)
   {
     snomedCtCodes: [
-      "202363001", // Osteoarthritis of first carpometacarpal joint
+      "37895003", // Osteoarthritis of first carpometacarpal joint
     ],
     keywords: ["CMC1", "thumb base", "Eaton", "trapeziometacarpal"],
     stagingSystems: [
@@ -789,7 +788,7 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
   // Kienböck's Disease (Lichtman Classification)
   {
     snomedCtCodes: [
-      "30886002", // Kienbock disease
+      "787484007", // Kienbock disease
     ],
     keywords: ["Kienbock", "Lichtman", "lunate AVN", "lunate necrosis"],
     stagingSystems: [

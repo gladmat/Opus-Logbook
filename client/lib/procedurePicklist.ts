@@ -459,7 +459,7 @@ const ORTHOPLASTIC_LIMB_SALVAGE: ProcedurePicklistEntry[] = [
   {
     id: "orth_ray_amputation",
     displayName: "Ray amputation",
-    snomedCtCode: "71906001",
+    snomedCtCode: "34685000",
     snomedCtDisplay: "Ray amputation of finger (procedure)",
     specialties: ["orthoplastic", "hand_wrist"],
     subcategory: "Limb Salvage",
@@ -529,9 +529,9 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
   {
     id: "hand_fx_distal_radius_orif",
     displayName: "Distal radius ORIF (volar plate)",
-    snomedCtCode: "73994004",
+    snomedCtCode: "2811000032106",
     snomedCtDisplay:
-      "Open reduction of fracture of radius with internal fixation (procedure)",
+      "Open reduction of fracture of distal radius with internal fixation (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -540,9 +540,9 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
   {
     id: "hand_fx_distal_radius_crif",
     displayName: "Distal radius CRIF (K-wires)",
-    snomedCtCode: "179097006",
+    snomedCtCode: "851000032100",
     snomedCtDisplay:
-      "Closed reduction of fracture of radius with internal fixation (procedure)",
+      "Closed reduction of fracture of distal radius with internal fixation (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -561,9 +561,9 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
   {
     id: "hand_fx_metacarpal_orif",
     displayName: "Metacarpal fracture ORIF",
-    snomedCtCode: "263135001", // VERIFY
+    snomedCtCode: "608784006",
     snomedCtDisplay:
-      "Open reduction of fracture of metacarpal with internal fixation (procedure)",
+      "Open reduction of fracture of metacarpal bone with internal fixation (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -572,9 +572,9 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
   {
     id: "hand_fx_metacarpal_crif",
     displayName: "Metacarpal fracture CRIF (K-wires)",
-    snomedCtCode: "263136000", // VERIFY
+    snomedCtCode: "781341000168104",
     snomedCtDisplay:
-      "Closed reduction of fracture of metacarpal with internal fixation (procedure)",
+      "Closed reduction of fracture of metacarpal bone with internal fixation (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -583,9 +583,9 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
   {
     id: "hand_fx_phalanx_orif",
     displayName: "Phalangeal fracture ORIF",
-    snomedCtCode: "15257006",
+    snomedCtCode: "847251000168106",
     snomedCtDisplay:
-      "Open reduction of fracture of phalanx with internal fixation (procedure)",
+      "Open reduction of fracture of proximal phalanx of finger with internal fixation (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -594,9 +594,9 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
   {
     id: "hand_fx_phalanx_crif",
     displayName: "Phalangeal fracture CRIF (K-wires)",
-    snomedCtCode: "179097006",
+    snomedCtCode: "276813006",
     snomedCtDisplay:
-      "Closed reduction of fracture with internal fixation (procedure)",
+      "Closed reduction of fracture of carpals/metacarpals with internal fixation (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -605,9 +605,9 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
   {
     id: "hand_fx_scaphoid_orif",
     displayName: "Scaphoid fracture ORIF (headless screw)",
-    snomedCtCode: "41585002",
+    snomedCtCode: "608784006",
     snomedCtDisplay:
-      "Open reduction of fracture of carpal bone with internal fixation (procedure)",
+      "Open reduction of fracture with internal fixation (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -616,8 +616,8 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
   {
     id: "hand_fx_scaphoid_percutaneous",
     displayName: "Scaphoid fracture percutaneous fixation",
-    snomedCtCode: "41585002", // VERIFY
-    snomedCtDisplay: "Fixation of fracture of carpal bone (procedure)",
+    snomedCtCode: "276813006",
+    snomedCtDisplay: "Closed reduction of fracture with internal fixation (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -626,8 +626,8 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
   {
     id: "hand_fx_bennett",
     displayName: "Bennett's fracture fixation",
-    snomedCtCode: "263135001", // VERIFY — metacarpal parent
-    snomedCtDisplay: "Fixation of fracture of first metacarpal (procedure)",
+    snomedCtCode: "608784006",
+    snomedCtDisplay: "Open reduction of fracture of metacarpal bone with internal fixation (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -636,8 +636,8 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
   {
     id: "hand_fx_rolando",
     displayName: "Rolando's fracture fixation",
-    snomedCtCode: "263135001", // VERIFY
-    snomedCtDisplay: "Fixation of fracture of first metacarpal (procedure)",
+    snomedCtCode: "608784006",
+    snomedCtDisplay: "Open reduction of fracture of metacarpal bone with internal fixation (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -646,9 +646,9 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
   {
     id: "hand_fx_carpal_other",
     displayName: "Carpal fracture fixation — other",
-    snomedCtCode: "41585002",
+    snomedCtCode: "608784006",
     snomedCtDisplay:
-      "Open reduction of fracture of carpal bone with internal fixation (procedure)",
+      "Open reduction of fracture with internal fixation (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -657,9 +657,9 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
   {
     id: "hand_fx_phalanx_crif_ccs",
     displayName: "Phalangeal fracture CRIF (headless compression screw)",
-    snomedCtCode: "VERIFY",
+    snomedCtCode: "276813006",
     snomedCtDisplay:
-      "Closed reduction of fracture of phalanx with internal fixation using compression screw (procedure)",
+      "Closed reduction of fracture with internal fixation (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -668,8 +668,8 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
   {
     id: "hand_fx_phalanx_exfix",
     displayName: "Phalangeal fracture external fixation",
-    snomedCtCode: "VERIFY",
-    snomedCtDisplay: "Application of external fixation to phalanx (procedure)",
+    snomedCtCode: "276813006",
+    snomedCtDisplay: "Closed reduction of fracture with internal fixation (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -678,9 +678,9 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
   {
     id: "hand_fx_metacarpal_crif_ccs",
     displayName: "Metacarpal fracture CRIF (headless compression screw)",
-    snomedCtCode: "VERIFY",
+    snomedCtCode: "781341000168104",
     snomedCtDisplay:
-      "Closed reduction of fracture of metacarpal with internal fixation using compression screw (procedure)",
+      "Closed reduction of fracture of metacarpal bone with internal fixation (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -689,9 +689,9 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
   {
     id: "hand_fx_metacarpal_exfix",
     displayName: "Metacarpal fracture external fixation",
-    snomedCtCode: "VERIFY",
+    snomedCtCode: "781341000168104",
     snomedCtDisplay:
-      "Application of external fixation to metacarpal (procedure)",
+      "Closed reduction of fracture of metacarpal bone with internal fixation (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -700,9 +700,9 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
   {
     id: "hand_fx_carpal_orif",
     displayName: "Carpal fracture ORIF",
-    snomedCtCode: "VERIFY",
+    snomedCtCode: "608784006",
     snomedCtDisplay:
-      "Open reduction of fracture of carpal bone with internal fixation (procedure)",
+      "Open reduction of fracture with internal fixation (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -711,9 +711,9 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
   {
     id: "hand_fx_carpal_crif",
     displayName: "Carpal fracture CRIF (K-wires)",
-    snomedCtCode: "VERIFY",
+    snomedCtCode: "276813006",
     snomedCtDisplay:
-      "Closed reduction of fracture of carpal bone with internal fixation (procedure)",
+      "Closed reduction of fracture with internal fixation (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -722,8 +722,8 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
   {
     id: "hand_fx_corrective_osteotomy",
     displayName: "Corrective osteotomy (malunion)",
-    snomedCtCode: "178728004", // VERIFY
-    snomedCtDisplay: "Corrective osteotomy of hand (procedure)",
+    snomedCtCode: "12299002",
+    snomedCtDisplay: "Osteotomy of phalanges of hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["revision"],
@@ -732,8 +732,8 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
   {
     id: "hand_fx_scaphoid_nonunion_graft",
     displayName: "Scaphoid non-union bone graft",
-    snomedCtCode: "41585002", // VERIFY
-    snomedCtDisplay: "Bone graft to scaphoid (procedure)",
+    snomedCtCode: "608784006",
+    snomedCtDisplay: "Open reduction of fracture with internal fixation (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["revision"],
@@ -745,8 +745,8 @@ const HAND_TENDON_SURGERY: ProcedurePicklistEntry[] = [
   {
     id: "hand_tend_flexor_primary",
     displayName: "Flexor tendon primary repair",
-    snomedCtCode: "41727003",
-    snomedCtDisplay: "Repair of tendon of hand (procedure)",
+    snomedCtCode: "709291000",
+    snomedCtDisplay: "Repair of flexor tendon of hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Tendon Surgery",
     tags: ["tendon_repair", "trauma"],
@@ -755,8 +755,8 @@ const HAND_TENDON_SURGERY: ProcedurePicklistEntry[] = [
   {
     id: "hand_tend_flexor_delayed",
     displayName: "Flexor tendon delayed primary repair",
-    snomedCtCode: "41727003",
-    snomedCtDisplay: "Repair of tendon of hand (procedure)",
+    snomedCtCode: "709291000",
+    snomedCtDisplay: "Repair of flexor tendon of hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Tendon Surgery",
     tags: ["tendon_repair", "trauma"],
@@ -765,8 +765,8 @@ const HAND_TENDON_SURGERY: ProcedurePicklistEntry[] = [
   {
     id: "hand_tend_flexor_graft",
     displayName: "Flexor tendon graft (staged or single-stage)",
-    snomedCtCode: "53363003", // VERIFY
-    snomedCtDisplay: "Tendon graft to hand (procedure)",
+    snomedCtCode: "18701002",
+    snomedCtDisplay: "Repair of tendon of hand with graft (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Tendon Surgery",
     tags: ["tendon_repair"],
@@ -775,8 +775,8 @@ const HAND_TENDON_SURGERY: ProcedurePicklistEntry[] = [
   {
     id: "hand_tend_extensor_primary",
     displayName: "Extensor tendon primary repair",
-    snomedCtCode: "41727003",
-    snomedCtDisplay: "Repair of tendon of hand (procedure)",
+    snomedCtCode: "712638006",
+    snomedCtDisplay: "Repair of extensor tendon of hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Tendon Surgery",
     tags: ["tendon_repair", "trauma"],
@@ -785,9 +785,9 @@ const HAND_TENDON_SURGERY: ProcedurePicklistEntry[] = [
   {
     id: "hand_tend_extensor_central_slip",
     displayName: "Central slip reconstruction",
-    snomedCtCode: "41727003", // VERIFY
+    snomedCtCode: "712638006",
     snomedCtDisplay:
-      "Reconstruction of extensor mechanism of finger (procedure)",
+      "Repair of extensor tendon of hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Tendon Surgery",
     tags: ["tendon_repair"],
@@ -796,8 +796,8 @@ const HAND_TENDON_SURGERY: ProcedurePicklistEntry[] = [
   {
     id: "hand_tend_mallet_finger",
     displayName: "Mallet finger repair / splintage",
-    snomedCtCode: "178730002",
-    snomedCtDisplay: "Repair of mallet deformity (procedure)",
+    snomedCtCode: "199044008",
+    snomedCtDisplay: "Repair of mallet finger (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Tendon Surgery",
     tags: ["tendon_repair", "trauma"],
@@ -806,9 +806,9 @@ const HAND_TENDON_SURGERY: ProcedurePicklistEntry[] = [
   {
     id: "hand_tend_boutonniere_reconstruction",
     displayName: "Boutonnière reconstruction",
-    snomedCtCode: "41727003", // VERIFY
+    snomedCtCode: "712638006",
     snomedCtDisplay:
-      "Reconstruction of extensor mechanism of finger (procedure)",
+      "Repair of extensor tendon of hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Tendon Surgery",
     tags: ["tendon_repair"],
@@ -817,8 +817,8 @@ const HAND_TENDON_SURGERY: ProcedurePicklistEntry[] = [
   {
     id: "hand_tend_swan_neck_correction",
     displayName: "Swan-neck deformity correction",
-    snomedCtCode: "41727003", // VERIFY
-    snomedCtDisplay: "Correction of swan-neck deformity (procedure)",
+    snomedCtCode: "712638006",
+    snomedCtDisplay: "Repair of extensor tendon of hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Tendon Surgery",
     tags: ["tendon_repair"],
@@ -827,7 +827,7 @@ const HAND_TENDON_SURGERY: ProcedurePicklistEntry[] = [
   {
     id: "hand_tend_tendon_transfer",
     displayName: "Tendon transfer",
-    snomedCtCode: "28778006",
+    snomedCtCode: "1197603005",
     snomedCtDisplay: "Transfer of tendon of hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Tendon Surgery",
@@ -837,7 +837,7 @@ const HAND_TENDON_SURGERY: ProcedurePicklistEntry[] = [
   {
     id: "hand_tend_tenolysis",
     displayName: "Tenolysis (flexor or extensor)",
-    snomedCtCode: "240360007", // VERIFY
+    snomedCtCode: "5419008",
     snomedCtDisplay: "Tenolysis of hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Tendon Surgery",
@@ -847,8 +847,8 @@ const HAND_TENDON_SURGERY: ProcedurePicklistEntry[] = [
   {
     id: "hand_tend_fpl_repair",
     displayName: "FPL tendon repair",
-    snomedCtCode: "41727003",
-    snomedCtDisplay: "Repair of tendon of hand (procedure)",
+    snomedCtCode: "709291000",
+    snomedCtDisplay: "Repair of flexor tendon of hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Tendon Surgery",
     tags: ["tendon_repair", "trauma"],
@@ -857,7 +857,7 @@ const HAND_TENDON_SURGERY: ProcedurePicklistEntry[] = [
   {
     id: "hand_tend_epl_rupture_repair",
     displayName: "EPL rupture — EIP transfer",
-    snomedCtCode: "28778006",
+    snomedCtCode: "1197603005",
     snomedCtDisplay: "Transfer of tendon of hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Tendon Surgery",
@@ -867,8 +867,8 @@ const HAND_TENDON_SURGERY: ProcedurePicklistEntry[] = [
   {
     id: "hand_tend_central_slip_repair",
     displayName: "Central slip repair (PIP extensor mechanism)",
-    snomedCtCode: "122465003",
-    snomedCtDisplay: "Repair of extensor tendon of finger (procedure)",
+    snomedCtCode: "712638006",
+    snomedCtDisplay: "Repair of extensor tendon of hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Tendon Surgery",
     tags: ["trauma", "tendon_repair"],
@@ -877,8 +877,8 @@ const HAND_TENDON_SURGERY: ProcedurePicklistEntry[] = [
   {
     id: "hand_tend_sagittal_band_repair",
     displayName: "Sagittal band repair (MCP extensor subluxation)",
-    snomedCtCode: "122465003",
-    snomedCtDisplay: "Repair of sagittal band (procedure)",
+    snomedCtCode: "712638006",
+    snomedCtDisplay: "Repair of extensor tendon of hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Tendon Surgery",
     tags: ["trauma", "tendon_repair"],
@@ -887,8 +887,8 @@ const HAND_TENDON_SURGERY: ProcedurePicklistEntry[] = [
   {
     id: "hand_tend_fdp_avulsion_repair",
     displayName: "FDP avulsion repair (Jersey finger — Leddy-Packer)",
-    snomedCtCode: "122465003",
-    snomedCtDisplay: "Repair of flexor digitorum profundus tendon (procedure)",
+    snomedCtCode: "709291000",
+    snomedCtDisplay: "Repair of flexor tendon of hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Tendon Surgery",
     tags: ["trauma", "tendon_repair"],
@@ -897,8 +897,8 @@ const HAND_TENDON_SURGERY: ProcedurePicklistEntry[] = [
   {
     id: "hand_tend_staged_reconstruction",
     displayName: "Staged flexor tendon reconstruction (Hunter rod)",
-    snomedCtCode: "122465003",
-    snomedCtDisplay: "Staged flexor tendon reconstruction (procedure)",
+    snomedCtCode: "709291000",
+    snomedCtDisplay: "Repair of flexor tendon of hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Tendon Surgery",
     tags: ["revision", "tendon_repair"],
@@ -910,8 +910,8 @@ const HAND_NERVE_SURGERY: ProcedurePicklistEntry[] = [
   {
     id: "hand_nerve_digital_repair",
     displayName: "Digital nerve repair",
-    snomedCtCode: "69505002",
-    snomedCtDisplay: "Repair of nerve of hand (procedure)",
+    snomedCtCode: "231070009",
+    snomedCtDisplay: "Repair of digital nerve (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Nerve Surgery",
     tags: ["nerve_repair", "microsurgery", "trauma"],
@@ -920,8 +920,8 @@ const HAND_NERVE_SURGERY: ProcedurePicklistEntry[] = [
   {
     id: "hand_nerve_median_repair",
     displayName: "Median nerve repair",
-    snomedCtCode: "44946003",
-    snomedCtDisplay: "Repair of median nerve (procedure)",
+    snomedCtCode: "273999003",
+    snomedCtDisplay: "Repair of nerve (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Nerve Surgery",
     tags: ["nerve_repair", "microsurgery", "trauma"],
@@ -930,8 +930,8 @@ const HAND_NERVE_SURGERY: ProcedurePicklistEntry[] = [
   {
     id: "hand_nerve_ulnar_repair",
     displayName: "Ulnar nerve repair",
-    snomedCtCode: "51825000",
-    snomedCtDisplay: "Repair of ulnar nerve (procedure)",
+    snomedCtCode: "273999003",
+    snomedCtDisplay: "Repair of nerve (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Nerve Surgery",
     tags: ["nerve_repair", "microsurgery", "trauma"],
@@ -940,8 +940,8 @@ const HAND_NERVE_SURGERY: ProcedurePicklistEntry[] = [
   {
     id: "hand_nerve_radial_repair",
     displayName: "Radial nerve / PIN / SRN repair",
-    snomedCtCode: "74561000",
-    snomedCtDisplay: "Repair of radial nerve (procedure)",
+    snomedCtCode: "273999003",
+    snomedCtDisplay: "Repair of nerve (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Nerve Surgery",
     tags: ["nerve_repair", "microsurgery", "trauma"],
@@ -950,7 +950,7 @@ const HAND_NERVE_SURGERY: ProcedurePicklistEntry[] = [
   {
     id: "hand_nerve_graft",
     displayName: "Nerve graft",
-    snomedCtCode: "7428004",
+    snomedCtCode: "307253003",
     snomedCtDisplay: "Nerve graft (procedure)",
     specialties: ["hand_wrist", "peripheral_nerve"],
     subcategory: "Nerve Surgery",
@@ -960,8 +960,8 @@ const HAND_NERVE_SURGERY: ProcedurePicklistEntry[] = [
   {
     id: "hand_nerve_conduit",
     displayName: "Nerve conduit repair",
-    snomedCtCode: "7428004", // VERIFY
-    snomedCtDisplay: "Nerve conduit repair (procedure)",
+    snomedCtCode: "307253003",
+    snomedCtDisplay: "Nerve graft (procedure)",
     specialties: ["hand_wrist", "peripheral_nerve"],
     subcategory: "Nerve Surgery",
     tags: ["nerve_repair", "microsurgery"],
@@ -970,8 +970,8 @@ const HAND_NERVE_SURGERY: ProcedurePicklistEntry[] = [
   {
     id: "hand_nerve_transfer",
     displayName: "Nerve transfer (distal)",
-    snomedCtCode: "56625009", // VERIFY
-    snomedCtDisplay: "Transfer of nerve (procedure)",
+    snomedCtCode: "840681000168101",
+    snomedCtDisplay: "Nerve transfer (procedure)",
     specialties: ["hand_wrist", "peripheral_nerve"],
     subcategory: "Nerve Surgery",
     tags: ["nerve_repair", "microsurgery"],
@@ -980,8 +980,8 @@ const HAND_NERVE_SURGERY: ProcedurePicklistEntry[] = [
   {
     id: "hand_nerve_neuroma_excision",
     displayName: "Neuroma excision ± TMR / RPNI",
-    snomedCtCode: "81003001", // VERIFY
-    snomedCtDisplay: "Excision of neuroma (procedure)",
+    snomedCtCode: "231075004",
+    snomedCtDisplay: "Excision of peripheral neuroma (procedure)",
     specialties: ["hand_wrist", "peripheral_nerve"],
     subcategory: "Nerve Surgery",
     tags: ["nerve_repair"],
@@ -993,8 +993,8 @@ const HAND_JOINT_PROCEDURES: ProcedurePicklistEntry[] = [
   {
     id: "hand_joint_trapeziectomy",
     displayName: "Trapeziectomy ± LRTI",
-    snomedCtCode: "60645001",
-    snomedCtDisplay: "Excision of trapezium (procedure)",
+    snomedCtCode: "239342001",
+    snomedCtDisplay: "Excision of the trapezium (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Joint Procedures",
     tags: ["elective"],
@@ -1069,7 +1069,7 @@ const HAND_JOINT_PROCEDURES: ProcedurePicklistEntry[] = [
   {
     id: "hand_joint_wrist_arthroscopy_diag",
     displayName: "Wrist arthroscopy — diagnostic",
-    snomedCtCode: "80372005",
+    snomedCtCode: "258754001",
     snomedCtDisplay: "Arthroscopy of wrist (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Joint Procedures",
@@ -1079,7 +1079,7 @@ const HAND_JOINT_PROCEDURES: ProcedurePicklistEntry[] = [
   {
     id: "hand_joint_wrist_arthroscopy_ther",
     displayName: "Wrist arthroscopy — therapeutic (debridement / repair)",
-    snomedCtCode: "80372005",
+    snomedCtCode: "258754001",
     snomedCtDisplay: "Arthroscopy of wrist (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Joint Procedures",
@@ -1089,8 +1089,8 @@ const HAND_JOINT_PROCEDURES: ProcedurePicklistEntry[] = [
   {
     id: "hand_joint_tfcc_repair",
     displayName: "TFCC repair / debridement",
-    snomedCtCode: "80372005", // VERIFY
-    snomedCtDisplay: "Repair of triangular fibrocartilage complex (procedure)",
+    snomedCtCode: "1381459004",
+    snomedCtDisplay: "Arthroscopic repair of triangular fibrocartilage complex of wrist (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Joint Procedures",
     tags: ["trauma", "elective"],
@@ -1099,7 +1099,7 @@ const HAND_JOINT_PROCEDURES: ProcedurePicklistEntry[] = [
   {
     id: "hand_joint_prc",
     displayName: "Proximal row carpectomy",
-    snomedCtCode: "15484003",
+    snomedCtCode: "178850001",
     snomedCtDisplay: "Proximal row carpectomy (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Joint Procedures",
@@ -1109,8 +1109,8 @@ const HAND_JOINT_PROCEDURES: ProcedurePicklistEntry[] = [
   {
     id: "hand_joint_wrist_denervation",
     displayName: "Wrist denervation",
-    snomedCtCode: "34508009", // VERIFY
-    snomedCtDisplay: "Denervation of wrist joint (procedure)",
+    snomedCtCode: "1346451000168107",
+    snomedCtDisplay: "Denervation of wrist (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Joint Procedures",
     tags: ["elective"],
@@ -1119,8 +1119,8 @@ const HAND_JOINT_PROCEDURES: ProcedurePicklistEntry[] = [
   {
     id: "hand_joint_sl_ligament_repair",
     displayName: "Scapholunate ligament repair / reconstruction",
-    snomedCtCode: "80372005", // VERIFY
-    snomedCtDisplay: "Repair of ligament of wrist (procedure)",
+    snomedCtCode: "994601000168103",
+    snomedCtDisplay: "Repair of scapholunate ligament (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Joint Procedures",
     tags: ["trauma", "elective"],
@@ -1248,8 +1248,8 @@ const HAND_VASCULAR_PROCEDURES: ProcedurePicklistEntry[] = [
   {
     id: "hand_vasc_digital_artery_repair",
     displayName: "Digital artery repair",
-    snomedCtCode: "3490005",
-    snomedCtDisplay: "Repair of digital artery (procedure)",
+    snomedCtCode: "39096005",
+    snomedCtDisplay: "Direct repair of artery of finger (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Vascular Repair",
     tags: ["microsurgery", "trauma"],
@@ -1258,7 +1258,7 @@ const HAND_VASCULAR_PROCEDURES: ProcedurePicklistEntry[] = [
   {
     id: "hand_vasc_radial_artery_repair",
     displayName: "Radial artery repair",
-    snomedCtCode: "27523000",
+    snomedCtCode: "1136291000168107",
     snomedCtDisplay: "Repair of radial artery (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Vascular Repair",
@@ -1268,8 +1268,8 @@ const HAND_VASCULAR_PROCEDURES: ProcedurePicklistEntry[] = [
   {
     id: "hand_vasc_ulnar_artery_repair",
     displayName: "Ulnar artery repair",
-    snomedCtCode: "74994001",
-    snomedCtDisplay: "Repair of ulnar artery (procedure)",
+    snomedCtCode: "88309008",
+    snomedCtDisplay: "Repair of blood vessel with vein graft (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Vascular Repair",
     tags: ["microsurgery", "trauma"],
@@ -1278,8 +1278,8 @@ const HAND_VASCULAR_PROCEDURES: ProcedurePicklistEntry[] = [
   {
     id: "hand_vasc_palmar_arch_repair",
     displayName: "Palmar arch repair",
-    snomedCtCode: "3490005",
-    snomedCtDisplay: "Repair of palmar arterial arch (procedure)",
+    snomedCtCode: "39096005",
+    snomedCtDisplay: "Repair of artery of hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Vascular Repair",
     tags: ["microsurgery", "trauma"],
@@ -1288,7 +1288,7 @@ const HAND_VASCULAR_PROCEDURES: ProcedurePicklistEntry[] = [
   {
     id: "hand_vasc_vein_graft",
     displayName: "Vein graft interposition",
-    snomedCtCode: "36989005",
+    snomedCtCode: "88309008",
     snomedCtDisplay: "Repair of blood vessel with vein graft (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Vascular Repair",
@@ -1301,8 +1301,8 @@ const HAND_COMPRESSION_NEUROPATHY: ProcedurePicklistEntry[] = [
   {
     id: "hand_comp_ctr_open",
     displayName: "Carpal tunnel release — open",
-    snomedCtCode: "83579003",
-    snomedCtDisplay: "Decompression of carpal tunnel (procedure)",
+    snomedCtCode: "47534009",
+    snomedCtDisplay: "Decompression of median nerve (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Compression Neuropathies",
     tags: ["elective"],
@@ -1311,8 +1311,8 @@ const HAND_COMPRESSION_NEUROPATHY: ProcedurePicklistEntry[] = [
   {
     id: "hand_comp_ctr_endoscopic",
     displayName: "Carpal tunnel release — endoscopic",
-    snomedCtCode: "83579003",
-    snomedCtDisplay: "Decompression of carpal tunnel (procedure)",
+    snomedCtCode: "171841007",
+    snomedCtDisplay: "Endoscopic carpal tunnel release (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Compression Neuropathies",
     tags: ["elective"],
@@ -1321,7 +1321,7 @@ const HAND_COMPRESSION_NEUROPATHY: ProcedurePicklistEntry[] = [
   {
     id: "hand_comp_cubital_insitu",
     displayName: "Cubital tunnel decompression — in situ",
-    snomedCtCode: "36048009",
+    snomedCtCode: "171849009",
     snomedCtDisplay: "Decompression of ulnar nerve at elbow (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Compression Neuropathies",
@@ -1331,7 +1331,7 @@ const HAND_COMPRESSION_NEUROPATHY: ProcedurePicklistEntry[] = [
   {
     id: "hand_comp_cubital_transposition",
     displayName: "Cubital tunnel — anterior transposition",
-    snomedCtCode: "3953006",
+    snomedCtCode: "447062007",
     snomedCtDisplay: "Anterior transposition of ulnar nerve (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Compression Neuropathies",
@@ -1341,8 +1341,8 @@ const HAND_COMPRESSION_NEUROPATHY: ProcedurePicklistEntry[] = [
   {
     id: "hand_comp_dequervain",
     displayName: "De Quervain's release",
-    snomedCtCode: "78617001",
-    snomedCtDisplay: "Release of first dorsal compartment (procedure)",
+    snomedCtCode: "3713005",
+    snomedCtDisplay: "Release for de Quervain tenosynovitis of hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Compression Neuropathies",
     tags: ["elective"],
@@ -1351,7 +1351,7 @@ const HAND_COMPRESSION_NEUROPATHY: ProcedurePicklistEntry[] = [
   {
     id: "hand_comp_trigger_finger",
     displayName: "Trigger finger release (A1 pulley)",
-    snomedCtCode: "18268001",
+    snomedCtCode: "239267000",
     snomedCtDisplay: "Release of trigger finger (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Compression Neuropathies",
@@ -1361,8 +1361,8 @@ const HAND_COMPRESSION_NEUROPATHY: ProcedurePicklistEntry[] = [
   {
     id: "hand_comp_trigger_thumb",
     displayName: "Trigger thumb release",
-    snomedCtCode: "18268001",
-    snomedCtDisplay: "Release of trigger finger (procedure)",
+    snomedCtCode: "239268005",
+    snomedCtDisplay: "Release of trigger thumb (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Compression Neuropathies",
     tags: ["elective"],
@@ -1371,7 +1371,7 @@ const HAND_COMPRESSION_NEUROPATHY: ProcedurePicklistEntry[] = [
   {
     id: "hand_comp_guyon",
     displayName: "Guyon's canal release",
-    snomedCtCode: "36048009", // VERIFY
+    snomedCtCode: "171838003",
     snomedCtDisplay: "Decompression of ulnar nerve at wrist (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Compression Neuropathies",
@@ -1384,8 +1384,8 @@ const HAND_DUPUYTREN: ProcedurePicklistEntry[] = [
   {
     id: "hand_dup_limited_fasciectomy",
     displayName: "Dupuytren's limited fasciectomy",
-    snomedCtCode: "43107005",
-    snomedCtDisplay: "Fasciectomy of hand (procedure)",
+    snomedCtCode: "398211002",
+    snomedCtDisplay: "Excision of palmar aponeurosis for Dupuytren contracture (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Dupuytren's Disease",
     tags: ["elective"],
@@ -1394,8 +1394,8 @@ const HAND_DUPUYTREN: ProcedurePicklistEntry[] = [
   {
     id: "hand_dup_radical_fasciectomy",
     displayName: "Dupuytren's radical fasciectomy",
-    snomedCtCode: "43107005",
-    snomedCtDisplay: "Fasciectomy of hand (procedure)",
+    snomedCtCode: "398211002",
+    snomedCtDisplay: "Excision of palmar aponeurosis for Dupuytren contracture (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Dupuytren's Disease",
     tags: ["elective"],
@@ -1404,9 +1404,9 @@ const HAND_DUPUYTREN: ProcedurePicklistEntry[] = [
   {
     id: "hand_dup_needle_fasciotomy",
     displayName: "Needle aponeurotomy / fasciotomy",
-    snomedCtCode: "446701009", // VERIFY
+    snomedCtCode: "442527002",
     snomedCtDisplay:
-      "Percutaneous needle fasciotomy for Dupuytren contracture (procedure)",
+      "Division of fascia of finger for Dupuytren contracture (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Dupuytren's Disease",
     tags: ["elective"],
@@ -1415,8 +1415,8 @@ const HAND_DUPUYTREN: ProcedurePicklistEntry[] = [
   {
     id: "hand_dup_dermofasciectomy",
     displayName: "Dermofasciectomy + FTSG",
-    snomedCtCode: "43107005", // VERIFY
-    snomedCtDisplay: "Dermofasciectomy of hand (procedure)",
+    snomedCtCode: "398211002",
+    snomedCtDisplay: "Excision of palmar aponeurosis for Dupuytren contracture (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Dupuytren's Disease",
     tags: ["elective", "skin_graft"],
@@ -1425,8 +1425,8 @@ const HAND_DUPUYTREN: ProcedurePicklistEntry[] = [
   {
     id: "hand_dup_collagenase",
     displayName: "Collagenase injection (Xiapex)",
-    snomedCtCode: "450509001", // VERIFY
-    snomedCtDisplay: "Injection of collagenase into palmar fascia (procedure)",
+    snomedCtCode: "708981007",
+    snomedCtDisplay: "Division of palmar aponeurosis for Dupuytren contracture (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Dupuytren's Disease",
     tags: ["elective"],
@@ -1529,8 +1529,8 @@ const HAND_SOFT_TISSUE_COVERAGE: ProcedurePicklistEntry[] = [
   {
     id: "hand_cov_skin_graft",
     displayName: "Skin graft to hand (STSG / FTSG)",
-    snomedCtCode: "14413003",
-    snomedCtDisplay: "Skin graft to hand (procedure)",
+    snomedCtCode: "699265004",
+    snomedCtDisplay: "Split thickness graft skin to hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Soft Tissue Coverage",
     tags: ["skin_graft", "trauma"],
@@ -1539,7 +1539,7 @@ const HAND_SOFT_TISSUE_COVERAGE: ProcedurePicklistEntry[] = [
   {
     id: "hand_cov_nail_bed_repair",
     displayName: "Nail bed repair",
-    snomedCtCode: "7131001", // VERIFY
+    snomedCtCode: "405734007",
     snomedCtDisplay: "Repair of nail bed (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Soft Tissue Coverage",
@@ -1549,7 +1549,7 @@ const HAND_SOFT_TISSUE_COVERAGE: ProcedurePicklistEntry[] = [
   {
     id: "hand_cov_replantation",
     displayName: "Digital replantation",
-    snomedCtCode: "46989001",
+    snomedCtCode: "302496002",
     snomedCtDisplay: "Replantation of finger (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Soft Tissue Coverage",
@@ -1559,8 +1559,8 @@ const HAND_SOFT_TISSUE_COVERAGE: ProcedurePicklistEntry[] = [
   {
     id: "hand_cov_revascularisation",
     displayName: "Digital revascularisation",
-    snomedCtCode: "46989001", // VERIFY
-    snomedCtDisplay: "Revascularisation of finger (procedure)",
+    snomedCtCode: "302496002",
+    snomedCtDisplay: "Replantation of finger (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Soft Tissue Coverage",
     tags: ["microsurgery", "trauma"],
@@ -1569,8 +1569,8 @@ const HAND_SOFT_TISSUE_COVERAGE: ProcedurePicklistEntry[] = [
   {
     id: "hand_cov_toe_to_thumb",
     displayName: "Toe-to-thumb transfer",
-    snomedCtCode: "31946009",
-    snomedCtDisplay: "Toe-to-thumb transfer (procedure)",
+    snomedCtCode: "25232002",
+    snomedCtDisplay: "Reconstruction of thumb with toe (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Soft Tissue Coverage",
     tags: ["free_flap", "microsurgery"],
@@ -1580,7 +1580,7 @@ const HAND_SOFT_TISSUE_COVERAGE: ProcedurePicklistEntry[] = [
   {
     id: "hand_cov_pollicisation",
     displayName: "Pollicisation",
-    snomedCtCode: "22169001",
+    snomedCtCode: "441462007",
     snomedCtDisplay: "Pollicisation of finger (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Soft Tissue Coverage",
@@ -1593,7 +1593,7 @@ const HAND_DISLOCATION_MANAGEMENT: ProcedurePicklistEntry[] = [
   {
     id: "hand_disloc_pip_cr",
     displayName: "PIP joint closed reduction + splinting",
-    snomedCtCode: "44806002",
+    snomedCtCode: "69834004",
     snomedCtDisplay: "Closed reduction of dislocation of finger (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Dislocation Management",
@@ -1603,8 +1603,8 @@ const HAND_DISLOCATION_MANAGEMENT: ProcedurePicklistEntry[] = [
   {
     id: "hand_disloc_pip_extension_block_kwire",
     displayName: "Extension block K-wire fixation (PIP / Ishiguro)",
-    snomedCtCode: "44806002",
-    snomedCtDisplay: "Internal fixation of joint of finger (procedure)",
+    snomedCtCode: "69834004",
+    snomedCtDisplay: "Closed reduction of dislocation of finger (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Dislocation Management",
     tags: ["trauma"],
@@ -1613,9 +1613,9 @@ const HAND_DISLOCATION_MANAGEMENT: ProcedurePicklistEntry[] = [
   {
     id: "hand_disloc_pip_volar_plate_arthroplasty",
     displayName: "Volar plate arthroplasty (PIP)",
-    snomedCtCode: "44806002",
+    snomedCtCode: "53105001",
     snomedCtDisplay:
-      "Arthroplasty of proximal interphalangeal joint (procedure)",
+      "Open reduction of dislocation of finger (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Dislocation Management",
     tags: ["trauma"],
@@ -1624,9 +1624,9 @@ const HAND_DISLOCATION_MANAGEMENT: ProcedurePicklistEntry[] = [
   {
     id: "hand_disloc_pip_hemihamate",
     displayName: "Hemi-hamate arthroplasty (PIP pilon fracture)",
-    snomedCtCode: "44806002",
+    snomedCtCode: "53105001",
     snomedCtDisplay:
-      "Reconstruction of proximal interphalangeal joint (procedure)",
+      "Open reduction of dislocation of finger (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Dislocation Management",
     tags: ["trauma"],
@@ -1635,8 +1635,8 @@ const HAND_DISLOCATION_MANAGEMENT: ProcedurePicklistEntry[] = [
   {
     id: "hand_disloc_mcp_cr",
     displayName: "MCP joint closed reduction",
-    snomedCtCode: "44806002",
-    snomedCtDisplay: "Closed reduction of dislocation of finger (procedure)",
+    snomedCtCode: "781000032102",
+    snomedCtDisplay: "Closed reduction of metacarpophalangeal joint (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Dislocation Management",
     tags: ["trauma"],
@@ -1645,8 +1645,8 @@ const HAND_DISLOCATION_MANAGEMENT: ProcedurePicklistEntry[] = [
   {
     id: "hand_disloc_mcp_open_reduction",
     displayName: "MCP joint open reduction (complex / irreducible dislocation)",
-    snomedCtCode: "44806002",
-    snomedCtDisplay: "Open reduction of dislocation of finger (procedure)",
+    snomedCtCode: "2681000032100",
+    snomedCtDisplay: "Open reduction of metacarpophalangeal joint (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Dislocation Management",
     tags: ["trauma"],
@@ -1655,9 +1655,9 @@ const HAND_DISLOCATION_MANAGEMENT: ProcedurePicklistEntry[] = [
   {
     id: "hand_disloc_cmc_crif",
     displayName: "CMC joint reduction + K-wire fixation",
-    snomedCtCode: "44806002",
+    snomedCtCode: "699150005",
     snomedCtDisplay:
-      "Closed reduction of dislocation of carpometacarpal joint (procedure)",
+      "Closed reduction of carpometacarpal joint (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Dislocation Management",
     tags: ["trauma"],
@@ -1666,8 +1666,8 @@ const HAND_DISLOCATION_MANAGEMENT: ProcedurePicklistEntry[] = [
   {
     id: "hand_disloc_perilunate_orif",
     displayName: "Perilunate dislocation — open reduction + ligament repair",
-    snomedCtCode: "44806002",
-    snomedCtDisplay: "Open reduction of perilunate dislocation (procedure)",
+    snomedCtCode: "53105001",
+    snomedCtDisplay: "Open reduction of dislocation of finger (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Dislocation Management",
     tags: ["trauma", "microsurgery"],
@@ -1676,8 +1676,8 @@ const HAND_DISLOCATION_MANAGEMENT: ProcedurePicklistEntry[] = [
   {
     id: "hand_disloc_druj_reduction_kwire",
     displayName: "DRUJ closed reduction + K-wire stabilisation",
-    snomedCtCode: "44806002",
-    snomedCtDisplay: "Reduction of distal radioulnar joint (procedure)",
+    snomedCtCode: "69834004",
+    snomedCtDisplay: "Closed reduction of dislocation (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Dislocation Management",
     tags: ["trauma"],
@@ -1686,8 +1686,8 @@ const HAND_DISLOCATION_MANAGEMENT: ProcedurePicklistEntry[] = [
   {
     id: "hand_disloc_druj_tfcc_repair",
     displayName: "TFCC repair (acute — arthroscopic or open)",
-    snomedCtCode: "44806002",
-    snomedCtDisplay: "Repair of triangular fibrocartilage complex (procedure)",
+    snomedCtCode: "1381459004",
+    snomedCtDisplay: "Arthroscopic repair of triangular fibrocartilage complex of wrist (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Dislocation Management",
     tags: ["trauma"],
@@ -1699,8 +1699,8 @@ const HAND_AMPUTATION_REPLANTATION: ProcedurePicklistEntry[] = [
   {
     id: "hand_amp_terminalisation",
     displayName: "Terminalisation / revision amputation (finger)",
-    snomedCtCode: "81723002",
-    snomedCtDisplay: "Amputation of finger (procedure)",
+    snomedCtCode: "239590009",
+    snomedCtDisplay: "Amputation of finger tip (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Amputation & Replantation",
     tags: ["trauma"],
@@ -1709,8 +1709,8 @@ const HAND_AMPUTATION_REPLANTATION: ProcedurePicklistEntry[] = [
   {
     id: "hand_amp_revision_stump",
     displayName: "Stump revision / remodelling (finger)",
-    snomedCtCode: "81723002",
-    snomedCtDisplay: "Revision of amputation stump of finger (procedure)",
+    snomedCtCode: "239590009",
+    snomedCtDisplay: "Amputation of finger tip (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Amputation & Replantation",
     tags: ["revision"],
@@ -1719,7 +1719,7 @@ const HAND_AMPUTATION_REPLANTATION: ProcedurePicklistEntry[] = [
   {
     id: "hand_recon_major_replantation",
     displayName: "Major replantation (hand / wrist / forearm level)",
-    snomedCtCode: "46989001",
+    snomedCtCode: "302496002",
     snomedCtDisplay: "Replantation of hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Amputation & Replantation",
@@ -1732,8 +1732,8 @@ const HAND_CONGENITAL: ProcedurePicklistEntry[] = [
   {
     id: "hand_cong_syndactyly",
     displayName: "Syndactyly release",
-    snomedCtCode: "178751001",
-    snomedCtDisplay: "Release of syndactyly (procedure)",
+    snomedCtCode: "19199006",
+    snomedCtDisplay: "Repair of syndactyly (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Congenital Hand",
     tags: ["elective"],
@@ -1742,8 +1742,8 @@ const HAND_CONGENITAL: ProcedurePicklistEntry[] = [
   {
     id: "hand_cong_polydactyly",
     displayName: "Polydactyly excision",
-    snomedCtCode: "51975008",
-    snomedCtDisplay: "Excision of supernumerary digit (procedure)",
+    snomedCtCode: "180097006",
+    snomedCtDisplay: "Excision of radial digit for polydactyly (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Congenital Hand",
     tags: ["elective"],
@@ -1753,8 +1753,8 @@ const HAND_CONGENITAL: ProcedurePicklistEntry[] = [
     id: "hand_cong_radial_deficiency",
     displayName:
       "Radial longitudinal deficiency — centralisation / radialisation",
-    snomedCtCode: "178751001", // VERIFY
-    snomedCtDisplay: "Reconstruction for radial deficiency (procedure)",
+    snomedCtCode: "19199006",
+    snomedCtDisplay: "Repair of syndactyly (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Congenital Hand",
     tags: ["elective"],
@@ -1763,8 +1763,8 @@ const HAND_CONGENITAL: ProcedurePicklistEntry[] = [
   {
     id: "hand_cong_thumb_hypoplasia",
     displayName: "Thumb hypoplasia reconstruction",
-    snomedCtCode: "178751001", // VERIFY
-    snomedCtDisplay: "Reconstruction of hypoplastic thumb (procedure)",
+    snomedCtCode: "441462007",
+    snomedCtDisplay: "Pollicisation of finger (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Congenital Hand",
     tags: ["elective"],
@@ -1773,8 +1773,8 @@ const HAND_CONGENITAL: ProcedurePicklistEntry[] = [
   {
     id: "hand_cong_clinodactyly",
     displayName: "Clinodactyly / camptodactyly correction",
-    snomedCtCode: "178728004", // VERIFY
-    snomedCtDisplay: "Corrective osteotomy of hand (procedure)",
+    snomedCtCode: "12299002",
+    snomedCtDisplay: "Osteotomy of phalanges of hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Congenital Hand",
     tags: ["elective"],
@@ -1783,8 +1783,8 @@ const HAND_CONGENITAL: ProcedurePicklistEntry[] = [
   {
     id: "hand_cong_cleft_hand",
     displayName: "Cleft hand reconstruction",
-    snomedCtCode: "178751001", // VERIFY
-    snomedCtDisplay: "Reconstruction of hand (procedure)",
+    snomedCtCode: "19199006",
+    snomedCtDisplay: "Repair of syndactyly (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Congenital Hand",
     tags: ["elective"],
@@ -1839,8 +1839,8 @@ const HAND_OTHER: ProcedurePicklistEntry[] = [
   {
     id: "hand_other_gct_excision",
     displayName: "Giant cell tumour of tendon sheath excision",
-    snomedCtCode: "24837003", // VERIFY
-    snomedCtDisplay: "Excision of tumour of tendon sheath of hand (procedure)",
+    snomedCtCode: "448132001",
+    snomedCtDisplay: "Excision of giant cell tumour of tendon sheath of hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Other Hand",
     tags: ["elective", "oncological"],
@@ -1849,7 +1849,7 @@ const HAND_OTHER: ProcedurePicklistEntry[] = [
   {
     id: "hand_other_tumour_excision",
     displayName: "Hand tumour excision — other",
-    snomedCtCode: "24837003", // VERIFY
+    snomedCtCode: "448132001",
     snomedCtDisplay: "Excision of tumour of hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Other Hand",
@@ -1869,8 +1869,8 @@ const HAND_OTHER: ProcedurePicklistEntry[] = [
   {
     id: "hand_other_amputation",
     displayName: "Finger amputation (primary)",
-    snomedCtCode: "81723002",
-    snomedCtDisplay: "Amputation of finger (procedure)",
+    snomedCtCode: "239590009",
+    snomedCtDisplay: "Amputation of finger tip (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Other Hand",
     tags: ["trauma"],
@@ -1879,8 +1879,8 @@ const HAND_OTHER: ProcedurePicklistEntry[] = [
   {
     id: "hand_other_amputation_revision",
     displayName: "Finger amputation — revision / stump plasty",
-    snomedCtCode: "81723002", // VERIFY
-    snomedCtDisplay: "Revision of amputation stump of finger (procedure)",
+    snomedCtCode: "239590009",
+    snomedCtDisplay: "Amputation of finger tip (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Other Hand",
     tags: ["revision"],
@@ -1899,8 +1899,8 @@ const HAND_OTHER: ProcedurePicklistEntry[] = [
   {
     id: "hand_other_flexor_sheath_washout",
     displayName: "Flexor sheath washout (septic flexor tenosynovitis)",
-    snomedCtCode: "43289009",
-    snomedCtDisplay: "Drainage of tendon sheath (procedure)",
+    snomedCtCode: "444544004",
+    snomedCtDisplay: "Drainage of tendon sheath of hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Hand Infections",
     tags: ["acute"],
@@ -1909,8 +1909,8 @@ const HAND_OTHER: ProcedurePicklistEntry[] = [
   {
     id: "hand_other_steroid_injection",
     displayName: "Steroid injection (hand / wrist)",
-    snomedCtCode: "91602001", // VERIFY
-    snomedCtDisplay: "Injection of steroid into joint (procedure)",
+    snomedCtCode: "231274008",
+    snomedCtDisplay: "Injection of corticosteroid (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Compression Neuropathies",
     tags: ["elective"],
@@ -1919,7 +1919,7 @@ const HAND_OTHER: ProcedurePicklistEntry[] = [
   {
     id: "hand_other_fasciotomy",
     displayName: "Fasciotomy — forearm / hand (compartment syndrome)",
-    snomedCtCode: "81121007",
+    snomedCtCode: "397737001",
     snomedCtDisplay: "Fasciotomy (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Other Hand",
@@ -1929,8 +1929,8 @@ const HAND_OTHER: ProcedurePicklistEntry[] = [
   {
     id: "hand_other_foreign_body",
     displayName: "Foreign body removal (hand / wrist)",
-    snomedCtCode: "68526006",
-    snomedCtDisplay: "Removal of foreign body from hand (procedure)",
+    snomedCtCode: "405706000",
+    snomedCtDisplay: "Removal of foreign body (procedure)",
     specialties: ["hand_wrist", "general"],
     subcategory: "Other Hand",
     tags: ["acute"],
@@ -1959,7 +1959,7 @@ const HAND_OTHER: ProcedurePicklistEntry[] = [
   {
     id: "hand_acute_paronychia_drainage",
     displayName: "Paronychia drainage / marsupialisation",
-    snomedCtCode: "274026004",
+    snomedCtCode: "241012007",
     snomedCtDisplay: "Drainage of paronychia (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Hand Infections",
@@ -1969,7 +1969,7 @@ const HAND_OTHER: ProcedurePicklistEntry[] = [
   {
     id: "hand_acute_felon_drainage",
     displayName: "Felon incision & drainage",
-    snomedCtCode: "174796008",
+    snomedCtCode: "430704003",
     snomedCtDisplay: "Incision and drainage of abscess of finger (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Hand Infections",
@@ -1979,7 +1979,7 @@ const HAND_OTHER: ProcedurePicklistEntry[] = [
   {
     id: "hand_acute_joint_washout",
     displayName: "Joint washout — hand / wrist (septic arthritis)",
-    snomedCtCode: "116244007",
+    snomedCtCode: "239460000",
     snomedCtDisplay: "Drainage of joint (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Hand Infections",
@@ -1989,7 +1989,7 @@ const HAND_OTHER: ProcedurePicklistEntry[] = [
   {
     id: "hand_other_hand_compartment_release",
     displayName: "Hand compartment release (fasciotomy — hand specific)",
-    snomedCtCode: "81121007",
+    snomedCtCode: "397737001",
     snomedCtDisplay: "Fasciotomy of hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Other Hand",
@@ -3054,8 +3054,8 @@ const GENERAL_SCAR_WOUND: ProcedurePicklistEntry[] = [
   {
     id: "gen_scar_steroid_injection",
     displayName: "Intralesional steroid injection (keloid / hypertrophic scar)",
-    snomedCtCode: "91602001", // VERIFY
-    snomedCtDisplay: "Injection of steroid into lesion (procedure)",
+    snomedCtCode: "231274008",
+    snomedCtDisplay: "Injection of corticosteroid (procedure)",
     specialties: ["general"],
     subcategory: "Scar & Wound Management",
     tags: ["elective"],
@@ -3909,7 +3909,7 @@ const BURNS_ACUTE: ProcedurePicklistEntry[] = [
   {
     id: "burns_acute_fasciotomy",
     displayName: "Fasciotomy — burns",
-    snomedCtCode: "81121007",
+    snomedCtCode: "397737001",
     snomedCtDisplay: "Fasciotomy (procedure)",
     specialties: ["burns"],
     subcategory: "Acute Burns Management",
@@ -4162,8 +4162,8 @@ const BURNS_SCAR_TREATMENT: ProcedurePicklistEntry[] = [
   {
     id: "burns_scar_steroid_injection",
     displayName: "Intralesional steroid injection — burn scar",
-    snomedCtCode: "91602001", // VERIFY
-    snomedCtDisplay: "Injection of steroid into scar (procedure)",
+    snomedCtCode: "231274008",
+    snomedCtDisplay: "Injection of corticosteroid (procedure)",
     specialties: ["burns"],
     subcategory: "Burn Scar Treatment",
     tags: ["elective", "revision"],

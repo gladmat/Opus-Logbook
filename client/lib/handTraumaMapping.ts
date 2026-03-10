@@ -240,7 +240,7 @@ const DIAGNOSIS_LOOKUP: Record<string, DiagnosisRef> = {
   hand_dx_druj_dislocation: {
     diagnosisPicklistId: "hand_dx_druj_dislocation",
     displayName: "DRUJ dislocation / instability (acute)",
-    snomedCtCode: "239166008",
+    snomedCtCode: "263027009",
   },
   hand_dx_high_pressure_injection: {
     diagnosisPicklistId: "hand_dx_high_pressure_injection",
@@ -270,7 +270,7 @@ const DIAGNOSIS_LOOKUP: Record<string, DiagnosisRef> = {
   hand_dx_thumb_amputation: {
     diagnosisPicklistId: "hand_dx_thumb_amputation",
     displayName: "Thumb amputation",
-    snomedCtCode: "30998006",
+    snomedCtCode: "210611002",
   },
   hand_dx_multiple_digit_amputation: {
     diagnosisPicklistId: "hand_dx_multiple_digit_amputation",
@@ -285,12 +285,12 @@ const DIAGNOSIS_LOOKUP: Record<string, DiagnosisRef> = {
   hand_dx_ring_avulsion: {
     diagnosisPicklistId: "hand_dx_ring_avulsion",
     displayName: "Ring avulsion injury",
-    snomedCtCode: "283020001",
+    snomedCtCode: "52011008",
   },
   hand_dx_fingertip_injury: {
     diagnosisPicklistId: "hand_dx_fingertip_injury",
     displayName: "Fingertip injury / amputation",
-    snomedCtCode: "283593005",
+    snomedCtCode: "52011008",
   },
   hand_dx_ucl_thumb: {
     diagnosisPicklistId: "hand_dx_ucl_thumb",
@@ -300,37 +300,37 @@ const DIAGNOSIS_LOOKUP: Record<string, DiagnosisRef> = {
   hand_dx_flexor_tendon_lac: {
     diagnosisPicklistId: "hand_dx_flexor_tendon_lac",
     displayName: "Flexor tendon laceration",
-    snomedCtCode: "283588004",
+    snomedCtCode: "439052006",
   },
   hand_dx_extensor_tendon_lac: {
     diagnosisPicklistId: "hand_dx_extensor_tendon_lac",
     displayName: "Extensor tendon laceration",
-    snomedCtCode: "283589007",
+    snomedCtCode: "441885003",
   },
   hand_dx_digital_nerve_lac: {
     diagnosisPicklistId: "hand_dx_digital_nerve_lac",
     displayName: "Digital nerve laceration",
-    snomedCtCode: "283013008",
+    snomedCtCode: "52011008",
   },
   hand_dx_median_nerve_lac: {
     diagnosisPicklistId: "hand_dx_median_nerve_lac",
     displayName: "Median nerve injury / laceration",
-    snomedCtCode: "283018004",
+    snomedCtCode: "52011008",
   },
   hand_dx_ulnar_nerve_lac: {
     diagnosisPicklistId: "hand_dx_ulnar_nerve_lac",
     displayName: "Ulnar nerve injury / laceration",
-    snomedCtCode: "283019007",
+    snomedCtCode: "52011008",
   },
   hand_dx_radial_nerve_lac: {
     diagnosisPicklistId: "hand_dx_radial_nerve_lac",
     displayName: "Radial nerve / PIN / SRN injury",
-    snomedCtCode: "283020001",
+    snomedCtCode: "52011008",
   },
   hand_dx_dbun_injury: {
     diagnosisPicklistId: "hand_dx_dbun_injury",
     displayName: "Dorsal branch of ulnar nerve injury",
-    snomedCtCode: "283019007",
+    snomedCtCode: "52011008",
   },
   hand_dx_complex_laceration: {
     diagnosisPicklistId: "hand_dx_complex_laceration",
@@ -340,7 +340,7 @@ const DIAGNOSIS_LOOKUP: Record<string, DiagnosisRef> = {
   hand_dx_nail_bed_injury: {
     diagnosisPicklistId: "hand_dx_nail_bed_injury",
     displayName: "Nail bed injury",
-    snomedCtCode: "283028008",
+    snomedCtCode: "446314003",
   },
   hand_dx_hand_degloving: {
     diagnosisPicklistId: "hand_dx_hand_degloving",

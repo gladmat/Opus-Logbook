@@ -174,10 +174,10 @@ describe("Staging flag updates", () => {
 // ═══════════════════════════════════════════════════════════
 
 describe("Staging SNOMED codes", () => {
-  it("CMC1 OA has SNOMED code 202363001 (Eaton-Littler staging)", () => {
+  it("CMC1 OA has SNOMED code 37895003 (Eaton-Littler staging)", () => {
     const dx = HAND_SURGERY_DIAGNOSES.find((d) => d.id === "hand_dx_cmc1_oa");
     expect(dx).toBeDefined();
-    expect(dx!.snomedCtCode).toBe("202363001");
+    expect(dx!.snomedCtCode).toBe("37895003");
   });
 
   it("scaphoid non-union has SNOMED code 263225007 (Herbert staging)", () => {
@@ -188,10 +188,10 @@ describe("Staging SNOMED codes", () => {
     expect(dx!.snomedCtCode).toBe("263225007");
   });
 
-  it("Kienböck's has SNOMED code 30886002 (Lichtman staging)", () => {
+  it("Kienböck's has SNOMED code 787484007 (Lichtman staging)", () => {
     const dx = HAND_SURGERY_DIAGNOSES.find((d) => d.id === "hand_dx_kienbock");
     expect(dx).toBeDefined();
-    expect(dx!.snomedCtCode).toBe("30886002");
+    expect(dx!.snomedCtCode).toBe("787484007");
   });
 });
 

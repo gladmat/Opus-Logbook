@@ -236,8 +236,8 @@ export const SNOMED_PROCEDURES: SnomedProcedure[] = [
     },
   },
   {
-    snomedCtCode: "81723002",
-    snomedCtDisplay: "Repair of nerve",
+    snomedCtCode: "239590009",
+    snomedCtDisplay: "Amputation of finger (procedure)",
     specialty: "hand_trauma",
     commonName: "Nerve Repair",
     countryMappings: {
