@@ -20,6 +20,8 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import {
   insertProfileSchema,
+  insertProcedureSchema,
+  insertCaseProcedureSchema,
   insertFlapSchema,
   insertAnastomosisSchema,
   insertUserFacilitySchema,
@@ -140,6 +142,37 @@ const deviceKeySchema = z.object({
 
 const revokeDeviceKeySchema = z.object({
   deviceId: z.string().min(1).max(64),
+});
+
+// ── Procedure validation schemas ─────────────────────────────────────────────
+const procedureCreateSchema = insertProcedureSchema.extend({
+  procedureDate: z.coerce.date(),
+  startTime: z.coerce.date().optional().nullable(),
+  endTime: z.coerce.date().optional().nullable(),
+});
+const procedureUpdateSchema = insertProcedureSchema
+  .extend({
+    procedureDate: z.coerce.date().optional(),
+    startTime: z.coerce.date().optional().nullable(),
+    endTime: z.coerce.date().optional().nullable(),
+  })
+  .partial()
+  .omit({ userId: true });
+
+const nestedCaseProcedureSchema = insertCaseProcedureSchema.omit({
+  caseId: true,
+});
+const nestedAnastomosisSchema = insertAnastomosisSchema.omit({
+  flapId: true,
+});
+const nestedFlapSchema = insertFlapSchema
+  .omit({ procedureId: true })
+  .extend({
+    anastomoses: z.array(nestedAnastomosisSchema).optional(),
+  });
+const procedureCreateWithNestedSchema = procedureCreateSchema.extend({
+  caseProcedures: z.array(nestedCaseProcedureSchema).optional(),
+  flaps: z.array(nestedFlapSchema).optional(),
 });
 
 // ── Flap/Anastomosis validation schemas ──────────────────────────────────────
@@ -1272,6 +1305,144 @@ export async function registerRoutes(app: Express): Promise<Server> {
       },
     );
   }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Procedures CRUD API
+  // Consumer: Mobile client (case entry — procedure-level CRUD)
+  // Ownership: Verified via userId on procedures table
+  // ──────────────────────────────────────────────────────────────────────────
+
+  // GET /api/procedures — list user's procedures
+  app.get(
+    "/api/procedures",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const userId = req.userId!;
+        const limit = Math.min(
+          Number(req.query.limit) || 50,
+          200,
+        );
+        const offset = Number(req.query.offset) || 0;
+        const result = await storage.getProceduresByUser(userId, limit, offset);
+        res.json(result);
+      } catch (error) {
+        console.error("Error fetching procedures:", error);
+        res.status(500).json({ error: "Failed to fetch procedures" });
+      }
+    },
+  );
+
+  // GET /api/procedures/:id — fetch with relations
+  app.get(
+    "/api/procedures/:id",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const userId = req.userId!;
+        const { id } = req.params;
+        const result = await storage.getProcedureWithRelations(id!, userId);
+        if (!result) {
+          res.status(404).json({ error: "Procedure not found" });
+          return;
+        }
+        res.json(result);
+      } catch (error) {
+        console.error("Error fetching procedure:", error);
+        res.status(500).json({ error: "Failed to fetch procedure" });
+      }
+    },
+  );
+
+  // POST /api/procedures — create with optional nested caseProcedures/flaps
+  app.post(
+    "/api/procedures",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const userId = req.userId!;
+        const parseResult = procedureCreateWithNestedSchema.safeParse(req.body);
+        if (!parseResult.success) {
+          res.status(400).json({
+            error: "Invalid procedure data",
+            details: parseResult.error.errors,
+          });
+          return;
+        }
+
+        const { caseProcedures: nestedCPs, flaps: nestedFlaps, ...procedureData } =
+          parseResult.data;
+
+        const result = await storage.createProcedureWithNested(
+          { ...procedureData, userId },
+          nestedCPs,
+          nestedFlaps,
+        );
+
+        res.status(201).json(result);
+      } catch (error) {
+        console.error("Error creating procedure:", error);
+        res.status(500).json({ error: "Failed to create procedure" });
+      }
+    },
+  );
+
+  // PUT /api/procedures/:id — update procedure fields only
+  app.put(
+    "/api/procedures/:id",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const userId = req.userId!;
+        const { id } = req.params;
+        const parseResult = procedureUpdateSchema.safeParse(req.body);
+        if (!parseResult.success) {
+          res.status(400).json({
+            error: "Invalid procedure data",
+            details: parseResult.error.errors,
+          });
+          return;
+        }
+
+        const hasAccess = await storage.verifyProcedureOwnership(id!, userId);
+        if (!hasAccess) {
+          res.status(404).json({ error: "Procedure not found" });
+          return;
+        }
+
+        const updated = await storage.updateProcedure(id!, parseResult.data);
+        if (!updated) {
+          res.status(404).json({ error: "Procedure not found" });
+          return;
+        }
+        res.json(updated);
+      } catch (error) {
+        console.error("Error updating procedure:", error);
+        res.status(500).json({ error: "Failed to update procedure" });
+      }
+    },
+  );
+
+  // DELETE /api/procedures/:id — delete with cascades
+  app.delete(
+    "/api/procedures/:id",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const userId = req.userId!;
+        const { id } = req.params;
+        const deleted = await storage.deleteProcedure(id!, userId);
+        if (!deleted) {
+          res.status(404).json({ error: "Procedure not found" });
+          return;
+        }
+        res.json({ success: true });
+      } catch (error) {
+        console.error("Error deleting procedure:", error);
+        res.status(500).json({ error: "Failed to delete procedure" });
+      }
+    },
+  );
 
   // ──────────────────────────────────────────────────────────────────────────
   // Flaps CRUD API

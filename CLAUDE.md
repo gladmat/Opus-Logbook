@@ -62,6 +62,7 @@ npm run check:types    # TypeScript type-check (tsc --noEmit)
 npm run format         # Prettier
 npm run test           # Vitest (run once)
 npm run test:watch     # Vitest (watch mode)
+npm run test:harness   # 500-case API test harness (requires running server + .env)
 ```
 
 ## Local development
@@ -229,7 +230,7 @@ client/
     images/                      # Splash screen
 server/
   index.ts                       # Express entry: security headers, CORS, body parsing (335 lines)
-  routes.ts                      # 40+ API endpoints (2041 lines)
+  routes.ts                      # 45+ API endpoints (2170 lines)
   storage.ts                     # DatabaseStorage class with ownership checks (706 lines)
   db.ts                          # Drizzle + pg Pool connection
   env.ts                         # Zod-validated environment variables
@@ -361,11 +362,11 @@ All endpoints under `/api/`. Authentication via JWT bearer token (`authenticateT
 ### Procedures (cases)
 | Method | Path | Purpose |
 |--------|------|---------|
-| GET | `/procedures` | List (limit 50, offset) |
-| POST | `/procedures` | Create (with optional flaps array) |
-| GET | `/procedures/:id` | Fetch with flaps + anastomoses |
-| PUT | `/procedures/:id` | Update |
-| DELETE | `/procedures/:id` | Delete |
+| GET | `/procedures` | List (limit 200, offset) |
+| POST | `/procedures` | Create with nested caseProcedures + flaps + anastomoses |
+| GET | `/procedures/:id` | Fetch with caseProcedures, flaps + anastomoses |
+| PUT | `/procedures/:id` | Update procedure fields |
+| DELETE | `/procedures/:id` | Delete (DB cascades handle children) |
 
 ### Flaps
 | Method | Path | Purpose |
@@ -1111,7 +1112,8 @@ Configured in both `tsconfig.json` and `babel.config.js` (module-resolver plugin
 
 ## Testing
 
-- **Framework:** Vitest 4.0.18, **342 tests** across 18 files
-- **Client tests:** `client/lib/__tests__/` — handTraumaDiagnosis, handTraumaMapping, handTraumaUx, skinCancerConfig (87 tests), skinCancerPhase4 (11 tests), skinCancerPhase5 (18 tests), dashboardSelectors (7 tests), handInfection (42 tests), handElective (50 tests), jointImplant (39 tests), mediaEncryption (16 tests), statisticsHelpers (3 tests), statistics (7 tests), dateValues (3 tests), operativeMedia (2 tests), caseDraftPersistence (1 test)
-- **Server tests:** `server/__tests__/` — auth (17 tests), validation (7 tests)
+- **Framework:** Vitest 4.0.18, **373 tests** across 22 files
+- **Client tests:** `client/lib/__tests__/` — handTraumaDiagnosis, handTraumaMapping, handTraumaUx, skinCancerConfig (89 tests), skinCancerPhase4 (11 tests), skinCancerPhase5 (18 tests), skinCancerDiagnoses (7 tests), dashboardSelectors (7 tests), handInfection (42 tests), handElective (52 tests), jointImplant (44 tests), mediaEncryption (16 tests), statisticsHelpers (3 tests), statistics (7 tests), dateValues (8 tests), dateFieldNormalization (4 tests), operativeMedia (2 tests), implantExport (3 tests), caseDraftPersistence (1 test)
+- **Server tests:** `server/__tests__/` — auth (17 tests), validation (7 tests), diagnosisStagingConfig (3 tests)
+- **Integration:** `npm run test:harness` — 500-case API harness across 12 specialties (requires running server). Tests nested procedure creation with caseProcedures, flaps, and anastomoses. Run with `--cleanup` to delete test data after.
 - **Run:** `npm run test` (once) or `npm run test:watch` (watch mode)

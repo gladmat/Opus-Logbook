@@ -31,9 +31,11 @@ import {
   type ProcedureOutcomeRow,
   type InsertProcedureOutcomeRow,
   caseProcedures,
+  type CaseProcedure,
+  type InsertCaseProcedure,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, ne, sql, lt, isNull, desc } from "drizzle-orm";
+import { eq, and, ne, sql, lt, isNull, desc, asc } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -89,6 +91,39 @@ export interface IStorage {
     id: string,
     procedure: Partial<InsertProcedure>,
   ): Promise<Procedure | undefined>;
+  deleteProcedure(id: string, userId: string): Promise<boolean>;
+
+  getCaseProceduresByCase(caseId: string): Promise<CaseProcedure[]>;
+  createCaseProcedure(cp: InsertCaseProcedure): Promise<CaseProcedure>;
+  updateCaseProcedure(
+    id: string,
+    data: Partial<InsertCaseProcedure>,
+  ): Promise<CaseProcedure | undefined>;
+  deleteCaseProcedure(id: string): Promise<boolean>;
+
+  createProcedureWithNested(
+    procedure: InsertProcedure,
+    nestedCaseProcedures?: Omit<InsertCaseProcedure, "caseId">[],
+    nestedFlaps?: (Omit<InsertFlap, "procedureId"> & {
+      anastomoses?: Omit<InsertAnastomosis, "flapId">[];
+    })[],
+  ): Promise<{
+    procedure: Procedure;
+    caseProcedures: CaseProcedure[];
+    flaps: (Flap & { anastomoses: Anastomosis[] })[];
+  }>;
+
+  getProcedureWithRelations(
+    id: string,
+    userId: string,
+  ): Promise<
+    | {
+        procedure: Procedure;
+        caseProcedures: CaseProcedure[];
+        flaps: (Flap & { anastomoses: Anastomosis[] })[];
+      }
+    | undefined
+  >;
 
   getFlap(id: string): Promise<Flap | undefined>;
   getFlapsByProcedure(procedureId: string): Promise<Flap[]>;
@@ -394,6 +429,165 @@ export class DatabaseStorage implements IStorage {
       .where(eq(procedures.id, id))
       .returning();
     return updated || undefined;
+  }
+
+  async deleteProcedure(id: string, userId: string): Promise<boolean> {
+    const result = await db
+      .delete(procedures)
+      .where(and(eq(procedures.id, id), eq(procedures.userId, userId)))
+      .returning();
+    return result.length > 0;
+  }
+
+  // ── Case Procedures ─────────────────────────────────────────────────────
+
+  async getCaseProceduresByCase(caseId: string): Promise<CaseProcedure[]> {
+    return db
+      .select()
+      .from(caseProcedures)
+      .where(eq(caseProcedures.caseId, caseId))
+      .orderBy(asc(caseProcedures.sequenceOrder));
+  }
+
+  async createCaseProcedure(cp: InsertCaseProcedure): Promise<CaseProcedure> {
+    const [created] = await db
+      .insert(caseProcedures)
+      .values(cp)
+      .returning();
+    return created!;
+  }
+
+  async updateCaseProcedure(
+    id: string,
+    data: Partial<InsertCaseProcedure>,
+  ): Promise<CaseProcedure | undefined> {
+    const [updated] = await db
+      .update(caseProcedures)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(caseProcedures.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteCaseProcedure(id: string): Promise<boolean> {
+    const result = await db
+      .delete(caseProcedures)
+      .where(eq(caseProcedures.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  // ── Transactional nested creation ───────────────────────────────────────
+
+  async createProcedureWithNested(
+    procedure: InsertProcedure,
+    nestedCaseProcedures?: Omit<InsertCaseProcedure, "caseId">[],
+    nestedFlaps?: (Omit<InsertFlap, "procedureId"> & {
+      anastomoses?: Omit<InsertAnastomosis, "flapId">[];
+    })[],
+  ): Promise<{
+    procedure: Procedure;
+    caseProcedures: CaseProcedure[];
+    flaps: (Flap & { anastomoses: Anastomosis[] })[];
+  }> {
+    return db.transaction(async (tx) => {
+      // 1. Insert procedure
+      const [createdProcedure] = await tx
+        .insert(procedures)
+        .values(procedure)
+        .returning();
+
+      const procId = createdProcedure!.id;
+      const createdCaseProcedures: CaseProcedure[] = [];
+      const createdFlaps: (Flap & { anastomoses: Anastomosis[] })[] = [];
+
+      // 2. Insert case procedures
+      if (nestedCaseProcedures?.length) {
+        for (const cp of nestedCaseProcedures) {
+          const [created] = await tx
+            .insert(caseProcedures)
+            .values({ ...cp, caseId: procId })
+            .returning();
+          createdCaseProcedures.push(created!);
+        }
+      }
+
+      // 3. Insert flaps + anastomoses
+      if (nestedFlaps?.length) {
+        for (const { anastomoses: nestedAnastomoses, ...flapData } of nestedFlaps) {
+          const [createdFlap] = await tx
+            .insert(flaps)
+            .values({ ...flapData, procedureId: procId })
+            .returning();
+          const flapId = createdFlap!.id;
+
+          const flapAnastomoses: Anastomosis[] = [];
+          if (nestedAnastomoses?.length) {
+            for (const a of nestedAnastomoses) {
+              const [createdA] = await tx
+                .insert(anastomoses)
+                .values({ ...a, flapId })
+                .returning();
+              flapAnastomoses.push(createdA!);
+            }
+          }
+
+          createdFlaps.push({ ...createdFlap!, anastomoses: flapAnastomoses });
+        }
+      }
+
+      return {
+        procedure: createdProcedure!,
+        caseProcedures: createdCaseProcedures,
+        flaps: createdFlaps,
+      };
+    });
+  }
+
+  async getProcedureWithRelations(
+    id: string,
+    userId: string,
+  ): Promise<
+    | {
+        procedure: Procedure;
+        caseProcedures: CaseProcedure[];
+        flaps: (Flap & { anastomoses: Anastomosis[] })[];
+      }
+    | undefined
+  > {
+    const [procedure] = await db
+      .select()
+      .from(procedures)
+      .where(and(eq(procedures.id, id), eq(procedures.userId, userId)));
+
+    if (!procedure) return undefined;
+
+    const procCaseProcedures = await db
+      .select()
+      .from(caseProcedures)
+      .where(eq(caseProcedures.caseId, id))
+      .orderBy(asc(caseProcedures.sequenceOrder));
+
+    const procFlaps = await db
+      .select()
+      .from(flaps)
+      .where(eq(flaps.procedureId, id));
+
+    const flapsWithAnastomoses = await Promise.all(
+      procFlaps.map(async (flap) => {
+        const flapAnastomoses = await db
+          .select()
+          .from(anastomoses)
+          .where(eq(anastomoses.flapId, flap.id));
+        return { ...flap, anastomoses: flapAnastomoses };
+      }),
+    );
+
+    return {
+      procedure,
+      caseProcedures: procCaseProcedures,
+      flaps: flapsWithAnastomoses,
+    };
   }
 
   async getFlap(id: string): Promise<Flap | undefined> {

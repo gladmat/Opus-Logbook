@@ -17,7 +17,8 @@
     "check:format": "prettier --check \"**/*.{js,ts,tsx,css,json}\"",
     "format": "prettier --write \"**/*.{js,ts,tsx,css,json}\"",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:harness": "node --env-file=.env --import tsx scripts/test-harness/run.ts"
   },
   "dependencies": {
     "@expo-google-fonts/nunito": "^0.4.2",
