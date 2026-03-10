@@ -29,6 +29,7 @@ import CaseSearchScreen from "@/screens/CaseSearchScreen";
 import AddHistologyScreen from "@/screens/AddHistologyScreen";
 import NeedsAttentionListScreen from "@/screens/NeedsAttentionListScreen";
 import InboxScreen from "@/screens/InboxScreen";
+import SmartImportScreen from "@/screens/SmartImportScreen";
 import SurgicalPreferencesScreen from "@/screens/SurgicalPreferencesScreen";
 import { WelcomeScreen } from "@/screens/onboarding/WelcomeScreen";
 import { FeaturePager } from "@/screens/onboarding/FeaturePager";
@@ -202,6 +203,7 @@ export type RootStackParamList = {
     lesionIndex?: number;
   };
   Inbox: { pickMode?: boolean; callbackId?: string } | undefined;
+  SmartImport: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -754,6 +756,14 @@ export default function RootStackNavigator() {
             component={InboxScreen}
             options={{
               headerTitle: "Photo Inbox",
+            }}
+          />
+          <Stack.Screen
+            name="SmartImport"
+            component={SmartImportScreen}
+            options={{
+              headerTitle: "Import Photos",
+              presentation: "fullScreenModal",
             }}
           />
           <Stack.Screen

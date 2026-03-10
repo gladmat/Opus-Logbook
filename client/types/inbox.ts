@@ -15,7 +15,7 @@ export interface InboxItem {
   localUri: string; // opus-media:{uuid} encrypted URI
   mimeType: string;
   capturedAt: string; // ISO timestamp — when photo was taken/imported
-  sourceType: "camera" | "gallery";
+  sourceType: "camera" | "gallery" | "smart_import";
 }
 
 /**

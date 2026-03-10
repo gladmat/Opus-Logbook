@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, StyleSheet, Pressable, Alert } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, StyleSheet, Pressable, Alert, Switch } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { Feather } from "@/components/FeatherIcon";
@@ -16,6 +16,10 @@ import {
   normalizeSelectedSpecialties,
 } from "@/lib/personalization";
 import type { Specialty } from "@/types/case";
+import {
+  getAlwaysDeleteAfterImport,
+  setAlwaysDeleteAfterImport,
+} from "@/lib/smartImportPrefs";
 
 function CategoryCard({
   label,
@@ -63,6 +67,17 @@ export default function PersonalisationScreen() {
     new Set(initialSelection),
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [autoDeleteOriginals, setAutoDeleteOriginals] = useState(false);
+
+  useEffect(() => {
+    getAlwaysDeleteAfterImport().then(setAutoDeleteOriginals);
+  }, []);
+
+  const handleToggleAutoDelete = async (value: boolean) => {
+    setAutoDeleteOriginals(value);
+    await setAlwaysDeleteAfterImport(value);
+    Haptics.selectionAsync();
+  };
 
   const selectedCount = selected.size;
   const hasChanges =
@@ -180,6 +195,37 @@ export default function PersonalisationScreen() {
           {isSaving ? "Saving..." : "Save Personalisation"}
         </ThemedText>
       </Pressable>
+
+      {/* Privacy & Media section */}
+      <View
+        style={[
+          styles.sectionCard,
+          {
+            backgroundColor: theme.backgroundDefault,
+            borderColor: theme.border,
+          },
+        ]}
+      >
+        <ThemedText style={styles.sectionTitle}>Privacy & Media</ThemedText>
+        <View style={styles.toggleRow}>
+          <View style={styles.toggleLabel}>
+            <ThemedText style={styles.toggleTitle}>
+              Auto-Delete Camera Roll Originals
+            </ThemedText>
+            <ThemedText
+              style={[styles.toggleSubtitle, { color: theme.textSecondary }]}
+            >
+              Automatically delete imported photos from Camera Roll
+            </ThemedText>
+          </View>
+          <Switch
+            value={autoDeleteOriginals}
+            onValueChange={handleToggleAutoDelete}
+            trackColor={{ false: theme.border, true: theme.link }}
+            thumbColor={theme.buttonText}
+          />
+        </View>
+      </View>
     </KeyboardAwareScrollViewCompat>
   );
 }
@@ -253,5 +299,34 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 16,
     fontWeight: "700",
+  },
+  sectionCard: {
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    padding: Spacing.lg,
+    marginTop: Spacing.xl,
+    ...Shadows.card,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: Spacing.md,
+  },
+  toggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: Spacing.md,
+  },
+  toggleLabel: {
+    flex: 1,
+  },
+  toggleTitle: {
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  toggleSubtitle: {
+    fontSize: 13,
+    marginTop: 2,
   },
 });

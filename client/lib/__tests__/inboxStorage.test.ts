@@ -213,6 +213,42 @@ describe("inboxStorage", () => {
     });
   });
 
+  describe("smart_import sourceType", () => {
+    it("addToInbox stores smart_import sourceType correctly", async () => {
+      const item = await addToInbox(
+        "file:///photo.jpg",
+        "image/jpeg",
+        "smart_import",
+      );
+      expect(item.sourceType).toBe("smart_import");
+      expect(getInboxItems()[0]!.sourceType).toBe("smart_import");
+    });
+
+    it("addMultipleToInbox with smart_import works", async () => {
+      const assets = [
+        { uri: "file:///a.jpg", mimeType: "image/jpeg" },
+        { uri: "file:///b.jpg", mimeType: "image/jpeg" },
+      ];
+      const items = await addMultipleToInbox(assets, "smart_import");
+      expect(items).toHaveLength(2);
+      expect(items[0]!.sourceType).toBe("smart_import");
+      expect(items[1]!.sourceType).toBe("smart_import");
+    });
+
+    it("smart_import items appear in getInboxItems alongside other types", async () => {
+      await addToInbox("file:///cam.jpg", "image/jpeg", "camera");
+      await addToInbox("file:///gal.jpg", "image/jpeg", "gallery");
+      await addToInbox("file:///imp.jpg", "image/jpeg", "smart_import");
+
+      const items = getInboxItems();
+      expect(items).toHaveLength(3);
+      const types = items.map((i) => i.sourceType);
+      expect(types).toContain("camera");
+      expect(types).toContain("gallery");
+      expect(types).toContain("smart_import");
+    });
+  });
+
   describe("cleanupOrphanedInboxItems", () => {
     it("deletes items older than threshold", async () => {
       // Add an item, then manually backdate it

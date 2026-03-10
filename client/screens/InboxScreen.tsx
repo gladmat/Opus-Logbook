@@ -34,7 +34,6 @@ import {
   getInboxItems,
   getInboxCount,
   addToInbox,
-  addMultipleToInbox,
   removeFromInbox,
   discardFromInbox,
 } from "@/lib/inboxStorage";
@@ -247,34 +246,10 @@ export default function InboxScreen() {
     }
   }, [ensureCameraPermission]);
 
-  const handlePickGallery = useCallback(async () => {
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        quality: 0.7,
-        allowsMultipleSelection: true,
-        selectionLimit: 15,
-      });
-      if (!result.canceled && result.assets.length > 0) {
-        setImporting(true);
-        await addMultipleToInbox(
-          result.assets.map((a) => ({
-            uri: a.uri,
-            mimeType: a.mimeType,
-          })),
-          "gallery",
-        );
-        setItems(getInboxItems());
-        setImporting(false);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
-    } catch (error) {
-      setImporting(false);
-      console.warn("[InboxScreen] Gallery import failed:", error);
-      Alert.alert("Error", "Failed to import images.");
-    }
-  }, []);
+  const handlePickGallery = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    navigation.navigate("SmartImport");
+  }, [navigation]);
 
   // ── Delete ───────────────────────────────────────────
 
@@ -464,7 +439,7 @@ export default function InboxScreen() {
             >
               <Feather name="image" size={18} color={theme.text} />
               <ThemedText style={[styles.captureButtonText, { color: theme.text }]}>
-                Gallery
+                Camera Roll
               </ThemedText>
             </Pressable>
           </View>
@@ -655,7 +630,7 @@ export default function InboxScreen() {
             <ThemedText
               style={[styles.captureBarText, { color: theme.text }]}
             >
-              Gallery
+              Camera Roll
             </ThemedText>
           </Pressable>
         </View>

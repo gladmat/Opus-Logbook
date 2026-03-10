@@ -61,7 +61,7 @@ export function getInboxCount(): number {
 export async function addToInbox(
   sourceUri: string,
   mimeType: string,
-  sourceType: "camera" | "gallery",
+  sourceType: InboxItem["sourceType"],
 ): Promise<InboxItem> {
   const saved = await saveEncryptedMediaFromUri(sourceUri, mimeType);
   const item: InboxItem = {
@@ -83,7 +83,7 @@ export async function addToInbox(
  */
 export async function addMultipleToInbox(
   assets: Array<{ uri: string; mimeType?: string | null }>,
-  sourceType: "camera" | "gallery",
+  sourceType: InboxItem["sourceType"],
   onProgress?: (completed: number, total: number) => void,
 ): Promise<InboxItem[]> {
   const newItems: InboxItem[] = [];
