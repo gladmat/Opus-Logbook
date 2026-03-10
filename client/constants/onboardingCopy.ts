@@ -81,9 +81,9 @@ export const copy = {
     trustPoints: [
       {
         icon: "shield" as const,
-        title: "End-to-end encrypted",
+        title: "Encrypted on device",
         detail:
-          "AES-256 at rest. TLS 1.3 in transit. Your operative record stays yours.",
+          "On supported native devices, local records are encrypted on-device. Sync uses HTTPS/TLS in transit.",
       },
       {
         icon: "wifi-off" as const,
@@ -100,7 +100,7 @@ export const copy = {
         icon: "heart" as const,
         title: "Built for healthcare data standards",
         detail:
-          "Designed to support GDPR, HIPAA, and NZ Health Information Privacy Code requirements.",
+          "Designed with GDPR, HIPAA, and NZ Health Information Privacy Code workflows in mind. Your deployment environment still matters.",
       },
     ],
     finalLine:

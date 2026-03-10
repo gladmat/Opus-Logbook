@@ -30,6 +30,7 @@ import { clearAllData } from "@/lib/storage";
 import { getOrCreateDeviceIdentity } from "@/lib/e2ee";
 import { clearAllAppLockData } from "@/lib/appLockStorage";
 import { normalizeUserFacility } from "@/lib/facilities";
+import { clearDecryptedCache } from "@/components/EncryptedImage";
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -201,6 +202,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     await authLogout();
     await clearAllAppLockData();
+    clearDecryptedCache();
     setUser(null);
     setProfile(null);
     setFacilities([]);
@@ -211,6 +213,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await authDeleteAccount(password);
     await clearAllData();
     await clearAllAppLockData();
+    clearDecryptedCache();
     setUser(null);
     setProfile(null);
     setFacilities([]);

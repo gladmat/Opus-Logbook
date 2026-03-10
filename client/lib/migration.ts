@@ -2,6 +2,7 @@ import { Case, DiagnosisGroup, CaseProcedure } from "@/types/case";
 import { v4 as uuidv4 } from "uuid";
 import { migrateSnomedCode } from "@/lib/snomedCodeMigration";
 import { resolveSkinCancerDiagnosis } from "@/lib/skinCancerConfig";
+import { repairCaseSpecialty } from "@/lib/caseSpecialty";
 import { normalizeDateOnlyValue } from "@/lib/dateValues";
 import type { SkinCancerHistology } from "@/types/skinCancer";
 
@@ -260,6 +261,7 @@ export function migrateCase(raw: unknown): Case {
       migrated = migrateSnomedCodes(migrated);
       migrated = migrateSkinCancerDiagnosisConsistency(migrated);
       migrated = normalizeCaseDateOnlyFields(migrated);
+      migrated = repairCaseSpecialty(migrated);
       if (
         !migrated.schemaVersion ||
         migrated.schemaVersion < CURRENT_CASE_SCHEMA_VERSION
@@ -308,9 +310,11 @@ export function migrateCase(raw: unknown): Case {
     delete migrated.fractures;
     delete migrated.procedures;
 
-    return normalizeCaseDateOnlyFields(
-      migrateSkinCancerDiagnosisConsistency(
-        migrateSnomedCodes(migrated as Case),
+    return repairCaseSpecialty(
+      normalizeCaseDateOnlyFields(
+        migrateSkinCancerDiagnosisConsistency(
+          migrateSnomedCodes(migrated as Case),
+        ),
       ),
     );
   } catch (error) {

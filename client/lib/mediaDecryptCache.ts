@@ -1,37 +1,24 @@
 /**
  * LRU temp-file cache for decrypted v2 media.
  *
- * Writes decrypted bytes to {Paths.cache}/opus-decrypt/ as temp files.
- * Two pools: thumbnails (max 80, ~2MB) and full images (max 10, ~50MB).
- * Files auto-cleared on app background via AppLockContext.
- *
- * Returns file:/// URIs for direct use with expo-image's Image component.
+ * Decrypted files live only in {Paths.cache}/opus-decrypt and are swept on app
+ * startup, background, logout, and explicit media deletion.
  */
 
 import { File, Directory, Paths } from "expo-file-system";
-
-// ═══════════════════════════════════════════════════════════
-// Constants
-// ═══════════════════════════════════════════════════════════
 
 const CACHE_DIR_NAME = "opus-decrypt";
 const MAX_THUMB_ENTRIES = 80;
 const MAX_FULL_ENTRIES = 10;
 
-type Variant = "thumb" | "full";
-
-// ═══════════════════════════════════════════════════════════
-// Cache implementation
-// ═══════════════════════════════════════════════════════════
+export type DecryptVariant = "thumb" | "full";
 
 class DecryptCache {
-  /** Maps "variant:mediaId" → file URI string */
   private map = new Map<string, string>();
-  /** Insertion order for LRU eviction, per variant */
   private thumbOrder: string[] = [];
   private fullOrder: string[] = [];
 
-  private key(mediaId: string, variant: Variant): string {
+  private key(mediaId: string, variant: DecryptVariant): string {
     return `${variant}:${mediaId}`;
   }
 
@@ -42,97 +29,77 @@ class DecryptCache {
   private ensureCacheDir(): void {
     const dir = this.getCacheDir();
     if (!dir.exists) {
-      dir.create({ intermediates: true });
+      dir.create({ idempotent: true, intermediates: true });
     }
   }
 
-  /** Get cached file URI, or null if not cached */
-  getCached(mediaId: string, variant: Variant): string | null {
-    const k = this.key(mediaId, variant);
-    const uri = this.map.get(k);
+  private fileFor(
+    mediaId: string,
+    variant: DecryptVariant,
+    mimeType: string,
+  ): File {
+    const ext = mimeType.includes("png") ? "png" : "jpg";
+    return new File(
+      Paths.cache,
+      CACHE_DIR_NAME,
+      `${variant}_${mediaId}.${ext}`,
+    );
+  }
+
+  getCached(mediaId: string, variant: DecryptVariant): string | null {
+    const key = this.key(mediaId, variant);
+    const uri = this.map.get(key);
     if (!uri) return null;
 
-    // Verify file still exists (OS may have purged cache)
-    try {
-      const file = new File(uri);
-      if (!file.exists) {
-        this.map.delete(k);
-        this.removeFromOrder(k, variant);
-        return null;
-      }
-    } catch {
-      this.map.delete(k);
-      this.removeFromOrder(k, variant);
+    const file = new File(uri);
+    if (!file.exists) {
+      this.map.delete(key);
+      this.removeFromOrder(key, variant);
       return null;
     }
 
     return uri;
   }
 
-  /** Write decrypted bytes to a temp file and cache the URI */
-  put(
+  async materialize(
     mediaId: string,
-    variant: Variant,
-    bytes: Uint8Array,
+    variant: DecryptVariant,
     mimeType: string,
-  ): string {
+    writer: (destPath: string) => Promise<void>,
+  ): Promise<string> {
     this.ensureCacheDir();
 
-    const ext = mimeType.includes("png") ? "png" : "jpg";
-    const fileName = `${variant}_${mediaId}.${ext}`;
-    const file = new File(Paths.cache, CACHE_DIR_NAME, fileName);
-    file.write(bytes);
-
-    const fileUri = file.uri;
-    const k = this.key(mediaId, variant);
-
-    // Update LRU
-    this.removeFromOrder(k, variant);
-    this.map.set(k, fileUri);
-
-    const order = variant === "thumb" ? this.thumbOrder : this.fullOrder;
-    const max = variant === "thumb" ? MAX_THUMB_ENTRIES : MAX_FULL_ENTRIES;
-    order.push(k);
-
-    // Evict oldest
-    while (order.length > max) {
-      const oldest = order.shift();
-      if (oldest) {
-        const oldUri = this.map.get(oldest);
-        this.map.delete(oldest);
-        if (oldUri) {
-          try {
-            const f = new File(oldUri);
-            if (f.exists) f.delete();
-          } catch {
-            // Ignore cleanup errors
-          }
-        }
+    const file = this.fileFor(mediaId, variant, mimeType);
+    if (file.exists) {
+      try {
+        file.delete();
+      } catch {
+        // Ignore stale temp-file cleanup failures.
       }
     }
 
-    return fileUri;
+    await writer(file.uri);
+    return this.register(mediaId, variant, file.uri);
   }
 
-  /** Remove a specific item from cache */
   invalidate(mediaId: string): void {
-    for (const variant of ["thumb", "full"] as Variant[]) {
-      const k = this.key(mediaId, variant);
-      const uri = this.map.get(k);
-      this.map.delete(k);
-      this.removeFromOrder(k, variant);
+    for (const variant of ["thumb", "full"] as const) {
+      const key = this.key(mediaId, variant);
+      const uri = this.map.get(key);
+      this.map.delete(key);
+      this.removeFromOrder(key, variant);
+
       if (uri) {
         try {
-          const f = new File(uri);
-          if (f.exists) f.delete();
+          const file = new File(uri);
+          if (file.exists) file.delete();
         } catch {
-          // Ignore
+          // Ignore delete failures during invalidation.
         }
       }
     }
   }
 
-  /** Delete entire cache directory + reset maps (called on app background) */
   clearAll(): void {
     this.map.clear();
     this.thumbOrder.length = 0;
@@ -144,19 +111,48 @@ class DecryptCache {
         dir.delete();
       }
     } catch {
-      // Ignore cleanup errors
+      // Ignore cache cleanup failures.
     }
   }
 
-  private removeFromOrder(key: string, variant: Variant): void {
+  private register(
+    mediaId: string,
+    variant: DecryptVariant,
+    uri: string,
+  ): string {
+    const key = this.key(mediaId, variant);
+    this.removeFromOrder(key, variant);
+    this.map.set(key, uri);
+
+    const order = variant === "thumb" ? this.thumbOrder : this.fullOrder;
+    const max = variant === "thumb" ? MAX_THUMB_ENTRIES : MAX_FULL_ENTRIES;
+    order.push(key);
+
+    while (order.length > max) {
+      const oldest = order.shift();
+      if (!oldest) continue;
+      const oldUri = this.map.get(oldest);
+      this.map.delete(oldest);
+      if (!oldUri) continue;
+
+      try {
+        const file = new File(oldUri);
+        if (file.exists) file.delete();
+      } catch {
+        // Ignore best-effort eviction failures.
+      }
+    }
+
+    return uri;
+  }
+
+  private removeFromOrder(key: string, variant: DecryptVariant): void {
     const order = variant === "thumb" ? this.thumbOrder : this.fullOrder;
     const idx = order.indexOf(key);
-    if (idx !== -1) order.splice(idx, 1);
+    if (idx !== -1) {
+      order.splice(idx, 1);
+    }
   }
 }
-
-// ═══════════════════════════════════════════════════════════
-// Singleton export
-// ═══════════════════════════════════════════════════════════
 
 export const decryptCache = new DecryptCache();

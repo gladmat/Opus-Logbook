@@ -61,6 +61,7 @@ import { useFavouritesRecents } from "@/hooks/useFavouritesRecents";
 import type { TreatmentEpisode } from "@/types/episode";
 import { HeaderTitleText } from "@/components/HeaderTitleText";
 import { buildMediaContext } from "@/lib/mediaContext";
+import { LoadingState } from "@/components/LoadingState";
 
 type RouteParams = RouteProp<RootStackParamList, "CaseForm">;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -145,7 +146,7 @@ export default function CaseFormScreen() {
     "";
 
   const form = useCaseForm({
-    specialty: routeSpecialty || "general",
+    specialty: routeSpecialty,
     caseId,
     duplicateFrom,
     skinCancerFollowUpPrefill,
@@ -451,65 +452,68 @@ export default function CaseFormScreen() {
       headerTitle: () => (
         <HeaderTitleText title={headerTitle} reserveWidth={210} fontSize={15} />
       ),
-      headerRight: () => (
-        <View style={styles.headerActions}>
-          <Pressable
-            onPress={showOverflowMenu}
-            hitSlop={8}
-            style={styles.headerIconButton}
-            accessibilityRole="button"
-            accessibilityLabel={
-              form.isEditMode ? "Revert changes" : "Clear form"
-            }
-          >
-            <Feather
-              name="more-horizontal"
-              size={20}
-              color={theme.textSecondary}
-            />
-          </Pressable>
-          <Pressable
-            onPress={() =>
-              handleSaveRef.current(formOpenedAtRef.current).then((success) => {
-                if (success) {
-                  for (const group of diagnosisGroupsRef.current) {
-                    if (group.diagnosisPicklistId) {
-                      recordUsageRef.current(
-                        "diagnosis",
-                        group.diagnosisPicklistId,
-                      );
-                    }
-                    for (const proc of group.procedures) {
-                      if (proc.picklistEntryId) {
-                        recordUsageRef.current(
-                          "procedure",
-                          proc.picklistEntryId,
-                        );
-                      }
-                    }
-                  }
-                  if (!isEditModeRef.current) void clearDraftRef.current();
-                  navigation.goBack();
-                }
-              })
-            }
-            disabled={form.state.saving}
-            hitSlop={8}
-            style={styles.headerSaveButton}
-            accessibilityRole="button"
-            accessibilityLabel="Save case"
-          >
-            <ThemedText
-              style={{
-                color: form.state.saving ? theme.textTertiary : theme.link,
-                fontWeight: "600",
-              }}
+      headerRight: () =>
+        form.loadingExistingCase || form.loadError ? null : (
+          <View style={styles.headerActions}>
+            <Pressable
+              onPress={showOverflowMenu}
+              hitSlop={8}
+              style={styles.headerIconButton}
+              accessibilityRole="button"
+              accessibilityLabel={
+                form.isEditMode ? "Revert changes" : "Clear form"
+              }
             >
-              {form.state.saving ? "Saving..." : "Save"}
-            </ThemedText>
-          </Pressable>
-        </View>
-      ),
+              <Feather
+                name="more-horizontal"
+                size={20}
+                color={theme.textSecondary}
+              />
+            </Pressable>
+            <Pressable
+              onPress={() =>
+                handleSaveRef
+                  .current(formOpenedAtRef.current)
+                  .then((success) => {
+                    if (success) {
+                      for (const group of diagnosisGroupsRef.current) {
+                        if (group.diagnosisPicklistId) {
+                          recordUsageRef.current(
+                            "diagnosis",
+                            group.diagnosisPicklistId,
+                          );
+                        }
+                        for (const proc of group.procedures) {
+                          if (proc.picklistEntryId) {
+                            recordUsageRef.current(
+                              "procedure",
+                              proc.picklistEntryId,
+                            );
+                          }
+                        }
+                      }
+                      if (!isEditModeRef.current) void clearDraftRef.current();
+                      navigation.goBack();
+                    }
+                  })
+              }
+              disabled={form.state.saving}
+              hitSlop={8}
+              style={styles.headerSaveButton}
+              accessibilityRole="button"
+              accessibilityLabel="Save case"
+            >
+              <ThemedText
+                style={{
+                  color: form.state.saving ? theme.textTertiary : theme.link,
+                  fontWeight: "600",
+                }}
+              >
+                {form.state.saving ? "Saving..." : "Save"}
+              </ThemedText>
+            </Pressable>
+          </View>
+        ),
     });
   }, [
     form.state.saving,
@@ -518,6 +522,8 @@ export default function CaseFormScreen() {
     theme.link,
     theme.textSecondary,
     theme.textTertiary,
+    form.loadingExistingCase,
+    form.loadError,
     headerTitle,
     navigation,
     showOverflowMenu,
@@ -555,6 +561,31 @@ export default function CaseFormScreen() {
   }, []);
 
   // ── Render ────────────────────────────────────────────────────────────
+
+  if (form.isEditMode && form.loadingExistingCase) {
+    return <LoadingState message="Loading case..." />;
+  }
+
+  if (form.isEditMode && form.loadError) {
+    return (
+      <View
+        style={[
+          styles.loadErrorContainer,
+          { backgroundColor: theme.backgroundRoot },
+        ]}
+      >
+        <ThemedText type="h3">Unable to load case</ThemedText>
+        <ThemedText
+          style={[styles.loadErrorMessage, { color: theme.textSecondary }]}
+        >
+          {form.loadError}
+        </ThemedText>
+        <Button onPress={() => navigation.goBack()} style={styles.loadErrorCta}>
+          Go Back
+        </Button>
+      </View>
+    );
+  }
 
   return (
     <CaseFormProvider
@@ -822,5 +853,21 @@ const styles = StyleSheet.create({
   },
   duplicateBannerClose: {
     padding: 4,
+  },
+  loadErrorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: Spacing["3xl"],
+  },
+  loadErrorMessage: {
+    marginTop: Spacing.sm,
+    textAlign: "center",
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  loadErrorCta: {
+    marginTop: Spacing.xl,
+    minWidth: 180,
   },
 });

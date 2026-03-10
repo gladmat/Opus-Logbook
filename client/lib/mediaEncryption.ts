@@ -1,71 +1,64 @@
 /**
- * AES-256-GCM encryption primitives for the v2 media pipeline.
+ * Async AES-256-GCM encryption helpers for the v2 media pipeline.
  *
- * Uses @noble/ciphers (pure JS, already installed) for AES-GCM.
- * The cipher provider is isolated here — swap in react-native-aes-gcm-crypto
- * for hardware-accelerated CryptoKit if profiling shows cipher speed is a bottleneck.
- *
- * Wire format for encrypted payloads: nonce(12) || ciphertext || tag(16)
- * This is a raw binary format — no base64 wrapping at the file level.
+ * The public API is file-oriented so the provider can later swap to a native
+ * file-to-file implementation without changing consumers.
  */
 
 import { gcm } from "@noble/ciphers/aes.js";
 import * as Crypto from "expo-crypto";
+import { File } from "expo-file-system";
+import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
 
 const GCM_NONCE_LENGTH = 12;
+const GCM_TAG_LENGTH = 16;
 const DEK_LENGTH = 32;
 
-// ═══════════════════════════════════════════════════════════
-// DEK generation
-// ═══════════════════════════════════════════════════════════
-
-/** Generate a random 256-bit Data Encryption Key */
-export function generateDEK(): Uint8Array {
-  return Crypto.getRandomBytes(DEK_LENGTH);
+interface AesGcmPayload {
+  ciphertext: Uint8Array;
+  nonce: Uint8Array;
+  tag: Uint8Array;
 }
 
-// ═══════════════════════════════════════════════════════════
-// Bulk media encryption (AES-256-GCM)
-// ═══════════════════════════════════════════════════════════
-
-/**
- * Encrypt plaintext bytes using AES-256-GCM.
- * Returns: nonce(12) || ciphertext || tag(16)
- */
-export function encryptMediaBytes(
+function encryptBytesInternal(
   plain: Uint8Array,
   dek: Uint8Array,
-): Uint8Array {
+): AesGcmPayload {
   const nonce = Crypto.getRandomBytes(GCM_NONCE_LENGTH);
   const cipher = gcm(dek, nonce);
-  const ct = cipher.encrypt(plain);
-  // Prepend nonce to ciphertext+tag
-  const out = new Uint8Array(GCM_NONCE_LENGTH + ct.length);
-  out.set(nonce, 0);
-  out.set(ct, GCM_NONCE_LENGTH);
-  return out;
+  const ciphertextWithTag = cipher.encrypt(plain);
+  const tagOffset = ciphertextWithTag.length - GCM_TAG_LENGTH;
+
+  return {
+    ciphertext: ciphertextWithTag.slice(0, tagOffset),
+    nonce,
+    tag: ciphertextWithTag.slice(tagOffset),
+  };
 }
 
-/**
- * Decrypt AES-256-GCM encrypted bytes.
- * Input format: nonce(12) || ciphertext || tag(16)
- * Throws on authentication failure (tampered data or wrong key).
- */
-export function decryptMediaBytes(
-  enc: Uint8Array,
+function decryptBytesInternal(
+  ciphertext: Uint8Array,
   dek: Uint8Array,
+  nonceHex: string,
+  tagHex: string,
 ): Uint8Array {
-  if (enc.length < GCM_NONCE_LENGTH + 16) {
+  const nonce = hexToBytes(nonceHex);
+  const tag = hexToBytes(tagHex);
+
+  if (nonce.length !== GCM_NONCE_LENGTH || tag.length !== GCM_TAG_LENGTH) {
     throw new MediaEncryptionError(
       "DECRYPT_FAILED",
-      "Encrypted data too short",
+      "Invalid AES-GCM nonce or tag.",
     );
   }
-  const nonce = enc.slice(0, GCM_NONCE_LENGTH);
-  const ct = enc.slice(GCM_NONCE_LENGTH);
+
+  const cipher = gcm(dek, nonce);
+  const ciphertextWithTag = new Uint8Array(ciphertext.length + tag.length);
+  ciphertextWithTag.set(ciphertext, 0);
+  ciphertextWithTag.set(tag, ciphertext.length);
+
   try {
-    const cipher = gcm(dek, nonce);
-    return cipher.decrypt(ct);
+    return cipher.decrypt(ciphertextWithTag);
   } catch {
     throw new MediaEncryptionError(
       "DECRYPT_FAILED",
@@ -74,45 +67,54 @@ export function decryptMediaBytes(
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-// DEK wrapping (AES-256-GCM with master key)
-// ═══════════════════════════════════════════════════════════
+function ensureParentDirectory(file: File): void {
+  const parent = file.parentDirectory;
+  if (!parent.exists) {
+    parent.create({ idempotent: true, intermediates: true });
+  }
+}
 
-/**
- * Wrap a DEK using AES-256-GCM with the master key.
- * Returns: nonce(12) || wrappedDEK || tag(16)
- * The wrapped output is small (~60 bytes) — fast even in pure JS.
- */
-export function wrapDEK(dek: Uint8Array, masterKey: Uint8Array): Uint8Array {
-  const nonce = Crypto.getRandomBytes(GCM_NONCE_LENGTH);
-  const cipher = gcm(masterKey, nonce);
-  const ct = cipher.encrypt(dek);
-  const out = new Uint8Array(GCM_NONCE_LENGTH + ct.length);
+function writeBytes(file: File, bytes: Uint8Array): void {
+  ensureParentDirectory(file);
+  if (!file.exists) {
+    file.create({ intermediates: true, overwrite: true });
+  }
+  file.write(bytes);
+}
+
+export async function generateDek(): Promise<Uint8Array> {
+  return Crypto.getRandomBytesAsync(DEK_LENGTH);
+}
+
+export async function wrapDek(
+  dek: Uint8Array,
+  masterKey: Uint8Array,
+): Promise<Uint8Array> {
+  const { ciphertext, nonce, tag } = encryptBytesInternal(dek, masterKey);
+  const out = new Uint8Array(nonce.length + ciphertext.length + tag.length);
   out.set(nonce, 0);
-  out.set(ct, GCM_NONCE_LENGTH);
+  out.set(ciphertext, nonce.length);
+  out.set(tag, nonce.length + ciphertext.length);
   return out;
 }
 
-/**
- * Unwrap a DEK using AES-256-GCM with the master key.
- * Input format: nonce(12) || wrappedDEK || tag(16)
- * Throws on authentication failure.
- */
-export function unwrapDEK(
+export async function unwrapDek(
   wrapped: Uint8Array,
   masterKey: Uint8Array,
-): Uint8Array {
-  if (wrapped.length < GCM_NONCE_LENGTH + 16) {
+): Promise<Uint8Array> {
+  if (wrapped.length < GCM_NONCE_LENGTH + GCM_TAG_LENGTH) {
     throw new MediaEncryptionError(
       "KEY_UNWRAP_FAILED",
       "Wrapped DEK too short",
     );
   }
-  const nonce = wrapped.slice(0, GCM_NONCE_LENGTH);
-  const ct = wrapped.slice(GCM_NONCE_LENGTH);
+
+  const nonceHex = bytesToHex(wrapped.slice(0, GCM_NONCE_LENGTH));
+  const ciphertext = wrapped.slice(GCM_NONCE_LENGTH, -GCM_TAG_LENGTH);
+  const tagHex = bytesToHex(wrapped.slice(-GCM_TAG_LENGTH));
+
   try {
-    const cipher = gcm(masterKey, nonce);
-    return cipher.decrypt(ct);
+    return decryptBytesInternal(ciphertext, masterKey, nonceHex, tagHex);
   } catch {
     throw new MediaEncryptionError(
       "KEY_UNWRAP_FAILED",
@@ -121,9 +123,80 @@ export function unwrapDEK(
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-// Error type
-// ═══════════════════════════════════════════════════════════
+export async function encryptFile(
+  sourcePath: string,
+  destPath: string,
+  dek: Uint8Array,
+): Promise<{
+  nonce: string;
+  tag: string;
+  sourceSize: number;
+  ciphertextSize: number;
+}> {
+  try {
+    const sourceFile = new File(sourcePath);
+    const plain = await sourceFile.bytes();
+    const { ciphertext, nonce, tag } = encryptBytesInternal(plain, dek);
+    const destFile = new File(destPath);
+
+    writeBytes(destFile, ciphertext);
+
+    const sourceSize = plain.length;
+    const ciphertextSize = ciphertext.length;
+
+    plain.fill(0);
+    ciphertext.fill(0);
+
+    return {
+      nonce: bytesToHex(nonce),
+      tag: bytesToHex(tag),
+      sourceSize,
+      ciphertextSize,
+    };
+  } catch (error) {
+    throw new MediaEncryptionError(
+      "ENCRYPT_FAILED",
+      error instanceof Error
+        ? error.message
+        : "File encryption failed for secure media storage.",
+    );
+  }
+}
+
+export async function decryptFile(
+  sourcePath: string,
+  destPath: string,
+  dek: Uint8Array,
+  nonce: string,
+  tag: string,
+): Promise<void> {
+  const sourceFile = new File(sourcePath);
+  const ciphertext = await sourceFile.bytes();
+  const destFile = new File(destPath);
+
+  const plain = decryptBytesInternal(ciphertext, dek, nonce, tag);
+  try {
+    writeBytes(destFile, plain);
+  } finally {
+    ciphertext.fill(0);
+    plain.fill(0);
+  }
+}
+
+export async function decryptFileToBytes(
+  sourcePath: string,
+  dek: Uint8Array,
+  nonce: string,
+  tag: string,
+): Promise<Uint8Array> {
+  const sourceFile = new File(sourcePath);
+  const ciphertext = await sourceFile.bytes();
+  try {
+    return decryptBytesInternal(ciphertext, dek, nonce, tag);
+  } finally {
+    ciphertext.fill(0);
+  }
+}
 
 export type MediaEncryptionErrorCode =
   | "ENCRYPT_FAILED"

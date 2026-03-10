@@ -12,9 +12,9 @@ import {
   Alert,
   Platform,
   ScrollView,
-  FlatList,
   TextInput,
 } from "react-native";
+import { FlashList } from "@shopify/flash-list";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -474,7 +474,7 @@ export default function MediaManagementScreen() {
         ) : null}
 
         <View style={styles.thumbnailStrip}>
-          <FlatList
+          <FlashList
             data={attachments}
             renderItem={renderThumbnail}
             keyExtractor={(item) => item.id}

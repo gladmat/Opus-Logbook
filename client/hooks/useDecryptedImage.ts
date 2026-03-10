@@ -10,8 +10,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   isOpusMediaUri,
   opusMediaIdFromUri,
-  loadDecryptedImageV2,
-  loadDecryptedThumbV2,
+  decryptMediaVariantToFile,
   readMeta,
 } from "@/lib/mediaFileStorage";
 import { getMasterKeyBytes } from "@/lib/encryption";
@@ -101,15 +100,21 @@ export function useDecryptedImage(
 
     enqueue(async () => {
       const masterKey = await getMasterKeyBytes();
-      const meta = readMeta(mediaId);
+      const meta = await readMeta(mediaId);
       const mimeType = meta?.mimeType ?? "image/jpeg";
-
-      const bytes = thumbnail
-        ? loadDecryptedThumbV2(mediaId, masterKey)
-        : loadDecryptedImageV2(mediaId, masterKey);
-
-      const fileUri = decryptCache.put(mediaId, variant, bytes, mimeType);
-      return fileUri;
+      return decryptCache.materialize(
+        mediaId,
+        variant,
+        mimeType,
+        async (destPath) => {
+          await decryptMediaVariantToFile(
+            mediaId,
+            masterKey,
+            variant,
+            destPath,
+          );
+        },
+      );
     })
       .then((fileUri) => {
         if (!mountedRef.current) return;

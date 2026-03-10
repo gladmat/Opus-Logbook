@@ -516,7 +516,7 @@ export interface SkinCancerHistology {
 /** A clinical photo of a lesion, auto-tagged with assessment context */
 export interface LesionPhoto {
   id: string;
-  uri: string; // encrypted-media:<uuid>
+  uri: string; // encrypted-media:<uuid> | opus-media:<uuid>
   caption?: string; // Auto-generated: "BCC — Nose, L"
   photoType: "clinical" | "dermoscopy";
   createdAt: string; // ISO timestamp

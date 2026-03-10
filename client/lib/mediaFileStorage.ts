@@ -3,50 +3,79 @@
  *
  * Storage layout:
  *   {Paths.document}/opus-media/{uuid}/
- *     image.enc    — AES-256-GCM encrypted full image
- *     thumb.enc    — AES-256-GCM encrypted thumbnail (300px, JPEG 0.6)
- *     meta.json    — plaintext JSON with wrappedDEK + metadata
- *
- * URI scheme: opus-media:{uuid}
+ *     image.enc    — AES-256-GCM encrypted full image ciphertext
+ *     thumb.enc    — AES-256-GCM encrypted thumbnail ciphertext
+ *     meta.json    — plaintext JSON with wrapped DEK + cipher metadata
  */
 
 import { File, Directory, Paths } from "expo-file-system";
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
 import { v4 as uuidv4 } from "uuid";
 
+import { decryptCache, type DecryptVariant } from "./mediaDecryptCache";
 import {
-  generateDEK,
-  encryptMediaBytes,
-  decryptMediaBytes,
-  wrapDEK,
-  unwrapDEK,
+  decryptFile,
+  decryptFileToBytes,
+  encryptFile,
+  generateDek,
+  wrapDek,
+  unwrapDek,
 } from "./mediaEncryption";
-
-// ═══════════════════════════════════════════════════════════
-// Types
-// ═══════════════════════════════════════════════════════════
 
 export interface MediaMeta {
   version: 2;
   mediaId: string;
-  wrappedDEK: string; // hex-encoded wrapped DEK bytes
+  wrappedDEK: string;
   mimeType: string;
   width: number;
   height: number;
   hasThumb: boolean;
-  createdAt: string; // ISO 8601
+  originalNonce: string;
+  originalTag: string;
+  originalSize: number;
+  originalCiphertextSize: number;
+  thumbNonce?: string;
+  thumbTag?: string;
+  thumbSize?: number;
+  thumbCiphertextSize?: number;
+  createdAt: string;
 }
-
-// ═══════════════════════════════════════════════════════════
-// Constants
-// ═══════════════════════════════════════════════════════════
 
 const MEDIA_DIR_NAME = "opus-media";
 export const OPUS_MEDIA_PREFIX = "opus-media:";
 
-// ═══════════════════════════════════════════════════════════
-// URI helpers
-// ═══════════════════════════════════════════════════════════
+function isValidMediaMeta(value: unknown): value is MediaMeta {
+  if (!value || typeof value !== "object") return false;
+
+  const meta = value as Partial<MediaMeta>;
+  if (
+    meta.version !== 2 ||
+    typeof meta.mediaId !== "string" ||
+    typeof meta.wrappedDEK !== "string" ||
+    typeof meta.mimeType !== "string" ||
+    typeof meta.width !== "number" ||
+    typeof meta.height !== "number" ||
+    typeof meta.hasThumb !== "boolean" ||
+    typeof meta.originalNonce !== "string" ||
+    typeof meta.originalTag !== "string" ||
+    typeof meta.originalSize !== "number" ||
+    typeof meta.originalCiphertextSize !== "number" ||
+    typeof meta.createdAt !== "string"
+  ) {
+    return false;
+  }
+
+  if (!meta.hasThumb) {
+    return true;
+  }
+
+  return (
+    typeof meta.thumbNonce === "string" &&
+    typeof meta.thumbTag === "string" &&
+    typeof meta.thumbSize === "number" &&
+    typeof meta.thumbCiphertextSize === "number"
+  );
+}
 
 export function isOpusMediaUri(uri: string): boolean {
   return uri.startsWith(OPUS_MEDIA_PREFIX);
@@ -55,10 +84,6 @@ export function isOpusMediaUri(uri: string): boolean {
 export function opusMediaIdFromUri(uri: string): string {
   return uri.slice(OPUS_MEDIA_PREFIX.length);
 }
-
-// ═══════════════════════════════════════════════════════════
-// Path helpers
-// ═══════════════════════════════════════════════════════════
 
 function getMediaRoot(): Directory {
   return new Directory(Paths.document, MEDIA_DIR_NAME);
@@ -78,189 +103,272 @@ export function getMediaPaths(mediaId: string) {
   };
 }
 
-// ═══════════════════════════════════════════════════════════
-// Directory initialization
-// ═══════════════════════════════════════════════════════════
-
-/** Ensure the opus-media root directory exists */
-export function ensureMediaRoot(): void {
+function ensureMediaRoot(): void {
   const root = getMediaRoot();
   if (!root.exists) {
-    root.create({ intermediates: true });
+    root.create({ idempotent: true, intermediates: true });
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-// Save pipeline
-// ═══════════════════════════════════════════════════════════
+function ensureFileParent(file: File): void {
+  const parent = file.parentDirectory;
+  if (!parent.exists) {
+    parent.create({ idempotent: true, intermediates: true });
+  }
+}
 
-/**
- * Encrypt and save image + thumbnail to the filesystem.
- *
- * Pipeline:
- * 1. Generate UUID (or use provided)
- * 2. Generate random 256-bit DEK
- * 3. Encrypt image bytes with DEK (AES-256-GCM)
- * 4. Encrypt thumbnail bytes with DEK (AES-256-GCM, separate nonce)
- * 5. Wrap DEK with master key (AES-256-GCM)
- * 6. Write image.enc, thumb.enc, meta.json
- * 7. Zero DEK in memory
- * 8. Return opus-media:{uuid}
- */
-export function saveMediaV2(
-  imageBytes: Uint8Array,
-  thumbBytes: Uint8Array | null,
+function writeTextFile(file: File, content: string): void {
+  ensureFileParent(file);
+  if (!file.exists) {
+    file.create({ intermediates: true, overwrite: true });
+  }
+  file.write(content);
+}
+
+function selectVariantSource(
+  mediaId: string,
+  meta: MediaMeta,
+  variant: DecryptVariant,
+): { source: File; nonce: string; tag: string; mimeType: string } {
+  const paths = getMediaPaths(mediaId);
+
+  if (variant === "thumb" && meta.hasThumb && paths.thumb.exists) {
+    return {
+      source: paths.thumb,
+      nonce: meta.thumbNonce!,
+      tag: meta.thumbTag!,
+      mimeType: "image/jpeg",
+    };
+  }
+
+  return {
+    source: paths.image,
+    nonce: meta.originalNonce,
+    tag: meta.originalTag,
+    mimeType: meta.mimeType,
+  };
+}
+
+export async function saveMediaV2(
+  sourceFileUri: string,
+  thumbFileUri: string | null,
   mimeType: string,
   masterKey: Uint8Array,
   width: number,
   height: number,
   mediaId?: string,
-): string {
+): Promise<string> {
   const id = mediaId ?? uuidv4();
-
-  ensureMediaRoot();
   const paths = getMediaPaths(id);
 
-  // Create media directory
+  ensureMediaRoot();
   if (!paths.dir.exists) {
-    paths.dir.create({ intermediates: true });
+    paths.dir.create({ idempotent: true, intermediates: true });
   }
 
-  // Generate per-image DEK
-  const dek = generateDEK();
+  const dek = await generateDek();
+  try {
+    const original = await encryptFile(sourceFileUri, paths.image.uri, dek);
 
-  // Encrypt image
-  const encryptedImage = encryptMediaBytes(imageBytes, dek);
-  paths.image.write(encryptedImage);
+    let thumb: {
+      nonce: string;
+      tag: string;
+      sourceSize: number;
+      ciphertextSize: number;
+    } | null = null;
 
-  // Encrypt thumbnail (if provided)
-  const hasThumb = thumbBytes !== null && thumbBytes.length > 0;
-  if (hasThumb) {
-    const encryptedThumb = encryptMediaBytes(thumbBytes, dek);
-    paths.thumb.write(encryptedThumb);
+    if (thumbFileUri) {
+      thumb = await encryptFile(thumbFileUri, paths.thumb.uri, dek);
+    } else if (paths.thumb.exists) {
+      paths.thumb.delete();
+    }
+
+    const wrappedDEK = await wrapDek(dek, masterKey);
+    const meta: MediaMeta = {
+      version: 2,
+      mediaId: id,
+      wrappedDEK: bytesToHex(wrappedDEK),
+      mimeType,
+      width,
+      height,
+      hasThumb: thumb !== null,
+      originalNonce: original.nonce,
+      originalTag: original.tag,
+      originalSize: original.sourceSize,
+      originalCiphertextSize: original.ciphertextSize,
+      thumbNonce: thumb?.nonce,
+      thumbTag: thumb?.tag,
+      thumbSize: thumb?.sourceSize,
+      thumbCiphertextSize: thumb?.ciphertextSize,
+      createdAt: new Date().toISOString(),
+    };
+
+    writeTextFile(paths.meta, JSON.stringify(meta));
+    return `${OPUS_MEDIA_PREFIX}${id}`;
+  } catch (error) {
+    for (const file of [paths.image, paths.thumb, paths.meta]) {
+      if (!file.exists) continue;
+      try {
+        file.delete();
+      } catch {
+        // Ignore best-effort cleanup failures after a partial write.
+      }
+    }
+
+    if (paths.dir.exists) {
+      try {
+        const contents = paths.dir.list();
+        if (contents.length === 0) {
+          paths.dir.delete();
+        }
+      } catch {
+        // Ignore directory cleanup failures.
+      }
+    }
+
+    throw error;
+  } finally {
+    dek.fill(0);
   }
-
-  // Wrap DEK with master key
-  const wrappedDEK = wrapDEK(dek, masterKey);
-
-  // Zero DEK
-  dek.fill(0);
-
-  // Write metadata
-  const meta: MediaMeta = {
-    version: 2,
-    mediaId: id,
-    wrappedDEK: bytesToHex(wrappedDEK),
-    mimeType,
-    width,
-    height,
-    hasThumb,
-    createdAt: new Date().toISOString(),
-  };
-  paths.meta.write(JSON.stringify(meta));
-
-  return `${OPUS_MEDIA_PREFIX}${id}`;
 }
 
-// ═══════════════════════════════════════════════════════════
-// Load pipeline
-// ═══════════════════════════════════════════════════════════
-
-/** Read and parse meta.json for a media item, with schema validation */
-export function readMeta(mediaId: string): MediaMeta | null {
+export async function readMeta(mediaId: string): Promise<MediaMeta | null> {
   const paths = getMediaPaths(mediaId);
   if (!paths.meta.exists) return null;
+
   try {
-    const text = paths.meta.textSync();
+    const text = await paths.meta.text();
     const parsed = JSON.parse(text);
-    // Validate required fields to guard against corrupted or partial writes
-    if (
-      parsed?.version !== 2 ||
-      typeof parsed?.wrappedDEK !== "string" ||
-      typeof parsed?.mediaId !== "string" ||
-      typeof parsed?.mimeType !== "string"
-    ) {
-      return null;
-    }
-    return parsed as MediaMeta;
+    return isValidMediaMeta(parsed) ? parsed : null;
   } catch {
     return null;
   }
 }
 
-/** Decrypt and return the full image bytes */
-export function loadDecryptedImageV2(
-  mediaId: string,
-  masterKey: Uint8Array,
-): Uint8Array {
-  const meta = readMeta(mediaId);
-  if (!meta) throw new Error(`No metadata for media ${mediaId}`);
+export async function hasMediaV2(mediaId: string): Promise<boolean> {
+  const meta = await readMeta(mediaId);
+  if (!meta) return false;
 
   const paths = getMediaPaths(mediaId);
-  if (!paths.image.exists)
-    throw new Error(`No image file for media ${mediaId}`);
-
-  const wrappedDEK = hexToBytes(meta.wrappedDEK);
-  const dek = unwrapDEK(wrappedDEK, masterKey);
-  const encryptedBytes = paths.image.bytesSync();
-  const decrypted = decryptMediaBytes(encryptedBytes, dek);
-  dek.fill(0);
-  return decrypted;
+  if (!paths.image.exists) return false;
+  if (meta.hasThumb && !paths.thumb.exists) return false;
+  return true;
 }
 
-/** Decrypt and return the thumbnail bytes */
-export function loadDecryptedThumbV2(
+async function unwrapMediaDek(
+  meta: MediaMeta,
+  masterKey: Uint8Array,
+): Promise<Uint8Array> {
+  return unwrapDek(hexToBytes(meta.wrappedDEK), masterKey);
+}
+
+async function loadVariantBytes(
   mediaId: string,
   masterKey: Uint8Array,
-): Uint8Array {
-  const meta = readMeta(mediaId);
-  if (!meta) throw new Error(`No metadata for media ${mediaId}`);
-
-  const paths = getMediaPaths(mediaId);
-  if (!meta.hasThumb || !paths.thumb.exists) {
-    // Fall back to full image if no thumbnail
-    return loadDecryptedImageV2(mediaId, masterKey);
+  variant: DecryptVariant,
+): Promise<{ bytes: Uint8Array; mimeType: string }> {
+  const meta = await readMeta(mediaId);
+  if (!meta) {
+    throw new Error(`No metadata for media ${mediaId}`);
   }
 
-  const wrappedDEK = hexToBytes(meta.wrappedDEK);
-  const dek = unwrapDEK(wrappedDEK, masterKey);
-  const encryptedBytes = paths.thumb.bytesSync();
-  const decrypted = decryptMediaBytes(encryptedBytes, dek);
-  dek.fill(0);
-  return decrypted;
+  const { source, nonce, tag, mimeType } = selectVariantSource(
+    mediaId,
+    meta,
+    variant,
+  );
+  if (!source.exists) {
+    throw new Error(`Encrypted media payload is missing for ${mediaId}`);
+  }
+
+  const dek = await unwrapMediaDek(meta, masterKey);
+  try {
+    const bytes = await decryptFileToBytes(source.uri, dek, nonce, tag);
+    return { bytes, mimeType };
+  } finally {
+    dek.fill(0);
+  }
 }
 
-// ═══════════════════════════════════════════════════════════
-// Delete
-// ═══════════════════════════════════════════════════════════
+export async function loadDecryptedImageV2(
+  mediaId: string,
+  masterKey: Uint8Array,
+): Promise<{ bytes: Uint8Array; mimeType: string }> {
+  return loadVariantBytes(mediaId, masterKey, "full");
+}
 
-/** Delete all files for a media item */
-export function deleteMediaV2(mediaId: string): void {
+export async function loadDecryptedThumbV2(
+  mediaId: string,
+  masterKey: Uint8Array,
+): Promise<{ bytes: Uint8Array; mimeType: string }> {
+  return loadVariantBytes(mediaId, masterKey, "thumb");
+}
+
+export async function decryptMediaVariantToFile(
+  mediaId: string,
+  masterKey: Uint8Array,
+  variant: DecryptVariant,
+  destPath: string,
+): Promise<{ mimeType: string }> {
+  const meta = await readMeta(mediaId);
+  if (!meta) {
+    throw new Error(`No metadata for media ${mediaId}`);
+  }
+
+  const { source, nonce, tag, mimeType } = selectVariantSource(
+    mediaId,
+    meta,
+    variant,
+  );
+  if (!source.exists) {
+    throw new Error(`Encrypted media payload is missing for ${mediaId}`);
+  }
+
+  const dek = await unwrapMediaDek(meta, masterKey);
+  try {
+    await decryptFile(source.uri, destPath, dek, nonce, tag);
+    return { mimeType };
+  } finally {
+    dek.fill(0);
+  }
+}
+
+export async function deleteMediaV2(mediaId: string): Promise<void> {
+  decryptCache.invalidate(mediaId);
+
   const dir = getMediaDir(mediaId);
-  if (dir.exists) {
-    try {
-      dir.delete();
-    } catch {
-      // Already deleted or inaccessible — ignore
-    }
+  if (!dir.exists) return;
+
+  try {
+    dir.delete();
+  } catch {
+    // Ignore inaccessible or already-deleted directories.
   }
 }
 
-/** Delete multiple media items */
-export function deleteMultipleMediaV2(mediaIds: string[]): void {
+export async function deleteMultipleMediaV2(mediaIds: string[]): Promise<void> {
   for (const id of mediaIds) {
-    deleteMediaV2(id);
+    await deleteMediaV2(id);
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-// Queries
-// ═══════════════════════════════════════════════════════════
+export async function clearAllMediaV2(): Promise<void> {
+  decryptCache.clearAll();
 
-/** List all v2 media IDs on disk */
+  const root = getMediaRoot();
+  if (!root.exists) return;
+
+  try {
+    root.delete();
+  } catch {
+    // Ignore best-effort cleanup failures.
+  }
+}
+
 export function listAllMediaIds(): string[] {
   const root = getMediaRoot();
   if (!root.exists) return [];
+
   try {
     return root
       .list()
@@ -271,12 +379,12 @@ export function listAllMediaIds(): string[] {
   }
 }
 
-/** Get aggregate storage stats for v2 encrypted media */
 export function getStorageStats(): { count: number; totalBytes: number } {
   const root = getMediaRoot();
   if (!root.exists) return { count: 0, totalBytes: 0 };
 
-  const totalBytes = root.size ?? 0;
-  const count = listAllMediaIds().length;
-  return { count, totalBytes };
+  return {
+    count: listAllMediaIds().length,
+    totalBytes: root.size ?? 0,
+  };
 }

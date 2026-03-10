@@ -58,6 +58,7 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
   // Initial check — migrate old PIN state if needed, then lock if configured
   useEffect(() => {
     const init = async () => {
+      clearDecryptedCache();
       await migratePinIfNeeded();
       const configured = await checkIfConfigured();
       if (configured && !hasInitialized.current) {

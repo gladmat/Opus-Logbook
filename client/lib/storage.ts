@@ -7,10 +7,15 @@ import {
   ComplicationEntry,
 } from "@/types/case";
 import { encryptData, decryptData } from "./encryption";
-import { deleteMultipleEncryptedMedia } from "./mediaStorage";
+import {
+  canonicalizePersistedMediaUris,
+  clearAllMediaStorage,
+  deleteMultipleEncryptedMedia,
+} from "./mediaStorage";
 import * as Crypto from "expo-crypto";
 import { normalizeTimelineEventDateOnlyFields } from "./dateFieldNormalization";
 import { migrateCase, normalizeCaseDateOnlyFields } from "./migration";
+import { repairCaseSpecialty } from "./caseSpecialty";
 
 const CASE_INDEX_KEY = "@surgical_logbook_case_index";
 const CASE_PREFIX = "@surgical_logbook_case_";
@@ -20,6 +25,7 @@ const SETTINGS_KEY = "@surgical_logbook_settings";
 const CASE_DRAFT_KEY_PREFIX = "@surgical_logbook_case_draft_";
 const LEGACY_ENCRYPTED_CASES_KEY = "@surgical_logbook_cases_encrypted";
 const LEGACY_CASES_KEY = "@surgical_logbook_cases";
+const CASE_SPECIALTY_REPAIR_KEY = "@surgical_logbook_case_specialty_repair_v1";
 
 export interface LocalUser {
   id: string;
@@ -199,6 +205,56 @@ async function migrateLegacyData(): Promise<boolean> {
 }
 
 let migrationChecked = false;
+let specialtyRepairChecked = false;
+
+async function writeStoredCasePreservingMetadata(
+  caseData: Case,
+): Promise<void> {
+  const encrypted = await encryptData(JSON.stringify(caseData));
+  await AsyncStorage.setItem(`${CASE_PREFIX}${caseData.id}`, encrypted);
+}
+
+async function repairStoredCaseSpecialtiesIfNeeded(): Promise<void> {
+  if (specialtyRepairChecked) {
+    return;
+  }
+
+  const repairMarker = await AsyncStorage.getItem(CASE_SPECIALTY_REPAIR_KEY);
+  if (repairMarker === "1") {
+    specialtyRepairChecked = true;
+    return;
+  }
+
+  try {
+    const index = await getCaseIndex();
+
+    for (const entry of index) {
+      const storageKey = `${CASE_PREFIX}${entry.id}`;
+      const encrypted = await AsyncStorage.getItem(storageKey);
+      if (!encrypted) {
+        continue;
+      }
+
+      const decrypted = await decryptData(encrypted);
+      const rawCase = JSON.parse(decrypted) as Case;
+      const repairedCase = repairCaseSpecialty(migrateCase(rawCase));
+
+      if (repairedCase.specialty === rawCase.specialty) {
+        continue;
+      }
+
+      await writeStoredCasePreservingMetadata({
+        ...rawCase,
+        specialty: repairedCase.specialty,
+      });
+    }
+
+    await AsyncStorage.setItem(CASE_SPECIALTY_REPAIR_KEY, "1");
+    specialtyRepairChecked = true;
+  } catch (error) {
+    console.error("Error repairing stored case specialties:", error);
+  }
+}
 
 // Yield to the UI thread so interactions remain responsive
 function yieldToUI(): Promise<void> {
@@ -213,6 +269,7 @@ export async function getCases(): Promise<Case[]> {
       await migrateLegacyData();
       migrationChecked = true;
     }
+    await repairStoredCaseSpecialtiesIfNeeded();
 
     const index = await getCaseIndex();
     if (index.length === 0) return [];
@@ -240,6 +297,12 @@ export async function getCases(): Promise<Case[]> {
 
 export async function getCase(id: string): Promise<Case | null> {
   try {
+    if (!migrationChecked) {
+      await migrateLegacyData();
+      migrationChecked = true;
+    }
+    await repairStoredCaseSpecialtiesIfNeeded();
+
     const encrypted = await AsyncStorage.getItem(`${CASE_PREFIX}${id}`);
     if (!encrypted) return null;
 
@@ -254,8 +317,9 @@ export async function getCase(id: string): Promise<Case | null> {
 export async function saveCase(caseData: Case): Promise<void> {
   try {
     const now = new Date().toISOString();
+    const canonicalizedCase = await canonicalizePersistedMediaUris(caseData);
     const updatedCase = normalizeCaseDateOnlyFields({
-      ...caseData,
+      ...canonicalizedCase,
       updatedAt: now,
     });
 
@@ -318,7 +382,8 @@ export async function saveCaseDraft(
   draft: CaseDraft,
 ): Promise<void> {
   try {
-    const encrypted = await encryptData(JSON.stringify(draft));
+    const canonicalizedDraft = await canonicalizePersistedMediaUris(draft);
+    const encrypted = await encryptData(JSON.stringify(canonicalizedDraft));
     await AsyncStorage.setItem(getCaseDraftKey(specialty), encrypted);
   } catch (error) {
     console.error("Error saving case draft:", error);
@@ -495,7 +560,8 @@ export async function saveTimelineEvent(event: TimelineEvent): Promise<void> {
       const decrypted = await decryptData(data);
       events = JSON.parse(decrypted);
     }
-    events.unshift(normalizeTimelineEventDateOnlyFields(event));
+    const canonicalizedEvent = await canonicalizePersistedMediaUris(event);
+    events.unshift(normalizeTimelineEventDateOnlyFields(canonicalizedEvent));
     const encrypted = await encryptData(JSON.stringify(events));
     await AsyncStorage.setItem(TIMELINE_KEY, encrypted);
   } catch (error) {
@@ -515,11 +581,12 @@ export async function updateTimelineEvent(
     const events: TimelineEvent[] = JSON.parse(decrypted);
     const index = events.findIndex((e) => e.id === id);
     if (index < 0) return;
-    events[index] = normalizeTimelineEventDateOnlyFields({
+    const canonicalizedEvent = await canonicalizePersistedMediaUris({
       ...events[index]!,
       ...updates,
       updatedAt: new Date().toISOString(),
     });
+    events[index] = normalizeTimelineEventDateOnlyFields(canonicalizedEvent);
     const encrypted = await encryptData(JSON.stringify(events));
     await AsyncStorage.setItem(TIMELINE_KEY, encrypted);
   } catch (error) {
@@ -656,6 +723,17 @@ export async function clearAllData(): Promise<void> {
     await AsyncStorage.removeItem(SETTINGS_KEY);
     await AsyncStorage.removeItem(LEGACY_ENCRYPTED_CASES_KEY);
     await AsyncStorage.removeItem(LEGACY_CASES_KEY);
+    await AsyncStorage.removeItem(CASE_SPECIALTY_REPAIR_KEY);
+    const draftKeys = (await AsyncStorage.getAllKeys()).filter((key) =>
+      key.startsWith(CASE_DRAFT_KEY_PREFIX),
+    );
+    if (draftKeys.length > 0) {
+      await AsyncStorage.multiRemove(draftKeys);
+    }
+    await clearAllMediaStorage();
+    indexMigrated = false;
+    migrationChecked = false;
+    specialtyRepairChecked = false;
   } catch (error) {
     console.error("Error clearing all data:", error);
     throw error;

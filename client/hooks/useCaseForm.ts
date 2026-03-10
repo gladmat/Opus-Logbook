@@ -67,6 +67,7 @@ import { UserProfile } from "@/lib/auth";
 import { syncFlapOutcomeToServer } from "@/lib/outcomeSync";
 import { withDefaultFlapOutcome } from "@/lib/flapOutcomeDefaults";
 import { toIsoDateValue } from "@/lib/dateValues";
+import { resolveCaseFormSpecialty } from "@/lib/caseSpecialty";
 import {
   restoreDraftDateOnlyValue,
   restoreDraftOperativeMedia,
@@ -787,7 +788,7 @@ function caseFormReducer(
 // ─── Hook ───────────────────────────────────────────────────────────────────
 
 interface UseCaseFormParams {
-  specialty: Specialty;
+  specialty?: Specialty;
   caseId?: string;
   duplicateFrom?: Case;
   skinCancerFollowUpPrefill?: boolean;
@@ -1017,6 +1018,8 @@ export interface UseCaseFormReturn {
   handleSave: (formOpenedAt?: string) => Promise<boolean>;
   isEditMode: boolean;
   existingCase: Case | null;
+  loadingExistingCase: boolean;
+  loadError: string | null;
   specialty: Specialty;
   calculatedBmi: number | undefined;
   durationDisplay: string | null;
@@ -1126,7 +1129,14 @@ export function useCaseForm({
   const isEpisodePrefill = !!episodePrefill;
   const isQuickPrefill = !!quickPrefill;
   const [existingCase, setExistingCase] = useState<Case | null>(null);
-  const specialty = routeSpecialty || existingCase?.specialty || "general";
+  const [loadingExistingCase, setLoadingExistingCase] = useState(isEditMode);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const specialty = resolveCaseFormSpecialty({
+    isEditMode,
+    routeSpecialty,
+    duplicateSpecialty: duplicateFrom?.specialty,
+    existingCaseSpecialty: existingCase?.specialty,
+  });
 
   const draftLoadedRef = useRef(false);
   const savedRef = useRef(false);
@@ -1281,22 +1291,31 @@ export function useCaseForm({
     if (!isEditMode || !caseId || editModeLoadedRef.current) return;
 
     const loadExistingCase = async () => {
+      setLoadingExistingCase(true);
+      setLoadError(null);
+
       try {
         const caseData = await getCase(caseId);
-        if (!caseData) return;
+        if (!caseData) {
+          setLoadError("This case could not be loaded.");
+          return;
+        }
 
         setExistingCase(caseData);
         editModeLoadedRef.current = true;
 
-        const formState = loadCaseIntoFormState(caseData, specialty);
+        const formState = loadCaseIntoFormState(caseData, caseData.specialty);
         dispatch({ type: "LOAD_CASE", formState });
       } catch (error) {
         console.error("Error loading case for edit:", error);
+        setLoadError("This case could not be loaded.");
+      } finally {
+        setLoadingExistingCase(false);
       }
     };
 
-    loadExistingCase();
-  }, [isEditMode, caseId, specialty]);
+    void loadExistingCase();
+  }, [isEditMode, caseId]);
 
   // Mark draft as loaded in edit/duplicate mode (so useCaseDraft doesn't try to load a draft)
   useEffect(() => {
@@ -1320,10 +1339,13 @@ export function useCaseForm({
     if (existingCase) {
       reconstructionTimingAutoSetRef.current = false;
       episodePrefillDefaultsAppliedRef.current = false;
-      const formState = loadCaseIntoFormState(existingCase, specialty);
+      const formState = loadCaseIntoFormState(
+        existingCase,
+        existingCase.specialty,
+      );
       dispatch({ type: "LOAD_CASE", formState });
     }
-  }, [existingCase, specialty]);
+  }, [existingCase]);
 
   // ── Diagnosis group callbacks ─────────────────────────────────────────
 
@@ -1499,6 +1521,23 @@ export function useCaseForm({
 
   const handleSave = useCallback(
     async (formOpenedAt?: string): Promise<boolean> => {
+      if (isEditMode) {
+        if (loadingExistingCase) {
+          Alert.alert("Please wait", "The case is still loading.");
+          return false;
+        }
+
+        if (!existingCase) {
+          Alert.alert(
+            "Unable to save",
+            loadError || "The existing case could not be loaded.",
+          );
+          return false;
+        }
+      }
+
+      const saveSpecialty = isEditMode ? existingCase!.specialty : specialty;
+
       // Derive procedureType from the first diagnosis group's first procedure
       const derivedProcedureType =
         state.diagnosisGroups[0]?.procedures[0]?.procedureName ||
@@ -1519,7 +1558,7 @@ export function useCaseForm({
         );
         const snomedProcedure = findSnomedProcedure(
           derivedProcedureType,
-          specialty,
+          saveSpecialty,
         );
         const procedureCode: ProcedureCode | undefined = snomedProcedure
           ? getProcedureCodeForCountry(snomedProcedure, countryCode)
@@ -1653,7 +1692,7 @@ export function useCaseForm({
           patientIdentifier: state.patientIdentifier.trim(),
           procedureDate: state.procedureDate,
           facility: state.facility.trim(),
-          specialty,
+          specialty: saveSpecialty,
           procedureType: derivedProcedureType,
           procedureCode,
           diagnosisGroups: diagnosisGroupsWithFlapOutcomeDefaults,
@@ -1802,6 +1841,8 @@ export function useCaseForm({
       state,
       isEditMode,
       existingCase,
+      loadingExistingCase,
+      loadError,
       specialty,
       profile,
       calculatedBmi,
@@ -1815,6 +1856,8 @@ export function useCaseForm({
     handleSave,
     isEditMode,
     existingCase,
+    loadingExistingCase,
+    loadError,
     specialty,
     calculatedBmi,
     durationDisplay,

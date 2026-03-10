@@ -27,6 +27,8 @@ Key capabilities: multi-specialty case logging, SNOMED CT coded diagnoses and pr
 - **Media Overhaul Phase 5 COMPLETE** — temporal tag auto-suggestion (`suggestTemporalTag()` with date-range-based default tag selection, wired through CaseFormScreen → OperativeMediaSection → AddOperativeMediaScreen), DashboardScreen hardcoded hex fix (`#fff` → `theme.buttonText`), GuidedCaptureFlow error handling improvement (top-level import, console.warn), expanded test coverage (operativeMedia 2→16, mediaTagMigration 49→73, mediaCaptureProtocols 23→27), 126 media tests (487 total)
 - **Capture Pipeline Phase A COMPLETE** — Gallery import on protocol step cards (CaptureStepCard gallery picker)
 - **Capture Pipeline Phase B COMPLETE** — Opus Inbox: persistent encrypted staging area for unassigned clinical photos. MMKV-backed metadata index (`inboxStorage.ts`, `createMMKV` v4 API), `InboxScreen` with date-grouped grid, multi-select, camera/gallery capture, full-screen preview, case picker modal, pick mode for OperativeMediaSection callback, "From Inbox" button in OperativeMediaSection (both empty and with-media layouts), dashboard attention card (`inbox_photos` type) when unassigned photos exist, orphan auto-cleanup on app launch (90-day default), 19 tests
+- **Media Encryption Remediation COMPLETE** — legacy/v2 delete parity fixed (deleting a migrated `encrypted-media:{uuid}` item now removes both AsyncStorage blobs and any v2 filesystem copy), persisted media references canonicalize to `opus-media:{uuid}` when v2 backing exists, decrypted temp cache sweeping now runs on startup/background/logout/delete, MediaManagementScreen uses `FlashList` for large libraries, onboarding privacy copy distinguishes native vs web guarantees, and targeted `mediaFileStorage`/`mediaMigration` regression suites were added
+- **Case Category Repair COMPLETE** — editing a case now preserves its original top-level specialty/category instead of falling back to `general`, edit-mode save is gated on successful case load, and a one-time conservative storage repair restores clearly recoverable misclassified `general` cases from diagnosis-group specialty data
 - **Phase 5 IN PROGRESS** — Version 2.0.0, EAS config done (dev/preview/production profiles), pending manual regression + TestFlight submission
 
 ## Tech stack
@@ -128,7 +130,7 @@ client/
     AppLockContext.tsx            # PIN/biometric lock state, auto-lock timeout, re-lock handling
     MediaCallbackContext.tsx      # Attachment callbacks for MediaManagement + generic callbacks
   hooks/
-    useCaseForm.ts               # useReducer form state, 15+ actions (1703 lines)
+    useCaseForm.ts               # useReducer form state, edit-specialty preservation, 15+ actions
     useCaseDraft.ts              # Auto-save drafts (debounced + AppState flush)
     useFavouritesRecents.ts      # Recent/favourite diagnosis-procedure pairs
     useTheme.ts                  # ThemeProvider, system/light/dark, AsyncStorage
@@ -138,9 +140,9 @@ client/
     useStatistics.ts             # Memoized statistics computation from cases (career, free flap, specialty, operational, milestones)
     useAttentionItems.ts         # Shared selector wrapper for dashboard attention items
     usePracticePulse.ts          # Shared selector wrapper for thisMonth/thisWeek/completion metrics
-    useDecryptedImage.ts         # Decrypt-on-demand hook for v2 encrypted media (file URI cache)
+    useDecryptedImage.ts         # Decrypt-on-demand hook for v2 encrypted media (file URI cache + sweep-aware)
   lib/
-    storage.ts                   # AsyncStorage CRUD, encryption, drafts, case index
+    storage.ts                   # AsyncStorage CRUD, encryption, drafts, case index, one-time specialty repair
     dashboardSelectors.ts        # Shared dashboard selector layer (counts, filters, attention items, pulse, quick-log params)
     procedurePicklist.ts         # 500+ procedures across 12 specialties
     statistics.ts                # Case analytics, filtering, calculations (specialty-scoped + free-flap analytics)
@@ -151,8 +153,8 @@ client/
     aoToDiagnosisMapping.ts      # AO code → diagnosis mapping
     encryption.ts                # XChaCha20-Poly1305 AEAD, envelope format, master key export
     mediaEncryption.ts           # AES-256-GCM primitives, per-image DEK, DEK wrap/unwrap
-    mediaFileStorage.ts          # File-system CRUD for v2 encrypted media (opus-media:{uuid})
-    mediaDecryptCache.ts         # LRU temp-file cache for decrypted v2 media
+    mediaFileStorage.ts          # File-system CRUD + metadata for v2 encrypted media (opus-media:{uuid})
+    mediaDecryptCache.ts         # LRU temp-file cache for decrypted v2 media; swept on startup/background/logout
     thumbnailGenerator.ts        # Thumbnail + full image byte extraction, EXIF stripping via re-encoding (300px/0.6)
     mediaTagMigration.ts         # Legacy OperativeMediaType/MediaCategory → MediaTag mappers, resolveMediaTag(), suggestTemporalTag()
     mediaMigration.ts            # Lazy v1→v2 media migration with deferred cleanup
@@ -163,7 +165,7 @@ client/
     snomedCt.ts                  # SNOMED code picklists, country code mappings
     snomedApi.ts                 # Ontoserver FHIR client for live search
     snomedCodeMigration.ts       # Old→new SNOMED code mapping
-    migration.ts                 # Auto-migrate old case formats on load
+    migration.ts                 # Auto-migrate old case formats on load + conservative specialty repair
     migrationValidator.ts        # Migration validation
     mediaStorage.ts              # Encrypted media routing (v1 AsyncStorage + v2 file-based) + URI-based import
     dateValues.ts                # Safe YYYY-MM-DD parsing/formatting (local-noon semantics)
@@ -218,7 +220,7 @@ client/
     procedureCategories.ts       # Procedure category options
     hospitals.ts                 # Facility master data
     trainingProgrammes.ts        # Training programme options
-    onboardingCopy.ts            # Onboarding text strings
+    onboardingCopy.ts            # Onboarding text strings + privacy guarantee copy
   data/
     aoHandClassification.ts      # AO hand trauma codes
     aoToSnomedMapping.ts         # AO → SNOMED mapping
@@ -282,7 +284,7 @@ Auth → Onboarding → Main (bottom tabs: Dashboard, Statistics, Settings) with
 
 ### Multi-diagnosis group architecture
 
-Each Case has `diagnosisGroups: DiagnosisGroup[]` instead of flat diagnosis/procedures fields. Each group bundles: specialty, diagnosis, staging, fractures, procedures, and optional `handInfectionDetails`. `procedureSuggestionSource` tracks origin: `"picklist"`, `"skinCancer"`, `"acuteHand"`, or `"manual"`. Enables multi-specialty cases (e.g., hand surgery + orthoplastic in one session). Old cases auto-migrated on load via `client/lib/migration.ts`. Helpers: `getAllProcedures(c)`, `getCaseSpecialties(c)`, `getPrimaryDiagnosisName(c)` in `client/types/case.ts`.
+Each Case has `diagnosisGroups: DiagnosisGroup[]` instead of flat diagnosis/procedures fields. Each group bundles: specialty, diagnosis, staging, fractures, procedures, and optional `handInfectionDetails`. `procedureSuggestionSource` tracks origin: `"picklist"`, `"skinCancer"`, `"acuteHand"`, or `"manual"`. Enables multi-specialty cases (e.g., hand surgery + orthoplastic in one session). Old cases auto-migrated on load via `client/lib/migration.ts`, and clearly recoverable top-level specialty regressions are conservatively repaired via `client/lib/caseSpecialty.ts`. Helpers: `getAllProcedures(c)`, `getCaseSpecialties(c)`, `getPrimaryDiagnosisName(c)` in `client/types/case.ts`.
 
 ### Case form sections
 
@@ -304,6 +306,8 @@ Header uses a truncating centered title. Header right is compact: overflow icon 
 
 - Restores `clinicalDetails`, `recipientSiteRegion`, `anastomoses` from existing case data
 - Uses actual `clinicalDetails` state (not placeholder) in save payload
+- Preserves the stored top-level specialty/category on edit; does not silently fall back to `general`
+- Gates edit-mode save/render on successful existing-case load, with explicit loading/error states
 - Draft loading skipped in edit mode (`isEditMode` guard)
 - All field setters use `?? ""` / `?? defaultValue` (unconditional) so cleared fields persist
 - `handleSaveRef.current` always points to latest `handleSave` closure
@@ -1056,7 +1060,7 @@ Touch targets: minimum 48px (`Spacing.touchTarget`)
 
 ### Encrypted media (v2 — file-based AES-256-GCM)
 
-**Architecture:** Per-image DEK model with file-system storage. Each photo gets a random 256-bit DEK, encrypted via AES-256-GCM (`@noble/ciphers`). The DEK is wrapped with the master key (AES-256-GCM) and stored in plaintext `meta.json`. Cipher provider isolated in `mediaEncryption.ts` for future swap to native `react-native-aes-gcm-crypto` if profiling warrants it.
+**Architecture:** Per-image DEK model with file-system storage. Each photo gets a random 256-bit DEK, encrypted via AES-256-GCM (`@noble/ciphers`). The DEK is wrapped with the master key (AES-256-GCM) and stored in plaintext `meta.json`. Cipher provider remains isolated in `mediaEncryption.ts` for a future native file-crypto swap if profiling warrants it. `mediaStorage.ts` canonicalizes legacy `encrypted-media:{uuid}` references to `opus-media:{uuid}` when valid v2 backing exists.
 
 **Storage layout:**
 ```
@@ -1072,8 +1076,9 @@ Touch targets: minimum 48px (`Spacing.touchTarget`)
 
 **Security lifecycle:**
 - DEK zeroed after use (`dek.fill(0)`)
-- Decrypted temp files cleared on every app background transition (regardless of app lock config)
+- Decrypted temp files cleared on startup, logout, delete, and every app background transition (regardless of app lock config)
 - Thumbnails encrypted (v1 stored unencrypted — v2 fixes this gap)
+- Delete paths are idempotent across legacy AsyncStorage blobs and migrated v2 filesystem copies
 - No plaintext on persistent storage — only in `Paths.cache` (OS-reclaimable)
 
 **v1 → v2 migration:** Lazy on-access via `mediaMigration.ts`. When a v1 URI is loaded, transparently re-encrypts to v2 file format. V1 AsyncStorage blobs deferred for explicit cleanup via `cleanupMigratedV1Data()`. Concurrent migrations coalesced per-ID.
@@ -1160,8 +1165,8 @@ Configured in both `tsconfig.json` and `babel.config.js` (module-resolver plugin
 
 ## Testing
 
-- **Framework:** Vitest 4.0.18, **532 tests** across 29 files
-- **Client tests:** `client/lib/__tests__/` and `client/components/media/__tests__/` — handTraumaDiagnosis, handTraumaMapping, handTraumaUx, skinCancerConfig (89 tests), skinCancerPhase4 (11 tests), skinCancerPhase5 (18 tests), skinCancerDiagnoses (7 tests), dashboardSelectors (7 tests), handInfection (42 tests), handElective (52 tests), jointImplant (44 tests), mediaEncryption (16 tests), statisticsHelpers (3 tests), statistics (7 tests), dateValues (9 tests), dateFieldNormalization (4 tests), operativeMedia (19 tests), operativeMediaForm (4 tests), mediaAttachmentDefaults (4 tests), mediaContext (3 tests), mediaTagMigration (82 tests), mediaCaptureProtocols (27 tests), implantExport (3 tests), caseDraftPersistence (1 test), inboxStorage (19 tests), plus media UI coverage for `MediaTagPicker` resync and resolved `MediaTagBadge` rendering
+- **Framework:** Vitest 4.0.18, **518 tests** across 32 files
+- **Client tests:** `client/lib/__tests__/` and `client/components/media/__tests__/` — handTraumaDiagnosis, handTraumaMapping, handTraumaUx, skinCancerConfig (89 tests), skinCancerPhase4 (11 tests), skinCancerPhase5 (18 tests), skinCancerDiagnoses (7 tests), dashboardSelectors (7 tests), handInfection (42 tests), handElective (52 tests), jointImplant (44 tests), mediaEncryption (7 tests), mediaFileStorage (3 tests), mediaMigration (4 tests), caseSpecialty (5 tests), storageSpecialtyRepair (2 tests), statisticsHelpers (3 tests), statistics (7 tests), dateValues (9 tests), dateFieldNormalization (4 tests), operativeMedia (19 tests), operativeMediaForm (4 tests), mediaAttachmentDefaults (4 tests), mediaContext (3 tests), mediaTagMigration (82 tests), mediaCaptureProtocols (27 tests), implantExport (3 tests), caseDraftPersistence (1 test), inboxStorage (19 tests), plus media UI coverage for `MediaTagPicker` resync and resolved `MediaTagBadge` rendering
 - **Server tests:** `server/__tests__/` — auth (17 tests), validation (7 tests), diagnosisStagingConfig (3 tests)
 - **Integration:** `npm run test:harness` — 500-case API harness across 12 specialties (requires running server). Tests nested procedure creation with caseProcedures, flaps, and anastomoses. Run with `--cleanup` to delete test data after.
 - **Run:** `npm run test` (once) or `npm run test:watch` (watch mode)
