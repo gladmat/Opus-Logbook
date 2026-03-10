@@ -22,6 +22,7 @@ Key capabilities: multi-specialty case logging, SNOMED CT coded diagnoses and pr
 - **Phase 3 COMPLETE** — Inline validation, keyboard optimisation (react-native-keyboard-controller), haptic audit (244 occurrences across 57 files), duplicate case, testing (Vitest), favourites/recents (DiagnosisPicker + ProcedureSubcategoryPicker chips, recording on save)
 - **Phase 4 COMPLETE** — Data migration (schemaVersion 4, lazy on load), CSV export (38 columns), FHIR R4 export (with Device resources for implants), PDF export (with implant column), analytics dashboard (base stats + specialty-specific stats + entry time + suggestion acceptance + top dx-proc pairs)
 - **Elective Hand + Joint Implant COMPLETE** — 38 elective hand diagnoses across 7 subcategories with strict elective-only picker scoping and SNOMED fallback, 11 new procedures (3 arthroplasty with `hasImplant` flag), 3 staging configs (Tubiana-Dupuytren, CTS-Severity, Quinnell-Trigger), HandElectivePicker chip-based UI, per-procedure JointImplantSection workflow with digit/laterality anatomy capture and completeness warnings, 26 implant catalogue entries for CMC1/PIP/MCP, multi-implant aggregation in CSV/FHIR/PDF exports, expanded CaseDetailScreen implant display, duplicate case cloning, and 99 tests (52 elective hand + 44 implant + 3 export)
+- **Skin Cancer Terminology Repair COMPLETE** — corrected skin-cancer SNOMED CT parent/subtype diagnoses, rare malignancy runtime metadata, melanoma staging lookups, UK-extension skin oncology procedure codes, and Mohs migration mapping; added 17 rare cutaneous subtype entries and targeted regression coverage for diagnosis resolution, staging lookup, and procedure terminology
 - **Phase 5 IN PROGRESS** — Version 2.0.0, EAS config done (dev/preview/production profiles), pending manual regression + TestFlight submission
 
 ## Tech stack
@@ -179,8 +180,8 @@ client/
     moduleSummary.ts             # Module-specific summary rendering
     moduleVisibility.ts          # Conditional module visibility
     flapOutcomeDefaults.ts       # Default flap outcome values
-    skinCancerDiagnoses.ts       # Skin cancer picklist
-    skinCancerConfig.ts          # Activation, pathway logic, margins, SLNB, diagnosis resolution, procedure suggestions, caseCanAddHistology
+    skinCancerDiagnoses.ts       # Skin cancer SNOMED taxonomy + rare subtype matching
+    skinCancerConfig.ts          # Activation, pathway logic, margins, rare subtype metadata, SLNB, diagnosis resolution, procedure suggestions
     skinCancerEpisodeHelpers.ts  # Episode link/update plans + follow-up transforms
     handInfectionBridge.ts       # HandInfectionDetails ↔ InfectionOverlay bridge functions
     diagnosisPicklists/          # 12 specialty picklists + lazy-loaded index
@@ -188,7 +189,7 @@ client/
       {specialty}Diagnoses.ts    # Per-specialty (aesthetics, bodyContouring, breast,
                                  #   burns, cleftCranio, general, handSurgery, headNeck,
                                  #   lymphoedema, orthoplastic, peripheralNerve, skinCancer)
-    __tests__/                   # 16 test files incl. hand trauma, skin cancer, dashboard, dateValues, operative media, statistics, hand elective, joint implant, and mediaEncryption
+    __tests__/                   # 19 test files incl. hand trauma, skin cancer, dashboard, dateValues, operative media, statistics, hand elective, joint implant, mediaEncryption, and staging/terminology regressions
   types/
     case.ts                      # Case, DiagnosisGroup, Procedure, Timeline, Media (2322 lines)
     diagnosis.ts                 # Diagnosis picklist entry
@@ -237,7 +238,7 @@ server/
   diagnosisStagingConfig.ts      # Dynamic staging form definitions
   seedData.ts                    # SNOMED reference data seed (~33KB)
   templates/                     # HTML: landing, privacy, terms, reset-password, licenses
-  __tests__/                     # 2 test files (auth, validation)
+  __tests__/                     # 3 test files (auth, validation, diagnosis staging config)
 shared/
   schema.ts                      # Drizzle ORM table definitions, 14 tables (654 lines)
   professionalRegistrations.ts   # Professional registration types

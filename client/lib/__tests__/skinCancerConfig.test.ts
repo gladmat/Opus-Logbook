@@ -179,6 +179,17 @@ describe("getMarginRecommendation", () => {
     expect(r?.recommendedText).toBe("\u22655cm");
   });
 
+  it("MPNST → 20mm", () => {
+    const r = getMarginRecommendation(
+      makeHistology({
+        pathologyCategory: "rare_malignant",
+        rareSubtype: "mpnst",
+      }),
+    );
+    expect(r?.recommendedText).toBe("\u22652cm");
+    expect(r?.minimumMm).toBe(20);
+  });
+
   it("unknown rare type → null (no guideline)", () => {
     const r = getMarginRecommendation(
       makeHistology({
@@ -244,15 +255,15 @@ describe("shouldOfferSLNB", () => {
   });
 
   it("BCC → false", () => {
-    expect(
-      shouldOfferSLNB(makeHistology({ pathologyCategory: "bcc" })),
-    ).toBe(false);
+    expect(shouldOfferSLNB(makeHistology({ pathologyCategory: "bcc" }))).toBe(
+      false,
+    );
   });
 
   it("SCC → false", () => {
-    expect(
-      shouldOfferSLNB(makeHistology({ pathologyCategory: "scc" })),
-    ).toBe(false);
+    expect(shouldOfferSLNB(makeHistology({ pathologyCategory: "scc" }))).toBe(
+      false,
+    );
   });
 });
 
@@ -295,9 +306,9 @@ describe("canConsiderSLNB", () => {
   });
 
   it("BCC → false", () => {
-    expect(
-      canConsiderSLNB(makeHistology({ pathologyCategory: "bcc" })),
-    ).toBe(false);
+    expect(canConsiderSLNB(makeHistology({ pathologyCategory: "bcc" }))).toBe(
+      false,
+    );
   });
 
   it("melanoma >0.8mm → true (via shouldOfferSLNB)", () => {
@@ -345,6 +356,10 @@ describe("getClinicalPathway", () => {
     expect(getClinicalPathway("rare_malignant", "angiosarcoma")).toBe(
       "complex_mdt",
     );
+  });
+
+  it("rare_malignant + mpnst → complex_mdt", () => {
+    expect(getClinicalPathway("rare_malignant", "mpnst")).toBe("complex_mdt");
   });
 });
 
@@ -588,12 +603,8 @@ describe("getSkinCancerPathwayStageForCategory", () => {
   });
 
   it("routes all other inline diagnosis categories to histology_known", () => {
-    expect(getSkinCancerPathwayStageForCategory("bcc")).toBe(
-      "histology_known",
-    );
-    expect(getSkinCancerPathwayStageForCategory("scc")).toBe(
-      "histology_known",
-    );
+    expect(getSkinCancerPathwayStageForCategory("bcc")).toBe("histology_known");
+    expect(getSkinCancerPathwayStageForCategory("scc")).toBe("histology_known");
     expect(getSkinCancerPathwayStageForCategory("melanoma")).toBe(
       "histology_known",
     );
@@ -620,7 +631,9 @@ describe("getSkinCancerPathwayStageForCategory", () => {
 describe("getSkinCancerDiagnosisAutoConfig", () => {
   // ── Unclear Lesion ──
   it("unclear lesion → excision_biopsy only, pathology unlocked", () => {
-    const c = getSkinCancerDiagnosisAutoConfig("sc_dx_skin_lesion_excision_biopsy");
+    const c = getSkinCancerDiagnosisAutoConfig(
+      "sc_dx_skin_lesion_excision_biopsy",
+    );
     expect(c.autoPathwayStage).toBe("excision_biopsy");
     expect(c.availablePathwayStages).toEqual(["excision_biopsy"]);
     expect(c.lockedPathology).toBe(false);
@@ -863,7 +876,7 @@ describe("resolveSkinCancerDiagnosis", () => {
     );
     expect(r).not.toBeNull();
     expect(r!.diagnosisPicklistId).toBe("sc_dx_dfsp");
-    expect(r!.snomedCtCode).toBe("404037006");
+    expect(r!.snomedCtCode).toBe("276799004");
   });
 
   it("histology_known + AFX → AFX diagnosis", () => {
@@ -878,7 +891,7 @@ describe("resolveSkinCancerDiagnosis", () => {
     );
     expect(r).not.toBeNull();
     expect(r!.diagnosisPicklistId).toBe("sc_dx_afx");
-    expect(r!.snomedCtCode).toBe("404036002");
+    expect(r!.snomedCtCode).toBe("254754005");
   });
 
   it("histology_known + rare_malignant without dedicated subtype flags manual review", () => {

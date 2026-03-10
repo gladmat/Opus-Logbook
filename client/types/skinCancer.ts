@@ -331,9 +331,7 @@ export function getHistologyReminderDate(
 
 // --- Pathway Stage (entry point gate) ---
 
-export type SkinCancerPathwayStage =
-  | "excision_biopsy"
-  | "histology_known";
+export type SkinCancerPathwayStage = "excision_biopsy" | "histology_known";
 
 // --- Biopsy Method (excision_biopsy pathway only) ---
 
@@ -381,9 +379,11 @@ export type RareMalignantSubtype =
   | "afx" // Atypical fibroxanthoma
   | "pleomorphic_dermal_sarcoma"
   | "angiosarcoma"
+  | "kaposi_sarcoma"
   | "cutaneous_leiomyosarcoma"
   | "myxofibrosarcoma"
   | "epithelioid_sarcoma"
+  | "mpnst"
   | "other_sarcoma"
   // Other
   | "cutaneous_lymphoma"

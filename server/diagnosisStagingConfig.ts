@@ -135,10 +135,18 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
   // Melanoma (Breslow Thickness & Clark Level)
   {
     snomedCtCodes: [
-      "372244006", // Malignant melanoma
-      "93655004", // Melanoma of skin
+      "93655004", // Malignant melanoma of skin
+      "189758001", // Melanoma in situ
+      "254730000", // Superficial spreading malignant melanoma of skin
+      "254731001", // Nodular malignant melanoma of skin
+      "302837001", // Lentigo maligna melanoma
+      "254732008", // Acral lentiginous malignant melanoma of skin
+      "403924008", // Desmoplastic malignant melanoma
+      "276751004", // Amelanotic malignant melanoma of skin
+      "1295234004", // Spitz malignant melanoma
+      "302836005", // Lentigo maligna
     ],
-    keywords: ["melanoma"],
+    keywords: ["melanoma", "lentigo maligna"],
     stagingSystems: [
       {
         name: "Breslow Thickness",
@@ -666,8 +674,7 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
     stagingSystems: [
       {
         name: "Kanavel Signs",
-        description:
-          "Cardinal signs of pyogenic flexor tenosynovitis",
+        description: "Cardinal signs of pyogenic flexor tenosynovitis",
         options: [
           {
             value: "0",

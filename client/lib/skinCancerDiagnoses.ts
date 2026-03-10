@@ -18,10 +18,10 @@
  *   - SCC of skin: 254651007 (verified DermNet NZ / BioPortal)
  *   - Melanoma of skin: 93655004 (verified IHTSDO browser)
  *   - Merkel cell carcinoma of skin: 253001006 (verified DermNet NZ pathology)
- *   - Actinic keratosis: 396233003 (verified IHTSDO)
- *   - Bowen's disease: 92579001 (verified IHTSDO)
- *   - Keratoacanthoma: 78209005 (verified IHTSDO)
- *   - Dysplastic naevus: 254795005 (verified IHTSDO)
+ *   - Actinic keratosis: 201101007 (verified Ontoserver, Mar 2026)
+ *   - Bowen's disease: 254656002 (verified Ontoserver, Mar 2026)
+ *   - Keratoacanthoma: 254662007 (verified Ontoserver, Mar 2026)
+ *   - Dysplastic naevus: 254818000 (verified Ontoserver, Mar 2026)
  *   - Rare subtypes: individually verified
  */
 
@@ -74,55 +74,56 @@ const MELANOMA_SUBTYPES: SkinCancerSubtype[] = [
   {
     id: "ssm",
     displayName: "Superficial spreading melanoma (SSM)",
-    snomedCtCode: "65399003",
-    snomedCtDisplay: "Superficial spreading melanoma (disorder)",
+    snomedCtCode: "254730000",
+    snomedCtDisplay:
+      "Superficial spreading malignant melanoma of skin (disorder)",
   },
   {
     id: "nm",
     displayName: "Nodular melanoma (NM)",
-    snomedCtCode: "69532000",
-    snomedCtDisplay: "Nodular melanoma (disorder)",
+    snomedCtCode: "254731001",
+    snomedCtDisplay: "Nodular malignant melanoma of skin (disorder)",
   },
   {
     id: "lmm",
     displayName: "Lentigo maligna melanoma (LMM)",
-    snomedCtCode: "302836005",
+    snomedCtCode: "302837001",
     snomedCtDisplay: "Lentigo maligna melanoma (disorder)",
   },
   {
     id: "alm",
     displayName: "Acral lentiginous melanoma (ALM)",
-    snomedCtCode: "254720008",
-    snomedCtDisplay: "Acral lentiginous melanoma (disorder)",
+    snomedCtCode: "254732008",
+    snomedCtDisplay: "Acral lentiginous malignant melanoma of skin (disorder)",
   },
   {
     id: "desmoplastic",
     displayName: "Desmoplastic melanoma",
-    snomedCtCode: "128766003",
-    snomedCtDisplay: "Desmoplastic melanoma (disorder)",
+    snomedCtCode: "403924008",
+    snomedCtDisplay: "Desmoplastic malignant melanoma (disorder)",
   },
   {
     id: "amelanotic",
     displayName: "Amelanotic melanoma",
-    snomedCtCode: "50295002",
-    snomedCtDisplay: "Amelanotic melanoma (disorder)",
+    snomedCtCode: "276751004",
+    snomedCtDisplay: "Amelanotic malignant melanoma of skin (disorder)",
   },
   {
     id: "spitzoid",
     displayName: "Spitzoid melanoma",
-    snomedCtCode: "403923003",
-    snomedCtDisplay: "Spitzoid melanoma (disorder)",
+    snomedCtCode: "1295234004",
+    snomedCtDisplay: "Spitz malignant melanoma (disorder)",
   },
   {
     id: "mis",
     displayName: "Melanoma in situ",
-    snomedCtCode: "109264009",
+    snomedCtCode: "189758001",
     snomedCtDisplay: "Melanoma in situ (disorder)",
   },
   {
     id: "lentigo_maligna",
     displayName: "Lentigo maligna (in situ)",
-    snomedCtCode: "302835009",
+    snomedCtCode: "302836005",
     snomedCtDisplay: "Lentigo maligna (disorder)",
   },
   {
@@ -139,44 +140,44 @@ const BCC_SUBTYPES: SkinCancerSubtype[] = [
   {
     id: "nodular",
     displayName: "Nodular BCC",
-    snomedCtCode: "254702000",
-    snomedCtDisplay: "Nodular basal cell carcinoma of skin (disorder)",
+    snomedCtCode: "716274007",
+    snomedCtDisplay: "Nodular basal cell carcinoma (disorder)",
   },
   {
     id: "superficial",
     displayName: "Superficial BCC",
-    snomedCtCode: "254703005",
-    snomedCtDisplay: "Superficial basal cell carcinoma of skin (disorder)",
+    snomedCtCode: "403914000",
+    snomedCtDisplay: "Superficial basal cell carcinoma (disorder)",
   },
   {
     id: "morphoeic",
     displayName: "Morphoeic (sclerosing) BCC",
-    snomedCtCode: "254704004",
-    snomedCtDisplay: "Morphoeic basal cell carcinoma of skin (disorder)",
+    snomedCtCode: "403913006",
+    snomedCtDisplay: "Sclerosing morphoeic basal cell carcinoma (disorder)",
   },
   {
     id: "infiltrative",
     displayName: "Infiltrative BCC",
-    snomedCtCode: "254701007", // falls under parent BCC concept
-    snomedCtDisplay: "Infiltrative basal cell carcinoma of skin (disorder)",
+    snomedCtCode: "402527000",
+    snomedCtDisplay: "Basal cell carcinoma - infiltrative (disorder)",
   },
   {
     id: "micronodular",
     displayName: "Micronodular BCC",
-    snomedCtCode: "254701007",
-    snomedCtDisplay: "Micronodular basal cell carcinoma of skin (disorder)",
+    snomedCtCode: "402529002",
+    snomedCtDisplay: "Basal cell carcinoma - micronodular (disorder)",
   },
   {
     id: "basosquamous",
     displayName: "Basosquamous (metatypical) BCC",
-    snomedCtCode: "399739006",
+    snomedCtCode: "254702000",
     snomedCtDisplay: "Basosquamous carcinoma of skin (disorder)",
   },
   {
     id: "pigmented",
     displayName: "Pigmented BCC",
-    snomedCtCode: "254701007",
-    snomedCtDisplay: "Pigmented basal cell carcinoma of skin (disorder)",
+    snomedCtCode: "403909004",
+    snomedCtDisplay: "Pigmented basal cell carcinoma (disorder)",
   },
   {
     id: "mixed",
@@ -217,13 +218,13 @@ const SCC_SUBTYPES: SkinCancerSubtype[] = [
   {
     id: "scc_in_situ",
     displayName: "SCC in situ (Bowen's)",
-    snomedCtCode: "92579001",
+    snomedCtCode: "254656002",
     snomedCtDisplay: "Squamous cell carcinoma in situ of skin (disorder)",
   },
   {
     id: "keratoacanthoma_type",
     displayName: "Keratoacanthoma-type SCC",
-    snomedCtCode: "78209005",
+    snomedCtCode: "254662007",
     snomedCtDisplay: "Keratoacanthoma (disorder)",
   },
   {
@@ -268,44 +269,146 @@ const RARE_CUTANEOUS_SUBTYPES: SkinCancerSubtype[] = [
   {
     id: "sebaceous_carcinoma",
     displayName: "Sebaceous carcinoma",
-    snomedCtCode: "254729005",
-    snomedCtDisplay: "Sebaceous carcinoma of skin (disorder)",
+    snomedCtCode: "307599002",
+    snomedCtDisplay: "Sebaceous adenocarcinoma (disorder)",
   },
   {
     id: "microcystic_adnexal_carcinoma",
     displayName: "Microcystic adnexal carcinoma (MAC)",
-    snomedCtCode: "403921001",
+    snomedCtCode: "254712007",
     snomedCtDisplay: "Microcystic adnexal carcinoma (disorder)",
   },
   {
     id: "eccrine_carcinoma",
     displayName: "Eccrine carcinoma",
-    snomedCtCode: "403917007",
+    snomedCtCode: "400173004",
     snomedCtDisplay: "Eccrine carcinoma of skin (disorder)",
   },
   {
     id: "apocrine_carcinoma",
     displayName: "Apocrine carcinoma",
-    snomedCtCode: "403918002",
-    snomedCtDisplay: "Apocrine carcinoma of skin (disorder)",
+    snomedCtCode: "403949007",
+    snomedCtDisplay: "Apocrine adenocarcinoma of skin (disorder)",
   },
   {
     id: "dermatofibrosarcoma_protuberans",
     displayName: "Dermatofibrosarcoma protuberans (DFSP)",
-    snomedCtCode: "254800003",
+    snomedCtCode: "276799004",
     snomedCtDisplay: "Dermatofibrosarcoma protuberans (disorder)",
   },
   {
     id: "atypical_fibroxanthoma",
     displayName: "Atypical fibroxanthoma (AFX)",
-    snomedCtCode: "402570004",
-    snomedCtDisplay: "Atypical fibroxanthoma (disorder)",
+    snomedCtCode: "254754005",
+    snomedCtDisplay: "Atypical fibroxanthoma of skin (disorder)",
   },
   {
     id: "pleomorphic_dermal_sarcoma",
     displayName: "Pleomorphic dermal sarcoma (PDS)",
-    snomedCtCode: "402570004", // closest — PDS is essentially upgraded AFX
-    snomedCtDisplay: "Pleomorphic dermal sarcoma (disorder)",
+    snomedCtCode: "1290751005",
+    snomedCtDisplay: "Undifferentiated pleomorphic sarcoma (disorder)",
+  },
+  {
+    id: "porocarcinoma",
+    displayName: "Porocarcinoma (eccrine)",
+    snomedCtCode: "254708001",
+    snomedCtDisplay: "Eccrine porocarcinoma (disorder)",
+  },
+  {
+    id: "hidradenocarcinoma",
+    displayName: "Hidradenocarcinoma",
+    snomedCtCode: "1293105001",
+    snomedCtDisplay: "Hidradenocarcinoma (disorder)",
+  },
+  {
+    id: "spiradenocarcinoma",
+    displayName: "Spiradenocarcinoma",
+    snomedCtCode: "403942003",
+    snomedCtDisplay: "Malignant eccrine spiradenoma (disorder)",
+  },
+  {
+    id: "trichilemmal_carcinoma",
+    displayName: "Trichilemmal carcinoma",
+    snomedCtCode: "403929003",
+    snomedCtDisplay: "Trichilemmal carcinoma (disorder)",
+  },
+  {
+    id: "mucinous_eccrine_carcinoma",
+    displayName: "Mucinous eccrine carcinoma",
+    snomedCtCode: "254714008",
+    snomedCtDisplay: "Mucinous eccrine carcinoma of skin (disorder)",
+  },
+  {
+    id: "digital_papillary_adenocarcinoma",
+    displayName: "Digital papillary adenocarcinoma",
+    snomedCtCode: "254709009",
+    snomedCtDisplay: "Digital papillary eccrine carcinoma of skin (disorder)",
+  },
+  {
+    id: "empd",
+    displayName: "Extramammary Paget's disease (EMPD)",
+    snomedCtCode: "254727007",
+    snomedCtDisplay: "Extramammary Paget's disease of skin (disorder)",
+  },
+  {
+    id: "angiosarcoma",
+    displayName: "Angiosarcoma of skin",
+    snomedCtCode: "254794007",
+    snomedCtDisplay: "Angiosarcoma of skin (disorder)",
+  },
+  {
+    id: "cutaneous_leiomyosarcoma",
+    displayName: "Cutaneous leiomyosarcoma",
+    snomedCtCode: "254771006",
+    snomedCtDisplay: "Cutaneous leiomyosarcoma (disorder)",
+  },
+  {
+    id: "myxofibrosarcoma",
+    displayName: "Myxofibrosarcoma",
+    snomedCtCode: "723076008",
+    snomedCtDisplay: "Primary myxofibrosarcoma (disorder)",
+  },
+  {
+    id: "epithelioid_sarcoma",
+    displayName: "Epithelioid sarcoma",
+    snomedCtCode: "782827000",
+    snomedCtDisplay: "Epithelioid sarcoma (disorder)",
+  },
+  {
+    id: "kaposi_sarcoma",
+    displayName: "Kaposi's sarcoma of skin",
+    snomedCtCode: "109386008",
+    snomedCtDisplay: "Kaposi's sarcoma of skin (disorder)",
+  },
+  {
+    id: "cutaneous_lymphoma",
+    displayName: "Cutaneous lymphoma (biopsy only)",
+    snomedCtCode: "400001003",
+    snomedCtDisplay: "Primary cutaneous lymphoma (disorder)",
+  },
+  {
+    id: "cutaneous_metastasis",
+    displayName: "Cutaneous metastasis (unknown primary)",
+    snomedCtCode: "94579000",
+    snomedCtDisplay: "Metastatic malignant neoplasm to skin (disorder)",
+  },
+  {
+    id: "pilomatrical_carcinoma",
+    displayName: "Pilomatrical carcinoma",
+    snomedCtCode: "307610008",
+    snomedCtDisplay: "Pilomatrix carcinoma of skin (disorder)",
+  },
+  {
+    id: "adenoid_cystic_cutaneous",
+    displayName: "Cutaneous adenoid cystic carcinoma",
+    snomedCtCode: "254711000",
+    snomedCtDisplay: "Adenoid cystic eccrine carcinoma of skin (disorder)",
+  },
+  {
+    id: "mpnst",
+    displayName: "Malignant peripheral nerve sheath tumour (MPNST)",
+    snomedCtCode: "404037002",
+    snomedCtDisplay: "Malignant peripheral nerve sheath tumour (disorder)",
   },
 ];
 
@@ -374,7 +477,7 @@ export const SKIN_CANCER_DIAGNOSES: SkinCancerDiagnosisEntry[] = [
     displayName: "Actinic keratosis",
     shortName: "AK",
     group: "premalignant",
-    snomedCtCode: "396233003",
+    snomedCtCode: "201101007",
     snomedCtDisplay: "Actinic keratosis (disorder)",
     subtypes: [],
     subtypeRequired: false,
@@ -387,7 +490,7 @@ export const SKIN_CANCER_DIAGNOSES: SkinCancerDiagnosisEntry[] = [
     displayName: "Bowen's disease (SCC in situ)",
     shortName: "Bowen's",
     group: "premalignant",
-    snomedCtCode: "92579001",
+    snomedCtCode: "254656002",
     snomedCtDisplay: "Squamous cell carcinoma in situ of skin (disorder)",
     subtypes: [],
     subtypeRequired: false,
@@ -400,7 +503,7 @@ export const SKIN_CANCER_DIAGNOSES: SkinCancerDiagnosisEntry[] = [
     displayName: "Keratoacanthoma",
     shortName: "KA",
     group: "premalignant",
-    snomedCtCode: "78209005",
+    snomedCtCode: "254662007",
     snomedCtDisplay: "Keratoacanthoma (disorder)",
     subtypes: [],
     subtypeRequired: false,
@@ -413,8 +516,8 @@ export const SKIN_CANCER_DIAGNOSES: SkinCancerDiagnosisEntry[] = [
     displayName: "Dysplastic naevus",
     shortName: "DN",
     group: "premalignant",
-    snomedCtCode: "254795005",
-    snomedCtDisplay: "Dysplastic naevus (disorder)",
+    snomedCtCode: "254818000",
+    snomedCtDisplay: "Dysplastic naevus of skin (disorder)",
     subtypes: DYSPLASTIC_NAEVUS_SUBTYPES,
     subtypeRequired: true,
     hasEnhancedHistology: true,
@@ -429,7 +532,7 @@ export const SKIN_CANCER_DIAGNOSES: SkinCancerDiagnosisEntry[] = [
     shortName: "Rare",
     group: "rare",
     snomedCtCode: "363346000", // generic malignant neoplasm — will be refined by subtype
-    snomedCtDisplay: "Malignant neoplasm of skin (disorder)",
+    snomedCtDisplay: "Malignant neoplastic disease (disorder)",
     subtypes: RARE_CUTANEOUS_SUBTYPES,
     subtypeRequired: true,
     hasEnhancedHistology: true,
@@ -544,6 +647,26 @@ export function isSkinCancerDiagnosis(
       "sebaceous carcinoma",
       "fibroxanthoma",
       "pleomorphic dermal sarcoma",
+      "porocarcinoma",
+      "hidradenocarcinoma",
+      "spiradenocarcinoma",
+      "trichilemmal carcinoma",
+      "mucinous eccrine",
+      "digital papillary",
+      "extramammary paget",
+      "empd",
+      "angiosarcoma",
+      "leiomyosarcoma",
+      "myxofibrosarcoma",
+      "epithelioid sarcoma",
+      "kaposi",
+      "pilomatrix",
+      "pilomatrical",
+      "adenoid cystic",
+      "mpnst",
+      "peripheral nerve sheath",
+      "cutaneous lymphoma",
+      "cutaneous metastasis",
       "eccrine carcinoma",
       "apocrine carcinoma",
       "microcystic adnexal",
@@ -691,6 +814,63 @@ export function matchHistologyToPicklist(
       subtypeId: "dermatofibrosarcoma_protuberans",
     };
   }
+  if (
+    lower.includes("porocarcinoma") ||
+    lower.includes("eccrine porocarcinoma")
+  ) {
+    return { cancerType: "rare_cutaneous", subtypeId: "porocarcinoma" };
+  }
+  if (lower.includes("hidradenocarcinoma")) {
+    return { cancerType: "rare_cutaneous", subtypeId: "hidradenocarcinoma" };
+  }
+  if (
+    lower.includes("spiradenocarcinoma") ||
+    lower.includes("malignant spiradenoma")
+  ) {
+    return { cancerType: "rare_cutaneous", subtypeId: "spiradenocarcinoma" };
+  }
+  if (lower.includes("trichilemmal carcinoma")) {
+    return {
+      cancerType: "rare_cutaneous",
+      subtypeId: "trichilemmal_carcinoma",
+    };
+  }
+  if (
+    lower.includes("mucinous eccrine") ||
+    lower.includes("mucinous carcinoma")
+  ) {
+    return {
+      cancerType: "rare_cutaneous",
+      subtypeId: "mucinous_eccrine_carcinoma",
+    };
+  }
+  if (lower.includes("digital papillary")) {
+    return {
+      cancerType: "rare_cutaneous",
+      subtypeId: "digital_papillary_adenocarcinoma",
+    };
+  }
+  if (lower.includes("extramammary paget") || lower.includes("empd")) {
+    return { cancerType: "rare_cutaneous", subtypeId: "empd" };
+  }
+  if (lower.includes("angiosarcoma")) {
+    return { cancerType: "rare_cutaneous", subtypeId: "angiosarcoma" };
+  }
+  if (lower.includes("leiomyosarcoma") && lower.includes("skin")) {
+    return {
+      cancerType: "rare_cutaneous",
+      subtypeId: "cutaneous_leiomyosarcoma",
+    };
+  }
+  if (lower.includes("myxofibrosarcoma")) {
+    return { cancerType: "rare_cutaneous", subtypeId: "myxofibrosarcoma" };
+  }
+  if (lower.includes("epithelioid sarcoma")) {
+    return { cancerType: "rare_cutaneous", subtypeId: "epithelioid_sarcoma" };
+  }
+  if (lower.includes("kaposi")) {
+    return { cancerType: "rare_cutaneous", subtypeId: "kaposi_sarcoma" };
+  }
   if (lower.includes("sebaceous carcinoma")) {
     return { cancerType: "rare_cutaneous", subtypeId: "sebaceous_carcinoma" };
   }
@@ -699,6 +879,12 @@ export function matchHistologyToPicklist(
       cancerType: "rare_cutaneous",
       subtypeId: "microcystic_adnexal_carcinoma",
     };
+  }
+  if (lower.includes("eccrine carcinoma")) {
+    return { cancerType: "rare_cutaneous", subtypeId: "eccrine_carcinoma" };
+  }
+  if (lower.includes("apocrine carcinoma")) {
+    return { cancerType: "rare_cutaneous", subtypeId: "apocrine_carcinoma" };
   }
   if (lower.includes("atypical fibroxanthoma") || lower.includes("afx")) {
     return {
@@ -711,6 +897,39 @@ export function matchHistologyToPicklist(
       cancerType: "rare_cutaneous",
       subtypeId: "pleomorphic_dermal_sarcoma",
     };
+  }
+  if (lower.includes("pilomatrix") || lower.includes("pilomatrical")) {
+    return {
+      cancerType: "rare_cutaneous",
+      subtypeId: "pilomatrical_carcinoma",
+    };
+  }
+  if (
+    lower.includes("adenoid cystic") &&
+    (lower.includes("skin") || lower.includes("eccrine"))
+  ) {
+    return {
+      cancerType: "rare_cutaneous",
+      subtypeId: "adenoid_cystic_cutaneous",
+    };
+  }
+  if (
+    lower.includes("mpnst") ||
+    lower.includes("malignant peripheral nerve sheath")
+  ) {
+    return { cancerType: "rare_cutaneous", subtypeId: "mpnst" };
+  }
+  if (
+    lower.includes("cutaneous lymphoma") ||
+    lower.includes("primary cutaneous lymphoma")
+  ) {
+    return { cancerType: "rare_cutaneous", subtypeId: "cutaneous_lymphoma" };
+  }
+  if (
+    lower.includes("cutaneous metastasis") ||
+    lower.includes("metastatic malignant neoplasm to skin")
+  ) {
+    return { cancerType: "rare_cutaneous", subtypeId: "cutaneous_metastasis" };
   }
 
   return null;

@@ -10,7 +10,7 @@
  * INTEGRATION:
  *   In diagnosisStagingConfig.ts, find and replace the melanoma entry:
  *     // Melanoma (Breslow Thickness & Clark Level)
- *     { snomedCtCodes: ["372244006", "93655004"], ...
+ *     { snomedCtCodes: ["93655004", "189758001"], ...
  *
  *   Replace with all entries from this file (copy the array contents
  *   into the diagnosisStagingConfigs array).
@@ -24,17 +24,16 @@ export const SKIN_CANCER_STAGING_CONFIGS: DiagnosisStagingConfig[] = [
   // ═══════════════════════════════════════════════════════════════════════
   {
     snomedCtCodes: [
-      "372244006", // Malignant melanoma (general)
       "93655004", // Malignant melanoma of skin
-      "109264009", // Melanoma in situ
-      "65399003", // Superficial spreading melanoma
-      "69532000", // Nodular melanoma
-      "302836005", // Lentigo maligna melanoma
-      "254720008", // Acral lentiginous melanoma
-      "128766003", // Desmoplastic melanoma
-      "50295002", // Amelanotic melanoma
-      "403923003", // Spitzoid melanoma
-      "302835009", // Lentigo maligna
+      "189758001", // Melanoma in situ
+      "254730000", // Superficial spreading malignant melanoma of skin
+      "254731001", // Nodular malignant melanoma of skin
+      "302837001", // Lentigo maligna melanoma
+      "254732008", // Acral lentiginous malignant melanoma of skin
+      "403924008", // Desmoplastic malignant melanoma
+      "276751004", // Amelanotic malignant melanoma of skin
+      "1295234004", // Spitz malignant melanoma
+      "302836005", // Lentigo maligna
     ],
     keywords: ["melanoma", "lentigo maligna"],
     stagingSystems: [
@@ -137,10 +136,13 @@ export const SKIN_CANCER_STAGING_CONFIGS: DiagnosisStagingConfig[] = [
   {
     snomedCtCodes: [
       "254701007", // Basal cell carcinoma of skin
-      "254702000", // Nodular BCC
-      "254703005", // Superficial BCC
-      "254704004", // Morphoeic BCC
-      "399739006", // Basosquamous carcinoma
+      "716274007", // Nodular BCC
+      "403914000", // Superficial BCC
+      "403913006", // Morphoeic BCC
+      "402527000", // Infiltrative BCC
+      "402529002", // Micronodular BCC
+      "254702000", // Basosquamous carcinoma
+      "403909004", // Pigmented BCC
     ],
     keywords: ["basal cell", "bcc", "basalioma", "rodent ulcer"],
     stagingSystems: [
@@ -341,7 +343,7 @@ export const SKIN_CANCER_STAGING_CONFIGS: DiagnosisStagingConfig[] = [
   // ═══════════════════════════════════════════════════════════════════════
   {
     snomedCtCodes: [
-      "254795005", // Dysplastic naevus
+      "254818000", // Dysplastic naevus of skin
     ],
     keywords: ["dysplastic naevus", "dysplastic nevus", "atypical mole"],
     stagingSystems: [

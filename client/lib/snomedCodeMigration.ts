@@ -34,8 +34,8 @@ export const OLD_TO_NEW_SNOMED: Record<string, SnomedMigrationEntry> = {
     newDisplay: "Aspiration procedure (procedure)",
   },
   "122465003": {
-    newCode: "440299008",
-    newDisplay: "Mohs micrographic surgery (procedure)",
+    newCode: "418024000",
+    newDisplay: "Mohs surgery (procedure)",
   },
   "239248002": {
     newCode: "178730002",

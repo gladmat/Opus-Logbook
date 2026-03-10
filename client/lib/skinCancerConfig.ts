@@ -91,9 +91,7 @@ export interface DiagnosisAutoConfig {
 }
 
 /** Stages shown for known diagnoses (biopsy already done) */
-const KNOWN_DIAGNOSIS_STAGES: SkinCancerPathwayStage[] = [
-  "histology_known",
-];
+const KNOWN_DIAGNOSIS_STAGES: SkinCancerPathwayStage[] = ["histology_known"];
 
 /**
  * Internal routing only: maps the inline diagnosis category to the runtime
@@ -214,10 +212,7 @@ export function getSkinCancerDiagnosisAutoConfig(
     default:
       return {
         autoPathwayStage: undefined as unknown as SkinCancerPathwayStage,
-        availablePathwayStages: [
-          "excision_biopsy",
-          "histology_known",
-        ],
+        availablePathwayStages: ["excision_biopsy", "histology_known"],
         lockedPathology: false,
         hideCurrentProcedureSource: false,
       };
@@ -245,6 +240,7 @@ const COMPLEX_MDT_TYPES: Set<RareMalignantSubtype> = new Set([
   "empd",
   "cutaneous_lymphoma",
   "cutaneous_metastasis",
+  "mpnst",
 ]);
 
 export function getClinicalPathway(
@@ -430,6 +426,13 @@ export function getMarginRecommendation(
         guidelineNote: "\u22651cm for cutaneous LMS",
         minimumMm: 10,
       },
+      mpnst: {
+        recommendedText: "\u22652cm",
+        guidelineSource: "EXPERT",
+        guidelineNote:
+          "\u22652cm wide excision to fascia \u2014 discuss at sarcoma MDT",
+        minimumMm: 20,
+      },
     };
     return (
       RARE_MARGINS[rareSubtype] ?? {
@@ -535,12 +538,11 @@ export function getSkinCancerCompletion(
 
   let histology: SectionStatus = "not_started";
   if (assessment.pathwayStage === "excision_biopsy") {
-    histology =
-      assessment.currentHistology?.pathologyCategory
-        ? "complete"
-        : assessment.biopsyType
-          ? "pending"
-          : "not_started";
+    histology = assessment.currentHistology?.pathologyCategory
+      ? "complete"
+      : assessment.biopsyType
+        ? "pending"
+        : "not_started";
   } else if (getSkinCancerPrimaryHistology(assessment)?.pathologyCategory) {
     histology = "complete";
   }
@@ -593,10 +595,7 @@ export function getPathwayBadge(
   if (histo?.marginStatus === "complete") {
     return { label: "Margins clear", colorKey: "success" };
   }
-  if (
-    histo?.marginStatus === "incomplete" ||
-    histo?.marginStatus === "close"
-  ) {
+  if (histo?.marginStatus === "incomplete" || histo?.marginStatus === "close") {
     return { label: "Incomplete margins", colorKey: "error" };
   }
 
@@ -810,122 +809,141 @@ export const RARE_TYPE_METADATA: Record<RareMalignantSubtype, RareTypeInfo> = {
     label: "Sebaceous carcinoma",
     group: "adnexal",
     icdO3: "8410/3",
-    snomedCt: "254681003",
+    snomedCt: "307599002",
   },
   porocarcinoma: {
     label: "Eccrine porocarcinoma",
     group: "adnexal",
     icdO3: "8409/3",
-    snomedCt: "403917003",
+    snomedCt: "254708001",
   },
   mac: {
     label: "Microcystic adnexal carcinoma",
     group: "adnexal",
     icdO3: "8407/3",
-    snomedCt: "403913004",
+    snomedCt: "254712007",
   },
   hidradenocarcinoma: {
     label: "Hidradenocarcinoma",
     group: "adnexal",
     icdO3: "8400/3",
-    snomedCt: "403916007",
+    snomedCt: "1293105001",
   },
   spiradenocarcinoma: {
     label: "Spiradenocarcinoma",
     group: "adnexal",
     icdO3: "8403/3",
-    snomedCt: "35941009",
+    snomedCt: "403942003",
   },
   trichilemmal_carcinoma: {
     label: "Trichilemmal carcinoma",
     group: "adnexal",
     icdO3: "8102/3",
-    snomedCt: "403909002",
+    snomedCt: "403929003",
   },
   mucinous_eccrine_carcinoma: {
     label: "Mucinous eccrine carcinoma",
     group: "adnexal",
     icdO3: "8480/3",
-    snomedCt: "72495009",
+    snomedCt: "254714008",
   },
   apocrine_carcinoma: {
     label: "Apocrine carcinoma",
     group: "adnexal",
     icdO3: "8401/3",
-    snomedCt: "399739006",
+    snomedCt: "403949007",
   },
   digital_papillary_adenocarcinoma: {
     label: "Digital papillary adenocarcinoma",
     group: "adnexal",
     icdO3: "8408/3",
+    snomedCt: "254709009",
   },
   empd: {
     label: "Extramammary Paget's disease",
     group: "adnexal",
     icdO3: "8542/3",
-    snomedCt: "8098009",
+    snomedCt: "254727007",
   },
   adenoid_cystic_cutaneous: {
-    label: "Adenoid cystic carcinoma (cutaneous)",
+    label: "Cutaneous adenoid cystic carcinoma",
     group: "adnexal",
     icdO3: "8200/3",
-    snomedCt: "11671000",
+    snomedCt: "254711000",
   },
   pilomatrical_carcinoma: {
     label: "Pilomatrical carcinoma",
     group: "adnexal",
     icdO3: "8110/3",
-    snomedCt: "403911006",
+    snomedCt: "307610008",
   },
   other_adnexal: { label: "Other adnexal carcinoma", group: "adnexal" },
   dfsp: {
-    label: "DFSP",
+    label: "Dermatofibrosarcoma protuberans (DFSP)",
     group: "sarcoma",
     icdO3: "8832/3",
-    snomedCt: "254709003",
+    snomedCt: "276799004",
   },
   afx: {
     label: "Atypical fibroxanthoma",
     group: "sarcoma",
     icdO3: "8830/1",
-    snomedCt: "403914005",
+    snomedCt: "254754005",
   },
   pleomorphic_dermal_sarcoma: {
     label: "Pleomorphic dermal sarcoma",
     group: "sarcoma",
     icdO3: "8830/3",
-    snomedCt: "404036006",
+    snomedCt: "1290751005",
   },
   angiosarcoma: {
     label: "Angiosarcoma",
     group: "sarcoma",
     icdO3: "9120/3",
-    snomedCt: "39000009",
+    snomedCt: "254794007",
+  },
+  kaposi_sarcoma: {
+    label: "Kaposi's sarcoma of skin",
+    group: "sarcoma",
+    icdO3: "9140/3",
+    snomedCt: "109386008",
   },
   cutaneous_leiomyosarcoma: {
     label: "Cutaneous leiomyosarcoma",
     group: "sarcoma",
     icdO3: "8890/3",
-    snomedCt: "443498003",
+    snomedCt: "254771006",
   },
   myxofibrosarcoma: {
     label: "Myxofibrosarcoma",
     group: "sarcoma",
     icdO3: "8811/3",
+    snomedCt: "723076008",
   },
   epithelioid_sarcoma: {
     label: "Epithelioid sarcoma",
     group: "sarcoma",
     icdO3: "8804/3",
+    snomedCt: "782827000",
+  },
+  mpnst: {
+    label: "Malignant peripheral nerve sheath tumour (MPNST)",
+    group: "sarcoma",
+    icdO3: "9540/3",
+    snomedCt: "404037002",
   },
   other_sarcoma: { label: "Other cutaneous sarcoma", group: "sarcoma" },
   cutaneous_lymphoma: {
     label: "Cutaneous lymphoma (biopsy)",
     group: "other",
     icdO3: "9700/3",
-    snomedCt: "62479008",
+    snomedCt: "400001003",
   },
-  cutaneous_metastasis: { label: "Cutaneous metastasis", group: "other" },
+  cutaneous_metastasis: {
+    label: "Cutaneous metastasis",
+    group: "other",
+    snomedCt: "94579000",
+  },
   other_nos: { label: "Other skin malignancy NOS", group: "other" },
 };
 
@@ -998,8 +1016,7 @@ export function getSkinCancerProcedureSuggestions(
     );
   else if (cat === "melanoma")
     suggestions.push(hn ? "hn_skin_melanoma_wle" : "gen_mel_wle_body");
-  else if (cat === "merkel_cell")
-    suggestions.push("gen_mel_merkel_excision");
+  else if (cat === "merkel_cell") suggestions.push("gen_mel_merkel_excision");
   else if (cat === "rare_malignant" && histo.rareSubtype === "dfsp")
     suggestions.push("gen_mel_dfsp_excision");
 
@@ -1045,10 +1062,7 @@ export function getSkinCancerProcedureSuggestions(
         );
       } else {
         // Body: grafts plus orthoplastic local flaps
-        suggestions.push(
-          "orth_local_rotation",
-          "orth_local_transposition",
-        );
+        suggestions.push("orth_local_rotation", "orth_local_transposition");
       }
     }
   }
@@ -1077,7 +1091,9 @@ export function getDefaultSkinCancerSelectedProcedureIds(
     }
   }
 
-  return suggestedProcedureIds.filter((procedureId) => selected.has(procedureId));
+  return suggestedProcedureIds.filter((procedureId) =>
+    selected.has(procedureId),
+  );
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1114,10 +1130,10 @@ export interface ResolvedSkinCancerDiagnosis {
 export function resolveSkinCancerDiagnosis(
   assessment: SkinCancerLesionAssessment,
 ): ResolvedSkinCancerDiagnosis | null {
-  const confirmedCurrentHistology =
-    assessment.currentHistology?.pathologyCategory
-      ? assessment.currentHistology
-      : undefined;
+  const confirmedCurrentHistology = assessment.currentHistology
+    ?.pathologyCategory
+    ? assessment.currentHistology
+    : undefined;
 
   if (assessment.pathwayStage === "excision_biopsy") {
     if (!confirmedCurrentHistology) {
@@ -1198,15 +1214,15 @@ function resolveRareSubtype(
       return {
         diagnosisPicklistId: "sc_dx_dfsp",
         displayName: "Dermatofibrosarcoma protuberans (DFSP)",
-        snomedCtCode: "404037006",
+        snomedCtCode: "276799004",
         snomedCtDisplay: "Dermatofibrosarcoma protuberans (disorder)",
       };
     case "afx":
       return {
         diagnosisPicklistId: "sc_dx_afx",
         displayName: "Atypical fibroxanthoma (AFX)",
-        snomedCtCode: "404036002",
-        snomedCtDisplay: "Atypical fibroxanthoma (disorder)",
+        snomedCtCode: "254754005",
+        snomedCtDisplay: "Atypical fibroxanthoma of skin (disorder)",
       };
     default:
       return {

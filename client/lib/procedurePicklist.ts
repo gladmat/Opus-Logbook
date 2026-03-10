@@ -1195,8 +1195,7 @@ const HAND_JOINT_PROCEDURES: ProcedurePicklistEntry[] = [
     id: "hand_elective_druj_reconstruction",
     displayName: "DRUJ stabilisation / reconstruction",
     snomedCtCode: "847281000168104",
-    snomedCtDisplay:
-      "Stabilisation of distal radioulnar joint (procedure)",
+    snomedCtDisplay: "Stabilisation of distal radioulnar joint (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Joint Procedures",
     tags: ["elective"],
@@ -1798,8 +1797,7 @@ const HAND_RHEUMATOID: ProcedurePicklistEntry[] = [
     id: "hand_rheumatoid_mcp_synovectomy",
     displayName: "MCP joint synovectomy (rheumatoid)",
     snomedCtCode: "46896006",
-    snomedCtDisplay:
-      "Excision of synovium of joint of hand (procedure)",
+    snomedCtDisplay: "Excision of synovium of joint of hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Rheumatoid Hand",
     tags: ["elective"],
@@ -1809,8 +1807,7 @@ const HAND_RHEUMATOID: ProcedurePicklistEntry[] = [
     id: "hand_rheumatoid_wrist_synovectomy",
     displayName: "Wrist / dorsal tenosynovectomy",
     snomedCtCode: "74278002",
-    snomedCtDisplay:
-      "Synovectomy of tendon sheath of hand (procedure)",
+    snomedCtDisplay: "Synovectomy of tendon sheath of hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Rheumatoid Hand",
     tags: ["elective"],
@@ -1820,8 +1817,7 @@ const HAND_RHEUMATOID: ProcedurePicklistEntry[] = [
     id: "hand_rheumatoid_nodule_excision",
     displayName: "Rheumatoid nodule excision (hand / wrist)",
     snomedCtCode: "1303629009",
-    snomedCtDisplay:
-      "Excision of subcutaneous rheumatoid nodule (procedure)",
+    snomedCtDisplay: "Excision of subcutaneous rheumatoid nodule (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Rheumatoid Hand",
     tags: ["elective"],
@@ -2030,8 +2026,8 @@ const HEAD_NECK_SKIN_CANCER: ProcedurePicklistEntry[] = [
   {
     id: "hn_skin_bcc_excision",
     displayName: "BCC excision — face / head / neck",
-    snomedCtCode: "177302008",
-    snomedCtDisplay: "Excision of basal cell carcinoma of skin (procedure)",
+    snomedCtCode: "300025007",
+    snomedCtDisplay: "Excision of basal cell carcinoma (procedure)",
     specialties: ["skin_cancer", "head_neck", "general"],
     subcategory: "Skin Cancer Excision",
     tags: ["oncological"],
@@ -2040,8 +2036,8 @@ const HEAD_NECK_SKIN_CANCER: ProcedurePicklistEntry[] = [
   {
     id: "hn_skin_scc_excision",
     displayName: "SCC excision — face / head / neck",
-    snomedCtCode: "177304009",
-    snomedCtDisplay: "Excision of squamous cell carcinoma of skin (procedure)",
+    snomedCtCode: "450434000",
+    snomedCtDisplay: "Excision of squamous cell carcinoma (procedure)",
     specialties: ["skin_cancer", "head_neck", "general"],
     subcategory: "Skin Cancer Excision",
     tags: ["oncological"],
@@ -2050,8 +2046,8 @@ const HEAD_NECK_SKIN_CANCER: ProcedurePicklistEntry[] = [
   {
     id: "hn_skin_melanoma_excision",
     displayName: "Melanoma excision — face / head / neck",
-    snomedCtCode: "177306006",
-    snomedCtDisplay: "Excision of malignant melanoma of skin (procedure)",
+    snomedCtCode: "177281002",
+    snomedCtDisplay: "Excision of melanoma (procedure)",
     specialties: ["skin_cancer", "head_neck", "general"],
     subcategory: "Skin Cancer Excision",
     tags: ["oncological"],
@@ -2060,8 +2056,8 @@ const HEAD_NECK_SKIN_CANCER: ProcedurePicklistEntry[] = [
   {
     id: "hn_skin_melanoma_wle",
     displayName: "Melanoma wide local excision — face / head / neck",
-    snomedCtCode: "177306006",
-    snomedCtDisplay: "Wide excision of malignant melanoma of skin (procedure)",
+    snomedCtCode: "177281002",
+    snomedCtDisplay: "Excision of melanoma (procedure)",
     specialties: ["skin_cancer", "head_neck", "general"],
     subcategory: "Skin Cancer Excision",
     tags: ["oncological"],
@@ -2070,8 +2066,8 @@ const HEAD_NECK_SKIN_CANCER: ProcedurePicklistEntry[] = [
   {
     id: "hn_skin_mohs_defect",
     displayName: "Mohs defect reconstruction",
-    snomedCtCode: "440299008",
-    snomedCtDisplay: "Mohs micrographic surgery (procedure)",
+    snomedCtCode: "418024000",
+    snomedCtDisplay: "Mohs surgery (procedure)",
     specialties: ["skin_cancer", "head_neck", "general"],
     subcategory: "Skin Cancer Excision",
     tags: ["oncological"],
@@ -2080,7 +2076,7 @@ const HEAD_NECK_SKIN_CANCER: ProcedurePicklistEntry[] = [
   {
     id: "hn_skin_excision_other",
     displayName: "Skin lesion excision — face / head / neck — other",
-    snomedCtCode: "177300000",
+    snomedCtCode: "35646002",
     snomedCtDisplay: "Excision of lesion of skin (procedure)",
     specialties: ["skin_cancer", "head_neck", "general"],
     subcategory: "Skin Cancer Excision",
@@ -2866,7 +2862,7 @@ const HEAD_NECK_OTHER: ProcedurePicklistEntry[] = [
   {
     id: "hn_other_dermoid_excision",
     displayName: "Dermoid cyst excision — face / scalp",
-    snomedCtCode: "177300000", // VERIFY
+    snomedCtCode: "35646002", // VERIFY
     snomedCtDisplay: "Excision of dermoid cyst (procedure)",
     specialties: ["head_neck"],
     subcategory: "Other Head & Neck",
@@ -2911,7 +2907,7 @@ const GENERAL_SKIN_LESION: ProcedurePicklistEntry[] = [
   {
     id: "gen_skin_benign_lesion",
     displayName: "Benign skin lesion excision",
-    snomedCtCode: "177300000",
+    snomedCtCode: "35646002",
     snomedCtDisplay: "Excision of lesion of skin (procedure)",
     specialties: ["general"],
     subcategory: "Skin Lesion Surgery",
@@ -2921,8 +2917,8 @@ const GENERAL_SKIN_LESION: ProcedurePicklistEntry[] = [
   {
     id: "gen_skin_bcc_excision_body",
     displayName: "BCC excision — trunk / limbs",
-    snomedCtCode: "177302008",
-    snomedCtDisplay: "Excision of basal cell carcinoma of skin (procedure)",
+    snomedCtCode: "300025007",
+    snomedCtDisplay: "Excision of basal cell carcinoma (procedure)",
     specialties: ["skin_cancer", "general", "head_neck"],
     subcategory: "Skin Lesion Surgery",
     tags: ["oncological"],
@@ -2931,8 +2927,8 @@ const GENERAL_SKIN_LESION: ProcedurePicklistEntry[] = [
   {
     id: "gen_skin_scc_excision_body",
     displayName: "SCC excision — trunk / limbs",
-    snomedCtCode: "177304009",
-    snomedCtDisplay: "Excision of squamous cell carcinoma of skin (procedure)",
+    snomedCtCode: "450434000",
+    snomedCtDisplay: "Excision of squamous cell carcinoma (procedure)",
     specialties: ["skin_cancer", "general", "head_neck"],
     subcategory: "Skin Lesion Surgery",
     tags: ["oncological"],
@@ -2961,7 +2957,7 @@ const GENERAL_SKIN_LESION: ProcedurePicklistEntry[] = [
   {
     id: "gen_skin_excision_biopsy",
     displayName: "Excision biopsy of skin lesion",
-    snomedCtCode: "177300000",
+    snomedCtCode: "35646002",
     snomedCtDisplay: "Excision of lesion of skin (procedure)",
     specialties: ["skin_cancer", "general", "head_neck"],
     subcategory: "Skin Lesion Surgery",
@@ -2974,8 +2970,8 @@ const GENERAL_MELANOMA: ProcedurePicklistEntry[] = [
   {
     id: "gen_mel_excision_body",
     displayName: "Melanoma excision — trunk / limbs",
-    snomedCtCode: "177306006",
-    snomedCtDisplay: "Excision of malignant melanoma of skin (procedure)",
+    snomedCtCode: "177281002",
+    snomedCtDisplay: "Excision of melanoma (procedure)",
     specialties: ["skin_cancer", "general", "head_neck"],
     subcategory: "Melanoma & Oncological",
     tags: ["oncological"],
@@ -2984,8 +2980,8 @@ const GENERAL_MELANOMA: ProcedurePicklistEntry[] = [
   {
     id: "gen_mel_wle_body",
     displayName: "Melanoma wide local excision — trunk / limbs",
-    snomedCtCode: "177306006",
-    snomedCtDisplay: "Wide excision of malignant melanoma of skin (procedure)",
+    snomedCtCode: "177281002",
+    snomedCtDisplay: "Excision of melanoma (procedure)",
     specialties: ["skin_cancer", "general", "head_neck"],
     subcategory: "Melanoma & Oncological",
     tags: ["oncological"],
@@ -3015,8 +3011,8 @@ const GENERAL_MELANOMA: ProcedurePicklistEntry[] = [
   {
     id: "gen_mel_in_transit_excision",
     displayName: "In-transit metastasis excision",
-    snomedCtCode: "177306006",
-    snomedCtDisplay: "Excision of melanoma metastasis (procedure)",
+    snomedCtCode: "177281002",
+    snomedCtDisplay: "Excision of melanoma (procedure)",
     specialties: ["skin_cancer", "general", "head_neck"],
     subcategory: "Melanoma & Oncological",
     tags: ["oncological"],
@@ -3189,7 +3185,7 @@ const GENERAL_VASCULAR_MALFORMATION: ProcedurePicklistEntry[] = [
   {
     id: "gen_vasc_excision",
     displayName: "Vascular malformation excision",
-    snomedCtCode: "177300000", // VERIFY
+    snomedCtCode: "35646002", // VERIFY
     snomedCtDisplay: "Excision of vascular malformation (procedure)",
     specialties: ["general"],
     subcategory: "Vascular Malformations",
@@ -3222,7 +3218,7 @@ const GENERAL_HIDRADENITIS: ProcedurePicklistEntry[] = [
   {
     id: "gen_hs_excision_axilla",
     displayName: "Hidradenitis suppurativa excision — axilla",
-    snomedCtCode: "177300000", // VERIFY
+    snomedCtCode: "35646002", // VERIFY
     snomedCtDisplay: "Excision for hidradenitis suppurativa (procedure)",
     specialties: ["general"],
     subcategory: "Hidradenitis Suppurativa",
@@ -3232,7 +3228,7 @@ const GENERAL_HIDRADENITIS: ProcedurePicklistEntry[] = [
   {
     id: "gen_hs_excision_groin",
     displayName: "Hidradenitis suppurativa excision — groin / perineal",
-    snomedCtCode: "177300000", // VERIFY
+    snomedCtCode: "35646002", // VERIFY
     snomedCtDisplay: "Excision for hidradenitis suppurativa (procedure)",
     specialties: ["general"],
     subcategory: "Hidradenitis Suppurativa",
@@ -3242,7 +3238,7 @@ const GENERAL_HIDRADENITIS: ProcedurePicklistEntry[] = [
   {
     id: "gen_hs_excision_other",
     displayName: "Hidradenitis suppurativa excision — other site",
-    snomedCtCode: "177300000", // VERIFY
+    snomedCtCode: "35646002", // VERIFY
     snomedCtDisplay: "Excision for hidradenitis suppurativa (procedure)",
     specialties: ["general"],
     subcategory: "Hidradenitis Suppurativa",
@@ -3252,7 +3248,7 @@ const GENERAL_HIDRADENITIS: ProcedurePicklistEntry[] = [
   {
     id: "gen_hs_deroofing",
     displayName: "Hidradenitis suppurativa — deroofing / unroofing",
-    snomedCtCode: "177300000", // VERIFY
+    snomedCtCode: "35646002", // VERIFY
     snomedCtDisplay: "Deroofing for hidradenitis suppurativa (procedure)",
     specialties: ["general"],
     subcategory: "Hidradenitis Suppurativa",
@@ -3381,7 +3377,7 @@ const GENERAL_OTHER: ProcedurePicklistEntry[] = [
   {
     id: "gen_other_earlobe_repair",
     displayName: "Earlobe repair / reduction",
-    snomedCtCode: "177300000", // VERIFY
+    snomedCtCode: "35646002", // VERIFY
     snomedCtDisplay: "Repair of earlobe (procedure)",
     specialties: ["general"],
     subcategory: "Other General",
@@ -3391,7 +3387,7 @@ const GENERAL_OTHER: ProcedurePicklistEntry[] = [
   {
     id: "gen_other_skin_tag_removal",
     displayName: "Skin tag / papilloma removal (multiple)",
-    snomedCtCode: "177300000", // VERIFY
+    snomedCtCode: "35646002", // VERIFY
     snomedCtDisplay: "Removal of skin tag (procedure)",
     specialties: ["general"],
     subcategory: "Other General",
@@ -4955,7 +4951,7 @@ const BODY_CONTOUR_POST_BARIATRIC: ProcedurePicklistEntry[] = [
   {
     id: "bc_postbar_skin_excision_other",
     displayName: "Redundant skin excision — other site (specify in notes)",
-    snomedCtCode: "177300000", // VERIFY
+    snomedCtCode: "35646002", // VERIFY
     snomedCtDisplay: "Excision of redundant skin (procedure)",
     specialties: ["body_contouring"],
     subcategory: "Post-Bariatric",
@@ -5122,7 +5118,7 @@ const SKIN_CANCER_ADDITIONAL: ProcedurePicklistEntry[] = [
   {
     id: "sc_afx_excision",
     displayName: "Atypical fibroxanthoma excision",
-    snomedCtCode: "177300000", // VERIFY
+    snomedCtCode: "35646002", // VERIFY
     snomedCtDisplay: "Excision of atypical fibroxanthoma (procedure)",
     specialties: ["skin_cancer"],
     subcategory: "Rare Skin Cancers",

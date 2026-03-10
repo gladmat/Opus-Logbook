@@ -1,7 +1,7 @@
 /**
  * RareTypeSubtypePicker
  * ═════════════════════
- * Grouped picker for the 25 rare malignant cutaneous subtypes.
+ * Grouped picker for the 26 rare malignant cutaneous subtypes.
  * Three groups: Adnexal Carcinomas, Cutaneous Sarcomas, Other.
  * Shows pathway indicator and MDT banner after selection.
  */
@@ -37,7 +37,10 @@ const RARE_GROUPS: RareGroup[] = GROUP_ORDER.map(({ key, label }) => ({
   label,
   key,
   subtypes: (
-    Object.entries(RARE_TYPE_METADATA) as [RareMalignantSubtype, (typeof RARE_TYPE_METADATA)[RareMalignantSubtype]][]
+    Object.entries(RARE_TYPE_METADATA) as [
+      RareMalignantSubtype,
+      (typeof RARE_TYPE_METADATA)[RareMalignantSubtype],
+    ][]
   )
     .filter(([, meta]) => meta.group === key)
     .map(([value, meta]) => ({ value, label: meta.label })),
@@ -49,11 +52,7 @@ const PATHWAY_LABELS: Record<string, string> = {
   complex_mdt: "complex MDT",
 };
 
-const MOHS_TYPES: Set<RareMalignantSubtype> = new Set([
-  "mac",
-  "dfsp",
-  "empd",
-]);
+const MOHS_TYPES: Set<RareMalignantSubtype> = new Set(["mac", "dfsp", "empd"]);
 
 export const RareTypeSubtypePicker = React.memo(function RareTypeSubtypePicker({
   selectedSubtype,
@@ -122,11 +121,7 @@ export const RareTypeSubtypePicker = React.memo(function RareTypeSubtypePicker({
       {selectedSubtype && pathway ? (
         <View style={styles.pathwayInfo}>
           <View style={styles.pathwayRow}>
-            <Feather
-              name="git-branch"
-              size={14}
-              color={theme.textSecondary}
-            />
+            <Feather name="git-branch" size={14} color={theme.textSecondary} />
             <ThemedText
               style={[styles.pathwayText, { color: theme.textSecondary }]}
             >
@@ -149,14 +144,8 @@ export const RareTypeSubtypePicker = React.memo(function RareTypeSubtypePicker({
                 },
               ]}
             >
-              <Feather
-                name="alert-circle"
-                size={14}
-                color={theme.warning}
-              />
-              <ThemedText
-                style={[styles.mdtText, { color: theme.warning }]}
-              >
+              <Feather name="alert-circle" size={14} color={theme.warning} />
+              <ThemedText style={[styles.mdtText, { color: theme.warning }]}>
                 MDT discussion recommended
               </ThemedText>
             </View>
@@ -174,9 +163,7 @@ export const RareTypeSubtypePicker = React.memo(function RareTypeSubtypePicker({
               ]}
             >
               <Feather name="info" size={14} color={theme.info} />
-              <ThemedText
-                style={[styles.mdtText, { color: theme.info }]}
-              >
+              <ThemedText style={[styles.mdtText, { color: theme.info }]}>
                 Surgery typically limited to diagnostic biopsy. Refer to
                 haematology MDT.
               </ThemedText>
