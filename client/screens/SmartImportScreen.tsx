@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  InteractionManager,
 } from "react-native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -94,12 +95,18 @@ export default function SmartImportScreen() {
 
         const updatedCase: Case = {
           ...caseData,
-          operativeMedia: [...(caseData.operativeMedia ?? []), ...importedMedia],
+          operativeMedia: [
+            ...(caseData.operativeMedia ?? []),
+            ...importedMedia,
+          ],
           updatedAt: new Date().toISOString(),
         };
         await saveCase(updatedCase);
       } else if (params.callbackId) {
-        const executed = executeGenericCallback(params.callbackId, importedMedia);
+        const executed = executeGenericCallback(
+          params.callbackId,
+          importedMedia,
+        );
         if (!executed) {
           await deleteMultipleEncryptedMedia(importedCaseUrisRef.current);
           Alert.alert(
@@ -149,122 +156,135 @@ export default function SmartImportScreen() {
     if (pickerLaunched.current) return;
     pickerLaunched.current = true;
 
-    (async () => {
-      try {
-        const result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ["images"],
-          quality: 0.7,
-          allowsMultipleSelection: true,
-          selectionLimit: params.selectionLimit ?? 50,
-          orderedSelection: true,
-        });
+    // Wait for fullScreenModal transition to complete before launching the
+    // system image picker — firing immediately on mount can cause the picker
+    // to be dismissed or fail silently on iOS.
+    const task = InteractionManager.runAfterInteractions(() => {
+      setTimeout(() => {
+        void (async () => {
+          try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ["images"],
+              quality: 0.7,
+              allowsMultipleSelection: true,
+              selectionLimit: params.selectionLimit ?? 50,
+              orderedSelection: true,
+            });
 
-        if (result.canceled || result.assets.length === 0) {
-          navigation.goBack();
-          return;
-        }
+            if (result.canceled || result.assets.length === 0) {
+              navigation.goBack();
+              return;
+            }
 
-        const ids = result.assets
-          .map((asset) => asset.assetId)
-          .filter((id): id is string => !!id);
-        setAssetIds(ids);
-        setCanDeleteOriginals(ids.length > 0);
-        if (ids.length === 0) {
-          setDeleteHelpText(
-            "Some selected items do not expose library IDs, so Opus cannot delete the originals automatically.",
-          );
-        } else {
-          setDeleteHelpText(null);
-        }
+            const ids = result.assets
+              .map((asset) => asset.assetId)
+              .filter((id): id is string => !!id);
+            setAssetIds(ids);
+            setCanDeleteOriginals(ids.length > 0);
+            if (ids.length === 0) {
+              setDeleteHelpText(
+                "Some selected items do not expose library IDs, so Opus cannot delete the originals automatically.",
+              );
+            } else {
+              setDeleteHelpText(null);
+            }
 
-        setPhase("encrypting");
-        setProgress({ completed: 0, total: result.assets.length });
+            setPhase("encrypting");
+            setProgress({ completed: 0, total: result.assets.length });
 
-        if (params.targetMode === "inbox") {
-          const inboxAssets = await Promise.all(
-            result.assets.map(async (asset) => ({
-              uri: asset.uri,
-              mimeType: asset.mimeType,
-              assetId: asset.assetId,
-              capturedAt: (await resolveCapturedAt(asset.assetId)) ?? undefined,
-              width: asset.width,
-              height: asset.height,
-            })),
-          );
+            if (params.targetMode === "inbox") {
+              const inboxAssets = await Promise.all(
+                result.assets.map(async (asset) => ({
+                  uri: asset.uri,
+                  mimeType: asset.mimeType,
+                  assetId: asset.assetId,
+                  capturedAt:
+                    (await resolveCapturedAt(asset.assetId)) ?? undefined,
+                  width: asset.width,
+                  height: asset.height,
+                })),
+              );
 
-          const imported = await addMultipleToInbox(
-            inboxAssets,
-            "smart_import",
-            (completed, total) => {
-              setProgress({ completed, total });
-              Animated.timing(progressAnim, {
-                toValue: completed / total,
-                duration: 200,
-                useNativeDriver: false,
-              }).start();
-            },
-          );
+              const imported = await addMultipleToInbox(
+                inboxAssets,
+                "smart_import",
+                (completed, total) => {
+                  setProgress({ completed, total });
+                  Animated.timing(progressAnim, {
+                    toValue: completed / total,
+                    duration: 200,
+                    useNativeDriver: false,
+                  }).start();
+                },
+              );
 
-          importedInboxIdsRef.current = imported.map((item) => item.id);
-          setImportedCount(imported.length);
-        } else {
-          const importedMedia: OperativeMediaItem[] = [];
+              importedInboxIdsRef.current = imported.map((item) => item.id);
+              setImportedCount(imported.length);
+            } else {
+              const importedMedia: OperativeMediaItem[] = [];
 
-          for (let index = 0; index < result.assets.length; index += 1) {
-            const asset = result.assets[index];
-            if (!asset) continue;
+              for (let index = 0; index < result.assets.length; index += 1) {
+                const asset = result.assets[index];
+                if (!asset) continue;
 
-            const capturedAt =
-              (await resolveCapturedAt(asset.assetId)) ??
-              new Date().toISOString();
-            const saved = await saveEncryptedMediaFromUri(
-              asset.uri,
-              asset.mimeType || "image/jpeg",
+                const capturedAt =
+                  (await resolveCapturedAt(asset.assetId)) ??
+                  new Date().toISOString();
+                const saved = await saveEncryptedMediaFromUri(
+                  asset.uri,
+                  asset.mimeType || "image/jpeg",
+                );
+                importedCaseUrisRef.current.push(saved.localUri);
+                importedMedia.push(
+                  buildCapturedOperativeMediaItem({
+                    id: uuidv4(),
+                    localUri: saved.localUri,
+                    mimeType: saved.mimeType,
+                    capturedAt,
+                    procedureDate: params.procedureDate,
+                  }),
+                );
+
+                setProgress({
+                  completed: index + 1,
+                  total: result.assets.length,
+                });
+                Animated.timing(progressAnim, {
+                  toValue: (index + 1) / result.assets.length,
+                  duration: 200,
+                  useNativeDriver: false,
+                }).start();
+              }
+
+              importedCaseMediaRef.current = importedMedia;
+              setImportedCount(importedMedia.length);
+            }
+
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+            if (ids.length > 0) {
+              const alwaysDelete = await getAlwaysDeleteAfterImport();
+              if (alwaysDelete) {
+                setPhase("deleting");
+                await performDelete(ids);
+                return;
+              }
+            }
+
+            setPhase("prompting");
+          } catch (error) {
+            console.warn("[SmartImport] Import failed:", error);
+            Alert.alert(
+              "Import Error",
+              "Some photos could not be imported. Successfully imported photos were kept.",
+              [{ text: "OK", onPress: () => navigation.goBack() }],
             );
-            importedCaseUrisRef.current.push(saved.localUri);
-            importedMedia.push(
-              buildCapturedOperativeMediaItem({
-                id: uuidv4(),
-                localUri: saved.localUri,
-                mimeType: saved.mimeType,
-                capturedAt,
-                procedureDate: params.procedureDate,
-              }),
-            );
-
-            setProgress({ completed: index + 1, total: result.assets.length });
-            Animated.timing(progressAnim, {
-              toValue: (index + 1) / result.assets.length,
-              duration: 200,
-              useNativeDriver: false,
-            }).start();
           }
+        })();
+      }, 100);
+    });
 
-          importedCaseMediaRef.current = importedMedia;
-          setImportedCount(importedMedia.length);
-        }
-
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-        if (ids.length > 0) {
-          const alwaysDelete = await getAlwaysDeleteAfterImport();
-          if (alwaysDelete) {
-            setPhase("deleting");
-            await performDelete(ids);
-            return;
-          }
-        }
-
-        setPhase("prompting");
-      } catch (error) {
-        console.warn("[SmartImport] Import failed:", error);
-        Alert.alert(
-          "Import Error",
-          "Some photos could not be imported. Successfully imported photos were kept.",
-          [{ text: "OK", onPress: () => navigation.goBack() }],
-        );
-      }
-    })();
+    return () => task.cancel();
   }, [completeImport, navigation, params, performDelete, progressAnim]);
 
   const handleDelete = useCallback(() => {
@@ -364,7 +384,10 @@ export default function SmartImportScreen() {
               <>
                 <Pressable
                   onPress={handleDelete}
-                  style={[styles.primaryButton, { backgroundColor: theme.link }]}
+                  style={[
+                    styles.primaryButton,
+                    { backgroundColor: theme.link },
+                  ]}
                 >
                   <Feather name="trash-2" size={18} color={theme.buttonText} />
                   <ThemedText

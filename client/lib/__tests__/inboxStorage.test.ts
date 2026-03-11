@@ -8,7 +8,7 @@ let mmkvStore: Record<string, string> = {};
 let secureStore: Record<string, string> = {};
 
 vi.mock("react-native-mmkv", () => ({
-  createMMKV: () => ({
+  createMMKV: (_opts?: { id?: string; encryptionKey?: string }) => ({
     getString(key: string) {
       return mmkvStore[key];
     },

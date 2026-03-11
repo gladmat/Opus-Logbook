@@ -13,7 +13,6 @@ interface AttentionCardProps {
   onCardPress: (item: AttentionItem) => void;
   onAddEvent?: (caseId: string) => void;
   onAddHistology?: (caseId: string) => void;
-  onOpenInbox?: () => void;
 }
 
 function getStatusBadge(
@@ -24,9 +23,6 @@ function getStatusBadge(
   warningColor: string,
   errorColor: string,
 ): { bg: string; text: string; label: string } {
-  if (item.type === "inbox_photos") {
-    return { bg: infoColor + "20", text: infoColor, label: "Inbox" };
-  }
   if (item.type === "infection") {
     return { bg: errorColor + "20", text: errorColor, label: "Infection" };
   }
@@ -57,7 +53,6 @@ function AttentionCardInner({
   onCardPress,
   onAddEvent,
   onAddHistology,
-  onOpenInbox,
 }: AttentionCardProps) {
   const { theme, isDark } = useTheme();
   const badge = getStatusBadge(
@@ -68,65 +63,6 @@ function AttentionCardInner({
     theme.warning,
     theme.error,
   );
-
-  // Inbox card — simplified layout with no patient data
-  if (item.type === "inbox_photos") {
-    const count = item.inboxCount ?? 0;
-    return (
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${count} unassigned photos in inbox`}
-        accessibilityHint="Opens the photo inbox"
-        style={[
-          styles.card,
-          {
-            width: cardWidth,
-            backgroundColor: theme.backgroundElevated,
-            borderColor: theme.border,
-          },
-          !isDark && styles.cardShadow,
-        ]}
-        onPress={() => onOpenInbox?.()}
-      >
-        <View style={styles.row1}>
-          <View style={[styles.badge, { backgroundColor: badge.bg }]}>
-            <ThemedText style={[styles.badgeText, { color: badge.text }]}>
-              {badge.label}
-            </ThemedText>
-          </View>
-          <Feather name="inbox" size={18} color={theme.info} />
-        </View>
-        <View style={styles.row2}>
-          <ThemedText style={[styles.inboxTitle, { color: theme.text }]}>
-            {count} unassigned photo{count !== 1 ? "s" : ""}
-          </ThemedText>
-          <ThemedText
-            style={[styles.diagnosisTitle, { color: theme.textSecondary }]}
-          >
-            Assign to cases or delete
-          </ThemedText>
-        </View>
-        <View style={styles.row3}>
-          <Pressable
-            style={[styles.logCaseButton, { backgroundColor: theme.info }]}
-            onPress={(e) => {
-              e.stopPropagation();
-              onOpenInbox?.();
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="Open photo inbox"
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <ThemedText
-              style={[styles.logCaseText, { color: theme.buttonText }]}
-            >
-              Open Inbox
-            </ThemedText>
-          </Pressable>
-        </View>
-      </Pressable>
-    );
-  }
 
   const actionCaseId = item.caseId || item.lastCaseId;
   const secondaryInfo =
@@ -362,10 +298,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Platform.OS === "ios" ? "SF Mono" : "monospace",
     fontWeight: "500",
-  },
-  inboxTitle: {
-    fontSize: 15,
-    fontWeight: "600",
   },
   diagnosisTitle: {
     fontSize: 13,

@@ -70,7 +70,8 @@ function baseState(): InboxState {
 function sortItems(items: InboxItem[]): InboxItem[] {
   return [...items].sort((left, right) => {
     const byCaptured =
-      new Date(right.capturedAt).getTime() - new Date(left.capturedAt).getTime();
+      new Date(right.capturedAt).getTime() -
+      new Date(left.capturedAt).getTime();
     if (byCaptured !== 0) {
       return byCaptured;
     }
@@ -81,10 +82,13 @@ function sortItems(items: InboxItem[]): InboxItem[] {
   });
 }
 
-function getMMKV(): MMKV {
-  if (!_mmkv) {
-    _mmkv = createMMKV({ id: INBOX_MMKV_ID });
-  }
+/**
+ * Returns the initialised MMKV instance, or `null` before
+ * `initializeInboxStorage()` has completed.  All read/write helpers
+ * gracefully handle `null` so pre-init callers get empty state rather
+ * than crashing or silently losing encrypted data.
+ */
+function getMMKV(): MMKV | null {
   return _mmkv;
 }
 
@@ -124,12 +128,16 @@ function parseState(raw?: string | null): InboxState {
 }
 
 function readState(): InboxState {
-  return parseState(getMMKV().getString(INBOX_STORAGE_KEY));
+  const mmkv = getMMKV();
+  if (!mmkv) return baseState();
+  return parseState(mmkv.getString(INBOX_STORAGE_KEY));
 }
 
 function writeState(state: InboxState): void {
+  const mmkv = getMMKV();
+  if (!mmkv) return;
   const sortedItems = sortItems(state.items);
-  getMMKV().set(
+  mmkv.set(
     INBOX_STORAGE_KEY,
     JSON.stringify({
       ...state,
@@ -158,7 +166,9 @@ async function migrateStateIfNeeded(): Promise<void> {
           ? candidate.importedAt
           : candidate.capturedAt;
       const patientIdentifier =
-        "patientIdentifier" in candidate ? candidate.patientIdentifier : undefined;
+        "patientIdentifier" in candidate
+          ? candidate.patientIdentifier
+          : undefined;
       const patientIdentifierHash =
         "patientIdentifierHash" in candidate && candidate.patientIdentifierHash
           ? candidate.patientIdentifierHash
@@ -185,10 +195,12 @@ async function migrateStateIfNeeded(): Promise<void> {
         patientIdentifierHash,
         reservationKey:
           "reservationKey" in candidate ? candidate.reservationKey : undefined,
-        reservedAt: "reservedAt" in candidate ? candidate.reservedAt : undefined,
+        reservedAt:
+          "reservedAt" in candidate ? candidate.reservedAt : undefined,
         assignedCaseId:
           "assignedCaseId" in candidate ? candidate.assignedCaseId : undefined,
-        assignedAt: "assignedAt" in candidate ? candidate.assignedAt : undefined,
+        assignedAt:
+          "assignedAt" in candidate ? candidate.assignedAt : undefined,
       } satisfies InboxItem;
     }),
   );
@@ -214,14 +226,35 @@ export async function initializeInboxStorage(): Promise<void> {
   if (!_initializationPromise) {
     _initializationPromise = (async () => {
       const encryptionKey = await getInboxEncryptionKey();
-      const storage = getMMKV() as MMKV & { recrypt?: (key?: string) => void };
 
-      if (
-        encryptionKey &&
-        Platform.OS !== "web" &&
-        typeof storage.recrypt === "function"
-      ) {
-        storage.recrypt(encryptionKey);
+      if (encryptionKey && Platform.OS !== "web") {
+        // Try opening with encryption key (normal path after first run).
+        // If the file was previously encrypted with this key, this succeeds.
+        try {
+          const encrypted = createMMKV({
+            id: INBOX_MMKV_ID,
+            encryptionKey,
+          });
+          // Verify the instance can read — getString returns undefined on
+          // an empty store but does not throw.  If the key is wrong MMKV
+          // will throw during construction above.
+          encrypted.getString(INBOX_STORAGE_KEY);
+          _mmkv = encrypted;
+        } catch {
+          // Fallback: store was previously unencrypted (first-time
+          // migration) — open without key, then recrypt in-place.
+          const unencrypted = createMMKV({ id: INBOX_MMKV_ID });
+          const storage = unencrypted as MMKV & {
+            recrypt?: (key?: string) => void;
+          };
+          if (typeof storage.recrypt === "function") {
+            storage.recrypt(encryptionKey);
+          }
+          _mmkv = unencrypted;
+        }
+      } else {
+        // Web or no encryption key available — plain MMKV
+        _mmkv = createMMKV({ id: INBOX_MMKV_ID });
       }
 
       await migrateStateIfNeeded();
@@ -266,6 +299,7 @@ function buildInboxItem(args: {
 }
 
 export function getInboxItems(): InboxItem[] {
+  if (!_initialized) return [];
   return sortItems(
     readState().items.filter(
       (item) => item.status === "unassigned" || item.status === undefined,
@@ -274,6 +308,7 @@ export function getInboxItems(): InboxItem[] {
 }
 
 export function getInboxCount(): number {
+  if (!_initialized) return 0;
   return getInboxItems().length;
 }
 
@@ -410,7 +445,10 @@ export function releaseReservedInboxItems(
   }));
 }
 
-export function finalizeInboxAssignment(itemIds: string[], caseId: string): void {
+export function finalizeInboxAssignment(
+  itemIds: string[],
+  caseId: string,
+): void {
   if (itemIds.length === 0) {
     return;
   }
@@ -478,7 +516,9 @@ export async function cleanupOrphanedInboxItems(
       : [];
 
   const nextItems = state.items
-    .filter((item) => !itemsToDelete.some((candidate) => candidate.id === item.id))
+    .filter(
+      (item) => !itemsToDelete.some((candidate) => candidate.id === item.id),
+    )
     .map((item) => {
       if (
         item.status === "reserved" &&
@@ -518,8 +558,12 @@ export function consumePendingInboxSelection(): string[] {
 }
 
 export function _resetInboxForTests(): void {
-  getMMKV().remove(INBOX_STORAGE_KEY);
+  if (_mmkv) {
+    _mmkv.remove(INBOX_STORAGE_KEY);
+  }
+  // Create a fresh unencrypted instance for tests (skips async init flow)
+  _mmkv = createMMKV({ id: INBOX_MMKV_ID });
   pendingSelectionIds = [];
   _initializationPromise = null;
-  _initialized = Platform.OS === "web";
+  _initialized = true;
 }

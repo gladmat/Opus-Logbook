@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useLayoutEffect } from "react";
 import {
   View,
   TextInput,
@@ -88,7 +88,14 @@ export default function PlanCaseScreen() {
       plannedTemplateId: selectedTemplateId ?? undefined,
       schemaVersion: 4,
     } as Case;
-  }, [patientId, plannedDate, plannedNote, selectedSpecialty, selectedTemplateId, user?.id]);
+  }, [
+    patientId,
+    plannedDate,
+    plannedNote,
+    selectedSpecialty,
+    selectedTemplateId,
+    user?.id,
+  ]);
 
   const handleSave = useCallback(async () => {
     const plannedCase = buildPlannedCase();
@@ -105,10 +112,25 @@ export default function PlanCaseScreen() {
     } finally {
       setSaving(false);
     }
-  }, [
-    buildPlannedCase,
-    navigation,
-  ]);
+  }, [buildPlannedCase, navigation]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <Pressable
+          onPress={() => navigation.goBack()}
+          style={{ padding: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel="Cancel"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <ThemedText style={{ color: theme.link, fontSize: 17 }}>
+            Cancel
+          </ThemedText>
+        </Pressable>
+      ),
+    });
+  }, [navigation, theme.link]);
 
   const handleOpenCamera = useCallback(() => {
     const openCamera = async () => {
@@ -132,7 +154,10 @@ export default function PlanCaseScreen() {
         });
       } catch (error) {
         console.error("[PlanCaseScreen] Save before camera failed:", error);
-        Alert.alert("Error", "Failed to save planned case before opening camera.");
+        Alert.alert(
+          "Error",
+          "Failed to save planned case before opening camera.",
+        );
       } finally {
         setSaving(false);
       }
@@ -153,7 +178,8 @@ export default function PlanCaseScreen() {
       {/* Patient Identifier */}
       <View style={styles.fieldGroup}>
         <ThemedText style={[styles.label, { color: theme.textSecondary }]}>
-          Patient Identifier <ThemedText style={{ color: theme.error }}>*</ThemedText>
+          Patient Identifier{" "}
+          <ThemedText style={{ color: theme.error }}>*</ThemedText>
         </ThemedText>
         <TextInput
           style={[
@@ -191,11 +217,7 @@ export default function PlanCaseScreen() {
         <ThemedText style={[styles.label, { color: theme.textSecondary }]}>
           Specialty
         </ThemedText>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipRow}
-        >
+        <View style={styles.chipWrap}>
           {visibleSpecialties.map((sp) => {
             const isActive = selectedSpecialty === sp;
             return (
@@ -227,7 +249,7 @@ export default function PlanCaseScreen() {
               </Pressable>
             );
           })}
-        </ScrollView>
+        </View>
       </View>
 
       {/* Planning Note */}
@@ -260,11 +282,7 @@ export default function PlanCaseScreen() {
         <ThemedText style={[styles.label, { color: theme.textSecondary }]}>
           Capture Template
         </ThemedText>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipRow}
-        >
+        <View style={styles.chipWrap}>
           {filteredProtocols.map((protocol) => {
             const isActive = selectedTemplateId === protocol.id;
             return (
@@ -295,7 +313,7 @@ export default function PlanCaseScreen() {
               </Pressable>
             );
           })}
-        </ScrollView>
+        </View>
       </View>
 
       {/* Actions */}
@@ -309,7 +327,9 @@ export default function PlanCaseScreen() {
             saving && { opacity: 0.6 },
           ]}
         >
-          <ThemedText style={[styles.secondaryButtonText, { color: theme.accent }]}>
+          <ThemedText
+            style={[styles.secondaryButtonText, { color: theme.accent }]}
+          >
             {saving ? "Saving..." : "Save & Open Opus Camera"}
           </ThemedText>
         </Pressable>
@@ -357,7 +377,9 @@ const styles = StyleSheet.create({
     minHeight: 60,
     paddingTop: Spacing.sm,
   },
-  chipRow: {
+  chipWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: Spacing.xs,
     paddingVertical: Spacing.xs,
   },
