@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { AppState, StyleSheet, View } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 import {
   NavigationContainer,
   DefaultTheme,
   DarkTheme,
   Theme,
+  getStateFromPath as defaultGetStateFromPath,
+  type LinkingOptions,
 } from "@react-navigation/native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
@@ -24,6 +26,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { AppLockProvider } from "@/contexts/AppLockContext";
 import { MediaCallbackProvider } from "@/contexts/MediaCallbackContext";
 import { ThemeProvider, useTheme } from "@/hooks/useTheme";
+import type { RootStackParamList } from "@/navigation/RootStackNavigator";
+import { ingestPendingLockedCameraCaptures } from "@/lib/sharedCaptureIngress";
 
 // Keep native splash visible while we load assets
 SplashScreen.preventAutoHideAsync();
@@ -56,8 +60,50 @@ function ThemedNavigationContainer({
     [isDark, theme],
   );
 
+  const linking = useMemo<LinkingOptions<RootStackParamList>>(
+    () => ({
+      prefixes: ["opus://"],
+      config: {
+        screens: {
+          Inbox: "inbox",
+          OpusCamera: "camera",
+        },
+      },
+      getStateFromPath(path, options) {
+        const state = defaultGetStateFromPath(path, options);
+        const cameraRoute = state?.routes.find((route) => route.name === "OpusCamera");
+        const cameraParams = cameraRoute?.params as
+          | {
+              mode?: unknown;
+              targetMode?: unknown;
+              quickSnap?: unknown;
+            }
+          | undefined;
+
+        if (
+          cameraParams &&
+          (cameraParams.mode === "case" || cameraParams.mode === "inbox")
+        ) {
+          cameraParams.targetMode = cameraParams.mode;
+          delete cameraParams.mode;
+        }
+
+        if (
+          cameraParams &&
+          cameraParams.targetMode === "inbox" &&
+          cameraParams.quickSnap == null
+        ) {
+          cameraParams.quickSnap = true;
+        }
+
+        return state;
+      },
+    }),
+    [],
+  );
+
   return (
-    <NavigationContainer theme={navigationTheme}>
+    <NavigationContainer theme={navigationTheme} linking={linking}>
       {children}
     </NavigationContainer>
   );
@@ -72,14 +118,30 @@ export default function App() {
       // Preload onboarding feature images when they exist
       // await Asset.loadAsync([...]);
 
-      // Inbox orphan cleanup — async, non-blocking
-      import("@/lib/inboxStorage")
-        .then((m) => m.cleanupOrphanedInboxItems())
-        .catch(console.warn);
+      try {
+        const inboxStorage = await import("@/lib/inboxStorage");
+        await inboxStorage.initializeInboxStorage();
+        void inboxStorage.cleanupOrphanedInboxItems().catch(console.warn);
+        void ingestPendingLockedCameraCaptures().catch(console.warn);
+      } catch (error) {
+        console.warn("[App] Inbox initialization failed:", error);
+      }
 
       setReady(true);
     }
     prepare();
+  }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") {
+        void ingestPendingLockedCameraCaptures().catch(console.warn);
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
   }, []);
 
   const onLayoutRootView = useCallback(async () => {

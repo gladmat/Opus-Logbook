@@ -13,6 +13,7 @@ import type { OperativeMediaItem, OperativeMediaType, Case } from "@/types/case"
 import { ALL_PROTOCOLS, type CaptureStep } from "@/data/mediaCaptureProtocols";
 import { suggestTemporalTag } from "@/lib/mediaTagMigration";
 import { TAG_TO_MEDIA_TYPE } from "@/lib/operativeMedia";
+import { hashPatientIdentifier } from "@/lib/patientIdentifierHash";
 
 /**
  * Look up a capture protocol by its ID.
@@ -70,6 +71,7 @@ export function inboxItemToOperativeMediaSmart(
     createdAt: item.capturedAt,
     templateId: item.templateId,
     templateStepIndex: item.templateStepIndex,
+    sourceInboxId: item.id,
   };
 }
 
@@ -172,10 +174,10 @@ export function findMatchingCasesByPatientId(
   inboxItems: InboxItem[],
   cases: Case[],
 ): Array<{ caseData: Case; matchCount: number }> {
-  // Collect unique patient IDs from inbox items (lowercased for matching)
+  // Collect unique patient hashes from inbox items.
   const pidSet = new Set<string>();
   for (const item of inboxItems) {
-    const pid = item.patientIdentifier?.trim().toLowerCase();
+    const pid = item.patientIdentifierHash ?? hashPatientIdentifier(item.patientIdentifier);
     if (pid) pidSet.add(pid);
   }
 
@@ -184,14 +186,16 @@ export function findMatchingCasesByPatientId(
   const matches: Array<{ caseData: Case; matchCount: number }> = [];
 
   for (const c of cases) {
-    const casePid = c.patientIdentifier?.trim().toLowerCase();
+    const casePid = hashPatientIdentifier(c.patientIdentifier);
     if (!casePid) continue;
     if (!pidSet.has(casePid)) continue;
 
     // Count how many inbox items match this case's patient ID
     let matchCount = 0;
     for (const item of inboxItems) {
-      if (item.patientIdentifier?.trim().toLowerCase() === casePid) {
+      const itemHash =
+        item.patientIdentifierHash ?? hashPatientIdentifier(item.patientIdentifier);
+      if (itemHash === casePid) {
         matchCount++;
       }
     }

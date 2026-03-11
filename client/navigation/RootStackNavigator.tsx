@@ -206,13 +206,48 @@ export type RootStackParamList = {
     diagnosisGroupIndex: number;
     lesionIndex?: number;
   };
-  Inbox: { pickMode?: boolean; callbackId?: string; procedureDate?: string } | undefined;
-  SmartImport: undefined;
+  Inbox:
+    | {
+        pickMode?: boolean;
+        callbackId?: string;
+        procedureDate?: string;
+        reservationKey?: string;
+      }
+    | undefined;
+  SmartImport:
+    | {
+        targetMode: "inbox" | "case";
+        callbackId?: string;
+        targetCaseId?: string;
+        procedureDate?: string;
+        pickMode?: boolean;
+        reservationKey?: string;
+        selectionLimit?: number;
+      }
+    | undefined;
   OpusCamera:
     | {
         templateId?: string;
         quickSnap?: boolean;
         patientIdentifier?: string;
+        callbackId?: string;
+        targetCaseId?: string;
+        targetMode?: "inbox" | "case";
+        procedureDate?: string;
+        returnTo?:
+          | {
+              screen: "CaseDetail";
+              params: { caseId: string; showComplicationForm?: boolean };
+            }
+          | {
+              screen: "Inbox";
+              params?: {
+                pickMode?: boolean;
+                callbackId?: string;
+                procedureDate?: string;
+                reservationKey?: string;
+              };
+            };
       }
     | undefined;
   PlanCase: undefined;

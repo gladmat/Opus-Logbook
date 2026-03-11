@@ -57,40 +57,45 @@ export default function PlanCaseScreen() {
     });
   }, [selectedSpecialty]);
 
-  const handleSave = useCallback(async () => {
+  const buildPlannedCase = useCallback((): Case | null => {
     const trimmedId = patientId.trim();
     if (!trimmedId) {
       Alert.alert("Required", "Patient identifier is required.");
-      return;
+      return null;
     }
-    if (!user?.id) return;
+    if (!user?.id) return null;
+
+    const now = new Date().toISOString();
+    const caseId = Crypto.randomUUID();
+
+    return {
+      id: caseId,
+      patientIdentifier: trimmedId,
+      procedureDate: plannedDate || new Date().toISOString().split("T")[0]!,
+      facility: "",
+      specialty: selectedSpecialty ?? "general",
+      procedureType: "",
+      diagnosisGroups: [],
+      operativeMedia: [],
+      clinicalDetails: {} as any,
+      teamMembers: [],
+      ownerId: user.id,
+      createdAt: now,
+      updatedAt: now,
+      caseStatus: "planned" as const,
+      plannedDate: plannedDate || undefined,
+      plannedNote: plannedNote.trim() || undefined,
+      plannedTemplateId: selectedTemplateId ?? undefined,
+      schemaVersion: 4,
+    } as Case;
+  }, [patientId, plannedDate, plannedNote, selectedSpecialty, selectedTemplateId, user?.id]);
+
+  const handleSave = useCallback(async () => {
+    const plannedCase = buildPlannedCase();
+    if (!plannedCase) return;
 
     setSaving(true);
     try {
-      const now = new Date().toISOString();
-      const caseId = Crypto.randomUUID();
-
-      const plannedCase = {
-        id: caseId,
-        patientIdentifier: trimmedId,
-        procedureDate: plannedDate || new Date().toISOString().split("T")[0]!,
-        facility: "",
-        specialty: selectedSpecialty ?? "general",
-        procedureType: "",
-        diagnosisGroups: [],
-        operativeMedia: [],
-        clinicalDetails: {} as any,
-        teamMembers: [],
-        ownerId: user.id,
-        createdAt: now,
-        updatedAt: now,
-        caseStatus: "planned" as const,
-        plannedDate: plannedDate || undefined,
-        plannedNote: plannedNote.trim() || undefined,
-        plannedTemplateId: selectedTemplateId ?? undefined,
-        schemaVersion: 4,
-      } as Case;
-
       await saveCase(plannedCase);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       navigation.goBack();
@@ -101,27 +106,40 @@ export default function PlanCaseScreen() {
       setSaving(false);
     }
   }, [
-    patientId,
-    plannedDate,
-    selectedSpecialty,
-    plannedNote,
-    selectedTemplateId,
-    user?.id,
+    buildPlannedCase,
     navigation,
   ]);
 
   const handleOpenCamera = useCallback(() => {
-    const trimmedId = patientId.trim();
-    if (!trimmedId) {
-      Alert.alert("Required", "Enter a patient identifier first.");
-      return;
-    }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    navigation.navigate("OpusCamera", {
-      templateId: selectedTemplateId ?? undefined,
-      patientIdentifier: trimmedId,
-    });
-  }, [patientId, selectedTemplateId, navigation]);
+    const openCamera = async () => {
+      const plannedCase = buildPlannedCase();
+      if (!plannedCase) return;
+
+      setSaving(true);
+      try {
+        await saveCase(plannedCase);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        navigation.replace("OpusCamera", {
+          templateId: selectedTemplateId ?? undefined,
+          patientIdentifier: plannedCase.patientIdentifier,
+          procedureDate: plannedCase.procedureDate,
+          targetMode: "case",
+          targetCaseId: plannedCase.id,
+          returnTo: {
+            screen: "CaseDetail",
+            params: { caseId: plannedCase.id },
+          },
+        });
+      } catch (error) {
+        console.error("[PlanCaseScreen] Save before camera failed:", error);
+        Alert.alert("Error", "Failed to save planned case before opening camera.");
+      } finally {
+        setSaving(false);
+      }
+    };
+
+    void openCamera();
+  }, [buildPlannedCase, navigation, selectedTemplateId]);
 
   return (
     <ScrollView
@@ -284,13 +302,15 @@ export default function PlanCaseScreen() {
       <View style={styles.actions}>
         <Pressable
           onPress={handleOpenCamera}
+          disabled={saving}
           style={[
             styles.secondaryButton,
             { borderColor: theme.accent },
+            saving && { opacity: 0.6 },
           ]}
         >
           <ThemedText style={[styles.secondaryButtonText, { color: theme.accent }]}>
-            Open Opus Camera
+            {saving ? "Saving..." : "Save & Open Opus Camera"}
           </ThemedText>
         </Pressable>
 

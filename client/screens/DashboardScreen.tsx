@@ -409,6 +409,63 @@ export default function DashboardScreen() {
           awaitingHistologyCount={dashboardSummary.awaitingHistologyCount}
         />
 
+        <View style={styles.inboxShortcutWrap}>
+          <Pressable
+            onPress={handleOpenInbox}
+            style={[
+              styles.inboxShortcut,
+              {
+                backgroundColor: theme.backgroundElevated,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <View style={styles.inboxShortcutLeft}>
+              <View
+                style={[
+                  styles.inboxShortcutIcon,
+                  { backgroundColor: theme.info + "15" },
+                ]}
+              >
+                <Feather name="inbox" size={18} color={theme.info} />
+              </View>
+              <View style={styles.inboxShortcutText}>
+                <ThemedText style={styles.inboxShortcutTitle}>Inbox</ThemedText>
+                <ThemedText
+                  style={[
+                    styles.inboxShortcutSubtitle,
+                    { color: theme.textSecondary },
+                  ]}
+                >
+                  {inboxCount > 0
+                    ? `${inboxCount} unassigned photo${inboxCount === 1 ? "" : "s"}`
+                    : "Open capture inbox"}
+                </ThemedText>
+              </View>
+            </View>
+            <View style={styles.inboxShortcutRight}>
+              {inboxCount > 0 ? (
+                <View
+                  style={[
+                    styles.inboxBadge,
+                    { backgroundColor: theme.info },
+                  ]}
+                >
+                  <ThemedText
+                    style={[
+                      styles.inboxBadgeText,
+                      { color: theme.buttonText },
+                    ]}
+                  >
+                    {inboxCount}
+                  </ThemedText>
+                </View>
+              ) : null}
+              <Feather name="chevron-right" size={18} color={theme.textTertiary} />
+            </View>
+          </Pressable>
+        </View>
+
         {/* Zone 1 — Needs Attention */}
         <NeedsAttentionCarousel
           items={attentionItems}
@@ -599,6 +656,61 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  inboxShortcutWrap: {
+    paddingHorizontal: 16,
+    marginTop: 12,
+  },
+  inboxShortcut: {
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    ...Shadows.card,
+  },
+  inboxShortcutLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    flex: 1,
+  },
+  inboxShortcutIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  inboxShortcutText: {
+    flex: 1,
+  },
+  inboxShortcutTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  inboxShortcutSubtitle: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  inboxShortcutRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+  },
+  inboxBadge: {
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
+    paddingHorizontal: 7,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  inboxBadgeText: {
+    fontSize: 12,
+    fontWeight: "700",
   },
   dischargeModalOverlay: {
     flex: 1,

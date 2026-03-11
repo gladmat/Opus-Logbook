@@ -16,8 +16,13 @@ export interface InboxItem {
   id: string;
   localUri: string; // opus-media:{uuid} encrypted URI
   mimeType: string;
-  capturedAt: string; // ISO timestamp — when photo was taken/imported
+  capturedAt: string; // ISO timestamp — when photo was originally taken
+  importedAt: string; // ISO timestamp — when photo entered the Inbox
+  status: InboxItemStatus;
   sourceType: "camera" | "gallery" | "smart_import" | "opus_camera";
+  sourceAssetId?: string;
+  width?: number;
+  height?: number;
 
   /** Protocol ID used during guided capture (e.g. "free_flap", "aesthetic_breast"). */
   templateId?: string;
@@ -25,6 +30,13 @@ export interface InboxItem {
   templateStepIndex?: number;
   /** Patient identifier (NHI/ID) entered during Opus Camera capture. */
   patientIdentifier?: string;
+  /** Normalized SHA-256 hash used for safe matching logic. */
+  patientIdentifierHash?: string;
+  /** Reservation token for draft or in-flight case workflows. */
+  reservationKey?: string;
+  reservedAt?: string;
+  assignedCaseId?: string;
+  assignedAt?: string;
 }
 
 /**
@@ -34,3 +46,5 @@ export interface InboxState {
   items: InboxItem[];
   version: number; // Schema version for future migration
 }
+
+export type InboxItemStatus = "unassigned" | "reserved" | "assigned";

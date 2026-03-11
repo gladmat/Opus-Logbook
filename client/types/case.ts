@@ -1911,6 +1911,11 @@ export interface OperativeMediaItem {
   createdAt: string;
   templateId?: string; // Opus Camera protocol ID
   templateStepIndex?: number; // Protocol step index at capture time
+  /**
+   * Draft-only provenance for transactional Inbox assignment.
+   * Removed before final case persistence.
+   */
+  sourceInboxId?: string;
 }
 
 export const OPERATIVE_MEDIA_TYPE_LABELS: Record<OperativeMediaType, string> = {

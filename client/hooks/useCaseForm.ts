@@ -51,6 +51,10 @@ import {
   getCasesByEpisodeId,
 } from "@/lib/storage";
 import {
+  finalizeInboxAssignment,
+  getReservedInboxIdsFromMedia,
+} from "@/lib/inboxStorage";
+import {
   updateEpisode,
   getEpisode,
   saveEpisode,
@@ -1589,6 +1593,12 @@ export function useCaseForm({
         const procedureCode: ProcedureCode | undefined = snomedProcedure
           ? getProcedureCodeForCountry(snomedProcedure, countryCode)
           : undefined;
+        const reservedInboxIds = getReservedInboxIdsFromMedia(
+          state.operativeMedia,
+        );
+        const persistedOperativeMedia = state.operativeMedia.map(
+          ({ sourceInboxId: _sourceInboxId, ...item }) => item,
+        );
 
         const surgeryTiming: SurgeryTiming | undefined =
           state.surgeryStartTime || state.surgeryEndTime
@@ -1751,7 +1761,9 @@ export function useCaseForm({
               ? state.selectedComorbidities
               : undefined,
           operativeMedia:
-            state.operativeMedia.length > 0 ? state.operativeMedia : undefined,
+            persistedOperativeMedia.length > 0
+              ? persistedOperativeMedia
+              : undefined,
           asaScore: state.asaScore
             ? (parseInt(state.asaScore) as ASAScore)
             : undefined,
@@ -1832,10 +1844,12 @@ export function useCaseForm({
         let savedCase = casePayload as Case;
         if (isEditMode && existingCase) {
           await updateCase(existingCase.id, casePayload);
+          savedRef.current = true;
         } else {
           await saveCase(casePayload);
           savedRef.current = true;
         }
+        finalizeInboxAssignment(reservedInboxIds, savedCase.id);
         savedCase = await ensureSkinCancerEpisodeLink(savedCase);
         await syncSkinCancerEpisode(savedCase);
 

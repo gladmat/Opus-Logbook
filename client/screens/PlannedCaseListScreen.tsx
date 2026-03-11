@@ -142,6 +142,9 @@ export default function PlannedCaseListScreen() {
       navigation.navigate("OpusCamera", {
         templateId: c.plannedTemplateId,
         patientIdentifier: c.patientIdentifier,
+        procedureDate: c.procedureDate,
+        targetMode: "case",
+        targetCaseId: c.id,
       });
     },
     [navigation],

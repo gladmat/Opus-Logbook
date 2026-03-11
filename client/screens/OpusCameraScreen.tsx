@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Alert,
   ActivityIndicator,
   FlatList,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -22,8 +22,17 @@ import {
   type CaptureProtocol,
   type CaptureStep,
 } from "@/data/mediaCaptureProtocols";
-import { MEDIA_TAG_REGISTRY } from "@/types/media";
 import { addToInbox, type InboxItemMetadata } from "@/lib/inboxStorage";
+import { setPendingInboxSelection } from "@/lib/inboxStorage";
+import { buildCapturedOperativeMediaItem } from "@/lib/inboxCapture";
+import {
+  deleteMultipleEncryptedMedia,
+  saveEncryptedMediaFromUri,
+} from "@/lib/mediaStorage";
+import { useMediaCallback } from "@/contexts/MediaCallbackContext";
+import { getCase, saveCase } from "@/lib/storage";
+import type { RootStackParamList } from "@/navigation/RootStackNavigator";
+import { v4 as uuidv4 } from "uuid";
 
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 
@@ -31,21 +40,13 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 // Types
 // ═══════════════════════════════════════════════════════════════
 
-type RootStackParamList = {
-  OpusCamera: {
-    templateId?: string;
-    quickSnap?: boolean;
-    patientIdentifier?: string;
-  } | undefined;
-};
-
 type Props = NativeStackScreenProps<RootStackParamList, "OpusCamera">;
 
 type PhaseMode = "preop" | "full";
 
 interface CapturedStep {
   stepIndex: number;
-  inboxItemId: string;
+  itemId: string;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -56,6 +57,8 @@ export default function OpusCameraScreen({ navigation, route }: Props) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const params = route.params;
+  const { executeGenericCallback } = useMediaCallback();
+  const targetMode = params?.targetMode ?? "inbox";
 
   // Camera
   const [permission, requestPermission] = useCameraPermissions();
@@ -74,14 +77,22 @@ export default function OpusCameraScreen({ navigation, route }: Props) {
   const [capturedSteps, setCapturedSteps] = useState<CapturedStep[]>([]);
   const [captureCount, setCaptureCount] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isFinishing, setIsFinishing] = useState(false);
+  const [captureErrors, setCaptureErrors] = useState(0);
 
   // Quick snap vs guided
   const isQuickSnap = params?.quickSnap === true && !selectedProtocol;
   const showViewfinder = isQuickSnap || selectedProtocol !== null;
 
   // Processing queue
-  const queueRef = useRef<Array<{ uri: string; stepIndex?: number }>>([]);
-  const processingRef = useRef(false);
+  const queueRef = useRef<
+    Array<{ uri: string; capturedAt: string; stepIndex?: number }>
+  >([]);
+  const processingPromiseRef = useRef<Promise<void> | null>(null);
+  const capturedInboxIdsRef = useRef<string[]>([]);
+  const capturedCaseMediaRef = useRef<
+    import("@/types/case").OperativeMediaItem[]
+  >([]);
 
   // Auto-select template if templateId param is provided
   useEffect(() => {
@@ -109,50 +120,91 @@ export default function OpusCameraScreen({ navigation, route }: Props) {
 
   // ─── Encryption queue ───────────────────────────────────────
 
-  const processQueue = useCallback(async () => {
-    if (processingRef.current) return;
-    processingRef.current = true;
-
-    while (queueRef.current.length > 0) {
-      const job = queueRef.current.shift();
-      if (!job) break;
-
-      try {
-        const metadata: InboxItemMetadata = {};
-        if (patientId.trim()) metadata.patientIdentifier = patientId.trim();
-        if (selectedProtocol) {
-          metadata.templateId = selectedProtocol.id;
-          if (job.stepIndex !== undefined) {
-            // Map filtered step index back to original protocol step index
-            const filteredStep = filteredSteps[job.stepIndex];
-            if (filteredStep) {
-              const originalIndex = selectedProtocol.steps.indexOf(filteredStep);
-              metadata.templateStepIndex = originalIndex >= 0 ? originalIndex : job.stepIndex;
-            }
-          }
-        }
-
-        const inboxItem = await addToInbox(
-          job.uri,
-          "image/jpeg",
-          "opus_camera",
-          metadata,
-        );
-
-        if (job.stepIndex !== undefined) {
-          setCapturedSteps((prev) => [
-            ...prev,
-            { stepIndex: job.stepIndex!, inboxItemId: inboxItem.id },
-          ]);
-        }
-      } catch (e) {
-        console.warn("OpusCamera: failed to encrypt photo:", e);
-      }
+  const processQueue = useCallback(() => {
+    if (processingPromiseRef.current) {
+      return processingPromiseRef.current;
     }
 
-    processingRef.current = false;
-    setIsProcessing(queueRef.current.length > 0);
-  }, [patientId, selectedProtocol, filteredSteps]);
+    processingPromiseRef.current = (async () => {
+      while (queueRef.current.length > 0) {
+        const job = queueRef.current.shift();
+        if (!job) break;
+
+        try {
+          const metadata: InboxItemMetadata = {
+            capturedAt: job.capturedAt,
+          };
+
+          if (patientId.trim()) {
+            metadata.patientIdentifier = patientId.trim();
+          }
+
+          if (selectedProtocol) {
+            metadata.templateId = selectedProtocol.id;
+            if (job.stepIndex !== undefined) {
+              const filteredStep = filteredSteps[job.stepIndex];
+              if (filteredStep) {
+                const originalIndex = selectedProtocol.steps.indexOf(filteredStep);
+                metadata.templateStepIndex =
+                  originalIndex >= 0 ? originalIndex : job.stepIndex;
+              }
+            }
+          }
+
+          if (targetMode === "case") {
+            const saved = await saveEncryptedMediaFromUri(job.uri, "image/jpeg");
+            const mediaItem = buildCapturedOperativeMediaItem({
+              id: uuidv4(),
+              localUri: saved.localUri,
+              mimeType: saved.mimeType,
+              capturedAt: job.capturedAt,
+              procedureDate: params?.procedureDate,
+              templateId: metadata.templateId,
+              templateStepIndex: metadata.templateStepIndex,
+            });
+            capturedCaseMediaRef.current.push(mediaItem);
+
+            if (job.stepIndex !== undefined) {
+              setCapturedSteps((prev) => [
+                ...prev,
+                { stepIndex: job.stepIndex!, itemId: mediaItem.id },
+              ]);
+            }
+          } else {
+            const inboxItem = await addToInbox(
+              job.uri,
+              "image/jpeg",
+              "opus_camera",
+              metadata,
+            );
+            capturedInboxIdsRef.current.push(inboxItem.id);
+
+            if (job.stepIndex !== undefined) {
+              setCapturedSteps((prev) => [
+                ...prev,
+                { stepIndex: job.stepIndex!, itemId: inboxItem.id },
+              ]);
+            }
+          }
+        } catch (error) {
+          setCaptureErrors((prev) => prev + 1);
+          console.warn("OpusCamera: failed to persist photo:", error);
+        }
+      }
+    })()
+      .finally(() => {
+        processingPromiseRef.current = null;
+        setIsProcessing(false);
+      });
+
+    return processingPromiseRef.current;
+  }, [
+    filteredSteps,
+    params?.procedureDate,
+    patientId,
+    selectedProtocol,
+    targetMode,
+  ]);
 
   // ─── Capture handler ────────────────────────────────────────
 
@@ -169,14 +221,16 @@ export default function OpusCameraScreen({ navigation, route }: Props) {
       if (photo?.uri) {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setCaptureCount((prev) => prev + 1);
+        const capturedAt = new Date().toISOString();
 
         // Queue for background encryption
         queueRef.current.push({
           uri: photo.uri,
+          capturedAt,
           stepIndex: selectedProtocol ? currentStepIndex : undefined,
         });
         setIsProcessing(true);
-        processQueue();
+        void processQueue();
 
         // Auto-advance to next uncaptured step in guided mode
         if (selectedProtocol && filteredSteps.length > 0) {
@@ -207,6 +261,7 @@ export default function OpusCameraScreen({ navigation, route }: Props) {
       }
     } catch (e) {
       console.warn("OpusCamera: capture failed:", e);
+      Alert.alert("Capture failed", "The photo could not be captured.");
     } finally {
       setCapturing(false);
     }
@@ -222,9 +277,88 @@ export default function OpusCameraScreen({ navigation, route }: Props) {
   // ─── Done handler ───────────────────────────────────────────
 
   const handleDone = useCallback(() => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    navigation.goBack();
-  }, [navigation]);
+    const finish = async () => {
+      if (isFinishing) return;
+      setIsFinishing(true);
+      setIsProcessing(true);
+
+      try {
+        await processQueue();
+
+        if (targetMode === "case") {
+          if (params?.targetCaseId) {
+            const caseData = await getCase(params.targetCaseId);
+            if (!caseData) {
+              await deleteMultipleEncryptedMedia(
+                capturedCaseMediaRef.current.map((item) => item.localUri),
+              );
+              Alert.alert("Save failed", "The target case could not be loaded.");
+              return;
+            }
+
+            await saveCase({
+              ...caseData,
+              operativeMedia: [
+                ...(caseData.operativeMedia ?? []),
+                ...capturedCaseMediaRef.current,
+              ],
+              updatedAt: new Date().toISOString(),
+            });
+          } else if (params?.callbackId) {
+            const executed = executeGenericCallback(
+              params.callbackId,
+              capturedCaseMediaRef.current,
+            );
+            if (!executed) {
+              await deleteMultipleEncryptedMedia(
+                capturedCaseMediaRef.current.map((item) => item.localUri),
+              );
+              Alert.alert(
+                "Save failed",
+                "The case form is no longer available. Captured photos were discarded.",
+              );
+              return;
+            }
+          }
+        } else {
+          setPendingInboxSelection(capturedInboxIdsRef.current);
+        }
+
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+        if (captureErrors > 0) {
+          Alert.alert(
+            "Capture completed with errors",
+            `${captureErrors} photo${captureErrors === 1 ? "" : "s"} could not be saved.`,
+          );
+        }
+
+        if (params?.returnTo?.screen === "CaseDetail") {
+          navigation.replace("CaseDetail", params.returnTo.params);
+        } else if (params?.returnTo?.screen === "Inbox") {
+          navigation.replace("Inbox", params.returnTo.params);
+        } else {
+          navigation.goBack();
+        }
+      } catch (error) {
+        console.warn("OpusCamera: completion failed:", error);
+        Alert.alert("Save failed", "Captured photos could not be finalized.");
+      } finally {
+        setIsFinishing(false);
+        setIsProcessing(false);
+      }
+    };
+
+    void finish();
+  }, [
+    captureErrors,
+    executeGenericCallback,
+    isFinishing,
+    navigation,
+    params,
+    processQueue,
+    targetMode,
+  ]);
 
   // ─── Step dot check ─────────────────────────────────────────
 
@@ -471,23 +605,29 @@ export default function OpusCameraScreen({ navigation, route }: Props) {
         {isProcessing && (
           <View style={styles.processingRow}>
             <ActivityIndicator size="small" color="#fff" />
-            <Text style={styles.processingText}>Encrypting...</Text>
+            <Text style={styles.processingText}>
+              {isFinishing ? "Finishing captures..." : "Encrypting..."}
+            </Text>
           </View>
         )}
 
         <View style={styles.controlsRow}>
           {/* Done button */}
-          <Pressable onPress={handleDone} style={styles.doneButton}>
+          <Pressable
+            onPress={handleDone}
+            disabled={isFinishing}
+            style={[styles.doneButton, isFinishing && { opacity: 0.5 }]}
+          >
             <Text style={styles.doneText}>Done</Text>
           </Pressable>
 
           {/* Shutter */}
           <Pressable
             onPress={handleCapture}
-            disabled={capturing}
+            disabled={capturing || isFinishing}
             style={[
               styles.shutterOuter,
-              capturing && { opacity: 0.5 },
+              (capturing || isFinishing) && { opacity: 0.5 },
             ]}
           >
             <View style={styles.shutterInner} />
@@ -497,6 +637,7 @@ export default function OpusCameraScreen({ navigation, route }: Props) {
           <View style={styles.rightControls}>
             <Pressable
               onPress={() => setFlash((f) => (f === "off" ? "on" : "off"))}
+              disabled={isFinishing}
               style={styles.iconButton}
             >
               <Feather
@@ -507,6 +648,7 @@ export default function OpusCameraScreen({ navigation, route }: Props) {
             </Pressable>
             <Pressable
               onPress={() => setFacing((f) => (f === "back" ? "front" : "back"))}
+              disabled={isFinishing}
               style={styles.iconButton}
             >
               <Feather name="refresh-cw" size={22} color="#fff" />

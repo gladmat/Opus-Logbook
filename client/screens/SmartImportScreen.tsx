@@ -7,52 +7,143 @@ import {
   Alert,
   Animated,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import * as ImagePicker from "expo-image-picker";
 import * as MediaLibrary from "expo-media-library";
 import * as Haptics from "expo-haptics";
+import { v4 as uuidv4 } from "uuid";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Feather } from "@/components/FeatherIcon";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
-import { addMultipleToInbox } from "@/lib/inboxStorage";
+import {
+  addMultipleToInbox,
+  setPendingInboxSelection,
+} from "@/lib/inboxStorage";
+import { buildCapturedOperativeMediaItem } from "@/lib/inboxCapture";
+import {
+  deleteMultipleEncryptedMedia,
+  saveEncryptedMediaFromUri,
+} from "@/lib/mediaStorage";
 import {
   getAlwaysDeleteAfterImport,
   setAlwaysDeleteAfterImport,
 } from "@/lib/smartImportPrefs";
+import { useMediaCallback } from "@/contexts/MediaCallbackContext";
+import { getCase, saveCase } from "@/lib/storage";
+import type { OperativeMediaItem, Case } from "@/types/case";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
 
-// ═══════════════════════════════════════════════════════════
-// Types
-// ═══════════════════════════════════════════════════════════
-
 type NavProp = NativeStackNavigationProp<RootStackParamList, "SmartImport">;
+type Route = RouteProp<RootStackParamList, "SmartImport">;
 
-type ImportPhase =
-  | "picking"
-  | "encrypting"
-  | "prompting"
-  | "deleting"
-  | "done";
+type ImportPhase = "picking" | "encrypting" | "prompting" | "deleting";
 
-// ═══════════════════════════════════════════════════════════
-// Component
-// ═══════════════════════════════════════════════════════════
+async function resolveCapturedAt(
+  assetId?: string | null,
+): Promise<string | undefined> {
+  if (!assetId) {
+    return undefined;
+  }
+
+  try {
+    const info = await MediaLibrary.getAssetInfoAsync(assetId);
+    if (typeof info.creationTime === "number" && info.creationTime > 0) {
+      return new Date(info.creationTime).toISOString();
+    }
+  } catch (error) {
+    console.warn("[SmartImport] Could not resolve asset timestamp:", error);
+  }
+
+  return undefined;
+}
 
 export default function SmartImportScreen() {
   const { theme } = useTheme();
   const navigation = useNavigation<NavProp>();
+  const route = useRoute<Route>();
+  const { executeGenericCallback } = useMediaCallback();
+  const params = route.params ?? { targetMode: "inbox" as const };
 
   const [phase, setPhase] = useState<ImportPhase>("picking");
   const [progress, setProgress] = useState({ completed: 0, total: 0 });
   const [importedCount, setImportedCount] = useState(0);
   const [assetIds, setAssetIds] = useState<string[]>([]);
+  const [canDeleteOriginals, setCanDeleteOriginals] = useState(false);
+  const [deleteHelpText, setDeleteHelpText] = useState<string | null>(null);
   const progressAnim = useRef(new Animated.Value(0)).current;
   const pickerLaunched = useRef(false);
+  const importedInboxIdsRef = useRef<string[]>([]);
+  const importedCaseMediaRef = useRef<OperativeMediaItem[]>([]);
+  const importedCaseUrisRef = useRef<string[]>([]);
 
-  // ── Launch picker on mount ─────────────────────────────
+  const completeImport = useCallback(async () => {
+    if (params.targetMode === "case") {
+      const importedMedia = importedCaseMediaRef.current;
+
+      if (params.targetCaseId) {
+        const caseData = await getCase(params.targetCaseId);
+        if (!caseData) {
+          await deleteMultipleEncryptedMedia(importedCaseUrisRef.current);
+          Alert.alert("Import Error", "The target case could not be loaded.");
+          navigation.goBack();
+          return;
+        }
+
+        const updatedCase: Case = {
+          ...caseData,
+          operativeMedia: [...(caseData.operativeMedia ?? []), ...importedMedia],
+          updatedAt: new Date().toISOString(),
+        };
+        await saveCase(updatedCase);
+      } else if (params.callbackId) {
+        const executed = executeGenericCallback(params.callbackId, importedMedia);
+        if (!executed) {
+          await deleteMultipleEncryptedMedia(importedCaseUrisRef.current);
+          Alert.alert(
+            "Import Error",
+            "The case form is no longer available. Imported photos were discarded.",
+          );
+          navigation.goBack();
+          return;
+        }
+      }
+    } else {
+      setPendingInboxSelection(importedInboxIdsRef.current);
+    }
+
+    navigation.goBack();
+  }, [executeGenericCallback, navigation, params]);
+
+  const performDelete = useCallback(
+    async (ids: string[]) => {
+      try {
+        const { status } = await MediaLibrary.requestPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert(
+            "Permission Required",
+            "Opus needs photo library access to delete originals. Imported photos have been kept safely.",
+            [{ text: "OK", onPress: () => void completeImport() }],
+          );
+          return;
+        }
+
+        await MediaLibrary.deleteAssetsAsync(ids);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        await completeImport();
+      } catch (error) {
+        console.warn("[SmartImport] Delete failed:", error);
+        Alert.alert(
+          "Could Not Delete",
+          "Imported photos were saved successfully. You can delete originals manually from Camera Roll.",
+          [{ text: "OK", onPress: () => void completeImport() }],
+        );
+      }
+    },
+    [completeImport],
+  );
 
   useEffect(() => {
     if (pickerLaunched.current) return;
@@ -64,7 +155,7 @@ export default function SmartImportScreen() {
           mediaTypes: ["images"],
           quality: 0.7,
           allowsMultipleSelection: true,
-          selectionLimit: 50,
+          selectionLimit: params.selectionLimit ?? 50,
           orderedSelection: true,
         });
 
@@ -73,38 +164,88 @@ export default function SmartImportScreen() {
           return;
         }
 
-        // Collect valid assetIds for later deletion
         const ids = result.assets
-          .map((a) => a.assetId)
+          .map((asset) => asset.assetId)
           .filter((id): id is string => !!id);
         setAssetIds(ids);
+        setCanDeleteOriginals(ids.length > 0);
+        if (ids.length === 0) {
+          setDeleteHelpText(
+            "Some selected items do not expose library IDs, so Opus cannot delete the originals automatically.",
+          );
+        } else {
+          setDeleteHelpText(null);
+        }
 
-        // Transition to encrypting
         setPhase("encrypting");
         setProgress({ completed: 0, total: result.assets.length });
 
-        const assets = result.assets.map((a) => ({
-          uri: a.uri,
-          mimeType: a.mimeType,
-        }));
+        if (params.targetMode === "inbox") {
+          const inboxAssets = await Promise.all(
+            result.assets.map(async (asset) => ({
+              uri: asset.uri,
+              mimeType: asset.mimeType,
+              assetId: asset.assetId,
+              capturedAt: (await resolveCapturedAt(asset.assetId)) ?? undefined,
+              width: asset.width,
+              height: asset.height,
+            })),
+          );
 
-        const imported = await addMultipleToInbox(
-          assets,
-          "smart_import",
-          (completed, total) => {
-            setProgress({ completed, total });
+          const imported = await addMultipleToInbox(
+            inboxAssets,
+            "smart_import",
+            (completed, total) => {
+              setProgress({ completed, total });
+              Animated.timing(progressAnim, {
+                toValue: completed / total,
+                duration: 200,
+                useNativeDriver: false,
+              }).start();
+            },
+          );
+
+          importedInboxIdsRef.current = imported.map((item) => item.id);
+          setImportedCount(imported.length);
+        } else {
+          const importedMedia: OperativeMediaItem[] = [];
+
+          for (let index = 0; index < result.assets.length; index += 1) {
+            const asset = result.assets[index];
+            if (!asset) continue;
+
+            const capturedAt =
+              (await resolveCapturedAt(asset.assetId)) ??
+              new Date().toISOString();
+            const saved = await saveEncryptedMediaFromUri(
+              asset.uri,
+              asset.mimeType || "image/jpeg",
+            );
+            importedCaseUrisRef.current.push(saved.localUri);
+            importedMedia.push(
+              buildCapturedOperativeMediaItem({
+                id: uuidv4(),
+                localUri: saved.localUri,
+                mimeType: saved.mimeType,
+                capturedAt,
+                procedureDate: params.procedureDate,
+              }),
+            );
+
+            setProgress({ completed: index + 1, total: result.assets.length });
             Animated.timing(progressAnim, {
-              toValue: completed / total,
+              toValue: (index + 1) / result.assets.length,
               duration: 200,
               useNativeDriver: false,
             }).start();
-          },
-        );
+          }
 
-        setImportedCount(imported.length);
+          importedCaseMediaRef.current = importedMedia;
+          setImportedCount(importedMedia.length);
+        }
+
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-        // Check auto-delete preference
         if (ids.length > 0) {
           const alwaysDelete = await getAlwaysDeleteAfterImport();
           if (alwaysDelete) {
@@ -112,78 +253,36 @@ export default function SmartImportScreen() {
             await performDelete(ids);
             return;
           }
-          setPhase("prompting");
-        } else {
-          // No valid assetIds — can't delete originals, go back
-          navigation.goBack();
         }
+
+        setPhase("prompting");
       } catch (error) {
         console.warn("[SmartImport] Import failed:", error);
         Alert.alert(
           "Import Error",
-          "Some photos could not be imported. Successfully imported photos are in your Inbox.",
+          "Some photos could not be imported. Successfully imported photos were kept.",
           [{ text: "OK", onPress: () => navigation.goBack() }],
         );
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // ── Delete originals ───────────────────────────────────
-
-  const performDelete = useCallback(
-    async (ids: string[]) => {
-      try {
-        const { status } = await MediaLibrary.requestPermissionsAsync();
-        if (status !== "granted") {
-          Alert.alert(
-            "Permission Required",
-            "Opus needs photo library access to delete originals. Your photos are safely in the Inbox.",
-            [{ text: "OK", onPress: () => navigation.goBack() }],
-          );
-          return;
-        }
-
-        const deleted = await MediaLibrary.deleteAssetsAsync(ids);
-        if (deleted) {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        } else {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        }
-        navigation.goBack();
-      } catch (error) {
-        console.warn("[SmartImport] Delete failed:", error);
-        Alert.alert(
-          "Could Not Delete",
-          "Your photos are safely in the Opus Inbox. You can delete originals from Camera Roll manually.",
-          [{ text: "OK", onPress: () => navigation.goBack() }],
-        );
-      }
-    },
-    [navigation],
-  );
-
-  // ── Button handlers ────────────────────────────────────
+  }, [completeImport, navigation, params, performDelete, progressAnim]);
 
   const handleDelete = useCallback(() => {
     setPhase("deleting");
-    performDelete(assetIds);
+    void performDelete(assetIds);
   }, [assetIds, performDelete]);
 
   const handleKeep = useCallback(() => {
-    navigation.goBack();
-  }, [navigation]);
+    void completeImport();
+  }, [completeImport]);
 
   const handleAlwaysDelete = useCallback(async () => {
     await setAlwaysDeleteAfterImport(true);
     setPhase("deleting");
-    performDelete(assetIds);
+    void performDelete(assetIds);
   }, [assetIds, performDelete]);
 
-  // ── Render ─────────────────────────────────────────────
-
   if (phase === "picking") {
-    // Picker is open — show nothing (or minimal background)
     return <ThemedView style={styles.container} />;
   }
 
@@ -204,10 +303,9 @@ export default function SmartImportScreen() {
             <ThemedText
               style={[styles.subtitle, { color: theme.textSecondary }]}
             >
-              Stripping metadata & encrypting
+              Stripping metadata and preparing secure attachments
             </ThemedText>
 
-            {/* Progress bar */}
             <View
               style={[
                 styles.progressTrack,
@@ -249,42 +347,76 @@ export default function SmartImportScreen() {
             <ThemedText
               style={[styles.subtitle, { color: theme.textSecondary }]}
             >
-              Delete originals from Camera Roll to protect patient privacy?
+              {canDeleteOriginals
+                ? "Delete originals from Camera Roll to protect patient privacy?"
+                : "Imported photos are ready. Original photos remain in Camera Roll."}
             </ThemedText>
 
-            <Pressable
-              onPress={handleDelete}
-              style={[styles.primaryButton, { backgroundColor: theme.link }]}
-            >
-              <Feather name="trash-2" size={18} color={theme.buttonText} />
+            {deleteHelpText ? (
               <ThemedText
-                style={[styles.primaryButtonText, { color: theme.buttonText }]}
+                style={[styles.helpText, { color: theme.textTertiary }]}
               >
-                Delete Originals
+                {deleteHelpText}
               </ThemedText>
-            </Pressable>
+            ) : null}
 
-            <Pressable
-              onPress={handleKeep}
-              style={[
-                styles.secondaryButton,
-                { backgroundColor: theme.backgroundElevated },
-              ]}
-            >
-              <ThemedText
-                style={[styles.secondaryButtonText, { color: theme.text }]}
-              >
-                Keep Originals
-              </ThemedText>
-            </Pressable>
+            {canDeleteOriginals ? (
+              <>
+                <Pressable
+                  onPress={handleDelete}
+                  style={[styles.primaryButton, { backgroundColor: theme.link }]}
+                >
+                  <Feather name="trash-2" size={18} color={theme.buttonText} />
+                  <ThemedText
+                    style={[
+                      styles.primaryButtonText,
+                      { color: theme.buttonText },
+                    ]}
+                  >
+                    Delete Originals
+                  </ThemedText>
+                </Pressable>
 
-            <Pressable onPress={handleAlwaysDelete} style={styles.textLink}>
-              <ThemedText
-                style={[styles.textLinkLabel, { color: theme.textSecondary }]}
+                <Pressable
+                  onPress={handleKeep}
+                  style={[
+                    styles.secondaryButton,
+                    { backgroundColor: theme.backgroundElevated },
+                  ]}
+                >
+                  <ThemedText
+                    style={[styles.secondaryButtonText, { color: theme.text }]}
+                  >
+                    Keep Originals
+                  </ThemedText>
+                </Pressable>
+
+                <Pressable onPress={handleAlwaysDelete} style={styles.textLink}>
+                  <ThemedText
+                    style={[
+                      styles.textLinkLabel,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
+                    Always delete after import
+                  </ThemedText>
+                </Pressable>
+              </>
+            ) : (
+              <Pressable
+                onPress={handleKeep}
+                style={[styles.primaryButton, { backgroundColor: theme.link }]}
               >
-                Always delete after import
-              </ThemedText>
-            </Pressable>
+                <ThemedText
+                  style={[
+                    styles.primaryButtonText,
+                    { color: theme.buttonText },
+                  ]}
+                >
+                  Continue
+                </ThemedText>
+              </Pressable>
+            )}
           </>
         )}
 
@@ -304,10 +436,6 @@ export default function SmartImportScreen() {
     </ThemedView>
   );
 }
-
-// ═══════════════════════════════════════════════════════════
-// Styles
-// ═══════════════════════════════════════════════════════════
 
 const styles = StyleSheet.create({
   container: {
@@ -334,8 +462,13 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: Spacing.xl,
   },
-
-  // Progress bar
+  helpText: {
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: "center",
+    marginTop: -Spacing.md,
+    marginBottom: Spacing.lg,
+  },
   progressTrack: {
     width: "100%",
     height: 8,
@@ -352,8 +485,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     marginBottom: Spacing.lg,
   },
-
-  // Buttons
   primaryButton: {
     flexDirection: "row",
     alignItems: "center",

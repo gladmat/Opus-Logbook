@@ -12,6 +12,11 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.drgladysz.opus",
       "buildNumber": "5",
+      "entitlements": {
+        "com.apple.security.application-groups": [
+          "group.com.drgladysz.opus"
+        ]
+      },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSFaceIDUsageDescription": "Opus uses Face ID to protect your surgical case data."
@@ -72,7 +77,8 @@
           "microphonePermission": false,
           "recordAudioAndroid": false
         }
-      ]
+      ],
+      "@bacons/apple-targets"
     ],
     "experiments": {
       "reactCompiler": true

@@ -1,18 +1,9 @@
 import React, { useMemo } from "react";
-import {
-  View,
-  StyleSheet,
-  Pressable,
-  Alert,
-  ScrollView,
-} from "react-native";
+import { View, StyleSheet, Pressable, Alert, ScrollView } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@/components/FeatherIcon";
-import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
-import { v4 as uuidv4 } from "uuid";
-import { importMediaAssets } from "@/lib/mediaStorage";
 import { EncryptedImage } from "@/components/EncryptedImage";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
@@ -24,16 +15,15 @@ import { useMediaCallback } from "@/contexts/MediaCallbackContext";
 import {
   operativeMediaToAttachments,
   attachmentsToOperativeMedia,
-  TAG_TO_MEDIA_TYPE,
 } from "@/lib/operativeMedia";
-import {
-  resolveMediaTag,
-  suggestDefaultMediaTag,
-} from "@/lib/mediaTagMigration";
+import { resolveMediaTag } from "@/lib/mediaTagMigration";
 import { ProtocolBadge, GuidedCaptureFlow } from "@/components/media";
 import { findProtocols, mergeProtocols } from "@/data/mediaCaptureProtocols";
 import type { MediaContext } from "@/lib/mediaContext";
-import { getInboxCount } from "@/lib/inboxStorage";
+import {
+  getInboxCount,
+  releaseReservedInboxItems,
+} from "@/lib/inboxStorage";
 
 interface OperativeMediaSectionProps {
   media: OperativeMediaItem[];
@@ -90,70 +80,38 @@ export function OperativeMediaSection({
     });
   };
 
-  const navigateToAddMedia = (uri: string, mimeType: string) => {
+  const handleCameraCapture = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const callbackId = registerGenericCallback(
-      (newMedia: OperativeMediaItem) => {
-        onMediaChange([...media, newMedia]);
+      (newMedia: OperativeMediaItem[]) => {
+        onMediaChange([...media, ...newMedia]);
       },
     );
-    navigation.navigate("AddOperativeMedia", {
-      imageUri: uri,
-      mimeType,
+    navigation.navigate("OpusCamera", {
+      quickSnap: true,
+      targetMode: "case",
       callbackId,
-      mediaContext,
+      procedureDate: mediaContext?.procedureDate,
     });
   };
 
-  const handleCameraCapture = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    navigation.navigate("OpusCamera", { quickSnap: true });
-  };
-
-  const handleGalleryPick = async () => {
+  const handleGalleryPick = () => {
     const remaining = maxItems - media.length;
     if (remaining <= 0) return;
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        quality: 0.7,
-        allowsMultipleSelection: true,
-        selectionLimit: remaining,
-      });
 
-      if (!result.canceled && result.assets.length > 0) {
-        if (result.assets.length === 1) {
-          const asset = result.assets[0];
-          if (!asset) return;
-          const mime = asset.mimeType || "image/jpeg";
-          navigateToAddMedia(asset.uri, mime);
-        } else {
-          const startingMedia = [...media];
-          const importedItems: OperativeMediaItem[] = [];
-          await importMediaAssets(result.assets, (savedAsset) => {
-            const tag = suggestDefaultMediaTag({
-              procedureDate: mediaContext?.procedureDate,
-            });
-            importedItems.push({
-              id: uuidv4(),
-              localUri: savedAsset.localUri,
-              mimeType: savedAsset.mimeType,
-              tag,
-              mediaType: TAG_TO_MEDIA_TYPE[tag],
-              createdAt: new Date().toISOString(),
-            });
-            onMediaChange([...startingMedia, ...importedItems]);
-          });
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        }
-      }
-    } catch (error: any) {
-      console.error("Error picking image:", error);
-      Alert.alert(
-        "Error",
-        `Failed to select images: ${error?.message || "Unknown error"}`,
-      );
-    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const callbackId = registerGenericCallback(
+      (newMedia: OperativeMediaItem[]) => {
+        onMediaChange([...media, ...newMedia]);
+      },
+    );
+
+    navigation.navigate("SmartImport", {
+      targetMode: "case",
+      callbackId,
+      procedureDate: mediaContext?.procedureDate,
+      selectionLimit: remaining,
+    });
   };
 
   const handleEditMedia = (item: OperativeMediaItem) => {
@@ -190,8 +148,12 @@ export function OperativeMediaSection({
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           const item = media.find((m) => m.id === mediaId);
           if (item) {
-            const { deleteEncryptedMedia } = await import("@/lib/mediaStorage");
-            await deleteEncryptedMedia(item.localUri);
+            if (item.sourceInboxId) {
+              releaseReservedInboxItems([item.sourceInboxId]);
+            } else {
+              const { deleteEncryptedMedia } = await import("@/lib/mediaStorage");
+              await deleteEncryptedMedia(item.localUri);
+            }
           }
           onMediaChange(media.filter((m) => m.id !== mediaId));
         },
@@ -215,6 +177,7 @@ export function OperativeMediaSection({
       pickMode: true,
       callbackId,
       procedureDate: mediaContext?.procedureDate,
+      reservationKey: `draft:${callbackId}`,
     });
   };
 

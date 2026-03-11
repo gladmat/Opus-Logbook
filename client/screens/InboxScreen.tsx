@@ -11,8 +11,12 @@ import {
   Dimensions,
   ActivityIndicator,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
-import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+  RouteProp,
+} from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -22,17 +26,19 @@ import { EncryptedImage } from "@/components/EncryptedImage";
 import { Feather } from "@/components/FeatherIcon";
 import { useTheme } from "@/hooks/useTheme";
 import { useMediaCallback } from "@/contexts/MediaCallbackContext";
-import { Spacing, BorderRadius, Shadows } from "@/constants/theme";
+import { Spacing, BorderRadius } from "@/constants/theme";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
 import type { InboxItem } from "@/types/inbox";
 import type { OperativeMediaItem, Case } from "@/types/case";
 import {
   getInboxItems,
-  getInboxCount,
-  removeFromInbox,
   discardFromInbox,
+  reserveInboxItems,
+  finalizeInboxAssignment,
+  consumePendingInboxSelection,
+  releaseReservedInboxItems,
 } from "@/lib/inboxStorage";
-import { getCases, getCase, saveCase } from "@/lib/storage";
+import { getCases, saveCase } from "@/lib/storage";
 import { getPrimaryDiagnosisName, getCaseSpecialties } from "@/types/case";
 import {
   inferMediaTagForInboxItem,
@@ -41,7 +47,6 @@ import {
   findMatchingCasesByPatientId,
 } from "@/lib/inboxAssignment";
 import { isPlannedCase } from "@/types/case";
-import { buildMediaContextFromCase } from "@/lib/mediaContext";
 
 // White-on-photo overlay — intentionally theme-independent
 // (always white text with shadow on photo thumbnails / dark modal backdrops)
@@ -111,18 +116,6 @@ function groupByDate(items: InboxItem[]): DateGroup[] {
   return groupOrder.map((label) => ({ label, items: groups.get(label)! }));
 }
 
-/** @deprecated Use inferMediaTagForInboxItem + inboxItemToOperativeMediaSmart instead */
-function inboxItemToOperativeMedia(item: InboxItem): OperativeMediaItem {
-  return {
-    id: item.id,
-    localUri: item.localUri,
-    mimeType: item.mimeType,
-    tag: undefined,
-    mediaType: "other" as const,
-    createdAt: item.capturedAt,
-  };
-}
-
 function formatTime(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleTimeString(undefined, {
@@ -145,19 +138,33 @@ export default function InboxScreen() {
   const pickMode = route.params?.pickMode ?? false;
   const callbackId = route.params?.callbackId;
   const procedureDateParam = route.params?.procedureDate;
+  const reservationKey =
+    route.params?.reservationKey ??
+    (callbackId ? `draft:${callbackId}` : undefined);
 
   const [items, setItems] = useState<InboxItem[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectMode, setSelectMode] = useState(pickMode);
   const [showPreview, setShowPreview] = useState<InboxItem | null>(null);
   const [showCasePicker, setShowCasePicker] = useState(false);
-  const [importing, setImporting] = useState(false);
 
   // Refresh inbox on focus
   useFocusEffect(
     useCallback(() => {
-      setItems(getInboxItems());
-    }, []),
+      const nextItems = getInboxItems();
+      setItems(nextItems);
+
+      const pendingSelection = consumePendingInboxSelection().filter((id) =>
+        nextItems.some((item) => item.id === id),
+      );
+
+      if (pendingSelection.length > 0) {
+        setSelectMode(true);
+        setSelectedIds(new Set(pendingSelection));
+      } else if (pickMode) {
+        setSelectMode(true);
+      }
+    }, [pickMode]),
   );
 
   const dateGroups = useMemo(() => groupByDate(items), [items]);
@@ -192,13 +199,22 @@ export default function InboxScreen() {
 
   const handleTakePhoto = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    navigation.navigate("OpusCamera", { quickSnap: true });
+    navigation.navigate("OpusCamera", {
+      quickSnap: true,
+      targetMode: "inbox",
+    });
   }, [navigation]);
 
   const handlePickGallery = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    navigation.navigate("SmartImport");
-  }, [navigation]);
+    navigation.navigate("SmartImport", {
+      targetMode: "inbox",
+      pickMode,
+      callbackId,
+      procedureDate: procedureDateParam,
+      reservationKey,
+    });
+  }, [callbackId, navigation, pickMode, procedureDateParam, reservationKey]);
 
   // ── Delete ───────────────────────────────────────────
 
@@ -288,7 +304,9 @@ export default function InboxScreen() {
         const caseProcDate = caseData.procedureDate;
         const newMedia: OperativeMediaItem[] = selectedItems.map((item) => {
           const tag = inferMediaTagForInboxItem(item, caseProcDate);
-          return inboxItemToOperativeMediaSmart(item, tag);
+          const { sourceInboxId: _sourceInboxId, ...persistedMedia } =
+            inboxItemToOperativeMediaSmart(item, tag);
+          return persistedMedia;
         });
 
         const existingMedia = caseData.operativeMedia ?? [];
@@ -299,8 +317,7 @@ export default function InboxScreen() {
         };
         await saveCase(updatedCase);
 
-        // Remove from inbox index only — files now belong to the case
-        removeFromInbox([...selectedIds]);
+        finalizeInboxAssignment([...selectedIds], caseData.id);
         setItems(getInboxItems());
         setSelectedIds(new Set());
         setSelectMode(false);
@@ -321,20 +338,35 @@ export default function InboxScreen() {
   // ── Pick mode confirm ────────────────────────────────
 
   const handlePickConfirm = useCallback(() => {
-    if (selectedIds.size === 0 || !callbackId) return;
-    const selectedItems = items.filter((item) => selectedIds.has(item.id));
-    const newMedia: OperativeMediaItem[] = selectedItems.map((item) => {
+    if (selectedIds.size === 0 || !callbackId || !reservationKey) return;
+    const reservedItems = reserveInboxItems([...selectedIds], reservationKey);
+    const newMedia: OperativeMediaItem[] = reservedItems.map((item) => {
       const tag = inferMediaTagForInboxItem(item, procedureDateParam);
       return inboxItemToOperativeMediaSmart(item, tag);
     });
 
-    // Remove from inbox index — files now belong to the calling case
-    removeFromInbox([...selectedIds]);
+    const executed = executeGenericCallback(callbackId, newMedia);
+    if (!executed) {
+      releaseReservedInboxItems([...selectedIds], reservationKey);
+      setItems(getInboxItems());
+      Alert.alert(
+        "Could not attach",
+        "The case form is no longer available. Photos stayed in the Inbox.",
+      );
+      return;
+    }
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    executeGenericCallback(callbackId, newMedia);
+    setItems(getInboxItems());
     navigation.goBack();
-  }, [selectedIds, items, callbackId, executeGenericCallback, navigation, procedureDateParam]);
+  }, [
+    callbackId,
+    executeGenericCallback,
+    navigation,
+    procedureDateParam,
+    reservationKey,
+    selectedIds,
+  ]);
 
   // ── Tap / long-press handlers ────────────────────────
 
@@ -388,18 +420,6 @@ export default function InboxScreen() {
           </Pressable>
         ) : null}
       </View>
-
-      {/* Importing indicator */}
-      {importing ? (
-        <View
-          style={[styles.importBanner, { backgroundColor: theme.link + "18" }]}
-        >
-          <ActivityIndicator size="small" color={theme.link} />
-          <ThemedText style={[styles.importText, { color: theme.link }]}>
-            Importing...
-          </ThemedText>
-        </View>
-      ) : null}
 
       {/* NHI auto-match banner */}
       {nhiMatch ? (
@@ -725,7 +745,8 @@ function CasePickerModal({
 }) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const [cases, setCases] = useState<Case[]>([]);
+  const [allCases, setAllCases] = useState<Case[]>([]);
+  const [recentCases, setRecentCases] = useState<Case[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [totalCases, setTotalCases] = useState(0);
@@ -737,24 +758,23 @@ function CasePickerModal({
     getCases()
       .then((all) => {
         setTotalCases(all.length);
-        // Sort newest first, limit to 50 most recent
         const sorted = all
           .sort(
             (a, b) =>
               new Date(b.procedureDate ?? b.createdAt).getTime() -
               new Date(a.procedureDate ?? a.createdAt).getTime(),
           )
-          .slice(0, 50);
-        setCases(sorted);
+        setAllCases(sorted);
+        setRecentCases(sorted.slice(0, 50));
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, [visible, initialSearch]);
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return cases;
+    if (!search.trim()) return recentCases;
     const q = search.toLowerCase();
-    return cases.filter((c) => {
+    return allCases.filter((c) => {
       const dx = getPrimaryDiagnosisName(c) ?? "";
       const id = c.patientIdentifier ?? "";
       const date = c.procedureDate ?? "";
@@ -764,7 +784,7 @@ function CasePickerModal({
         date.includes(q)
       );
     });
-  }, [cases, search]);
+  }, [allCases, recentCases, search]);
 
   const renderCase = useCallback(
     ({ item: c }: { item: Case }) => {

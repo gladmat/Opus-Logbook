@@ -62,6 +62,10 @@ import type { TreatmentEpisode } from "@/types/episode";
 import { HeaderTitleText } from "@/components/HeaderTitleText";
 import { buildMediaContext } from "@/lib/mediaContext";
 import { LoadingState } from "@/components/LoadingState";
+import {
+  getReservedInboxIdsFromMedia,
+  releaseReservedInboxItems,
+} from "@/lib/inboxStorage";
 
 type RouteParams = RouteProp<RootStackParamList, "CaseForm">;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -159,6 +163,8 @@ export default function CaseFormScreen() {
   const formDispatch = form.dispatch;
   const diagnosisGroupsRef = useRef(form.state.diagnosisGroups);
   diagnosisGroupsRef.current = form.state.diagnosisGroups;
+  const operativeMediaRef = useRef(form.state.operativeMedia);
+  operativeMediaRef.current = form.state.operativeMedia;
 
   const isEditModeRef = useRef(form.isEditMode);
   isEditModeRef.current = form.isEditMode;
@@ -346,6 +352,13 @@ export default function CaseFormScreen() {
     const actionLabel = isEdit ? "Revert Changes" : "Clear Form";
 
     const execute = async () => {
+      const reservedInboxIds = getReservedInboxIdsFromMedia(
+        operativeMediaRef.current,
+      );
+      if (reservedInboxIds.length > 0) {
+        releaseReservedInboxItems(reservedInboxIds);
+      }
+
       if (isEdit) {
         revertToSavedRef.current();
       } else {
@@ -380,6 +393,21 @@ export default function CaseFormScreen() {
       );
     }
   }, [form.isEditMode]);
+
+  useEffect(() => {
+    return () => {
+      if (form.savedRef.current) {
+        return;
+      }
+
+      const reservedInboxIds = getReservedInboxIdsFromMedia(
+        operativeMediaRef.current,
+      );
+      if (reservedInboxIds.length > 0) {
+        releaseReservedInboxItems(reservedInboxIds);
+      }
+    };
+  }, [form.savedRef]);
 
   // ── Review mode ─────────────────────────────────────────────────────────
 

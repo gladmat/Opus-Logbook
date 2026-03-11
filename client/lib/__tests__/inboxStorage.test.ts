@@ -1,8 +1,11 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+/* eslint-disable import/first */
 
-// ── Mocks ──────────────────────────────────────────────────
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+(globalThis as typeof globalThis & { __DEV__?: boolean }).__DEV__ = false;
 
 let mmkvStore: Record<string, string> = {};
+let secureStore: Record<string, string> = {};
 
 vi.mock("react-native-mmkv", () => ({
   createMMKV: () => ({
@@ -16,6 +19,20 @@ vi.mock("react-native-mmkv", () => ({
       delete mmkvStore[key];
       return true;
     },
+    recrypt: vi.fn(),
+  }),
+}));
+
+vi.mock("expo-crypto", () => ({
+  getRandomBytesAsync: vi.fn(async (length: number) =>
+    Uint8Array.from({ length }, (_, index) => (index + 1) % 255),
+  ),
+}));
+
+vi.mock("expo-secure-store", () => ({
+  getItemAsync: vi.fn(async (key: string) => secureStore[key] ?? null),
+  setItemAsync: vi.fn(async (key: string, value: string) => {
+    secureStore[key] = value;
   }),
 }));
 
@@ -27,380 +44,284 @@ vi.mock("uuid", () => ({
 const deletedUris: string[] = [];
 
 vi.mock("../mediaStorage", () => ({
-  saveEncryptedMediaFromUri: vi.fn(
-    async (uri: string, mime: string) => ({
-      localUri: `opus-media:saved-${uri.replace(/[^a-z0-9]/gi, "")}`,
-      mimeType: mime,
-    }),
-  ),
+  saveEncryptedMediaFromUri: vi.fn(async (uri: string, mimeType: string) => ({
+    localUri: `opus-media:saved-${uri.replace(/[^a-z0-9]/gi, "")}`,
+    mimeType,
+  })),
   deleteEncryptedMedia: vi.fn(async (uri: string) => {
     deletedUris.push(uri);
   }),
 }));
 
 import {
-  getInboxItems,
-  getInboxCount,
-  addToInbox,
-  addMultipleToInbox,
-  removeFromInbox,
-  discardFromInbox,
-  cleanupOrphanedInboxItems,
   _resetInboxForTests,
+  addMultipleToInbox,
+  addToInbox,
+  cleanupOrphanedInboxItems,
+  consumePendingInboxSelection,
+  discardFromInbox,
+  finalizeInboxAssignment,
+  getInboxCount,
+  getInboxItems,
+  getReservedInboxIdsFromMedia,
+  releaseReservedInboxItems,
+  reserveInboxItems,
+  setPendingInboxSelection,
 } from "../inboxStorage";
 
-// ── Setup ──────────────────────────────────────────────────
+const INBOX_STORAGE_KEY = "opus_inbox_state";
+
+function readRawState() {
+  return JSON.parse(mmkvStore[INBOX_STORAGE_KEY] ?? '{"items":[],"version":2}');
+}
 
 beforeEach(() => {
   mmkvStore = {};
+  secureStore = {};
   uuidCounter = 0;
   deletedUris.length = 0;
-  // Reset the singleton so each test starts clean
   _resetInboxForTests();
 });
 
-// ── Tests ──────────────────────────────────────────────────
-
 describe("inboxStorage", () => {
-  describe("getInboxItems / getInboxCount", () => {
-    it("returns empty array and 0 count when no items", () => {
-      expect(getInboxItems()).toEqual([]);
-      expect(getInboxCount()).toBe(0);
-    });
-
-    it("returns items after adding", async () => {
-      await addToInbox("file:///photo1.jpg", "image/jpeg", "camera");
-      expect(getInboxItems()).toHaveLength(1);
-      expect(getInboxCount()).toBe(1);
-    });
-
-    it("handles corrupt MMKV data gracefully", () => {
-      mmkvStore["opus_inbox_state"] = "not-valid-json{{{";
-      expect(getInboxItems()).toEqual([]);
-      expect(getInboxCount()).toBe(0);
-    });
+  it("returns an empty inbox when no items exist", () => {
+    expect(getInboxItems()).toEqual([]);
+    expect(getInboxCount()).toBe(0);
   });
 
-  describe("addToInbox", () => {
-    it("creates an item with correct fields", async () => {
-      const item = await addToInbox(
-        "file:///photo.jpg",
-        "image/jpeg",
-        "camera",
-      );
+  it("handles corrupt MMKV payloads gracefully", () => {
+    mmkvStore[INBOX_STORAGE_KEY] = "not-json";
 
-      expect(item.id).toBe("mock-uuid-1");
-      expect(item.localUri).toBe("opus-media:saved-filephotojpg");
-      expect(item.mimeType).toBe("image/jpeg");
-      expect(item.sourceType).toBe("camera");
-      expect(item.capturedAt).toBeDefined();
-    });
-
-    it("prepends new items (newest first)", async () => {
-      await addToInbox("file:///photo1.jpg", "image/jpeg", "camera");
-      await addToInbox("file:///photo2.jpg", "image/jpeg", "gallery");
-
-      const items = getInboxItems();
-      expect(items).toHaveLength(2);
-      expect(items[0]!.id).toBe("mock-uuid-2");
-      expect(items[1]!.id).toBe("mock-uuid-1");
-    });
-
-    it("persists items across reads", async () => {
-      await addToInbox("file:///photo.jpg", "image/jpeg", "camera");
-      // Re-read from MMKV store
-      const items = getInboxItems();
-      expect(items).toHaveLength(1);
-      expect(items[0]!.localUri).toContain("opus-media:");
-    });
+    expect(getInboxItems()).toEqual([]);
+    expect(getInboxCount()).toBe(0);
   });
 
-  describe("addMultipleToInbox", () => {
-    it("adds multiple assets in order", async () => {
-      const assets = [
-        { uri: "file:///a.jpg", mimeType: "image/jpeg" },
-        { uri: "file:///b.png", mimeType: "image/png" },
-        { uri: "file:///c.jpg" }, // no mimeType — defaults to image/jpeg
-      ];
+  it("stores capturedAt, importedAt, metadata, status, and patient hash", async () => {
+    const item = await addToInbox(
+      "file:///photo.jpg",
+      "image/jpeg",
+      "opus_camera",
+      {
+        capturedAt: "2025-06-01T09:00:00.000Z",
+        importedAt: "2025-06-01T09:05:00.000Z",
+        patientIdentifier: " nhi 123 ",
+        templateId: "free_flap",
+        templateStepIndex: 2,
+        sourceAssetId: "asset-1",
+        width: 1200,
+        height: 900,
+      },
+    );
 
-      const items = await addMultipleToInbox(assets, "gallery");
-      expect(items).toHaveLength(3);
-      expect(items[0]!.sourceType).toBe("gallery");
-      expect(items[2]!.mimeType).toBe("image/jpeg"); // default
+    expect(item).toMatchObject({
+      id: "mock-uuid-1",
+      localUri: "opus-media:saved-filephotojpg",
+      mimeType: "image/jpeg",
+      capturedAt: "2025-06-01T09:00:00.000Z",
+      importedAt: "2025-06-01T09:05:00.000Z",
+      status: "unassigned",
+      sourceType: "opus_camera",
+      sourceAssetId: "asset-1",
+      width: 1200,
+      height: 900,
+      patientIdentifier: "nhi 123",
+      templateId: "free_flap",
+      templateStepIndex: 2,
     });
+    expect(item.patientIdentifierHash).toMatch(/^[a-f0-9]{64}$/);
 
-    it("calls onProgress callback", async () => {
-      const assets = [
-        { uri: "file:///a.jpg" },
-        { uri: "file:///b.jpg" },
-      ];
-      const progress: Array<[number, number]> = [];
-
-      await addMultipleToInbox(assets, "camera", (done, total) => {
-        progress.push([done, total]);
-      });
-
-      expect(progress).toEqual([
-        [1, 2],
-        [2, 2],
-      ]);
-    });
-
-    it("skips null/undefined assets in array", async () => {
-      // Simulate sparse array scenario
-      const assets: Array<{ uri: string; mimeType?: string | null }> = [
-        { uri: "file:///a.jpg" },
-      ];
-      const items = await addMultipleToInbox(assets, "gallery");
-      expect(items).toHaveLength(1);
-    });
+    const persisted = getInboxItems()[0];
+    expect(persisted).toBeDefined();
+    expect(persisted?.patientIdentifierHash).toBe(item.patientIdentifierHash);
   });
 
-  describe("removeFromInbox", () => {
-    it("removes items from index but keeps encrypted files", async () => {
-      await addToInbox("file:///photo1.jpg", "image/jpeg", "camera");
-      await addToInbox("file:///photo2.jpg", "image/jpeg", "camera");
-
-      const items = getInboxItems();
-      removeFromInbox([items[0]!.id]);
-
-      expect(getInboxCount()).toBe(1);
-      expect(getInboxItems()[0]!.id).toBe(items[1]!.id);
-      // No encrypted files deleted
-      expect(deletedUris).toHaveLength(0);
+  it("sorts active items by capturedAt desc then importedAt desc", async () => {
+    await addToInbox("file:///a.jpg", "image/jpeg", "camera", {
+      capturedAt: "2025-06-01T10:00:00.000Z",
+      importedAt: "2025-06-01T10:05:00.000Z",
+    });
+    await addToInbox("file:///b.jpg", "image/jpeg", "camera", {
+      capturedAt: "2025-06-01T11:00:00.000Z",
+      importedAt: "2025-06-01T11:05:00.000Z",
+    });
+    await addToInbox("file:///c.jpg", "image/jpeg", "camera", {
+      capturedAt: "2025-06-01T10:00:00.000Z",
+      importedAt: "2025-06-01T10:10:00.000Z",
     });
 
-    it("handles removing non-existent IDs gracefully", async () => {
-      await addToInbox("file:///photo.jpg", "image/jpeg", "camera");
-      removeFromInbox(["non-existent-id"]);
-      expect(getInboxCount()).toBe(1);
-    });
-
-    it("can remove multiple items at once", async () => {
-      await addToInbox("file:///a.jpg", "image/jpeg", "camera");
-      await addToInbox("file:///b.jpg", "image/jpeg", "camera");
-      await addToInbox("file:///c.jpg", "image/jpeg", "camera");
-
-      const items = getInboxItems();
-      removeFromInbox([items[0]!.id, items[2]!.id]);
-
-      expect(getInboxCount()).toBe(1);
-      expect(getInboxItems()[0]!.id).toBe(items[1]!.id);
-    });
+    expect(getInboxItems().map((item) => item.id)).toEqual([
+      "mock-uuid-2",
+      "mock-uuid-3",
+      "mock-uuid-1",
+    ]);
   });
 
-  describe("discardFromInbox", () => {
-    it("removes from index AND deletes encrypted files", async () => {
-      const item = await addToInbox(
-        "file:///photo.jpg",
-        "image/jpeg",
-        "camera",
-      );
-
-      await discardFromInbox([item.id]);
-
-      expect(getInboxCount()).toBe(0);
-      expect(deletedUris).toContain(item.localUri);
-    });
-
-    it("only deletes files for items that exist", async () => {
-      await addToInbox("file:///photo.jpg", "image/jpeg", "camera");
-
-      await discardFromInbox(["non-existent-id"]);
-
-      expect(getInboxCount()).toBe(1);
-      expect(deletedUris).toHaveLength(0);
-    });
-  });
-
-  describe("smart_import sourceType", () => {
-    it("addToInbox stores smart_import sourceType correctly", async () => {
-      const item = await addToInbox(
-        "file:///photo.jpg",
-        "image/jpeg",
-        "smart_import",
-      );
-      expect(item.sourceType).toBe("smart_import");
-      expect(getInboxItems()[0]!.sourceType).toBe("smart_import");
-    });
-
-    it("addMultipleToInbox with smart_import works", async () => {
-      const assets = [
-        { uri: "file:///a.jpg", mimeType: "image/jpeg" },
-        { uri: "file:///b.jpg", mimeType: "image/jpeg" },
-      ];
-      const items = await addMultipleToInbox(assets, "smart_import");
-      expect(items).toHaveLength(2);
-      expect(items[0]!.sourceType).toBe("smart_import");
-      expect(items[1]!.sourceType).toBe("smart_import");
-    });
-
-    it("smart_import items appear in getInboxItems alongside other types", async () => {
-      await addToInbox("file:///cam.jpg", "image/jpeg", "camera");
-      await addToInbox("file:///gal.jpg", "image/jpeg", "gallery");
-      await addToInbox("file:///imp.jpg", "image/jpeg", "smart_import");
-
-      const items = getInboxItems();
-      expect(items).toHaveLength(3);
-      const types = items.map((i) => i.sourceType);
-      expect(types).toContain("camera");
-      expect(types).toContain("gallery");
-      expect(types).toContain("smart_import");
-    });
-  });
-
-  describe("opus_camera sourceType and template metadata", () => {
-    it("addToInbox stores opus_camera sourceType", async () => {
-      const item = await addToInbox(
-        "file:///opus.jpg",
-        "image/jpeg",
-        "opus_camera",
-      );
-      expect(item.sourceType).toBe("opus_camera");
-      expect(getInboxItems()[0]!.sourceType).toBe("opus_camera");
-    });
-
-    it("addToInbox stores templateId when provided", async () => {
-      const item = await addToInbox(
-        "file:///opus.jpg",
-        "image/jpeg",
-        "opus_camera",
-        { templateId: "free_flap" },
-      );
-      expect(item.templateId).toBe("free_flap");
-      expect(getInboxItems()[0]!.templateId).toBe("free_flap");
-    });
-
-    it("addToInbox stores templateStepIndex when provided", async () => {
-      const item = await addToInbox(
-        "file:///opus.jpg",
-        "image/jpeg",
-        "opus_camera",
-        { templateId: "breast", templateStepIndex: 3 },
-      );
-      expect(item.templateStepIndex).toBe(3);
-      expect(getInboxItems()[0]!.templateStepIndex).toBe(3);
-    });
-
-    it("addToInbox stores patientIdentifier when provided", async () => {
-      const item = await addToInbox(
-        "file:///opus.jpg",
-        "image/jpeg",
-        "opus_camera",
-        { patientIdentifier: "NHI123" },
-      );
-      expect(item.patientIdentifier).toBe("NHI123");
-      expect(getInboxItems()[0]!.patientIdentifier).toBe("NHI123");
-    });
-
-    it("addToInbox stores all metadata fields together", async () => {
-      const item = await addToInbox(
-        "file:///opus.jpg",
-        "image/jpeg",
-        "opus_camera",
+  it("adds multiple assets and preserves smart import provenance", async () => {
+    const progress: Array<[number, number]> = [];
+    const items = await addMultipleToInbox(
+      [
         {
-          templateId: "skin_cancer_excision",
-          templateStepIndex: 2,
-          patientIdentifier: "ABC456",
+          uri: "file:///a.jpg",
+          mimeType: "image/jpeg",
+          assetId: "asset-a",
+          capturedAt: "2025-06-01T08:00:00.000Z",
+          width: 100,
+          height: 200,
         },
-      );
-      expect(item.templateId).toBe("skin_cancer_excision");
-      expect(item.templateStepIndex).toBe(2);
-      expect(item.patientIdentifier).toBe("ABC456");
+        {
+          uri: "file:///b.png",
+          mimeType: "image/png",
+          assetId: "asset-b",
+          capturedAt: "2025-06-01T08:10:00.000Z",
+        },
+      ],
+      "smart_import",
+      (completed, total) => {
+        progress.push([completed, total]);
+      },
+    );
 
-      // Verify round-trip through MMKV
-      const persisted = getInboxItems()[0]!;
-      expect(persisted.templateId).toBe("skin_cancer_excision");
-      expect(persisted.templateStepIndex).toBe(2);
-      expect(persisted.patientIdentifier).toBe("ABC456");
+    expect(items).toHaveLength(2);
+    expect(items[0]).toMatchObject({
+      sourceType: "smart_import",
+      sourceAssetId: "asset-a",
+      width: 100,
+      height: 200,
     });
-
-    it("addToInbox omits undefined metadata fields", async () => {
-      const item = await addToInbox(
-        "file:///opus.jpg",
-        "image/jpeg",
-        "opus_camera",
-      );
-      expect(item.templateId).toBeUndefined();
-      expect(item.templateStepIndex).toBeUndefined();
-      expect(item.patientIdentifier).toBeUndefined();
-
-      // Verify they're not present in serialized state
-      const raw = JSON.parse(mmkvStore["opus_inbox_state"]!);
-      const stored = raw.items[0];
-      expect("templateId" in stored).toBe(false);
-      expect("templateStepIndex" in stored).toBe(false);
-      expect("patientIdentifier" in stored).toBe(false);
+    expect(items[1]).toMatchObject({
+      sourceType: "smart_import",
+      sourceAssetId: "asset-b",
+      mimeType: "image/png",
     });
+    expect(progress).toEqual([
+      [1, 2],
+      [2, 2],
+    ]);
+  });
 
-    it("addToInbox with empty metadata object omits all fields", async () => {
-      const item = await addToInbox(
-        "file:///opus.jpg",
-        "image/jpeg",
-        "opus_camera",
-        {},
-      );
-      expect(item.templateId).toBeUndefined();
-      expect(item.templateStepIndex).toBeUndefined();
-      expect(item.patientIdentifier).toBeUndefined();
+  it("reserves items transactionally and hides them from the active inbox", async () => {
+    await addToInbox("file:///a.jpg", "image/jpeg", "camera");
+    await addToInbox("file:///b.jpg", "image/jpeg", "camera");
+
+    const [first] = getInboxItems();
+    const reserved = reserveInboxItems([first!.id], "draft:case-form");
+
+    expect(reserved).toHaveLength(1);
+    expect(reserved[0]).toMatchObject({
+      id: first!.id,
+      status: "reserved",
+      reservationKey: "draft:case-form",
+    });
+    expect(getInboxItems()).toHaveLength(1);
+    expect(getInboxCount()).toBe(1);
+
+    const raw = readRawState();
+    const persisted = raw.items.find(
+      (item: { id: string }) => item.id === first!.id,
+    );
+    expect(persisted).toMatchObject({
+      status: "reserved",
+      reservationKey: "draft:case-form",
+    });
+    expect(typeof persisted.reservedAt).toBe("string");
+  });
+
+  it("releases reserved items only for the matching reservation key", async () => {
+    await addToInbox("file:///photo.jpg", "image/jpeg", "camera");
+    const [item] = getInboxItems();
+    reserveInboxItems([item!.id], "draft:one");
+
+    releaseReservedInboxItems([item!.id], "draft:two");
+    expect(getInboxItems()).toHaveLength(0);
+
+    releaseReservedInboxItems([item!.id], "draft:one");
+    expect(getInboxItems()).toHaveLength(1);
+    expect(getInboxItems()[0]).toMatchObject({
+      id: item!.id,
+      status: "unassigned",
     });
   });
 
-  describe("cleanupOrphanedInboxItems", () => {
-    it("deletes items older than threshold", async () => {
-      // Add an item, then manually backdate it
-      await addToInbox("file:///old.jpg", "image/jpeg", "camera");
-      const state = JSON.parse(mmkvStore["opus_inbox_state"]!);
-      const oldDate = new Date(
-        Date.now() - 100 * 24 * 60 * 60 * 1000,
-      ).toISOString();
-      state.items[0].capturedAt = oldDate;
-      mmkvStore["opus_inbox_state"] = JSON.stringify(state);
+  it("finalizes assignment after case persistence and keeps encrypted files", async () => {
+    await addToInbox("file:///photo.jpg", "image/jpeg", "camera");
+    const [item] = getInboxItems();
+    reserveInboxItems([item!.id], "draft:case");
 
-      const count = await cleanupOrphanedInboxItems(90);
+    finalizeInboxAssignment([item!.id], "case-123");
 
-      expect(count).toBe(1);
-      expect(getInboxCount()).toBe(0);
-      expect(deletedUris).toHaveLength(1);
+    expect(getInboxCount()).toBe(0);
+    expect(getInboxItems()).toEqual([]);
+    expect(deletedUris).toEqual([]);
+
+    const persisted = readRawState().items[0];
+    expect(persisted).toMatchObject({
+      id: item!.id,
+      status: "assigned",
+      assignedCaseId: "case-123",
     });
+    expect(typeof persisted.assignedAt).toBe("string");
+  });
 
-    it("keeps items within threshold", async () => {
-      await addToInbox("file:///recent.jpg", "image/jpeg", "camera");
+  it("discards inbox items and deletes encrypted files", async () => {
+    const item = await addToInbox("file:///photo.jpg", "image/jpeg", "camera");
 
-      const count = await cleanupOrphanedInboxItems(90);
+    await discardFromInbox([item.id]);
 
-      expect(count).toBe(0);
-      expect(getInboxCount()).toBe(1);
+    expect(getInboxItems()).toEqual([]);
+    expect(deletedUris).toEqual([item.localUri]);
+  });
+
+  it("auto-deletes expired unassigned items using importedAt", async () => {
+    const oldItem = await addToInbox("file:///old.jpg", "image/jpeg", "camera", {
+      capturedAt: "2025-01-01T10:00:00.000Z",
+      importedAt: "2025-01-01T10:00:00.000Z",
     });
+    await addToInbox("file:///recent.jpg", "image/jpeg", "camera");
 
-    it("returns 0 when autoDeleteDays is 0 or negative", async () => {
-      await addToInbox("file:///photo.jpg", "image/jpeg", "camera");
+    const deletedCount = await cleanupOrphanedInboxItems(90);
 
-      expect(await cleanupOrphanedInboxItems(0)).toBe(0);
-      expect(await cleanupOrphanedInboxItems(-1)).toBe(0);
-      expect(getInboxCount()).toBe(1);
+    expect(deletedCount).toBe(1);
+    expect(getInboxItems()).toHaveLength(1);
+    expect(deletedUris).toEqual([oldItem.localUri]);
+  });
+
+  it("releases stale reservations during cleanup without deleting media", async () => {
+    await addToInbox("file:///reserved.jpg", "image/jpeg", "camera");
+    const [item] = getInboxItems();
+    reserveInboxItems([item!.id], "draft:stale");
+
+    const raw = readRawState();
+    raw.items[0].reservedAt = new Date(
+      Date.now() - 26 * 60 * 60 * 1000,
+    ).toISOString();
+    mmkvStore[INBOX_STORAGE_KEY] = JSON.stringify(raw);
+
+    const deletedCount = await cleanupOrphanedInboxItems(90, 24);
+
+    expect(deletedCount).toBe(0);
+    expect(deletedUris).toEqual([]);
+    expect(getInboxItems()).toHaveLength(1);
+    expect(getInboxItems()[0]).toMatchObject({
+      id: item!.id,
+      status: "unassigned",
     });
+  });
 
-    it("handles empty inbox", async () => {
-      const count = await cleanupOrphanedInboxItems(90);
-      expect(count).toBe(0);
-    });
+  it("stores and consumes pending inbox selections", () => {
+    setPendingInboxSelection(["a", "b"]);
 
-    it("only deletes expired items, keeps recent ones", async () => {
-      await addToInbox("file:///recent.jpg", "image/jpeg", "camera");
-      await addToInbox("file:///old.jpg", "image/jpeg", "camera");
+    expect(consumePendingInboxSelection()).toEqual(["a", "b"]);
+    expect(consumePendingInboxSelection()).toEqual([]);
+  });
 
-      // Backdate only the second item
-      const state = JSON.parse(mmkvStore["opus_inbox_state"]!);
-      state.items[1].capturedAt = new Date(
-        Date.now() - 100 * 24 * 60 * 60 * 1000,
-      ).toISOString();
-      mmkvStore["opus_inbox_state"] = JSON.stringify(state);
-
-      const count = await cleanupOrphanedInboxItems(90);
-
-      expect(count).toBe(1);
-      expect(getInboxCount()).toBe(1);
-    });
+  it("extracts reserved inbox provenance from draft operative media", () => {
+    expect(
+      getReservedInboxIdsFromMedia([
+        { sourceInboxId: "one" },
+        {},
+        { sourceInboxId: "two" },
+        { sourceInboxId: "one" },
+      ]),
+    ).toEqual(["one", "two"]);
   });
 });

@@ -36,6 +36,7 @@ Key capabilities: multi-specialty case logging, SNOMED CT coded diagnoses and pr
 - **Capture Pipeline Phase G COMPLETE** — Planned Case creation UI and access: `PlanCaseScreen` (ultra-minimal modal form: patient ID, planned date, specialty, note, template picker, "Open Opus Camera" button), `PlannedCaseListScreen` (sorted by plannedDate, per-row quick actions: Complete Case → CaseFormScreen edit mode, Camera → OpusCameraScreen), `AddCaseFAB` expanded with ActionSheet menu ("Log a Case" / "Plan a Case" / "Cancel"), completion flow overwrites `caseStatus: "planned"` → active/incomplete/discharged on save, `CaseFormScreen` shows "Complete Case" header when editing planned case
 - **Capture Pipeline Phase H COMPLETE** — Two-Layer Photo Assignment: `autoAssign()` pure function (template metadata priority → sequential fill → leave untagged), `findMatchingCasesByPatientId()` for NHI auto-match (case-insensitive, sorted by match count), `CaseMediaOrganiserScreen` (protocol slot grid + untagged strip, tap-to-assign, phase filter tabs, auto-organise button, Done returns updated media via MediaCallbackContext), "Organise with protocol" button in OperativeMediaSection (shown when protocol exists + untagged photos present), NHI auto-match banner in InboxScreen (async case loading, one-tap assign), 15 new tests (autoAssign + findMatchingCasesByPatientId + template metadata), 624 tests total
 - **Patient Identity COMPLETE** — On-device structured patient identity: `patientFirstName`, `patientLastName`, `patientDateOfBirth` (replaces `age`), `patientNhi` (NZ NHI with mod-11 check digit validation). Country-aware UI (`countryOfPractice === 'NZ'` → NHI field, non-NZ → generic identifier). Per-user HMAC-SHA256 replacing bare SHA-256 for patient identifier hashing (key in iOS Keychain via `expo-secure-store`), `hmac:` prefix distinguishes new hashes, lazy migration on case load, dual-hash lookup for backward compat. `stripPatientIdentityForSync()` security boundary removes identity fields before server sync. `nhiValidation.ts` (format + check digit), `patientIdentifierHmac.ts` (HMAC key management + hashing). PatientInfoSection refactored with NHI/name/DOB fields + privacy indicator. All display surfaces updated (CaseDetailScreen, CaseCard, CaseSummaryView, dashboard attention cards). CSV export +5 columns (43 total), FHIR Patient resource, PDF patient header, search by name/NHI, 25 new tests (12 NHI + 13 identity), 649 tests total
+- **Capture Pipeline Audit Remediation COMPLETE** — Inbox hardened into encrypted MMKV state with SecureStore-backed key, schema v2 metadata (`capturedAt`, `importedAt`, `status`, `sourceAssetId`, dimensions, patient hash) and deterministic captured-time sorting; inbox selection is now transactional (`unassigned` → `reserved` → `assigned`) with finalize-on-save, cancel/discard release, and stale reservation cleanup; Smart Import preserves original asset creation time and can stage to Inbox or attach directly to a case; Opus Camera now supports `targetMode` (`inbox` vs direct case attach), blocks dismissal while queued encryption finishes, and surfaces save failures; planned-case camera flow now auto-saves the minimal planned case before opening capture; Dashboard has a permanent Inbox shortcut and case picker search now expands beyond the previous recent-only slice; iOS native scaffold added via `@bacons/apple-targets` with App Group entitlement, Inbox widget + Control Center capture control, shared extension storage bridge, pending locked-camera capture ingestion, locked-camera extension scaffold, and `opus://camera` / `opus://inbox` deep-link handling; targeted capture workflow suites now cover inbox storage, assignment, protocol tagging, media UI, and shared native ingress (75 passing tests)
 - **Phase 5 IN PROGRESS** — Version 2.0.0, EAS config done (dev/preview/production profiles), pending manual regression + TestFlight submission
 
 ## Tech stack
@@ -49,7 +50,8 @@ Key capabilities: multi-specialty case logging, SNOMED CT coded diagnoses and pr
 | Navigation | React Navigation | 7 (@native 7.1.8, @native-stack 7.3.16, @bottom-tabs 7.4.0) |
 | Server state | TanStack React Query | 5.90.7 |
 | Animation | React Native Reanimated | 4.1.1 |
-| Camera | expo-camera | 16 |
+| Camera | expo-camera | 17.0.10 |
+| Native Targets | @bacons/apple-targets | 4.0.6 |
 | Charts | React Native SVG | 15.12.1 |
 | Backend | Express | 4.21.2 |
 | ORM | Drizzle ORM | 0.39.3 |
@@ -90,7 +92,7 @@ npm run test:harness   # 500-case API test harness (requires running server + .e
 
 ```
 client/
-  App.tsx                        # Root: 7 nested providers → RootStackNavigator
+  App.tsx                        # Root: providers + deep-link routing + locked-capture ingress → RootStackNavigator
   screens/                       # 28 screens + 9 onboarding sub-screens
     DashboardScreen.tsx           # Surgical triage surface, 4-zone layout
     CaseDetailScreen.tsx          # Full case view, timeline, flap outcomes
@@ -114,11 +116,11 @@ client/
     CaseSearchScreen.tsx          # Global case search by patient name, NHI, diagnosis, procedure, facility
     StatisticsScreen.tsx          # 3-tier analytics: career overview, specialty deep-dives, operational insights
     NeedsAttentionListScreen.tsx  # Full-screen needs attention list with sections
-    InboxScreen.tsx               # Photo inbox: date-grouped grid, multi-select, assign-to-case, pick mode
-    SmartImportScreen.tsx         # Camera Roll import: encrypt → delete originals flow
-    OpusCameraScreen.tsx          # Dedicated in-app camera: template picker + guided viewfinder + quick snap
-    PlanCaseScreen.tsx            # Planned case creation: patient ID, date, specialty, note, template picker
-    PlannedCaseListScreen.tsx     # Planned case list: sorted by date, complete/camera quick actions
+    InboxScreen.tsx               # Transactional photo inbox: date-grouped grid, reserve/release/finalize assignment, pick mode
+    SmartImportScreen.tsx         # Camera Roll import: preserve capture time, encrypt, optional delete, inbox or direct-case attach
+    OpusCameraScreen.tsx          # Dedicated in-app camera: template picker + guided viewfinder + quick snap + inbox/direct-case target modes
+    PlanCaseScreen.tsx            # Planned case creation: patient ID, date, specialty, note, template picker, auto-save before camera
+    PlannedCaseListScreen.tsx     # Planned case list: sorted by date, complete/camera quick actions with direct attach
     CaseMediaOrganiserScreen.tsx  # Protocol slot grid + untagged strip: tap-to-assign, auto-organise
     onboarding/                   # 9 files: Welcome, FeaturePager, Auth, EmailSignup,
                                   #   Categories, Training, Hospital, Privacy, FeatureSlide
@@ -207,10 +209,14 @@ client/
     skinCancerConfig.ts          # Activation, pathway logic, margins, rare subtype metadata, SLNB, diagnosis resolution, procedure suggestions
     skinCancerEpisodeHelpers.ts  # Episode link/update plans + follow-up transforms
     handInfectionBridge.ts       # HandInfectionDetails ↔ InfectionOverlay bridge functions
-    inboxStorage.ts              # MMKV-backed inbox CRUD (createMMKV v4), sync reads, encrypt/decrypt pipeline
+    inboxStorage.ts              # Encrypted MMKV inbox state (SecureStore key), reservation lifecycle, cleanup, shared native count sync
     inboxAssignment.ts           # Smart tag inference for inbox-to-case assignment (template step → temporal → fallback), autoAssign(), findMatchingCasesByPatientId()
     nhiValidation.ts             # NZ NHI format validation (regex + mod-11 check digit)
     patientIdentifierHmac.ts     # Per-user HMAC-SHA256 key management + hashing, legacy hash detection, sync stripping
+    inboxCapture.ts              # Shared capture/import helpers for resolving tags and building operative media from Inbox/direct capture
+    patientIdentifierHash.ts     # Normalization + SHA-256 hashing for safe patient identifier matching
+    nativeExtensionBridge.ts     # App Group bridge for Apple targets shared storage (Inbox count + pending native captures)
+    sharedCaptureIngress.ts      # App-launch/resume ingestion of pending locked-camera captures into encrypted Inbox storage
     smartImportPrefs.ts          # AsyncStorage "always delete after import" preference
     diagnosisPicklists/          # 12 specialty picklists + lazy-loaded index
       index.ts                   # getDiagnosesForProcedure, reverse mapping
@@ -221,7 +227,7 @@ client/
   types/
     case.ts                      # Case, DiagnosisGroup, Procedure, Timeline, Media, CaseStatus "planned", resolvedCaseStatus/isPlannedCase, calculateAgeFromDob, getPatientDisplayName helpers
     media.ts                     # MediaTag taxonomy (64 tags, 7 groups), MEDIA_TAG_REGISTRY, getTagsForGroup, getRelevantGroups
-    inbox.ts                     # InboxItem (+ templateId/templateStepIndex/patientIdentifier metadata), InboxState — unassigned clinical photo metadata
+    inbox.ts                     # InboxItem (timestamps, status, provenance, template metadata, patient hash), InboxState — encrypted Inbox metadata index
     diagnosis.ts                 # Diagnosis picklist entry
     episode.ts                   # Treatment episode, status machine, encounter classes
     infection.ts                 # Infection episodes, syndromes, microbiology
@@ -254,6 +260,10 @@ client/
     StatisticsStackNavigator.tsx # Statistics tab stack
     SettingsStackNavigator.tsx   # Settings → Profile → Facilities → Preferences
     OnboardingNavigator.tsx      # Welcome → Features → Auth → Categories → Training → Hospital → Privacy
+targets/
+  _shared/                       # Shared Swift constants + CameraCaptureIntent linked into app/targets
+  opus-camera-control/           # Apple widget target: Inbox widget + Control Center capture control
+  opus-locked-camera/            # LockedCameraCapture extension scaffold (pending-capture handoff to app)
   assets/
     specialty-icons.ts           # Custom SVG icon definitions for specialties
     icons/app/                   # App icons (1024px, dark + light)
