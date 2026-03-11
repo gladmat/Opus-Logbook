@@ -78,8 +78,7 @@
           "microphonePermission": false,
           "recordAudioAndroid": false
         }
-      ],
-      "@bacons/apple-targets"
+      ]
     ],
     "experiments": {
       "reactCompiler": true
