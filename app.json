@@ -12,6 +12,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.drgladysz.opus",
       "buildNumber": "5",
+      "appleTeamId": "8CQ38RR2W4",
       "entitlements": {
         "com.apple.security.application-groups": [
           "group.com.drgladysz.opus"
