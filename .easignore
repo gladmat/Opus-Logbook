@@ -17,5 +17,8 @@ drizzle.config.ts
 # Git
 .git/
 
+# Claude worktrees and config
+.claude/
+
 # Other
 *.md
