@@ -647,8 +647,12 @@ export async function getCase(id: string): Promise<Case | null> {
 
     // Lazy HMAC hash migration: upgrade SHA-256 → HMAC-SHA256 on load
     if (caseData?.patientIdentifier) {
-      migrateHashIfNeeded(caseData.id, caseData.patientIdentifier).catch(
-        () => {},
+      migrateHashIfNeeded(caseData.id, caseData.patientIdentifier).catch((e) =>
+        console.error(
+          "[storage] Hash migration failed for case:",
+          caseData.id,
+          e,
+        ),
       );
     }
 

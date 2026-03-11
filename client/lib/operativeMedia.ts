@@ -7,21 +7,20 @@ import type {
 import type { MediaTag } from "@/types/media";
 import { resolveMediaTag } from "@/lib/mediaTagMigration";
 
-/** @deprecated Use MediaTag from @/types/media instead. Kept for backward compatibility. */
-export const MEDIA_TYPE_TO_CATEGORY: Record<OperativeMediaType, MediaCategory> =
-  {
-    preoperative_photo: "preop",
-    intraoperative_photo: "immediate_postop",
-    xray: "xray",
-    ct_scan: "ct_angiogram",
-    mri: "ultrasound",
-    diagram: "other",
-    document: "other",
-    other: "other",
-  };
+/** Internal legacy mapping — used only within this module for backward-compat conversion. */
+const MEDIA_TYPE_TO_CATEGORY: Record<OperativeMediaType, MediaCategory> = {
+  preoperative_photo: "preop",
+  intraoperative_photo: "immediate_postop",
+  xray: "xray",
+  ct_scan: "ct_angiogram",
+  mri: "ultrasound",
+  diagram: "other",
+  document: "other",
+  other: "other",
+};
 
-/** @deprecated Use MediaTag from @/types/media instead. Kept for backward compatibility. */
-export const CATEGORY_TO_MEDIA_TYPE: Partial<
+/** Internal legacy mapping — used only within this module for backward-compat conversion. */
+const CATEGORY_TO_MEDIA_TYPE: Partial<
   Record<MediaCategory, OperativeMediaType>
 > = {
   preop: "preoperative_photo",

@@ -1864,30 +1864,6 @@ export const MEDIA_CATEGORY_OPTIONS: {
   { value: "other", label: "Other", group: "Other" },
 ];
 
-/** @deprecated Use MEDIA_TAG_REGISTRY from @/types/media for tag labels instead. */
-export const MEDIA_CATEGORY_LABELS: Record<MediaCategory, string> = {
-  preop: "Pre-op",
-  flap_harvest: "Flap Harvest",
-  flap_inset: "Flap Inset",
-  anastomosis: "Anastomosis",
-  closure: "Closure",
-  immediate_postop: "Immediate Post-op",
-  flap_planning: "Flap Planning",
-  xray: "X-ray",
-  preop_xray: "Pre-op X-ray",
-  intraop_xray: "Intraop X-ray",
-  postop_xray: "Post-op X-ray",
-  ct_angiogram: "CT/Angiogram",
-  ultrasound: "Ultrasound/Doppler",
-  discharge_wound: "Discharge Wound",
-  discharge_donor: "Discharge Donor",
-  followup_photo: "Follow-up Photo",
-  donor_site: "Donor Site",
-  complication: "Complication",
-  revision: "Revision",
-  other: "Other",
-};
-
 export interface MediaAttachment {
   id: string;
   localUri: string;
