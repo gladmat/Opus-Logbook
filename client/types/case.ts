@@ -8,6 +8,7 @@ import type {
 import type { SkinCancerLesionAssessment } from "./skinCancer";
 import type { JointImplantDetails } from "./jointImplant";
 import type { MediaTag } from "./media";
+import type { OperativeRole, SupervisionLevel } from "./operativeRole";
 import { parseDateOnlyValue } from "@/lib/dateValues";
 
 // Case status for active patient tracking
@@ -23,6 +24,7 @@ export const CASE_STATUS_LABELS: Record<CaseStatus, string> = {
 // RACS MALT Supervision Levels (role in theatre)
 export type Role = "PS" | "PP" | "AS" | "ONS" | "SS" | "SNS" | "A";
 
+/** @deprecated Use OperativeRole from operativeRole.ts instead. Kept for backward compat with old cases. */
 export type OperatingTeamRole =
   | "primary_surgeon"
   | "scrub_nurse"
@@ -876,6 +878,7 @@ export interface TeamMember {
   addedAt: string;
 }
 
+/** @deprecated Operating team removed in role refactor. Kept for backward compat with old cases. */
 export interface OperatingTeamMember {
   id: string;
   name: string;
@@ -1556,6 +1559,10 @@ export interface CaseProcedure {
   localCode?: string;
   localCodeSystem?: string;
   surgeonRole: Role;
+  /** Per-procedure operative role override (overrides case-level defaultOperativeRole) */
+  operativeRoleOverride?: OperativeRole;
+  /** Per-procedure supervision level override (overrides case-level defaultSupervisionLevel) */
+  supervisionLevelOverride?: SupervisionLevel;
   clinicalDetails?: ClinicalDetails;
   implantDetails?: JointImplantDetails;
   notes?: string;
@@ -1670,7 +1677,14 @@ export interface Case {
   procedureCode?: ProcedureCode;
   diagnosisGroups: DiagnosisGroup[];
   surgeryTiming?: SurgeryTiming;
+  /** @deprecated Operating team removed in role refactor. Kept for backward compat with old cases. */
   operatingTeam?: OperatingTeamMember[];
+
+  // Operative Role & Supervision (3-dimensional model)
+  responsibleConsultantName?: string;
+  responsibleConsultantUserId?: string;
+  defaultOperativeRole?: OperativeRole;
+  defaultSupervisionLevel?: SupervisionLevel;
 
   // Schema & entry tracking (Phase 4)
   schemaVersion?: number;
@@ -2034,6 +2048,7 @@ export const ROLE_DESCRIPTIONS: Record<Role, string> = {
   A: "Not in the theatre but available by telephone for advice and able to attend if required.",
 };
 
+/** @deprecated Operating team removed in role refactor. Kept for backward compat. */
 export const OPERATING_TEAM_ROLE_LABELS: Record<OperatingTeamRole, string> = {
   primary_surgeon: "Primary Surgeon",
   scrub_nurse: "Scrub Nurse",

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, StyleSheet, Pressable, Modal } from "react-native";
+import { View, StyleSheet, Pressable } from "react-native";
 import { v4 as uuidv4 } from "uuid";
 import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
@@ -10,7 +10,6 @@ import { BorderRadius, Spacing, Shadows } from "@/constants/theme";
 import { FormField, PickerField } from "@/components/FormField";
 import { ProcedureClinicalDetails } from "@/components/ProcedureClinicalDetails";
 import { ProcedureSubcategoryPicker } from "@/components/ProcedureSubcategoryPicker";
-import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { SnomedSearchPicker } from "@/components/SnomedSearchPicker";
 import {
   hasPicklistForSpecialty,
@@ -19,7 +18,6 @@ import {
 import type { ProcedurePicklistEntry } from "@/lib/procedurePicklist";
 import {
   type CaseProcedure,
-  type Role,
   type Specialty,
   type ClinicalDetails,
   type FreeFlapDetails,
@@ -27,14 +25,24 @@ import {
   type ProcedureTag,
   FLAP_SNOMED_MAP,
   RECIPIENT_SITE_SNOMED_MAP,
-  ROLE_LABELS,
-  ROLE_DESCRIPTIONS,
   SPECIALTY_LABELS,
   PROCEDURE_TYPES,
   PROCEDURE_TAG_LABELS,
   AnatomicalRegion,
   Indication,
 } from "@/types/case";
+import {
+  resolveOperativeRole,
+  resolveSupervisionLevel,
+  hasRoleOverride,
+  formatRoleDisplay,
+  supervisionApplicable,
+  OPERATIVE_ROLE_LABELS,
+  SUPERVISION_LABELS,
+  type OperativeRole,
+  type SupervisionLevel,
+} from "@/types/operativeRole";
+import { useCaseFormState } from "@/contexts/CaseFormContext";
 import {
   getDefaultFlapSpecificDetails,
   getGracilisContextDefaults,
@@ -79,7 +87,10 @@ export function ProcedureEntryCard({
 }: ProcedureEntryCardProps) {
   const { theme } = useTheme();
   const { profile } = useAuth();
-  const [showRoleInfoModal, setShowRoleInfoModal] = useState(false);
+  const { state } = useCaseFormState();
+  const [showRoleOverride, setShowRoleOverride] = useState(
+    hasRoleOverride(procedure),
+  );
 
   const handleSpecialtyChange = (value: string) => {
     onUpdate({
@@ -223,10 +234,47 @@ export function ProcedureEntryCard({
     });
   };
 
-  const handleRoleChange = (value: string) => {
+  // ── Role override helpers ───────────────────────────────────────────────
+  const caseDefaultRole =
+    (state.defaultOperativeRole as OperativeRole) || undefined;
+  const caseDefaultSupervision =
+    (state.defaultSupervisionLevel as SupervisionLevel) || undefined;
+  const effectiveRole = resolveOperativeRole(
+    procedure.operativeRoleOverride,
+    caseDefaultRole,
+  );
+  const effectiveSupervision = resolveSupervisionLevel(
+    procedure.supervisionLevelOverride,
+    caseDefaultSupervision,
+    effectiveRole,
+  );
+  const isOverridden = hasRoleOverride(procedure);
+
+  const handleRoleOverrideChange = (value: string) => {
     onUpdate({
       ...procedure,
-      surgeonRole: value as Role,
+      operativeRoleOverride: value as OperativeRole,
+      // Auto-clear supervision override when switching away from SURGEON
+      supervisionLevelOverride: supervisionApplicable(value as OperativeRole)
+        ? procedure.supervisionLevelOverride
+        : "NOT_APPLICABLE",
+    });
+  };
+
+  const handleSupervisionOverrideChange = (value: string) => {
+    onUpdate({
+      ...procedure,
+      supervisionLevelOverride: value as SupervisionLevel,
+    });
+  };
+
+  const handleResetOverrides = () => {
+    Haptics.selectionAsync();
+    setShowRoleOverride(false);
+    onUpdate({
+      ...procedure,
+      operativeRoleOverride: undefined,
+      supervisionLevelOverride: undefined,
     });
   };
 
@@ -429,118 +477,142 @@ export function ProcedureEntryCard({
         </View>
       </View>
 
+      {/* ── Role inheritance display ────────────────────────────── */}
       <View style={styles.roleHeaderRow}>
-        <View style={styles.labelRow}>
+        <View style={{ flex: 1 }}>
           <ThemedText
             style={[styles.fieldLabel, { color: theme.textSecondary }]}
           >
-            Your Role (RACS MALT)
+            Your Role
           </ThemedText>
-          <ThemedText style={[styles.requiredAsterisk, { color: theme.error }]}>
-            *
+          <ThemedText
+            style={[
+              styles.roleValueText,
+              isOverridden && { color: theme.link },
+            ]}
+          >
+            {formatRoleDisplay(effectiveRole, effectiveSupervision)}
+            {isOverridden ? " (overridden)" : ""}
           </ThemedText>
         </View>
         <Pressable
-          style={[styles.infoButton, { backgroundColor: theme.link + "15" }]}
-          onPress={() => setShowRoleInfoModal(true)}
+          onPress={() => {
+            Haptics.selectionAsync();
+            if (showRoleOverride) {
+              handleResetOverrides();
+            } else {
+              setShowRoleOverride(true);
+            }
+          }}
           hitSlop={8}
         >
-          <Feather name="info" size={14} color={theme.link} />
+          <ThemedText style={[styles.roleLink, { color: theme.link }]}>
+            {showRoleOverride ? "Use default" : "Override"}
+          </ThemedText>
         </Pressable>
       </View>
 
-      <PickerField
-        label=""
-        value={procedure.surgeonRole}
-        options={[
-          { value: "PS", label: "PS - Primary Surgeon" },
-          { value: "PP", label: "PP - Performed with Peer" },
-          { value: "AS", label: "AS - Assisting (scrubbed)" },
-          { value: "ONS", label: "ONS - Observing (not scrubbed)" },
-          { value: "SS", label: "SS - Supervising (scrubbed)" },
-          { value: "SNS", label: "SNS - Supervising (not scrubbed)" },
-          { value: "A", label: "A - Available" },
-        ]}
-        onSelect={handleRoleChange}
-      />
-
-      {/* Role Info Modal */}
-      <Modal
-        visible={showRoleInfoModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowRoleInfoModal(false)}
-      >
-        <View
-          style={[
-            styles.modalContainer,
-            { backgroundColor: theme.backgroundRoot },
-          ]}
-        >
-          <View
-            style={[styles.modalHeader, { borderBottomColor: theme.border }]}
-          >
-            <ThemedText style={styles.modalTitle}>
-              Supervision Levels
-            </ThemedText>
-            <Pressable
-              style={[
-                styles.modalCloseButton,
-                { backgroundColor: theme.backgroundDefault },
-              ]}
-              onPress={() => setShowRoleInfoModal(false)}
-              hitSlop={8}
-            >
-              <Feather name="x" size={20} color={theme.text} />
-            </Pressable>
-          </View>
-          <KeyboardAwareScrollViewCompat
-            style={styles.modalContent}
-            contentContainerStyle={styles.modalScrollContent}
-          >
-            <ThemedText
-              style={[styles.modalSubtitle, { color: theme.textSecondary }]}
-            >
-              RACS MALT role in theatre definitions
-            </ThemedText>
-            {(Object.keys(ROLE_LABELS) as Role[]).map((roleKey) => (
-              <View
-                key={roleKey}
-                style={[
-                  styles.roleInfoCard,
-                  { backgroundColor: theme.backgroundDefault },
-                ]}
-              >
-                <View style={styles.roleInfoHeader}>
-                  <View
+      {showRoleOverride && (
+        <View style={styles.roleOverridePanel}>
+          <View style={styles.roleChipRow}>
+            {(
+              Object.keys(OPERATIVE_ROLE_LABELS) as OperativeRole[]
+            ).map((r) => {
+              const selected = procedure.operativeRoleOverride === r;
+              return (
+                <Pressable
+                  key={r}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    handleRoleOverrideChange(r);
+                  }}
+                  style={[
+                    styles.roleChip,
+                    {
+                      backgroundColor: selected
+                        ? theme.link
+                        : theme.backgroundDefault,
+                      borderColor: selected ? theme.link : theme.border,
+                    },
+                  ]}
+                >
+                  <ThemedText
                     style={[
-                      styles.roleCodeBadge,
-                      { backgroundColor: theme.link + "20" },
+                      styles.roleChipText,
+                      {
+                        color: selected
+                          ? theme.buttonText
+                          : theme.textSecondary,
+                      },
+                    ]}
+                  >
+                    {OPERATIVE_ROLE_LABELS[r]}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {supervisionApplicable(
+            procedure.operativeRoleOverride ?? effectiveRole,
+          ) && (
+            <View style={[styles.roleChipRow, { marginTop: Spacing.sm }]}>
+              {(
+                [
+                  "INDEPENDENT",
+                  "SUP_AVAILABLE",
+                  "SUP_PRESENT",
+                  "SUP_SCRUBBED",
+                  "DIRECTED",
+                ] as SupervisionLevel[]
+              ).map((s) => {
+                const selected = procedure.supervisionLevelOverride === s;
+                return (
+                  <Pressable
+                    key={s}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      handleSupervisionOverrideChange(s);
+                    }}
+                    style={[
+                      styles.roleChip,
+                      {
+                        backgroundColor: selected
+                          ? theme.link
+                          : theme.backgroundDefault,
+                        borderColor: selected ? theme.link : theme.border,
+                      },
                     ]}
                   >
                     <ThemedText
-                      style={[styles.roleCode, { color: theme.link }]}
+                      style={[
+                        styles.roleChipText,
+                        {
+                          color: selected
+                            ? theme.buttonText
+                            : theme.textSecondary,
+                        },
+                      ]}
                     >
-                      {roleKey}
+                      {SUPERVISION_LABELS[s]}
                     </ThemedText>
-                  </View>
-                  <ThemedText style={styles.roleLabel}>
-                    {ROLE_LABELS[roleKey]}
-                  </ThemedText>
-                </View>
-                <ThemedText
-                  style={[
-                    styles.roleDescription,
-                    { color: theme.textSecondary },
-                  ]}
-                >
-                  {ROLE_DESCRIPTIONS[roleKey]}
-                </ThemedText>
-              </View>
-            ))}
-          </KeyboardAwareScrollViewCompat>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+
+          <Pressable
+            onPress={handleResetOverrides}
+            style={{ marginTop: Spacing.sm }}
+            hitSlop={8}
+          >
+            <ThemedText style={[styles.roleLink, { color: theme.link }]}>
+              Reset to case default
+            </ThemedText>
+          </Pressable>
         </View>
-      </Modal>
+      )}
 
       <SnomedSearchPicker
         label="SNOMED CT Procedure"
@@ -629,6 +701,11 @@ const styles = StyleSheet.create({
   iconButton: {
     padding: Spacing.xs,
   },
+  requiredAsterisk: {
+    marginLeft: 2,
+    fontSize: 14,
+    fontWeight: "600",
+  },
   roleHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -639,78 +716,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
   },
-  labelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  requiredAsterisk: {
-    marginLeft: 2,
-    fontSize: 14,
+  roleValueText: {
+    fontSize: 15,
     fontWeight: "600",
+    marginTop: 2,
   },
-  infoButton: {
-    padding: 4,
-    borderRadius: 12,
-  },
-  modalContainer: {
-    flex: 1,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: Spacing.lg,
-    borderBottomWidth: 1,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  modalCloseButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  modalContent: {
-    flex: 1,
-  },
-  modalScrollContent: {
-    padding: Spacing.lg,
-    paddingBottom: Spacing["2xl"],
-  },
-  modalSubtitle: {
+  roleLink: {
     fontSize: 14,
-    marginBottom: Spacing.lg,
+    fontWeight: "500",
   },
-  roleInfoCard: {
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
+  roleOverridePanel: {
     marginBottom: Spacing.md,
   },
-  roleInfoHeader: {
+  roleChipRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    marginBottom: Spacing.xs,
+    flexWrap: "wrap",
+    gap: Spacing.xs,
   },
-  roleCodeBadge: {
+  roleChip: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: 6,
     borderRadius: BorderRadius.sm,
+    borderWidth: 1,
   },
-  roleCode: {
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  roleLabel: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  roleDescription: {
-    fontSize: 14,
-    lineHeight: 20,
+  roleChipText: {
+    fontSize: 13,
+    fontWeight: "500",
   },
   tagsSection: {
     marginTop: Spacing.xs,

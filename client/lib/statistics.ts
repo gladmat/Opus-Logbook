@@ -3,7 +3,6 @@ import {
   CaseProcedure,
   DiagnosisGroup,
   Specialty,
-  Role,
   FreeFlapDetails,
   getAllProcedures,
   getCaseSpecialties,
@@ -13,6 +12,13 @@ import {
   DONOR_SITE_COMPLICATION_LABELS,
   RECIPIENT_SITE_COMPLICATION_LABELS,
 } from "@/types/case";
+import {
+  type OperativeRole,
+  OPERATIVE_ROLE_LABELS,
+  resolveOperativeRole,
+  migrateLegacyRole,
+  isLegacyRole,
+} from "@/types/operativeRole";
 import {
   ANTICOAGULATION_PROTOCOLS,
   FLAP_MONITORING_PROTOCOLS,
@@ -33,7 +39,7 @@ export interface StatisticsFilters {
   customStartDate?: string;
   customEndDate?: string;
   facility: string | "all";
-  role: Role | "all";
+  role: OperativeRole | "all";
 }
 
 export interface BaseStatistics {
@@ -118,15 +124,13 @@ export const TIME_PERIOD_LABELS: Record<TimePeriod, string> = {
   custom: "Custom Range",
 };
 
-export const ROLE_FILTER_LABELS: Record<Role | "all", string> = {
+export const ROLE_FILTER_LABELS: Record<OperativeRole | "all", string> = {
   all: "All Roles",
-  PS: "Primary Surgeon",
-  PP: "Performed with Peer",
-  AS: "Assisting (scrubbed)",
-  ONS: "Observing (not scrubbed)",
-  SS: "Supervising (scrubbed)",
-  SNS: "Supervising (not scrubbed)",
-  A: "Available",
+  SURGEON: "Surgeon",
+  FIRST_ASST: "First Assistant",
+  SECOND_ASST: "Second Assistant",
+  OBSERVER: "Observer",
+  SUPERVISOR: "Supervisor",
 };
 
 function getLocalDateAnchor(reference: Date = new Date()): Date {
@@ -183,20 +187,21 @@ function isWithinTimePeriod(
   }
 }
 
-function getPrimaryRole(caseData: Case): Role {
+function getPrimaryRole(caseData: Case): OperativeRole {
+  // New model: case-level default
+  if (caseData.defaultOperativeRole) return caseData.defaultOperativeRole;
+  // Legacy: derive from first procedure's surgeonRole
   const procs = getAllProcedures(caseData);
   if (procs.length > 0) {
-    return procs[0]!.surgeonRole;
+    const role = procs[0]!.surgeonRole;
+    if (role && isLegacyRole(role)) return migrateLegacyRole(role).role;
   }
+  // Fallback: teamMembers
   if (caseData.teamMembers && caseData.teamMembers.length > 0) {
-    const primary = caseData.teamMembers.find((m) => m.role === "PS");
-    if (primary) return "PS";
-    const supervising = caseData.teamMembers.find(
-      (m) => m.role === "SS" || m.role === "SNS",
-    );
-    if (supervising) return supervising.role as Role;
+    const legacyRole = caseData.teamMembers.find((m) => m.id === caseData.ownerId)?.role;
+    if (legacyRole && isLegacyRole(legacyRole)) return migrateLegacyRole(legacyRole).role;
   }
-  return "PS";
+  return "SURGEON";
 }
 
 function caseMatchesSpecialty(caseData: Case, specialty: Specialty): boolean {

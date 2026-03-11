@@ -20,6 +20,11 @@ import {
 } from "@/lib/skinCancerConfig";
 import { RoleBadge } from "@/components/RoleBadge";
 import { SpecialtyIcon } from "@/components/SpecialtyIcon";
+import {
+  migrateLegacyRole,
+  isLegacyRole,
+  type OperativeRole,
+} from "@/types/operativeRole";
 
 const BADGE_PRIORITY: Record<string, number> = {
   error: 0,
@@ -148,9 +153,17 @@ function DashboardCaseCardInner({
 
   const formattedDate = formatRelativeDate(caseData.procedureDate);
 
-  const userRole =
-    caseData.teamMembers.find((m) => m.id === caseData.ownerId)?.role || "PS";
-  const showRoleBadge = userRole !== "PS";
+  // Resolve operative role from new model, falling back to legacy migration
+  const resolvedRole: OperativeRole | undefined = (() => {
+    if (caseData.defaultOperativeRole) return caseData.defaultOperativeRole;
+    const legacyRole =
+      caseData.teamMembers.find((m) => m.id === caseData.ownerId)?.role;
+    if (legacyRole && isLegacyRole(legacyRole)) {
+      return migrateLegacyRole(legacyRole).role;
+    }
+    return undefined;
+  })();
+  const showRoleBadge = resolvedRole != null && resolvedRole !== "SURGEON";
 
   const caseTitle = getCasePrimaryTitle(caseData) || caseData.procedureType;
   const primaryDiagnosis = getPrimaryDiagnosisName(caseData) || caseTitle;
@@ -209,8 +222,8 @@ function DashboardCaseCardInner({
         <View style={styles.contentText}>
           {hasMeta ? (
             <View style={styles.metaRow}>
-              {showRoleBadge ? (
-                <RoleBadge role={userRole} size="small" />
+              {showRoleBadge && resolvedRole ? (
+                <RoleBadge role={resolvedRole} size="small" />
               ) : null}
               {skinCancerBadge ? (
                 <View

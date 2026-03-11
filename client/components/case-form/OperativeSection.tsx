@@ -5,7 +5,6 @@ import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
 import {
   FormField,
-  PickerField,
   SelectField,
   DatePickerField,
 } from "@/components/FormField";
@@ -31,11 +30,18 @@ import {
   STAY_TYPE_LABELS,
   SMOKING_STATUS_LABELS,
   COMMON_COMORBIDITIES,
-  OperatingTeamRole,
   WoundInfectionRisk,
   AnaestheticType,
-  OPERATING_TEAM_ROLE_LABELS,
 } from "@/types/case";
+import {
+  OPERATIVE_ROLE_LABELS,
+  SUPERVISION_LABELS,
+  supervisionApplicable,
+  type OperativeRole,
+  type SupervisionLevel,
+} from "@/types/operativeRole";
+import { isConsultantLevel } from "@/lib/roleDefaults";
+import { useAuth } from "@/contexts/AuthContext";
 import { EncounterClass, ENCOUNTER_CLASS_LABELS } from "@/types/episode";
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -73,14 +79,20 @@ const WOUND_RISK_OPTIONS: { value: WoundInfectionRisk; label: string }[] = [
   { value: "na", label: "N/A" },
 ];
 
-const TEAM_ROLES: { value: OperatingTeamRole; label: string }[] = [
-  { value: "scrub_nurse", label: "Scrub Nurse" },
-  { value: "circulating_nurse", label: "Circulating Nurse" },
-  { value: "anaesthetist", label: "Anaesthetist" },
-  { value: "anaesthetic_registrar", label: "Anaesthetic Registrar" },
-  { value: "surgical_assistant", label: "Surgical Assistant" },
-  { value: "surgical_registrar", label: "Surgical Registrar" },
-  { value: "medical_student", label: "Medical Student" },
+const OPERATIVE_ROLE_OPTIONS: { value: OperativeRole; label: string }[] = [
+  { value: "SURGEON", label: OPERATIVE_ROLE_LABELS.SURGEON },
+  { value: "FIRST_ASST", label: OPERATIVE_ROLE_LABELS.FIRST_ASST },
+  { value: "SECOND_ASST", label: OPERATIVE_ROLE_LABELS.SECOND_ASST },
+  { value: "OBSERVER", label: OPERATIVE_ROLE_LABELS.OBSERVER },
+  { value: "SUPERVISOR", label: OPERATIVE_ROLE_LABELS.SUPERVISOR },
+];
+
+const SUPERVISION_OPTIONS: { value: SupervisionLevel; label: string }[] = [
+  { value: "INDEPENDENT", label: SUPERVISION_LABELS.INDEPENDENT },
+  { value: "SUP_AVAILABLE", label: SUPERVISION_LABELS.SUP_AVAILABLE },
+  { value: "SUP_PRESENT", label: SUPERVISION_LABELS.SUP_PRESENT },
+  { value: "SUP_SCRUBBED", label: SUPERVISION_LABELS.SUP_SCRUBBED },
+  { value: "DIRECTED", label: SUPERVISION_LABELS.DIRECTED },
 ];
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -90,7 +102,8 @@ export const OperativeSection = React.memo(function OperativeSection() {
   const insets = useSafeAreaInsets();
   const { state, showInjuryDate, durationDisplay, calculatedBmi } =
     useCaseFormState();
-  const { dispatch, addTeamMember, removeTeamMember } = useCaseFormDispatch();
+  const { dispatch } = useCaseFormDispatch();
+  const { profile } = useAuth();
   const [showAsaInfo, setShowAsaInfo] = useState(false);
 
   const hasHandTraumaGroup = state.diagnosisGroups.some(
@@ -102,14 +115,20 @@ export const OperativeSection = React.memo(function OperativeSection() {
   const asaNum = state.asaScore ? parseInt(state.asaScore) : 0;
   const showComorbidities = asaNum >= 2;
 
+  const isConsultant = isConsultantLevel(profile?.careerStage);
+
   const filledCount = useMemo(() => {
     let count = 0;
+    if (state.defaultOperativeRole) count++;
+    if (state.responsibleConsultantName) count++;
     if (state.admissionUrgency) count++;
     if (state.stayType) count++;
     if (state.anaestheticType) count++;
     if (state.surgeryStartTime) count++;
     return count;
   }, [
+    state.defaultOperativeRole,
+    state.responsibleConsultantName,
     state.admissionUrgency,
     state.stayType,
     state.anaestheticType,
@@ -119,10 +138,78 @@ export const OperativeSection = React.memo(function OperativeSection() {
   return (
     <CollapsibleFormSection
       title="Operative Details"
-      subtitle="Admission, timing, team, and patient factors"
+      subtitle="Role, admission, timing, and patient factors"
       filledCount={filledCount}
-      totalCount={4}
+      totalCount={6}
     >
+      {/* ── Your Role & Supervision ──────────────────────────────────────── */}
+
+      <SectionHeader title="Your Role & Supervision" />
+
+      {isConsultant ? (
+        <View style={styles.consultantRow}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
+            Responsible Consultant
+          </ThemedText>
+          <ThemedText style={styles.consultantValue}>
+            {state.responsibleConsultantName || "You"}
+          </ThemedText>
+          {state.responsibleConsultantName ? (
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                dispatch(setField("responsibleConsultantName", ""));
+                dispatch(setField("responsibleConsultantUserId", ""));
+              }}
+              hitSlop={8}
+            >
+              <ThemedText style={[styles.changeLink, { color: theme.link }]}>
+                Change
+              </ThemedText>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : (
+        <FormField
+          label="Responsible Consultant"
+          value={state.responsibleConsultantName}
+          onChangeText={(v: string) =>
+            dispatch(setField("responsibleConsultantName", v))
+          }
+          placeholder="Consultant name"
+        />
+      )}
+
+      <SelectField
+        label="Operative Role"
+        value={state.defaultOperativeRole}
+        options={OPERATIVE_ROLE_OPTIONS}
+        onSelect={(v: string) => {
+          dispatch(setField("defaultOperativeRole", v as OperativeRole));
+          // Auto-clear supervision when switching away from SURGEON
+          if (!supervisionApplicable(v as OperativeRole)) {
+            dispatch(setField("defaultSupervisionLevel", "NOT_APPLICABLE"));
+          }
+        }}
+      />
+
+      {supervisionApplicable(
+        state.defaultOperativeRole as OperativeRole,
+      ) ? (
+        <SelectField
+          label="Supervision Level"
+          value={state.defaultSupervisionLevel}
+          options={SUPERVISION_OPTIONS}
+          onSelect={(v: string) =>
+            dispatch(
+              setField("defaultSupervisionLevel", v as SupervisionLevel),
+            )
+          }
+        />
+      ) : null}
+
       {/* ── Admission & Timing ──────────────────────────────────────────── */}
 
       <SectionHeader title="Admission & Timing" />
@@ -307,9 +394,9 @@ export const OperativeSection = React.memo(function OperativeSection() {
         </View>
       ) : null}
 
-      {/* ── Team & Anaesthesia ──────────────────────────────────────────── */}
+      {/* ── Anaesthesia ────────────────────────────────────────────────── */}
 
-      <SectionHeader title="Team & Anaesthesia" />
+      <SectionHeader title="Anaesthesia" />
 
       <SelectField
         label="Anaesthetic Type"
@@ -319,76 +406,6 @@ export const OperativeSection = React.memo(function OperativeSection() {
           dispatch(setField("anaestheticType", v as AnaestheticType))
         }
       />
-
-      {state.operatingTeam.length > 0 ? (
-        <View style={styles.teamList}>
-          {state.operatingTeam.map((member) => (
-            <View
-              key={member.id}
-              style={[
-                styles.teamMemberCard,
-                { backgroundColor: theme.backgroundDefault },
-              ]}
-            >
-              <View style={styles.teamMemberInfo}>
-                <ThemedText style={styles.teamMemberName}>
-                  {member.name}
-                </ThemedText>
-                <ThemedText
-                  style={[
-                    styles.teamMemberRole,
-                    { color: theme.textSecondary },
-                  ]}
-                >
-                  {OPERATING_TEAM_ROLE_LABELS[member.role]}
-                </ThemedText>
-              </View>
-              <Pressable
-                onPress={() => removeTeamMember(member.id)}
-                hitSlop={8}
-              >
-                <Feather name="x" size={20} color={theme.textTertiary} />
-              </Pressable>
-            </View>
-          ))}
-        </View>
-      ) : null}
-
-      <View style={styles.addTeamMemberContainer}>
-        <View style={styles.row}>
-          <View style={styles.halfField}>
-            <FormField
-              label="Name"
-              value={state.newTeamMemberName}
-              onChangeText={(v: string) =>
-                dispatch(setField("newTeamMemberName", v))
-              }
-              placeholder="Team member name"
-            />
-          </View>
-          <View style={styles.halfField}>
-            <PickerField
-              label="Role"
-              value={state.newTeamMemberRole}
-              options={TEAM_ROLES}
-              onSelect={(v: string) =>
-                dispatch(
-                  setField("newTeamMemberRole", v as OperatingTeamRole),
-                )
-              }
-            />
-          </View>
-        </View>
-        <Pressable
-          style={[styles.addButton, { backgroundColor: theme.link + "15" }]}
-          onPress={addTeamMember}
-        >
-          <Feather name="plus" size={18} color={theme.link} />
-          <ThemedText style={[styles.addButtonText, { color: theme.link }]}>
-            Add Team Member
-          </ThemedText>
-        </Pressable>
-      </View>
 
       {/* ── Surgical Factors ────────────────────────────────────────────── */}
 
@@ -804,43 +821,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
   },
-  teamList: {
+  consultantRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: Spacing.sm,
     marginBottom: Spacing.md,
   },
-  teamMemberCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: Spacing.md,
-    borderRadius: BorderRadius.sm,
-  },
-  teamMemberInfo: {
+  consultantValue: {
     flex: 1,
-  },
-  teamMemberName: {
     fontSize: 15,
     fontWeight: "500",
   },
-  teamMemberRole: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  addTeamMemberContainer: {
-    marginBottom: Spacing.md,
-  },
-  addButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.xs,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.lg,
-  },
-  addButtonText: {
+  changeLink: {
     fontSize: 14,
     fontWeight: "500",
   },

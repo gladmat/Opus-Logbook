@@ -37,6 +37,7 @@ Key capabilities: multi-specialty case logging, SNOMED CT coded diagnoses and pr
 - **Capture Pipeline Phase H COMPLETE** — Two-Layer Photo Assignment: `autoAssign()` pure function (template metadata priority → sequential fill → leave untagged), `findMatchingCasesByPatientId()` for NHI auto-match (case-insensitive, sorted by match count), `CaseMediaOrganiserScreen` (protocol slot grid + untagged strip, tap-to-assign, phase filter tabs, auto-organise button, Done returns updated media via MediaCallbackContext), "Organise with protocol" button in OperativeMediaSection (shown when protocol exists + untagged photos present), NHI auto-match banner in InboxScreen (async case loading, one-tap assign), 15 new tests (autoAssign + findMatchingCasesByPatientId + template metadata), 624 tests total
 - **Patient Identity COMPLETE** — On-device structured patient identity: `patientFirstName`, `patientLastName`, `patientDateOfBirth` (replaces `age`), `patientNhi` (NZ NHI with mod-11 check digit validation). Country-aware UI (`countryOfPractice === 'NZ'` → NHI field, non-NZ → generic identifier). Per-user HMAC-SHA256 replacing bare SHA-256 for patient identifier hashing (key in iOS Keychain via `expo-secure-store`), `hmac:` prefix distinguishes new hashes, lazy migration on case load, dual-hash lookup for backward compat. `stripPatientIdentityForSync()` security boundary removes identity fields before server sync. `nhiValidation.ts` (format + check digit), `patientIdentifierHmac.ts` (HMAC key management + hashing). PatientInfoSection refactored with NHI/name/DOB fields + privacy indicator. All display surfaces updated (CaseDetailScreen, CaseCard, CaseSummaryView, dashboard attention cards). CSV export +5 columns (43 total), FHIR Patient resource, PDF patient header, search by name/NHI, 25 new tests (12 NHI + 13 identity), 649 tests total
 - **Capture Pipeline Audit Remediation COMPLETE** — Inbox hardened into encrypted MMKV state with SecureStore-backed key, schema v2 metadata (`capturedAt`, `importedAt`, `status`, `sourceAssetId`, dimensions, patient hash) and deterministic captured-time sorting; inbox selection is now transactional (`unassigned` → `reserved` → `assigned`) with finalize-on-save, cancel/discard release, and stale reservation cleanup; Smart Import preserves original asset creation time and can stage to Inbox or attach directly to a case; Opus Camera now supports `targetMode` (`inbox` vs direct case attach), blocks dismissal while queued encryption finishes, and surfaces save failures; planned-case camera flow now auto-saves the minimal planned case before opening capture; Dashboard Inbox relocated from large shortcut row + attention card to compact header icon with badge count, case picker search now expands beyond the previous recent-only slice; iOS native scaffold added via `@bacons/apple-targets` with App Group entitlement, Inbox widget + Control Center capture control, shared extension storage bridge, pending locked-camera capture ingestion, locked-camera extension scaffold, and `opus://camera` / `opus://inbox` deep-link handling; targeted capture workflow suites now cover inbox storage, assignment, protocol tagging, media UI, and shared native ingress (75 passing tests)
+- **Operative Role & Supervision COMPLETE** — Three-dimensional role model (OperativeRole × SupervisionLevel × Responsible Consultant) replacing legacy 7-value `Role` type. Case-level defaults with per-procedure override, smart profile-based defaults (`suggestRoleDefaults`), 6 export format mappings (RACS MALT, JDocs, UK eLogbook, ACGME, German, Swiss), `migrateLegacyRole()` for backward compat, operating team UI removed, `RoleBadge` supports both Role and OperativeRole types, CSV/FHIR/PDF exports updated with role+supervision+consultant columns, statistics role breakdown uses OperativeRole, 68 new tests (703 total)
 - **Phase 5 IN PROGRESS** — Version 2.0.0, EAS config done (dev/preview/production profiles), pending manual regression + TestFlight submission
 
 ## Tech stack
@@ -218,6 +219,7 @@ client/
     nativeExtensionBridge.ts     # App Group bridge for Apple targets shared storage (Inbox count + pending native captures)
     sharedCaptureIngress.ts      # App-launch/resume ingestion of pending locked-camera captures into encrypted Inbox storage
     smartImportPrefs.ts          # AsyncStorage "always delete after import" preference
+    roleDefaults.ts              # Smart role defaults based on profile career stage
     diagnosisPicklists/          # 12 specialty picklists + lazy-loaded index
       index.ts                   # getDiagnosesForProcedure, reverse mapping
       {specialty}Diagnoses.ts    # Per-specialty (aesthetics, bodyContouring, breast,
@@ -236,6 +238,7 @@ client/
     skinCancer.ts                # Assessment, histology, pathology, SLNB, lesion photos (629 lines)
     jointImplant.ts              # JointImplantDetails, implant catalogue entry, size configs, label maps
     skinCancerStagingConfigs.ts  # Breslow, Clark, TNM configs
+    operativeRole.ts             # OperativeRole, SupervisionLevel types, labels, migration, export format mappings
     surgicalPreferences.ts       # Training programme, role defaults, protocols
   constants/
     theme.ts                     # Charcoal+Amber design tokens (single source of truth)
@@ -1191,10 +1194,50 @@ Configured in both `tsconfig.json` and `babel.config.js` (module-resolver plugin
 - **Encrypted URIs** — `opus-media:{uuid}` (v2 file-based) and `encrypted-media:{uuid}` (v1 legacy) schemes for media references
 - **Draft auto-save** — debounced + AppState background flush
 
+## Operative role & supervision model
+
+Three independent dimensions replacing the legacy single 7-value `Role` type (`PS|PP|AS|ONS|SS|SNS|A`):
+
+1. **Operative Role** (`OperativeRole`): `SURGEON`, `FIRST_ASST`, `SECOND_ASST`, `OBSERVER`, `SUPERVISOR`
+2. **Supervision Level** (`SupervisionLevel`): `INDEPENDENT`, `SUP_AVAILABLE`, `SUP_PRESENT`, `SUP_SCRUBBED`, `DIRECTED`, `NOT_APPLICABLE`
+3. **Responsible Consultant** (`responsibleConsultantName`): case-level named field
+
+### Architecture
+
+- **Case-level defaults:** `defaultOperativeRole` and `defaultSupervisionLevel` on `Case` — all procedures inherit these
+- **Per-procedure override:** `operativeRoleOverride` and `supervisionLevelOverride` on `CaseProcedure` — zero taps for the common case, "Override" link available when needed
+- **Resolution chain:** `resolveOperativeRole(override?, default?)` → override > default > `"SURGEON"` fallback
+- **Supervision auto-clear:** only applicable for `SURGEON` role via `supervisionApplicable()` — non-SURGEON roles auto-resolve to `NOT_APPLICABLE`
+- **Smart defaults:** `suggestRoleDefaults(profile)` → consultants get `SURGEON + INDEPENDENT`, trainees get `SURGEON + SUP_SCRUBBED`
+- **Legacy migration:** `migrateLegacyRole(legacyCode)` maps old 7 codes to `{ role, supervision }` pairs. Cases load transparently.
+- **Backward compat:** `toNearestLegacyRole(role, supervision)` maps back to legacy code for export/sync. `teamMembers[0].role` still written on save.
+
+### Key files
+
+| File | Purpose |
+|------|---------|
+| `client/types/operativeRole.ts` | Types, labels, helpers, migration, 6 export format mappings (RACS MALT, JDocs, UK eLogbook, ACGME, German, Swiss) |
+| `client/lib/roleDefaults.ts` | Smart defaults, `isConsultantLevel()`, `suggestRoleDefaults()` |
+| `client/lib/__tests__/operativeRole.test.ts` | 68 tests covering migration, resolution, export mappings |
+
+### Export-time format derivation
+
+RACS MALT codes and other training-programme formats are derived at export time (never stored):
+- `toRacsMaltPlastics(role, supervision)` → RACS MALT Plastics format
+- `toRacsMaltJDocs(role, supervision)` → JDocs format
+- `toUkElogbook(role, supervision)` → UK eLogbook code
+- `toAcgmeGeneralSurgery(role, supervision)` → ACGME format
+- `toGermanWeiterbildung(role, supervision)` → German Weiterbildung format
+- `toSwissSiwf(role, supervision)` → Swiss SIWF format
+
+### Operating team removal
+
+The `OperatingTeamRole`, `OperatingTeamMember` types and operating team UI (add/remove team members in OperativeSection) have been removed. The `operatingTeam` field on `Case` is kept for backward compat (old case data) but is no longer collected or displayed. Team sharing will be handled by a separate feature.
+
 ## Testing
 
-- **Framework:** Vitest 4.0.18, **649 tests** across 39 files
-- **Client tests:** `client/lib/__tests__/` and `client/components/media/__tests__/` — handTraumaDiagnosis, handTraumaMapping, handTraumaUx, skinCancerConfig (89 tests), skinCancerPhase4 (11 tests), skinCancerPhase5 (18 tests), skinCancerDiagnoses (7 tests), dashboardSelectors (7 tests), handInfection (42 tests), handElective (52 tests), jointImplant (44 tests), mediaEncryption (7 tests), mediaFileStorage (3 tests), mediaMigration (4 tests), caseSpecialty (5 tests), storageSpecialtyRepair (2 tests), statisticsHelpers (3 tests), statistics (7 tests), dateValues (12 tests), dateFieldNormalization (4 tests), operativeMedia (19 tests), operativeMediaForm (4 tests), mediaAttachmentDefaults (4 tests), mediaContext (3 tests), mediaTagMigration (82 tests), mediaCaptureProtocols (41 tests), implantExport (3 tests), caseDraftPersistence (1 test), inboxStorage (29 tests), inboxAssignment (17 tests), smartImportPrefs (10 tests), plannedCase (18 tests), mediaOrganiser (15 tests), nhiValidation (12 tests), patientIdentity (13 tests), plus media UI coverage for `MediaTagPicker` resync and resolved `MediaTagBadge` rendering
+- **Framework:** Vitest 4.0.18, **703 tests** across 41 files
+- **Client tests:** `client/lib/__tests__/` and `client/components/media/__tests__/` — handTraumaDiagnosis, handTraumaMapping, handTraumaUx, skinCancerConfig (89 tests), skinCancerPhase4 (11 tests), skinCancerPhase5 (18 tests), skinCancerDiagnoses (7 tests), dashboardSelectors (7 tests), handInfection (42 tests), handElective (52 tests), jointImplant (44 tests), mediaEncryption (7 tests), mediaFileStorage (3 tests), mediaMigration (4 tests), caseSpecialty (5 tests), storageSpecialtyRepair (2 tests), statisticsHelpers (3 tests), statistics (7 tests), dateValues (12 tests), dateFieldNormalization (4 tests), operativeMedia (19 tests), operativeMediaForm (4 tests), mediaAttachmentDefaults (4 tests), mediaContext (3 tests), mediaTagMigration (82 tests), mediaCaptureProtocols (41 tests), implantExport (3 tests), caseDraftPersistence (1 test), inboxStorage (29 tests), inboxAssignment (17 tests), smartImportPrefs (10 tests), plannedCase (18 tests), mediaOrganiser (15 tests), nhiValidation (12 tests), patientIdentity (13 tests), operativeRole (68 tests — migration, resolution, export mappings, role defaults), plus media UI coverage for `MediaTagPicker` resync and resolved `MediaTagBadge` rendering
 - **Server tests:** `server/__tests__/` — auth (17 tests), validation (7 tests), diagnosisStagingConfig (3 tests)
 - **Integration:** `npm run test:harness` — 500-case API harness across 12 specialties (requires running server). Tests nested procedure creation with caseProcedures, flaps, and anastomoses. Run with `--cleanup` to delete test data after.
 - **Run:** `npm run test` (once) or `npm run test:watch` (watch mode)

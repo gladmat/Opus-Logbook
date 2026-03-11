@@ -248,6 +248,12 @@ const ROLE_COLOR_MAP: Record<
   string,
   (theme: ReturnType<typeof useTheme>["theme"]) => string
 > = {
+  SURGEON: (t) => t.rolePrimary,
+  FIRST_ASST: (t) => t.roleAssistant,
+  SECOND_ASST: (t) => t.roleAssistant,
+  OBSERVER: (t) => t.roleTrainee,
+  SUPERVISOR: (t) => t.roleSupervising,
+  // Legacy fallbacks
   PS: (t) => t.rolePrimary,
   PP: (t) => t.rolePrimary,
   SS: (t) => t.roleSupervising,

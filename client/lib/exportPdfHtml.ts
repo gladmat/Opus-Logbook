@@ -3,6 +3,11 @@ import {
   generateImplantSummary,
   getImplantBearingProcedures,
 } from "@/lib/jointImplant";
+import {
+  resolveOperativeRole,
+  formatRoleDisplay,
+  resolveSupervisionLevel,
+} from "@/types/operativeRole";
 
 export interface PdfExportOptions {
   includePatientId?: boolean;
@@ -38,6 +43,7 @@ export function buildPdfHtml(cases: Case[], options: PdfExportOptions): string {
     "Date",
     "Facility",
     "Specialty",
+    "Role",
     "Primary Diagnosis",
     "Primary Procedure",
     "Implant",
@@ -66,6 +72,10 @@ export function buildPdfHtml(cases: Case[], options: PdfExportOptions): string {
       })
       .join("; ");
 
+    const role = resolveOperativeRole(undefined, c.defaultOperativeRole);
+    const supervision = resolveSupervisionLevel(undefined, c.defaultSupervisionLevel, role);
+    const roleLabel = formatRoleDisplay(role, supervision);
+
     const cells = [
       String(idx + 1),
       ...(options.includePatientId
@@ -82,6 +92,7 @@ export function buildPdfHtml(cases: Case[], options: PdfExportOptions): string {
       formatDate(c.procedureDate),
       escapeHtml(c.facility || ""),
       escapeHtml(SPECIALTY_LABELS[c.specialty] || c.specialty),
+      escapeHtml(roleLabel) + (c.responsibleConsultantName ? `<br/><small>${escapeHtml(c.responsibleConsultantName)}</small>` : ""),
       escapeHtml(primary?.diagnosis?.displayName || ""),
       escapeHtml(primaryProc?.procedureName || ""),
       escapeHtml(implantSummary),

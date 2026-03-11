@@ -32,8 +32,6 @@ export function useCaseFormState(): CaseFormStateContextValue {
 
 export interface CaseFormDispatchContextValue {
   dispatch: React.Dispatch<CaseFormAction>;
-  addTeamMember: () => void;
-  removeTeamMember: (id: string) => void;
   addAnastomosis: (vesselType: "artery" | "vein") => void;
   updateAnastomosis: (entry: AnastomosisEntry) => void;
   removeAnastomosis: (id: string) => void;
@@ -98,8 +96,6 @@ export function CaseFormProvider({
   const dispatchValue: CaseFormDispatchContextValue = useMemo(
     () => ({
       dispatch: form.dispatch,
-      addTeamMember: form.addTeamMember,
-      removeTeamMember: form.removeTeamMember,
       addAnastomosis: form.addAnastomosis,
       updateAnastomosis: form.updateAnastomosis,
       removeAnastomosis: form.removeAnastomosis,
@@ -113,8 +109,6 @@ export function CaseFormProvider({
     }),
     [
       form.dispatch,
-      form.addTeamMember,
-      form.removeTeamMember,
       form.addAnastomosis,
       form.updateAnastomosis,
       form.removeAnastomosis,

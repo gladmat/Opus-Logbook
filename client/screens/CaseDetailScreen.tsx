@@ -37,7 +37,6 @@ import {
   INDICATION_LABELS,
   ANASTOMOSIS_LABELS,
   FreeFlapDetails,
-  OPERATING_TEAM_ROLE_LABELS,
   GENDER_LABELS,
   ADMISSION_URGENCY_LABELS,
   UNPLANNED_READMISSION_LABELS,
@@ -73,6 +72,14 @@ import {
 import { deleteMultipleEncryptedMedia } from "@/lib/mediaStorage";
 import { SpecialtyBadge } from "@/components/SpecialtyBadge";
 import { RoleBadge } from "@/components/RoleBadge";
+import {
+  resolveOperativeRole,
+  resolveSupervisionLevel,
+  formatRoleDisplay,
+  migrateLegacyRole,
+  isLegacyRole,
+  type OperativeRole,
+} from "@/types/operativeRole";
 import { LoadingState } from "@/components/LoadingState";
 import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/SectionHeader";
@@ -491,6 +498,16 @@ export default function CaseDetailScreen() {
     (m) => m.id === caseData.ownerId || m.userId === caseData.ownerId,
   );
 
+  // Resolve case-level operative role from new model or legacy migration
+  const caseDefaultRole: OperativeRole | undefined = (() => {
+    if (caseData.defaultOperativeRole) return caseData.defaultOperativeRole;
+    const legacyRole = userMember?.role;
+    if (legacyRole && isLegacyRole(legacyRole)) {
+      return migrateLegacyRole(legacyRole).role;
+    }
+    return undefined;
+  })();
+
   const formatDuration = (minutes: number | undefined): string | undefined => {
     if (!minutes) return undefined;
     const hours = Math.floor(minutes / 60);
@@ -567,7 +584,11 @@ export default function CaseDetailScreen() {
         >
           <View style={styles.heroBadges}>
             <SpecialtyBadge specialty={caseData.specialty} size="medium" />
-            {userMember ? <RoleBadge role={userMember.role} /> : null}
+            {caseDefaultRole ? (
+              <RoleBadge role={caseDefaultRole} />
+            ) : userMember ? (
+              <RoleBadge role={userMember.role} />
+            ) : null}
           </View>
           <ThemedText type="h2" style={styles.procedureType}>
             {getCasePrimaryTitle(caseData) || caseData.procedureType}
@@ -719,7 +740,12 @@ export default function CaseDetailScreen() {
                             </ThemedText>
                           ) : null}
                         </View>
-                        <RoleBadge role={proc.surgeonRole} />
+                        <RoleBadge
+                          role={resolveOperativeRole(
+                            proc.operativeRoleOverride,
+                            caseDefaultRole,
+                          )}
+                        />
                       </View>
                       {proc.snomedCtCode ? (
                         <View
@@ -1702,40 +1728,19 @@ export default function CaseDetailScreen() {
           ))}
         </View>
 
-        {caseData.operatingTeam && caseData.operatingTeam.length > 0 ? (
+        {/* Responsible Consultant */}
+        {caseData.responsibleConsultantName ? (
           <>
-            <SectionHeader title="Operating Team" />
+            <SectionHeader title="Responsible Consultant" />
             <View
               style={[
                 styles.card,
                 { backgroundColor: theme.backgroundDefault },
               ]}
             >
-              {caseData.operatingTeam.map((member) => (
-                <View key={member.id} style={styles.teamMember}>
-                  <View
-                    style={[
-                      styles.avatar,
-                      { backgroundColor: theme.success + "20" },
-                    ]}
-                  >
-                    <Feather name="users" size={18} color={theme.success} />
-                  </View>
-                  <View style={styles.memberInfo}>
-                    <ThemedText style={styles.memberName}>
-                      {member.name}
-                    </ThemedText>
-                    <ThemedText
-                      style={[
-                        styles.memberRole,
-                        { color: theme.textSecondary },
-                      ]}
-                    >
-                      {OPERATING_TEAM_ROLE_LABELS[member.role]}
-                    </ThemedText>
-                  </View>
-                </View>
-              ))}
+              <ThemedText style={styles.consultantName}>
+                {caseData.responsibleConsultantName}
+              </ThemedText>
             </View>
           </>
         ) : null}
@@ -2633,6 +2638,11 @@ const styles = StyleSheet.create({
   },
   memberRole: {
     fontSize: 13,
+  },
+  consultantName: {
+    fontSize: 15,
+    fontWeight: "500",
+    padding: Spacing.md,
   },
   emptyTimeline: {
     padding: Spacing["2xl"],

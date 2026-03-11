@@ -380,19 +380,22 @@ export function CaseSummaryView({
           mono
         />
         <SummaryRow label="Duration" value={durationDisplay} mono />
-        <SummaryRow label="Role" value={state.role} />
+        <SummaryRow
+          label="Consultant"
+          value={state.responsibleConsultantName || undefined}
+        />
+        <SummaryRow
+          label="Your Role"
+          value={state.defaultOperativeRole || undefined}
+        />
+        <SummaryRow
+          label="Supervision"
+          value={state.defaultSupervisionLevel || undefined}
+        />
         <SummaryRow
           label="Anaesthetic"
           value={state.anaestheticType || undefined}
         />
-        {state.operatingTeam.length > 0 ? (
-          <SummaryRow
-            label="Team"
-            value={state.operatingTeam
-              .map((m) => `${m.name} (${m.role})`)
-              .join(", ")}
-          />
-        ) : null}
         <SummaryRow
           label="Wound Risk"
           value={state.woundInfectionRisk || undefined}

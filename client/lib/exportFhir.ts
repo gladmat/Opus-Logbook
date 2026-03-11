@@ -11,6 +11,13 @@
 
 import { Case, DiagnosisGroup, CaseProcedure, Laterality } from "@/types/case";
 import {
+  resolveOperativeRole,
+  resolveSupervisionLevel,
+  toNearestLegacyRole,
+  OPERATIVE_ROLE_LABELS,
+  SUPERVISION_LABELS,
+} from "@/types/operativeRole";
+import {
   HAND_INFECTION_TYPE_LABELS,
   SEVERITY_LABELS as HAND_SEVERITY_LABELS,
   HAND_ORGANISM_LABELS,
@@ -305,6 +312,7 @@ function buildProcedure(
   patientRef: string,
   procedureDate: string,
   ownerId: string,
+  caseData: Case,
 ): FhirResource {
   const codings: FhirCoding[] = [];
   if (proc.snomedCtCode) {
@@ -334,20 +342,66 @@ function buildProcedure(
     reasonReference: group.diagnosis
       ? [{ reference: `Condition/condition-${group.id}` }]
       : undefined,
-    performer: [
-      {
-        actor: { reference: `Practitioner/${ownerId}` },
-        function: {
-          coding: [
-            {
-              system:
-                "http://terminology.hl7.org/CodeSystem/v3-ParticipationType",
-              code: proc.surgeonRole,
-            },
-          ],
+    performer: (() => {
+      const effectiveRole = resolveOperativeRole(
+        proc.operativeRoleOverride,
+        caseData.defaultOperativeRole,
+      );
+      const effectiveSupervision = resolveSupervisionLevel(
+        proc.supervisionLevelOverride,
+        caseData.defaultSupervisionLevel,
+        effectiveRole,
+      );
+      const performers: Record<string, unknown>[] = [
+        {
+          actor: { reference: `Practitioner/${ownerId}` },
+          function: {
+            coding: [
+              {
+                system:
+                  "http://terminology.hl7.org/CodeSystem/v3-ParticipationType",
+                code: toNearestLegacyRole(effectiveRole, effectiveSupervision),
+                display: OPERATIVE_ROLE_LABELS[effectiveRole],
+              },
+            ],
+          },
         },
-      },
-    ],
+      ];
+      if (caseData.responsibleConsultantName) {
+        performers.push({
+          actor: { display: caseData.responsibleConsultantName },
+          function: {
+            coding: [
+              {
+                system:
+                  "http://terminology.hl7.org/CodeSystem/v3-ParticipationType",
+                code: "ATND",
+                display: "attender",
+              },
+            ],
+          },
+        });
+      }
+      return performers;
+    })(),
+    extension: (() => {
+      const effectiveRole = resolveOperativeRole(
+        proc.operativeRoleOverride,
+        caseData.defaultOperativeRole,
+      );
+      const supervisionLevel = resolveSupervisionLevel(
+        proc.supervisionLevelOverride,
+        caseData.defaultSupervisionLevel,
+        effectiveRole,
+      );
+      if (supervisionLevel === "NOT_APPLICABLE") return undefined;
+      return [
+        {
+          url: "urn:opus:supervision-level",
+          valueString: SUPERVISION_LABELS[supervisionLevel],
+        },
+      ];
+    })(),
   };
 
   // bodySite with implant-aware laterality and digit context
@@ -509,6 +563,7 @@ function caseToFhirBundle(c: Case): FhirBundle {
         c.patientIdentifier,
         c.procedureDate,
         c.ownerId,
+        c,
       );
 
       // Attach Device resource for implant tracking

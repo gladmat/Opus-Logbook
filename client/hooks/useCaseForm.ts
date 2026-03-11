@@ -16,8 +16,6 @@ import {
   Specialty,
   Role,
   SmokingStatus,
-  OperatingTeamMember,
-  OperatingTeamRole,
   AnastomosisEntry,
   AnatomicalRegion,
   Gender,
@@ -73,6 +71,13 @@ import { syncFlapOutcomeToServer } from "@/lib/outcomeSync";
 import { withDefaultFlapOutcome } from "@/lib/flapOutcomeDefaults";
 import { toIsoDateValue } from "@/lib/dateValues";
 import { resolveCaseFormSpecialty } from "@/lib/caseSpecialty";
+import type { OperativeRole, SupervisionLevel } from "@/types/operativeRole";
+import {
+  migrateLegacyRole,
+  toNearestLegacyRole,
+  isLegacyRole,
+} from "@/types/operativeRole";
+import { suggestRoleDefaults, isConsultantLevel } from "@/lib/roleDefaults";
 import {
   restoreDraftDateOnlyValue,
   restoreDraftOperativeMedia,
@@ -220,10 +225,13 @@ export interface CaseFormState {
   dvtProphylaxis: boolean;
   surgeryStartTime: string;
   surgeryEndTime: string;
-  operatingTeam: OperatingTeamMember[];
-  newTeamMemberName: string;
-  newTeamMemberRole: OperatingTeamRole;
   role: Role;
+
+  // Operative Role & Supervision (3-dimensional model)
+  responsibleConsultantName: string;
+  responsibleConsultantUserId: string;
+  defaultOperativeRole: OperativeRole | "";
+  defaultSupervisionLevel: SupervisionLevel | "";
 
   // Outcomes
   unplannedICU: UnplannedICUReason;
@@ -330,10 +338,11 @@ export function getDefaultFormState(
     dvtProphylaxis: false,
     surgeryStartTime: "",
     surgeryEndTime: "",
-    operatingTeam: [],
-    newTeamMemberName: "",
-    newTeamMemberRole: "scrub_nurse",
     role: "PS",
+    responsibleConsultantName: "",
+    responsibleConsultantUserId: "",
+    defaultOperativeRole: "",
+    defaultSupervisionLevel: "",
     unplannedICU: "no",
     returnToTheatre: false,
     returnToTheatreReason: "",
@@ -366,6 +375,17 @@ function loadCaseIntoFormState(
 ): CaseFormState {
   const userMember = caseData.teamMembers?.find((m) => m.name === "You");
   const role = (userMember?.role as Role | undefined) ?? "PS";
+
+  // Legacy migration: derive new role fields from old data when not present
+  let defaultOperativeRole: OperativeRole | "" =
+    caseData.defaultOperativeRole ?? "";
+  let defaultSupervisionLevel: SupervisionLevel | "" =
+    caseData.defaultSupervisionLevel ?? "";
+  if (!defaultOperativeRole && role && isLegacyRole(role)) {
+    const migrated = migrateLegacyRole(role);
+    defaultOperativeRole = migrated.role;
+    defaultSupervisionLevel = migrated.supervision;
+  }
 
   let clinicalDetails: Record<string, any> =
     getDefaultClinicalDetails(specialty);
@@ -428,10 +448,11 @@ function loadCaseIntoFormState(
     dvtProphylaxis: caseData.prophylaxis?.dvtPrevention ?? false,
     surgeryStartTime: caseData.surgeryTiming?.startTime ?? "",
     surgeryEndTime: caseData.surgeryTiming?.endTime ?? "",
-    operatingTeam: caseData.operatingTeam ?? [],
-    newTeamMemberName: "",
-    newTeamMemberRole: "scrub_nurse",
     role,
+    responsibleConsultantName: caseData.responsibleConsultantName ?? "",
+    responsibleConsultantUserId: caseData.responsibleConsultantUserId ?? "",
+    defaultOperativeRole,
+    defaultSupervisionLevel,
     unplannedICU: caseData.unplannedICU ?? "no",
     returnToTheatre: caseData.returnToTheatre ?? false,
     returnToTheatreReason: caseData.returnToTheatreReason ?? "",
@@ -490,7 +511,10 @@ export function formStateToDraft(
             endTime: state.surgeryEndTime || undefined,
           }
         : undefined,
-    operatingTeam: state.operatingTeam,
+    responsibleConsultantName: state.responsibleConsultantName || undefined,
+    responsibleConsultantUserId: state.responsibleConsultantUserId || undefined,
+    defaultOperativeRole: state.defaultOperativeRole || undefined,
+    defaultSupervisionLevel: state.defaultSupervisionLevel || undefined,
     gender: state.gender || undefined,
     age: state.age ? parseInt(state.age) : undefined,
     ethnicity: state.ethnicity.trim() || undefined,
@@ -582,9 +606,16 @@ export function draftToFormState(
   result.smoker = draft.smoker ?? "";
   result.diabetes = draft.diabetes ?? null;
   result.role = (draft.teamMembers?.[0]?.role as Role | undefined) ?? "PS";
+  result.responsibleConsultantName =
+    (draft as any).responsibleConsultantName ?? "";
+  result.responsibleConsultantUserId =
+    (draft as any).responsibleConsultantUserId ?? "";
+  result.defaultOperativeRole =
+    (draft as any).defaultOperativeRole ?? "";
+  result.defaultSupervisionLevel =
+    (draft as any).defaultSupervisionLevel ?? "";
   result.surgeryStartTime = draft.surgeryTiming?.startTime ?? "";
   result.surgeryEndTime = draft.surgeryTiming?.endTime ?? "";
-  result.operatingTeam = draft.operatingTeam ?? [];
   result.clinicalDetails =
     (draft.clinicalDetails as Record<string, any>) ??
     getDefaultClinicalDetails(specialty);
@@ -987,6 +1018,10 @@ export function buildDuplicateState(
     diagnosisGroups: clonedGroups,
     role:
       (source.teamMembers?.find((m) => m.name === "You")?.role as Role) ?? "PS",
+    responsibleConsultantName: source.responsibleConsultantName ?? "",
+    responsibleConsultantUserId: source.responsibleConsultantUserId ?? "",
+    defaultOperativeRole: source.defaultOperativeRole ?? "",
+    defaultSupervisionLevel: source.defaultSupervisionLevel ?? "",
     clinicalDetails: source.clinicalDetails
       ? { ...(source.clinicalDetails as Record<string, any>) }
       : defaults.clinicalDetails,
@@ -1017,7 +1052,6 @@ export function buildDuplicateState(
     injuryDate: "",
     surgeryStartTime: "",
     surgeryEndTime: "",
-    operatingTeam: [],
     operativeMedia: [],
     infectionOverlay: undefined,
     infectionCollapsed: false,
@@ -1068,9 +1102,6 @@ export interface UseCaseFormReturn {
   handleDeleteDiagnosisGroup: (index: number) => void;
   addDiagnosisGroup: () => void;
   reorderDiagnosisGroups: (groups: DiagnosisGroup[]) => void;
-  // Team callbacks
-  addTeamMember: () => void;
-  removeTeamMember: (id: string) => void;
   // Anastomosis callbacks
   addAnastomosis: (vesselType: "artery" | "vein") => void;
   updateAnastomosis: (entry: AnastomosisEntry) => void;
@@ -1228,6 +1259,28 @@ export function useCaseForm({
       dispatch(setField("injuryDate", ""));
     }
   }, [showInjuryDate, state.injuryDate]);
+
+  // Smart defaults for operative role & consultant from profile (new case only)
+  const roleDefaultsAppliedRef = useRef(false);
+  useEffect(() => {
+    if (roleDefaultsAppliedRef.current || isEditMode || isDuplicate) return;
+    if (!profile || state.defaultOperativeRole) return;
+    roleDefaultsAppliedRef.current = true;
+
+    const defaults = suggestRoleDefaults(profile);
+    dispatch(
+      setField("defaultOperativeRole", defaults.role),
+    );
+    dispatch(
+      setField("defaultSupervisionLevel", defaults.supervision),
+    );
+    if (isConsultantLevel(profile.careerStage) && !state.responsibleConsultantName) {
+      const name = profile.fullName || [profile.firstName, profile.lastName].filter(Boolean).join(" ");
+      if (name) {
+        dispatch(setField("responsibleConsultantName", name));
+      }
+    }
+  }, [profile, isEditMode, isDuplicate, state.defaultOperativeRole, state.responsibleConsultantName]);
 
   // Smart default for treatment context timing (Part 4C)
   useEffect(() => {
@@ -1446,43 +1499,6 @@ export function useCaseForm({
       groups: groups.map((g, i) => ({ ...g, sequenceOrder: i + 1 })),
     });
   }, []);
-
-  // ── Team callbacks ────────────────────────────────────────────────────
-
-  const addTeamMember = useCallback(() => {
-    if (!state.newTeamMemberName.trim()) {
-      Alert.alert("Required", "Please enter a name for the team member");
-      return;
-    }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    dispatch({
-      type: "BULK_UPDATE",
-      updates: {
-        operatingTeam: [
-          ...state.operatingTeam,
-          {
-            id: uuidv4(),
-            name: state.newTeamMemberName.trim(),
-            role: state.newTeamMemberRole,
-          },
-        ],
-        newTeamMemberName: "",
-      },
-    });
-  }, [state.newTeamMemberName, state.newTeamMemberRole, state.operatingTeam]);
-
-  const removeTeamMember = useCallback(
-    (id: string) => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      dispatch(
-        setField(
-          "operatingTeam",
-          state.operatingTeam.filter((m) => m.id !== id),
-        ),
-      );
-    },
-    [state.operatingTeam],
-  );
 
   // ── Anastomosis callbacks ─────────────────────────────────────────────
 
@@ -1733,8 +1749,12 @@ export function useCaseForm({
           procedureCode,
           diagnosisGroups: diagnosisGroupsWithFlapOutcomeDefaults,
           surgeryTiming,
-          operatingTeam:
-            state.operatingTeam.length > 0 ? state.operatingTeam : undefined,
+          responsibleConsultantName:
+            state.responsibleConsultantName.trim() || undefined,
+          responsibleConsultantUserId:
+            state.responsibleConsultantUserId || undefined,
+          defaultOperativeRole: state.defaultOperativeRole || undefined,
+          defaultSupervisionLevel: state.defaultSupervisionLevel || undefined,
           gender: state.gender || undefined,
           age: state.patientDateOfBirth
             ? calculateAgeFromDob(state.patientDateOfBirth)
@@ -1820,7 +1840,14 @@ export function useCaseForm({
                     id: uuidv4(),
                     userId,
                     name: "You",
-                    role: state.role,
+                    // Backward compat: derive legacy role from new model
+                    role:
+                      state.defaultOperativeRole && state.defaultSupervisionLevel
+                        ? toNearestLegacyRole(
+                            state.defaultOperativeRole as OperativeRole,
+                            state.defaultSupervisionLevel as SupervisionLevel,
+                          )
+                        : state.role,
                     confirmed: true,
                     addedAt: new Date().toISOString(),
                   },
@@ -1918,8 +1945,6 @@ export function useCaseForm({
     handleDeleteDiagnosisGroup,
     addDiagnosisGroup,
     reorderDiagnosisGroups,
-    addTeamMember,
-    removeTeamMember,
     addAnastomosis,
     updateAnastomosis,
     removeAnastomosis,

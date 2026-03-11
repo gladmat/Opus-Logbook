@@ -1,4 +1,13 @@
 import { Case, SPECIALTY_LABELS, calculateAgeFromDob } from "@/types/case";
+import {
+  resolveOperativeRole,
+  resolveSupervisionLevel,
+  OPERATIVE_ROLE_LABELS,
+  SUPERVISION_LABELS,
+  migrateLegacyRole,
+  isLegacyRole,
+  toNearestLegacyRole,
+} from "@/types/operativeRole";
 import { TreatmentEpisode, ENCOUNTER_CLASS_LABELS } from "@/types/episode";
 import {
   HAND_INFECTION_TYPE_LABELS,
@@ -47,6 +56,9 @@ const CSV_HEADERS = [
   "primary_procedure",
   "primary_procedure_snomed",
   "primary_procedure_role",
+  "responsible_consultant",
+  "operative_role",
+  "supervision_level",
   "secondary_diagnoses",
   "secondary_procedures",
   "asa_score",
@@ -194,7 +206,42 @@ function caseToRow(c: Case, options: CsvExportOptions): string {
     formatStagingSelections(primaryGroup?.diagnosisStagingSelections),
     primaryProc?.procedureName,
     primaryProc?.snomedCtCode,
-    primaryProc?.surgeonRole,
+    // primary_procedure_role — backward compat (legacy code)
+    (() => {
+      const role = resolveOperativeRole(
+        primaryProc?.operativeRoleOverride,
+        c.defaultOperativeRole,
+      );
+      const sup = resolveSupervisionLevel(
+        primaryProc?.supervisionLevelOverride,
+        c.defaultSupervisionLevel,
+        role,
+      );
+      return toNearestLegacyRole(role, sup);
+    })(),
+    // responsible_consultant
+    c.responsibleConsultantName ?? "",
+    // operative_role
+    (() => {
+      const role = resolveOperativeRole(
+        primaryProc?.operativeRoleOverride,
+        c.defaultOperativeRole,
+      );
+      return OPERATIVE_ROLE_LABELS[role];
+    })(),
+    // supervision_level
+    (() => {
+      const role = resolveOperativeRole(
+        primaryProc?.operativeRoleOverride,
+        c.defaultOperativeRole,
+      );
+      const sup = resolveSupervisionLevel(
+        primaryProc?.supervisionLevelOverride,
+        c.defaultSupervisionLevel,
+        role,
+      );
+      return SUPERVISION_LABELS[sup];
+    })(),
     secondaryDiagnoses,
     secondaryProcedures,
     c.asaScore,

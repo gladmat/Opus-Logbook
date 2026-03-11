@@ -1,12 +1,17 @@
 import {
   Case,
   Specialty,
-  Role,
   SPECIALTY_LABELS,
-  ROLE_LABELS,
   getCaseSpecialties,
   getAllProcedures,
 } from "@/types/case";
+import {
+  type OperativeRole,
+  OPERATIVE_ROLE_LABELS,
+  resolveOperativeRole,
+  migrateLegacyRole,
+  isLegacyRole,
+} from "@/types/operativeRole";
 import type { SkinCancerPathologyCategory } from "@/types/skinCancer";
 import {
   calculateBaseStatistics,
@@ -157,20 +162,21 @@ export interface OperationalInsights {
   topDxProcPairs: DiagnosisProcedurePair[];
 }
 
-function getPrimaryRole(caseData: Case): Role {
+function getPrimaryRole(caseData: Case): OperativeRole {
+  // New model: case-level default
+  if (caseData.defaultOperativeRole) return caseData.defaultOperativeRole;
+  // Legacy: derive from first procedure's surgeonRole
   const procs = getAllProcedures(caseData);
   if (procs.length > 0) {
-    return procs[0]!.surgeonRole;
+    const role = procs[0]!.surgeonRole;
+    if (role && isLegacyRole(role)) return migrateLegacyRole(role).role;
   }
+  // Fallback: teamMembers
   if (caseData.teamMembers && caseData.teamMembers.length > 0) {
-    const primary = caseData.teamMembers.find((m) => m.role === "PS");
-    if (primary) return "PS";
-    const supervising = caseData.teamMembers.find(
-      (m) => m.role === "SS" || m.role === "SNS",
-    );
-    if (supervising) return supervising.role as Role;
+    const legacyRole = caseData.teamMembers.find((m) => m.id === caseData.ownerId)?.role;
+    if (legacyRole && isLegacyRole(legacyRole)) return migrateLegacyRole(legacyRole).role;
   }
-  return "PS";
+  return "SURGEON";
 }
 
 export function computeOperationalInsights(
@@ -186,7 +192,7 @@ export function computeOperationalInsights(
   }));
 
   // Role breakdown
-  const roleCounts = new Map<Role, number>();
+  const roleCounts = new Map<OperativeRole, number>();
   for (const c of cases) {
     const role = getPrimaryRole(c);
     roleCounts.set(role, (roleCounts.get(role) ?? 0) + 1);
@@ -194,7 +200,7 @@ export function computeOperationalInsights(
   const roleBreakdown = Array.from(roleCounts.entries())
     .map(([role, count]) => ({
       role,
-      label: ROLE_LABELS[role] ?? role,
+      label: OPERATIVE_ROLE_LABELS[role] ?? role,
       count,
     }))
     .sort((a, b) => b.count - a.count);

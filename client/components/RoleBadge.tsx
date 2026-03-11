@@ -4,9 +4,14 @@ import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { BorderRadius, Spacing } from "@/constants/theme";
 import { Role, ROLE_LABELS } from "@/types/case";
+import {
+  type OperativeRole,
+  OPERATIVE_ROLE_SHORT_LABELS,
+  isOperativeRole,
+} from "@/types/operativeRole";
 
 interface RoleBadgeProps {
-  role: Role;
+  role: Role | OperativeRole;
   size?: "small" | "medium";
 }
 
@@ -14,6 +19,23 @@ export function RoleBadge({ role, size = "medium" }: RoleBadgeProps) {
   const { theme } = useTheme();
 
   const getRoleColor = () => {
+    // New OperativeRole values
+    if (isOperativeRole(role)) {
+      switch (role) {
+        case "SURGEON":
+          return theme.rolePrimary;
+        case "FIRST_ASST":
+        case "SECOND_ASST":
+          return theme.roleAssistant;
+        case "OBSERVER":
+          return theme.textSecondary;
+        case "SUPERVISOR":
+          return theme.roleSupervising;
+        default:
+          return theme.textSecondary;
+      }
+    }
+    // Legacy Role values
     switch (role) {
       case "PS":
         return theme.rolePrimary;
@@ -33,6 +55,13 @@ export function RoleBadge({ role, size = "medium" }: RoleBadgeProps) {
     }
   };
 
+  const getLabel = (): string => {
+    if (isOperativeRole(role)) {
+      return OPERATIVE_ROLE_SHORT_LABELS[role];
+    }
+    return ROLE_LABELS[role as Role] ?? role;
+  };
+
   const isSmall = size === "small";
 
   return (
@@ -50,7 +79,7 @@ export function RoleBadge({ role, size = "medium" }: RoleBadgeProps) {
           { color: getRoleColor() },
         ]}
       >
-        {ROLE_LABELS[role]}
+        {getLabel()}
       </ThemedText>
     </View>
   );
