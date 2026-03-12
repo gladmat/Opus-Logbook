@@ -65,6 +65,11 @@ interface DateGroup {
   items: InboxItem[];
 }
 
+interface PatientGroup {
+  patientId: string;
+  items: InboxItem[];
+}
+
 // ═══════════════════════════════════════════════════════════
 // Constants
 // ═══════════════════════════════════════════════════════════
@@ -114,6 +119,20 @@ function groupByDate(items: InboxItem[]): DateGroup[] {
   return groupOrder.map((label) => ({ label, items: groups.get(label)! }));
 }
 
+function groupByPatient(items: InboxItem[]): PatientGroup[] {
+  const groups = new Map<string, InboxItem[]>();
+  const order: string[] = [];
+  for (const item of items) {
+    const pid = item.patientIdentifier!;
+    if (!groups.has(pid)) {
+      groups.set(pid, []);
+      order.push(pid);
+    }
+    groups.get(pid)!.push(item);
+  }
+  return order.map((patientId) => ({ patientId, items: groups.get(patientId)! }));
+}
+
 function formatTime(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleTimeString(undefined, {
@@ -145,6 +164,7 @@ export default function InboxScreen() {
   const [selectMode, setSelectMode] = useState(pickMode);
   const [showPreview, setShowPreview] = useState<InboxItem | null>(null);
   const [showCasePicker, setShowCasePicker] = useState(false);
+  const [expandedPatients, setExpandedPatients] = useState<Set<string>>(new Set());
 
   // Refresh inbox on focus
   useFocusEffect(
@@ -165,7 +185,18 @@ export default function InboxScreen() {
     }, [pickMode]),
   );
 
-  const dateGroups = useMemo(() => groupByDate(items), [items]);
+  const unassignedItems = useMemo(
+    () => items.filter((item) => !item.patientIdentifier),
+    [items],
+  );
+  const patientGroupList = useMemo(
+    () => groupByPatient(items.filter((item) => !!item.patientIdentifier)),
+    [items],
+  );
+  const unassignedDateGroups = useMemo(
+    () => groupByDate(unassignedItems),
+    [unassignedItems],
+  );
 
   // ── Selection ────────────────────────────────────────
 
@@ -394,6 +425,64 @@ export default function InboxScreen() {
     [selectMode, enterSelectMode],
   );
 
+  const togglePatientGroup = useCallback((patientId: string) => {
+    Haptics.selectionAsync();
+    setExpandedPatients((prev) => {
+      const next = new Set(prev);
+      if (next.has(patientId)) next.delete(patientId);
+      else next.add(patientId);
+      return next;
+    });
+  }, []);
+
+  // ── Thumbnail helper ──────────────────────────────────
+
+  function renderThumbnailItem(item: InboxItem) {
+    const isSelected = selectedIds.has(item.id);
+    return (
+      <Pressable
+        key={item.id}
+        onPress={() => handleItemPress(item)}
+        onLongPress={() => handleItemLongPress(item)}
+        style={[
+          styles.thumbWrapper,
+          isSelected && {
+            borderColor: theme.link,
+            borderWidth: 2,
+          },
+        ]}
+      >
+        <EncryptedImage
+          uri={item.localUri}
+          style={styles.thumbImage}
+          thumbnail
+        />
+        {selectMode ? (
+          <View
+            style={[
+              styles.checkCircle,
+              isSelected
+                ? { backgroundColor: theme.link }
+                : {
+                    backgroundColor: theme.backgroundRoot + "80",
+                    borderWidth: 1.5,
+                    borderColor: theme.buttonText,
+                  },
+            ]}
+          >
+            {isSelected ? (
+              <Feather name="check" size={12} color={theme.buttonText} />
+            ) : null}
+          </View>
+        ) : (
+          <ThemedText style={[styles.timeStamp, { color: OVERLAY_TEXT }]}>
+            {formatTime(item.capturedAt)}
+          </ThemedText>
+        )}
+      </Pressable>
+    );
+  }
+
   // ═══════════════════════════════════════════════════════
   // Render
   // ═══════════════════════════════════════════════════════
@@ -511,7 +600,15 @@ export default function InboxScreen() {
             { paddingBottom: insets.bottom + 100 },
           ]}
         >
-          {dateGroups.map((group) => (
+          {/* Unassigned section */}
+          {unassignedDateGroups.length > 0 && patientGroupList.length > 0 ? (
+            <ThemedText
+              style={[styles.sectionLabel, { color: theme.textSecondary }]}
+            >
+              Unassigned
+            </ThemedText>
+          ) : null}
+          {unassignedDateGroups.map((group) => (
             <View key={group.label} style={styles.dateGroup}>
               <ThemedText
                 style={[styles.dateLabel, { color: theme.textSecondary }]}
@@ -519,60 +616,60 @@ export default function InboxScreen() {
                 {group.label}
               </ThemedText>
               <View style={styles.gridRow}>
-                {group.items.map((item) => {
-                  const isSelected = selectedIds.has(item.id);
-                  return (
-                    <Pressable
-                      key={item.id}
-                      onPress={() => handleItemPress(item)}
-                      onLongPress={() => handleItemLongPress(item)}
-                      style={[
-                        styles.thumbWrapper,
-                        isSelected && {
-                          borderColor: theme.link,
-                          borderWidth: 2,
-                        },
-                      ]}
-                    >
-                      <EncryptedImage
-                        uri={item.localUri}
-                        style={styles.thumbImage}
-                        thumbnail
-                      />
-                      {selectMode ? (
-                        <View
-                          style={[
-                            styles.checkCircle,
-                            isSelected
-                              ? { backgroundColor: theme.link }
-                              : {
-                                  backgroundColor: theme.backgroundRoot + "80",
-                                  borderWidth: 1.5,
-                                  borderColor: theme.buttonText,
-                                },
-                          ]}
-                        >
-                          {isSelected ? (
-                            <Feather
-                              name="check"
-                              size={12}
-                              color={theme.buttonText}
-                            />
-                          ) : null}
-                        </View>
-                      ) : (
-                        <ThemedText
-                          style={[styles.timeStamp, { color: OVERLAY_TEXT }]}
-                        >
-                          {formatTime(item.capturedAt)}
-                        </ThemedText>
-                      )}
-                    </Pressable>
-                  );
-                })}
+                {group.items.map((item) => renderThumbnailItem(item))}
               </View>
             </View>
           ))}
+
+          {/* Patient-assigned section */}
+          {patientGroupList.length > 0 ? (
+            <>
+              <ThemedText
+                style={[styles.sectionLabel, { color: theme.textSecondary }]}
+              >
+                Assigned to Patient
+              </ThemedText>
+              {patientGroupList.map((pg) => {
+                const isExpanded = expandedPatients.has(pg.patientId);
+                return (
+                  <View key={pg.patientId} style={styles.patientGroup}>
+                    <Pressable
+                      onPress={() => togglePatientGroup(pg.patientId)}
+                      style={styles.patientGroupHeader}
+                    >
+                      <Feather
+                        name={isExpanded ? "chevron-down" : "chevron-right"}
+                        size={16}
+                        color={theme.textSecondary}
+                      />
+                      <ThemedText
+                        style={[
+                          styles.patientGroupTitle,
+                          { color: theme.text },
+                        ]}
+                      >
+                        {pg.patientId}
+                      </ThemedText>
+                      <ThemedText
+                        style={[
+                          styles.patientGroupCount,
+                          { color: theme.textTertiary },
+                        ]}
+                      >
+                        {pg.items.length} photo
+                        {pg.items.length !== 1 ? "s" : ""}
+                      </ThemedText>
+                    </Pressable>
+                    {isExpanded ? (
+                      <View style={styles.gridRow}>
+                        {pg.items.map((item) => renderThumbnailItem(item))}
+                      </View>
+                    ) : null}
+                  </View>
+                );
+              })}
+            </>
+          ) : null}
         </ScrollView>
       )}
 
@@ -1012,6 +1109,30 @@ const styles = StyleSheet.create({
   // Grid
   gridContainer: {
     padding: GRID_PADDING,
+  },
+  sectionLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
+  },
+  patientGroup: {
+    marginBottom: Spacing.sm,
+  },
+  patientGroupHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+  },
+  patientGroupTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  patientGroupCount: {
+    fontSize: 13,
   },
   dateGroup: {
     marginBottom: Spacing.md,

@@ -38,6 +38,7 @@ Key capabilities: multi-specialty case logging, SNOMED CT coded diagnoses and pr
 - **Patient Identity COMPLETE** — On-device structured patient identity: `patientFirstName`, `patientLastName`, `patientDateOfBirth` (replaces `age`), `patientNhi` (NZ NHI with mod-11 check digit validation). Country-aware UI (`countryOfPractice === 'NZ'` → NHI field, non-NZ → generic identifier). Per-user HMAC-SHA256 replacing bare SHA-256 for patient identifier hashing (key in iOS Keychain via `expo-secure-store`), `hmac:` prefix distinguishes new hashes, lazy migration on case load, dual-hash lookup for backward compat. `nhiValidation.ts` (format + check digit), `patientIdentifierHmac.ts` (HMAC key management + hashing). PatientInfoSection refactored with NHI/name/DOB fields + privacy indicator. All display surfaces updated (CaseDetailScreen, CaseCard, CaseSummaryView, dashboard attention cards). CSV export +5 columns (55 total), FHIR Patient resource, PDF patient header, search by name/NHI, 25 new tests (12 NHI + 13 identity), 649 tests total
 - **Capture Pipeline Audit Remediation COMPLETE** — Inbox hardened into encrypted MMKV state with SecureStore-backed key, schema v2 metadata (`capturedAt`, `importedAt`, `status`, `sourceAssetId`, dimensions, patient hash) and deterministic captured-time sorting; inbox selection is now transactional (`unassigned` → `reserved` → `assigned`) with finalize-on-save, cancel/discard release, and stale reservation cleanup; Smart Import preserves original asset creation time and can stage to Inbox or attach directly to a case; Opus Camera now supports `targetMode` (`inbox` vs direct case attach), blocks dismissal while queued encryption finishes, and surfaces save failures; planned-case camera flow now auto-saves the minimal planned case before opening capture; Dashboard Inbox relocated from large shortcut row + attention card to compact header icon with badge count, case picker search now expands beyond the previous recent-only slice; iOS native scaffold added via `@bacons/apple-targets` with App Group entitlement, Inbox widget + Control Center capture control, shared extension storage bridge, pending locked-camera capture ingestion, locked-camera extension scaffold, and `opus://camera` / `opus://inbox` deep-link handling; targeted capture workflow suites now cover inbox storage, assignment, protocol tagging, media UI, and shared native ingress (75 passing tests)
 - **Operative Role & Supervision COMPLETE** — Three-dimensional role model (OperativeRole × SupervisionLevel × Responsible Consultant) replacing legacy 7-value `Role` type. Case-level defaults with per-procedure override, smart profile-based defaults (`suggestRoleDefaults`), 6 export format mappings (RACS MALT, JDocs, UK eLogbook, ACGME, German, Swiss), `migrateLegacyRole()` for backward compat, operating team UI removed, `RoleBadge` supports both Role and OperativeRole types, CSV/FHIR/PDF exports updated with role+supervision+consultant columns, statistics role breakdown uses OperativeRole, 68 new tests (703 total)
+- **UX Polish COMPLETE** — FAB animation softer springs, PatientInfoSection compact 2-row layout, OperativeMediaSection camera button removed (From Inbox + From Gallery only), OutcomesSection day-case auto-fill + collapsible 30-day RACS MALT audit section, CaseDetailScreen 30-day complication review with audit fields (readmission/ICU/return to theatre), GuidedCaptureScreen (NHI + template picker → Opus Camera → Inbox), FAB speed dial updated (Log a Case / Quick Capture / Guided Capture), plan mode toggle on CaseFormScreen (relaxed validation, "planned" status, "Plan a Case" header), Inbox badge excludes NHI-assigned photos via `getUnassignedInboxCount()`, InboxScreen two-section layout (unassigned date-grouped + NHI patient-grouped with collapsible rows)
 - **Phase 5 IN PROGRESS** — Version 2.5.0, EAS config done (dev/preview/production profiles), pending manual regression + TestFlight submission
 
 ## Tech stack
@@ -93,10 +94,10 @@ npm run test:watch     # Vitest (watch mode)
 ```
 client/
   App.tsx                        # Root: providers + deep-link routing + locked-capture ingress → RootStackNavigator
-  screens/                       # 28 screens + 9 onboarding sub-screens
+  screens/                       # 29 screens + 9 onboarding sub-screens
     DashboardScreen.tsx           # Surgical triage surface, 4-zone layout
-    CaseDetailScreen.tsx          # Full case view, timeline, flap outcomes
-    CaseFormScreen.tsx            # Case entry, delegates to section components
+    CaseDetailScreen.tsx          # Full case view, timeline, flap outcomes, 30-day complication review with RACS MALT audit
+    CaseFormScreen.tsx            # Case entry, delegates to section components, plan mode toggle
     SettingsScreen.tsx            # Profile, export, legal, app lock config
     EditProfileScreen.tsx         # Profile editing, picture upload, facilities
     OnboardingScreen.tsx          # Multi-step onboarding coordinator
@@ -116,12 +117,13 @@ client/
     CaseSearchScreen.tsx          # Global case search by patient name, NHI, diagnosis, procedure, facility
     StatisticsScreen.tsx          # 3-tier analytics: career overview, specialty deep-dives, operational insights
     NeedsAttentionListScreen.tsx  # Full-screen needs attention list with sections
-    InboxScreen.tsx               # Transactional photo inbox: date-grouped grid, reserve/release/finalize assignment, pick mode
+    InboxScreen.tsx               # Transactional photo inbox: two-section layout (unassigned date-grouped + NHI patient-grouped), reserve/release/finalize, pick mode
     SmartImportScreen.tsx         # Camera Roll import: preserve capture time, encrypt, optional delete, inbox or direct-case attach
     OpusCameraScreen.tsx          # Dedicated in-app camera: template picker + guided viewfinder + quick snap + inbox/direct-case target modes
     PlanCaseScreen.tsx            # Planned case creation: patient ID, date, specialty, note, template picker, auto-save before camera
     PlannedCaseListScreen.tsx     # Planned case list: sorted by date, complete/camera quick actions with direct attach
     CaseMediaOrganiserScreen.tsx  # Protocol slot grid + untagged strip: tap-to-assign, auto-organise
+    GuidedCaptureScreen.tsx       # NHI + template picker → Opus Camera → Inbox, FAB speed dial entry point
     onboarding/                   # 9 files: Welcome, FeaturePager, Auth, EmailSignup,
                                   #   Categories, Training, Hospital, Privacy, FeatureSlide
   components/                    # 120+ files across 13 subdirectories
@@ -330,7 +332,7 @@ Each Case has `diagnosisGroups: DiagnosisGroup[]` instead of flat diagnosis/proc
 2. `CaseSection` (`case`) — Wraps `DiagnosisProcedureSection` (diagnosis groups, specialty-specific UI) + conditional `TreatmentContextSection` (flap cases only)
 3. `OperativeSection` (`operative`) — 4 sub-groups: Admission & Timing (urgency, stay type, dates, surgery times), Team & Anaesthesia (role, anaesthetic, operating team), Surgical Factors (wound risk, prophylaxis), Patient Factors (ASA, smoking, BMI, comorbidities — collapsed by default)
 4. `OperativeMediaSection` (`media`) — Operative photos with capture protocols
-5. `OutcomesSection` (`outcomes`) — Discharge outcome, mortality classification, unplanned readmission/ICU/return to theatre, MDM, infection documentation
+5. `OutcomesSection` (`outcomes`) — Discharge outcome, mortality classification, collapsible 30-day RACS MALT audit (unplanned readmission/ICU/return to theatre), MDM, infection documentation. Day-case auto-fills "Discharged home"
 
 Plus: `CollapsibleFormSection` (card wrapper), `SectionNavBar` (fixed-width pill navigation), `CaseSummaryView` (read-only 5-card review gating save with validation).
 
@@ -713,7 +715,7 @@ The dashboard is a **surgical triage surface** — density-first, optimised for 
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Dashboard philosophy    | Density-first. NOT clarity-first, NOT feed-first.                                                                                                                      |
 | Zone order (top→bottom) | Filter Bar → Needs Attention → Practice Pulse → Recent Cases                                                                                                           |
-| Primary action          | FAB speed dial (bottom-right, 56px amber main + 44px mini-FABs). Three actions: Log a Case (amber, closest to thumb), Quick Capture, Plan a Case. NOT a header button. |
+| Primary action          | FAB speed dial (bottom-right, 56px amber main + 44px mini-FABs). Three actions: Log a Case (amber, closest to thumb), Quick Capture, Guided Capture. NOT a header button. |
 | Header                  | Centered `HeaderTitle` lockup (Opus logo + subtitle). Inbox icon (with badge) + Search button on the right. NO greeting.                                               |
 | Statistics              | Numbers + deltas only on dashboard. NO charts. Charts live on the dedicated Statistics tab.                                                                            |
 | Notifications           | Zone 1 presence/absence IS the notification. NO red dots, NO badge counts.                                                                                             |
@@ -800,7 +802,7 @@ Three item types merged by `useAttentionItems` / `dashboardSelectors`:
 2. **Active infections** — cases with `infectionOverlay?.status === "active"` (deduplicated against inpatients)
 3. **Active episodes** — episodes with `status === "active"`, `"on_hold"`, or `"planned"`, with linked case data
 
-Inbox photos are accessed via the header icon with badge count (not in the attention carousel).
+Inbox photos are accessed via the header icon with badge count showing unassigned-only count via `getUnassignedInboxCount()` (not in the attention carousel).
 
 "View all" button is shown whenever Zone 1 exists and navigates to `NeedsAttentionListScreen` — full-screen SectionList grouped by type with search and specialty-context handoff from the dashboard.
 

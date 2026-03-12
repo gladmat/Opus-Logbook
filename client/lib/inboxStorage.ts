@@ -312,6 +312,16 @@ export function getInboxCount(): number {
   return getInboxItems().length;
 }
 
+/**
+ * Count of truly unassigned inbox photos — excludes items that already have
+ * a patientIdentifier (captured via Guided Capture). Used for the dashboard
+ * badge so NHI-tagged photos don't inflate the "needs attention" count.
+ */
+export function getUnassignedInboxCount(): number {
+  if (!_initialized) return 0;
+  return getInboxItems().filter((item) => !item.patientIdentifier).length;
+}
+
 export function getReservedInboxIdsFromMedia(
   mediaItems: { sourceInboxId?: string }[],
 ): string[] {

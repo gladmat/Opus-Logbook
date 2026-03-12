@@ -39,48 +39,114 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
     [state.patientDateOfBirth],
   );
 
+  const togglePlanMode = () => {
+    Haptics.selectionAsync();
+    dispatch(setField("isPlanMode", !state.isPlanMode));
+  };
+
   return (
     <>
-      <SectionHeader title="Patient Information" />
-
-      {isNZ ? (
-        <FormField
-          label="NHI Number"
-          value={state.patientNhi}
-          onChangeText={(text: string) => {
-            const formatted = formatNhi(text);
-            dispatch(setField("patientNhi", formatted));
-            // Auto-sync NHI → patientIdentifier for NZ users
-            dispatch(setField("patientIdentifier", formatted));
-          }}
-          placeholder="e.g., ABC1234"
-          required
-          autoCapitalize="characters"
-          onBlur={() => onFieldBlur("patientIdentifier")}
-          error={fieldErrors.patientIdentifier}
-        />
-      ) : (
-        <FormField
-          label="Patient Identifier"
-          value={state.patientIdentifier}
-          onChangeText={(text: string) =>
-            dispatch(setField("patientIdentifier", text.toUpperCase()))
+      <View style={styles.sectionHeaderRow}>
+        <SectionHeader title="Patient Information" />
+        <Pressable
+          onPress={togglePlanMode}
+          style={[
+            styles.planToggle,
+            {
+              backgroundColor: state.isPlanMode
+                ? theme.info + "20"
+                : theme.backgroundDefault,
+              borderColor: state.isPlanMode ? theme.info : theme.border,
+            },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel={
+            state.isPlanMode ? "Plan mode active" : "Switch to plan mode"
           }
-          placeholder="e.g., MRN or initials"
-          required
-          autoCapitalize="characters"
-          onBlur={() => onFieldBlur("patientIdentifier")}
-          error={fieldErrors.patientIdentifier}
-        />
-      )}
-
-      <View style={styles.privacyRow}>
-        <Feather name="lock" size={12} color={theme.textTertiary} />
-        <ThemedText style={[styles.privacyText, { color: theme.textTertiary }]}>
-          Stored on this device only
-        </ThemedText>
+          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+        >
+          <Feather
+            name="calendar"
+            size={13}
+            color={state.isPlanMode ? theme.info : theme.textTertiary}
+          />
+          <ThemedText
+            style={[
+              styles.planToggleText,
+              { color: state.isPlanMode ? theme.info : theme.textTertiary },
+            ]}
+          >
+            Plan
+          </ThemedText>
+        </Pressable>
       </View>
 
+      {/* Row 1: NHI/Identifier + Date of Birth */}
+      <View style={styles.row}>
+        <View style={styles.halfField}>
+          {isNZ ? (
+            <FormField
+              label="NHI"
+              value={state.patientNhi}
+              onChangeText={(text: string) => {
+                const formatted = formatNhi(text);
+                dispatch(setField("patientNhi", formatted));
+                dispatch(setField("patientIdentifier", formatted));
+              }}
+              placeholder="ABC1234"
+              required
+              autoCapitalize="characters"
+              onBlur={() => onFieldBlur("patientIdentifier")}
+              error={fieldErrors.patientIdentifier}
+            />
+          ) : (
+            <FormField
+              label="Identifier"
+              value={state.patientIdentifier}
+              onChangeText={(text: string) =>
+                dispatch(setField("patientIdentifier", text.toUpperCase()))
+              }
+              placeholder="MRN or initials"
+              required
+              autoCapitalize="characters"
+              onBlur={() => onFieldBlur("patientIdentifier")}
+              error={fieldErrors.patientIdentifier}
+            />
+          )}
+        </View>
+        <View style={styles.halfField}>
+          <DatePickerField
+            label="Date of Birth"
+            value={state.patientDateOfBirth}
+            onChange={(v: string) => {
+              dispatch(setField("patientDateOfBirth", v));
+            }}
+            placeholder="DOB..."
+            maximumDate={new Date()}
+          />
+        </View>
+      </View>
+
+      {/* Privacy + Age inline */}
+      <View style={styles.privacyAgeRow}>
+        <View style={styles.privacyRow}>
+          <Feather name="lock" size={12} color={theme.textTertiary} />
+          <ThemedText
+            style={[styles.privacyText, { color: theme.textTertiary }]}
+          >
+            On-device only
+          </ThemedText>
+        </View>
+        {calculatedAge !== undefined && (
+          <ThemedText
+            style={[styles.ageDisplay, { color: theme.textSecondary }]}
+          >
+            Age: {calculatedAge}y
+          </ThemedText>
+        )}
+      </View>
+
+      {/* Row 2: First Name + Last Name */}
       <View style={styles.row}>
         <View style={styles.halfField}>
           <FormField
@@ -106,69 +172,57 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
         </View>
       </View>
 
-      <DatePickerField
-        label="Date of Birth"
-        value={state.patientDateOfBirth}
-        onChange={(v: string) => {
-          dispatch(setField("patientDateOfBirth", v));
-        }}
-        placeholder="Select date of birth..."
-        maximumDate={new Date()}
-      />
+      {/* Row 3: Procedure Date + Facility */}
+      <View style={styles.row}>
+        <View style={styles.halfField}>
+          <DatePickerField
+            label="Procedure Date"
+            value={state.procedureDate}
+            onChange={(v: string) => {
+              dispatch(setField("procedureDate", v));
+              onFieldBlur("procedureDate");
+            }}
+            placeholder="Date..."
+            required
+            error={fieldErrors.procedureDate}
+            maximumDate={new Date()}
+          />
+        </View>
+        <View style={styles.halfField}>
+          {facilities.length > 0 ? (
+            <PickerField
+              label="Facility"
+              value={state.facility}
+              options={facilities.map((facility) => {
+                const facilityName = resolveFacilityName(facility);
+                return {
+                  value: facilityName,
+                  label: facilityName,
+                };
+              })}
+              onSelect={(v: string) => {
+                dispatch(setField("facility", v));
+                onFieldBlur("facility");
+              }}
+              placeholder="Select..."
+              required
+              error={fieldErrors.facility}
+            />
+          ) : (
+            <FormField
+              label="Facility"
+              value={state.facility}
+              onChangeText={(v: string) => dispatch(setField("facility", v))}
+              placeholder="Hospital name"
+              required
+              onBlur={() => onFieldBlur("facility")}
+              error={fieldErrors.facility}
+            />
+          )}
+        </View>
+      </View>
 
-      {calculatedAge !== undefined && (
-        <ThemedText style={[styles.ageDisplay, { color: theme.textSecondary }]}>
-          Age: {calculatedAge} years
-        </ThemedText>
-      )}
-
-      <DatePickerField
-        label="Procedure Date"
-        value={state.procedureDate}
-        onChange={(v: string) => {
-          dispatch(setField("procedureDate", v));
-          // Validate date immediately on change (picker, not blur)
-          onFieldBlur("procedureDate");
-        }}
-        placeholder="Select date..."
-        required
-        error={fieldErrors.procedureDate}
-        maximumDate={new Date()}
-      />
-
-      {facilities.length > 0 ? (
-        <PickerField
-          label="Facility"
-          value={state.facility}
-          options={facilities.map((facility) => {
-            const facilityName = resolveFacilityName(facility);
-            return {
-              value: facilityName,
-              label: facilityName,
-            };
-          })}
-          onSelect={(v: string) => {
-            dispatch(setField("facility", v));
-            onFieldBlur("facility");
-          }}
-          placeholder="Select facility..."
-          required
-          error={fieldErrors.facility}
-        />
-      ) : (
-        <FormField
-          label="Facility"
-          value={state.facility}
-          onChangeText={(v: string) => dispatch(setField("facility", v))}
-          placeholder="Hospital or clinic name"
-          required
-          onBlur={() => onFieldBlur("facility")}
-          error={fieldErrors.facility}
-        />
-      )}
-
-      <SectionHeader title="Patient Demographics" />
-
+      {/* Row 4: Gender + Ethnicity */}
       <View style={styles.row}>
         <View style={styles.halfField}>
           <ThemedText
@@ -229,6 +283,24 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
 });
 
 const styles = StyleSheet.create({
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  planToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  planToggleText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
   row: {
     flexDirection: "row",
     gap: Spacing.md,
@@ -236,20 +308,23 @@ const styles = StyleSheet.create({
   halfField: {
     flex: 1,
   },
+  privacyAgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: -Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
   privacyRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    marginTop: -Spacing.xs,
-    marginBottom: Spacing.sm,
   },
   privacyText: {
     fontSize: 12,
   },
   ageDisplay: {
     fontSize: 14,
-    marginTop: -Spacing.xs,
-    marginBottom: Spacing.sm,
   },
   fieldLabel: {
     fontSize: 14,

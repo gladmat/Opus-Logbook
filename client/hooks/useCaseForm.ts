@@ -264,6 +264,7 @@ export interface CaseFormState {
 
   // UI state
   saving: boolean;
+  isPlanMode: boolean;
 }
 
 // ─── Actions ────────────────────────────────────────────────────────────────
@@ -363,6 +364,7 @@ export function getDefaultFormState(
     episodeSequence: 0,
     encounterClass: "",
     saving: false,
+    isPlanMode: false,
   };
 }
 
@@ -475,6 +477,7 @@ function loadCaseIntoFormState(
     episodeSequence: caseData.episodeSequence ?? 0,
     encounterClass: (caseData.encounterClass as EncounterClass) ?? "",
     saving: false,
+    isPlanMode: false,
   };
 }
 
@@ -735,6 +738,7 @@ export function validateRequiredFields(state: CaseFormState): {
 } {
   const errors: ValidationError[] = [];
 
+  // Plan mode only requires patient identifier
   if (!state.patientIdentifier.trim()) {
     errors.push({
       field: "patientIdentifier",
@@ -742,30 +746,33 @@ export function validateRequiredFields(state: CaseFormState): {
       message: "Patient identifier is required",
     });
   }
-  if (!state.procedureDate) {
-    errors.push({
-      field: "procedureDate",
-      sectionId: "patient",
-      message: "Procedure date is required",
-    });
-  }
-  if (!state.facility.trim()) {
-    errors.push({
-      field: "facility",
-      sectionId: "patient",
-      message: "Facility is required",
-    });
-  }
 
-  const hasCompleteDiagnosisGroup = state.diagnosisGroups.some(
-    (g) => g.diagnosis && g.procedures.some((p) => p.procedureName.trim()),
-  );
-  if (!hasCompleteDiagnosisGroup) {
-    errors.push({
-      field: "diagnosisGroups",
-      sectionId: "case",
-      message: "At least one diagnosis with a named procedure is required",
-    });
+  if (!state.isPlanMode) {
+    if (!state.procedureDate) {
+      errors.push({
+        field: "procedureDate",
+        sectionId: "patient",
+        message: "Procedure date is required",
+      });
+    }
+    if (!state.facility.trim()) {
+      errors.push({
+        field: "facility",
+        sectionId: "patient",
+        message: "Facility is required",
+      });
+    }
+
+    const hasCompleteDiagnosisGroup = state.diagnosisGroups.some(
+      (g) => g.diagnosis && g.procedures.some((p) => p.procedureName.trim()),
+    );
+    if (!hasCompleteDiagnosisGroup) {
+      errors.push({
+        field: "diagnosisGroups",
+        sectionId: "case",
+        message: "At least one diagnosis with a named procedure is required",
+      });
+    }
   }
 
   return { valid: errors.length === 0, errors };
@@ -787,6 +794,7 @@ function caseFormReducer(
         if (!next.admissionDate) next.admissionDate = today;
         if (!next.dischargeDate)
           next.dischargeDate = next.admissionDate || today;
+        if (!next.outcome) next.outcome = "discharged_home";
       }
 
       // Day case: sync discharge to admission when admission date changes
@@ -1070,6 +1078,7 @@ export function buildDuplicateState(
       : 0,
     encounterClass: "",
     saving: false,
+    isPlanMode: false,
   };
 }
 
@@ -1822,11 +1831,13 @@ export function useCaseForm({
           episodeId: state.episodeId || undefined,
           episodeSequence: computedEpisodeSequence || undefined,
           encounterClass: state.encounterClass || undefined,
-          caseStatus: isIncomplete
-            ? "incomplete"
-            : state.dischargeDate
-              ? "discharged"
-              : "active",
+          caseStatus: state.isPlanMode
+            ? "planned"
+            : isIncomplete
+              ? "incomplete"
+              : state.dischargeDate
+                ? "discharged"
+                : "active",
           clinicalDetails: {
             ...state.clinicalDetails,
             ...(state.recipientSiteRegion

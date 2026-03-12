@@ -8,7 +8,7 @@ import { HeaderTitle } from "@/components/HeaderTitle";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
 import { useTheme } from "@/hooks/useTheme";
 import { Feather } from "@/components/FeatherIcon";
-import { getInboxCount } from "@/lib/inboxStorage";
+import { getUnassignedInboxCount } from "@/lib/inboxStorage";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
 
 export type DashboardStackParamList = {
@@ -25,7 +25,7 @@ function InboxButton() {
 
   useFocusEffect(
     useCallback(() => {
-      setCount(getInboxCount());
+      setCount(getUnassignedInboxCount());
     }, []),
   );
 

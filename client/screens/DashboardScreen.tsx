@@ -250,8 +250,8 @@ export default function DashboardScreen() {
     }
   }, [navigation, selectedSpecialty]);
 
-  const handlePlanCase = useCallback(() => {
-    navigation.navigate("PlanCase");
+  const handleGuidedCapture = useCallback(() => {
+    navigation.navigate("GuidedCapture");
   }, [navigation]);
 
   const handleQuickCapture = useCallback(() => {
@@ -422,8 +422,8 @@ export default function DashboardScreen() {
 
       <AddCaseFAB
         onAddCase={handleAddCase}
-        onPlanCase={handlePlanCase}
         onQuickCapture={handleQuickCapture}
+        onGuidedCapture={handleGuidedCapture}
       />
 
       {/* Discharge Modal */}

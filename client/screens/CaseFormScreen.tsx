@@ -457,12 +457,14 @@ export default function CaseFormScreen() {
 
   const headerTitle = reviewMode
     ? "Review Case"
-    : isCompletingPlanned
-      ? "Complete Case"
-      : form.isEditMode
-        ? "Edit Case"
-        : (SPECIALTY_HEADER_LABELS[form.specialty] ??
-          `${SPECIALTY_LABELS[form.specialty]} Case`);
+    : form.state.isPlanMode
+      ? "Plan a Case"
+      : isCompletingPlanned
+        ? "Complete Case"
+        : form.isEditMode
+          ? "Edit Case"
+          : (SPECIALTY_HEADER_LABELS[form.specialty] ??
+            `${SPECIALTY_LABELS[form.specialty]} Case`);
 
   // ── Navigation header ─────────────────────────────────────────────────
 
@@ -528,7 +530,11 @@ export default function CaseFormScreen() {
                   fontWeight: "600",
                 }}
               >
-                {form.state.saving ? "Saving..." : "Save"}
+                {form.state.saving
+                  ? "Saving..."
+                  : form.state.isPlanMode
+                    ? "Save Plan"
+                    : "Save"}
               </ThemedText>
             </Pressable>
           </View>
@@ -536,6 +542,7 @@ export default function CaseFormScreen() {
     });
   }, [
     form.state.saving,
+    form.state.isPlanMode,
     form.isEditMode,
     form.specialty,
     theme.link,

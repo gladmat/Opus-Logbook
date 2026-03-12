@@ -77,21 +77,6 @@ export function OperativeMediaSection({
     });
   };
 
-  const handleCameraCapture = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const callbackId = registerGenericCallback(
-      (newMedia: OperativeMediaItem[]) => {
-        onMediaChange([...media, ...newMedia]);
-      },
-    );
-    navigation.navigate("OpusCamera", {
-      quickSnap: true,
-      targetMode: "case",
-      callbackId,
-      procedureDate: mediaContext?.procedureDate,
-    });
-  };
-
   const handleGalleryPick = () => {
     const remaining = maxItems - media.length;
     if (remaining <= 0) return;
@@ -343,10 +328,10 @@ export function OperativeMediaSection({
           {canAddMore ? (
             <View style={styles.addButtonsColumn}>
               <Pressable
-                onPress={handleCameraCapture}
-                style={[styles.smallAddButton, { backgroundColor: theme.link }]}
+                onPress={handleFromInbox}
+                style={[styles.smallAddButton, { backgroundColor: theme.accent }]}
               >
-                <Feather name="camera" size={18} color={theme.buttonText} />
+                <Feather name="inbox" size={18} color={theme.accentContrast} />
               </Pressable>
               <Pressable
                 onPress={handleGalleryPick}
@@ -357,15 +342,6 @@ export function OperativeMediaSection({
               >
                 <Feather name="image" size={18} color={theme.text} />
               </Pressable>
-              <Pressable
-                onPress={handleFromInbox}
-                style={[
-                  styles.smallAddButton,
-                  { backgroundColor: theme.backgroundDefault },
-                ]}
-              >
-                <Feather name="inbox" size={18} color={theme.text} />
-              </Pressable>
             </View>
           ) : null}
         </ScrollView>
@@ -373,14 +349,14 @@ export function OperativeMediaSection({
         <View style={styles.emptyState}>
           <View style={styles.buttonRow}>
             <Pressable
-              onPress={handleCameraCapture}
-              style={[styles.addButton, { backgroundColor: theme.link }]}
+              onPress={handleFromInbox}
+              style={[styles.addButton, { backgroundColor: theme.accent }]}
             >
-              <Feather name="camera" size={20} color={theme.buttonText} />
+              <Feather name="inbox" size={20} color={theme.accentContrast} />
               <ThemedText
-                style={[styles.addButtonText, { color: theme.buttonText }]}
+                style={[styles.addButtonText, { color: theme.accentContrast }]}
               >
-                Opus Camera
+                From Inbox
               </ThemedText>
             </Pressable>
             <Pressable
@@ -393,21 +369,11 @@ export function OperativeMediaSection({
               <Feather name="image" size={20} color={theme.text} />
               <ThemedText style={styles.addButtonText}>From Gallery</ThemedText>
             </Pressable>
-            <Pressable
-              onPress={handleFromInbox}
-              style={[
-                styles.addButton,
-                { backgroundColor: theme.backgroundDefault },
-              ]}
-            >
-              <Feather name="inbox" size={20} color={theme.text} />
-              <ThemedText style={styles.addButtonText}>From Inbox</ThemedText>
-            </Pressable>
           </View>
           <ThemedText
             style={[styles.placeholderText, { color: theme.textSecondary }]}
           >
-            Add intraoperative photos, X-rays, or other imaging
+            Assign photos from your Inbox or Camera Roll
           </ThemedText>
         </View>
       )}

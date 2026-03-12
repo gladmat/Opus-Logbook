@@ -17,8 +17,8 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface AddCaseFABProps {
   onAddCase: () => void;
-  onPlanCase: () => void;
   onQuickCapture?: () => void;
+  onGuidedCapture?: () => void;
 }
 
 const MINI_FAB_SIZE = 44;
@@ -30,20 +30,20 @@ const BASE_OFFSET = MAIN_FAB_SIZE / 2 + ITEM_GAP + MINI_FAB_SIZE / 2;
 interface SpeedDialItem {
   key: string;
   label: string;
-  icon: "edit-3" | "camera" | "calendar";
+  icon: "edit-3" | "camera" | "grid";
   isPrimary: boolean;
 }
 
 const SPEED_DIAL_ITEMS: SpeedDialItem[] = [
   { key: "log", label: "Log a Case", icon: "edit-3", isPrimary: true },
   { key: "capture", label: "Quick Capture", icon: "camera", isPrimary: false },
-  { key: "plan", label: "Plan a Case", icon: "calendar", isPrimary: false },
+  { key: "guided", label: "Guided Capture", icon: "grid", isPrimary: false },
 ];
 
 function AddCaseFABInner({
   onAddCase,
-  onPlanCase,
   onQuickCapture,
+  onGuidedCapture,
 }: AddCaseFABProps) {
   const { theme, isDark } = useTheme();
   const tabBarHeight = useBottomTabBarHeight();
@@ -66,8 +66,8 @@ function AddCaseFABInner({
   );
 
   const actionHandlers = useMemo(
-    () => [onAddCase, onQuickCapture ?? (() => {}), onPlanCase],
-    [onAddCase, onQuickCapture, onPlanCase],
+    () => [onAddCase, onQuickCapture ?? (() => {}), onGuidedCapture ?? (() => {})],
+    [onAddCase, onQuickCapture, onGuidedCapture],
   );
 
   const expand = useCallback(() => {
@@ -75,14 +75,14 @@ function AddCaseFABInner({
     setIsExpanded(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    iconRotation.value = withSpring(45, { damping: 15, stiffness: 300 });
+    iconRotation.value = withSpring(45, { damping: 22, stiffness: 200 });
     backdropOpacity.value = withTiming(1, { duration: 200 });
 
     // Staggered fan-out: closest item first
     for (let i = 0; i < SPEED_DIAL_ITEMS.length; i++) {
       itemProgressValues[i]!.value = withDelay(
-        i * 50,
-        withSpring(1, { damping: 18, stiffness: 300 }),
+        i * 40,
+        withSpring(1, { damping: 22, stiffness: 200 }),
       );
     }
   }, [iconRotation, backdropOpacity, itemProgressValues]);
@@ -91,7 +91,7 @@ function AddCaseFABInner({
     (action?: () => void) => {
       expandedRef.current = false;
 
-      iconRotation.value = withSpring(0, { damping: 15, stiffness: 300 });
+      iconRotation.value = withSpring(0, { damping: 22, stiffness: 200 });
       backdropOpacity.value = withTiming(0, { duration: 150 });
 
       // Collapse all items (reverse stagger — furthest first)
@@ -120,11 +120,11 @@ function AddCaseFABInner({
   }, [expand, collapse]);
 
   const handleFABPressIn = useCallback(() => {
-    fabScale.value = withSpring(0.92, { damping: 15, stiffness: 400 });
+    fabScale.value = withSpring(0.93, { damping: 20, stiffness: 350 });
   }, [fabScale]);
 
   const handleFABPressOut = useCallback(() => {
-    fabScale.value = withSpring(1, { damping: 15, stiffness: 400 });
+    fabScale.value = withSpring(1, { damping: 20, stiffness: 350 });
   }, [fabScale]);
 
   const handleItemPress = useCallback(
@@ -158,21 +158,21 @@ function AddCaseFABInner({
     opacity: item0.value,
     transform: [
       { translateY: -(OFFSET_0 * item0.value) },
-      { scale: 0.3 + 0.7 * item0.value },
+      { scale: 0.5 + 0.5 * item0.value },
     ],
   }));
   const itemStyle1 = useAnimatedStyle(() => ({
     opacity: item1.value,
     transform: [
       { translateY: -(OFFSET_1 * item1.value) },
-      { scale: 0.3 + 0.7 * item1.value },
+      { scale: 0.5 + 0.5 * item1.value },
     ],
   }));
   const itemStyle2 = useAnimatedStyle(() => ({
     opacity: item2.value,
     transform: [
       { translateY: -(OFFSET_2 * item2.value) },
-      { scale: 0.3 + 0.7 * item2.value },
+      { scale: 0.5 + 0.5 * item2.value },
     ],
   }));
   const itemAnimatedStyles = [itemStyle0, itemStyle1, itemStyle2];

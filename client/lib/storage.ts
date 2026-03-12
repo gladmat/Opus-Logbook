@@ -9,6 +9,8 @@ import {
   getCaseSpecialties,
   getPatientDisplayName,
   getPrimarySiteLabel,
+  UnplannedReadmissionReason,
+  UnplannedICUReason,
 } from "@/types/case";
 import type { CaseSummary } from "@/types/caseSummary";
 import {
@@ -847,12 +849,21 @@ export function getCasesPendingFollowUp(cases: Case[]): Case[] {
   });
 }
 
-export async function markNoComplications(caseId: string): Promise<void> {
+export async function markNoComplications(
+  caseId: string,
+  auditFields?: {
+    unplannedReadmission?: UnplannedReadmissionReason;
+    unplannedICU?: UnplannedICUReason;
+    returnToTheatre?: boolean;
+    returnToTheatreReason?: string;
+  },
+): Promise<void> {
   await updateCase(caseId, {
     complicationsReviewed: true,
     complicationsReviewedAt: new Date().toISOString(),
     hasComplications: false,
     complications: [],
+    ...auditFields,
   });
 }
 

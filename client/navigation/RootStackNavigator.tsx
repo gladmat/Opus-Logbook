@@ -34,6 +34,7 @@ import OpusCameraScreen from "@/screens/OpusCameraScreen";
 import PlanCaseScreen from "@/screens/PlanCaseScreen";
 import PlannedCaseListScreen from "@/screens/PlannedCaseListScreen";
 import CaseMediaOrganiserScreen from "@/screens/CaseMediaOrganiserScreen";
+import GuidedCaptureScreen from "@/screens/GuidedCaptureScreen";
 import SurgicalPreferencesScreen from "@/screens/SurgicalPreferencesScreen";
 import { WelcomeScreen } from "@/screens/onboarding/WelcomeScreen";
 import { FeaturePager } from "@/screens/onboarding/FeaturePager";
@@ -250,6 +251,7 @@ export type RootStackParamList = {
             };
       }
     | undefined;
+  GuidedCapture: undefined;
   PlanCase: undefined;
   PlannedCaseList: undefined;
   CaseMediaOrganiser: {
@@ -821,6 +823,14 @@ export default function RootStackNavigator() {
               component={OpusCameraScreen}
               options={{
                 headerShown: false,
+                presentation: "fullScreenModal",
+              }}
+            />
+            <Stack.Screen
+              name="GuidedCapture"
+              component={GuidedCaptureScreen}
+              options={{
+                headerTitle: "Guided Capture",
                 presentation: "fullScreenModal",
               }}
             />

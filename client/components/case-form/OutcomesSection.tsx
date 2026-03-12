@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { View, Pressable, StyleSheet } from "react-native";
 import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
@@ -49,6 +49,25 @@ export const OutcomesSection = React.memo(function OutcomesSection({
     return count;
   }, [state.outcome]);
 
+  // Auto-expand 30-day audit if any audit field already has data (edit mode backward compat)
+  const hasAuditData = useMemo(
+    () =>
+      state.isUnplannedReadmission ||
+      (state.unplannedReadmission && state.unplannedReadmission !== "no") ||
+      (state.unplannedICU && state.unplannedICU !== "no") ||
+      state.returnToTheatre ||
+      !!infectionOverlay,
+    [
+      state.isUnplannedReadmission,
+      state.unplannedReadmission,
+      state.unplannedICU,
+      state.returnToTheatre,
+      infectionOverlay,
+    ],
+  );
+
+  const [isAuditExpanded, setIsAuditExpanded] = useState(hasAuditData);
+
   return (
     <CollapsibleFormSection
       title="Outcomes"
@@ -58,105 +77,7 @@ export const OutcomesSection = React.memo(function OutcomesSection({
     >
       <SectionHeader title="Outcomes" />
 
-      <Pressable
-        style={styles.checkboxRow}
-        testID="checkbox-unplanned-readmission"
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          const newValue = !state.isUnplannedReadmission;
-          dispatch(setField("isUnplannedReadmission", newValue));
-          if (!newValue) {
-            dispatch(setField("unplannedReadmission", "no"));
-          }
-        }}
-      >
-        <View
-          style={[
-            styles.checkbox,
-            {
-              backgroundColor: state.isUnplannedReadmission
-                ? theme.warning + "20"
-                : theme.backgroundDefault,
-              borderColor: state.isUnplannedReadmission
-                ? theme.warning
-                : theme.border,
-            },
-          ]}
-        >
-          {state.isUnplannedReadmission ? (
-            <Feather name="check" size={16} color={theme.warning} />
-          ) : null}
-        </View>
-        <ThemedText style={styles.checkboxLabel}>
-          Unplanned Readmission (within 28 days)
-        </ThemedText>
-      </Pressable>
-
-      {state.isUnplannedReadmission ? (
-        <SelectField
-          label="Readmission Reason"
-          value={state.unplannedReadmission}
-          options={Object.entries(UNPLANNED_READMISSION_LABELS)
-            .filter(([value]) => value !== "no")
-            .map(([value, label]) => ({
-              value,
-              label: label.replace("Yes - ", ""),
-            }))}
-          onSelect={(v: string) =>
-            dispatch(
-              setField("unplannedReadmission", v as UnplannedReadmissionReason),
-            )
-          }
-        />
-      ) : null}
-
-      <PickerField
-        label="Unplanned ICU Admission"
-        value={state.unplannedICU}
-        options={Object.entries(UNPLANNED_ICU_LABELS).map(([value, label]) => ({
-          value,
-          label,
-        }))}
-        onSelect={(v: string) =>
-          dispatch(setField("unplannedICU", v as UnplannedICUReason))
-        }
-      />
-
-      <View style={styles.checkboxRow}>
-        <Pressable
-          style={[
-            styles.checkbox,
-            {
-              backgroundColor: state.returnToTheatre
-                ? theme.error + "20"
-                : theme.backgroundDefault,
-              borderColor: state.returnToTheatre ? theme.error : theme.border,
-            },
-          ]}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            dispatch(setField("returnToTheatre", !state.returnToTheatre));
-          }}
-        >
-          {state.returnToTheatre ? (
-            <Feather name="check" size={16} color={theme.error} />
-          ) : null}
-        </Pressable>
-        <ThemedText style={styles.checkboxLabel}>
-          Unplanned Return to Theatre
-        </ThemedText>
-      </View>
-
-      {state.returnToTheatre ? (
-        <FormField
-          label="Reason for Return"
-          value={state.returnToTheatreReason}
-          onChangeText={(v: string) =>
-            dispatch(setField("returnToTheatreReason", v))
-          }
-          placeholder="e.g., Wound dehiscence"
-        />
-      ) : null}
+      {/* ── Tier 1: Always visible ─────────────────────────────────── */}
 
       <PickerField
         label="Discharge Outcome"
@@ -207,18 +128,155 @@ export const OutcomesSection = React.memo(function OutcomesSection({
         <ThemedText style={styles.checkboxLabel}>Discussed at MDM</ThemedText>
       </View>
 
-      {/* ── Infection Documentation ───────────────────────────────────── */}
+      {/* ── Tier 2: 30-Day Audit (collapsible) ─────────────────────── */}
 
-      <SectionHeader
-        title="Infection Documentation"
-        subtitle="Add if this case involves infection"
-      />
-      <InfectionOverlayForm
-        value={infectionOverlay}
-        onChange={onInfectionChange}
-        collapsed={infectionCollapsed}
-        onToggleCollapse={onInfectionToggle}
-      />
+      <Pressable
+        style={styles.auditToggle}
+        onPress={() => {
+          Haptics.selectionAsync();
+          setIsAuditExpanded((v) => !v);
+        }}
+      >
+        <Feather
+          name={isAuditExpanded ? "chevron-down" : "chevron-right"}
+          size={16}
+          color={theme.textSecondary}
+        />
+        <ThemedText
+          style={[styles.auditToggleText, { color: theme.textSecondary }]}
+        >
+          30-Day Audit
+        </ThemedText>
+        {hasAuditData ? (
+          <View
+            style={[styles.auditDot, { backgroundColor: theme.warning }]}
+          />
+        ) : null}
+      </Pressable>
+
+      {isAuditExpanded ? (
+        <>
+          <Pressable
+            style={styles.checkboxRow}
+            testID="checkbox-unplanned-readmission"
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              const newValue = !state.isUnplannedReadmission;
+              dispatch(setField("isUnplannedReadmission", newValue));
+              if (!newValue) {
+                dispatch(setField("unplannedReadmission", "no"));
+              }
+            }}
+          >
+            <View
+              style={[
+                styles.checkbox,
+                {
+                  backgroundColor: state.isUnplannedReadmission
+                    ? theme.warning + "20"
+                    : theme.backgroundDefault,
+                  borderColor: state.isUnplannedReadmission
+                    ? theme.warning
+                    : theme.border,
+                },
+              ]}
+            >
+              {state.isUnplannedReadmission ? (
+                <Feather name="check" size={16} color={theme.warning} />
+              ) : null}
+            </View>
+            <ThemedText style={styles.checkboxLabel}>
+              Unplanned Readmission (within 28 days)
+            </ThemedText>
+          </Pressable>
+
+          {state.isUnplannedReadmission ? (
+            <SelectField
+              label="Readmission Reason"
+              value={state.unplannedReadmission}
+              options={Object.entries(UNPLANNED_READMISSION_LABELS)
+                .filter(([value]) => value !== "no")
+                .map(([value, label]) => ({
+                  value,
+                  label: label.replace("Yes - ", ""),
+                }))}
+              onSelect={(v: string) =>
+                dispatch(
+                  setField(
+                    "unplannedReadmission",
+                    v as UnplannedReadmissionReason,
+                  ),
+                )
+              }
+            />
+          ) : null}
+
+          <PickerField
+            label="Unplanned ICU Admission"
+            value={state.unplannedICU}
+            options={Object.entries(UNPLANNED_ICU_LABELS).map(
+              ([value, label]) => ({
+                value,
+                label,
+              }),
+            )}
+            onSelect={(v: string) =>
+              dispatch(setField("unplannedICU", v as UnplannedICUReason))
+            }
+          />
+
+          <View style={styles.checkboxRow}>
+            <Pressable
+              style={[
+                styles.checkbox,
+                {
+                  backgroundColor: state.returnToTheatre
+                    ? theme.error + "20"
+                    : theme.backgroundDefault,
+                  borderColor: state.returnToTheatre
+                    ? theme.error
+                    : theme.border,
+                },
+              ]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                dispatch(setField("returnToTheatre", !state.returnToTheatre));
+              }}
+            >
+              {state.returnToTheatre ? (
+                <Feather name="check" size={16} color={theme.error} />
+              ) : null}
+            </Pressable>
+            <ThemedText style={styles.checkboxLabel}>
+              Unplanned Return to Theatre
+            </ThemedText>
+          </View>
+
+          {state.returnToTheatre ? (
+            <FormField
+              label="Reason for Return"
+              value={state.returnToTheatreReason}
+              onChangeText={(v: string) =>
+                dispatch(setField("returnToTheatreReason", v))
+              }
+              placeholder="e.g., Wound dehiscence"
+            />
+          ) : null}
+
+          {/* ── Infection Documentation ───────────────────────────────── */}
+
+          <SectionHeader
+            title="Infection Documentation"
+            subtitle="Add if this case involves infection"
+          />
+          <InfectionOverlayForm
+            value={infectionOverlay}
+            onChange={onInfectionChange}
+            collapsed={infectionCollapsed}
+            onToggleCollapse={onInfectionToggle}
+          />
+        </>
+      ) : null}
     </CollapsibleFormSection>
   );
 });
@@ -241,5 +299,21 @@ const styles = StyleSheet.create({
   checkboxLabel: {
     fontSize: 15,
     flex: 1,
+  },
+  auditToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    paddingVertical: Spacing.md,
+    marginTop: Spacing.sm,
+  },
+  auditToggleText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  auditDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
 });

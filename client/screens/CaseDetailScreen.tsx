@@ -52,6 +52,8 @@ import {
   getAllProcedures,
   isExcisionBiopsyDiagnosis,
   CLINICAL_SUSPICION_LABELS,
+  UnplannedReadmissionReason,
+  UnplannedICUReason,
 } from "@/types/case";
 import { getCasePrimaryTitle } from "@/lib/caseDiagnosisSummary";
 import {
@@ -201,6 +203,27 @@ export default function CaseDetailScreen() {
     useState<ClavienDindoGrade>("I");
   const [complicationNotes, setComplicationNotes] = useState("");
   const [savingComplication, setSavingComplication] = useState(false);
+
+  // 30-day audit fields (RACS MALT)
+  const [auditReadmission, setAuditReadmission] = useState(false);
+  const [auditReadmissionReason, setAuditReadmissionReason] = useState("no");
+  const [auditICU, setAuditICU] = useState("no");
+  const [auditReturnToTheatre, setAuditReturnToTheatre] = useState(false);
+  const [auditReturnReason, setAuditReturnReason] = useState("");
+
+  // Pre-populate audit fields from existing case data
+  useEffect(() => {
+    if (caseData) {
+      setAuditReadmission(
+        !!caseData.unplannedReadmission &&
+          caseData.unplannedReadmission !== "no",
+      );
+      setAuditReadmissionReason(caseData.unplannedReadmission ?? "no");
+      setAuditICU(caseData.unplannedICU ?? "no");
+      setAuditReturnToTheatre(!!caseData.returnToTheatre);
+      setAuditReturnReason(caseData.returnToTheatreReason ?? "");
+    }
+  }, [caseData]);
 
   useEffect(() => {
     if (route.params.showComplicationForm) {
@@ -408,10 +431,19 @@ export default function CaseDetailScreen() {
     );
   };
 
+  const collectAuditFields = () => ({
+    unplannedReadmission: (auditReadmission
+      ? auditReadmissionReason
+      : "no") as UnplannedReadmissionReason,
+    unplannedICU: auditICU as UnplannedICUReason,
+    returnToTheatre: auditReturnToTheatre,
+    returnToTheatreReason: auditReturnToTheatre ? auditReturnReason : "",
+  });
+
   const handleMarkNoComplications = async () => {
     if (!caseData) return;
     try {
-      await markNoComplications(caseData.id);
+      await markNoComplications(caseData.id, collectAuditFields());
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await loadData();
     } catch (error) {
@@ -443,6 +475,7 @@ export default function CaseDetailScreen() {
         complicationsReviewedAt: new Date().toISOString(),
         hasComplications: true,
         complications: [...existingComplications, newComplication],
+        ...collectAuditFields(),
       });
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -2057,6 +2090,185 @@ export default function CaseDetailScreen() {
                 </Pressable>
               </View>
             )}
+
+            {/* ── 30-Day Outcomes (RACS MALT audit) ─────────────── */}
+            <View style={styles.auditSection}>
+              <ThemedText
+                style={[styles.auditSectionTitle, { color: theme.text }]}
+              >
+                30-Day Outcomes
+              </ThemedText>
+
+              <Pressable
+                style={styles.auditCheckboxRow}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  const next = !auditReadmission;
+                  setAuditReadmission(next);
+                  if (!next) setAuditReadmissionReason("no");
+                }}
+              >
+                <View
+                  style={[
+                    styles.auditCheckbox,
+                    {
+                      backgroundColor: auditReadmission
+                        ? theme.warning + "20"
+                        : theme.backgroundDefault,
+                      borderColor: auditReadmission
+                        ? theme.warning
+                        : theme.border,
+                    },
+                  ]}
+                >
+                  {auditReadmission ? (
+                    <Feather name="check" size={14} color={theme.warning} />
+                  ) : null}
+                </View>
+                <ThemedText style={styles.auditCheckboxLabel}>
+                  Unplanned Readmission (within 28 days)
+                </ThemedText>
+              </Pressable>
+
+              {auditReadmission ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.auditChipScroll}
+                >
+                  {Object.entries(UNPLANNED_READMISSION_LABELS)
+                    .filter(([v]) => v !== "no")
+                    .map(([value, label]) => (
+                      <Pressable
+                        key={value}
+                        onPress={() => setAuditReadmissionReason(value)}
+                        style={[
+                          styles.gradeChip,
+                          {
+                            backgroundColor:
+                              auditReadmissionReason === value
+                                ? theme.link
+                                : theme.backgroundDefault,
+                            borderColor:
+                              auditReadmissionReason === value
+                                ? theme.link
+                                : theme.border,
+                          },
+                        ]}
+                      >
+                        <ThemedText
+                          style={[
+                            styles.gradeChipText,
+                            {
+                              color:
+                                auditReadmissionReason === value
+                                  ? theme.buttonText
+                                  : theme.text,
+                            },
+                          ]}
+                        >
+                          {label.replace("Yes - ", "")}
+                        </ThemedText>
+                      </Pressable>
+                    ))}
+                </ScrollView>
+              ) : null}
+
+              <View style={styles.auditPickerRow}>
+                <ThemedText style={styles.auditPickerLabel}>
+                  Unplanned ICU:
+                </ThemedText>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                >
+                  {Object.entries(UNPLANNED_ICU_LABELS).map(
+                    ([value, label]) => (
+                      <Pressable
+                        key={value}
+                        onPress={() => setAuditICU(value)}
+                        style={[
+                          styles.gradeChip,
+                          {
+                            backgroundColor:
+                              auditICU === value
+                                ? theme.link
+                                : theme.backgroundDefault,
+                            borderColor:
+                              auditICU === value
+                                ? theme.link
+                                : theme.border,
+                          },
+                        ]}
+                      >
+                        <ThemedText
+                          style={[
+                            styles.gradeChipText,
+                            {
+                              color:
+                                auditICU === value
+                                  ? theme.buttonText
+                                  : theme.text,
+                            },
+                          ]}
+                        >
+                          {label}
+                        </ThemedText>
+                      </Pressable>
+                    ),
+                  )}
+                </ScrollView>
+              </View>
+
+              <Pressable
+                style={styles.auditCheckboxRow}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  const next = !auditReturnToTheatre;
+                  setAuditReturnToTheatre(next);
+                  if (!next) setAuditReturnReason("");
+                }}
+              >
+                <View
+                  style={[
+                    styles.auditCheckbox,
+                    {
+                      backgroundColor: auditReturnToTheatre
+                        ? theme.error + "20"
+                        : theme.backgroundDefault,
+                      borderColor: auditReturnToTheatre
+                        ? theme.error
+                        : theme.border,
+                    },
+                  ]}
+                >
+                  {auditReturnToTheatre ? (
+                    <Feather name="check" size={14} color={theme.error} />
+                  ) : null}
+                </View>
+                <ThemedText style={styles.auditCheckboxLabel}>
+                  Unplanned Return to Theatre
+                </ThemedText>
+              </Pressable>
+
+              {auditReturnToTheatre ? (
+                <TextInput
+                  style={[
+                    styles.textInput,
+                    {
+                      backgroundColor: theme.backgroundDefault,
+                      borderColor: theme.border,
+                      color: theme.text,
+                      marginTop: Spacing.xs,
+                    },
+                  ]}
+                  value={auditReturnReason}
+                  onChangeText={setAuditReturnReason}
+                  placeholder="Reason for return..."
+                  placeholderTextColor={theme.textTertiary}
+                />
+              ) : null}
+            </View>
           </View>
         ) : caseData.complicationsReviewed ? (
           <View
@@ -2898,6 +3110,48 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: Spacing.xs,
     marginLeft: 28,
+  },
+  auditSection: {
+    marginTop: Spacing.lg,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(128,128,128,0.2)",
+  },
+  auditSectionTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    marginBottom: Spacing.sm,
+  },
+  auditCheckboxRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  auditCheckbox: {
+    width: 22,
+    height: 22,
+    borderRadius: BorderRadius.xs,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  auditCheckboxLabel: {
+    fontSize: 14,
+    flex: 1,
+  },
+  auditChipScroll: {
+    marginVertical: Spacing.xs,
+  },
+  auditPickerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  auditPickerLabel: {
+    fontSize: 14,
+    fontWeight: "500",
   },
   complicationsList: {
     marginTop: Spacing.md,
