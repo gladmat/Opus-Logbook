@@ -137,6 +137,11 @@ import {
   getDefaultAdmissionUrgencyForHandCaseType,
   pruneDisposableTraumaPlaceholderProcedures,
 } from "@/lib/handTraumaUx";
+import {
+  buildElectiveSnomedFallbackState,
+  isElectiveHandFlow,
+  shouldRenderGenericDiagnosisSnomedPicker,
+} from "@/lib/handElectiveFlow";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 
 interface DiagnosisGroupEditorProps {
@@ -710,19 +715,24 @@ export function DiagnosisGroupEditor({
     (result: { conceptId: string; term: string } | null) => {
       if (!result) return;
 
-      setSelectedDiagnosis(null);
-      setPrimaryDiagnosis(result);
-      setDiagnosis(result.term);
-      setDiagnosisStaging(null);
-      setStagingValues({});
-      setSelectedSuggestionIds(new Set());
-      setIsDiagnosisPickerCollapsed(true);
-      setShowAllProcedures(false);
-      setHandCaseType("elective");
-      setHandInfectionDetails(undefined);
-      setAcuteProceduresAccepted(false);
-      setShowAcuteFullProcedurePicker(false);
-      setProcedures(buildDefaultProcedures());
+      const nextState = buildElectiveSnomedFallbackState(
+        result,
+        buildDefaultProcedures(),
+      );
+
+      setSelectedDiagnosis(nextState.selectedDiagnosis);
+      setPrimaryDiagnosis(nextState.primaryDiagnosis);
+      setDiagnosis(nextState.diagnosis);
+      setDiagnosisStaging(nextState.diagnosisStaging);
+      setStagingValues(nextState.stagingValues);
+      setSelectedSuggestionIds(nextState.selectedSuggestionIds);
+      setIsDiagnosisPickerCollapsed(nextState.isDiagnosisPickerCollapsed);
+      setShowAllProcedures(nextState.showAllProcedures);
+      setHandCaseType(nextState.handCaseType);
+      setHandInfectionDetails(nextState.handInfectionDetails);
+      setAcuteProceduresAccepted(nextState.acuteProceduresAccepted);
+      setShowAcuteFullProcedurePicker(nextState.showAcuteFullProcedurePicker);
+      setProcedures(nextState.procedures);
     },
     [buildDefaultProcedures],
   );
@@ -1115,6 +1125,14 @@ export function DiagnosisGroupEditor({
     isInlineHandTraumaFlow && !showManualTraumaProcedureEditor;
   const hasSelectedHandCaseType =
     groupSpecialty !== "hand_wrist" || handCaseType !== null;
+  const isElectiveHand = isElectiveHandFlow(groupSpecialty, handCaseType);
+  const showGenericDiagnosisSnomedPicker =
+    shouldRenderGenericDiagnosisSnomedPicker({
+      hasDiagnosisPicklist: hasDiagnosisPicklist(groupSpecialty),
+      isDiagnosisPickerCollapsed,
+      groupSpecialty,
+      handCaseType,
+    });
 
   // Skin cancer module activation: driven by inline flow, picklist metadata, or saved data
   const isSkinCancerModule = useMemo(
@@ -2258,8 +2276,7 @@ export function DiagnosisGroupEditor({
                         : undefined
                   }
                 />
-              ) : groupSpecialty === "hand_wrist" &&
-                handCaseType === "elective" ? (
+              ) : isElectiveHand ? (
                 <HandElectivePicker
                   onSelect={handleDiagnosisSelect}
                   onSnomedSelect={handleElectiveSnomedSelect}
@@ -2307,8 +2324,7 @@ export function DiagnosisGroupEditor({
             ) : null}
 
             {/* For specialties with picklist: still show SNOMED search below picker (unless collapsed) */}
-            {hasDiagnosisPicklist(groupSpecialty) &&
-            !isDiagnosisPickerCollapsed ? (
+            {showGenericDiagnosisSnomedPicker ? (
               <SnomedSearchPicker
                 label="Search Diagnosis"
                 value={primaryDiagnosis || undefined}

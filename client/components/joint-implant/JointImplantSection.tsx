@@ -47,6 +47,7 @@ import {
   getDefaultImplantDetails,
   getImplantCompletionIssues,
   getImplantJointType,
+  isRegistryImplantLaterality,
 } from "@/lib/jointImplant";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -74,11 +75,9 @@ const FIXATION_OPTIONS: ImplantFixation[] = [
   "not_applicable",
 ];
 
-const LATERALITY_OPTIONS: Laterality[] = [
+const LATERALITY_OPTIONS: Array<Extract<Laterality, "left" | "right">> = [
   "left",
   "right",
-  "bilateral",
-  "not_applicable",
 ];
 
 const DIGIT_OPTIONS: DigitId[] = ["I", "II", "III", "IV", "V"];
@@ -700,6 +699,14 @@ export function JointImplantSection({
             );
           })}
         </View>
+        {value.laterality && !isRegistryImplantLaterality(value.laterality) ? (
+          <ThemedText
+            style={[styles.helperText, { color: theme.warning }]}
+          >
+            Choose Left or Right. Bilateral implant cases need separate
+            procedure rows for registry-complete reporting.
+          </ThemedText>
+        ) : null}
       </View>
 
       {jointType === "cmc1" ? (
@@ -1292,6 +1299,11 @@ const styles = StyleSheet.create({
   derivedValueText: {
     fontSize: 14,
     fontWeight: "500",
+  },
+  helperText: {
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: Spacing.xs,
   },
   technicalHeader: {
     flexDirection: "row",

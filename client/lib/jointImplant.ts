@@ -28,6 +28,12 @@ export const IMPLANT_LATERALITY_LABELS: Record<Laterality, string> = {
   not_applicable: "Not applicable",
 };
 
+export function isRegistryImplantLaterality(
+  laterality: Laterality | undefined,
+): laterality is "left" | "right" {
+  return laterality === "left" || laterality === "right";
+}
+
 export interface ImplantDisplayFields {
   summary: string | null;
   system: string;
@@ -96,7 +102,11 @@ export function getDefaultImplantDetails(params: {
       ...existingDetails,
       jointType,
       indication,
-      laterality: existingDetails.laterality ?? diagnosisLaterality,
+      laterality:
+        existingDetails.laterality ??
+        (isRegistryImplantLaterality(diagnosisLaterality)
+          ? diagnosisLaterality
+          : undefined),
       digit: jointType === "cmc1" ? "I" : existingDetails.digit,
     };
   }
@@ -106,7 +116,11 @@ export function getDefaultImplantDetails(params: {
     indication,
     procedureType: existingDetails?.procedureType ?? "primary",
     implantSystemId: "",
-    laterality: existingDetails?.laterality ?? diagnosisLaterality,
+    laterality:
+      existingDetails?.laterality ??
+      (isRegistryImplantLaterality(diagnosisLaterality)
+        ? diagnosisLaterality
+        : undefined),
     digit: jointType === "cmc1" ? "I" : undefined,
   };
 }
@@ -122,10 +136,14 @@ export function getImplantCompletionIssues(
   const missing: string[] = [];
   if (!details?.implantSystemId) {
     missing.push("implant system");
+    missing.push("laterality");
     if (jointType !== "cmc1") {
       missing.push("digit");
     }
     missing.push("size");
+    missing.push("approach");
+    missing.push("fixation");
+    missing.push("bearing surface");
     return missing;
   }
 
@@ -138,6 +156,18 @@ export function getImplantCompletionIssues(
 
   if (jointType !== "cmc1" && !details.digit) {
     missing.push("digit");
+  }
+  if (!isRegistryImplantLaterality(details.laterality)) {
+    missing.push("laterality");
+  }
+  if (!details.approach) {
+    missing.push("approach");
+  }
+  if (!details.fixation) {
+    missing.push("fixation");
+  }
+  if (!details.bearingSurface) {
+    missing.push("bearing surface");
   }
 
   const implantEntry = IMPLANT_CATALOGUE[details.implantSystemId];

@@ -14,6 +14,7 @@ import {
   getImplantBearingProcedures,
   getImplantCompletionIssues,
   isImplantDetailsComplete,
+  isRegistryImplantLaterality,
 } from "@/lib/jointImplant";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -296,6 +297,34 @@ describe("Implant helpers", () => {
     expect(details?.laterality).toBe("left");
   });
 
+  it("does not inherit bilateral diagnosis laterality into new implant details", () => {
+    const details = getDefaultImplantDetails({
+      procedurePicklistId: "hand_joint_pip_arthroplasty",
+      diagnosisLaterality: "bilateral",
+      indication: "oa",
+    });
+    expect(details).toBeDefined();
+    expect(details?.laterality).toBeUndefined();
+  });
+
+  it("preserves legacy bilateral laterality on existing implant records for editing", () => {
+    const details = getDefaultImplantDetails({
+      procedurePicklistId: "hand_joint_pip_arthroplasty",
+      diagnosisLaterality: "left",
+      indication: "oa",
+      existingDetails: {
+        jointType: "pip",
+        indication: "oa",
+        procedureType: "primary",
+        implantSystemId: "pip_swanson",
+        laterality: "bilateral",
+        digit: "II",
+      },
+    });
+    expect(details).toBeDefined();
+    expect(details?.laterality).toBe("bilateral");
+  });
+
   it("requires digit for PIP and MCP implants", () => {
     const details: JointImplantDetails = {
       jointType: "pip",
@@ -303,6 +332,10 @@ describe("Implant helpers", () => {
       procedureType: "primary",
       implantSystemId: "pip_swanson",
       sizeUnified: "2",
+      laterality: "left",
+      approach: "dorsal_chamay",
+      fixation: "not_applicable",
+      bearingSurface: "silicone",
     };
     expect(
       isImplantDetailsComplete(details, "hand_joint_pip_arthroplasty"),
@@ -319,6 +352,10 @@ describe("Implant helpers", () => {
       procedureType: "primary",
       implantSystemId: "mcp_swanson",
       digit: "II",
+      laterality: "left",
+      approach: "dorsal_longitudinal",
+      fixation: "not_applicable",
+      bearingSurface: "silicone",
     };
     expect(
       isImplantDetailsComplete(details, "hand_joint_mcp_arthroplasty"),
@@ -337,12 +374,57 @@ describe("Implant helpers", () => {
       digit: "III",
       laterality: "right",
       sizeUnified: "4",
+      approach: "dorsal_longitudinal",
       fixation: "not_applicable",
       bearingSurface: "silicone",
     };
     expect(
       isImplantDetailsComplete(details, "hand_joint_mcp_arthroplasty"),
     ).toBe(true);
+  });
+
+  it("requires laterality, approach, fixation, and bearing surface for completeness", () => {
+    const details: JointImplantDetails = {
+      jointType: "cmc1",
+      indication: "oa",
+      procedureType: "primary",
+      implantSystemId: "cmc1_touch",
+      cupSize: "9mm",
+      stemSize: "Size 3",
+      neckVariant: "Standard straight",
+    };
+
+    expect(
+      getImplantCompletionIssues(details, "hand_joint_cmc1_prosthesis"),
+    ).toEqual([
+      "laterality",
+      "approach",
+      "fixation",
+      "bearing surface",
+    ]);
+  });
+
+  it("treats bilateral implant laterality as legacy-invalid for completeness", () => {
+    const details: JointImplantDetails = {
+      jointType: "mcp",
+      indication: "ra",
+      procedureType: "primary",
+      implantSystemId: "mcp_swanson",
+      digit: "II",
+      laterality: "bilateral",
+      sizeUnified: "4",
+      approach: "dorsal_longitudinal",
+      fixation: "not_applicable",
+      bearingSurface: "silicone",
+    };
+
+    expect(isRegistryImplantLaterality(details.laterality)).toBe(false);
+    expect(
+      isImplantDetailsComplete(details, "hand_joint_mcp_arthroplasty"),
+    ).toBe(false);
+    expect(
+      getImplantCompletionIssues(details, "hand_joint_mcp_arthroplasty"),
+    ).toContain("laterality");
   });
 
   it("returns implant-bearing procedures in input order", () => {

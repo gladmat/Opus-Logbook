@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { HAND_SURGERY_DIAGNOSES } from "@/lib/diagnosisPicklists/handSurgeryDiagnoses";
 import { PROCEDURE_PICKLIST } from "@/lib/procedurePicklist";
+import {
+  buildElectiveSnomedFallbackState,
+  shouldRenderGenericDiagnosisSnomedPicker,
+} from "@/lib/handElectiveFlow";
 
 // ═══════════════════════════════════════════════════════════
 // Helpers
@@ -310,5 +314,63 @@ describe("Procedure reclassifications", () => {
     );
     expect(proc).toBeDefined();
     expect(proc!.subcategory).toBe("Compression Neuropathies");
+  });
+});
+
+describe("Elective SNOMED fallback helpers", () => {
+  it("suppresses the generic diagnosis SNOMED picker for elective hand flow", () => {
+    expect(
+      shouldRenderGenericDiagnosisSnomedPicker({
+        hasDiagnosisPicklist: true,
+        isDiagnosisPickerCollapsed: false,
+        groupSpecialty: "hand_wrist",
+        handCaseType: "elective",
+      }),
+    ).toBe(false);
+  });
+
+  it("keeps the generic diagnosis SNOMED picker for non-elective picklist flows", () => {
+    expect(
+      shouldRenderGenericDiagnosisSnomedPicker({
+        hasDiagnosisPicklist: true,
+        isDiagnosisPickerCollapsed: false,
+        groupSpecialty: "hand_wrist",
+        handCaseType: "trauma",
+      }),
+    ).toBe(true);
+  });
+
+  it("builds the elective fallback reset state from the dedicated handler path", () => {
+    const defaultProcedures = [
+      {
+        id: "default-proc",
+        sequenceOrder: 1,
+        procedureName: "",
+        specialty: "hand_wrist" as const,
+        surgeonRole: "PS" as const,
+      },
+    ];
+
+    const nextState = buildElectiveSnomedFallbackState(
+      { conceptId: "12345", term: "Custom elective diagnosis" },
+      defaultProcedures,
+    );
+
+    expect(nextState.selectedDiagnosis).toBeNull();
+    expect(nextState.primaryDiagnosis).toEqual({
+      conceptId: "12345",
+      term: "Custom elective diagnosis",
+    });
+    expect(nextState.diagnosis).toBe("Custom elective diagnosis");
+    expect(nextState.diagnosisStaging).toBeNull();
+    expect(nextState.stagingValues).toEqual({});
+    expect([...nextState.selectedSuggestionIds]).toEqual([]);
+    expect(nextState.isDiagnosisPickerCollapsed).toBe(true);
+    expect(nextState.showAllProcedures).toBe(false);
+    expect(nextState.handCaseType).toBe("elective");
+    expect(nextState.handInfectionDetails).toBeUndefined();
+    expect(nextState.acuteProceduresAccepted).toBe(false);
+    expect(nextState.showAcuteFullProcedurePicker).toBe(false);
+    expect(nextState.procedures).toEqual(defaultProcedures);
   });
 });
