@@ -50,6 +50,9 @@ export const PICKLIST_TO_FLAP_TYPE: Partial<Record<string, FreeFlap>> = {
   breast_recon_scip: "scip",
   breast_recon_lap: "lap",
   hn_fn_free_gracilis: "gracilis",
+  hn_nerve_gracilis_masseteric: "gracilis",
+  hn_nerve_gracilis_double: "gracilis",
+  hn_nerve_gracilis_ld: "latissimus_dorsi",
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -2475,6 +2478,139 @@ const HEAD_NECK_SITE_RECONSTRUCTION: ProcedurePicklistEntry[] = [
   },
 ];
 
+const HEAD_NECK_EYELID_RECON: ProcedurePicklistEntry[] = [
+  {
+    id: "hn_eyelid_direct_closure",
+    displayName: "Direct closure of eyelid defect",
+    snomedCtCode: "172267003", // VERIFY
+    snomedCtDisplay: "Reconstruction of eyelid (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Eyelid Reconstruction",
+    tags: ["oncological"],
+    sortOrder: 1,
+  },
+  {
+    id: "hn_eyelid_canthotomy",
+    displayName: "Lateral canthotomy / cantholysis",
+    snomedCtCode: "46936001",
+    snomedCtDisplay: "Canthotomy (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Eyelid Reconstruction",
+    tags: ["trauma"],
+    sortOrder: 2,
+  },
+  {
+    id: "hn_eyelid_ftsg",
+    displayName: "Full-thickness skin graft to eyelid",
+    snomedCtCode: "61581000",
+    snomedCtDisplay: "Full thickness skin graft (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Eyelid Reconstruction",
+    tags: ["oncological"],
+    sortOrder: 3,
+  },
+  {
+    id: "hn_eyelid_tenzel",
+    displayName: "Tenzel semicircular rotation flap",
+    snomedCtCode: "122462001", // VERIFY
+    snomedCtDisplay: "Flap reconstruction (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Eyelid Reconstruction",
+    tags: ["oncological"],
+    sortOrder: 4,
+  },
+  {
+    id: "hn_eyelid_tarsomarginal_graft",
+    displayName: "Tarsomarginal graft",
+    snomedCtCode: "172267003", // VERIFY
+    snomedCtDisplay: "Reconstruction of eyelid (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Eyelid Reconstruction",
+    tags: ["oncological"],
+    sortOrder: 5,
+  },
+  {
+    id: "hn_eyelid_tarsoconjunctival_graft",
+    displayName: "Free tarsoconjunctival graft",
+    snomedCtCode: "172267003", // VERIFY
+    snomedCtDisplay: "Reconstruction of eyelid (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Eyelid Reconstruction",
+    tags: ["oncological"],
+    sortOrder: 6,
+  },
+  {
+    id: "hn_eyelid_hughes",
+    displayName: "Hughes tarsoconjunctival flap",
+    snomedCtCode: "312961002",
+    snomedCtDisplay: "Tarsoconjunctival flap reconstruction (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Eyelid Reconstruction",
+    tags: ["oncological"],
+    sortOrder: 7,
+  },
+  {
+    id: "hn_eyelid_cutler_beard",
+    displayName: "Cutler-Beard bridge flap",
+    snomedCtCode: "172267003", // VERIFY
+    snomedCtDisplay: "Reconstruction of eyelid (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Eyelid Reconstruction",
+    tags: ["oncological"],
+    sortOrder: 8,
+  },
+  {
+    id: "hn_eyelid_mustarde",
+    displayName: "Mustardé cheek rotation flap",
+    snomedCtCode: "173259009",
+    snomedCtDisplay: "Mustardé rotation flap (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Eyelid Reconstruction",
+    tags: ["oncological"],
+    sortOrder: 9,
+  },
+  {
+    id: "hn_eyelid_fricke",
+    displayName: "Fricke flap (temporal forehead)",
+    snomedCtCode: "122462001", // VERIFY
+    snomedCtDisplay: "Flap reconstruction (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Eyelid Reconstruction",
+    tags: ["oncological"],
+    sortOrder: 10,
+  },
+  {
+    id: "hn_eyelid_medial_canthal_recon",
+    displayName: "Medial canthal reconstruction",
+    snomedCtCode: "172267003", // VERIFY
+    snomedCtDisplay: "Reconstruction of eyelid (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Eyelid Reconstruction",
+    tags: ["oncological"],
+    sortOrder: 11,
+  },
+  {
+    id: "hn_eyelid_ectropion_repair",
+    displayName: "Ectropion repair",
+    snomedCtCode: "172258009",
+    snomedCtDisplay: "Correction of ectropion (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Eyelid Reconstruction",
+    tags: ["elective"],
+    sortOrder: 12,
+  },
+  {
+    id: "hn_eyelid_entropion_repair",
+    displayName: "Entropion repair",
+    snomedCtCode: "172254001",
+    snomedCtDisplay: "Correction of entropion (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Eyelid Reconstruction",
+    tags: ["elective"],
+    sortOrder: 13,
+  },
+];
+
 const HEAD_NECK_FACIAL_NERVE: ProcedurePicklistEntry[] = [
   {
     id: "hn_fn_primary_repair",
@@ -2546,6 +2682,177 @@ const HEAD_NECK_FACIAL_NERVE: ProcedurePicklistEntry[] = [
     subcategory: "Facial Nerve & Reanimation",
     tags: ["elective"],
     sortOrder: 7,
+  },
+];
+
+const HEAD_NECK_FACIAL_REANIMATION: ProcedurePicklistEntry[] = [
+  // ── Nerve procedures ──
+  {
+    id: "hn_nerve_cable_graft_great_auricular",
+    displayName: "Cable nerve graft — great auricular",
+    snomedCtCode: "7428004", // VERIFY
+    snomedCtDisplay: "Nerve graft (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Reanimation",
+    tags: ["microsurgery"],
+    sortOrder: 3,
+  },
+  {
+    id: "hn_nerve_cfng_stage2",
+    displayName: "CFNG Stage 2 (coaptation to gracilis motor nerve)",
+    snomedCtCode: "7428004", // VERIFY
+    snomedCtDisplay: "Cross-face nerve graft stage 2 (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Reanimation",
+    tags: ["microsurgery"],
+    sortOrder: 5,
+  },
+  {
+    id: "hn_nerve_hypoglossal_full",
+    displayName: "Hypoglossal-to-facial transfer (full)",
+    snomedCtCode: "359607002",
+    snomedCtDisplay: "Hypoglossal-facial anastomosis (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Reanimation",
+    tags: ["microsurgery"],
+    sortOrder: 6,
+  },
+  {
+    id: "hn_nerve_hypoglossal_split",
+    displayName: "Hypoglossal-to-facial transfer (partial / split)",
+    snomedCtCode: "359607002", // VERIFY
+    snomedCtDisplay: "Hypoglossal-facial anastomosis (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Reanimation",
+    tags: ["microsurgery"],
+    sortOrder: 7,
+  },
+  {
+    id: "hn_nerve_spinal_accessory",
+    displayName: "Spinal accessory-to-facial transfer",
+    snomedCtCode: "56625009", // VERIFY
+    snomedCtDisplay: "Nerve transfer to facial nerve (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Reanimation",
+    tags: ["microsurgery"],
+    sortOrder: 8,
+  },
+  {
+    id: "hn_nerve_dual_innervation",
+    displayName: "Combined CFNG + masseteric (babysitter + CFNG)",
+    snomedCtCode: "56625009", // VERIFY
+    snomedCtDisplay: "Dual innervation nerve transfer (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Reanimation",
+    tags: ["microsurgery"],
+    sortOrder: 9,
+  },
+  // ── Free muscle transfers ──
+  {
+    id: "hn_nerve_gracilis_masseteric",
+    displayName: "Free gracilis — masseteric nerve innervation",
+    snomedCtCode: "234297004",
+    snomedCtDisplay: "Free gracilis flap (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Reanimation",
+    tags: ["free_flap", "microsurgery"],
+    hasFreeFlap: true,
+    sortOrder: 10,
+  },
+  {
+    id: "hn_nerve_gracilis_double",
+    displayName: "Free gracilis — double innervation (CFNG + masseteric)",
+    snomedCtCode: "234297004", // VERIFY
+    snomedCtDisplay: "Free gracilis flap (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Reanimation",
+    tags: ["free_flap", "microsurgery"],
+    hasFreeFlap: true,
+    sortOrder: 11,
+  },
+  {
+    id: "hn_nerve_gracilis_ld",
+    displayName: "Free functional latissimus dorsi transfer",
+    snomedCtCode: "234284000", // VERIFY
+    snomedCtDisplay: "Free latissimus dorsi flap (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Reanimation",
+    tags: ["free_flap", "microsurgery"],
+    hasFreeFlap: true,
+    sortOrder: 12,
+  },
+  // ── Regional muscle transfers ──
+  {
+    id: "hn_nerve_temporalis_labbe",
+    displayName: "Temporalis transfer (Labbé orthodromic)",
+    snomedCtCode: "122462001", // VERIFY
+    snomedCtDisplay: "Temporalis muscle transfer (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Reanimation",
+    tags: ["pedicled_flap"],
+    sortOrder: 13,
+  },
+  {
+    id: "hn_nerve_temporalis_tendon",
+    displayName: "Temporalis tendon transfer",
+    snomedCtCode: "122462001", // VERIFY
+    snomedCtDisplay: "Temporalis tendon transfer (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Reanimation",
+    tags: ["elective"],
+    sortOrder: 14,
+  },
+  {
+    id: "hn_nerve_masseter_transfer_regional",
+    displayName: "Masseter muscle transfer",
+    snomedCtCode: "122462001", // VERIFY
+    snomedCtDisplay: "Regional muscle transfer (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Reanimation",
+    tags: ["pedicled_flap"],
+    sortOrder: 15,
+  },
+  // ── Static & adjunctive ──
+  {
+    id: "hn_nerve_static_sling_adm",
+    displayName: "Static fascial sling — AlloDerm / ADM",
+    snomedCtCode: "122465003", // VERIFY
+    snomedCtDisplay: "Static sling procedure for facial palsy (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Reanimation",
+    tags: ["elective"],
+    sortOrder: 16,
+  },
+  {
+    id: "hn_nerve_lateral_tarsal_strip",
+    displayName: "Lower eyelid tightening (lateral tarsal strip)",
+    snomedCtCode: "172258009", // VERIFY
+    snomedCtDisplay: "Lateral tarsal strip procedure (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Reanimation",
+    tags: ["elective"],
+    sortOrder: 17,
+  },
+  {
+    id: "hn_nerve_brow_lift_palsy",
+    displayName: "Brow lift for facial palsy",
+    snomedCtCode: "274883006", // VERIFY
+    snomedCtDisplay: "Brow lift (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Reanimation",
+    tags: ["elective"],
+    sortOrder: 18,
+  },
+  {
+    id: "hn_nerve_botox_synkinesis",
+    displayName: "Botulinum toxin for synkinesis",
+    snomedCtCode: "404909007", // VERIFY
+    snomedCtDisplay:
+      "Injection of botulinum toxin into facial muscle (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Reanimation",
+    tags: ["elective"],
+    sortOrder: 19,
   },
 ];
 
@@ -2746,6 +3053,159 @@ const HEAD_NECK_FACIAL_FRACTURES: ProcedurePicklistEntry[] = [
   },
 ];
 
+const HEAD_NECK_FRACTURE_SUBTYPES: ProcedurePicklistEntry[] = [
+  // ── Mandible subtypes ──
+  {
+    id: "hn_fx_mandible_imf_arch_bars",
+    displayName: "Closed reduction mandible — arch bars IMF",
+    snomedCtCode: "699158003", // VERIFY
+    snomedCtDisplay: "Closed reduction of fracture of mandible (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Fractures",
+    tags: ["trauma"],
+    sortOrder: 11,
+  },
+  {
+    id: "hn_fx_mandible_imf_screws",
+    displayName: "Closed reduction mandible — MMF screws",
+    snomedCtCode: "699158003", // VERIFY
+    snomedCtDisplay: "Closed reduction of fracture of mandible (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Fractures",
+    tags: ["trauma"],
+    sortOrder: 12,
+  },
+  {
+    id: "hn_fx_mandible_orif_miniplate",
+    displayName: "ORIF mandible — miniplate (Champy technique)",
+    snomedCtCode: "173361004", // VERIFY
+    snomedCtDisplay:
+      "Internal fixation of fracture of mandible (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Fractures",
+    tags: ["trauma"],
+    sortOrder: 13,
+  },
+  {
+    id: "hn_fx_mandible_orif_recon_plate",
+    displayName: "ORIF mandible — reconstruction plate",
+    snomedCtCode: "173361004", // VERIFY
+    snomedCtDisplay:
+      "Internal fixation of fracture of mandible (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Fractures",
+    tags: ["trauma"],
+    sortOrder: 14,
+  },
+  {
+    id: "hn_fx_mandible_orif_lag_screw",
+    displayName: "ORIF mandible — lag screw",
+    snomedCtCode: "173361004", // VERIFY
+    snomedCtDisplay:
+      "Internal fixation of fracture of mandible (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Fractures",
+    tags: ["trauma"],
+    sortOrder: 15,
+  },
+  {
+    id: "hn_fx_mandible_condyle_orif",
+    displayName: "ORIF condylar fracture (open approach)",
+    snomedCtCode: "173361004", // VERIFY
+    snomedCtDisplay:
+      "Internal fixation of fracture of mandible (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Fractures",
+    tags: ["trauma"],
+    sortOrder: 16,
+  },
+  {
+    id: "hn_fx_mandible_external_fix",
+    displayName: "External fixation of mandible",
+    snomedCtCode: "24529004", // VERIFY
+    snomedCtDisplay: "External fixation of fracture of mandible (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Fractures",
+    tags: ["trauma"],
+    sortOrder: 17,
+  },
+  // ── Zygoma / Midface subtypes ──
+  {
+    id: "hn_fx_zmc_orif_multipoint",
+    displayName: "ORIF ZMC — multi-point fixation",
+    snomedCtCode: "50528002", // VERIFY
+    snomedCtDisplay:
+      "Open reduction of fracture of zygoma (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Fractures",
+    tags: ["trauma"],
+    sortOrder: 18,
+  },
+  {
+    id: "hn_fx_zygomatic_arch_orif",
+    displayName: "ORIF zygomatic arch (isolated)",
+    snomedCtCode: "50528002", // VERIFY
+    snomedCtDisplay:
+      "Open reduction of fracture of zygomatic arch (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Fractures",
+    tags: ["trauma"],
+    sortOrder: 19,
+  },
+  {
+    id: "hn_fx_orbital_floor_graft",
+    displayName: "Orbital floor repair — bone graft / mesh",
+    snomedCtCode: "359634005", // VERIFY
+    snomedCtDisplay: "Repair of fracture of orbital floor (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Fractures",
+    tags: ["trauma"],
+    sortOrder: 20,
+  },
+  {
+    id: "hn_fx_orbital_medial_wall_repair",
+    displayName: "ORIF medial orbital wall",
+    snomedCtCode: "359634005", // VERIFY
+    snomedCtDisplay: "Repair of fracture of orbit (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Fractures",
+    tags: ["trauma"],
+    sortOrder: 21,
+  },
+  // ── Upper face ──
+  {
+    id: "hn_fx_frontal_cranialization",
+    displayName: "Frontal sinus cranialization",
+    snomedCtCode: "50528002", // VERIFY
+    snomedCtDisplay: "Cranialization of frontal sinus (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Fractures",
+    tags: ["trauma"],
+    sortOrder: 22,
+  },
+  {
+    id: "hn_fx_frontal_obliteration",
+    displayName: "Frontal sinus obliteration",
+    snomedCtCode: "50528002", // VERIFY
+    snomedCtDisplay: "Obliteration of frontal sinus (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Fractures",
+    tags: ["trauma"],
+    sortOrder: 23,
+  },
+  {
+    id: "hn_fx_frontal_bone_orif",
+    displayName: "ORIF frontal bone fracture",
+    snomedCtCode: "50528002", // VERIFY
+    snomedCtDisplay:
+      "Open reduction of fracture of frontal bone (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Fractures",
+    tags: ["trauma"],
+    sortOrder: 24,
+  },
+];
+
 const HEAD_NECK_FACIAL_SOFT_TISSUE_TRAUMA: ProcedurePicklistEntry[] = [
   {
     id: "hn_trauma_facial_lac_simple",
@@ -2826,6 +3286,16 @@ const HEAD_NECK_FACIAL_SOFT_TISSUE_TRAUMA: ProcedurePicklistEntry[] = [
     subcategory: "Facial Soft Tissue Trauma",
     tags: ["trauma"],
     sortOrder: 8,
+  },
+  {
+    id: "hn_soft_tissue_parotid_duct_repair",
+    displayName: "Parotid duct repair",
+    snomedCtCode: "238182008", // VERIFY
+    snomedCtDisplay: "Repair of parotid duct (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Facial Soft Tissue Trauma",
+    tags: ["trauma"],
+    sortOrder: 9,
   },
 ];
 
@@ -5757,9 +6227,12 @@ export const PROCEDURE_PICKLIST: ProcedurePicklistEntry[] = [
   ...HEAD_NECK_REGIONAL_FLAPS,
   ...HEAD_NECK_FREE_FLAPS,
   ...HEAD_NECK_SITE_RECONSTRUCTION,
+  ...HEAD_NECK_EYELID_RECON,
   ...HEAD_NECK_FACIAL_NERVE,
+  ...HEAD_NECK_FACIAL_REANIMATION,
   ...HEAD_NECK_CLEFT_CRANIOFACIAL,
   ...HEAD_NECK_FACIAL_FRACTURES,
+  ...HEAD_NECK_FRACTURE_SUBTYPES,
   ...HEAD_NECK_FACIAL_SOFT_TISSUE_TRAUMA,
   ...HEAD_NECK_OTHER,
   // General
