@@ -66,7 +66,11 @@ function AddCaseFABInner({
   );
 
   const actionHandlers = useMemo(
-    () => [onAddCase, onQuickCapture ?? (() => {}), onGuidedCapture ?? (() => {})],
+    () => [
+      onAddCase,
+      onQuickCapture ?? (() => {}),
+      onGuidedCapture ?? (() => {}),
+    ],
     [onAddCase, onQuickCapture, onGuidedCapture],
   );
 

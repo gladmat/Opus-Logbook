@@ -30,6 +30,7 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
 import type { InboxItem } from "@/types/inbox";
 import type { OperativeMediaItem, Case } from "@/types/case";
+import type { CaseSummary } from "@/types/caseSummary";
 import {
   getInboxItems,
   discardFromInbox,
@@ -38,8 +39,13 @@ import {
   consumePendingInboxSelection,
   releaseReservedInboxItems,
 } from "@/lib/inboxStorage";
-import { findCasesByPatientId, getCases, saveCase } from "@/lib/storage";
-import { getPrimaryDiagnosisName, getCaseSpecialties } from "@/types/case";
+import {
+  findCasesByPatientId,
+  getCase,
+  getCaseSummaries,
+  saveCase,
+} from "@/lib/storage";
+import { getPrimaryDiagnosisName } from "@/types/case";
 import {
   inferMediaTagForInboxItem,
   inboxItemToOperativeMediaSmart,
@@ -130,7 +136,10 @@ function groupByPatient(items: InboxItem[]): PatientGroup[] {
     }
     groups.get(pid)!.push(item);
   }
-  return order.map((patientId) => ({ patientId, items: groups.get(patientId)! }));
+  return order.map((patientId) => ({
+    patientId,
+    items: groups.get(patientId)!,
+  }));
 }
 
 function formatTime(iso: string): string {
@@ -164,7 +173,9 @@ export default function InboxScreen() {
   const [selectMode, setSelectMode] = useState(pickMode);
   const [showPreview, setShowPreview] = useState<InboxItem | null>(null);
   const [showCasePicker, setShowCasePicker] = useState(false);
-  const [expandedPatients, setExpandedPatients] = useState<Set<string>>(new Set());
+  const [expandedPatients, setExpandedPatients] = useState<Set<string>>(
+    new Set(),
+  );
 
   // Refresh inbox on focus
   useFocusEffect(
@@ -849,20 +860,21 @@ function CasePickerModal({
 }) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const [allCases, setAllCases] = useState<Case[]>([]);
-  const [recentCases, setRecentCases] = useState<Case[]>([]);
+  const [allCases, setAllCases] = useState<CaseSummary[]>([]);
+  const [recentCases, setRecentCases] = useState<CaseSummary[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingCaseId, setLoadingCaseId] = useState<string | null>(null);
   const [totalCases, setTotalCases] = useState(0);
 
   useEffect(() => {
     if (!visible) return;
     setSearch(initialSearch ?? "");
     setLoading(true);
-    getCases()
+    getCaseSummaries()
       .then((all) => {
         setTotalCases(all.length);
-        const sorted = all.sort(
+        const sorted = [...all].sort(
           (a, b) =>
             new Date(b.procedureDate ?? b.createdAt).getTime() -
             new Date(a.procedureDate ?? a.createdAt).getTime(),
@@ -877,28 +889,33 @@ function CasePickerModal({
   const filtered = useMemo(() => {
     if (!search.trim()) return recentCases;
     const q = search.toLowerCase();
-    return allCases.filter((c) => {
-      const dx = getPrimaryDiagnosisName(c) ?? "";
-      const id = c.patientIdentifier ?? "";
-      const date = c.procedureDate ?? "";
-      return (
-        dx.toLowerCase().includes(q) ||
-        id.toLowerCase().includes(q) ||
-        date.includes(q)
-      );
-    });
+    return allCases.filter((c) => c.searchableText.toLowerCase().includes(q));
   }, [allCases, recentCases, search]);
 
   const renderCase = useCallback(
-    ({ item: c }: { item: Case }) => {
-      const dx = getPrimaryDiagnosisName(c) ?? "No diagnosis";
-      const specialties = getCaseSpecialties(c);
+    ({ item: c }: { item: CaseSummary }) => {
+      const dx = c.diagnosisTitle ?? "No diagnosis";
+      const specialties = c.specialties ?? [c.specialty];
       const specLabel =
         specialties.length > 0 ? specialties[0]!.replace(/_/g, " ") : undefined;
+      const isSelecting = loadingCaseId === c.id;
 
       return (
         <Pressable
-          onPress={() => onSelectCase(c)}
+          disabled={isSelecting}
+          onPress={async () => {
+            setLoadingCaseId(c.id);
+            try {
+              const fullCase = await getCase(c.id);
+              if (fullCase) {
+                onSelectCase(fullCase);
+              } else {
+                Alert.alert("Case not found", "This case could not be opened.");
+              }
+            } finally {
+              setLoadingCaseId(null);
+            }
+          }}
           style={[styles.caseRow, { borderBottomColor: theme.border }]}
         >
           <View style={styles.caseRowContent}>
@@ -914,11 +931,19 @@ function CasePickerModal({
               {c.patientIdentifier ? ` · ${c.patientIdentifier}` : ""}
             </ThemedText>
           </View>
-          <Feather name="chevron-right" size={16} color={theme.textTertiary} />
+          {isSelecting ? (
+            <ActivityIndicator size="small" color={theme.link} />
+          ) : (
+            <Feather
+              name="chevron-right"
+              size={16}
+              color={theme.textTertiary}
+            />
+          )}
         </Pressable>
       );
     },
-    [theme, onSelectCase],
+    [loadingCaseId, onSelectCase, theme],
   );
 
   return (

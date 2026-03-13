@@ -1,5 +1,18 @@
-import { Case, SPECIALTY_LABELS, calculateAgeFromDob } from "@/types/case";
-import type { DiagnosisGroup } from "@/types/case";
+import {
+  BROWN_MANDIBLE_CLASS_LABELS,
+  Case,
+  type DiagnosisGroup,
+  JOINT_CASE_ABLATIVE_SURGEON_LABELS,
+  JOINT_CASE_PARTNER_SPECIALTY_LABELS,
+  JOINT_CASE_RECONSTRUCTION_SEQUENCE_LABELS,
+  JOINT_CASE_STRUCTURE_RESECTED_LABELS,
+  MANDIBLE_SEGMENT_LABELS,
+  RECIPIENT_VESSEL_QUALITY_LABELS,
+  SPECIALTY_LABELS,
+  VEIN_GRAFT_SOURCE_LABELS,
+  calculateAgeFromDob,
+  type FreeFlapDetails,
+} from "@/types/case";
 import {
   resolveOperativeRole,
   resolveSupervisionLevel,
@@ -19,19 +32,7 @@ import {
   getImplantBearingProcedures,
   getImplantDisplayFields,
 } from "@/lib/jointImplant";
-import type { BreastAssessmentData } from "@/types/breast";
-import {
-  BREAST_CLINICAL_CONTEXT_LABELS,
-  BREAST_RECON_TIMING_LABELS,
-  IMPLANT_SURFACE_LABELS,
-  IMPLANT_FILL_LABELS,
-  IMPLANT_SHAPE_LABELS,
-  IMPLANT_PROFILE_LABELS,
-  IMPLANT_PLANE_LABELS,
-  IMPLANT_INCISION_LABELS,
-  BREAST_RECIPIENT_ARTERY_LABELS,
-  HARVEST_TECHNIQUE_LABELS,
-} from "@/types/breast";
+import { getBreastExportData } from "@/lib/breastExport";
 
 export interface CsvExportOptions {
   includePatientId: boolean;
@@ -138,11 +139,27 @@ const CSV_HEADERS = [
   "breast_R_lipofilling_volume_ml",
   "breast_lipofilling_harvest_technique",
   "breast_lipofilling_total_harvested_ml",
+  "breast_lipofilling_processing_method",
+  "breast_lipofilling_session_number",
+  "breast_recon_episode_id",
   // ── Joint case columns ──
   "joint_case",
   "partner_specialty",
   "partner_consultant",
   "ablative_surgeon",
+  "reconstruction_sequence",
+  "ablative_procedure_description",
+  "defect_length_mm",
+  "defect_width_mm",
+  "defect_depth_mm",
+  "structures_resected",
+  // ── Head & Neck flap detail columns ──
+  "hn_recipient_vessel_quality",
+  "hn_vein_graft_used",
+  "hn_vein_graft_source",
+  "hn_vein_graft_length_cm",
+  "hn_fibula_brown_class",
+  "hn_fibula_mandible_segments",
 ] as const;
 
 function escapeCsvField(
@@ -202,87 +219,123 @@ function getCaseImplantExportFields(c: Case) {
 function extractBreastCsvFields(
   groups: DiagnosisGroup[],
 ): (string | number | undefined)[] {
-  // Find the first diagnosis group with breast assessment data
-  const ba: BreastAssessmentData | undefined = groups.find(
-    (g) => g.breastAssessment,
-  )?.breastAssessment;
-
-  if (!ba) {
-    // Return empty values for all 36 breast columns
-    return new Array(36).fill("") as string[];
+  const breast = getBreastExportData(groups);
+  if (!breast) {
+    return new Array(39).fill("") as string[];
   }
 
-  const left = ba.sides.left;
-  const right = ba.sides.right;
-  const lImp = left?.implantDetails;
-  const rImp = right?.implantDetails;
-  const lFlap = left?.flapDetails;
-  const rFlap = right?.flapDetails;
-
-  // Lipofilling can be on either side's lipofilling data (shared harvest)
-  const lipofilling = left?.lipofilling ?? right?.lipofilling;
-
-  const mfrLabel = (mfr: string | undefined) => {
-    if (!mfr) return "";
-    // IMPLANT_MANUFACTURERS is imported from breastConfig — but to avoid
-    // a circular-ish import we inline the lookup here by using the id directly.
-    return mfr;
-  };
+  const left = breast.sides.left;
+  const right = breast.sides.right;
 
   return [
-    ba.laterality, // breast_laterality
-    left ? BREAST_CLINICAL_CONTEXT_LABELS[left.clinicalContext] : "", // breast_L_context
-    right ? BREAST_CLINICAL_CONTEXT_LABELS[right.clinicalContext] : "", // breast_R_context
-    left?.reconstructionTiming
-      ? BREAST_RECON_TIMING_LABELS[left.reconstructionTiming]
-      : "", // breast_L_recon_timing
-    right?.reconstructionTiming
-      ? BREAST_RECON_TIMING_LABELS[right.reconstructionTiming]
-      : "", // breast_R_recon_timing
+    breast.laterality,
+    left?.clinicalContextLabel ?? "",
+    right?.clinicalContextLabel ?? "",
+    left?.reconstructionTimingLabel ?? "",
+    right?.reconstructionTimingLabel ?? "",
+    left?.implant?.manufacturerLabel ?? "",
+    left?.implant?.volumeCc ?? "",
+    left?.implant?.surfaceLabel ?? "",
+    left?.implant?.fillLabel ?? "",
+    left?.implant?.shapeLabel ?? "",
+    left?.implant?.profileLabel ?? "",
+    left?.implant?.planeLabel ?? "",
+    left?.implant?.incisionLabel ?? "",
+    left?.implant?.admUsed === true
+      ? "Yes"
+      : left?.implant?.admUsed === false
+        ? "No"
+        : "",
+    left?.implant?.admProduct ?? "",
+    right?.implant?.manufacturerLabel ?? "",
+    right?.implant?.volumeCc ?? "",
+    right?.implant?.surfaceLabel ?? "",
+    right?.implant?.fillLabel ?? "",
+    right?.implant?.shapeLabel ?? "",
+    right?.implant?.profileLabel ?? "",
+    right?.implant?.planeLabel ?? "",
+    right?.implant?.incisionLabel ?? "",
+    right?.implant?.admUsed === true
+      ? "Yes"
+      : right?.implant?.admUsed === false
+        ? "No"
+        : "",
+    right?.implant?.admProduct ?? "",
+    left?.flap?.weightGrams ?? "",
+    left?.flap?.perforatorCount ?? "",
+    left?.flap?.recipientArteryLabel ?? "",
+    right?.flap?.weightGrams ?? "",
+    right?.flap?.perforatorCount ?? "",
+    right?.flap?.recipientArteryLabel ?? "",
+    left?.lipofillingVolumeMl ?? "",
+    right?.lipofillingVolumeMl ?? "",
+    breast.lipofilling?.harvestTechniqueLabel ?? "",
+    breast.lipofilling?.totalVolumeHarvestedMl ?? "",
+    breast.lipofilling?.processingMethodLabel ?? "",
+    breast.lipofilling?.sessionNumber ?? "",
+    breast.reconstructionEpisodeId ?? "",
+  ];
+}
 
-    // Left implant
-    mfrLabel(lImp?.manufacturer), // breast_L_implant_manufacturer
-    lImp?.volumeCc ?? "", // breast_L_implant_volume_cc
-    lImp?.shellSurface ? IMPLANT_SURFACE_LABELS[lImp.shellSurface] : "", // breast_L_implant_surface
-    lImp?.fillMaterial ? IMPLANT_FILL_LABELS[lImp.fillMaterial] : "", // breast_L_implant_fill
-    lImp?.shape ? IMPLANT_SHAPE_LABELS[lImp.shape] : "", // breast_L_implant_shape
-    lImp?.profile ? IMPLANT_PROFILE_LABELS[lImp.profile] : "", // breast_L_implant_profile
-    lImp?.implantPlane ? IMPLANT_PLANE_LABELS[lImp.implantPlane] : "", // breast_L_implant_plane
-    lImp?.incisionSite ? IMPLANT_INCISION_LABELS[lImp.incisionSite] : "", // breast_L_implant_incision
-    lImp?.admUsed ? "Yes" : lImp?.admUsed === false ? "No" : "", // breast_L_adm_used
-    lImp?.admDetails?.productName ?? "", // breast_L_adm_product
+function getHeadNeckFreeFlapDetails(c: Case): FreeFlapDetails | undefined {
+  for (const group of c.diagnosisGroups ?? []) {
+    for (const procedure of group.procedures ?? []) {
+      if (
+        (procedure.specialty ?? group.specialty) === "head_neck" &&
+        procedure.tags?.includes("free_flap") &&
+        procedure.clinicalDetails
+      ) {
+        return procedure.clinicalDetails as FreeFlapDetails;
+      }
+    }
+  }
 
-    // Right implant
-    mfrLabel(rImp?.manufacturer), // breast_R_implant_manufacturer
-    rImp?.volumeCc ?? "", // breast_R_implant_volume_cc
-    rImp?.shellSurface ? IMPLANT_SURFACE_LABELS[rImp.shellSurface] : "", // breast_R_implant_surface
-    rImp?.fillMaterial ? IMPLANT_FILL_LABELS[rImp.fillMaterial] : "", // breast_R_implant_fill
-    rImp?.shape ? IMPLANT_SHAPE_LABELS[rImp.shape] : "", // breast_R_implant_shape
-    rImp?.profile ? IMPLANT_PROFILE_LABELS[rImp.profile] : "", // breast_R_implant_profile
-    rImp?.implantPlane ? IMPLANT_PLANE_LABELS[rImp.implantPlane] : "", // breast_R_implant_plane
-    rImp?.incisionSite ? IMPLANT_INCISION_LABELS[rImp.incisionSite] : "", // breast_R_implant_incision
-    rImp?.admUsed ? "Yes" : rImp?.admUsed === false ? "No" : "", // breast_R_adm_used
-    rImp?.admDetails?.productName ?? "", // breast_R_adm_product
+  return undefined;
+}
 
-    // Flap details per side
-    lFlap?.flapWeightGrams ?? "", // breast_L_flap_weight_g
-    lFlap?.perforators?.length ?? "", // breast_L_perforator_count
-    lFlap?.recipientArtery
-      ? BREAST_RECIPIENT_ARTERY_LABELS[lFlap.recipientArtery]
-      : "", // breast_L_recipient_artery
-    rFlap?.flapWeightGrams ?? "", // breast_R_flap_weight_g
-    rFlap?.perforators?.length ?? "", // breast_R_perforator_count
-    rFlap?.recipientArtery
-      ? BREAST_RECIPIENT_ARTERY_LABELS[rFlap.recipientArtery]
-      : "", // breast_R_recipient_artery
+function extractHeadNeckCsvFields(c: Case): (string | number | undefined)[] {
+  const details = getHeadNeckFreeFlapDetails(c);
+  if (!details) {
+    return new Array(6).fill("") as string[];
+  }
 
-    // Lipofilling
-    lipofilling?.injectionLeft?.volumeInjectedMl ?? "", // breast_L_lipofilling_volume_ml
-    lipofilling?.injectionRight?.volumeInjectedMl ?? "", // breast_R_lipofilling_volume_ml
-    lipofilling?.harvestTechnique
-      ? HARVEST_TECHNIQUE_LABELS[lipofilling.harvestTechnique]
-      : "", // breast_lipofilling_harvest_technique
-    lipofilling?.totalVolumeHarvestedMl ?? "", // breast_lipofilling_total_harvested_ml
+  const recipientVesselQuality =
+    details.recipientVesselQuality ??
+    (details.irradiatedVesselPreference === "vein_graft_required"
+      ? "irradiated_vein_graft_required"
+      : details.irradiatedNeckDissectionPerformed
+        ? "previously_operated"
+        : details.irradiatedVesselPreference === "ipsilateral_viable" ||
+            (details.irradiatedVesselStatus &&
+              details.irradiatedVesselStatus !== "normal")
+          ? "irradiated_usable"
+          : details.irradiatedVesselStatus === "normal" ||
+              details.irradiatedVesselPreference === "contralateral"
+            ? "normal"
+            : undefined);
+  const veinGraftUsed =
+    details.veinGraftUsed ??
+    details.irradiatedVesselPreference === "vein_graft_required";
+
+  return [
+    recipientVesselQuality
+      ? RECIPIENT_VESSEL_QUALITY_LABELS[recipientVesselQuality]
+      : "",
+    veinGraftUsed === true ? "Yes" : veinGraftUsed === false ? "No" : "",
+    details.veinGraftSource
+      ? VEIN_GRAFT_SOURCE_LABELS[details.veinGraftSource]
+      : "",
+    details.veinGraftLength ?? "",
+    details.flapSpecificDetails?.fibulaBrownClass
+      ? BROWN_MANDIBLE_CLASS_LABELS[
+          details.flapSpecificDetails.fibulaBrownClass
+        ]
+      : "",
+    details.flapSpecificDetails?.fibulaMandibleSegments?.length
+      ? details.flapSpecificDetails.fibulaMandibleSegments
+          .map((segment) => MANDIBLE_SEGMENT_LABELS[segment] ?? segment)
+          .join("; ")
+      : "",
   ];
 }
 
@@ -323,6 +376,7 @@ function caseToRow(c: Case, options: CsvExportOptions): string {
 
   const implantFields = getCaseImplantExportFields(c);
   const breastFields = extractBreastCsvFields(groups);
+  const headNeckFields = extractHeadNeckCsvFields(c);
 
   const values: (string | number | boolean | undefined | null)[] = [
     c.id,
@@ -424,9 +478,29 @@ function caseToRow(c: Case, options: CsvExportOptions): string {
     ...breastFields,
     // ── Joint case ──
     c.jointCaseContext?.isJointCase ? "Yes" : "",
-    c.jointCaseContext?.partnerSpecialty ?? "",
+    c.jointCaseContext?.partnerSpecialty
+      ? JOINT_CASE_PARTNER_SPECIALTY_LABELS[c.jointCaseContext.partnerSpecialty]
+      : "",
     c.jointCaseContext?.partnerConsultantName ?? "",
-    c.jointCaseContext?.ablativeSurgeon ?? "",
+    c.jointCaseContext?.ablativeSurgeon
+      ? JOINT_CASE_ABLATIVE_SURGEON_LABELS[c.jointCaseContext.ablativeSurgeon]
+      : "",
+    c.jointCaseContext?.reconstructionSequence
+      ? JOINT_CASE_RECONSTRUCTION_SEQUENCE_LABELS[
+          c.jointCaseContext.reconstructionSequence
+        ]
+      : "",
+    c.jointCaseContext?.ablativeProcedureDescription ?? "",
+    c.jointCaseContext?.defectDimensions?.length ?? "",
+    c.jointCaseContext?.defectDimensions?.width ?? "",
+    c.jointCaseContext?.defectDimensions?.depth ?? "",
+    c.jointCaseContext?.structuresResected?.length
+      ? c.jointCaseContext.structuresResected
+          .map((value) => JOINT_CASE_STRUCTURE_RESECTED_LABELS[value] ?? value)
+          .join("; ")
+      : "",
+    // ── Head & Neck flap details ──
+    ...headNeckFields,
   ];
 
   return values.map(escapeCsvField).join(",");

@@ -12,8 +12,9 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { TimeField } from "@/components/TimeField";
 import { CollapsibleFormSection } from "./CollapsibleFormSection";
 import {
-  useCaseFormState,
   useCaseFormDispatch,
+  useCaseFormField,
+  useCaseFormSelector,
 } from "@/contexts/CaseFormContext";
 import { setField } from "@/hooks/useCaseForm";
 import { useTheme } from "@/hooks/useTheme";
@@ -100,39 +101,70 @@ const SUPERVISION_OPTIONS: { value: SupervisionLevel; label: string }[] = [
 export const OperativeSection = React.memo(function OperativeSection() {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const { state, showInjuryDate, durationDisplay, calculatedBmi } =
-    useCaseFormState();
+  const diagnosisGroups = useCaseFormField("diagnosisGroups");
+  const asaScore = useCaseFormField("asaScore");
+  const defaultOperativeRole = useCaseFormField("defaultOperativeRole");
+  const defaultSupervisionLevel = useCaseFormField("defaultSupervisionLevel");
+  const responsibleConsultantName = useCaseFormField(
+    "responsibleConsultantName",
+  );
+  const admissionUrgency = useCaseFormField("admissionUrgency");
+  const stayType = useCaseFormField("stayType");
+  const admissionDate = useCaseFormField("admissionDate");
+  const dischargeDate = useCaseFormField("dischargeDate");
+  const injuryDate = useCaseFormField("injuryDate");
+  const episodeId = useCaseFormField("episodeId");
+  const encounterClass = useCaseFormField("encounterClass");
+  const surgeryStartTime = useCaseFormField("surgeryStartTime");
+  const surgeryEndTime = useCaseFormField("surgeryEndTime");
+  const anaestheticType = useCaseFormField("anaestheticType");
+  const woundInfectionRisk = useCaseFormField("woundInfectionRisk");
+  const antibioticProphylaxis = useCaseFormField("antibioticProphylaxis");
+  const dvtProphylaxis = useCaseFormField("dvtProphylaxis");
+  const smoker = useCaseFormField("smoker");
+  const heightCm = useCaseFormField("heightCm");
+  const weightKg = useCaseFormField("weightKg");
+  const selectedComorbidities = useCaseFormField("selectedComorbidities");
+  const showInjuryDate = useCaseFormSelector(
+    (snapshot) => snapshot.showInjuryDate,
+  );
+  const durationDisplay = useCaseFormSelector(
+    (snapshot) => snapshot.durationDisplay,
+  );
+  const calculatedBmi = useCaseFormSelector(
+    (snapshot) => snapshot.calculatedBmi,
+  );
   const { dispatch } = useCaseFormDispatch();
   const { profile } = useAuth();
   const [showAsaInfo, setShowAsaInfo] = useState(false);
 
-  const hasHandTraumaGroup = state.diagnosisGroups.some(
+  const hasHandTraumaGroup = diagnosisGroups.some(
     (group) =>
       group.specialty === "hand_wrist" &&
       Boolean(group.diagnosisClinicalDetails?.handTrauma),
   );
 
-  const asaNum = state.asaScore ? parseInt(state.asaScore) : 0;
+  const asaNum = asaScore ? parseInt(asaScore) : 0;
   const showComorbidities = asaNum >= 2;
 
   const isConsultant = isConsultantLevel(profile?.careerStage);
 
   const filledCount = useMemo(() => {
     let count = 0;
-    if (state.defaultOperativeRole) count++;
-    if (state.responsibleConsultantName) count++;
-    if (state.admissionUrgency) count++;
-    if (state.stayType) count++;
-    if (state.anaestheticType) count++;
-    if (state.surgeryStartTime) count++;
+    if (defaultOperativeRole) count++;
+    if (responsibleConsultantName) count++;
+    if (admissionUrgency) count++;
+    if (stayType) count++;
+    if (anaestheticType) count++;
+    if (surgeryStartTime) count++;
     return count;
   }, [
-    state.defaultOperativeRole,
-    state.responsibleConsultantName,
-    state.admissionUrgency,
-    state.stayType,
-    state.anaestheticType,
-    state.surgeryStartTime,
+    defaultOperativeRole,
+    responsibleConsultantName,
+    admissionUrgency,
+    stayType,
+    anaestheticType,
+    surgeryStartTime,
   ]);
 
   return (
@@ -154,9 +186,9 @@ export const OperativeSection = React.memo(function OperativeSection() {
             Responsible Consultant
           </ThemedText>
           <ThemedText style={styles.consultantValue}>
-            {state.responsibleConsultantName || "You"}
+            {responsibleConsultantName || "You"}
           </ThemedText>
-          {state.responsibleConsultantName ? (
+          {responsibleConsultantName ? (
             <Pressable
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -174,7 +206,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
       ) : (
         <FormField
           label="Responsible Consultant"
-          value={state.responsibleConsultantName}
+          value={responsibleConsultantName}
           onChangeText={(v: string) =>
             dispatch(setField("responsibleConsultantName", v))
           }
@@ -184,7 +216,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
 
       <SelectField
         label="Operative Role"
-        value={state.defaultOperativeRole}
+        value={defaultOperativeRole}
         options={OPERATIVE_ROLE_OPTIONS}
         onSelect={(v: string) => {
           dispatch(setField("defaultOperativeRole", v as OperativeRole));
@@ -195,10 +227,10 @@ export const OperativeSection = React.memo(function OperativeSection() {
         }}
       />
 
-      {supervisionApplicable(state.defaultOperativeRole as OperativeRole) ? (
+      {supervisionApplicable(defaultOperativeRole as OperativeRole) ? (
         <SelectField
           label="Supervision Level"
-          value={state.defaultSupervisionLevel}
+          value={defaultSupervisionLevel}
           options={SUPERVISION_OPTIONS}
           onSelect={(v: string) =>
             dispatch(setField("defaultSupervisionLevel", v as SupervisionLevel))
@@ -232,7 +264,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
                 string,
               ][]
             ).map(([value, label]) => {
-              const isSelected = state.admissionUrgency === value;
+              const isSelected = admissionUrgency === value;
               return (
                 <Pressable
                   key={value}
@@ -276,7 +308,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
           >
             {(Object.entries(STAY_TYPE_LABELS) as [StayType, string][]).map(
               ([value, label]) => {
-                const isSelected = state.stayType === value;
+                const isSelected = stayType === value;
                 return (
                   <Pressable
                     key={value}
@@ -310,7 +342,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
         <View style={styles.halfField}>
           <DatePickerField
             label="Admission Date"
-            value={state.admissionDate}
+            value={admissionDate}
             onChange={(v: string) => dispatch(setField("admissionDate", v))}
             maximumDate={new Date()}
           />
@@ -318,9 +350,9 @@ export const OperativeSection = React.memo(function OperativeSection() {
         <View style={styles.halfField}>
           <DatePickerField
             label="Discharge Date"
-            value={state.dischargeDate}
+            value={dischargeDate}
             onChange={(v: string) => dispatch(setField("dischargeDate", v))}
-            minimumDate={parseDateOnlyValue(state.admissionDate) ?? undefined}
+            minimumDate={parseDateOnlyValue(admissionDate) ?? undefined}
             clearable
           />
         </View>
@@ -331,7 +363,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
           <View style={styles.halfField}>
             <DatePickerField
               label="Day of Injury"
-              value={state.injuryDate}
+              value={injuryDate}
               onChange={(v: string) => dispatch(setField("injuryDate", v))}
               placeholder="Select date..."
               maximumDate={new Date()}
@@ -340,10 +372,10 @@ export const OperativeSection = React.memo(function OperativeSection() {
         </View>
       ) : null}
 
-      {state.episodeId ? (
+      {episodeId ? (
         <SelectField
           label="Encounter Class"
-          value={state.encounterClass}
+          value={encounterClass}
           options={Object.entries(ENCOUNTER_CLASS_LABELS).map(
             ([value, label]) => ({ value, label }),
           )}
@@ -357,7 +389,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
         <View style={styles.halfField}>
           <TimeField
             label="Start Time"
-            value={state.surgeryStartTime}
+            value={surgeryStartTime}
             onChangeText={(v: string) =>
               dispatch(setField("surgeryStartTime", v))
             }
@@ -367,7 +399,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
         <View style={styles.halfField}>
           <TimeField
             label="End Time"
-            value={state.surgeryEndTime}
+            value={surgeryEndTime}
             onChangeText={(v: string) =>
               dispatch(setField("surgeryEndTime", v))
             }
@@ -393,7 +425,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
 
       <SelectField
         label="Anaesthetic Type"
-        value={state.anaestheticType}
+        value={anaestheticType}
         options={ANAESTHETIC_OPTIONS}
         onSelect={(v: string) =>
           dispatch(setField("anaestheticType", v as AnaestheticType))
@@ -406,7 +438,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
 
       <SelectField
         label="Wound Infection Risk"
-        value={state.woundInfectionRisk}
+        value={woundInfectionRisk}
         options={WOUND_RISK_OPTIONS}
         onSelect={(v: string) =>
           dispatch(setField("woundInfectionRisk", v as WoundInfectionRisk))
@@ -418,22 +450,18 @@ export const OperativeSection = React.memo(function OperativeSection() {
           style={[
             styles.checkbox,
             {
-              backgroundColor: state.antibioticProphylaxis
+              backgroundColor: antibioticProphylaxis
                 ? theme.link + "20"
                 : theme.backgroundDefault,
-              borderColor: state.antibioticProphylaxis
-                ? theme.link
-                : theme.border,
+              borderColor: antibioticProphylaxis ? theme.link : theme.border,
             },
           ]}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            dispatch(
-              setField("antibioticProphylaxis", !state.antibioticProphylaxis),
-            );
+            dispatch(setField("antibioticProphylaxis", !antibioticProphylaxis));
           }}
         >
-          {state.antibioticProphylaxis ? (
+          {antibioticProphylaxis ? (
             <Feather name="check" size={16} color={theme.link} />
           ) : null}
         </Pressable>
@@ -447,18 +475,18 @@ export const OperativeSection = React.memo(function OperativeSection() {
           style={[
             styles.checkbox,
             {
-              backgroundColor: state.dvtProphylaxis
+              backgroundColor: dvtProphylaxis
                 ? theme.link + "20"
                 : theme.backgroundDefault,
-              borderColor: state.dvtProphylaxis ? theme.link : theme.border,
+              borderColor: dvtProphylaxis ? theme.link : theme.border,
             },
           ]}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            dispatch(setField("dvtProphylaxis", !state.dvtProphylaxis));
+            dispatch(setField("dvtProphylaxis", !dvtProphylaxis));
           }}
         >
-          {state.dvtProphylaxis ? (
+          {dvtProphylaxis ? (
             <Feather name="check" size={16} color={theme.link} />
           ) : null}
         </Pressable>
@@ -493,7 +521,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
       >
         {(Object.entries(ASA_SHORT_LABELS) as [string, string][]).map(
           ([value, label]) => {
-            const isSelected = state.asaScore === value;
+            const isSelected = asaScore === value;
             return (
               <Pressable
                 key={value}
@@ -519,11 +547,11 @@ export const OperativeSection = React.memo(function OperativeSection() {
           },
         )}
       </View>
-      {state.asaScore ? (
+      {asaScore ? (
         <ThemedText
           style={[styles.asaDescription, { color: theme.textTertiary }]}
         >
-          {ASA_GRADE_LABELS[parseInt(state.asaScore) as ASAScore]}
+          {ASA_GRADE_LABELS[parseInt(asaScore) as ASAScore]}
         </ThemedText>
       ) : null}
 
@@ -542,7 +570,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
         {(
           Object.entries(SMOKING_STATUS_LABELS) as [SmokingStatus, string][]
         ).map(([value, label]) => {
-          const isSelected = state.smoker === value;
+          const isSelected = smoker === value;
           return (
             <Pressable
               key={value}
@@ -572,7 +600,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
         <View style={styles.thirdField}>
           <FormField
             label="Height"
-            value={state.heightCm}
+            value={heightCm}
             onChangeText={(v: string) => dispatch(setField("heightCm", v))}
             placeholder="170"
             keyboardType="decimal-pad"
@@ -582,7 +610,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
         <View style={styles.thirdField}>
           <FormField
             label="Weight"
-            value={state.weightKg}
+            value={weightKg}
             onChangeText={(v: string) => dispatch(setField("weightKg", v))}
             placeholder="70"
             keyboardType="decimal-pad"
@@ -617,7 +645,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
 
           <View style={styles.comorbidityGrid}>
             {COMMON_COMORBIDITIES.slice(0, 20).map((comorbidity) => {
-              const isSelected = state.selectedComorbidities.some(
+              const isSelected = selectedComorbidities.some(
                 (c) => c.snomedCtCode === comorbidity.snomedCtCode,
               );
               return (
@@ -638,7 +666,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
                       dispatch(
                         setField(
                           "selectedComorbidities",
-                          state.selectedComorbidities.filter(
+                          selectedComorbidities.filter(
                             (c) => c.snomedCtCode !== comorbidity.snomedCtCode,
                           ),
                         ),
@@ -646,7 +674,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
                     } else {
                       dispatch(
                         setField("selectedComorbidities", [
-                          ...state.selectedComorbidities,
+                          ...selectedComorbidities,
                           comorbidity,
                         ]),
                       );

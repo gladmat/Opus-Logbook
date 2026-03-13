@@ -9,7 +9,13 @@
  *   Full export              → Bundle (type: "collection")
  */
 
-import { Case, DiagnosisGroup, CaseProcedure, Laterality } from "@/types/case";
+import {
+  Case,
+  DiagnosisGroup,
+  CaseProcedure,
+  Laterality,
+  type FreeFlapDetails,
+} from "@/types/case";
 import {
   resolveOperativeRole,
   resolveSupervisionLevel,
@@ -48,6 +54,7 @@ import {
   IMPLANT_PROFILE_LABELS,
   IMPLANT_PLANE_LABELS,
 } from "@/types/breast";
+import { getImplantManufacturerLabel } from "@/lib/breastConfig";
 
 // ─── FHIR R4 Type Stubs ───────────────────────────────────────────────────
 
@@ -186,8 +193,7 @@ function buildEpisodeOfCare(episode: TreatmentEpisode): FhirResource {
                       {
                         url: "timingClassification",
                         valueString:
-                          episode.breastReconstructionMeta
-                            .timingClassification,
+                          episode.breastReconstructionMeta.timingClassification,
                       },
                     ]
                   : []),
@@ -290,10 +296,49 @@ function buildEncounter(c: Case, conditionRefs: string[]): FhirResource {
                   ? [
                       {
                         url: "reconstructionSequence",
-                        valueString:
-                          c.jointCaseContext.reconstructionSequence,
+                        valueString: c.jointCaseContext.reconstructionSequence,
                       },
                     ]
+                  : []),
+                ...(c.jointCaseContext.ablativeProcedureDescription
+                  ? [
+                      {
+                        url: "ablativeProcedureDescription",
+                        valueString:
+                          c.jointCaseContext.ablativeProcedureDescription,
+                      },
+                    ]
+                  : []),
+                ...(c.jointCaseContext.defectDimensions?.length != null
+                  ? [
+                      {
+                        url: "defectLengthMm",
+                        valueDecimal:
+                          c.jointCaseContext.defectDimensions.length,
+                      },
+                    ]
+                  : []),
+                ...(c.jointCaseContext.defectDimensions?.width != null
+                  ? [
+                      {
+                        url: "defectWidthMm",
+                        valueDecimal: c.jointCaseContext.defectDimensions.width,
+                      },
+                    ]
+                  : []),
+                ...(c.jointCaseContext.defectDimensions?.depth != null
+                  ? [
+                      {
+                        url: "defectDepthMm",
+                        valueDecimal: c.jointCaseContext.defectDimensions.depth,
+                      },
+                    ]
+                  : []),
+                ...(c.jointCaseContext.structuresResected?.length
+                  ? c.jointCaseContext.structuresResected.map((value) => ({
+                      url: "structuresResected",
+                      valueString: value,
+                    }))
                   : []),
               ],
             },
@@ -509,6 +554,86 @@ function buildProcedure(
     }
   }
 
+  if (
+    (proc.specialty ?? group.specialty) === "head_neck" &&
+    proc.tags?.includes("free_flap") &&
+    proc.clinicalDetails
+  ) {
+    const freeFlapDetails = proc.clinicalDetails as FreeFlapDetails;
+    const recipientVesselQuality =
+      freeFlapDetails.recipientVesselQuality ??
+      (freeFlapDetails.irradiatedVesselPreference === "vein_graft_required"
+        ? "irradiated_vein_graft_required"
+        : freeFlapDetails.irradiatedNeckDissectionPerformed
+          ? "previously_operated"
+          : freeFlapDetails.irradiatedVesselPreference ===
+                "ipsilateral_viable" ||
+              (freeFlapDetails.irradiatedVesselStatus &&
+                freeFlapDetails.irradiatedVesselStatus !== "normal")
+            ? "irradiated_usable"
+            : freeFlapDetails.irradiatedVesselStatus === "normal" ||
+                freeFlapDetails.irradiatedVesselPreference === "contralateral"
+              ? "normal"
+              : undefined);
+    const veinGraftUsed =
+      freeFlapDetails.veinGraftUsed ??
+      freeFlapDetails.irradiatedVesselPreference === "vein_graft_required";
+    const headNeckExtensions: Record<string, unknown>[] = [];
+
+    if (recipientVesselQuality) {
+      headNeckExtensions.push({
+        url: "recipientVesselQuality",
+        valueString: recipientVesselQuality,
+      });
+    }
+    if (veinGraftUsed !== undefined) {
+      headNeckExtensions.push({
+        url: "veinGraftUsed",
+        valueBoolean: veinGraftUsed,
+      });
+    }
+    if (freeFlapDetails.veinGraftSource) {
+      headNeckExtensions.push({
+        url: "veinGraftSource",
+        valueString: freeFlapDetails.veinGraftSource,
+      });
+    }
+    if (freeFlapDetails.veinGraftLength != null) {
+      headNeckExtensions.push({
+        url: "veinGraftLengthCm",
+        valueDecimal: freeFlapDetails.veinGraftLength,
+      });
+    }
+    if (freeFlapDetails.flapSpecificDetails?.fibulaBrownClass) {
+      headNeckExtensions.push({
+        url: "fibulaBrownClass",
+        valueString: freeFlapDetails.flapSpecificDetails.fibulaBrownClass,
+      });
+    }
+    if (freeFlapDetails.flapSpecificDetails?.fibulaMandibleSegments?.length) {
+      headNeckExtensions.push(
+        ...freeFlapDetails.flapSpecificDetails.fibulaMandibleSegments.map(
+          (segment) => ({
+            url: "fibulaMandibleSegment",
+            valueString: segment,
+          }),
+        ),
+      );
+    }
+
+    if (headNeckExtensions.length > 0) {
+      const ext = {
+        url: "urn:opus:head-neck-free-flap",
+        extension: headNeckExtensions,
+      };
+      if (procedure.extension) {
+        procedure.extension.push(ext);
+      } else {
+        procedure.extension = [ext];
+      }
+    }
+  }
+
   // bodySite with implant-aware laterality and digit context
   const laterality = (proc.implantDetails?.laterality ??
     group.diagnosisClinicalDetails?.laterality) as Laterality | undefined;
@@ -627,7 +752,9 @@ function buildBreastDevice(
     status: "active",
   };
 
-  if (implant.manufacturer) device.manufacturer = implant.manufacturer;
+  if (implant.manufacturer) {
+    device.manufacturer = getImplantManufacturerLabel(implant.manufacturer);
+  }
   if (implant.serialNumber) {
     device.serialNumber = implant.serialNumber;
   }
@@ -694,11 +821,7 @@ function getBreastDevicesForGroup(
     const sideData = ba.sides[side];
     if (sideData?.implantDetails?.deviceType) {
       results.push({
-        device: buildBreastDevice(
-          sideData.implantDetails,
-          side,
-          group.id,
-        ),
+        device: buildBreastDevice(sideData.implantDetails, side, group.id),
         side,
       });
     }
@@ -755,6 +878,9 @@ function caseToFhirBundle(c: Case): FhirBundle {
 
   // Build Condition + Procedure resources per group
   for (const group of c.diagnosisGroups) {
+    const breastDevices = getBreastDevicesForGroup(group);
+    let breastDevicesAttached = false;
+
     if (group.diagnosis) {
       const condition = buildCondition(
         group,
@@ -776,25 +902,44 @@ function caseToFhirBundle(c: Case): FhirBundle {
         c,
       );
 
+      const focalDevices: { manipulated: { reference: string } }[] = [];
+      const relatedResources: FhirResource[] = [];
+
       // Attach Device resource for joint implant tracking
       const device = buildDevice(proc);
       if (device) {
-        procedure.focalDevice = [
-          {
-            manipulated: { reference: `Device/${device.id}` },
-          },
-        ];
-        entries.push({ resource: procedure });
-        entries.push({ resource: device });
-      } else {
-        entries.push({ resource: procedure });
+        focalDevices.push({
+          manipulated: { reference: `Device/${device.id}` },
+        });
+        relatedResources.push(device);
+      }
+
+      if (!breastDevicesAttached && breastDevices.length > 0) {
+        focalDevices.push(
+          ...breastDevices.map(({ device: breastDevice }) => ({
+            manipulated: { reference: `Device/${breastDevice.id}` },
+          })),
+        );
+        relatedResources.push(
+          ...breastDevices.map(({ device: breastDevice }) => breastDevice),
+        );
+        breastDevicesAttached = true;
+      }
+
+      if (focalDevices.length > 0) {
+        procedure.focalDevice = focalDevices;
+      }
+
+      entries.push({ resource: procedure });
+      for (const resource of relatedResources) {
+        entries.push({ resource });
       }
     }
 
-    // Breast implant Device resources (per-side)
-    const breastDevices = getBreastDevicesForGroup(group);
-    for (const { device: breastDevice } of breastDevices) {
-      entries.push({ resource: breastDevice });
+    if (!breastDevicesAttached) {
+      for (const { device: breastDevice } of breastDevices) {
+        entries.push({ resource: breastDevice });
+      }
     }
   }
 

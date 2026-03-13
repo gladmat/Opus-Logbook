@@ -42,7 +42,7 @@ import {
   type OperativeRole,
   type SupervisionLevel,
 } from "@/types/operativeRole";
-import { useCaseFormState } from "@/contexts/CaseFormContext";
+import { useCaseFormField } from "@/contexts/CaseFormContext";
 import {
   getDefaultFlapSpecificDetails,
   getGracilisContextDefaults,
@@ -71,7 +71,7 @@ interface ProcedureEntryCardProps {
   diagnosisLaterality?: string;
 }
 
-export function ProcedureEntryCard({
+function ProcedureEntryCardInner({
   procedure,
   index,
   isOnlyProcedure,
@@ -87,7 +87,8 @@ export function ProcedureEntryCard({
 }: ProcedureEntryCardProps) {
   const { theme } = useTheme();
   const { profile } = useAuth();
-  const { state } = useCaseFormState();
+  const defaultOperativeRole = useCaseFormField("defaultOperativeRole");
+  const defaultSupervisionLevel = useCaseFormField("defaultSupervisionLevel");
   const [showRoleOverride, setShowRoleOverride] = useState(
     hasRoleOverride(procedure),
   );
@@ -235,10 +236,9 @@ export function ProcedureEntryCard({
   };
 
   // ── Role override helpers ───────────────────────────────────────────────
-  const caseDefaultRole =
-    (state.defaultOperativeRole as OperativeRole) || undefined;
+  const caseDefaultRole = (defaultOperativeRole as OperativeRole) || undefined;
   const caseDefaultSupervision =
-    (state.defaultSupervisionLevel as SupervisionLevel) || undefined;
+    (defaultSupervisionLevel as SupervisionLevel) || undefined;
   const effectiveRole = resolveOperativeRole(
     procedure.operativeRoleOverride,
     caseDefaultRole,
@@ -650,6 +650,27 @@ export function ProcedureEntryCard({
     </View>
   );
 }
+
+function areProcedureEntryCardPropsEqual(
+  prev: ProcedureEntryCardProps,
+  next: ProcedureEntryCardProps,
+): boolean {
+  return (
+    prev.procedure === next.procedure &&
+    prev.index === next.index &&
+    prev.isOnlyProcedure === next.isOnlyProcedure &&
+    prev.canMoveUp === next.canMoveUp &&
+    prev.canMoveDown === next.canMoveDown &&
+    prev.diagnosisId === next.diagnosisId &&
+    prev.clinicalGroup === next.clinicalGroup &&
+    prev.diagnosisLaterality === next.diagnosisLaterality
+  );
+}
+
+export const ProcedureEntryCard = React.memo(
+  ProcedureEntryCardInner,
+  areProcedureEntryCardPropsEqual,
+);
 
 const styles = StyleSheet.create({
   procedurePickerSection: {

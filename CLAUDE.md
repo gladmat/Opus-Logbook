@@ -16,7 +16,7 @@ Key capabilities: multi-specialty case logging, SNOMED CT coded diagnoses and pr
 
 ### v2.0 overhaul status
 
-- **Phase 1 COMPLETE** — Form state refactor (useReducer, split context, section components, clear/reset)
+- **Phase 1 COMPLETE** — Form state refactor (useReducer, selector-based external-store case form context, section components, clear/reset)
 - **Phase 2 COMPLETE** — Charcoal+Amber theme, card-based diagnosis groups, section nav, summary view, reordering, specialty modules
 - **Acute Hand Category COMPLETE** — 3-way hand surgery branching (Trauma/Acute/Elective), 13 curated acute diagnoses with chip-based progressive disclosure, hand infection 4-layer inline assessment (type/digits/organism/antibiotic/severity/Kanavel), infection-to-overlay bridge, accept-mapping flow with coding details, dashboard attention surfacing for severe hand infections, CSV/FHIR export of hand infection data, 42 infection tests
 - **Phase 3 COMPLETE** — Inline validation, keyboard optimisation (react-native-keyboard-controller), haptic audit (244 occurrences across 57 files), duplicate case, testing (Vitest), favourites/recents (DiagnosisPicker + ProcedureSubcategoryPicker chips, recording on save)
@@ -50,7 +50,7 @@ Key capabilities: multi-specialty case logging, SNOMED CT coded diagnoses and pr
 | React          | React                                                          | 19.1.0                                                      |
 | Language       | TypeScript                                                     | 5.9.2                                                       |
 | Navigation     | React Navigation                                               | 7 (@native 7.1.8, @native-stack 7.3.16, @bottom-tabs 7.4.0) |
-| Server state   | TanStack React Query                                           | 5.90.7                                                      |
+| Server state   | Direct fetch helpers (`getApiUrl()` + `fetch`)                | n/a                                                         |
 | Animation      | React Native Reanimated                                        | 4.1.1                                                       |
 | Camera         | expo-camera                                                    | 17.0.10                                                     |
 | Native Targets | @bacons/apple-targets                                          | 4.0.6                                                       |
@@ -143,7 +143,7 @@ client/
     [50+ top-level components]   # Forms, editors, badges, media, layout
   contexts/
     AuthContext.tsx               # Auth state, profile, facilities, device keys
-    CaseFormContext.tsx           # Split: CaseFormStateContext + CaseFormDispatchContext
+    CaseFormContext.tsx           # Selector-based case-form store + actions/validation contexts
     AppLockContext.tsx            # PIN/biometric lock state, auto-lock timeout, re-lock handling
     MediaCallbackContext.tsx      # Attachment callbacks for MediaManagement + generic callbacks
   hooks/
@@ -151,7 +151,7 @@ client/
     useCaseDraft.ts              # Auto-save drafts (debounced + AppState flush)
     useFavouritesRecents.ts      # Recent/favourite diagnosis-procedure pairs
     useTheme.ts                  # ThemeProvider, system/light/dark, AsyncStorage
-    useActiveEpisodes.ts         # Query hook for active episodes
+    useActiveEpisodes.ts         # Active episode hook backed by CaseSummary loading
     useScreenOptions.ts          # Shared navigation header options
     useColorScheme.ts            # System colour scheme detection
     useStatistics.ts             # Memoized statistics computation from cases (career, free flap, specialty, operational, milestones)
@@ -159,7 +159,7 @@ client/
     usePracticePulse.ts          # Shared selector wrapper for thisMonth/thisWeek/completion metrics
     useDecryptedImage.ts         # Decrypt-on-demand hook for v2 encrypted media (file URI cache + sweep-aware)
   lib/
-    storage.ts                   # AsyncStorage CRUD, encryption, drafts, case index, HMAC hashing, lazy hash migration, one-time specialty repair
+    storage.ts                   # AsyncStorage CRUD, encryption, drafts, case index, encrypted case summaries, batched hydration, HMAC hashing, lazy hash migration, one-time specialty repair
     dashboardSelectors.ts        # Shared dashboard selector layer (counts, filters, attention items, pulse, quick-log params, planned case filtering)
     procedurePicklist.ts         # 500+ procedures across 12 specialties
     statistics.ts                # Case analytics, filtering, calculations (specialty-scoped + free-flap analytics)
@@ -178,7 +178,7 @@ client/
     binaryUtils.ts               # Shared base64↔Uint8Array conversion utilities
     e2ee.ts                      # Device key pair generation, X25519
     auth.ts                      # JWT token management, device key registration
-    query-client.ts              # TanStack React Query + API base URL
+    query-client.ts              # API base URL resolution helper
     snomedCt.ts                  # SNOMED code picklists, country code mappings
     snomedApi.ts                 # Ontoserver FHIR client for live search
     snomedCodeMigration.ts       # Old→new SNOMED code mapping
@@ -269,7 +269,6 @@ client/
     DashboardStackNavigator.tsx  # Dashboard → Case Detail → Add Case
     StatisticsStackNavigator.tsx # Statistics tab stack
     SettingsStackNavigator.tsx   # Settings → Profile → Facilities → Preferences
-    OnboardingNavigator.tsx      # Welcome → Features → Auth → Categories → Training → Hospital → Privacy
 targets/
   _shared/                       # Shared Swift constants + CameraCaptureIntent linked into app/targets
   opus-camera-control/           # Apple widget target: Inbox widget + Control Center capture control
@@ -302,7 +301,7 @@ migrations/                      # 4 SQL migration files
 ### Provider hierarchy (App.tsx)
 
 ```
-ErrorBoundary → ThemeProvider → QueryClientProvider → AuthProvider
+ErrorBoundary → ThemeProvider → AuthProvider
   → AppLockProvider → MediaCallbackProvider → SafeAreaProvider
     → GestureHandlerRootView → KeyboardProvider
       → ThemedNavigationContainer → RootStackNavigator
@@ -314,9 +313,9 @@ Auth → Onboarding → Main (bottom tabs: Dashboard, Statistics, Settings) with
 
 ### Data flow
 
-- **Local cases:** Encrypted in AsyncStorage (offline-first). Draft auto-save via `useCaseDraft.ts` (debounced + AppState background flush). Server sync on explicit save via React Query mutations.
-- **Form state:** `useCaseForm()` hook → `useReducer` with 15+ actions (`SET_FIELD`, `SET_FIELDS`, `RESET_FORM`, `LOAD_CASE`, `LOAD_DRAFT`, `ADD_TEAM_MEMBER`, `REMOVE_TEAM_MEMBER`, `ADD_ANASTOMOSIS`, `UPDATE_ANASTOMOSIS`, `REMOVE_ANASTOMOSIS`, `ADD_DIAGNOSIS_GROUP`, `REMOVE_DIAGNOSIS_GROUP`, `UPDATE_DIAGNOSIS_GROUP`, `REORDER_DIAGNOSIS_GROUPS`, `UPDATE_CLINICAL_DETAIL`). Split context pattern: `CaseFormStateContext` + `CaseFormDispatchContext` for memo optimization.
-- **Server state:** TanStack React Query for API calls.
+- **Local cases:** Encrypted in AsyncStorage (offline-first). Draft auto-save via `useCaseDraft.ts` (debounced + AppState background flush). Summary indexes are persisted separately so list/dashboard/episode surfaces do not need to hydrate full cases eagerly.
+- **Form state:** `useCaseForm()` hook → `useReducer` with 15+ actions (`SET_FIELD`, `SET_FIELDS`, `RESET_FORM`, `LOAD_CASE`, `LOAD_DRAFT`, `ADD_TEAM_MEMBER`, `REMOVE_TEAM_MEMBER`, `ADD_ANASTOMOSIS`, `UPDATE_ANASTOMOSIS`, `REMOVE_ANASTOMOSIS`, `ADD_DIAGNOSIS_GROUP`, `REMOVE_DIAGNOSIS_GROUP`, `UPDATE_DIAGNOSIS_GROUP`, `REORDER_DIAGNOSIS_GROUPS`, `UPDATE_CLINICAL_DETAIL`). `CaseFormContext` now exposes selector-based subscriptions plus separate actions/validation contexts so unchanged sections do not rerender on unrelated edits.
+- **Server state:** Direct API helpers built on `getApiUrl()` + `fetch`.
 - **Auth state:** `AuthContext` with JWT tokens, profile, facilities, device keys.
 - **Patient privacy:** Identifiers HMAC-SHA256 hashed in local case index (per-user key in iOS Keychain). Patient identity fields (`patientFirstName`, `patientLastName`, `patientDateOfBirth`, `patientNhi`) stored on-device only, stripped before server sync via `stripPatientIdentityForSync()`. Legacy SHA-256 hashes detected by absence of `hmac:` prefix and lazily migrated.
 
@@ -1248,13 +1247,13 @@ Configured in both `tsconfig.json` and `babel.config.js` (module-resolver plugin
 
 - **Strict TypeScript** throughout — `strict: true`, `noUncheckedIndexedAccess`, `noImplicitReturns`, `noFallthroughCasesInSwitch`
 - **React Navigation** for all routing (not Expo Router)
-- **TanStack React Query** for server state
+- **Direct fetch helpers** for server calls (no active React Query runtime layer)
 - **Zod + drizzle-zod** for validation at API boundaries
 - **React Native primitives** (View, Text, ScrollView) — no third-party UI kit
 - **@noble/\*** for cryptographic operations (not Web Crypto)
 - **No hardcoded colours** — always `theme.*` or `palette.*` from `client/constants/theme.ts`
 - **Ownership verification** at every API level — IDOR-safe
-- **Split context pattern** — state and dispatch contexts separated for memo optimization
+- **Selector-based case form store** — field-level subscriptions with separate actions/validation contexts to minimize rerenders
 - **Unconditional field setters** (`?? ""`) to ensure cleared fields persist
 - **Header save ref pattern** — `handleSaveRef.current` always latest closure
 - **Encrypted URIs** — `opus-media:{uuid}` (v2 file-based) and `encrypted-media:{uuid}` (v1 legacy) schemes for media references

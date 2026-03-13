@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useMemo } from "react";
+import React, {
+  createContext,
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useSyncExternalStore,
+} from "react";
 import {
   CaseFormState,
   CaseFormAction,
@@ -6,9 +13,9 @@ import {
 } from "@/hooks/useCaseForm";
 import { Specialty, DiagnosisGroup, AnastomosisEntry } from "@/types/case";
 
-// ─── State Context ──────────────────────────────────────────────────────────
+// ─── Store Context ──────────────────────────────────────────────────────────
 
-export interface CaseFormStateContextValue {
+export interface CaseFormSnapshot {
   state: CaseFormState;
   calculatedBmi: number | undefined;
   durationDisplay: string | null;
@@ -17,21 +24,69 @@ export interface CaseFormStateContextValue {
   specialty: Specialty;
 }
 
-const CaseFormStateContext = createContext<CaseFormStateContextValue | null>(
-  null,
-);
-
-export function useCaseFormState(): CaseFormStateContextValue {
-  const ctx = useContext(CaseFormStateContext);
-  if (!ctx)
-    throw new Error("useCaseFormState must be used within CaseFormProvider");
-  return ctx;
+interface CaseFormStore {
+  getSnapshot: () => CaseFormSnapshot;
+  subscribe: (listener: () => void) => () => void;
+  emitChange: () => void;
 }
 
-// ─── Dispatch Context ───────────────────────────────────────────────────────
+const CaseFormStoreContext = createContext<CaseFormStore | null>(null);
 
-export interface CaseFormDispatchContextValue {
+function createCaseFormStore(
+  snapshotRef: React.MutableRefObject<CaseFormSnapshot>,
+): CaseFormStore {
+  const listeners = new Set<() => void>();
+
+  return {
+    getSnapshot: () => snapshotRef.current,
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    emitChange: () => {
+      listeners.forEach((listener) => listener());
+    },
+  };
+}
+
+function useCaseFormStore(): CaseFormStore {
+  const store = useContext(CaseFormStoreContext);
+  if (!store) {
+    throw new Error("Case form hooks must be used within CaseFormProvider");
+  }
+  return store;
+}
+
+export function useCaseFormSelector<T>(
+  selector: (snapshot: CaseFormSnapshot) => T,
+): T {
+  const store = useCaseFormStore();
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => selector(store.getSnapshot()),
+    () => selector(store.getSnapshot()),
+  );
+}
+
+export function useCaseFormState(): CaseFormSnapshot {
+  return useCaseFormSelector((snapshot) => snapshot);
+}
+
+export function useCaseFormField<K extends keyof CaseFormState>(
+  field: K,
+): CaseFormState[K] {
+  return useCaseFormSelector((snapshot) => snapshot.state[field]);
+}
+
+// ─── Actions Context ────────────────────────────────────────────────────────
+
+export interface CaseFormActionsContextValue {
   dispatch: React.Dispatch<CaseFormAction>;
+  getState: () => CaseFormState;
+  getSpecialty: () => Specialty;
   addAnastomosis: (vesselType: "artery" | "vein") => void;
   updateAnastomosis: (entry: AnastomosisEntry) => void;
   removeAnastomosis: (id: string) => void;
@@ -45,17 +100,35 @@ export interface CaseFormDispatchContextValue {
   addDiagnosisGroup: () => void;
   reorderDiagnosisGroups: (groups: DiagnosisGroup[]) => void;
   updateClinicalDetail: (key: string, value: any) => void;
+}
+
+const CaseFormActionsContext =
+  createContext<CaseFormActionsContextValue | null>(null);
+
+export function useCaseFormDispatch(): CaseFormActionsContextValue {
+  const ctx = useContext(CaseFormActionsContext);
+  if (!ctx)
+    throw new Error("useCaseFormDispatch must be used within CaseFormProvider");
+  return ctx;
+}
+
+// ─── Validation Context ─────────────────────────────────────────────────────
+
+export interface CaseFormValidationContextValue {
   fieldErrors: Record<string, string>;
   onFieldBlur: (field: string) => void;
 }
 
-const CaseFormDispatchContext =
-  createContext<CaseFormDispatchContextValue | null>(null);
+const CaseFormValidationContext =
+  createContext<CaseFormValidationContextValue | null>(null);
 
-export function useCaseFormDispatch(): CaseFormDispatchContextValue {
-  const ctx = useContext(CaseFormDispatchContext);
-  if (!ctx)
-    throw new Error("useCaseFormDispatch must be used within CaseFormProvider");
+export function useCaseFormValidation(): CaseFormValidationContextValue {
+  const ctx = useContext(CaseFormValidationContext);
+  if (!ctx) {
+    throw new Error(
+      "useCaseFormValidation must be used within CaseFormProvider",
+    );
+  }
   return ctx;
 }
 
@@ -74,7 +147,7 @@ export function CaseFormProvider({
   onFieldBlur,
   children,
 }: CaseFormProviderProps) {
-  const stateValue: CaseFormStateContextValue = useMemo(
+  const snapshot = useMemo<CaseFormSnapshot>(
     () => ({
       state: form.state,
       calculatedBmi: form.calculatedBmi,
@@ -92,10 +165,27 @@ export function CaseFormProvider({
       form.specialty,
     ],
   );
+  const snapshotRef = useRef(snapshot);
+  snapshotRef.current = snapshot;
+  const storeRef = useRef<CaseFormStore | null>(null);
+  const committedSnapshotRef = useRef(snapshot);
 
-  const dispatchValue: CaseFormDispatchContextValue = useMemo(
+  if (!storeRef.current) {
+    storeRef.current = createCaseFormStore(snapshotRef);
+  }
+
+  useLayoutEffect(() => {
+    if (committedSnapshotRef.current !== snapshot) {
+      committedSnapshotRef.current = snapshot;
+      storeRef.current?.emitChange();
+    }
+  }, [snapshot]);
+
+  const actionsValue: CaseFormActionsContextValue = useMemo(
     () => ({
       dispatch: form.dispatch,
+      getState: () => snapshotRef.current.state,
+      getSpecialty: () => snapshotRef.current.specialty,
       addAnastomosis: form.addAnastomosis,
       updateAnastomosis: form.updateAnastomosis,
       removeAnastomosis: form.removeAnastomosis,
@@ -104,8 +194,6 @@ export function CaseFormProvider({
       addDiagnosisGroup: form.addDiagnosisGroup,
       reorderDiagnosisGroups: form.reorderDiagnosisGroups,
       updateClinicalDetail: form.updateClinicalDetail,
-      fieldErrors,
-      onFieldBlur,
     }),
     [
       form.dispatch,
@@ -117,16 +205,24 @@ export function CaseFormProvider({
       form.addDiagnosisGroup,
       form.reorderDiagnosisGroups,
       form.updateClinicalDetail,
-      fieldErrors,
-      onFieldBlur,
     ],
   );
 
+  const validationValue: CaseFormValidationContextValue = useMemo(
+    () => ({
+      fieldErrors,
+      onFieldBlur,
+    }),
+    [fieldErrors, onFieldBlur],
+  );
+
   return (
-    <CaseFormStateContext.Provider value={stateValue}>
-      <CaseFormDispatchContext.Provider value={dispatchValue}>
-        {children}
-      </CaseFormDispatchContext.Provider>
-    </CaseFormStateContext.Provider>
+    <CaseFormStoreContext.Provider value={storeRef.current}>
+      <CaseFormActionsContext.Provider value={actionsValue}>
+        <CaseFormValidationContext.Provider value={validationValue}>
+          {children}
+        </CaseFormValidationContext.Provider>
+      </CaseFormActionsContext.Provider>
+    </CaseFormStoreContext.Provider>
   );
 }

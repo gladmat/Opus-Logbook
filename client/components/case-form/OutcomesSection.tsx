@@ -8,8 +8,8 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { CollapsibleFormSection } from "./CollapsibleFormSection";
 import { InfectionOverlayForm } from "@/components/InfectionOverlayForm";
 import {
-  useCaseFormState,
   useCaseFormDispatch,
+  useCaseFormField,
 } from "@/contexts/CaseFormContext";
 import { setField } from "@/hooks/useCaseForm";
 import { useTheme } from "@/hooks/useTheme";
@@ -40,28 +40,35 @@ export const OutcomesSection = React.memo(function OutcomesSection({
   onInfectionToggle,
 }: OutcomesSectionProps) {
   const { theme } = useTheme();
-  const { state } = useCaseFormState();
+  const outcome = useCaseFormField("outcome");
+  const mortalityClassification = useCaseFormField("mortalityClassification");
+  const discussedAtMDM = useCaseFormField("discussedAtMDM");
+  const isUnplannedReadmission = useCaseFormField("isUnplannedReadmission");
+  const unplannedReadmission = useCaseFormField("unplannedReadmission");
+  const unplannedICU = useCaseFormField("unplannedICU");
+  const returnToTheatre = useCaseFormField("returnToTheatre");
+  const returnToTheatreReason = useCaseFormField("returnToTheatreReason");
   const { dispatch } = useCaseFormDispatch();
 
   const filledCount = useMemo(() => {
     let count = 0;
-    if (state.outcome) count++;
+    if (outcome) count++;
     return count;
-  }, [state.outcome]);
+  }, [outcome]);
 
   // Auto-expand 30-day audit if any audit field already has data (edit mode backward compat)
   const hasAuditData = useMemo(
     () =>
-      state.isUnplannedReadmission ||
-      (state.unplannedReadmission && state.unplannedReadmission !== "no") ||
-      (state.unplannedICU && state.unplannedICU !== "no") ||
-      state.returnToTheatre ||
+      isUnplannedReadmission ||
+      (unplannedReadmission && unplannedReadmission !== "no") ||
+      (unplannedICU && unplannedICU !== "no") ||
+      returnToTheatre ||
       !!infectionOverlay,
     [
-      state.isUnplannedReadmission,
-      state.unplannedReadmission,
-      state.unplannedICU,
-      state.returnToTheatre,
+      isUnplannedReadmission,
+      unplannedReadmission,
+      unplannedICU,
+      returnToTheatre,
       infectionOverlay,
     ],
   );
@@ -81,7 +88,7 @@ export const OutcomesSection = React.memo(function OutcomesSection({
 
       <PickerField
         label="Discharge Outcome"
-        value={state.outcome}
+        value={outcome}
         options={Object.entries(DISCHARGE_OUTCOME_LABELS).map(
           ([value, label]) => ({ value, label }),
         )}
@@ -90,10 +97,10 @@ export const OutcomesSection = React.memo(function OutcomesSection({
         }
       />
 
-      {state.outcome === "died" ? (
+      {outcome === "died" ? (
         <PickerField
           label="Mortality Classification"
-          value={state.mortalityClassification}
+          value={mortalityClassification}
           options={Object.entries(MORTALITY_CLASSIFICATION_LABELS).map(
             ([value, label]) => ({ value, label }),
           )}
@@ -110,18 +117,18 @@ export const OutcomesSection = React.memo(function OutcomesSection({
           style={[
             styles.checkbox,
             {
-              backgroundColor: state.discussedAtMDM
+              backgroundColor: discussedAtMDM
                 ? theme.link + "20"
                 : theme.backgroundDefault,
-              borderColor: state.discussedAtMDM ? theme.link : theme.border,
+              borderColor: discussedAtMDM ? theme.link : theme.border,
             },
           ]}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            dispatch(setField("discussedAtMDM", !state.discussedAtMDM));
+            dispatch(setField("discussedAtMDM", !discussedAtMDM));
           }}
         >
-          {state.discussedAtMDM ? (
+          {discussedAtMDM ? (
             <Feather name="check" size={16} color={theme.link} />
           ) : null}
         </Pressable>
@@ -148,9 +155,7 @@ export const OutcomesSection = React.memo(function OutcomesSection({
           30-Day Audit
         </ThemedText>
         {hasAuditData ? (
-          <View
-            style={[styles.auditDot, { backgroundColor: theme.warning }]}
-          />
+          <View style={[styles.auditDot, { backgroundColor: theme.warning }]} />
         ) : null}
       </Pressable>
 
@@ -161,7 +166,7 @@ export const OutcomesSection = React.memo(function OutcomesSection({
             testID="checkbox-unplanned-readmission"
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              const newValue = !state.isUnplannedReadmission;
+              const newValue = !isUnplannedReadmission;
               dispatch(setField("isUnplannedReadmission", newValue));
               if (!newValue) {
                 dispatch(setField("unplannedReadmission", "no"));
@@ -172,16 +177,16 @@ export const OutcomesSection = React.memo(function OutcomesSection({
               style={[
                 styles.checkbox,
                 {
-                  backgroundColor: state.isUnplannedReadmission
+                  backgroundColor: isUnplannedReadmission
                     ? theme.warning + "20"
                     : theme.backgroundDefault,
-                  borderColor: state.isUnplannedReadmission
+                  borderColor: isUnplannedReadmission
                     ? theme.warning
                     : theme.border,
                 },
               ]}
             >
-              {state.isUnplannedReadmission ? (
+              {isUnplannedReadmission ? (
                 <Feather name="check" size={16} color={theme.warning} />
               ) : null}
             </View>
@@ -190,10 +195,10 @@ export const OutcomesSection = React.memo(function OutcomesSection({
             </ThemedText>
           </Pressable>
 
-          {state.isUnplannedReadmission ? (
+          {isUnplannedReadmission ? (
             <SelectField
               label="Readmission Reason"
-              value={state.unplannedReadmission}
+              value={unplannedReadmission}
               options={Object.entries(UNPLANNED_READMISSION_LABELS)
                 .filter(([value]) => value !== "no")
                 .map(([value, label]) => ({
@@ -213,7 +218,7 @@ export const OutcomesSection = React.memo(function OutcomesSection({
 
           <PickerField
             label="Unplanned ICU Admission"
-            value={state.unplannedICU}
+            value={unplannedICU}
             options={Object.entries(UNPLANNED_ICU_LABELS).map(
               ([value, label]) => ({
                 value,
@@ -230,20 +235,18 @@ export const OutcomesSection = React.memo(function OutcomesSection({
               style={[
                 styles.checkbox,
                 {
-                  backgroundColor: state.returnToTheatre
+                  backgroundColor: returnToTheatre
                     ? theme.error + "20"
                     : theme.backgroundDefault,
-                  borderColor: state.returnToTheatre
-                    ? theme.error
-                    : theme.border,
+                  borderColor: returnToTheatre ? theme.error : theme.border,
                 },
               ]}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                dispatch(setField("returnToTheatre", !state.returnToTheatre));
+                dispatch(setField("returnToTheatre", !returnToTheatre));
               }}
             >
-              {state.returnToTheatre ? (
+              {returnToTheatre ? (
                 <Feather name="check" size={16} color={theme.error} />
               ) : null}
             </Pressable>
@@ -252,10 +255,10 @@ export const OutcomesSection = React.memo(function OutcomesSection({
             </ThemedText>
           </View>
 
-          {state.returnToTheatre ? (
+          {returnToTheatre ? (
             <FormField
               label="Reason for Return"
-              value={state.returnToTheatreReason}
+              value={returnToTheatreReason}
               onChangeText={(v: string) =>
                 dispatch(setField("returnToTheatreReason", v))
               }

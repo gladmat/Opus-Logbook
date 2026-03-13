@@ -94,9 +94,7 @@ export const GenderAffirmingContextCard = React.memo(
             <BreastNumericField
               label="Duration"
               value={value.hormoneTherapyDurationMonths}
-              onValueChange={(v) =>
-                update({ hormoneTherapyDurationMonths: v })
-              }
+              onValueChange={(v) => update({ hormoneTherapyDurationMonths: v })}
               unit="months"
               integer
               placeholder="e.g. 24"

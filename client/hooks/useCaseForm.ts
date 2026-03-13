@@ -92,6 +92,13 @@ import {
   buildSkinCancerEpisodeLinkPlan,
   buildSkinCancerEpisodeUpdatePlan,
 } from "@/lib/skinCancerEpisodeHelpers";
+import { normalizeBreastAssessment } from "@/lib/breastState";
+import {
+  applyBreastEpisodeLinkToCase,
+  buildBreastEpisodeCreatePlan,
+  buildBreastEpisodeUpdatePlan,
+  getBreastEpisodeLinkedId,
+} from "@/lib/breastEpisodeHelpers";
 
 // ─── Default Donor Vessels ──────────────────────────────────────────────────
 
@@ -373,6 +380,19 @@ export function getDefaultFormState(
   };
 }
 
+function normalizeBreastDiagnosisGroups(
+  groups: DiagnosisGroup[] | undefined,
+): DiagnosisGroup[] {
+  return (groups ?? []).map((group) => {
+    if (!group.breastAssessment) return group;
+
+    return {
+      ...group,
+      breastAssessment: normalizeBreastAssessment(group.breastAssessment),
+    };
+  });
+}
+
 // ─── Case → FormState conversion ───────────────────────────────────────────
 
 function loadCaseIntoFormState(
@@ -421,7 +441,7 @@ function loadCaseIntoFormState(
     patientLastName: caseData.patientLastName ?? "",
     patientDateOfBirth: caseData.patientDateOfBirth ?? "",
     patientNhi: caseData.patientNhi ?? "",
-    diagnosisGroups: caseData.diagnosisGroups || [],
+    diagnosisGroups: normalizeBreastDiagnosisGroups(caseData.diagnosisGroups),
     admissionDate: caseData.admissionDate ?? "",
     dischargeDate: caseData.dischargeDate ?? "",
     admissionUrgency: caseData.admissionUrgency ?? "",
@@ -511,7 +531,7 @@ export function formStateToDraft(
     procedureType:
       state.diagnosisGroups[0]?.procedures[0]?.procedureName ||
       state.procedureType,
-    diagnosisGroups: state.diagnosisGroups,
+    diagnosisGroups: normalizeBreastDiagnosisGroups(state.diagnosisGroups),
     surgeryTiming:
       state.surgeryStartTime || state.surgeryEndTime
         ? {
@@ -630,7 +650,11 @@ export function draftToFormState(
   )?.recipientSiteRegion;
   result.anastomoses =
     (draft.clinicalDetails as FreeFlapDetails | undefined)?.anastomoses ?? [];
-  if (draft.diagnosisGroups) result.diagnosisGroups = draft.diagnosisGroups;
+  if (draft.diagnosisGroups) {
+    result.diagnosisGroups = normalizeBreastDiagnosisGroups(
+      draft.diagnosisGroups,
+    );
+  }
   result.gender = draft.gender ?? "";
   result.age = draft.age ? String(draft.age) : "";
   result.ethnicity = draft.ethnicity ?? "";
@@ -933,7 +957,7 @@ export function buildEpisodePrefillState(
     episodeId,
     episodeSequence: prefill.episodeSequence,
     encounterClass: prefill.encounterClass || "",
-    diagnosisGroups: clonedGroups,
+    diagnosisGroups: normalizeBreastDiagnosisGroups(clonedGroups),
     // Patient-level facts carry forward
     reconstructionTiming: prefill.reconstructionTiming ?? "",
     priorRadiotherapy: prefill.priorRadiotherapy ?? false,
@@ -1029,7 +1053,7 @@ export function buildDuplicateState(
     ...defaults,
     // ── Copied fields ────────────────────────────────────────
     facility: source.facility || primaryFacility,
-    diagnosisGroups: clonedGroups,
+    diagnosisGroups: normalizeBreastDiagnosisGroups(clonedGroups),
     role:
       (source.teamMembers?.find((m) => m.name === "You")?.role as Role) ?? "PS",
     responsibleConsultantName: source.responsibleConsultantName ?? "",
@@ -1194,6 +1218,61 @@ async function syncSkinCancerEpisode(updatedCase: Case): Promise<void> {
   }
 }
 
+async function ensureBreastEpisodeLink(savedCase: Case): Promise<Case> {
+  const linkedBreastEpisodeId = getBreastEpisodeLinkedId(savedCase);
+  if (!linkedBreastEpisodeId || !savedCase.patientIdentifier) return savedCase;
+
+  const now = new Date().toISOString();
+  const existingEpisodes = await findEpisodesByPatientIdentifier(
+    savedCase.patientIdentifier,
+  );
+  const plan = buildBreastEpisodeCreatePlan(
+    savedCase,
+    existingEpisodes,
+    now,
+    linkedBreastEpisodeId,
+  );
+  if (!plan) return savedCase;
+
+  if (plan.episodeToCreate) {
+    await saveEpisode(plan.episodeToCreate);
+  }
+
+  const episodeCases = await getCasesByEpisodeId(plan.linkedEpisodeId);
+  const existingCount = episodeCases.filter(
+    (entry) => entry.id !== savedCase.id,
+  ).length;
+  const linkedCase = applyBreastEpisodeLinkToCase(
+    savedCase,
+    plan.linkedEpisodeId,
+    existingCount + 1,
+  );
+
+  if (
+    linkedCase.episodeId === savedCase.episodeId &&
+    linkedCase.episodeSequence === savedCase.episodeSequence
+  ) {
+    return linkedCase;
+  }
+
+  await updateCase(savedCase.id, linkedCase);
+  return linkedCase;
+}
+
+async function syncBreastEpisode(updatedCase: Case): Promise<void> {
+  const linkedBreastEpisodeId = getBreastEpisodeLinkedId(updatedCase);
+  if (!linkedBreastEpisodeId) return;
+
+  const episode = await getEpisode(linkedBreastEpisodeId);
+  if (!episode || episode.type !== "staged_reconstruction") return;
+  if (episode.status === "completed" || episode.status === "cancelled") return;
+
+  const updatePlan = buildBreastEpisodeUpdatePlan(updatedCase, episode);
+  if (!updatePlan) return;
+
+  await updateEpisode(linkedBreastEpisodeId, updatePlan);
+}
+
 export function useCaseForm({
   specialty: routeSpecialty,
   caseId,
@@ -1245,6 +1324,8 @@ export function useCaseForm({
           ? buildQuickPrefillState(specialty, quickPrefill, primaryFacility)
           : getDefaultFormState(specialty, primaryFacility),
   );
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   // ── Derived values ──────────────────────────────────────────────────────
 
@@ -1467,10 +1548,11 @@ export function useCaseForm({
       scrollPositionRef?: React.MutableRefObject<number>,
     ) => {
       const pos = scrollPositionRef?.current ?? 0;
+      const currentGroups = stateRef.current.diagnosisGroups;
       dispatch({
         type: "SET_FIELD",
         field: "diagnosisGroups",
-        value: state.diagnosisGroups.map((g, i) => (i === index ? updated : g)),
+        value: currentGroups.map((g, i) => (i === index ? updated : g)),
       });
       if (scrollViewRef?.current) {
         requestAnimationFrame(() => {
@@ -1480,30 +1562,30 @@ export function useCaseForm({
         });
       }
     },
-    [state.diagnosisGroups],
+    [],
   );
 
-  const handleDeleteDiagnosisGroup = useCallback(
-    (index: number) => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const filtered = state.diagnosisGroups.filter((_, i) => i !== index);
-      dispatch({
-        type: "SET_DIAGNOSIS_GROUPS",
-        groups: filtered.map((g, i) => ({ ...g, sequenceOrder: i + 1 })),
-      });
-    },
-    [state.diagnosisGroups],
-  );
+  const handleDeleteDiagnosisGroup = useCallback((index: number) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const filtered = stateRef.current.diagnosisGroups.filter(
+      (_, i) => i !== index,
+    );
+    dispatch({
+      type: "SET_DIAGNOSIS_GROUPS",
+      groups: filtered.map((g, i) => ({ ...g, sequenceOrder: i + 1 })),
+    });
+  }, []);
 
   const addDiagnosisGroup = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const currentGroups = stateRef.current.diagnosisGroups;
     dispatch({
       type: "SET_DIAGNOSIS_GROUPS",
       groups: [
-        ...state.diagnosisGroups,
+        ...currentGroups,
         {
           id: uuidv4(),
-          sequenceOrder: state.diagnosisGroups.length + 1,
+          sequenceOrder: currentGroups.length + 1,
           specialty,
           procedures: [
             {
@@ -1517,7 +1599,7 @@ export function useCaseForm({
         },
       ],
     });
-  }, [state.diagnosisGroups, specialty]);
+  }, [specialty]);
 
   const reorderDiagnosisGroups = useCallback((groups: DiagnosisGroup[]) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -1529,66 +1611,60 @@ export function useCaseForm({
 
   // ── Anastomosis callbacks ─────────────────────────────────────────────
 
-  const primaryProcedureName =
-    state.diagnosisGroups[0]?.procedures[0]?.procedureName;
+  const addAnastomosis = useCallback((vesselType: "artery" | "vein") => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const currentState = stateRef.current;
+    const primaryProcedureName =
+      currentState.diagnosisGroups[0]?.procedures[0]?.procedureName;
+    const derivedType = primaryProcedureName || currentState.procedureType;
+    const donorVessels = DEFAULT_DONOR_VESSELS[derivedType];
+    const donorVesselName = donorVessels
+      ? vesselType === "artery"
+        ? donorVessels.artery
+        : donorVessels.vein
+      : "";
+    const newEntry: AnastomosisEntry = {
+      id: uuidv4(),
+      vesselType,
+      recipientVesselName: "",
+      donorVesselName,
+      couplingMethod: vesselType === "artery" ? "hand_sewn" : undefined,
+    };
+    dispatch(setField("anastomoses", [...currentState.anastomoses, newEntry]));
+  }, []);
 
-  const addAnastomosis = useCallback(
-    (vesselType: "artery" | "vein") => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const derivedType = primaryProcedureName || state.procedureType;
-      const donorVessels = DEFAULT_DONOR_VESSELS[derivedType];
-      const donorVesselName = donorVessels
-        ? vesselType === "artery"
-          ? donorVessels.artery
-          : donorVessels.vein
-        : "";
-      const newEntry: AnastomosisEntry = {
-        id: uuidv4(),
-        vesselType,
-        recipientVesselName: "",
-        donorVesselName,
-        couplingMethod: vesselType === "artery" ? "hand_sewn" : undefined,
-      };
-      dispatch(setField("anastomoses", [...state.anastomoses, newEntry]));
-    },
-    [primaryProcedureName, state.procedureType, state.anastomoses],
-  );
+  const updateAnastomosis = useCallback((entry: AnastomosisEntry) => {
+    const currentAnastomoses = stateRef.current.anastomoses;
+    dispatch(
+      setField(
+        "anastomoses",
+        currentAnastomoses.map((a) => (a.id === entry.id ? entry : a)),
+      ),
+    );
+  }, []);
 
-  const updateAnastomosis = useCallback(
-    (entry: AnastomosisEntry) => {
-      dispatch(
-        setField(
-          "anastomoses",
-          state.anastomoses.map((a) => (a.id === entry.id ? entry : a)),
-        ),
-      );
-    },
-    [state.anastomoses],
-  );
-
-  const removeAnastomosis = useCallback(
-    (id: string) => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      dispatch(
-        setField(
-          "anastomoses",
-          state.anastomoses.filter((a) => a.id !== id),
-        ),
-      );
-    },
-    [state.anastomoses],
-  );
+  const removeAnastomosis = useCallback((id: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const currentAnastomoses = stateRef.current.anastomoses;
+    dispatch(
+      setField(
+        "anastomoses",
+        currentAnastomoses.filter((a) => a.id !== id),
+      ),
+    );
+  }, []);
 
   // ── Clinical detail callback ──────────────────────────────────────────
 
-  const updateClinicalDetail = useCallback(
-    (key: string, value: any) => {
-      dispatch(
-        setField("clinicalDetails", { ...state.clinicalDetails, [key]: value }),
-      );
-    },
-    [state.clinicalDetails],
-  );
+  const updateClinicalDetail = useCallback((key: string, value: any) => {
+    const currentClinicalDetails = stateRef.current.clinicalDetails;
+    dispatch(
+      setField("clinicalDetails", {
+        ...currentClinicalDetails,
+        [key]: value,
+      }),
+    );
+  }, []);
 
   // ── Save ──────────────────────────────────────────────────────────────
 
@@ -1765,6 +1841,9 @@ export function useCaseForm({
               };
             }),
           }));
+        const normalizedDiagnosisGroups = normalizeBreastDiagnosisGroups(
+          diagnosisGroupsWithFlapOutcomeDefaults,
+        );
 
         const casePayload: Case = {
           id: isEditMode && existingCase ? existingCase.id : uuidv4(),
@@ -1774,7 +1853,7 @@ export function useCaseForm({
           specialty: saveSpecialty,
           procedureType: derivedProcedureType,
           procedureCode,
-          diagnosisGroups: diagnosisGroupsWithFlapOutcomeDefaults,
+          diagnosisGroups: normalizedDiagnosisGroups,
           surgeryTiming,
           responsibleConsultantName:
             state.responsibleConsultantName.trim() || undefined,
@@ -1910,6 +1989,8 @@ export function useCaseForm({
           savedRef.current = true;
         }
         finalizeInboxAssignment(reservedInboxIds, savedCase.id);
+        savedCase = await ensureBreastEpisodeLink(savedCase);
+        await syncBreastEpisode(savedCase);
         savedCase = await ensureSkinCancerEpisodeLink(savedCase);
         await syncSkinCancerEpisode(savedCase);
 

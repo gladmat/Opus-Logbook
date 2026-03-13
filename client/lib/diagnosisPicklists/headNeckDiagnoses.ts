@@ -478,11 +478,7 @@ const HN_DX_FACIAL_FRACTURES: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Fractures",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: [
-      "mandible fracture",
-      "jaw fracture",
-      "broken jaw",
-    ],
+    searchSynonyms: ["mandible fracture", "jaw fracture", "broken jaw"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_fx_mandible_orif",
@@ -825,11 +821,7 @@ const HN_DX_FACIAL_FRACTURES: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Fractures",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: [
-      "medial wall",
-      "lamina papyracea",
-      "ethmoid",
-    ],
+    searchSynonyms: ["medial wall", "lamina papyracea", "ethmoid"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_fx_orbital_floor",
@@ -904,11 +896,7 @@ const HN_DX_FACIAL_FRACTURES: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Fractures",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: [
-      "Le Fort II",
-      "LeFort II",
-      "pyramidal fracture",
-    ],
+    searchSynonyms: ["Le Fort II", "LeFort II", "pyramidal fracture"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_fx_lefort",
@@ -929,11 +917,7 @@ const HN_DX_FACIAL_FRACTURES: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Fractures",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: [
-      "Le Fort III",
-      "LeFort III",
-      "craniofacial disjunction",
-    ],
+    searchSynonyms: ["Le Fort III", "LeFort III", "craniofacial disjunction"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_fx_lefort",
@@ -1004,7 +988,8 @@ const HN_DX_FACIAL_FRACTURES: DiagnosisPicklistEntry[] = [
     displayName: "Panfacial fracture",
     shortName: "Panfacial #",
     snomedCtCode: "4034004",
-    snomedCtDisplay: "Closed reduction of facial fracture, except mandible (disorder)",
+    snomedCtDisplay:
+      "Closed reduction of facial fracture, except mandible (disorder)",
     specialty: "head_neck",
     subcategory: "Facial Fractures",
     clinicalGroup: "trauma",
@@ -1340,11 +1325,7 @@ const HN_DX_FACIAL_NERVE: DiagnosisPicklistEntry[] = [
     subcategory: "Facial Nerve",
     clinicalGroup: "congenital",
     hasStaging: true,
-    searchSynonyms: [
-      "congenital",
-      "birth palsy",
-      "congenital facial palsy",
-    ],
+    searchSynonyms: ["congenital", "birth palsy", "congenital facial palsy"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_fn_free_gracilis",
@@ -1582,11 +1563,7 @@ const HN_DX_CANCER: DiagnosisPicklistEntry[] = [
     subcategory: "H&N Cancer",
     clinicalGroup: "oncological",
     hasStaging: true,
-    searchSynonyms: [
-      "oral cavity cancer",
-      "mouth cancer",
-      "oral malignancy",
-    ],
+    searchSynonyms: ["oral cavity cancer", "mouth cancer", "oral malignancy"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_neck_dissection_selective",
@@ -1657,11 +1634,7 @@ const HN_DX_CANCER: DiagnosisPicklistEntry[] = [
     subcategory: "H&N Cancer",
     clinicalGroup: "oncological",
     hasStaging: true,
-    searchSynonyms: [
-      "floor of mouth",
-      "FOM cancer",
-      "sublingual",
-    ],
+    searchSynonyms: ["floor of mouth", "FOM cancer", "sublingual"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_neck_dissection_selective",
@@ -1694,11 +1667,7 @@ const HN_DX_CANCER: DiagnosisPicklistEntry[] = [
     subcategory: "H&N Cancer",
     clinicalGroup: "oncological",
     hasStaging: true,
-    searchSynonyms: [
-      "buccal mucosa",
-      "buccal cancer",
-      "cheek mucosa",
-    ],
+    searchSynonyms: ["buccal mucosa", "buccal cancer", "cheek mucosa"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_neck_dissection_selective",
@@ -1813,11 +1782,7 @@ const HN_DX_CANCER: DiagnosisPicklistEntry[] = [
     subcategory: "H&N Cancer",
     clinicalGroup: "oncological",
     hasStaging: true,
-    searchSynonyms: [
-      "maxilla tumour",
-      "maxillary cancer",
-      "upper jaw tumour",
-    ],
+    searchSynonyms: ["maxilla tumour", "maxillary cancer", "upper jaw tumour"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_neck_dissection_selective",
@@ -1925,11 +1890,7 @@ const HN_DX_CANCER: DiagnosisPicklistEntry[] = [
     subcategory: "H&N Cancer",
     clinicalGroup: "oncological",
     hasStaging: true,
-    searchSynonyms: [
-      "laryngeal cancer",
-      "larynx tumour",
-      "vocal cord cancer",
-    ],
+    searchSynonyms: ["laryngeal cancer", "larynx tumour", "vocal cord cancer"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_neck_dissection_selective",
@@ -2027,11 +1988,7 @@ const HN_DX_SALIVARY_GLAND: DiagnosisPicklistEntry[] = [
     subcategory: "Salivary Gland",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: [
-      "parotid",
-      "salivary gland tumour",
-      "parotid mass",
-    ],
+    searchSynonyms: ["parotid", "salivary gland tumour", "parotid mass"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_parotidectomy_superficial",
@@ -2102,11 +2059,7 @@ const HN_DX_SALIVARY_GLAND: DiagnosisPicklistEntry[] = [
     subcategory: "Salivary Gland",
     clinicalGroup: "oncological",
     hasStaging: true,
-    searchSynonyms: [
-      "mucoepidermoid",
-      "MEC parotid",
-      "malignant parotid",
-    ],
+    searchSynonyms: ["mucoepidermoid", "MEC parotid", "malignant parotid"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_parotidectomy_total",
@@ -2133,11 +2086,7 @@ const HN_DX_SALIVARY_GLAND: DiagnosisPicklistEntry[] = [
     subcategory: "Salivary Gland",
     clinicalGroup: "oncological",
     hasStaging: true,
-    searchSynonyms: [
-      "adenoid cystic",
-      "ACC parotid",
-      "cylindroma",
-    ],
+    searchSynonyms: ["adenoid cystic", "ACC parotid", "cylindroma"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_parotidectomy_total",
@@ -2164,10 +2113,7 @@ const HN_DX_SALIVARY_GLAND: DiagnosisPicklistEntry[] = [
     subcategory: "Salivary Gland",
     clinicalGroup: "oncological",
     hasStaging: true,
-    searchSynonyms: [
-      "acinic cell",
-      "acinic cell carcinoma",
-    ],
+    searchSynonyms: ["acinic cell", "acinic cell carcinoma"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_parotidectomy_total",
@@ -2219,11 +2165,7 @@ const HN_DX_SALIVARY_GLAND: DiagnosisPicklistEntry[] = [
     subcategory: "Salivary Gland",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: [
-      "submandibular",
-      "submandibular gland",
-      "SMG tumour",
-    ],
+    searchSynonyms: ["submandibular", "submandibular gland", "SMG tumour"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_submandibular_gland_excision",
@@ -2374,11 +2316,7 @@ const HN_DX_SOFT_TISSUE_TRAUMA: DiagnosisPicklistEntry[] = [
     subcategory: "Soft Tissue Trauma",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: [
-      "nose laceration",
-      "nasal laceration",
-      "nose cut",
-    ],
+    searchSynonyms: ["nose laceration", "nasal laceration", "nose cut"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_trauma_facial_lac_complex",
@@ -2424,11 +2362,7 @@ const HN_DX_SOFT_TISSUE_TRAUMA: DiagnosisPicklistEntry[] = [
     subcategory: "Soft Tissue Trauma",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: [
-      "dog bite",
-      "canine bite",
-      "dog attack",
-    ],
+    searchSynonyms: ["dog bite", "canine bite", "dog attack"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_trauma_facial_wound_exploration",
@@ -2487,12 +2421,7 @@ const HN_DX_SOFT_TISSUE_TRAUMA: DiagnosisPicklistEntry[] = [
     subcategory: "Soft Tissue Trauma",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: [
-      "tissue loss",
-      "avulsion",
-      "degloving",
-      "facial defect",
-    ],
+    searchSynonyms: ["tissue loss", "avulsion", "degloving", "facial defect"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_trauma_facial_wound_exploration",
@@ -2519,11 +2448,7 @@ const HN_DX_SOFT_TISSUE_TRAUMA: DiagnosisPicklistEntry[] = [
     subcategory: "Soft Tissue Trauma",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: [
-      "scalp avulsion",
-      "scalp degloving",
-      "scalp loss",
-    ],
+    searchSynonyms: ["scalp avulsion", "scalp degloving", "scalp loss"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_trauma_facial_wound_exploration",
@@ -2644,11 +2569,7 @@ const HN_DX_ACQUIRED_DEFORMITIES: DiagnosisPicklistEntry[] = [
     subcategory: "Acquired Deformities",
     clinicalGroup: "reconstructive",
     hasStaging: false,
-    searchSynonyms: [
-      "hypertrophic scar",
-      "raised scar",
-      "thickened scar",
-    ],
+    searchSynonyms: ["hypertrophic scar", "raised scar", "thickened scar"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_scar_revision_face",
@@ -2675,11 +2596,7 @@ const HN_DX_ACQUIRED_DEFORMITIES: DiagnosisPicklistEntry[] = [
     subcategory: "Acquired Deformities",
     clinicalGroup: "reconstructive",
     hasStaging: false,
-    searchSynonyms: [
-      "keloid",
-      "keloid scar",
-      "cheloid",
-    ],
+    searchSynonyms: ["keloid", "keloid scar", "cheloid"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_scar_revision_face",
@@ -2800,11 +2717,7 @@ const HN_DX_VASCULAR_MALFORMATIONS: DiagnosisPicklistEntry[] = [
     subcategory: "Vascular Malformations",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: [
-      "haemangioma",
-      "hemangioma",
-      "strawberry naevus",
-    ],
+    searchSynonyms: ["haemangioma", "hemangioma", "strawberry naevus"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_excision_vascular_malformation",
@@ -2825,12 +2738,7 @@ const HN_DX_VASCULAR_MALFORMATIONS: DiagnosisPicklistEntry[] = [
     subcategory: "Vascular Malformations",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: [
-      "infantile haemangioma",
-      "IH",
-      "propranolol",
-      "PHACES",
-    ],
+    searchSynonyms: ["infantile haemangioma", "IH", "propranolol", "PHACES"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_excision_vascular_malformation",
@@ -2876,11 +2784,7 @@ const HN_DX_VASCULAR_MALFORMATIONS: DiagnosisPicklistEntry[] = [
     subcategory: "Vascular Malformations",
     clinicalGroup: "congenital",
     hasStaging: false,
-    searchSynonyms: [
-      "venous malformation",
-      "VM",
-      "low-flow malformation",
-    ],
+    searchSynonyms: ["venous malformation", "VM", "low-flow malformation"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_excision_vascular_malformation",
@@ -2927,11 +2831,7 @@ const HN_DX_VASCULAR_MALFORMATIONS: DiagnosisPicklistEntry[] = [
     subcategory: "Vascular Malformations",
     clinicalGroup: "congenital",
     hasStaging: false,
-    searchSynonyms: [
-      "cystic hygroma",
-      "lymphangioma",
-      "neck mass congenital",
-    ],
+    searchSynonyms: ["cystic hygroma", "lymphangioma", "neck mass congenital"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_excision_vascular_malformation",
@@ -2979,11 +2879,7 @@ const HN_DX_BENIGN_TUMOURS_CYSTS: DiagnosisPicklistEntry[] = [
     subcategory: "Benign Tumours & Cysts",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: [
-      "dermoid",
-      "dermoid cyst",
-      "external angular dermoid",
-    ],
+    searchSynonyms: ["dermoid", "dermoid cyst", "external angular dermoid"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_other_dermoid_excision",
@@ -3029,10 +2925,7 @@ const HN_DX_BENIGN_TUMOURS_CYSTS: DiagnosisPicklistEntry[] = [
     subcategory: "Benign Tumours & Cysts",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: [
-      "lipoma face",
-      "fatty lump face",
-    ],
+    searchSynonyms: ["lipoma face", "fatty lump face"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_excision_benign_tumour",
@@ -3078,11 +2971,7 @@ const HN_DX_BENIGN_TUMOURS_CYSTS: DiagnosisPicklistEntry[] = [
     subcategory: "Benign Tumours & Cysts",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: [
-      "neurofibroma",
-      "NF1",
-      "plexiform",
-    ],
+    searchSynonyms: ["neurofibroma", "NF1", "plexiform"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_excision_benign_tumour",
@@ -3103,11 +2992,7 @@ const HN_DX_BENIGN_TUMOURS_CYSTS: DiagnosisPicklistEntry[] = [
     subcategory: "Benign Tumours & Cysts",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: [
-      "pilomatrixoma",
-      "calcifying epithelioma",
-      "Malherbe",
-    ],
+    searchSynonyms: ["pilomatrixoma", "calcifying epithelioma", "Malherbe"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_excision_benign_tumour",
@@ -3128,11 +3013,7 @@ const HN_DX_BENIGN_TUMOURS_CYSTS: DiagnosisPicklistEntry[] = [
     subcategory: "Benign Tumours & Cysts",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: [
-      "sebaceous cyst",
-      "pilar cyst",
-      "trichilemmal cyst",
-    ],
+    searchSynonyms: ["sebaceous cyst", "pilar cyst", "trichilemmal cyst"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_excision_benign_tumour",
@@ -3153,11 +3034,7 @@ const HN_DX_BENIGN_TUMOURS_CYSTS: DiagnosisPicklistEntry[] = [
     subcategory: "Benign Tumours & Cysts",
     clinicalGroup: "elective",
     hasStaging: false,
-    searchSynonyms: [
-      "keratoacanthoma",
-      "KA",
-      "molluscan sebaceum",
-    ],
+    searchSynonyms: ["keratoacanthoma", "KA", "molluscan sebaceum"],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_excision_benign_tumour",

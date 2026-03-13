@@ -63,43 +63,51 @@ export function formatNumericValue(
   return integer ? String(Math.trunc(value)) : String(value);
 }
 
-export const DraftNumericInput = forwardRef<
-  TextInput,
-  DraftNumericInputProps
->(function DraftNumericInput(
-  { value, onValueChange, integer = false, onBlur, onFocus, ...textInputProps },
-  ref,
-) {
-  const [draft, setDraft] = useState(() => formatNumericValue(value, integer));
-  const [isFocused, setIsFocused] = useState(false);
+export const DraftNumericInput = forwardRef<TextInput, DraftNumericInputProps>(
+  function DraftNumericInput(
+    {
+      value,
+      onValueChange,
+      integer = false,
+      onBlur,
+      onFocus,
+      ...textInputProps
+    },
+    ref,
+  ) {
+    const [draft, setDraft] = useState(() =>
+      formatNumericValue(value, integer),
+    );
+    const [isFocused, setIsFocused] = useState(false);
 
-  useEffect(() => {
-    if (!isFocused) {
-      setDraft(formatNumericValue(value, integer));
-    }
-  }, [integer, isFocused, value]);
+    useEffect(() => {
+      if (!isFocused) {
+        setDraft(formatNumericValue(value, integer));
+      }
+    }, [integer, isFocused, value]);
 
-  return (
-    <TextInput
-      ref={ref}
-      {...textInputProps}
-      value={draft}
-      onChangeText={(nextText) => {
-        const nextDraft = sanitizeNumericDraft(nextText, integer);
-        setDraft(nextDraft);
-        onValueChange(parseNumericDraft(nextDraft, integer));
-      }}
-      onFocus={(event) => {
-        setIsFocused(true);
-        onFocus?.(event);
-      }}
-      onBlur={(event) => {
-        setIsFocused(false);
-        const parsed = parseNumericDraft(draft, integer);
-        setDraft(formatNumericValue(parsed, integer));
-        onValueChange(parsed);
-        onBlur?.(event);
-      }}
-    />
-  );
-});
+    return (
+      <TextInput
+        ref={ref}
+        {...textInputProps}
+        value={draft}
+        onChangeText={(nextText) => {
+          const nextDraft = sanitizeNumericDraft(nextText, integer);
+          setDraft(nextDraft);
+          onValueChange(parseNumericDraft(nextDraft, integer));
+        }}
+        onFocus={(event) => {
+          setIsFocused(true);
+          onFocus?.(event);
+        }}
+        onBlur={(event) => {
+          setIsFocused(false);
+          const parsed = parseNumericDraft(draft, integer);
+          setDraft(formatNumericValue(parsed, integer));
+          onValueChange(parsed);
+          onBlur?.(event);
+        }}
+      />
+    );
+  },
+);

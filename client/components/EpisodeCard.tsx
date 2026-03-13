@@ -7,11 +7,11 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import type { TreatmentEpisode } from "@/types/episode";
 import { EPISODE_STATUS_LABELS, PENDING_ACTION_LABELS } from "@/types/episode";
-import type { Case } from "@/types/case";
+import type { CaseSummary } from "@/types/caseSummary";
 
 interface EpisodeCardProps {
   episode: TreatmentEpisode;
-  linkedCases: Case[];
+  linkedCases: CaseSummary[];
   onPress: () => void;
   onLogCase: () => void;
 }

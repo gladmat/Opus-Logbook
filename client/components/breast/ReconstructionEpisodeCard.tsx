@@ -78,7 +78,10 @@ export const ReconstructionEpisodeCard = React.memo(
         }}
         style={[
           styles.promptBanner,
-          { backgroundColor: theme.backgroundSecondary, borderColor: theme.border },
+          {
+            backgroundColor: theme.backgroundSecondary,
+            borderColor: theme.border,
+          },
         ]}
       >
         <Feather name="link" size={14} color={theme.textSecondary} />

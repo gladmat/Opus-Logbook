@@ -329,7 +329,10 @@ export function OperativeMediaSection({
             <View style={styles.addButtonsColumn}>
               <Pressable
                 onPress={handleFromInbox}
-                style={[styles.smallAddButton, { backgroundColor: theme.accent }]}
+                style={[
+                  styles.smallAddButton,
+                  { backgroundColor: theme.accent },
+                ]}
               >
                 <Feather name="inbox" size={18} color={theme.accentContrast} />
               </Pressable>

@@ -11,9 +11,15 @@
 // CORE BREAST ASSESSMENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export type BreastClinicalContext = "reconstructive" | "aesthetic" | "gender_affirming";
+export type BreastClinicalContext =
+  | "reconstructive"
+  | "aesthetic"
+  | "gender_affirming";
 
-export const BREAST_CLINICAL_CONTEXT_LABELS: Record<BreastClinicalContext, string> = {
+export const BREAST_CLINICAL_CONTEXT_LABELS: Record<
+  BreastClinicalContext,
+  string
+> = {
   reconstructive: "Reconstructive",
   aesthetic: "Aesthetic",
   gender_affirming: "Gender-Affirming",
@@ -31,6 +37,8 @@ export interface BreastAssessmentData {
   };
   /** Optional link to a reconstruction episode */
   reconstructionEpisodeId?: string;
+  /** Shared lipofilling data with per-side injection payloads */
+  lipofilling?: LipofillingData;
   /** Case-level liposuction data (shared across sides) */
   liposuction?: LiposuctionData;
 }
@@ -52,7 +60,6 @@ export interface BreastSideAssessment {
   // ── Module data (populated by specialty cards in Phase 3+) ──
   implantDetails?: ImplantDetailsData;
   flapDetails?: BreastFlapDetailsData;
-  lipofilling?: LipofillingData;
   chestMasculinisation?: ChestMasculinisationData;
   nippleDetails?: NippleDetailsData;
 }
@@ -64,7 +71,8 @@ export type BreastReconTiming = "immediate" | "delayed_immediate" | "delayed";
 
 export const BREAST_RECON_TIMING_LABELS: Record<BreastReconTiming, string> = {
   immediate: "Immediate (at mastectomy)",
-  delayed_immediate: "Delayed-Immediate (expander at mastectomy, definitive later)",
+  delayed_immediate:
+    "Delayed-Immediate (expander at mastectomy, definitive later)",
   delayed: "Delayed (separate operation)",
 };
 
@@ -77,7 +85,10 @@ export type PriorReconstructionType =
   | "failed_implant"
   | "failed_autologous";
 
-export const PRIOR_RECONSTRUCTION_LABELS: Record<PriorReconstructionType, string> = {
+export const PRIOR_RECONSTRUCTION_LABELS: Record<
+  PriorReconstructionType,
+  string
+> = {
   none: "None / Primary",
   implant: "Prior implant reconstruction",
   expander: "Expander in situ",
@@ -130,7 +141,10 @@ export interface ImplantDetailsData {
   sizerSizeCc?: number;
 }
 
-export type ImplantDeviceType = "permanent_implant" | "tissue_expander" | "expander_implant";
+export type ImplantDeviceType =
+  | "permanent_implant"
+  | "tissue_expander"
+  | "expander_implant";
 
 export const IMPLANT_DEVICE_TYPE_LABELS: Record<ImplantDeviceType, string> = {
   permanent_implant: "Permanent Implant",
@@ -138,7 +152,12 @@ export const IMPLANT_DEVICE_TYPE_LABELS: Record<ImplantDeviceType, string> = {
   expander_implant: "Expander-Implant (Becker type)",
 };
 
-export type ImplantSurface = "smooth" | "microtextured" | "macrotextured" | "polyurethane" | "nanotextured";
+export type ImplantSurface =
+  | "smooth"
+  | "microtextured"
+  | "macrotextured"
+  | "polyurethane"
+  | "nanotextured";
 
 export const IMPLANT_SURFACE_LABELS: Record<ImplantSurface, string> = {
   smooth: "Smooth",
@@ -148,7 +167,12 @@ export const IMPLANT_SURFACE_LABELS: Record<ImplantSurface, string> = {
   nanotextured: "Nanotextured (SilkSurface / VelvetSurface)",
 };
 
-export type ImplantFill = "silicone_standard" | "silicone_highly_cohesive" | "saline" | "structured_saline" | "composite";
+export type ImplantFill =
+  | "silicone_standard"
+  | "silicone_highly_cohesive"
+  | "saline"
+  | "structured_saline"
+  | "composite";
 
 export const IMPLANT_FILL_LABELS: Record<ImplantFill, string> = {
   silicone_standard: "Silicone Gel",
@@ -159,9 +183,17 @@ export const IMPLANT_FILL_LABELS: Record<ImplantFill, string> = {
 };
 
 export type ImplantShape = "round" | "anatomical";
-export const IMPLANT_SHAPE_LABELS: Record<ImplantShape, string> = { round: "Round", anatomical: "Anatomical" };
+export const IMPLANT_SHAPE_LABELS: Record<ImplantShape, string> = {
+  round: "Round",
+  anatomical: "Anatomical",
+};
 
-export type ImplantProfile = "low" | "moderate" | "moderate_plus" | "high" | "extra_high";
+export type ImplantProfile =
+  | "low"
+  | "moderate"
+  | "moderate_plus"
+  | "high"
+  | "extra_high";
 
 export const IMPLANT_PROFILE_LABELS: Record<ImplantProfile, string> = {
   low: "Low",
@@ -186,7 +218,12 @@ export const DUAL_PLANE_TYPE_LABELS: Record<DualPlaneType, string> = {
   III: "Type III",
 };
 
-export type ImplantPlane = "subglandular" | "subfascial" | "subpectoral" | "dual_plane" | "prepectoral";
+export type ImplantPlane =
+  | "subglandular"
+  | "subfascial"
+  | "subpectoral"
+  | "dual_plane"
+  | "prepectoral";
 
 export const IMPLANT_PLANE_LABELS: Record<ImplantPlane, string> = {
   subglandular: "Subglandular",
@@ -196,7 +233,12 @@ export const IMPLANT_PLANE_LABELS: Record<ImplantPlane, string> = {
   prepectoral: "Prepectoral",
 };
 
-export type ImplantIncision = "inframammary" | "periareolar" | "axillary" | "mastectomy_wound" | "mastopexy_pattern";
+export type ImplantIncision =
+  | "inframammary"
+  | "periareolar"
+  | "axillary"
+  | "mastectomy_wound"
+  | "mastopexy_pattern";
 
 export const IMPLANT_INCISION_LABELS: Record<ImplantIncision, string> = {
   inframammary: "Inframammary fold",
@@ -206,7 +248,11 @@ export const IMPLANT_INCISION_LABELS: Record<ImplantIncision, string> = {
   mastopexy_pattern: "Mastopexy pattern incision",
 };
 
-export type ExpanderPortType = "integrated_magnetic" | "integrated_rfid" | "remote" | "external";
+export type ExpanderPortType =
+  | "integrated_magnetic"
+  | "integrated_rfid"
+  | "remote"
+  | "external";
 
 export const EXPANDER_PORT_TYPE_LABELS: Record<ExpanderPortType, string> = {
   integrated_magnetic: "Integrated Magnetic (AllerganPort)",
@@ -215,7 +261,13 @@ export const EXPANDER_PORT_TYPE_LABELS: Record<ExpanderPortType, string> = {
   external: "External Fill Tube",
 };
 
-export type PocketRinse = "none" | "saline_only" | "betadine" | "triple_antibiotic" | "adams_solution" | "other";
+export type PocketRinse =
+  | "none"
+  | "saline_only"
+  | "betadine"
+  | "triple_antibiotic"
+  | "adams_solution"
+  | "other";
 
 export const POCKET_RINSE_LABELS: Record<PocketRinse, string> = {
   none: "None",
@@ -233,7 +285,13 @@ export interface AdmDetails {
   position?: AdmPosition;
 }
 
-export type AdmOrigin = "human_allograft" | "porcine_xenograft" | "bovine_xenograft" | "synthetic_absorbable" | "synthetic_nonabsorbable" | "other";
+export type AdmOrigin =
+  | "human_allograft"
+  | "porcine_xenograft"
+  | "bovine_xenograft"
+  | "synthetic_absorbable"
+  | "synthetic_nonabsorbable"
+  | "other";
 
 export const ADM_ORIGIN_LABELS: Record<AdmOrigin, string> = {
   human_allograft: "Human Allograft (ADM)",
@@ -244,7 +302,11 @@ export const ADM_ORIGIN_LABELS: Record<AdmOrigin, string> = {
   other: "Other",
 };
 
-export type AdmPosition = "inferior_sling" | "anterior_wrap" | "total_wrap" | "partial_coverage";
+export type AdmPosition =
+  | "inferior_sling"
+  | "anterior_wrap"
+  | "total_wrap"
+  | "partial_coverage";
 
 export const ADM_POSITION_LABELS: Record<AdmPosition, string> = {
   inferior_sling: "Inferior Pole Sling",
@@ -304,14 +366,24 @@ export const PERFORATOR_TYPE_LABELS: Record<PerforatorType, string> = {
 
 export type IntramuscularCourse = "short_direct" | "long_oblique";
 
-export const INTRAMUSCULAR_COURSE_LABELS: Record<IntramuscularCourse, string> = {
-  short_direct: "Short / Direct",
-  long_oblique: "Long / Oblique",
-};
+export const INTRAMUSCULAR_COURSE_LABELS: Record<IntramuscularCourse, string> =
+  {
+    short_direct: "Short / Direct",
+    long_oblique: "Long / Oblique",
+  };
 
-export type BreastRecipientArtery = "ima" | "ima_perforator" | "thoracodorsal" | "circumflex_scapular" | "lateral_thoracic" | "other";
+export type BreastRecipientArtery =
+  | "ima"
+  | "ima_perforator"
+  | "thoracodorsal"
+  | "circumflex_scapular"
+  | "lateral_thoracic"
+  | "other";
 
-export const BREAST_RECIPIENT_ARTERY_LABELS: Record<BreastRecipientArtery, string> = {
+export const BREAST_RECIPIENT_ARTERY_LABELS: Record<
+  BreastRecipientArtery,
+  string
+> = {
   ima: "Internal Mammary Artery",
   ima_perforator: "IMA Perforator (rib-sparing)",
   thoracodorsal: "Thoracodorsal Artery",
@@ -320,15 +392,21 @@ export const BREAST_RECIPIENT_ARTERY_LABELS: Record<BreastRecipientArtery, strin
   other: "Other",
 };
 
-export type BreastRecipientVein = "imv" | "imv_perforator" | "thoracodorsal" | "cephalic" | "other";
+export type BreastRecipientVein =
+  | "imv"
+  | "imv_perforator"
+  | "thoracodorsal"
+  | "cephalic"
+  | "other";
 
-export const BREAST_RECIPIENT_VEIN_LABELS: Record<BreastRecipientVein, string> = {
-  imv: "Internal Mammary Vein",
-  imv_perforator: "IMV Perforator",
-  thoracodorsal: "Thoracodorsal Vein",
-  cephalic: "Cephalic Vein",
-  other: "Other",
-};
+export const BREAST_RECIPIENT_VEIN_LABELS: Record<BreastRecipientVein, string> =
+  {
+    imv: "Internal Mammary Vein",
+    imv_perforator: "IMV Perforator",
+    thoracodorsal: "Thoracodorsal Vein",
+    cephalic: "Cephalic Vein",
+    other: "Other",
+  };
 
 export type ImaInterspace = "2nd" | "3rd" | "4th";
 
@@ -338,7 +416,10 @@ export const IMA_INTERSPACE_LABELS: Record<ImaInterspace, string> = {
   "4th": "4th Interspace",
 };
 
-export type RibManagement = "total_preservation" | "partial_removal" | "full_segment_removal";
+export type RibManagement =
+  | "total_preservation"
+  | "partial_removal"
+  | "full_segment_removal";
 
 export const RIB_MANAGEMENT_LABELS: Record<RibManagement, string> = {
   total_preservation: "Rib cartilage totally preserved",
@@ -346,9 +427,16 @@ export const RIB_MANAGEMENT_LABELS: Record<RibManagement, string> = {
   full_segment_removal: "Full rib cartilage segment removed",
 };
 
-export type AnastomosisTechnique = "end_to_end_handsewn" | "end_to_side_handsewn" | "coupler" | "end_to_end_coupler";
+export type AnastomosisTechnique =
+  | "end_to_end_handsewn"
+  | "end_to_side_handsewn"
+  | "coupler"
+  | "end_to_end_coupler";
 
-export const ANASTOMOSIS_TECHNIQUE_LABELS: Record<AnastomosisTechnique, string> = {
+export const ANASTOMOSIS_TECHNIQUE_LABELS: Record<
+  AnastomosisTechnique,
+  string
+> = {
   end_to_end_handsewn: "End-to-End (handsewn)",
   end_to_side_handsewn: "End-to-Side (handsewn)",
   coupler: "Coupler",
@@ -364,7 +452,12 @@ export const DIEA_BRANCHING_LABELS: Record<DieaBranchingPattern, string> = {
   unknown: "Unknown / Not assessed",
 };
 
-export type FascialClosureMethod = "primary" | "mesh_onlay" | "mesh_sublay" | "mesh_inlay" | "component_separation";
+export type FascialClosureMethod =
+  | "primary"
+  | "mesh_onlay"
+  | "mesh_sublay"
+  | "mesh_inlay"
+  | "component_separation";
 
 export const FASCIAL_CLOSURE_LABELS: Record<FascialClosureMethod, string> = {
   primary: "Primary Closure",
@@ -374,9 +467,15 @@ export const FASCIAL_CLOSURE_LABELS: Record<FascialClosureMethod, string> = {
   component_separation: "Component Separation",
 };
 
-export type ThoracodorsalNerveManagement = "preserved" | "divided" | "partial_neurectomy";
+export type ThoracodorsalNerveManagement =
+  | "preserved"
+  | "divided"
+  | "partial_neurectomy";
 
-export const THORACODORSAL_NERVE_LABELS: Record<ThoracodorsalNerveManagement, string> = {
+export const THORACODORSAL_NERVE_LABELS: Record<
+  ThoracodorsalNerveManagement,
+  string
+> = {
   preserved: "Preserved",
   divided: "Divided",
   partial_neurectomy: "Partial Neurectomy",
@@ -400,8 +499,7 @@ export interface LipofillingData {
   volumeAfterProcessingMl?: number;
   additives?: LipofillingAdditive[];
 
-  injectionLeft?: LipofillingInjectionSide;
-  injectionRight?: LipofillingInjectionSide;
+  injections?: Partial<Record<BreastLaterality, LipofillingInjectionSide>>;
 
   sessionNumber?: number;
   intervalFromPreviousMonths?: number;
@@ -416,9 +514,18 @@ export interface LipofillingInjectionSide {
   recipientSiteCondition?: RecipientSiteCondition;
 }
 
-export type LipofillingHarvestTechnique = "coleman_syringe" | "power_assisted" | "vaser" | "water_assisted" | "standard_suction" | "other";
+export type LipofillingHarvestTechnique =
+  | "coleman_syringe"
+  | "power_assisted"
+  | "vaser"
+  | "water_assisted"
+  | "standard_suction"
+  | "other";
 
-export const HARVEST_TECHNIQUE_LABELS: Record<LipofillingHarvestTechnique, string> = {
+export const HARVEST_TECHNIQUE_LABELS: Record<
+  LipofillingHarvestTechnique,
+  string
+> = {
   coleman_syringe: "Coleman Syringe (manual)",
   power_assisted: "Power-Assisted Liposuction (PAL)",
   vaser: "VASER Ultrasound-Assisted",
@@ -427,9 +534,19 @@ export const HARVEST_TECHNIQUE_LABELS: Record<LipofillingHarvestTechnique, strin
   other: "Other",
 };
 
-export type LipofillingProcessingMethod = "coleman_centrifuge" | "puregraft" | "revolve" | "telfa_decanting" | "gravity_sedimentation" | "filtration" | "other";
+export type LipofillingProcessingMethod =
+  | "coleman_centrifuge"
+  | "puregraft"
+  | "revolve"
+  | "telfa_decanting"
+  | "gravity_sedimentation"
+  | "filtration"
+  | "other";
 
-export const PROCESSING_METHOD_LABELS: Record<LipofillingProcessingMethod, string> = {
+export const PROCESSING_METHOD_LABELS: Record<
+  LipofillingProcessingMethod,
+  string
+> = {
   coleman_centrifuge: "Coleman Centrifugation (3000 RPM × 3 min)",
   puregraft: "PureGraft (filtration)",
   revolve: "REVOLVE System",
@@ -439,7 +556,15 @@ export const PROCESSING_METHOD_LABELS: Record<LipofillingProcessingMethod, strin
   other: "Other",
 };
 
-export type LipofillingHarvestSite = "abdomen" | "flanks" | "inner_thigh" | "outer_thigh" | "buttocks" | "arms" | "back" | "other";
+export type LipofillingHarvestSite =
+  | "abdomen"
+  | "flanks"
+  | "inner_thigh"
+  | "outer_thigh"
+  | "buttocks"
+  | "arms"
+  | "back"
+  | "other";
 
 export const HARVEST_SITE_LABELS: Record<LipofillingHarvestSite, string> = {
   abdomen: "Abdomen",
@@ -454,44 +579,76 @@ export const HARVEST_SITE_LABELS: Record<LipofillingHarvestSite, string> = {
 
 export type LipofillingAdditive = "none" | "prp" | "prf" | "svf" | "ascs";
 
-export const LIPOFILLING_ADDITIVE_LABELS: Record<LipofillingAdditive, string> = {
-  none: "None",
-  prp: "PRP (Platelet-Rich Plasma)",
-  prf: "PRF (Platelet-Rich Fibrin)",
-  svf: "SVF (Stromal Vascular Fraction)",
-  ascs: "ASCs (Adipose Stem Cells)",
-};
+export const LIPOFILLING_ADDITIVE_LABELS: Record<LipofillingAdditive, string> =
+  {
+    none: "None",
+    prp: "PRP (Platelet-Rich Plasma)",
+    prf: "PRF (Platelet-Rich Fibrin)",
+    svf: "SVF (Stromal Vascular Fraction)",
+    ascs: "ASCs (Adipose Stem Cells)",
+  };
 
-export type LipofillingInjectionTechnique = "microdroplet" | "threading" | "fan_pattern" | "multiplane";
+export type LipofillingInjectionTechnique =
+  | "microdroplet"
+  | "threading"
+  | "fan_pattern"
+  | "multiplane";
 
-export const LIPOFILLING_INJECTION_TECHNIQUE_LABELS: Record<LipofillingInjectionTechnique, string> = {
+export const LIPOFILLING_INJECTION_TECHNIQUE_LABELS: Record<
+  LipofillingInjectionTechnique,
+  string
+> = {
   microdroplet: "Microdroplet",
   threading: "Threading / Linear",
   fan_pattern: "Fan Pattern",
   multiplane: "Multiplane",
 };
 
-export type LipofillingInjectionPlane = "subcutaneous" | "intramuscular" | "subglandular" | "prepectoral";
+export type LipofillingInjectionPlane =
+  | "subcutaneous"
+  | "intramuscular"
+  | "subglandular"
+  | "prepectoral";
 
-export const LIPOFILLING_INJECTION_PLANE_LABELS: Record<LipofillingInjectionPlane, string> = {
+export const LIPOFILLING_INJECTION_PLANE_LABELS: Record<
+  LipofillingInjectionPlane,
+  string
+> = {
   subcutaneous: "Subcutaneous",
   intramuscular: "Intramuscular",
   subglandular: "Subglandular",
   prepectoral: "Prepectoral",
 };
 
-export type RecipientSiteCondition = "native" | "irradiated" | "scarred" | "previously_reconstructed";
+export type RecipientSiteCondition =
+  | "native"
+  | "irradiated"
+  | "scarred"
+  | "previously_reconstructed";
 
-export const RECIPIENT_SITE_CONDITION_LABELS: Record<RecipientSiteCondition, string> = {
+export const RECIPIENT_SITE_CONDITION_LABELS: Record<
+  RecipientSiteCondition,
+  string
+> = {
   native: "Native (no prior surgery)",
   irradiated: "Irradiated",
   scarred: "Scarred",
   previously_reconstructed: "Previously Reconstructed",
 };
 
-export type LipofillingIndication = "contour_correction" | "volume_restoration" | "skin_quality_improvement" | "rippling_correction" | "symmetrisation" | "primary_reconstruction" | "aesthetic_augmentation";
+export type LipofillingIndication =
+  | "contour_correction"
+  | "volume_restoration"
+  | "skin_quality_improvement"
+  | "rippling_correction"
+  | "symmetrisation"
+  | "primary_reconstruction"
+  | "aesthetic_augmentation";
 
-export const LIPOFILLING_INDICATION_LABELS: Record<LipofillingIndication, string> = {
+export const LIPOFILLING_INDICATION_LABELS: Record<
+  LipofillingIndication,
+  string
+> = {
   contour_correction: "Contour Correction",
   volume_restoration: "Volume Restoration",
   skin_quality_improvement: "Skin Quality Improvement",
@@ -501,7 +658,13 @@ export const LIPOFILLING_INDICATION_LABELS: Record<LipofillingIndication, string
   aesthetic_augmentation: "Aesthetic Augmentation",
 };
 
-export type LipofillingContext = "adjunct_to_implant" | "adjunct_to_flap" | "adjunct_to_bct" | "primary_reconstruction" | "standalone_aesthetic" | "revision";
+export type LipofillingContext =
+  | "adjunct_to_implant"
+  | "adjunct_to_flap"
+  | "adjunct_to_bct"
+  | "primary_reconstruction"
+  | "standalone_aesthetic"
+  | "revision";
 
 export const LIPOFILLING_CONTEXT_LABELS: Record<LipofillingContext, string> = {
   adjunct_to_implant: "Adjunct to Implant Reconstruction",
@@ -531,7 +694,10 @@ export interface LiposuctionArea {
 
 export type LiposuctionTechnique = "sal" | "pal" | "vaser" | "lal" | "wal";
 
-export const LIPOSUCTION_TECHNIQUE_LABELS: Record<LiposuctionTechnique, string> = {
+export const LIPOSUCTION_TECHNIQUE_LABELS: Record<
+  LiposuctionTechnique,
+  string
+> = {
   sal: "SAL (Suction-Assisted)",
   pal: "PAL (Power-Assisted)",
   vaser: "VASER (Ultrasound-Assisted)",
@@ -576,9 +742,18 @@ export interface ChestMasculinisationData {
   pathologySent?: boolean;
 }
 
-export type ChestMasculinisationTechnique = "double_incision_fng" | "periareolar" | "keyhole" | "inverted_t" | "buttonhole" | "other";
+export type ChestMasculinisationTechnique =
+  | "double_incision_fng"
+  | "periareolar"
+  | "keyhole"
+  | "inverted_t"
+  | "buttonhole"
+  | "other";
 
-export const CHEST_MASC_TECHNIQUE_LABELS: Record<ChestMasculinisationTechnique, string> = {
+export const CHEST_MASC_TECHNIQUE_LABELS: Record<
+  ChestMasculinisationTechnique,
+  string
+> = {
   double_incision_fng: "Double Incision + Free Nipple Graft",
   periareolar: "Periareolar / Circumareolar",
   keyhole: "Keyhole (periareolar pull-through)",
@@ -587,7 +762,12 @@ export const CHEST_MASC_TECHNIQUE_LABELS: Record<ChestMasculinisationTechnique, 
   other: "Other",
 };
 
-export type NacManagement = "free_nipple_graft" | "pedicled" | "removed" | "tattoo_planned" | "not_applicable";
+export type NacManagement =
+  | "free_nipple_graft"
+  | "pedicled"
+  | "removed"
+  | "tattoo_planned"
+  | "not_applicable";
 
 export const NAC_MANAGEMENT_LABELS: Record<NacManagement, string> = {
   free_nipple_graft: "Free Nipple Graft",
@@ -606,7 +786,27 @@ export interface NippleDetailsData {
   nacPosition?: { xCm?: number; yCm?: number };
 }
 
-export type NippleReconTechnique = "cv_flap" | "skate_flap" | "star_flap" | "tattooing_only" | "three_d_tattoo" | "prosthetic" | "other";
+export type NippleReconTechnique =
+  | "cv_flap"
+  | "skate_flap"
+  | "star_flap"
+  | "tattooing_only"
+  | "three_d_tattoo"
+  | "prosthetic"
+  | "other";
+
+export const NIPPLE_RECON_TECHNIQUE_LABELS: Record<
+  NippleReconTechnique,
+  string
+> = {
+  cv_flap: "C-V flap",
+  skate_flap: "Skate flap",
+  star_flap: "Star flap",
+  tattooing_only: "Tattooing only",
+  three_d_tattoo: "3D tattoo",
+  prosthetic: "Prosthetic nipple",
+  other: "Other",
+};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // RECONSTRUCTION EPISODE METADATA
@@ -630,7 +830,11 @@ export type BreastReconPrimaryType =
   | "combined_autologous_implant"
   | "fat_only";
 
-export type RadiationStatus = "none" | "pre_reconstruction" | "post_reconstruction" | "planned";
+export type RadiationStatus =
+  | "none"
+  | "pre_reconstruction"
+  | "post_reconstruction"
+  | "planned";
 
 export type ReconEpisodeStatus =
   | "primary_reconstruction"

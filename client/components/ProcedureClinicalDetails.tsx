@@ -46,6 +46,8 @@ import {
   PREOPERATIVE_IMAGING_LABELS,
   PERFUSION_ASSESSMENT_LABELS,
   DONOR_SITE_CLOSURE_LABELS,
+  RECIPIENT_VESSEL_QUALITY_LABELS,
+  VEIN_GRAFT_SOURCE_LABELS,
 } from "@/types/case";
 import {
   type AnticoagulationProtocolId,
@@ -61,6 +63,35 @@ import {
   normalizeVesselName,
   resolveConcomitantVeinName,
 } from "@/data/autoFillMappings";
+
+function getLegacyRecipientVesselQuality(
+  clinicalDetails: FreeFlapDetails,
+): FreeFlapDetails["recipientVesselQuality"] | undefined {
+  if (clinicalDetails.recipientVesselQuality) {
+    return clinicalDetails.recipientVesselQuality;
+  }
+  if (clinicalDetails.irradiatedVesselPreference === "vein_graft_required") {
+    return "irradiated_vein_graft_required";
+  }
+  if (clinicalDetails.irradiatedNeckDissectionPerformed) {
+    return "previously_operated";
+  }
+  if (
+    clinicalDetails.irradiatedVesselPreference === "ipsilateral_viable" ||
+    (clinicalDetails.irradiatedVesselStatus &&
+      clinicalDetails.irradiatedVesselStatus !== "normal")
+  ) {
+    return "irradiated_usable";
+  }
+  if (
+    clinicalDetails.irradiatedVesselStatus === "normal" ||
+    clinicalDetails.irradiatedVesselPreference === "contralateral"
+  ) {
+    return "normal";
+  }
+
+  return undefined;
+}
 
 interface FreeFlapClinicalFieldsProps {
   clinicalDetails: FreeFlapDetails;
@@ -177,6 +208,11 @@ export function FreeFlapClinicalFields({
 
   const anastomoses = clinicalDetails.anastomoses || [];
   const recipientSiteRegion = clinicalDetails.recipientSiteRegion;
+  const recipientVesselQuality =
+    getLegacyRecipientVesselQuality(clinicalDetails);
+  const veinGraftUsed =
+    clinicalDetails.veinGraftUsed ??
+    clinicalDetails.irradiatedVesselPreference === "vein_graft_required";
 
   const addAnastomosis = (vesselType: VesselType) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -759,52 +795,41 @@ export function FreeFlapClinicalFields({
           defaultExpanded={false}
           filledCount={
             [
-              clinicalDetails.irradiatedVesselStatus,
-              clinicalDetails.irradiatedVesselPreference,
-              clinicalDetails.irradiatedNeckDissectionPerformed !== undefined
-                ? "filled"
-                : undefined,
+              recipientVesselQuality,
+              veinGraftUsed !== undefined ? "filled" : undefined,
+              clinicalDetails.veinGraftSource,
+              clinicalDetails.veinGraftLength,
             ].filter(Boolean).length
           }
-          totalCount={3}
+          totalCount={4}
         >
           <PickerField
-            label="Vessel Status"
-            value={clinicalDetails.irradiatedVesselStatus || ""}
-            options={[
-              { value: "normal", label: "Normal" },
-              { value: "thickened", label: "Thickened" },
-              { value: "calcified", label: "Calcified" },
-              { value: "friable", label: "Friable" },
-            ]}
+            label="Recipient Vessel Quality"
+            value={recipientVesselQuality || ""}
+            options={Object.entries(RECIPIENT_VESSEL_QUALITY_LABELS).map(
+              ([value, label]) => ({ value, label }),
+            )}
             onSelect={(v) =>
               onUpdate({
                 ...clinicalDetails,
-                irradiatedVesselStatus: v as FreeFlapDetails["irradiatedVesselStatus"],
+                recipientVesselQuality:
+                  v as FreeFlapDetails["recipientVesselQuality"],
+                veinGraftUsed:
+                  v === "irradiated_vein_graft_required"
+                    ? true
+                    : clinicalDetails.veinGraftUsed,
+                irradiatedVesselStatus: undefined,
+                irradiatedVesselPreference: undefined,
+                irradiatedNeckDissectionPerformed: undefined,
               })
             }
           />
           <PickerField
-            label="Vessel Selection Preference"
-            value={clinicalDetails.irradiatedVesselPreference || ""}
-            options={[
-              { value: "contralateral", label: "Contralateral (non-irradiated)" },
-              { value: "ipsilateral_viable", label: "Ipsilateral — viable" },
-              { value: "vein_graft_required", label: "Vein graft required" },
-            ]}
-            onSelect={(v) =>
-              onUpdate({
-                ...clinicalDetails,
-                irradiatedVesselPreference: v as FreeFlapDetails["irradiatedVesselPreference"],
-              })
-            }
-          />
-          <PickerField
-            label="Neck Dissection Performed"
+            label="Vein Graft Used"
             value={
-              clinicalDetails.irradiatedNeckDissectionPerformed === true
+              veinGraftUsed === true
                 ? "yes"
-                : clinicalDetails.irradiatedNeckDissectionPerformed === false
+                : veinGraftUsed === false
                   ? "no"
                   : ""
             }
@@ -815,10 +840,64 @@ export function FreeFlapClinicalFields({
             onSelect={(v) =>
               onUpdate({
                 ...clinicalDetails,
-                irradiatedNeckDissectionPerformed: v === "yes",
+                veinGraftUsed: v === "yes",
+                recipientVesselQuality:
+                  v === "yes"
+                    ? "irradiated_vein_graft_required"
+                    : clinicalDetails.recipientVesselQuality ===
+                        "irradiated_vein_graft_required"
+                      ? "irradiated_usable"
+                      : clinicalDetails.recipientVesselQuality,
+                veinGraftSource:
+                  v === "yes" ? clinicalDetails.veinGraftSource : undefined,
+                veinGraftLength:
+                  v === "yes" ? clinicalDetails.veinGraftLength : undefined,
+                irradiatedVesselStatus: undefined,
+                irradiatedVesselPreference: undefined,
+                irradiatedNeckDissectionPerformed: undefined,
               })
             }
           />
+          {veinGraftUsed ? (
+            <>
+              <PickerField
+                label="Vein Graft Source"
+                value={clinicalDetails.veinGraftSource || ""}
+                options={Object.entries(VEIN_GRAFT_SOURCE_LABELS).map(
+                  ([value, label]) => ({ value, label }),
+                )}
+                onSelect={(v) =>
+                  onUpdate({
+                    ...clinicalDetails,
+                    veinGraftSource: v as FreeFlapDetails["veinGraftSource"],
+                    irradiatedVesselStatus: undefined,
+                    irradiatedVesselPreference: undefined,
+                    irradiatedNeckDissectionPerformed: undefined,
+                  })
+                }
+              />
+              <FormField
+                label="Vein Graft Length"
+                value={
+                  clinicalDetails.veinGraftLength != null
+                    ? String(clinicalDetails.veinGraftLength)
+                    : ""
+                }
+                onChangeText={(v) =>
+                  onUpdate({
+                    ...clinicalDetails,
+                    veinGraftLength: v ? parseFloat(v) : undefined,
+                    irradiatedVesselStatus: undefined,
+                    irradiatedVesselPreference: undefined,
+                    irradiatedNeckDissectionPerformed: undefined,
+                  })
+                }
+                placeholder="8"
+                keyboardType="decimal-pad"
+                unit="cm"
+              />
+            </>
+          ) : null}
         </CollapsibleFormSection>
       ) : null}
 

@@ -16,15 +16,18 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { getEpisodes } from "@/lib/episodeStorage";
-import { getCasesByEpisodeId, getLatestCaseForEpisode } from "@/lib/storage";
-import type { Case } from "@/types/case";
+import {
+  getCaseSummariesByEpisodeId,
+  getLatestCaseForEpisode,
+} from "@/lib/storage";
+import type { CaseSummary } from "@/types/caseSummary";
 import type { TreatmentEpisode, EpisodePrefillData } from "@/types/episode";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 interface EpisodeWithCases {
   episode: TreatmentEpisode;
-  cases: Case[];
+  cases: CaseSummary[];
 }
 
 interface Section {
@@ -42,12 +45,13 @@ export default function EpisodeListScreen() {
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
+    setLoading(true);
     try {
       const episodes = await getEpisodes();
       const withCases = await Promise.all(
         episodes.map(async (episode) => ({
           episode,
-          cases: await getCasesByEpisodeId(episode.id),
+          cases: await getCaseSummariesByEpisodeId(episode.id),
         })),
       );
       setAllEpisodes(withCases);

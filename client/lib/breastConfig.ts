@@ -7,7 +7,28 @@
 
 import type { DiagnosisPicklistEntry } from "@/types/diagnosis";
 import type { ProcedurePicklistEntry } from "@/lib/procedurePicklist";
-import type { BreastClinicalContext, BreastSideAssessment } from "@/types/breast";
+import type {
+  BreastClinicalContext,
+  BreastSideAssessment,
+  LipofillingData,
+  ImplantDetailsData,
+  BreastFlapDetailsData,
+  LiposuctionData,
+  ChestMasculinisationData,
+} from "@/types/breast";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SUMMARY STRING HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+import {
+  IMPLANT_PLANE_LABELS,
+  IMPLANT_SHAPE_LABELS,
+  BREAST_RECIPIENT_ARTERY_LABELS,
+  IMA_INTERSPACE_LABELS,
+  CHEST_MASC_TECHNIQUE_LABELS,
+  NAC_MANAGEMENT_LABELS,
+} from "@/types/breast";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ACTIVATION
@@ -26,10 +47,11 @@ export function isBreastSpecialty(specialty: string): boolean {
  * Infer the clinical context for a breast side from the selected diagnosis.
  */
 export function getBreastClinicalContext(
-  diagnosisEntry?: DiagnosisPicklistEntry
+  diagnosisEntry?: DiagnosisPicklistEntry,
 ): BreastClinicalContext {
   if (!diagnosisEntry) return "reconstructive";
-  if (diagnosisEntry.clinicalGroup === "gender_affirming") return "gender_affirming";
+  if (diagnosisEntry.clinicalGroup === "gender_affirming")
+    return "gender_affirming";
   if (diagnosisEntry.clinicalGroup === "aesthetic") return "aesthetic";
   return "reconstructive";
 }
@@ -45,17 +67,20 @@ export interface BreastModuleFlags {
   showLipofilling: boolean;
   showChestMasculinisation: boolean;
   showNippleDetails: boolean;
+}
+
+export interface BreastSideVisibility extends BreastModuleFlags {
+  showReconstructiveFields: boolean;
   showReconstructionEpisode: boolean;
   showGenderAffirmingContext: boolean;
 }
 
 /**
- * Determine which breast specialty modules to show based on selected procedures
- * and clinical context.
+ * Determine which breast specialty modules to show based on selected procedures.
+ * These flags are shared across the whole breast group.
  */
 export function getBreastModuleFlags(
   procedures: ProcedurePicklistEntry[],
-  clinicalContext: BreastClinicalContext
 ): BreastModuleFlags {
   const tags = new Set(procedures.flatMap((p) => p.tags ?? []));
   const ids = new Set(procedures.map((p) => p.id));
@@ -76,9 +101,16 @@ export function getBreastModuleFlags(
 
   const hasFreeFlap = tags.has("free_flap") || tags.has("microsurgery");
   const hasPedicledFlap = tags.has("pedicled_flap") && !hasFreeFlap;
-  const hasLipofilling = tags.has("lipofilling") || [...ids].some((id) => id.startsWith("breast_fat_"));
-  const hasChestMasc = [...ids].some((id) => id.startsWith("breast_ga_chest_masc"));
-  const hasNipple = ids.has("breast_nipple_reconstruction") || ids.has("breast_nipple_tattooing");
+  const hasLipofilling =
+    tags.has("lipofilling") ||
+    [...ids].some((id) => id.startsWith("breast_fat_"));
+  const hasChestMasc = [...ids].some((id) =>
+    id.startsWith("breast_ga_chest_masc"),
+  );
+  const hasNipple =
+    ids.has("breast_nipple_reconstruction") ||
+    ids.has("breast_nipple_tattooing") ||
+    ids.has("breast_nipple_inverted_correction");
 
   return {
     showImplantDetails: hasImplantProc,
@@ -87,8 +119,22 @@ export function getBreastModuleFlags(
     showLipofilling: hasLipofilling,
     showChestMasculinisation: hasChestMasc,
     showNippleDetails: hasNipple,
-    showReconstructionEpisode: clinicalContext === "reconstructive",
-    showGenderAffirmingContext: clinicalContext === "gender_affirming",
+  };
+}
+
+export function getBreastSideVisibility(
+  side: BreastSideAssessment | undefined,
+  moduleFlags: BreastModuleFlags,
+): BreastSideVisibility {
+  const clinicalContext = side?.clinicalContext;
+  const showReconstructiveFields = clinicalContext === "reconstructive";
+  const showGenderAffirmingContext = clinicalContext === "gender_affirming";
+
+  return {
+    ...moduleFlags,
+    showReconstructiveFields,
+    showReconstructionEpisode: showReconstructiveFields,
+    showGenderAffirmingContext,
   };
 }
 
@@ -103,12 +149,30 @@ export interface BreastCompletionStatus {
   flapComplete: boolean;
   lipofillingComplete: boolean;
   chestMascComplete: boolean;
+  nippleComplete: boolean;
   overallPercentage: number;
+}
+
+function hasMeaningfulValue(value: unknown): boolean {
+  if (value == null) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (typeof value === "number") return Number.isFinite(value);
+  if (typeof value === "boolean") return true;
+  if (Array.isArray(value))
+    return value.some((item) => hasMeaningfulValue(item));
+  if (typeof value === "object") {
+    return Object.values(value as Record<string, unknown>).some((entry) =>
+      hasMeaningfulValue(entry),
+    );
+  }
+
+  return false;
 }
 
 export function calculateBreastCompletion(
   side: BreastSideAssessment | undefined,
-  flags: BreastModuleFlags
+  visibility: BreastSideVisibility,
+  lipofilling: LipofillingData | undefined,
 ): BreastCompletionStatus {
   if (!side) {
     return {
@@ -118,63 +182,75 @@ export function calculateBreastCompletion(
       flapComplete: false,
       lipofillingComplete: false,
       chestMascComplete: false,
+      nippleComplete: false,
       overallPercentage: 0,
     };
   }
 
   const lateralityComplete = true; // Side exists, so laterality was selected
-  const contextComplete = !!side.clinicalContext;
+  const contextComplete =
+    !!side.clinicalContext &&
+    (!visibility.showReconstructiveFields || !!side.reconstructionTiming) &&
+    (!visibility.showGenderAffirmingContext ||
+      hasMeaningfulValue(side.genderAffirmingContext));
 
-  const implantComplete = !flags.showImplantDetails || (
-    !!side.implantDetails?.deviceType &&
-    !!side.implantDetails?.implantPlane
-  );
+  const implantComplete =
+    !visibility.showImplantDetails ||
+    (!!side.implantDetails?.deviceType && !!side.implantDetails?.implantPlane);
 
-  const flapComplete = !flags.showBreastFlapDetails || (
-    !!side.flapDetails?.recipientArtery
-  );
+  const flapComplete =
+    (!visibility.showBreastFlapDetails &&
+      !visibility.showPedicledFlapDetails) ||
+    (visibility.showBreastFlapDetails
+      ? !!side.flapDetails?.recipientArtery
+      : hasMeaningfulValue(side.flapDetails));
 
-  const lipofillingComplete = !flags.showLipofilling || (
-    !!side.lipofilling?.harvestSites?.length &&
-    (!!side.lipofilling?.injectionLeft?.volumeInjectedMl || !!side.lipofilling?.injectionRight?.volumeInjectedMl)
-  );
+  const lipofillingComplete =
+    !visibility.showLipofilling ||
+    (!!lipofilling &&
+      hasMeaningfulValue(lipofilling.harvestSites) &&
+      !!lipofilling.injections?.[side.side]?.volumeInjectedMl);
 
-  const chestMascComplete = !flags.showChestMasculinisation || (
-    !!side.chestMasculinisation?.technique
-  );
+  const chestMascComplete =
+    !visibility.showChestMasculinisation ||
+    !!side.chestMasculinisation?.technique;
 
-  const sections = [lateralityComplete, contextComplete, implantComplete, flapComplete, lipofillingComplete, chestMascComplete];
+  const nippleComplete =
+    !visibility.showNippleDetails ||
+    !!side.nippleDetails?.technique ||
+    hasMeaningfulValue(side.nippleDetails?.nacPosition);
+
+  const sections = [
+    lateralityComplete,
+    contextComplete,
+    implantComplete,
+    flapComplete,
+    lipofillingComplete,
+    chestMascComplete,
+    nippleComplete,
+  ];
   const complete = sections.filter(Boolean).length;
   const overallPercentage = Math.round((complete / sections.length) * 100);
 
-  return { lateralityComplete, contextComplete, implantComplete, flapComplete, lipofillingComplete, chestMascComplete, overallPercentage };
+  return {
+    lateralityComplete,
+    contextComplete,
+    implantComplete,
+    flapComplete,
+    lipofillingComplete,
+    chestMascComplete,
+    nippleComplete,
+    overallPercentage,
+  };
 }
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// SUMMARY STRING HELPERS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-import type {
-  ImplantDetailsData,
-  BreastFlapDetailsData,
-  LipofillingData,
-  LiposuctionData,
-  ChestMasculinisationData,
-} from "@/types/breast";
-import {
-  IMPLANT_PLANE_LABELS,
-  IMPLANT_SHAPE_LABELS,
-  BREAST_RECIPIENT_ARTERY_LABELS,
-  IMA_INTERSPACE_LABELS,
-  CHEST_MASC_TECHNIQUE_LABELS,
-  NAC_MANAGEMENT_LABELS,
-} from "@/types/breast";
 
 /**
  * One-line implant summary for card headers.
  * e.g. "350cc Allergan Round Dual Plane"
  */
-export function getImplantSummary(data: ImplantDetailsData | undefined): string {
+export function getImplantSummary(
+  data: ImplantDetailsData | undefined,
+): string {
   if (!data) return "";
   const parts: string[] = [];
   if (data.volumeCc) parts.push(`${data.volumeCc}cc`);
@@ -187,15 +263,31 @@ export function getImplantSummary(data: ImplantDetailsData | undefined): string 
   return parts.join(" ");
 }
 
+export function getImplantManufacturerLabel(
+  manufacturerId: string | undefined,
+): string {
+  if (!manufacturerId) return "";
+  const manufacturer = IMPLANT_MANUFACTURERS.find(
+    (entry) => entry.id === manufacturerId,
+  );
+
+  return manufacturer
+    ? (manufacturer.label.split(" (")[0] ?? manufacturer.label)
+    : manufacturerId;
+}
+
 /**
  * One-line flap summary for card headers.
  * e.g. "2 perforators, IMA 3rd Interspace, coupler 2.8mm, 485g"
  */
-export function getFlapSummary(data: BreastFlapDetailsData | undefined): string {
+export function getFlapSummary(
+  data: BreastFlapDetailsData | undefined,
+): string {
   if (!data) return "";
   const parts: string[] = [];
   const perfCount = data.perforators?.length ?? 0;
-  if (perfCount > 0) parts.push(`${perfCount} perforator${perfCount > 1 ? "s" : ""}`);
+  if (perfCount > 0)
+    parts.push(`${perfCount} perforator${perfCount > 1 ? "s" : ""}`);
   if (data.recipientArtery) {
     const arteryLabel = BREAST_RECIPIENT_ARTERY_LABELS[data.recipientArtery];
     if (data.recipientArtery === "ima" && data.imaInterspace) {
@@ -215,14 +307,17 @@ export function getFlapSummary(data: BreastFlapDetailsData | undefined): string 
  * One-line lipofilling summary for card headers.
  * e.g. "2 sites, 120ml harvested, 80ml injected (L)"
  */
-export function getLipofillingSummary(data: LipofillingData | undefined): string {
+export function getLipofillingSummary(
+  data: LipofillingData | undefined,
+): string {
   if (!data) return "";
   const parts: string[] = [];
   const siteCount = data.harvestSites?.length ?? 0;
   if (siteCount > 0) parts.push(`${siteCount} site${siteCount > 1 ? "s" : ""}`);
-  if (data.totalVolumeHarvestedMl) parts.push(`${data.totalVolumeHarvestedMl}ml harvested`);
-  const leftVol = data.injectionLeft?.volumeInjectedMl;
-  const rightVol = data.injectionRight?.volumeInjectedMl;
+  if (data.totalVolumeHarvestedMl)
+    parts.push(`${data.totalVolumeHarvestedMl}ml harvested`);
+  const leftVol = data.injections?.left?.volumeInjectedMl;
+  const rightVol = data.injections?.right?.volumeInjectedMl;
   if (leftVol && rightVol) {
     parts.push(`${leftVol}ml (L), ${rightVol}ml (R)`);
   } else if (leftVol) {
@@ -237,12 +332,15 @@ export function getLipofillingSummary(data: LipofillingData | undefined): string
  * One-line liposuction summary for card headers.
  * e.g. "2 areas, 450ml"
  */
-export function getLiposuctionSummary(data: LiposuctionData | undefined): string {
+export function getLiposuctionSummary(
+  data: LiposuctionData | undefined,
+): string {
   if (!data) return "";
   const parts: string[] = [];
   const areaCount = data.areas?.length ?? 0;
   if (areaCount > 0) parts.push(`${areaCount} area${areaCount > 1 ? "s" : ""}`);
-  const totalMl = data.totalAspirateMl ??
+  const totalMl =
+    data.totalAspirateMl ??
     (data.areas ?? []).reduce((sum, a) => sum + (a.volumeAspirateMl ?? 0), 0);
   if (totalMl > 0) parts.push(`${totalMl}ml`);
   return parts.join(", ");
@@ -252,7 +350,9 @@ export function getLiposuctionSummary(data: LiposuctionData | undefined): string
  * One-line chest masculinisation summary for card headers.
  * e.g. "Double incision + FNG, L 320g R 310g"
  */
-export function getChestMascSummary(data: ChestMasculinisationData | undefined): string {
+export function getChestMascSummary(
+  data: ChestMasculinisationData | undefined,
+): string {
   if (!data) return "";
   const parts: string[] = [];
   if (data.technique) {
@@ -264,7 +364,10 @@ export function getChestMascSummary(data: ChestMasculinisationData | undefined):
       inverted_t: "Inverted-T",
       buttonhole: "Buttonhole",
     };
-    parts.push(shortLabels[data.technique] ?? CHEST_MASC_TECHNIQUE_LABELS[data.technique]);
+    parts.push(
+      shortLabels[data.technique] ??
+        CHEST_MASC_TECHNIQUE_LABELS[data.technique],
+    );
   }
   if (data.nacManagement && data.nacManagement !== "not_applicable") {
     parts.push(NAC_MANAGEMENT_LABELS[data.nacManagement]);
@@ -300,13 +403,45 @@ export const IMPLANT_MANUFACTURERS = [
 ] as const;
 
 export const ADM_PRODUCTS = [
-  { id: "alloderm", label: "AlloDerm (Allergan)", origin: "human_allograft" as const },
-  { id: "flexhd", label: "FlexHD (MTF Biologics)", origin: "human_allograft" as const },
-  { id: "strattice", label: "Strattice (Allergan)", origin: "porcine_xenograft" as const },
-  { id: "surgimend", label: "SurgiMend (Integra)", origin: "bovine_xenograft" as const },
-  { id: "tigr_matrix", label: "TIGR Matrix", origin: "synthetic_absorbable" as const },
-  { id: "galaflex", label: "GalaFLEX (Galatea)", origin: "synthetic_absorbable" as const },
-  { id: "tiloop_bra", label: "TiLOOP Bra (pfm medical)", origin: "synthetic_nonabsorbable" as const },
-  { id: "phasix", label: "Phasix ST (Bard/BD)", origin: "synthetic_absorbable" as const },
+  {
+    id: "alloderm",
+    label: "AlloDerm (Allergan)",
+    origin: "human_allograft" as const,
+  },
+  {
+    id: "flexhd",
+    label: "FlexHD (MTF Biologics)",
+    origin: "human_allograft" as const,
+  },
+  {
+    id: "strattice",
+    label: "Strattice (Allergan)",
+    origin: "porcine_xenograft" as const,
+  },
+  {
+    id: "surgimend",
+    label: "SurgiMend (Integra)",
+    origin: "bovine_xenograft" as const,
+  },
+  {
+    id: "tigr_matrix",
+    label: "TIGR Matrix",
+    origin: "synthetic_absorbable" as const,
+  },
+  {
+    id: "galaflex",
+    label: "GalaFLEX (Galatea)",
+    origin: "synthetic_absorbable" as const,
+  },
+  {
+    id: "tiloop_bra",
+    label: "TiLOOP Bra (pfm medical)",
+    origin: "synthetic_nonabsorbable" as const,
+  },
+  {
+    id: "phasix",
+    label: "Phasix ST (Bard/BD)",
+    origin: "synthetic_absorbable" as const,
+  },
   { id: "other", label: "Other" },
 ] as const;

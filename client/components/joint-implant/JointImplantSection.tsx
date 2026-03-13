@@ -75,7 +75,7 @@ const FIXATION_OPTIONS: ImplantFixation[] = [
   "not_applicable",
 ];
 
-const LATERALITY_OPTIONS: Array<Extract<Laterality, "left" | "right">> = [
+const LATERALITY_OPTIONS: Extract<Laterality, "left" | "right">[] = [
   "left",
   "right",
 ];
@@ -700,9 +700,7 @@ export function JointImplantSection({
           })}
         </View>
         {value.laterality && !isRegistryImplantLaterality(value.laterality) ? (
-          <ThemedText
-            style={[styles.helperText, { color: theme.warning }]}
-          >
+          <ThemedText style={[styles.helperText, { color: theme.warning }]}>
             Choose Left or Right. Bilateral implant cases need separate
             procedure rows for registry-complete reporting.
           </ThemedText>

@@ -1,6 +1,14 @@
 import {
+  BROWN_MANDIBLE_CLASS_LABELS,
   Case,
+  JOINT_CASE_ABLATIVE_SURGEON_LABELS,
+  JOINT_CASE_RECONSTRUCTION_SEQUENCE_LABELS,
+  JOINT_CASE_STRUCTURE_RESECTED_LABELS,
+  MANDIBLE_SEGMENT_LABELS,
+  RECIPIENT_VESSEL_QUALITY_LABELS,
   SPECIALTY_LABELS,
+  VEIN_GRAFT_SOURCE_LABELS,
+  type FreeFlapDetails,
   JOINT_CASE_PARTNER_SPECIALTY_LABELS,
 } from "@/types/case";
 import {
@@ -16,10 +24,77 @@ import {
   getImplantSummary as getBreastImplantSummary,
   getFlapSummary as getBreastFlapSummary,
   getChestMascSummary,
+  getLipofillingSummary,
 } from "@/lib/breastConfig";
+import { getBreastExportData } from "@/lib/breastExport";
 
 export interface PdfExportOptions {
   includePatientId?: boolean;
+}
+
+function getHeadNeckFlapSummary(caseData: Case): string {
+  for (const group of caseData.diagnosisGroups ?? []) {
+    for (const procedure of group.procedures ?? []) {
+      if (
+        (procedure.specialty ?? group.specialty) !== "head_neck" ||
+        !procedure.tags?.includes("free_flap") ||
+        !procedure.clinicalDetails
+      ) {
+        continue;
+      }
+
+      const details = procedure.clinicalDetails as FreeFlapDetails;
+      const parts: string[] = [];
+      const recipientVesselQuality =
+        details.recipientVesselQuality ??
+        (details.irradiatedVesselPreference === "vein_graft_required"
+          ? "irradiated_vein_graft_required"
+          : details.irradiatedNeckDissectionPerformed
+            ? "previously_operated"
+            : details.irradiatedVesselPreference === "ipsilateral_viable" ||
+                (details.irradiatedVesselStatus &&
+                  details.irradiatedVesselStatus !== "normal")
+              ? "irradiated_usable"
+              : details.irradiatedVesselStatus === "normal" ||
+                  details.irradiatedVesselPreference === "contralateral"
+                ? "normal"
+                : undefined);
+      const veinGraftUsed =
+        details.veinGraftUsed ??
+        details.irradiatedVesselPreference === "vein_graft_required";
+
+      if (recipientVesselQuality) {
+        parts.push(RECIPIENT_VESSEL_QUALITY_LABELS[recipientVesselQuality]);
+      }
+      if (veinGraftUsed) {
+        parts.push(
+          `Vein graft${
+            details.veinGraftSource
+              ? ` (${VEIN_GRAFT_SOURCE_LABELS[details.veinGraftSource]})`
+              : ""
+          }`,
+        );
+      }
+      if (details.flapSpecificDetails?.fibulaBrownClass) {
+        parts.push(
+          BROWN_MANDIBLE_CLASS_LABELS[
+            details.flapSpecificDetails.fibulaBrownClass
+          ],
+        );
+      }
+      if (details.flapSpecificDetails?.fibulaMandibleSegments?.length) {
+        parts.push(
+          details.flapSpecificDetails.fibulaMandibleSegments
+            .map((segment) => MANDIBLE_SEGMENT_LABELS[segment] ?? segment)
+            .join(", "),
+        );
+      }
+
+      return parts.join("; ");
+    }
+  }
+
+  return "";
 }
 
 function escapeHtml(str: string): string {
@@ -83,12 +158,10 @@ export function buildPdfHtml(cases: Case[], options: PdfExportOptions): string {
 
     // Breast-specific summary from breastAssessment
     const breastParts: string[] = [];
-    const ba = (c.diagnosisGroups ?? []).find(
-      (g) => g.breastAssessment,
-    )?.breastAssessment;
-    if (ba) {
+    const breast = getBreastExportData(c.diagnosisGroups ?? []);
+    if (breast) {
       for (const side of ["left", "right"] as const) {
-        const sideData = ba.sides[side];
+        const sideData = breast.assessment.sides[side];
         if (!sideData) continue;
         const prefix = side === "left" ? "L" : "R";
         const imp = getBreastImplantSummary(sideData.implantDetails);
@@ -97,8 +170,26 @@ export function buildPdfHtml(cases: Case[], options: PdfExportOptions): string {
         if (flap) breastParts.push(`${prefix}: ${flap}`);
         const masc = getChestMascSummary(sideData.chestMasculinisation);
         if (masc) breastParts.push(`${prefix}: ${masc}`);
+        const nipple = breast.sides[side]?.nipple?.techniqueLabel;
+        if (nipple) breastParts.push(`${prefix}: ${nipple}`);
+        const lipofillingVolume = breast.sides[side]?.lipofillingVolumeMl;
+        if (lipofillingVolume && breast.assessment.lipofilling) {
+          breastParts.push(
+            `${prefix}: ${getLipofillingSummary({
+              ...breast.assessment.lipofilling,
+              injections: {
+                [side]: breast.assessment.lipofilling.injections?.[side],
+              },
+            })}`,
+          );
+        }
+      }
+
+      if (breast.reconstructionEpisodeId) {
+        breastParts.push(`Episode: ${breast.reconstructionEpisodeId}`);
       }
     }
+    const headNeckFlapSummary = getHeadNeckFlapSummary(c);
     const implantSummary = [jointImplantSummary, ...breastParts]
       .filter(Boolean)
       .join("; ");
@@ -137,10 +228,21 @@ export function buildPdfHtml(cases: Case[], options: PdfExportOptions): string {
           : "") +
         (c.jointCaseContext?.isJointCase && c.jointCaseContext.partnerSpecialty
           ? `<br/><small>Joint: ${escapeHtml(JOINT_CASE_PARTNER_SPECIALTY_LABELS[c.jointCaseContext.partnerSpecialty])}${c.jointCaseContext.partnerConsultantName ? ` (${escapeHtml(c.jointCaseContext.partnerConsultantName)})` : ""}</small>`
+          : "") +
+        (c.jointCaseContext?.ablativeSurgeon
+          ? `<br/><small>Ablative: ${escapeHtml(JOINT_CASE_ABLATIVE_SURGEON_LABELS[c.jointCaseContext.ablativeSurgeon])}</small>`
+          : "") +
+        (c.jointCaseContext?.reconstructionSequence
+          ? `<br/><small>Recon: ${escapeHtml(JOINT_CASE_RECONSTRUCTION_SEQUENCE_LABELS[c.jointCaseContext.reconstructionSequence])}</small>`
+          : "") +
+        (c.jointCaseContext?.structuresResected?.length
+          ? `<br/><small>Resected: ${escapeHtml(c.jointCaseContext.structuresResected.map((value) => JOINT_CASE_STRUCTURE_RESECTED_LABELS[value] ?? value).join(", "))}</small>`
           : ""),
       escapeHtml(primary?.diagnosis?.displayName || ""),
       escapeHtml(primaryProc?.procedureName || ""),
-      escapeHtml(implantSummary),
+      escapeHtml(
+        [implantSummary, headNeckFlapSummary].filter(Boolean).join("; "),
+      ),
       escapeHtml(complications),
       escapeHtml(c.outcome || ""),
     ];

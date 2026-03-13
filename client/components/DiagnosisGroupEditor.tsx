@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { View, StyleSheet, Pressable } from "react-native";
+import { Alert, View, StyleSheet, Pressable } from "react-native";
 import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
 import { v4 as uuidv4 } from "uuid";
@@ -74,7 +74,7 @@ import { MultiLesionEditor } from "@/components/MultiLesionEditor";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useCaseFormDispatch,
-  useCaseFormState,
+  useCaseFormField,
 } from "@/contexts/CaseFormContext";
 import { SelectedDiagnosisCard } from "@/components/SelectedDiagnosisCard";
 import {
@@ -113,9 +113,14 @@ import {
 import { SkinCancerAssessment } from "@/components/skin-cancer/SkinCancerAssessment";
 import { AcuteHandAssessment } from "@/components/acute-hand/AcuteHandAssessment";
 import { HandElectivePicker } from "@/components/hand-elective/HandElectivePicker";
-import { isBreastSpecialty, getBreastModuleFlags, getBreastClinicalContext } from "@/lib/breastConfig";
+import {
+  isBreastSpecialty,
+  getBreastModuleFlags,
+  getBreastClinicalContext,
+} from "@/lib/breastConfig";
 import { BreastAssessment } from "@/components/breast/BreastAssessment";
 import type { BreastAssessmentData } from "@/types/breast";
+import { normalizeBreastAssessment } from "@/lib/breastState";
 import { JointImplantSection } from "@/components/joint-implant/JointImplantSection";
 import type {
   SkinCancerLesionAssessment,
@@ -143,6 +148,16 @@ import {
   shouldRenderGenericDiagnosisSnomedPicker,
 } from "@/lib/handElectiveFlow";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
+import {
+  applyBreastEpisodeLinkToGroup,
+  buildBreastEpisodeCreatePlan,
+} from "@/lib/breastEpisodeHelpers";
+import {
+  findEpisodesByPatientIdentifier,
+  getEpisode,
+  saveEpisode,
+} from "@/lib/episodeStorage";
+import { getCasesByEpisodeId } from "@/lib/storage";
 
 interface DiagnosisGroupEditorProps {
   group: DiagnosisGroup;
@@ -175,7 +190,7 @@ interface HandTraumaDiagnosisResolution {
   selectedSuggestedProcedureIds?: string[];
 }
 
-export function DiagnosisGroupEditor({
+function DiagnosisGroupEditorInner({
   group,
   index,
   isOnly,
@@ -195,10 +210,14 @@ export function DiagnosisGroupEditor({
   const { theme } = useTheme();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { profile } = useAuth();
-  const { state: caseFormState, specialty: caseFormSpecialty } =
-    useCaseFormState();
-  const { dispatch: caseFormDispatch } = useCaseFormDispatch();
+  const { profile, user } = useAuth();
+  const injuryDate = useCaseFormField("injuryDate");
+  const priorRadiotherapy = useCaseFormField("priorRadiotherapy");
+  const {
+    dispatch: caseFormDispatch,
+    getState: getCaseFormState,
+    getSpecialty,
+  } = useCaseFormDispatch();
 
   // Accent color: monochromatic amber — primary full, then fading
   const accentColor =
@@ -924,11 +943,140 @@ export function DiagnosisGroupEditor({
   const breastModuleFlags = useMemo(() => {
     if (!isBreastModule) return undefined;
     const picklistEntries = procedures
-      .map((p) => (p.picklistEntryId ? findPicklistEntry(p.picklistEntryId) : undefined))
+      .map((p) =>
+        p.picklistEntryId ? findPicklistEntry(p.picklistEntryId) : undefined,
+      )
       .filter((e): e is NonNullable<typeof e> => !!e);
-    const clinicalContext = getBreastClinicalContext(selectedDiagnosis ?? undefined);
-    return getBreastModuleFlags(picklistEntries, clinicalContext);
-  }, [isBreastModule, procedures, selectedDiagnosis]);
+    return getBreastModuleFlags(picklistEntries);
+  }, [isBreastModule, procedures]);
+
+  const defaultBreastClinicalContext = useMemo(
+    () => getBreastClinicalContext(selectedDiagnosis ?? undefined),
+    [selectedDiagnosis],
+  );
+
+  const normalizedBreastAssessment = useMemo(() => {
+    if (!isBreastModule) return undefined;
+    return normalizeBreastAssessment(
+      group.breastAssessment,
+      defaultBreastClinicalContext,
+    );
+  }, [defaultBreastClinicalContext, group.breastAssessment, isBreastModule]);
+
+  const linkedBreastEpisodeId =
+    normalizedBreastAssessment?.reconstructionEpisodeId;
+  const [linkedBreastEpisodeTitle, setLinkedBreastEpisodeTitle] = useState<
+    string | undefined
+  >(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!linkedBreastEpisodeId) {
+      setLinkedBreastEpisodeTitle(undefined);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void (async () => {
+      const episode = await getEpisode(linkedBreastEpisodeId);
+      if (!cancelled) {
+        setLinkedBreastEpisodeTitle(episode?.title ?? "Reconstruction Episode");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [linkedBreastEpisodeId]);
+
+  const handleCreateBreastEpisode = useCallback(async () => {
+    if (!normalizedBreastAssessment) return;
+
+    const caseFormState = getCaseFormState();
+    const caseFormSpecialty = getSpecialty();
+    const patientIdentifier = caseFormState.patientIdentifier.trim();
+    if (!patientIdentifier) {
+      Alert.alert(
+        "Patient identifier required",
+        "Enter a patient identifier before starting a reconstruction episode.",
+      );
+      return;
+    }
+
+    try {
+      const existingEpisodes =
+        await findEpisodesByPatientIdentifier(patientIdentifier);
+      const plan = buildBreastEpisodeCreatePlan(
+        {
+          diagnosisGroups: (caseFormState.diagnosisGroups ?? []).map((entry) =>
+            entry.id === group.id
+              ? {
+                  ...group,
+                  breastAssessment: normalizedBreastAssessment,
+                }
+              : entry,
+          ),
+          patientIdentifier,
+          procedureDate: caseFormState.procedureDate,
+          ownerId: user?.id ?? profile?.userId ?? "",
+          specialty: caseFormSpecialty,
+          episodeId: caseFormState.episodeId || undefined,
+        } as Case,
+        existingEpisodes,
+        new Date().toISOString(),
+        uuidv4(),
+      );
+
+      if (!plan) return;
+
+      if (plan.episodeToCreate) {
+        await saveEpisode(plan.episodeToCreate);
+      }
+
+      const linkedCases = await getCasesByEpisodeId(plan.linkedEpisodeId);
+      const nextSequence = linkedCases.length + 1;
+
+      onChange(applyBreastEpisodeLinkToGroup(group, plan.linkedEpisodeId));
+      caseFormDispatch(setField("episodeId", plan.linkedEpisodeId));
+      caseFormDispatch(setField("episodeSequence", nextSequence));
+      setLinkedBreastEpisodeTitle(plan.linkedEpisodeTitle);
+    } catch (error) {
+      console.error("Failed to create breast reconstruction episode:", error);
+      Alert.alert(
+        "Episode unavailable",
+        "Unable to start the reconstruction episode right now.",
+      );
+    }
+  }, [
+    caseFormDispatch,
+    getCaseFormState,
+    getSpecialty,
+    group,
+    normalizedBreastAssessment,
+    onChange,
+    profile?.userId,
+    user?.id,
+  ]);
+
+  const handleUnlinkBreastEpisode = useCallback(() => {
+    if (!linkedBreastEpisodeId) return;
+
+    const caseFormState = getCaseFormState();
+    onChange(applyBreastEpisodeLinkToGroup(group, undefined));
+    if (caseFormState.episodeId === linkedBreastEpisodeId) {
+      caseFormDispatch(setField("episodeId", ""));
+      caseFormDispatch(setField("episodeSequence", 0));
+    }
+    setLinkedBreastEpisodeTitle(undefined);
+  }, [
+    caseFormDispatch,
+    getCaseFormState,
+    group,
+    linkedBreastEpisodeId,
+    onChange,
+  ]);
 
   const currentGroupTitle = useMemo(
     () =>
@@ -1508,6 +1656,8 @@ export function DiagnosisGroupEditor({
   }, [skinCancerAssessment]);
 
   const handleCreateSkinCancerFollowUp = useCallback(() => {
+    const caseFormState = getCaseFormState();
+    const caseFormSpecialty = getSpecialty();
     const nextGroup = buildCurrentDiagnosisGroup();
     const now = new Date().toISOString();
     const draft = formStateToDraft(
@@ -1544,12 +1694,7 @@ export function DiagnosisGroupEditor({
       duplicateFrom: followUpSource,
       skinCancerFollowUpPrefill: true,
     });
-  }, [
-    buildCurrentDiagnosisGroup,
-    caseFormSpecialty,
-    caseFormState,
-    navigation,
-  ]);
+  }, [buildCurrentDiagnosisGroup, getCaseFormState, getSpecialty, navigation]);
 
   // Lesion photo → also add to Case.operativeMedia for dashboard thumbnail
   const handleLesionPhotoAdded = useCallback(
@@ -1562,10 +1707,10 @@ export function DiagnosisGroupEditor({
         caption: photo.caption,
         createdAt: photo.createdAt,
       };
-      const current = caseFormState.operativeMedia ?? [];
+      const current = getCaseFormState().operativeMedia ?? [];
       caseFormDispatch(setField("operativeMedia", [...current, mediaItem]));
     },
-    [caseFormState.operativeMedia, caseFormDispatch],
+    [caseFormDispatch, getCaseFormState],
   );
 
   const specialtyOptions = Object.entries(SPECIALTY_LABELS).map(
@@ -2102,7 +2247,7 @@ export function DiagnosisGroupEditor({
                 injuryMechanism: diagnosisClinicalDetails.injuryMechanism,
                 injuryMechanismOther:
                   diagnosisClinicalDetails.injuryMechanismOther,
-                injuryDate: caseFormState.injuryDate,
+                injuryDate,
               }}
               onIncidentChange={(incident) => {
                 setDiagnosisClinicalDetails((prev) => ({
@@ -2201,12 +2346,21 @@ export function DiagnosisGroupEditor({
         {/* Inline breast module — laterality + per-side clinical context */}
         {isBreastModule && breastModuleFlags && (
           <BreastAssessment
-            value={group.breastAssessment ?? { laterality: "left", sides: {} }}
+            value={normalizedBreastAssessment!}
             onChange={(breastAssessment: BreastAssessmentData) =>
               onChange({ ...group, breastAssessment })
             }
             moduleFlags={breastModuleFlags}
-            isTransmasculine={selectedDiagnosis?.id === "breast_dx_gender_dysphoria_transmasc"}
+            defaultClinicalContext={defaultBreastClinicalContext}
+            isTransmasculine={
+              selectedDiagnosis?.id === "breast_dx_gender_dysphoria_transmasc"
+            }
+            linkedEpisodeId={linkedBreastEpisodeId}
+            linkedEpisodeTitle={linkedBreastEpisodeTitle}
+            onCreateEpisode={() => {
+              void handleCreateBreastEpisode();
+            }}
+            onUnlinkEpisode={handleUnlinkBreastEpisode}
             breastPreferences={profile?.surgicalPreferences?.breast}
           />
         )}
@@ -3113,7 +3267,7 @@ export function DiagnosisGroupEditor({
             }
             procedureType={activeFlapSheetProcedure.procedureName}
             picklistEntryId={activeFlapSheetProcedure.picklistEntryId}
-            priorRadiotherapy={caseFormState.priorRadiotherapy}
+            priorRadiotherapy={priorRadiotherapy}
           />
         ) : null}
 
@@ -3149,6 +3303,29 @@ export function DiagnosisGroupEditor({
     </View>
   );
 }
+
+function areDiagnosisGroupEditorPropsEqual(
+  prev: DiagnosisGroupEditorProps,
+  next: DiagnosisGroupEditorProps,
+): boolean {
+  return (
+    prev.group === next.group &&
+    prev.index === next.index &&
+    prev.isOnly === next.isOnly &&
+    prev.totalGroups === next.totalGroups &&
+    prev.infectionOverlay === next.infectionOverlay &&
+    prev.isFirstInfectionGroup === next.isFirstInfectionGroup &&
+    prev.episodeType === next.episodeType &&
+    prev.returnToTheatre === next.returnToTheatre &&
+    prev.scrollViewRef === next.scrollViewRef &&
+    prev.scrollPositionRef === next.scrollPositionRef
+  );
+}
+
+export const DiagnosisGroupEditor = React.memo(
+  DiagnosisGroupEditorInner,
+  areDiagnosisGroupEditorPropsEqual,
+);
 
 const styles = StyleSheet.create({
   clinicalSuspicionLabel: {

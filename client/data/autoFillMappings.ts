@@ -230,7 +230,10 @@ export function getDefaultFlapSpecificDetails(
     case "serratus_anterior":
       return { serratusTissueComposition: "muscle_only" };
     case "medial_femoral_condyle":
-      return { mfcTissueComposition: "bone_only", mfcBoneSource: "medial_condyle" };
+      return {
+        mfcTissueComposition: "bone_only",
+        mfcBoneSource: "medial_condyle",
+      };
     case "omentum":
       return {};
     default:

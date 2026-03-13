@@ -396,12 +396,7 @@ describe("Implant helpers", () => {
 
     expect(
       getImplantCompletionIssues(details, "hand_joint_cmc1_prosthesis"),
-    ).toEqual([
-      "laterality",
-      "approach",
-      "fixation",
-      "bearing surface",
-    ]);
+    ).toEqual(["laterality", "approach", "fixation", "bearing surface"]);
   });
 
   it("treats bilateral implant laterality as legacy-invalid for completeness", () => {

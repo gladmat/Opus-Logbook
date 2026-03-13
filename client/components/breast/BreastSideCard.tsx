@@ -18,20 +18,21 @@ import type {
   BreastSideAssessment,
   BreastClinicalContext,
   BreastReconTiming,
+  LipofillingData,
 } from "@/types/breast";
-import {
-  BREAST_CLINICAL_CONTEXT_LABELS,
-  BREAST_RECON_TIMING_LABELS,
-} from "@/types/breast";
+import { BREAST_CLINICAL_CONTEXT_LABELS } from "@/types/breast";
 import type { BreastModuleFlags } from "@/lib/breastConfig";
-import { calculateBreastCompletion } from "@/lib/breastConfig";
+import {
+  calculateBreastCompletion,
+  getBreastSideVisibility,
+} from "@/lib/breastConfig";
 import { ImplantDetailsCard } from "./ImplantDetailsCard";
 import { BreastFlapCard } from "./BreastFlapCard";
-import { LipofillingCard } from "./LipofillingCard";
 import { GenderAffirmingContextCard } from "./GenderAffirmingContextCard";
 import { ChestMasculinisationCard } from "./ChestMasculinisationCard";
 import { ReconstructionEpisodeCard } from "./ReconstructionEpisodeCard";
 import { BreastCompletionSummary } from "./BreastCompletionSummary";
+import { NippleDetailsCard } from "./NippleDetailsCard";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -42,6 +43,7 @@ interface Props {
   value: BreastSideAssessment;
   onChange: (data: BreastSideAssessment) => void;
   moduleFlags: BreastModuleFlags;
+  lipofilling?: LipofillingData;
   showCopyButton?: boolean;
   onCopy?: () => void;
   /** Whether the diagnosis suggests transmasculine context (for binding history) */
@@ -89,6 +91,7 @@ export const BreastSideCard = React.memo(function BreastSideCard({
   value,
   onChange,
   moduleFlags,
+  lipofilling,
   showCopyButton,
   onCopy,
   isTransmasculine,
@@ -143,7 +146,8 @@ export const BreastSideCard = React.memo(function BreastSideCard({
 
       onChange({
         ...value,
-        reconstructionTiming: timing === value.reconstructionTiming ? undefined : timing,
+        reconstructionTiming:
+          timing === value.reconstructionTiming ? undefined : timing,
       });
     },
     [value, onChange],
@@ -151,9 +155,12 @@ export const BreastSideCard = React.memo(function BreastSideCard({
 
   // ── Render ──────────────────────────────────────────────────────────────
 
-  const isReconstructive = value.clinicalContext === "reconstructive";
-  const isGenderAffirming = value.clinicalContext === "gender_affirming";
-  const completionStatus = calculateBreastCompletion(value, moduleFlags);
+  const visibility = getBreastSideVisibility(value, moduleFlags);
+  const completionStatus = calculateBreastCompletion(
+    value,
+    visibility,
+    lipofilling,
+  );
 
   return (
     <View
@@ -230,7 +237,7 @@ export const BreastSideCard = React.memo(function BreastSideCard({
       </View>
 
       {/* Gender-affirming context — shown for gender_affirming */}
-      {isGenderAffirming && (
+      {visibility.showGenderAffirmingContext && (
         <GenderAffirmingContextCard
           value={value.genderAffirmingContext ?? {}}
           onChange={(genderAffirmingContext) =>
@@ -241,7 +248,7 @@ export const BreastSideCard = React.memo(function BreastSideCard({
       )}
 
       {/* Reconstructive timing — shown only for reconstructive context */}
-      {isReconstructive && (
+      {visibility.showReconstructiveFields && (
         <View style={styles.timingSection}>
           <ThemedText
             type="small"
@@ -284,7 +291,7 @@ export const BreastSideCard = React.memo(function BreastSideCard({
 
       {/* ── Specialty module cards ────────────────────────────────────── */}
 
-      {moduleFlags.showImplantDetails && (
+      {visibility.showImplantDetails && (
         <ImplantDetailsCard
           value={value.implantDetails ?? {}}
           onChange={(implantDetails) => onChange({ ...value, implantDetails })}
@@ -292,22 +299,22 @@ export const BreastSideCard = React.memo(function BreastSideCard({
         />
       )}
 
-      {moduleFlags.showBreastFlapDetails && (
+      {visibility.showBreastFlapDetails && (
         <BreastFlapCard
           value={value.flapDetails ?? {}}
           onChange={(flapDetails) => onChange({ ...value, flapDetails })}
         />
       )}
 
-      {moduleFlags.showLipofilling && (
-        <LipofillingCard
-          side={side}
-          value={value.lipofilling ?? {}}
-          onChange={(lipofilling) => onChange({ ...value, lipofilling })}
+      {visibility.showPedicledFlapDetails && (
+        <BreastFlapCard
+          mode="pedicled"
+          value={value.flapDetails ?? {}}
+          onChange={(flapDetails) => onChange({ ...value, flapDetails })}
         />
       )}
 
-      {moduleFlags.showChestMasculinisation && (
+      {visibility.showChestMasculinisation && (
         <ChestMasculinisationCard
           value={value.chestMasculinisation ?? {}}
           onChange={(chestMasculinisation) =>
@@ -316,14 +323,23 @@ export const BreastSideCard = React.memo(function BreastSideCard({
         />
       )}
 
-      {moduleFlags.showReconstructionEpisode && onCreateEpisode && onUnlinkEpisode && (
+      {visibility.showNippleDetails && (
+        <NippleDetailsCard
+          value={value.nippleDetails ?? {}}
+          onChange={(nippleDetails) => onChange({ ...value, nippleDetails })}
+        />
+      )}
+
+      {visibility.showReconstructionEpisode &&
+      onCreateEpisode &&
+      onUnlinkEpisode ? (
         <ReconstructionEpisodeCard
           linkedEpisodeId={linkedEpisodeId}
           linkedEpisodeTitle={linkedEpisodeTitle}
           onCreateEpisode={onCreateEpisode}
           onUnlinkEpisode={onUnlinkEpisode}
         />
-      )}
+      ) : null}
     </View>
   );
 });

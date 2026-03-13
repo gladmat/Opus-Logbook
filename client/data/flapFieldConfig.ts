@@ -809,10 +809,22 @@ export const FLAP_FIELD_CONFIG: Partial<
       hint: "Mandible defect classification (Brown et al.)",
       showWhen: { key: "fibulaReconSite", values: ["mandible"] },
       options: [
-        { value: "I", label: "Class I — Lateral (no condyle)" },
-        { value: "II", label: "Class II — Includes angle" },
-        { value: "III", label: "Class III — Includes symphysis" },
-        { value: "IV", label: "Class IV — Includes condyle" },
+        { value: "I", label: "Class I — Lateral defect, condyle preserved" },
+        {
+          value: "IIa",
+          label: "Class IIa — Hemimandible, condyle preserved",
+        },
+        { value: "IIb", label: "Class IIb — Hemimandible with condyle" },
+        {
+          value: "IIc",
+          label: "Class IIc — Anterior + lateral, condyle preserved",
+        },
+        {
+          value: "IId",
+          label: "Class IId — Anterior + lateral with condyle",
+        },
+        { value: "III", label: "Class III — Central/anterior defect" },
+        { value: "IV", label: "Class IV — Extensive bilateral defect" },
       ],
     },
     {

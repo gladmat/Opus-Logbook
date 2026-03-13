@@ -1098,11 +1098,7 @@ const BREAST_DX_POST_TREATMENT: DiagnosisPicklistEntry[] = [
     subcategory: "Post-Treatment",
     clinicalGroup: "reconstructive",
     hasStaging: false,
-    searchSynonyms: [
-      "breast fibrosis",
-      "scarring",
-      "post-treatment fibrosis",
-    ],
+    searchSynonyms: ["breast fibrosis", "scarring", "post-treatment fibrosis"],
     suggestedProcedures: [
       {
         procedurePicklistId: "breast_fat_recon",

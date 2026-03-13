@@ -5,6 +5,7 @@ import { resolveSkinCancerDiagnosis } from "@/lib/skinCancerConfig";
 import { repairCaseSpecialty } from "@/lib/caseSpecialty";
 import { normalizeDateOnlyValue } from "@/lib/dateValues";
 import type { SkinCancerHistology } from "@/types/skinCancer";
+import { normalizeBreastAssessment } from "@/lib/breastState";
 
 const CURRENT_CASE_SCHEMA_VERSION = 5;
 
@@ -247,6 +248,22 @@ export function normalizeCaseDateOnlyFields(c: Case): Case {
   };
 }
 
+export function normalizeCaseBreastFields(c: Case): Case {
+  const diagnosisGroups = c.diagnosisGroups.map((group) => {
+    if (!group.breastAssessment) return group;
+
+    return {
+      ...group,
+      breastAssessment: normalizeBreastAssessment(group.breastAssessment),
+    };
+  });
+
+  return {
+    ...c,
+    diagnosisGroups,
+  };
+}
+
 export function migrateCase(raw: unknown): Case {
   if (!raw || typeof raw !== "object") {
     console.error("Case migration failed: invalid input (not an object)");
@@ -261,6 +278,7 @@ export function migrateCase(raw: unknown): Case {
       migrated = migrateSnomedCodes(migrated);
       migrated = migrateSkinCancerDiagnosisConsistency(migrated);
       migrated = normalizeCaseDateOnlyFields(migrated);
+      migrated = normalizeCaseBreastFields(migrated);
       migrated = repairCaseSpecialty(migrated);
       if (
         !migrated.schemaVersion ||
@@ -311,9 +329,11 @@ export function migrateCase(raw: unknown): Case {
     delete migrated.procedures;
 
     return repairCaseSpecialty(
-      normalizeCaseDateOnlyFields(
-        migrateSkinCancerDiagnosisConsistency(
-          migrateSnomedCodes(migrated as Case),
+      normalizeCaseBreastFields(
+        normalizeCaseDateOnlyFields(
+          migrateSkinCancerDiagnosisConsistency(
+            migrateSnomedCodes(migrated as Case),
+          ),
         ),
       ),
     );

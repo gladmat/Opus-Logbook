@@ -42,7 +42,11 @@ export default function SurgicalPreferencesScreen() {
 
   // Debounced save — merges all preference domains
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const latestRef = useRef({ selectedAnticoag, selectedMonitoring, breastState });
+  const latestRef = useRef({
+    selectedAnticoag,
+    selectedMonitoring,
+    breastState,
+  });
   latestRef.current = { selectedAnticoag, selectedMonitoring, breastState };
 
   const debouncedSave = useCallback(() => {
@@ -302,9 +306,7 @@ export default function SurgicalPreferencesScreen() {
         </View>
         <Switch
           value={breastState.always14PointPlan ?? false}
-          onValueChange={(val) =>
-            updateBreast({ always14PointPlan: val })
-          }
+          onValueChange={(val) => updateBreast({ always14PointPlan: val })}
           trackColor={{ false: theme.border, true: theme.link }}
         />
       </View>
@@ -425,9 +427,7 @@ function OptionChip({ label, isSelected, onPress, theme }: OptionChipProps) {
       style={({ pressed }) => [
         styles.chip,
         {
-          backgroundColor: isSelected
-            ? theme.link
-            : theme.backgroundElevated,
+          backgroundColor: isSelected ? theme.link : theme.backgroundElevated,
           borderColor: isSelected ? theme.link : theme.border,
           opacity: pressed ? 0.85 : 1,
         },

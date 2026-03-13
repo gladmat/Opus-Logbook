@@ -5,21 +5,30 @@
  * Manages laterality selection and delegates per-side data to BreastSideCard.
  */
 
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import { View, Pressable, LayoutAnimation, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { BreastSideCard } from "./BreastSideCard";
+import { LipofillingCard } from "./LipofillingCard";
 import { LiposuctionCard } from "./LiposuctionCard";
 import type {
   BreastAssessmentData,
+  BreastClinicalContext,
   BreastLaterality,
   BreastSideAssessment,
+  LipofillingData,
   LiposuctionData,
 } from "@/types/breast";
 import type { BreastModuleFlags } from "@/lib/breastConfig";
+import {
+  copyBreastSide,
+  getBreastAssessmentActiveSides,
+  isBreastSideEmpty,
+  normalizeBreastAssessment,
+} from "@/lib/breastState";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -29,6 +38,7 @@ interface Props {
   value: BreastAssessmentData;
   onChange: (data: BreastAssessmentData) => void;
   moduleFlags: BreastModuleFlags;
+  defaultClinicalContext?: BreastClinicalContext;
   /** Whether the diagnosis suggests transmasculine context */
   isTransmasculine?: boolean;
   /** Linked reconstruction episode ID, if any */
@@ -59,6 +69,7 @@ export const BreastAssessment = React.memo(function BreastAssessment({
   value,
   onChange,
   moduleFlags,
+  defaultClinicalContext,
   isTransmasculine,
   linkedEpisodeId,
   linkedEpisodeTitle,
@@ -67,52 +78,60 @@ export const BreastAssessment = React.memo(function BreastAssessment({
   breastPreferences,
 }: Props) {
   const { theme } = useTheme();
+  const assessment = useMemo(
+    () => normalizeBreastAssessment(value, defaultClinicalContext),
+    [defaultClinicalContext, value],
+  );
 
   // ── Laterality ──────────────────────────────────────────────────────────
 
   const handleLateralityChange = useCallback(
     (option: LateralityOption) => {
-      if (option === value.laterality) return;
+      if (option === assessment.laterality) return;
 
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 
-      const next: BreastAssessmentData = { ...value, laterality: option, sides: { ...value.sides } };
-
-      // Initialise sides that should exist, preserve those that already do
-      if (option === "left" || option === "bilateral") {
-        if (!next.sides.left) {
-          next.sides.left = { side: "left", clinicalContext: "reconstructive" };
-        }
-      }
-      if (option === "right" || option === "bilateral") {
-        if (!next.sides.right) {
-          next.sides.right = { side: "right", clinicalContext: "reconstructive" };
-        }
-      }
-
-      // Clean up sides no longer active
-      if (option === "left") {
-        delete next.sides.right;
-      } else if (option === "right") {
-        delete next.sides.left;
-      }
-
-      onChange(next);
+      onChange(
+        normalizeBreastAssessment(
+          { ...assessment, laterality: option },
+          defaultClinicalContext,
+        ),
+      );
     },
-    [value, onChange],
+    [assessment, defaultClinicalContext, onChange],
   );
 
   // ── Per-side change ─────────────────────────────────────────────────────
 
   const handleSideChange = useCallback(
     (side: BreastLaterality, sideData: BreastSideAssessment) => {
-      onChange({
-        ...value,
-        sides: { ...value.sides, [side]: sideData },
-      });
+      onChange(
+        normalizeBreastAssessment(
+          {
+            ...assessment,
+            sides: { ...assessment.sides, [side]: sideData },
+          },
+          defaultClinicalContext,
+        ),
+      );
     },
-    [value, onChange],
+    [assessment, defaultClinicalContext, onChange],
+  );
+
+  const handleLipofillingChange = useCallback(
+    (lipofilling: LipofillingData) => {
+      onChange(
+        normalizeBreastAssessment(
+          {
+            ...assessment,
+            lipofilling,
+          },
+          defaultClinicalContext,
+        ),
+      );
+    },
+    [assessment, defaultClinicalContext, onChange],
   );
 
   // ── Copy to other side ──────────────────────────────────────────────────
@@ -120,32 +139,34 @@ export const BreastAssessment = React.memo(function BreastAssessment({
   const handleCopy = useCallback(
     (fromSide: BreastLaterality) => {
       const toSide: BreastLaterality = fromSide === "left" ? "right" : "left";
-      const source = value.sides[fromSide];
+      const source = assessment.sides[fromSide];
       if (!source) return;
+      if (!isBreastSideEmpty(assessment.sides[toSide])) return;
 
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 
-      const copied: BreastSideAssessment = {
-        ...JSON.parse(JSON.stringify(source)),
-        side: toSide,
-      };
-
-      onChange({
-        ...value,
-        sides: { ...value.sides, [toSide]: copied },
-      });
+      onChange(
+        normalizeBreastAssessment(
+          {
+            ...assessment,
+            sides: {
+              ...assessment.sides,
+              [toSide]: copyBreastSide(source, toSide),
+            },
+          },
+          defaultClinicalContext,
+        ),
+      );
     },
-    [value, onChange],
+    [assessment, defaultClinicalContext, onChange],
   );
 
   // ── Render ──────────────────────────────────────────────────────────────
 
-  const activeSides: BreastLaterality[] = [];
-  if (value.laterality === "left" || value.laterality === "bilateral") activeSides.push("left");
-  if (value.laterality === "right" || value.laterality === "bilateral") activeSides.push("right");
+  const activeSides = getBreastAssessmentActiveSides(assessment.laterality);
 
-  const isBilateral = value.laterality === "bilateral";
+  const isBilateral = assessment.laterality === "bilateral";
 
   return (
     <View style={styles.container}>
@@ -157,7 +178,7 @@ export const BreastAssessment = React.memo(function BreastAssessment({
       {/* Laterality chips */}
       <View style={styles.chipRow}>
         {LATERALITY_OPTIONS.map(({ key, label }) => {
-          const selected = value.laterality === key;
+          const selected = assessment.laterality === key;
           return (
             <Pressable
               key={key}
@@ -188,26 +209,34 @@ export const BreastAssessment = React.memo(function BreastAssessment({
 
       {/* Case-level liposuction — shown when lipofilling is active */}
       {moduleFlags.showLipofilling && (
-        <LiposuctionCard
-          value={value.liposuction ?? {}}
-          onChange={(liposuction: LiposuctionData) =>
-            onChange({ ...value, liposuction })
-          }
-        />
+        <>
+          <LiposuctionCard
+            value={assessment.liposuction ?? {}}
+            onChange={(liposuction: LiposuctionData) =>
+              onChange({
+                ...assessment,
+                liposuction,
+              })
+            }
+          />
+
+          <LipofillingCard
+            activeSides={activeSides}
+            value={assessment.lipofilling ?? {}}
+            onChange={handleLipofillingChange}
+          />
+        </>
       )}
 
       {/* Per-side cards */}
       {activeSides.map((side) => {
-        const sideData = value.sides[side];
+        const sideData = assessment.sides[side];
         if (!sideData) return null;
 
         // Show copy button only in bilateral mode when the OTHER side is empty/default
         const otherSide: BreastLaterality = side === "left" ? "right" : "left";
-        const otherData = value.sides[otherSide];
-        const showCopy =
-          isBilateral &&
-          sideData.clinicalContext !== undefined &&
-          (!otherData || !otherData.reconstructionTiming);
+        const otherData = assessment.sides[otherSide];
+        const showCopy = isBilateral && isBreastSideEmpty(otherData);
 
         return (
           <BreastSideCard
@@ -216,6 +245,7 @@ export const BreastAssessment = React.memo(function BreastAssessment({
             value={sideData}
             onChange={(updated) => handleSideChange(side, updated)}
             moduleFlags={moduleFlags}
+            lipofilling={assessment.lipofilling}
             showCopyButton={showCopy}
             onCopy={() => handleCopy(side)}
             isTransmasculine={isTransmasculine}

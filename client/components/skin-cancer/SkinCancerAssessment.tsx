@@ -43,7 +43,7 @@ import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
-import { useCaseFormState } from "@/contexts/CaseFormContext";
+import { useCaseFormSelector } from "@/contexts/CaseFormContext";
 import {
   shouldOfferSLNB,
   canConsiderSLNB,
@@ -168,7 +168,7 @@ export function SkinCancerAssessment({
   scrollPositionRef,
 }: SkinCancerAssessmentProps) {
   const { theme } = useTheme();
-  const { isEditMode } = useCaseFormState();
+  const isEditMode = useCaseFormSelector((snapshot) => snapshot.isEditMode);
   const [manualSlnbToggle, setManualSlnbToggle] = useState(false);
   const summaryRef = useRef<View>(null);
 

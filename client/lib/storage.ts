@@ -33,7 +33,11 @@ import {
 } from "./mediaStorage";
 import * as Crypto from "expo-crypto";
 import { normalizeTimelineEventDateOnlyFields } from "./dateFieldNormalization";
-import { migrateCase, normalizeCaseDateOnlyFields } from "./migration";
+import {
+  migrateCase,
+  normalizeCaseDateOnlyFields,
+  normalizeCaseBreastFields,
+} from "./migration";
 import { repairCaseSpecialty } from "./caseSpecialty";
 import {
   hashPatientIdentifierHmac,
@@ -670,8 +674,20 @@ export async function getCasesByIds(ids: string[]): Promise<Case[]> {
     return [];
   }
 
-  const cases = await Promise.all(ids.map((id) => getCase(id)));
-  return cases.filter((caseData): caseData is Case => caseData !== null);
+  const BATCH_SIZE = 4;
+  const results: (Case | null)[] = [];
+
+  for (let i = 0; i < ids.length; i += BATCH_SIZE) {
+    const batch = ids.slice(i, i + BATCH_SIZE);
+    const cases = await Promise.all(batch.map((id) => getCase(id)));
+    results.push(...cases);
+
+    if (i + BATCH_SIZE < ids.length) {
+      await yieldToUI();
+    }
+  }
+
+  return results.filter((caseData): caseData is Case => caseData !== null);
 }
 
 /**
@@ -698,10 +714,12 @@ export async function saveCase(caseData: Case): Promise<void> {
   try {
     const now = new Date().toISOString();
     const canonicalizedCase = await canonicalizePersistedMediaUris(caseData);
-    const updatedCase = normalizeCaseDateOnlyFields({
-      ...canonicalizedCase,
-      updatedAt: now,
-    });
+    const updatedCase = normalizeCaseBreastFields(
+      normalizeCaseDateOnlyFields({
+        ...canonicalizedCase,
+        updatedAt: now,
+      }),
+    );
 
     const encrypted = await encryptData(JSON.stringify(updatedCase));
     await AsyncStorage.setItem(`${CASE_PREFIX}${caseData.id}`, encrypted);
@@ -1104,23 +1122,34 @@ export async function exportCasesAsJSON(): Promise<string> {
 export async function getCasesByEpisodeId(episodeId: string): Promise<Case[]> {
   try {
     const index = await getCaseIndex();
-    const matching = index.filter((e) => e.episodeId === episodeId);
-    if (matching.length === 0) return [];
-
-    const results = await Promise.all(
-      matching.map((entry) => getCase(entry.id)),
-    );
-    return results
-      .filter((c): c is Case => c !== null)
+    const matching = index
+      .filter((entry) => entry.episodeId === episodeId)
       .sort(
         (a, b) =>
           new Date(a.procedureDate).getTime() -
           new Date(b.procedureDate).getTime(),
       );
+    if (matching.length === 0) return [];
+
+    return getCasesByIds(matching.map((entry) => entry.id));
   } catch (error) {
     console.error("Error reading cases by episode:", error);
     return [];
   }
+}
+
+export async function getCaseSummariesByEpisodeId(
+  episodeId: string,
+): Promise<CaseSummary[]> {
+  const summaries = await getCaseSummaries();
+
+  return summaries
+    .filter((summary) => summary.episodeId === episodeId)
+    .sort(
+      (a, b) =>
+        new Date(a.procedureDate).getTime() -
+        new Date(b.procedureDate).getTime(),
+    );
 }
 
 export async function getLatestCaseForEpisode(

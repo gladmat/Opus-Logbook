@@ -92,7 +92,9 @@ function BreastChipRowInner<T extends string>({
   );
 }
 
-export const BreastChipRow = React.memo(BreastChipRowInner) as typeof BreastChipRowInner;
+export const BreastChipRow = React.memo(
+  BreastChipRowInner,
+) as typeof BreastChipRowInner;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BreastMultiChipRow — multi-select chip grid
@@ -169,7 +171,9 @@ function BreastMultiChipRowInner<T extends string>({
   );
 }
 
-export const BreastMultiChipRow = React.memo(BreastMultiChipRowInner) as typeof BreastMultiChipRowInner;
+export const BreastMultiChipRow = React.memo(
+  BreastMultiChipRowInner,
+) as typeof BreastMultiChipRowInner;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BreastCheckboxRow — boolean toggle with label

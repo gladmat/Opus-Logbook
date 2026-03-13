@@ -8,8 +8,8 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { CollapsibleFormSection } from "@/components/case-form/CollapsibleFormSection";
 import {
-  useCaseFormState,
   useCaseFormDispatch,
+  useCaseFormField,
 } from "@/contexts/CaseFormContext";
 import { setField } from "@/hooks/useCaseForm";
 import { RECONSTRUCTION_TIMING_LABELS } from "@/types/case";
@@ -22,22 +22,28 @@ import type { ReconstructionTiming } from "@/types/case";
  */
 export const TreatmentContextSection = React.memo(
   function TreatmentContextSection() {
-    const { state } = useCaseFormState();
+    const reconstructionTiming = useCaseFormField("reconstructionTiming");
+    const priorRadiotherapy = useCaseFormField("priorRadiotherapy");
+    const priorChemotherapy = useCaseFormField("priorChemotherapy");
+    const intraoperativeTransfusion = useCaseFormField(
+      "intraoperativeTransfusion",
+    );
+    const transfusionUnits = useCaseFormField("transfusionUnits");
     const { dispatch } = useCaseFormDispatch();
     const { theme } = useTheme();
 
     const filledCount = useMemo(() => {
       let count = 0;
-      if (state.reconstructionTiming) count++;
-      if (state.priorRadiotherapy) count++;
-      if (state.priorChemotherapy) count++;
-      if (state.intraoperativeTransfusion) count++;
+      if (reconstructionTiming) count++;
+      if (priorRadiotherapy) count++;
+      if (priorChemotherapy) count++;
+      if (intraoperativeTransfusion) count++;
       return count;
     }, [
-      state.reconstructionTiming,
-      state.priorRadiotherapy,
-      state.priorChemotherapy,
-      state.intraoperativeTransfusion,
+      reconstructionTiming,
+      priorRadiotherapy,
+      priorChemotherapy,
+      intraoperativeTransfusion,
     ]);
 
     const timingOptions = useMemo(
@@ -60,7 +66,7 @@ export const TreatmentContextSection = React.memo(
         <View style={styles.content}>
           <SelectField
             label="Reconstruction Timing"
-            value={state.reconstructionTiming}
+            value={reconstructionTiming}
             options={timingOptions}
             onSelect={(v) =>
               dispatch(
@@ -81,22 +87,18 @@ export const TreatmentContextSection = React.memo(
                 style={[
                   styles.checkbox,
                   {
-                    backgroundColor: state.priorRadiotherapy
+                    backgroundColor: priorRadiotherapy
                       ? theme.link + "20"
                       : theme.backgroundDefault,
-                    borderColor: state.priorRadiotherapy
-                      ? theme.link
-                      : theme.border,
+                    borderColor: priorRadiotherapy ? theme.link : theme.border,
                   },
                 ]}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  dispatch(
-                    setField("priorRadiotherapy", !state.priorRadiotherapy),
-                  );
+                  dispatch(setField("priorRadiotherapy", !priorRadiotherapy));
                 }}
               >
-                {state.priorRadiotherapy ? (
+                {priorRadiotherapy ? (
                   <Feather name="check" size={16} color={theme.link} />
                 ) : null}
               </Pressable>
@@ -110,22 +112,18 @@ export const TreatmentContextSection = React.memo(
                 style={[
                   styles.checkbox,
                   {
-                    backgroundColor: state.priorChemotherapy
+                    backgroundColor: priorChemotherapy
                       ? theme.link + "20"
                       : theme.backgroundDefault,
-                    borderColor: state.priorChemotherapy
-                      ? theme.link
-                      : theme.border,
+                    borderColor: priorChemotherapy ? theme.link : theme.border,
                   },
                 ]}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  dispatch(
-                    setField("priorChemotherapy", !state.priorChemotherapy),
-                  );
+                  dispatch(setField("priorChemotherapy", !priorChemotherapy));
                 }}
               >
-                {state.priorChemotherapy ? (
+                {priorChemotherapy ? (
                   <Feather name="check" size={16} color={theme.link} />
                 ) : null}
               </Pressable>
@@ -147,10 +145,10 @@ export const TreatmentContextSection = React.memo(
                 style={[
                   styles.checkbox,
                   {
-                    backgroundColor: state.intraoperativeTransfusion
+                    backgroundColor: intraoperativeTransfusion
                       ? theme.link + "20"
                       : theme.backgroundDefault,
-                    borderColor: state.intraoperativeTransfusion
+                    borderColor: intraoperativeTransfusion
                       ? theme.link
                       : theme.border,
                   },
@@ -160,12 +158,12 @@ export const TreatmentContextSection = React.memo(
                   dispatch(
                     setField(
                       "intraoperativeTransfusion",
-                      !state.intraoperativeTransfusion,
+                      !intraoperativeTransfusion,
                     ),
                   );
                 }}
               >
-                {state.intraoperativeTransfusion ? (
+                {intraoperativeTransfusion ? (
                   <Feather name="check" size={16} color={theme.link} />
                 ) : null}
               </Pressable>
@@ -174,11 +172,11 @@ export const TreatmentContextSection = React.memo(
               </ThemedText>
             </View>
 
-            {state.intraoperativeTransfusion ? (
+            {intraoperativeTransfusion ? (
               <View style={styles.transfusionRow}>
                 <FormField
                   label="Units Transfused"
-                  value={state.transfusionUnits}
+                  value={transfusionUnits}
                   onChangeText={(v) =>
                     dispatch(setField("transfusionUnits", v))
                   }

@@ -60,6 +60,7 @@ export function useStatistics(): UseStatisticsReturn {
   useFocusEffect(
     useCallback(() => {
       const task = InteractionManager.runAfterInteractions(async () => {
+        setIsLoading(true);
         try {
           const summaries = await getCaseSummaries();
           const nonPlannedIds = summaries

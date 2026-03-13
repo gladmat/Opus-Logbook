@@ -158,6 +158,8 @@ export default function CaseFormScreen() {
     profile,
   });
   const formDispatch = form.dispatch;
+  const formStateRef = useRef(form.state);
+  formStateRef.current = form.state;
   const diagnosisGroupsRef = useRef(form.state.diagnosisGroups);
   diagnosisGroupsRef.current = form.state.diagnosisGroups;
   const operativeMediaRef = useRef(form.state.operativeMedia);
@@ -182,19 +184,16 @@ export default function CaseFormScreen() {
 
   // ── Inline validation handlers ──────────────────────────────────────────
 
-  const onFieldBlur = useCallback(
-    (field: string) => {
-      touchedFieldsRef.current.add(field);
-      const error = validateField(field, form.state);
-      setFieldErrors((prev) => {
-        if (error) return { ...prev, [field]: error };
-        const next = { ...prev };
-        delete next[field];
-        return next;
-      });
-    },
-    [form.state],
-  );
+  const onFieldBlur = useCallback((field: string) => {
+    touchedFieldsRef.current.add(field);
+    const error = validateField(field, formStateRef.current);
+    setFieldErrors((prev) => {
+      if (error) return { ...prev, [field]: error };
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  }, []);
 
   // Re-validate touched fields on state change (clears errors on keystroke)
   useEffect(() => {

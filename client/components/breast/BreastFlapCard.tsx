@@ -128,6 +128,7 @@ const MAX_PERFORATORS = 4;
 interface Props {
   value: BreastFlapDetailsData;
   onChange: (data: BreastFlapDetailsData) => void;
+  mode?: "free" | "pedicled";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -157,9 +158,11 @@ function getFlapSummaryText(d: BreastFlapDetailsData): string {
 export const BreastFlapCard = React.memo(function BreastFlapCard({
   value,
   onChange,
+  mode = "free",
 }: Props) {
   const { theme } = useTheme();
   const [showDonorSite, setShowDonorSite] = useState(false);
+  const isPedicled = mode === "pedicled";
 
   const update = useCallback(
     (patch: Partial<BreastFlapDetailsData>) => {
@@ -209,206 +212,226 @@ export const BreastFlapCard = React.memo(function BreastFlapCard({
 
   return (
     <SectionWrapper
-      title="Breast Flap Details"
+      title={isPedicled ? "Pedicled Flap Details" : "Breast Flap Details"}
       icon="scissors"
       collapsible
       defaultCollapsed={false}
       subtitle={summary}
     >
-      {/* ── 1. Perforators ───────────────────────────────────────────────── */}
+      {!isPedicled ? (
+        <>
+          {/* ── 1. Perforators ───────────────────────────────────────────── */}
 
-      <ThemedText
-        type="small"
-        style={{ color: theme.textSecondary, fontWeight: "600" }}
-      >
-        Perforators
-      </ThemedText>
-
-      {(value.perforators ?? []).map((perf, idx) => (
-        <View
-          key={perf.id}
-          style={[
-            styles.perforatorCard,
-            { borderColor: theme.border, backgroundColor: theme.backgroundRoot },
-          ]}
-        >
-          <View style={styles.perforatorHeader}>
-            <ThemedText type="small" style={{ color: theme.text, fontWeight: "600" }}>
-              Perforator {idx + 1}
-            </ThemedText>
-            <Pressable onPress={() => removePerforator(perf.id)}>
-              <Feather name="x" size={16} color={theme.textTertiary} />
-            </Pressable>
-          </View>
-
-          <BreastChipRow
-            label="Row"
-            options={PERF_ROWS}
-            labels={PERFORATOR_ROW_LABELS}
-            selected={perf.row}
-            onSelect={(v) => updatePerforator(perf.id, { row: v })}
-            allowDeselect
-          />
-
-          <BreastNumericField
-            label="Calibre"
-            value={perf.calibreMm}
-            onValueChange={(v) =>
-              updatePerforator(perf.id, { calibreMm: v })
-            }
-            unit="mm"
-          />
-
-          <BreastChipRow
-            label="Type"
-            options={PERF_TYPES}
-            labels={PERFORATOR_TYPE_LABELS}
-            selected={perf.type}
-            onSelect={(v) => updatePerforator(perf.id, { type: v })}
-            allowDeselect
-          />
-
-          <BreastChipRow
-            label="Intramuscular Course"
-            options={IM_COURSES}
-            labels={INTRAMUSCULAR_COURSE_LABELS}
-            selected={perf.intramuscularCourse}
-            onSelect={(v) =>
-              updatePerforator(perf.id, { intramuscularCourse: v })
-            }
-            allowDeselect
-          />
-        </View>
-      ))}
-
-      {(value.perforators ?? []).length < MAX_PERFORATORS && (
-        <Pressable onPress={addPerforator} style={styles.addButton}>
-          <Feather name="plus" size={14} color={theme.link} />
           <ThemedText
             type="small"
-            style={{ color: theme.link, marginLeft: 4 }}
+            style={{ color: theme.textSecondary, fontWeight: "600" }}
           >
-            Add Perforator
+            Perforators
           </ThemedText>
-        </Pressable>
-      )}
 
-      <BreastChipRow
-        label="DIEA Branching Pattern"
-        options={DIEA_PATTERNS}
-        labels={DIEA_BRANCHING_LABELS}
-        selected={value.dieaBranchingPattern}
-        onSelect={(v) => update({ dieaBranchingPattern: v })}
-        allowDeselect
-      />
+          {(value.perforators ?? []).map((perf, idx) => (
+            <View
+              key={perf.id}
+              style={[
+                styles.perforatorCard,
+                {
+                  borderColor: theme.border,
+                  backgroundColor: theme.backgroundRoot,
+                },
+              ]}
+            >
+              <View style={styles.perforatorHeader}>
+                <ThemedText
+                  type="small"
+                  style={{ color: theme.text, fontWeight: "600" }}
+                >
+                  Perforator {idx + 1}
+                </ThemedText>
+                <Pressable onPress={() => removePerforator(perf.id)}>
+                  <Feather name="x" size={16} color={theme.textTertiary} />
+                </Pressable>
+              </View>
 
-      {/* ── 2. Recipient Vessels ──────────────────────────────────────────── */}
+              <BreastChipRow
+                label="Row"
+                options={PERF_ROWS}
+                labels={PERFORATOR_ROW_LABELS}
+                selected={perf.row}
+                onSelect={(v) => updatePerforator(perf.id, { row: v })}
+                allowDeselect
+              />
 
-      <View style={styles.sectionDivider} />
+              <BreastNumericField
+                label="Calibre"
+                value={perf.calibreMm}
+                onValueChange={(v) =>
+                  updatePerforator(perf.id, { calibreMm: v })
+                }
+                unit="mm"
+              />
 
-      <BreastChipRow
-        label="Recipient Artery"
-        options={ARTERIES}
-        labels={BREAST_RECIPIENT_ARTERY_LABELS}
-        selected={value.recipientArtery}
-        onSelect={(v) => {
-          const patch: Partial<BreastFlapDetailsData> = { recipientArtery: v };
-          if (v !== "ima" && v !== "ima_perforator") {
-            patch.imaInterspace = undefined;
-            patch.ribManagement = undefined;
-          }
-          update(patch);
-        }}
-        allowDeselect
-      />
+              <BreastChipRow
+                label="Type"
+                options={PERF_TYPES}
+                labels={PERFORATOR_TYPE_LABELS}
+                selected={perf.type}
+                onSelect={(v) => updatePerforator(perf.id, { type: v })}
+                allowDeselect
+              />
 
-      <BreastChipRow
-        label="Recipient Vein"
-        options={VEINS}
-        labels={BREAST_RECIPIENT_VEIN_LABELS}
-        selected={value.recipientVein}
-        onSelect={(v) => update({ recipientVein: v })}
-        allowDeselect
-      />
+              <BreastChipRow
+                label="Intramuscular Course"
+                options={IM_COURSES}
+                labels={INTRAMUSCULAR_COURSE_LABELS}
+                selected={perf.intramuscularCourse}
+                onSelect={(v) =>
+                  updatePerforator(perf.id, { intramuscularCourse: v })
+                }
+                allowDeselect
+              />
+            </View>
+          ))}
 
-      {isIma && (
-        <>
+          {(value.perforators ?? []).length < MAX_PERFORATORS ? (
+            <Pressable onPress={addPerforator} style={styles.addButton}>
+              <Feather name="plus" size={14} color={theme.link} />
+              <ThemedText
+                type="small"
+                style={{ color: theme.link, marginLeft: 4 }}
+              >
+                Add Perforator
+              </ThemedText>
+            </Pressable>
+          ) : null}
+
           <BreastChipRow
-            label="IMA Interspace"
-            options={INTERSPACES}
-            labels={IMA_INTERSPACE_LABELS}
-            selected={value.imaInterspace}
-            onSelect={(v) => update({ imaInterspace: v })}
+            label="DIEA Branching Pattern"
+            options={DIEA_PATTERNS}
+            labels={DIEA_BRANCHING_LABELS}
+            selected={value.dieaBranchingPattern}
+            onSelect={(v) => update({ dieaBranchingPattern: v })}
+            allowDeselect
+          />
+
+          {/* ── 2. Recipient Vessels ────────────────────────────────────── */}
+
+          <View style={styles.sectionDivider} />
+
+          <BreastChipRow
+            label="Recipient Artery"
+            options={ARTERIES}
+            labels={BREAST_RECIPIENT_ARTERY_LABELS}
+            selected={value.recipientArtery}
+            onSelect={(v) => {
+              const patch: Partial<BreastFlapDetailsData> = {
+                recipientArtery: v,
+              };
+              if (v !== "ima" && v !== "ima_perforator") {
+                patch.imaInterspace = undefined;
+                patch.ribManagement = undefined;
+              }
+              update(patch);
+            }}
             allowDeselect
           />
 
           <BreastChipRow
-            label="Rib Management"
-            options={RIB_MGMTS}
-            labels={RIB_MANAGEMENT_LABELS}
-            selected={value.ribManagement}
-            onSelect={(v) => update({ ribManagement: v })}
+            label="Recipient Vein"
+            options={VEINS}
+            labels={BREAST_RECIPIENT_VEIN_LABELS}
+            selected={value.recipientVein}
+            onSelect={(v) => update({ recipientVein: v })}
             allowDeselect
+          />
+
+          {isIma ? (
+            <>
+              <BreastChipRow
+                label="IMA Interspace"
+                options={INTERSPACES}
+                labels={IMA_INTERSPACE_LABELS}
+                selected={value.imaInterspace}
+                onSelect={(v) => update({ imaInterspace: v })}
+                allowDeselect
+              />
+
+              <BreastChipRow
+                label="Rib Management"
+                options={RIB_MGMTS}
+                labels={RIB_MANAGEMENT_LABELS}
+                selected={value.ribManagement}
+                onSelect={(v) => update({ ribManagement: v })}
+                allowDeselect
+              />
+            </>
+          ) : null}
+
+          {/* ── 3. Anastomosis ─────────────────────────────────────────── */}
+
+          <View style={styles.sectionDivider} />
+
+          <BreastChipRow
+            label="Arterial Technique"
+            options={ANAST_TECHNIQUES}
+            labels={ANASTOMOSIS_TECHNIQUE_LABELS}
+            selected={value.arterialTechnique}
+            onSelect={(v) => update({ arterialTechnique: v })}
+            allowDeselect
+          />
+
+          <BreastChipRow
+            label="Venous Technique"
+            options={ANAST_TECHNIQUES}
+            labels={ANASTOMOSIS_TECHNIQUE_LABELS}
+            selected={value.venousTechnique}
+            onSelect={(v) => update({ venousTechnique: v })}
+            allowDeselect
+          />
+
+          <BreastCheckboxRow
+            label="Venous coupler used"
+            value={value.venousCouplerUsed ?? false}
+            onChange={(v) => {
+              update({
+                venousCouplerUsed: v,
+                venousCouplerSizeMm: v ? value.venousCouplerSizeMm : undefined,
+              });
+            }}
+          />
+
+          {value.venousCouplerUsed ? (
+            <BreastNumericField
+              label="Coupler Size"
+              value={value.venousCouplerSizeMm}
+              onValueChange={(v) => update({ venousCouplerSizeMm: v })}
+              unit="mm"
+            />
+          ) : null}
+
+          <BreastChipRow
+            label="Venous Anastomoses"
+            options={["1", "2"] as const}
+            labels={{ "1": "Single", "2": "Dual" }}
+            selected={
+              value.numberOfVenousAnastomoses != null
+                ? (String(value.numberOfVenousAnastomoses) as "1" | "2")
+                : undefined
+            }
+            onSelect={(v) =>
+              update({
+                numberOfVenousAnastomoses: v ? (Number(v) as 1 | 2) : undefined,
+              })
+            }
+            allowDeselect
+          />
+
+          <BreastCheckboxRow
+            label="SIEV supercharging"
+            value={value.sievSupercharging ?? false}
+            onChange={(v) => update({ sievSupercharging: v })}
           />
         </>
-      )}
-
-      {/* ── 3. Anastomosis ───────────────────────────────────────────────── */}
-
-      <View style={styles.sectionDivider} />
-
-      <BreastChipRow
-        label="Arterial Technique"
-        options={ANAST_TECHNIQUES}
-        labels={ANASTOMOSIS_TECHNIQUE_LABELS}
-        selected={value.arterialTechnique}
-        onSelect={(v) => update({ arterialTechnique: v })}
-        allowDeselect
-      />
-
-      <BreastChipRow
-        label="Venous Technique"
-        options={ANAST_TECHNIQUES}
-        labels={ANASTOMOSIS_TECHNIQUE_LABELS}
-        selected={value.venousTechnique}
-        onSelect={(v) => update({ venousTechnique: v })}
-        allowDeselect
-      />
-
-      <BreastCheckboxRow
-        label="Venous coupler used"
-        value={value.venousCouplerUsed ?? false}
-        onChange={(v) => {
-          update({
-            venousCouplerUsed: v,
-            venousCouplerSizeMm: v ? value.venousCouplerSizeMm : undefined,
-          });
-        }}
-      />
-
-      {value.venousCouplerUsed && (
-        <BreastNumericField
-          label="Coupler Size"
-          value={value.venousCouplerSizeMm}
-          onValueChange={(v) => update({ venousCouplerSizeMm: v })}
-          unit="mm"
-        />
-      )}
-
-      <BreastChipRow
-        label="Venous Anastomoses"
-        options={["1", "2"] as const}
-        labels={{ "1": "Single", "2": "Dual" }}
-        selected={value.numberOfVenousAnastomoses != null ? (String(value.numberOfVenousAnastomoses) as "1" | "2") : undefined}
-        onSelect={(v) => update({ numberOfVenousAnastomoses: v ? (Number(v) as 1 | 2) : undefined })}
-        allowDeselect
-      />
-
-      <BreastCheckboxRow
-        label="SIEV supercharging"
-        value={value.sievSupercharging ?? false}
-        onChange={(v) => update({ sievSupercharging: v })}
-      />
+      ) : null}
 
       {/* ── 4. Flap Measurements ─────────────────────────────────────────── */}
 
@@ -461,9 +484,7 @@ export const BreastFlapCard = React.memo(function BreastFlapCard({
         label={showDonorSite ? "Hide Donor Site" : "Donor Site Details"}
         isExpanded={showDonorSite}
         onToggle={() => {
-          LayoutAnimation.configureNext(
-            LayoutAnimation.Presets.easeInEaseOut,
-          );
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
           setShowDonorSite(!showDonorSite);
         }}
       />

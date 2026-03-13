@@ -5,8 +5,9 @@ import { ThemedText } from "@/components/ThemedText";
 import { DiagnosisGroupEditor } from "@/components/DiagnosisGroupEditor";
 import { InlineEpisodeCreator } from "@/components/InlineEpisodeCreator";
 import {
-  useCaseFormState,
   useCaseFormDispatch,
+  useCaseFormField,
+  useCaseFormValidation,
 } from "@/contexts/CaseFormContext";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
@@ -29,17 +30,21 @@ export const DiagnosisProcedureSection = React.memo(
     episodeType,
   }: DiagnosisProcedureSectionProps) {
     const { theme } = useTheme();
-    const { state } = useCaseFormState();
     const {
       dispatch,
       handleDiagnosisGroupChange: dispatchGroupChange,
       handleDeleteDiagnosisGroup,
       addDiagnosisGroup,
       reorderDiagnosisGroups,
-      fieldErrors,
     } = useCaseFormDispatch();
-
-    const infectionOverlay = state.infectionOverlay;
+    const diagnosisGroups = useCaseFormField("diagnosisGroups");
+    const infectionOverlay = useCaseFormField("infectionOverlay");
+    const episodeId = useCaseFormField("episodeId");
+    const saving = useCaseFormField("saving");
+    const returnToTheatre = useCaseFormField("returnToTheatre");
+    const patientIdentifier = useCaseFormField("patientIdentifier");
+    const procedureDate = useCaseFormField("procedureDate");
+    const { fieldErrors } = useCaseFormValidation();
 
     const handleInfectionChange = useCallback(
       (overlay: InfectionOverlay | undefined) => {
@@ -67,20 +72,19 @@ export const DiagnosisProcedureSection = React.memo(
     );
 
     // Check if diagnosis is selected and no episode linked
-    const primaryGroup = state.diagnosisGroups[0];
+    const primaryGroup = diagnosisGroups[0];
     const hasDiagnosis = !!primaryGroup?.diagnosis;
-    const showInlineEpisodeCreator =
-      hasDiagnosis && !state.episodeId && !state.saving;
+    const showInlineEpisodeCreator = hasDiagnosis && !episodeId && !saving;
 
     // Determine which group index is the first to trigger infection visibility
     const firstInfectionGroupIndex = useMemo(() => {
-      return state.diagnosisGroups.findIndex(
+      return diagnosisGroups.findIndex(
         (g) =>
           g.procedures.some(
             (p) => p.subcategory === "Chronic Wounds / Infection",
           ) || !!infectionOverlay,
       );
-    }, [state.diagnosisGroups, infectionOverlay]);
+    }, [diagnosisGroups, infectionOverlay]);
 
     const onGroupChange = useCallback(
       (index: number, updated: DiagnosisGroup) => {
@@ -92,38 +96,38 @@ export const DiagnosisProcedureSection = React.memo(
     const handleMoveUp = useCallback(
       (index: number) => {
         if (index <= 0) return;
-        const groups = [...state.diagnosisGroups];
+        const groups = [...diagnosisGroups];
         const a = groups[index - 1]!;
         const b = groups[index]!;
         groups[index - 1] = b;
         groups[index] = a;
         reorderDiagnosisGroups(groups);
       },
-      [state.diagnosisGroups, reorderDiagnosisGroups],
+      [diagnosisGroups, reorderDiagnosisGroups],
     );
 
     const handleMoveDown = useCallback(
       (index: number) => {
-        if (index >= state.diagnosisGroups.length - 1) return;
-        const groups = [...state.diagnosisGroups];
+        if (index >= diagnosisGroups.length - 1) return;
+        const groups = [...diagnosisGroups];
         const a = groups[index]!;
         const b = groups[index + 1]!;
         groups[index] = b;
         groups[index + 1] = a;
         reorderDiagnosisGroups(groups);
       },
-      [state.diagnosisGroups, reorderDiagnosisGroups],
+      [diagnosisGroups, reorderDiagnosisGroups],
     );
 
     return (
       <>
-        {state.diagnosisGroups.map((group, idx) => (
+        {diagnosisGroups.map((group, idx) => (
           <DiagnosisGroupEditor
             key={group.id}
             group={group}
             index={idx}
-            isOnly={state.diagnosisGroups.length === 1}
-            totalGroups={state.diagnosisGroups.length}
+            isOnly={diagnosisGroups.length === 1}
+            totalGroups={diagnosisGroups.length}
             onChange={(updated) => onGroupChange(idx, updated)}
             onDelete={() => handleDeleteDiagnosisGroup(idx)}
             onMoveUp={() => handleMoveUp(idx)}
@@ -132,7 +136,7 @@ export const DiagnosisProcedureSection = React.memo(
             onInfectionChange={handleInfectionChange}
             isFirstInfectionGroup={idx === firstInfectionGroupIndex}
             episodeType={episodeType}
-            returnToTheatre={state.returnToTheatre}
+            returnToTheatre={returnToTheatre}
             scrollViewRef={scrollViewRef}
             scrollPositionRef={scrollPositionRef}
           />
@@ -145,8 +149,8 @@ export const DiagnosisProcedureSection = React.memo(
           diagnosisCode={primaryGroup?.diagnosis?.snomedCtCode}
           laterality={primaryGroup?.diagnosisClinicalDetails?.laterality}
           subcategory={primaryGroup?.procedures[0]?.subcategory}
-          patientIdentifier={state.patientIdentifier}
-          procedureDate={state.procedureDate}
+          patientIdentifier={patientIdentifier}
+          procedureDate={procedureDate}
           onEpisodeCreated={handleEpisodeCreated}
           onDismiss={() => {}}
         />

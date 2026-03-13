@@ -1,13 +1,13 @@
 import { useState, useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import { getVisibleDashboardEpisodes } from "@/lib/episodeStorage";
-import { getCasesByEpisodeId } from "@/lib/storage";
+import { getCaseSummariesByEpisodeId } from "@/lib/storage";
 import type { TreatmentEpisode } from "@/types/episode";
-import type { Case } from "@/types/case";
+import type { CaseSummary } from "@/types/caseSummary";
 
 export interface EpisodeWithCases {
   episode: TreatmentEpisode;
-  cases: Case[];
+  cases: CaseSummary[];
 }
 
 export function useActiveEpisodes() {
@@ -15,12 +15,13 @@ export function useActiveEpisodes() {
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
+    setLoading(true);
     try {
       const episodes = await getVisibleDashboardEpisodes();
       const withCases = await Promise.all(
         episodes.map(async (episode) => ({
           episode,
-          cases: await getCasesByEpisodeId(episode.id),
+          cases: await getCaseSummariesByEpisodeId(episode.id),
         })),
       );
       setData(withCases);

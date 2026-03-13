@@ -591,7 +591,14 @@ export type FibulaFixation =
   | "combination";
 export type FibulaDentalImplant = "immediate" | "delayed" | "not_planned";
 export type FibulaReconSite = "mandible" | "maxilla" | "long_bone";
-export type BrownMandibleClass = "I" | "II" | "III" | "IV";
+export type BrownMandibleClass =
+  | "I"
+  | "IIa"
+  | "IIb"
+  | "IIc"
+  | "IId"
+  | "III"
+  | "IV";
 export type MandibleSegment =
   | "symphysis"
   | "parasymphysis"
@@ -600,8 +607,33 @@ export type MandibleSegment =
   | "ramus"
   | "condyle";
 
-export type MFCBoneSource = "medial_condyle" | "supracondylar" | "medial_epicondyle";
-export type MFCTissueComposition = "bone_only" | "osteocutaneous" | "osteoperiosteal";
+export const BROWN_MANDIBLE_CLASS_LABELS: Record<BrownMandibleClass, string> = {
+  I: "Class I — Lateral defect, condyle preserved",
+  IIa: "Class IIa — Hemimandible, condyle preserved",
+  IIb: "Class IIb — Hemimandible with condyle",
+  IIc: "Class IIc — Anterior + lateral, condyle preserved",
+  IId: "Class IId — Anterior + lateral with condyle",
+  III: "Class III — Central/anterior defect",
+  IV: "Class IV — Extensive bilateral/anterior defect",
+};
+
+export const MANDIBLE_SEGMENT_LABELS: Record<MandibleSegment, string> = {
+  symphysis: "Symphysis",
+  parasymphysis: "Parasymphysis",
+  body: "Body",
+  angle: "Angle",
+  ramus: "Ramus",
+  condyle: "Condyle",
+};
+
+export type MFCBoneSource =
+  | "medial_condyle"
+  | "supracondylar"
+  | "medial_epicondyle";
+export type MFCTissueComposition =
+  | "bone_only"
+  | "osteocutaneous"
+  | "osteoperiosteal";
 export type MFCFixation = "screws" | "plate_and_screws" | "wires";
 
 export type ScapularSkinPaddle =
@@ -1105,14 +1137,46 @@ export const RECONSTRUCTION_TIMING_LABELS: Record<
   salvage: "Salvage (after failed reconstruction)",
 };
 
-export type JointCasePartnerSpecialty = "ent" | "omfs" | "neurosurgery" | "other";
+export type JointCasePartnerSpecialty =
+  | "ent"
+  | "omfs"
+  | "neurosurgery"
+  | "other";
+export type JointCaseAblativeSurgeon = "partner" | "self";
+export type JointCaseReconstructionSequence = "immediate" | "delayed";
+export type JointCaseStructureResected =
+  | "skin"
+  | "mucosa"
+  | "bone_mandible"
+  | "bone_maxilla"
+  | "tongue"
+  | "floor_of_mouth"
+  | "palate"
+  | "pharynx"
+  | "larynx"
+  | "nerve_facial"
+  | "nerve_lingual"
+  | "nerve_hypoglossal"
+  | "nerve_inferior_alveolar"
+  | "parotid_gland"
+  | "submandibular_gland"
+  | "other";
+
+export interface JointCaseDefectDimensions {
+  length?: number;
+  width?: number;
+  depth?: number;
+}
 
 export interface JointCaseContext {
   isJointCase: boolean;
   partnerSpecialty?: JointCasePartnerSpecialty;
   partnerConsultantName?: string;
-  ablativeSurgeon?: "partner" | "self";
-  reconstructionSequence?: "immediate" | "delayed";
+  ablativeSurgeon?: JointCaseAblativeSurgeon;
+  reconstructionSequence?: JointCaseReconstructionSequence;
+  ablativeProcedureDescription?: string;
+  defectDimensions?: JointCaseDefectDimensions;
+  structuresResected?: JointCaseStructureResected[];
 }
 
 export const JOINT_CASE_PARTNER_SPECIALTY_LABELS: Record<
@@ -1122,6 +1186,73 @@ export const JOINT_CASE_PARTNER_SPECIALTY_LABELS: Record<
   ent: "ENT (Otolaryngology)",
   omfs: "OMFS (Oral & Maxillofacial)",
   neurosurgery: "Neurosurgery",
+  other: "Other",
+};
+
+export const JOINT_CASE_ABLATIVE_SURGEON_LABELS: Record<
+  JointCaseAblativeSurgeon,
+  string
+> = {
+  partner: "Partner team",
+  self: "Self",
+};
+
+export const JOINT_CASE_RECONSTRUCTION_SEQUENCE_LABELS: Record<
+  JointCaseReconstructionSequence,
+  string
+> = {
+  immediate: "Immediate",
+  delayed: "Delayed",
+};
+
+export const JOINT_CASE_STRUCTURE_RESECTED_LABELS: Record<
+  JointCaseStructureResected,
+  string
+> = {
+  skin: "Skin",
+  mucosa: "Mucosa",
+  bone_mandible: "Mandible",
+  bone_maxilla: "Maxilla",
+  tongue: "Tongue",
+  floor_of_mouth: "Floor of mouth",
+  palate: "Palate",
+  pharynx: "Pharynx",
+  larynx: "Larynx",
+  nerve_facial: "Facial nerve",
+  nerve_lingual: "Lingual nerve",
+  nerve_hypoglossal: "Hypoglossal nerve",
+  nerve_inferior_alveolar: "Inferior alveolar nerve",
+  parotid_gland: "Parotid gland",
+  submandibular_gland: "Submandibular gland",
+  other: "Other",
+};
+
+export type RecipientVesselQuality =
+  | "normal"
+  | "irradiated_usable"
+  | "irradiated_vein_graft_required"
+  | "previously_operated";
+
+export const RECIPIENT_VESSEL_QUALITY_LABELS: Record<
+  RecipientVesselQuality,
+  string
+> = {
+  normal: "Normal",
+  irradiated_usable: "Irradiated but usable",
+  irradiated_vein_graft_required: "Irradiated — vein graft required",
+  previously_operated: "Previously operated neck",
+};
+
+export type VeinGraftSource =
+  | "saphenous"
+  | "cephalic"
+  | "external_jugular"
+  | "other";
+
+export const VEIN_GRAFT_SOURCE_LABELS: Record<VeinGraftSource, string> = {
+  saphenous: "Great saphenous",
+  cephalic: "Cephalic",
+  external_jugular: "External jugular",
   other: "Other",
 };
 
@@ -1420,8 +1551,18 @@ export interface FreeFlapDetails {
   donorSiteClosureMethod?: DonorSiteClosureMethod;
 
   // H&N irradiated neck vessel assessment (shown when head_neck + priorRadiotherapy)
+  recipientVesselQuality?: RecipientVesselQuality;
+  veinGraftUsed?: boolean;
+  veinGraftSource?: VeinGraftSource;
+  veinGraftLength?: number;
+  /** @deprecated Replaced by recipientVesselQuality. */
   irradiatedVesselStatus?: "normal" | "thickened" | "calcified" | "friable";
-  irradiatedVesselPreference?: "contralateral" | "ipsilateral_viable" | "vein_graft_required";
+  /** @deprecated Replaced by recipientVesselQuality / veinGraftUsed. */
+  irradiatedVesselPreference?:
+    | "contralateral"
+    | "ipsilateral_viable"
+    | "vein_graft_required";
+  /** @deprecated Replaced by joint-case context or operative procedures. */
   irradiatedNeckDissectionPerformed?: boolean;
 
   // Flap outcome stored in local clinicalDetails

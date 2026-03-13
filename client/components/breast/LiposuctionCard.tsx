@@ -196,7 +196,10 @@ export const LiposuctionCard = React.memo(function LiposuctionCard({
           key={idx}
           style={[
             styles.areaCard,
-            { borderColor: theme.border, backgroundColor: theme.backgroundRoot },
+            {
+              borderColor: theme.border,
+              backgroundColor: theme.backgroundRoot,
+            },
           ]}
         >
           <View style={styles.areaHeader}>
@@ -231,10 +234,7 @@ export const LiposuctionCard = React.memo(function LiposuctionCard({
 
       <Pressable onPress={addArea} style={styles.addButton}>
         <Feather name="plus" size={14} color={theme.link} />
-        <ThemedText
-          type="small"
-          style={{ color: theme.link, marginLeft: 4 }}
-        >
+        <ThemedText type="small" style={{ color: theme.link, marginLeft: 4 }}>
           Add Area
         </ThemedText>
       </Pressable>

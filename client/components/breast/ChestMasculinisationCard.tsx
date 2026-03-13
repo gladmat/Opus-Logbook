@@ -7,7 +7,6 @@
 
 import React, { useCallback, useState } from "react";
 import { View, StyleSheet } from "react-native";
-import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import type {
@@ -66,7 +65,10 @@ export const ChestMasculinisationCard = React.memo(
       <View
         style={[
           styles.card,
-          { borderColor: theme.border, backgroundColor: theme.backgroundSecondary },
+          {
+            borderColor: theme.border,
+            backgroundColor: theme.backgroundSecondary,
+          },
         ]}
       >
         <BreastSectionToggle
@@ -110,9 +112,7 @@ export const ChestMasculinisationCard = React.memo(
                 <BreastNumericField
                   label="Specimen Weight (L)"
                   value={value.specimenWeightLeftGrams}
-                  onValueChange={(v) =>
-                    update({ specimenWeightLeftGrams: v })
-                  }
+                  onValueChange={(v) => update({ specimenWeightLeftGrams: v })}
                   unit="g"
                   integer
                   placeholder="e.g. 320"
@@ -122,9 +122,7 @@ export const ChestMasculinisationCard = React.memo(
                 <BreastNumericField
                   label="Specimen Weight (R)"
                   value={value.specimenWeightRightGrams}
-                  onValueChange={(v) =>
-                    update({ specimenWeightRightGrams: v })
-                  }
+                  onValueChange={(v) => update({ specimenWeightRightGrams: v })}
                   unit="g"
                   integer
                   placeholder="e.g. 310"

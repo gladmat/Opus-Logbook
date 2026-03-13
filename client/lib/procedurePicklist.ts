@@ -2169,7 +2169,8 @@ const HEAD_NECK_LOCAL_FLAPS: ProcedurePicklistEntry[] = [
     id: "hn_local_vy",
     displayName: "V-Y advancement flap — face",
     snomedCtCode: "1202012002",
-    snomedCtDisplay: "Reconstruction of skin using local V-Y advancement flap (procedure)",
+    snomedCtDisplay:
+      "Reconstruction of skin using local V-Y advancement flap (procedure)",
     specialties: ["head_neck"],
     subcategory: "Local Flaps",
     tags: ["local_flap"],
@@ -2272,7 +2273,8 @@ const HEAD_NECK_REGIONAL_FLAPS: ProcedurePicklistEntry[] = [
     id: "hn_reg_deltopectoral",
     displayName: "Deltopectoral flap",
     snomedCtCode: "736739001",
-    snomedCtDisplay: "Reconstruction using deltopectoral pedicle flap (procedure)",
+    snomedCtDisplay:
+      "Reconstruction using deltopectoral pedicle flap (procedure)",
     specialties: ["head_neck"],
     subcategory: "Regional Flaps",
     tags: ["pedicled_flap"],
@@ -2282,7 +2284,8 @@ const HEAD_NECK_REGIONAL_FLAPS: ProcedurePicklistEntry[] = [
     id: "hn_reg_pectoralis_major",
     displayName: "Pectoralis major flap (PMMC)",
     snomedCtCode: "14390001000004103",
-    snomedCtDisplay: "Reconstruction of mouth using pectoralis major myocutaneous flap (procedure)",
+    snomedCtDisplay:
+      "Reconstruction of mouth using pectoralis major myocutaneous flap (procedure)",
     specialties: ["head_neck"],
     subcategory: "Regional Flaps",
     tags: ["pedicled_flap"],
@@ -2297,8 +2300,7 @@ const HEAD_NECK_FREE_FLAPS: ProcedurePicklistEntry[] = [
     id: "hn_ff_vram",
     displayName: "Free VRAM flap (Vertical Rectus Abdominis Myocutaneous)",
     snomedCtCode: "122465003",
-    snomedCtDisplay:
-      "Reconstruction procedure (procedure)",
+    snomedCtDisplay: "Reconstruction procedure (procedure)",
     specialties: ["head_neck", "general"],
     subcategory: "Free Flap — Head & Neck",
     tags: ["free_flap", "microsurgery"],
@@ -2309,7 +2311,8 @@ const HEAD_NECK_FREE_FLAPS: ProcedurePicklistEntry[] = [
     id: "hn_ff_jejunal",
     displayName: "Free jejunal flap",
     snomedCtCode: "172952004",
-    snomedCtDisplay: "Reconstruction of pharynx with free jejunal transfer (procedure)",
+    snomedCtDisplay:
+      "Reconstruction of pharynx with free jejunal transfer (procedure)",
     specialties: ["head_neck"],
     subcategory: "Free Flap — Head & Neck",
     tags: ["free_flap", "microsurgery"],
@@ -2320,7 +2323,8 @@ const HEAD_NECK_FREE_FLAPS: ProcedurePicklistEntry[] = [
     id: "hn_ff_iliac_crest",
     displayName: "Free iliac crest (DCIA) flap",
     snomedCtCode: "442840002",
-    snomedCtDisplay: "Transplant of free osteocutaneous flap from iliac crest using microvascular anastomosis (procedure)",
+    snomedCtDisplay:
+      "Transplant of free osteocutaneous flap from iliac crest using microvascular anastomosis (procedure)",
     specialties: ["head_neck"],
     subcategory: "Free Flap — Head & Neck",
     tags: ["free_flap", "microsurgery"],
@@ -2331,8 +2335,7 @@ const HEAD_NECK_FREE_FLAPS: ProcedurePicklistEntry[] = [
     id: "hn_ff_medial_femoral_condyle",
     displayName: "Free MFC flap (Medial Femoral Condyle)",
     snomedCtCode: "122465003",
-    snomedCtDisplay:
-      "Reconstruction procedure (procedure)",
+    snomedCtDisplay: "Reconstruction procedure (procedure)",
     specialties: ["head_neck", "orthoplastic"],
     subcategory: "Free Flap — Head & Neck",
     tags: ["free_flap", "microsurgery"],
@@ -2343,7 +2346,8 @@ const HEAD_NECK_FREE_FLAPS: ProcedurePicklistEntry[] = [
     id: "hn_ff_omentum",
     displayName: "Free omentum flap",
     snomedCtCode: "173459005",
-    snomedCtDisplay: "Reconstruction of mouth defect with free omental flap (procedure)",
+    snomedCtDisplay:
+      "Reconstruction of mouth defect with free omental flap (procedure)",
     specialties: ["head_neck"],
     subcategory: "Free Flap — Head & Neck",
     tags: ["free_flap", "microsurgery"],
@@ -2570,7 +2574,8 @@ const HEAD_NECK_EYELID_RECON: ProcedurePicklistEntry[] = [
     id: "hn_eyelid_hughes",
     displayName: "Hughes tarsoconjunctival flap",
     snomedCtCode: "47920001",
-    snomedCtDisplay: "Reconstruction of eyelid with tarsoconjunctival flap (procedure)",
+    snomedCtDisplay:
+      "Reconstruction of eyelid with tarsoconjunctival flap (procedure)",
     specialties: ["head_neck"],
     subcategory: "Eyelid Reconstruction",
     tags: ["oncological"],
@@ -2854,7 +2859,8 @@ const HEAD_NECK_FACIAL_REANIMATION: ProcedurePicklistEntry[] = [
     id: "hn_nerve_lateral_tarsal_strip",
     displayName: "Lower eyelid tightening (lateral tarsal strip)",
     snomedCtCode: "429055001",
-    snomedCtDisplay: "Replacement of lateral canthal tendon using tarsal strip (procedure)",
+    snomedCtDisplay:
+      "Replacement of lateral canthal tendon using tarsal strip (procedure)",
     specialties: ["head_neck"],
     subcategory: "Facial Reanimation",
     tags: ["elective"],
@@ -2968,7 +2974,8 @@ const HEAD_NECK_CLEFT_CRANIOFACIAL: ProcedurePicklistEntry[] = [
     id: "hn_distraction_osteogenesis",
     displayName: "Distraction osteogenesis — craniofacial",
     snomedCtCode: "1222491000168105",
-    snomedCtDisplay: "Osteotomy of mandible with distraction osteogenesis (procedure)",
+    snomedCtDisplay:
+      "Osteotomy of mandible with distraction osteogenesis (procedure)",
     specialties: ["cleft_cranio", "head_neck"],
     subcategory: "Cleft & Craniofacial",
     tags: ["elective"],
@@ -2992,7 +2999,8 @@ const HEAD_NECK_FACIAL_FRACTURES: ProcedurePicklistEntry[] = [
     id: "hn_fx_mandible_imf",
     displayName: "Mandible fracture — IMF / closed reduction",
     snomedCtCode: "699158003",
-    snomedCtDisplay: "Closed reduction of fracture of mandible with internal fixation (procedure)",
+    snomedCtDisplay:
+      "Closed reduction of fracture of mandible with internal fixation (procedure)",
     specialties: ["head_neck"],
     subcategory: "Facial Fractures",
     tags: ["trauma"],
@@ -3002,7 +3010,8 @@ const HEAD_NECK_FACIAL_FRACTURES: ProcedurePicklistEntry[] = [
     id: "hn_fx_zygoma_orif",
     displayName: "Zygoma fracture ORIF",
     snomedCtCode: "1363007003",
-    snomedCtDisplay: "Open reduction of fracture of zygomatic complex (procedure)",
+    snomedCtDisplay:
+      "Open reduction of fracture of zygomatic complex (procedure)",
     specialties: ["head_neck"],
     subcategory: "Facial Fractures",
     tags: ["trauma"],
@@ -3096,7 +3105,8 @@ const HEAD_NECK_FRACTURE_SUBTYPES: ProcedurePicklistEntry[] = [
     id: "hn_fx_mandible_imf_screws",
     displayName: "Closed reduction mandible — MMF screws",
     snomedCtCode: "699158003",
-    snomedCtDisplay: "Closed reduction of fracture of mandible with internal fixation (procedure)",
+    snomedCtDisplay:
+      "Closed reduction of fracture of mandible with internal fixation (procedure)",
     specialties: ["head_neck"],
     subcategory: "Facial Fractures",
     tags: ["trauma"],
@@ -3106,8 +3116,7 @@ const HEAD_NECK_FRACTURE_SUBTYPES: ProcedurePicklistEntry[] = [
     id: "hn_fx_mandible_orif_miniplate",
     displayName: "ORIF mandible — miniplate (Champy technique)",
     snomedCtCode: "302475009",
-    snomedCtDisplay:
-      "Fixation of mandible - internal (procedure)",
+    snomedCtDisplay: "Fixation of mandible - internal (procedure)",
     specialties: ["head_neck"],
     subcategory: "Facial Fractures",
     tags: ["trauma"],
@@ -3117,8 +3126,7 @@ const HEAD_NECK_FRACTURE_SUBTYPES: ProcedurePicklistEntry[] = [
     id: "hn_fx_mandible_orif_recon_plate",
     displayName: "ORIF mandible — reconstruction plate",
     snomedCtCode: "302475009",
-    snomedCtDisplay:
-      "Fixation of mandible - internal (procedure)",
+    snomedCtDisplay: "Fixation of mandible - internal (procedure)",
     specialties: ["head_neck"],
     subcategory: "Facial Fractures",
     tags: ["trauma"],
@@ -3128,8 +3136,7 @@ const HEAD_NECK_FRACTURE_SUBTYPES: ProcedurePicklistEntry[] = [
     id: "hn_fx_mandible_orif_lag_screw",
     displayName: "ORIF mandible — lag screw",
     snomedCtCode: "302475009",
-    snomedCtDisplay:
-      "Fixation of mandible - internal (procedure)",
+    snomedCtDisplay: "Fixation of mandible - internal (procedure)",
     specialties: ["head_neck"],
     subcategory: "Facial Fractures",
     tags: ["trauma"],
@@ -3139,8 +3146,7 @@ const HEAD_NECK_FRACTURE_SUBTYPES: ProcedurePicklistEntry[] = [
     id: "hn_fx_mandible_condyle_orif",
     displayName: "ORIF condylar fracture (open approach)",
     snomedCtCode: "302475009",
-    snomedCtDisplay:
-      "Fixation of mandible - internal (procedure)",
+    snomedCtDisplay: "Fixation of mandible - internal (procedure)",
     specialties: ["head_neck"],
     subcategory: "Facial Fractures",
     tags: ["trauma"],
@@ -3172,8 +3178,7 @@ const HEAD_NECK_FRACTURE_SUBTYPES: ProcedurePicklistEntry[] = [
     id: "hn_fx_zygomatic_arch_orif",
     displayName: "ORIF zygomatic arch (isolated)",
     snomedCtCode: "1363011009",
-    snomedCtDisplay:
-      "Open reduction of fracture of zygomatic arch (procedure)",
+    snomedCtDisplay: "Open reduction of fracture of zygomatic arch (procedure)",
     specialties: ["head_neck"],
     subcategory: "Facial Fractures",
     tags: ["trauma"],
@@ -3224,8 +3229,7 @@ const HEAD_NECK_FRACTURE_SUBTYPES: ProcedurePicklistEntry[] = [
     id: "hn_fx_frontal_bone_orif",
     displayName: "ORIF frontal bone fracture",
     snomedCtCode: "80083004",
-    snomedCtDisplay:
-      "Open reduction of fracture of facial bone (procedure)",
+    snomedCtDisplay: "Open reduction of fracture of facial bone (procedure)",
     specialties: ["head_neck"],
     subcategory: "Facial Fractures",
     tags: ["trauma"],
@@ -3376,7 +3380,8 @@ const HEAD_NECK_CANCER_RECON: ProcedurePicklistEntry[] = [
     id: "hn_neck_dissection_selective",
     displayName: "Selective neck dissection (specify levels)",
     snomedCtCode: "234246002",
-    snomedCtDisplay: "Selective neck dissection of cervical lymph nodes (procedure)",
+    snomedCtDisplay:
+      "Selective neck dissection of cervical lymph nodes (procedure)",
     specialties: ["head_neck"],
     subcategory: "H&N Cancer Reconstruction",
     tags: ["oncological"],
@@ -3570,7 +3575,8 @@ const HEAD_NECK_LIP_RECON: ProcedurePicklistEntry[] = [
     id: "hn_lip_vermilion_advance",
     displayName: "Vermilion advancement (lip shave)",
     snomedCtCode: "173218002",
-    snomedCtDisplay: "Excision of vermilion border and advancement of lip mucosa (procedure)",
+    snomedCtDisplay:
+      "Excision of vermilion border and advancement of lip mucosa (procedure)",
     specialties: ["head_neck", "skin_cancer"],
     subcategory: "Lip Reconstruction",
     tags: ["oncological"],
@@ -3655,7 +3661,8 @@ const HEAD_NECK_EAR_RECON: ProcedurePicklistEntry[] = [
     id: "hn_ear_antia_buch",
     displayName: "Antia-Buch flap (helical advancement)",
     snomedCtCode: "172609001",
-    snomedCtDisplay: "Reconstruction of external ear with rim advancement flap (procedure)",
+    snomedCtDisplay:
+      "Reconstruction of external ear with rim advancement flap (procedure)",
     specialties: ["head_neck"],
     subcategory: "Ear Reconstruction",
     tags: ["oncological"],
@@ -4601,8 +4608,7 @@ const BREAST_ONCOPLASTIC: ProcedurePicklistEntry[] = [
     id: "breast_onco_nsm",
     displayName: "Nipple-sparing mastectomy + immediate reconstruction",
     snomedCtCode: "1380209001",
-    snomedCtDisplay:
-      "Nipple preserving subcutaneous mastectomy (procedure)",
+    snomedCtDisplay: "Nipple preserving subcutaneous mastectomy (procedure)",
     specialties: ["breast"],
     subcategory: "Oncoplastic Surgery",
     tags: ["oncological"],
@@ -4632,8 +4638,7 @@ const BREAST_ONCOPLASTIC: ProcedurePicklistEntry[] = [
   },
   {
     id: "breast_onco_oncoplastic_level2",
-    displayName:
-      "Oncoplastic Level 2 (volume replacement — perforator flap)",
+    displayName: "Oncoplastic Level 2 (volume replacement — perforator flap)",
     snomedCtCode: "392090004",
     snomedCtDisplay: "Operation on breast (procedure)",
     specialties: ["breast"],
@@ -5001,7 +5006,8 @@ const BREAST_GENDER_AFFIRMING: ProcedurePicklistEntry[] = [
     id: "breast_ga_revision",
     displayName: "Gender-affirming breast/chest revision",
     snomedCtCode: "392090004", // VERIFY
-    snomedCtDisplay: "Revision of gender-affirming breast procedure (procedure)",
+    snomedCtDisplay:
+      "Revision of gender-affirming breast procedure (procedure)",
     specialties: ["breast"],
     subcategory: "Gender-Affirming",
     tags: ["gender_affirming", "revision"],

@@ -75,7 +75,10 @@ export function AnastomosisEntryCard({
     if (!recipientRegion) return;
 
     const applyLocalPresets = () => {
-      const localArteries = getRecipientVesselPresets(recipientRegion, "artery");
+      const localArteries = getRecipientVesselPresets(
+        recipientRegion,
+        "artery",
+      );
       const localVeins = getRecipientVesselPresets(recipientRegion, "vein");
       setArteries(
         localArteries.map(
@@ -126,17 +129,14 @@ export function AnastomosisEntryCard({
                   displayName: name,
                   commonName: name,
                 }) as SnomedRefItem,
-              ),
+            ),
           );
         }
 
         if (veinsData.length > 0) {
           setVeins(veinsData);
         } else {
-          const localVeins = getRecipientVesselPresets(
-            recipientRegion,
-            "vein",
-          );
+          const localVeins = getRecipientVesselPresets(recipientRegion, "vein");
           setVeins(
             localVeins.map(
               (name) =>
@@ -145,7 +145,7 @@ export function AnastomosisEntryCard({
                   displayName: name,
                   commonName: name,
                 }) as SnomedRefItem,
-              ),
+            ),
           );
         }
       })

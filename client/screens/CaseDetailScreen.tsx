@@ -49,12 +49,19 @@ import {
   TIMELINE_EVENT_TYPE_LABELS,
   PROM_QUESTIONNAIRE_LABELS,
   FOLLOW_UP_INTERVAL_LABELS,
+  BROWN_MANDIBLE_CLASS_LABELS,
+  JOINT_CASE_ABLATIVE_SURGEON_LABELS,
   getAllProcedures,
   isExcisionBiopsyDiagnosis,
   CLINICAL_SUSPICION_LABELS,
+  JOINT_CASE_RECONSTRUCTION_SEQUENCE_LABELS,
   UnplannedReadmissionReason,
   UnplannedICUReason,
   JOINT_CASE_PARTNER_SPECIALTY_LABELS,
+  JOINT_CASE_STRUCTURE_RESECTED_LABELS,
+  MANDIBLE_SEGMENT_LABELS,
+  RECIPIENT_VESSEL_QUALITY_LABELS,
+  VEIN_GRAFT_SOURCE_LABELS,
 } from "@/types/case";
 import { getCasePrimaryTitle } from "@/lib/caseDiagnosisSummary";
 import {
@@ -135,6 +142,64 @@ function DetailRow({ label, value, unit }: DetailRowProps) {
       </ThemedText>
     </View>
   );
+}
+
+function formatDefectDimensions(
+  dimensions:
+    | {
+        length?: number;
+        width?: number;
+        depth?: number;
+      }
+    | undefined,
+): string | undefined {
+  if (!dimensions) return undefined;
+
+  const parts = [
+    dimensions.length != null ? `L ${dimensions.length}` : undefined,
+    dimensions.width != null ? `W ${dimensions.width}` : undefined,
+    dimensions.depth != null ? `D ${dimensions.depth}` : undefined,
+  ].filter(Boolean);
+
+  return parts.length > 0 ? `${parts.join(" × ")} mm` : undefined;
+}
+
+function formatStructuresResected(
+  values: (keyof typeof JOINT_CASE_STRUCTURE_RESECTED_LABELS)[] | undefined,
+): string | undefined {
+  if (!values || values.length === 0) return undefined;
+  return values
+    .map((value) => JOINT_CASE_STRUCTURE_RESECTED_LABELS[value] ?? value)
+    .join(", ");
+}
+
+function getRecipientVesselQualityLabel(
+  details: FreeFlapDetails,
+): string | undefined {
+  if (details.recipientVesselQuality) {
+    return RECIPIENT_VESSEL_QUALITY_LABELS[details.recipientVesselQuality];
+  }
+  if (details.irradiatedVesselPreference === "vein_graft_required") {
+    return RECIPIENT_VESSEL_QUALITY_LABELS.irradiated_vein_graft_required;
+  }
+  if (details.irradiatedNeckDissectionPerformed) {
+    return RECIPIENT_VESSEL_QUALITY_LABELS.previously_operated;
+  }
+  if (
+    details.irradiatedVesselPreference === "ipsilateral_viable" ||
+    (details.irradiatedVesselStatus &&
+      details.irradiatedVesselStatus !== "normal")
+  ) {
+    return RECIPIENT_VESSEL_QUALITY_LABELS.irradiated_usable;
+  }
+  if (
+    details.irradiatedVesselStatus === "normal" ||
+    details.irradiatedVesselPreference === "contralateral"
+  ) {
+    return RECIPIENT_VESSEL_QUALITY_LABELS.normal;
+  }
+
+  return undefined;
 }
 
 function getEventTypeIcon(
@@ -859,6 +924,16 @@ export default function CaseDetailScreen() {
                                   ).recipientSiteRegion?.replace(/_/g, " ")}
                                 />
                               ) : null}
+                              {getRecipientVesselQualityLabel(
+                                proc.clinicalDetails as FreeFlapDetails,
+                              ) ? (
+                                <DetailRow
+                                  label="Recipient Vessels"
+                                  value={getRecipientVesselQualityLabel(
+                                    proc.clinicalDetails as FreeFlapDetails,
+                                  )}
+                                />
+                              ) : null}
                               {(proc.clinicalDetails as FreeFlapDetails)
                                 .ischemiaTimeMinutes ? (
                                 <DetailRow
@@ -963,6 +1038,75 @@ export default function CaseDetailScreen() {
                                       ? "Yes"
                                       : "No"
                                   }
+                                />
+                              ) : null}
+                              {((proc.clinicalDetails as FreeFlapDetails)
+                                .veinGraftUsed ??
+                                (proc.clinicalDetails as FreeFlapDetails)
+                                  .irradiatedVesselPreference ===
+                                  "vein_graft_required") !== undefined ? (
+                                <DetailRow
+                                  label="Vein Graft"
+                                  value={
+                                    ((proc.clinicalDetails as FreeFlapDetails)
+                                      .veinGraftUsed ??
+                                    (proc.clinicalDetails as FreeFlapDetails)
+                                      .irradiatedVesselPreference ===
+                                      "vein_graft_required")
+                                      ? "Yes"
+                                      : "No"
+                                  }
+                                />
+                              ) : null}
+                              {(proc.clinicalDetails as FreeFlapDetails)
+                                .veinGraftSource ? (
+                                <DetailRow
+                                  label="Vein Graft Source"
+                                  value={
+                                    VEIN_GRAFT_SOURCE_LABELS[
+                                      (proc.clinicalDetails as FreeFlapDetails)
+                                        .veinGraftSource!
+                                    ]
+                                  }
+                                />
+                              ) : null}
+                              {(proc.clinicalDetails as FreeFlapDetails)
+                                .veinGraftLength ? (
+                                <DetailRow
+                                  label="Vein Graft Length"
+                                  value={
+                                    (proc.clinicalDetails as FreeFlapDetails)
+                                      .veinGraftLength
+                                  }
+                                  unit="cm"
+                                />
+                              ) : null}
+                              {(proc.clinicalDetails as FreeFlapDetails)
+                                .flapSpecificDetails?.fibulaBrownClass ? (
+                                <DetailRow
+                                  label="Brown Class"
+                                  value={
+                                    BROWN_MANDIBLE_CLASS_LABELS[
+                                      (proc.clinicalDetails as FreeFlapDetails)
+                                        .flapSpecificDetails!.fibulaBrownClass!
+                                    ]
+                                  }
+                                />
+                              ) : null}
+                              {(proc.clinicalDetails as FreeFlapDetails)
+                                .flapSpecificDetails?.fibulaMandibleSegments
+                                ?.length ? (
+                                <DetailRow
+                                  label="Mandible Segments"
+                                  value={(
+                                    proc.clinicalDetails as FreeFlapDetails
+                                  )
+                                    .flapSpecificDetails!.fibulaMandibleSegments!.map(
+                                      (segment) =>
+                                        MANDIBLE_SEGMENT_LABELS[segment] ??
+                                        segment,
+                                    )
+                                    .join(", ")}
                                 />
                               ) : null}
                             </>
@@ -1807,9 +1951,9 @@ export default function CaseDetailScreen() {
                 <DetailRow
                   label="Ablative Surgeon"
                   value={
-                    caseData.jointCaseContext.ablativeSurgeon === "partner"
-                      ? "Partner team"
-                      : "Self"
+                    JOINT_CASE_ABLATIVE_SURGEON_LABELS[
+                      caseData.jointCaseContext.ablativeSurgeon
+                    ]
                   }
                 />
               ) : null}
@@ -1817,11 +1961,36 @@ export default function CaseDetailScreen() {
                 <DetailRow
                   label="Reconstruction"
                   value={
-                    caseData.jointCaseContext.reconstructionSequence ===
-                    "immediate"
-                      ? "Immediate"
-                      : "Delayed"
+                    JOINT_CASE_RECONSTRUCTION_SEQUENCE_LABELS[
+                      caseData.jointCaseContext.reconstructionSequence
+                    ]
                   }
+                />
+              ) : null}
+              {caseData.jointCaseContext.ablativeProcedureDescription ? (
+                <DetailRow
+                  label="Ablative Procedure"
+                  value={caseData.jointCaseContext.ablativeProcedureDescription}
+                />
+              ) : null}
+              {formatDefectDimensions(
+                caseData.jointCaseContext.defectDimensions,
+              ) ? (
+                <DetailRow
+                  label="Defect Dimensions"
+                  value={formatDefectDimensions(
+                    caseData.jointCaseContext.defectDimensions,
+                  )}
+                />
+              ) : null}
+              {formatStructuresResected(
+                caseData.jointCaseContext.structuresResected,
+              ) ? (
+                <DetailRow
+                  label="Structures Resected"
+                  value={formatStructuresResected(
+                    caseData.jointCaseContext.structuresResected,
+                  )}
                 />
               ) : null}
             </View>
@@ -2230,10 +2399,7 @@ export default function CaseDetailScreen() {
                 <ThemedText style={styles.auditPickerLabel}>
                   Unplanned ICU:
                 </ThemedText>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                >
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   {Object.entries(UNPLANNED_ICU_LABELS).map(
                     ([value, label]) => (
                       <Pressable
@@ -2247,9 +2413,7 @@ export default function CaseDetailScreen() {
                                 ? theme.link
                                 : theme.backgroundDefault,
                             borderColor:
-                              auditICU === value
-                                ? theme.link
-                                : theme.border,
+                              auditICU === value ? theme.link : theme.border,
                           },
                         ]}
                       >

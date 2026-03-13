@@ -308,7 +308,17 @@ export function generateBreastSummary(
       continue;
     }
 
-    const lipo = getLipofillingSummary(sideData.lipofilling);
+    const injectionVolume =
+      assessment.lipofilling?.injections?.[side]?.volumeInjectedMl;
+    const lipo =
+      assessment.lipofilling && injectionVolume
+        ? getLipofillingSummary({
+            ...assessment.lipofilling,
+            injections: {
+              [side]: assessment.lipofilling.injections?.[side],
+            },
+          })
+        : "";
     if (lipo) {
       parts.push(`${prefix}: ${lipo}`);
     }

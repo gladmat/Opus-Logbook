@@ -37,7 +37,7 @@ export interface AttentionItem {
 
 export interface DashboardEpisodeWithCases {
   episode: TreatmentEpisode;
-  cases: Case[];
+  cases: (Case | CaseSummary)[];
 }
 
 export interface DashboardSummary {
@@ -346,11 +346,10 @@ export function buildAttentionItems<T extends Case | CaseSummary>(
         parseCaseDate(mostRecentCase.procedureDate),
       );
       daysSinceLastEncounter = Math.max(0, getDiffDays(caseDate, today));
-      lastProcedureSummary =
-        getCasePrimaryTitle(mostRecentCase) || mostRecentCase.procedureType;
+      lastProcedureSummary = getCaseLikeDiagnosisTitle(mostRecentCase);
       lastCaseDate = mostRecentCase.procedureDate;
       lastCaseId = mostRecentCase.id;
-      lastCaseCanAddHistology = caseCanAddHistology(mostRecentCase);
+      lastCaseCanAddHistology = getCaseLikeCanAddHistology(mostRecentCase);
       facility = mostRecentCase.facility;
     }
 
@@ -474,11 +473,19 @@ export function buildEpisodeCaseFormParams(
     patientIdentifier: episodeWithCases.episode.patientIdentifier,
     facility: lastCase?.facility,
     specialty: episodeWithCases.episode.specialty,
-    diagnosisGroups: lastCase?.diagnosisGroups,
+    diagnosisGroups: isCaseSummaryLike(lastCase)
+      ? undefined
+      : lastCase?.diagnosisGroups,
     encounterClass: lastCase?.encounterClass,
-    reconstructionTiming: lastCase?.reconstructionTiming,
-    priorRadiotherapy: lastCase?.priorRadiotherapy,
-    priorChemotherapy: lastCase?.priorChemotherapy,
+    reconstructionTiming: isCaseSummaryLike(lastCase)
+      ? undefined
+      : lastCase?.reconstructionTiming,
+    priorRadiotherapy: isCaseSummaryLike(lastCase)
+      ? undefined
+      : lastCase?.priorRadiotherapy,
+    priorChemotherapy: isCaseSummaryLike(lastCase)
+      ? undefined
+      : lastCase?.priorChemotherapy,
     episodeSequence: linkedCases.length + 1,
   };
 

@@ -20,7 +20,23 @@ import {
 } from "./BreastCardHelpers";
 import { SectionWrapper } from "@/components/skin-cancer/SectionWrapper";
 import { IMPLANT_MANUFACTURERS, ADM_PRODUCTS } from "@/lib/breastConfig";
-import type { ImplantDetailsData, AdmDetails } from "@/types/breast";
+import type {
+  ImplantDetailsData,
+  AdmDetails,
+  ImplantDeviceType,
+  ImplantPlane,
+  ImplantIncision,
+  ImplantSurface,
+  ImplantFill,
+  ImplantShape,
+  ImplantProfile,
+  ImplantShellType,
+  DualPlaneType,
+  PocketRinse,
+  ExpanderPortType,
+  AdmOrigin,
+  AdmPosition,
+} from "@/types/breast";
 import {
   IMPLANT_DEVICE_TYPE_LABELS,
   IMPLANT_PLANE_LABELS,
@@ -35,21 +51,6 @@ import {
   EXPANDER_PORT_TYPE_LABELS,
   ADM_ORIGIN_LABELS,
   ADM_POSITION_LABELS,
-} from "@/types/breast";
-import type {
-  ImplantDeviceType,
-  ImplantPlane,
-  ImplantIncision,
-  ImplantSurface,
-  ImplantFill,
-  ImplantShape,
-  ImplantProfile,
-  ImplantShellType,
-  DualPlaneType,
-  PocketRinse,
-  ExpanderPortType,
-  AdmOrigin,
-  AdmPosition,
 } from "@/types/breast";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -221,7 +222,6 @@ export const ImplantDetailsCard = React.memo(function ImplantDetailsCard({
       !value.admDetails?.productName &&
       breastPreferences.preferredAdmProduct
     ) {
-      patch.admUsed = true;
       patch.admDetails = {
         ...value.admDetails,
         productName: breastPreferences.preferredAdmProduct,
@@ -323,9 +323,7 @@ export const ImplantDetailsCard = React.memo(function ImplantDetailsCard({
         label={showDetails ? "Hide Details" : "Show Details"}
         isExpanded={showDetails}
         onToggle={() => {
-          LayoutAnimation.configureNext(
-            LayoutAnimation.Presets.easeInEaseOut,
-          );
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
           setShowDetails(!showDetails);
         }}
         subtitle={
@@ -342,9 +340,11 @@ export const ImplantDetailsCard = React.memo(function ImplantDetailsCard({
           <BreastChipRow
             label="Manufacturer"
             options={IMPLANT_MANUFACTURERS.map((m) => m.id)}
-            labels={Object.fromEntries(
-              IMPLANT_MANUFACTURERS.map((m) => [m.id, m.label]),
-            ) as Record<string, string>}
+            labels={
+              Object.fromEntries(
+                IMPLANT_MANUFACTURERS.map((m) => [m.id, m.label]),
+              ) as Record<string, string>
+            }
             selected={value.manufacturer}
             onSelect={(v) => update({ manufacturer: v })}
             allowDeselect
@@ -360,9 +360,7 @@ export const ImplantDetailsCard = React.memo(function ImplantDetailsCard({
             </ThemedText>
             <TextInput
               value={value.productName ?? ""}
-              onChangeText={(v) =>
-                update({ productName: v || undefined })
-              }
+              onChangeText={(v) => update({ productName: v || undefined })}
               placeholder="e.g. Natrelle Inspira"
               placeholderTextColor={theme.textTertiary}
               style={[
@@ -429,9 +427,7 @@ export const ImplantDetailsCard = React.memo(function ImplantDetailsCard({
         label={showAdvanced ? "Hide Advanced" : "Show Advanced"}
         isExpanded={showAdvanced}
         onToggle={() => {
-          LayoutAnimation.configureNext(
-            LayoutAnimation.Presets.easeInEaseOut,
-          );
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
           setShowAdvanced(!showAdvanced);
         }}
       />
@@ -456,9 +452,11 @@ export const ImplantDetailsCard = React.memo(function ImplantDetailsCard({
               <BreastChipRow
                 label="ADM Product"
                 options={ADM_PRODUCTS.map((p) => p.id)}
-                labels={Object.fromEntries(
-                  ADM_PRODUCTS.map((p) => [p.id, p.label]),
-                ) as Record<string, string>}
+                labels={
+                  Object.fromEntries(
+                    ADM_PRODUCTS.map((p) => [p.id, p.label]),
+                  ) as Record<string, string>
+                }
                 selected={value.admDetails?.productName}
                 onSelect={(v) =>
                   update({
@@ -640,9 +638,7 @@ export const ImplantDetailsCard = React.memo(function ImplantDetailsCard({
             </ThemedText>
             <TextInput
               value={value.catalogReference ?? ""}
-              onChangeText={(v) =>
-                update({ catalogReference: v || undefined })
-              }
+              onChangeText={(v) => update({ catalogReference: v || undefined })}
               placeholder="e.g. 68-2035XX"
               placeholderTextColor={theme.textTertiary}
               style={[
@@ -662,9 +658,7 @@ export const ImplantDetailsCard = React.memo(function ImplantDetailsCard({
             </ThemedText>
             <TextInput
               value={value.serialNumber ?? ""}
-              onChangeText={(v) =>
-                update({ serialNumber: v || undefined })
-              }
+              onChangeText={(v) => update({ serialNumber: v || undefined })}
               placeholderTextColor={theme.textTertiary}
               style={[
                 styles.textInput,

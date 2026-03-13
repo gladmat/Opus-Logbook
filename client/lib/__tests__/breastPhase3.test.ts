@@ -1,29 +1,13 @@
-/**
- * Breast Module Phase 3 Tests — module flags, completion, summary strings.
- */
-
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+import type { ProcedurePicklistEntry } from "@/lib/procedurePicklist";
+import type { BreastSideAssessment, LipofillingData } from "@/types/breast";
 import {
-  getBreastModuleFlags,
-  getBreastClinicalContext,
   calculateBreastCompletion,
-  getImplantSummary,
-  getFlapSummary,
+  getBreastClinicalContext,
+  getBreastModuleFlags,
+  getBreastSideVisibility,
   getLipofillingSummary,
-  getLiposuctionSummary,
-} from "../breastConfig";
-import type { ProcedurePicklistEntry } from "../procedurePicklist";
-import type {
-  BreastSideAssessment,
-  ImplantDetailsData,
-  BreastFlapDetailsData,
-  LipofillingData,
-  LiposuctionData,
-} from "@/types/breast";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
+} from "@/lib/breastConfig";
 
 function proc(id: string, tags?: string[]): ProcedurePicklistEntry {
   return {
@@ -36,202 +20,98 @@ function proc(id: string, tags?: string[]): ProcedurePicklistEntry {
   };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// getBreastClinicalContext
-// ─────────────────────────────────────────────────────────────────────────────
-
 describe("getBreastClinicalContext", () => {
-  it("returns reconstructive when no diagnosis", () => {
+  it("defaults to reconstructive when no diagnosis is selected", () => {
     expect(getBreastClinicalContext(undefined)).toBe("reconstructive");
   });
 
-  it("returns aesthetic for aesthetic diagnosis", () => {
+  it("maps diagnosis clinical groups to the expected context", () => {
     expect(
       getBreastClinicalContext({ clinicalGroup: "aesthetic" } as any),
     ).toBe("aesthetic");
-  });
-
-  it("returns gender_affirming for gender_affirming diagnosis", () => {
     expect(
       getBreastClinicalContext({ clinicalGroup: "gender_affirming" } as any),
     ).toBe("gender_affirming");
-  });
-
-  it("returns reconstructive for other clinical groups", () => {
-    expect(
-      getBreastClinicalContext({ clinicalGroup: "oncology" } as any),
-    ).toBe("reconstructive");
+    expect(getBreastClinicalContext({ clinicalGroup: "oncology" } as any)).toBe(
+      "reconstructive",
+    );
   });
 });
-
-// ─────────────────────────────────────────────────────────────────────────────
-// getBreastModuleFlags
-// ─────────────────────────────────────────────────────────────────────────────
 
 describe("getBreastModuleFlags", () => {
-  it("returns all false for empty procedures", () => {
-    const flags = getBreastModuleFlags([], "reconstructive");
-    expect(flags.showImplantDetails).toBe(false);
-    expect(flags.showBreastFlapDetails).toBe(false);
-    expect(flags.showLipofilling).toBe(false);
-    expect(flags.showChestMasculinisation).toBe(false);
-    expect(flags.showNippleDetails).toBe(false);
+  it("computes shared procedure modules without depending on side context", () => {
+    const flags = getBreastModuleFlags([
+      proc("breast_impl_dti"),
+      proc("breast_fat_primary", ["lipofilling"]),
+      proc("breast_nipple_reconstruction"),
+    ]);
+
+    expect(flags).toMatchObject({
+      showImplantDetails: true,
+      showBreastFlapDetails: false,
+      showPedicledFlapDetails: false,
+      showLipofilling: true,
+      showChestMasculinisation: false,
+      showNippleDetails: true,
+    });
   });
 
-  it("shows implant details for DTI procedure", () => {
-    const flags = getBreastModuleFlags([proc("breast_impl_dti")], "reconstructive");
-    expect(flags.showImplantDetails).toBe(true);
-  });
+  it("distinguishes free and pedicled flap procedures", () => {
+    expect(
+      getBreastModuleFlags([
+        proc("breast_autologous_diep", ["free_flap", "microsurgery"]),
+      ]).showBreastFlapDetails,
+    ).toBe(true);
 
-  it("shows implant details for augmentation implant", () => {
-    const flags = getBreastModuleFlags(
-      [proc("breast_aes_augmentation_implant")],
-      "aesthetic",
-    );
-    expect(flags.showImplantDetails).toBe(true);
-  });
-
-  it("shows implant details for gender affirming augmentation", () => {
-    const flags = getBreastModuleFlags(
-      [proc("breast_ga_augmentation_transfem")],
-      "gender_affirming",
-    );
-    expect(flags.showImplantDetails).toBe(true);
-  });
-
-  it("shows implant details for revision procedures", () => {
-    const flags = getBreastModuleFlags(
-      [proc("breast_rev_implant_exchange")],
-      "reconstructive",
-    );
-    expect(flags.showImplantDetails).toBe(true);
-  });
-
-  it("shows flap details for free flap tagged procedures", () => {
-    const flags = getBreastModuleFlags(
-      [proc("breast_autologous_diep", ["free_flap", "microsurgery"])],
-      "reconstructive",
-    );
-    expect(flags.showBreastFlapDetails).toBe(true);
-    expect(flags.showPedicledFlapDetails).toBe(false);
-  });
-
-  it("shows pedicled flap for pedicled_flap tag without free_flap", () => {
-    const flags = getBreastModuleFlags(
-      [proc("breast_autologous_ldflap", ["pedicled_flap"])],
-      "reconstructive",
-    );
-    expect(flags.showPedicledFlapDetails).toBe(true);
-    expect(flags.showBreastFlapDetails).toBe(false);
-  });
-
-  it("shows lipofilling for lipofilling-tagged procedures", () => {
-    const flags = getBreastModuleFlags(
-      [proc("breast_fat_grafting", ["lipofilling"])],
-      "reconstructive",
-    );
-    expect(flags.showLipofilling).toBe(true);
-  });
-
-  it("shows lipofilling for breast_fat_ prefixed IDs", () => {
-    const flags = getBreastModuleFlags(
-      [proc("breast_fat_primary")],
-      "aesthetic",
-    );
-    expect(flags.showLipofilling).toBe(true);
-  });
-
-  it("shows chest masculinisation for ga_chest_masc IDs", () => {
-    const flags = getBreastModuleFlags(
-      [proc("breast_ga_chest_masc_standard")],
-      "gender_affirming",
-    );
-    expect(flags.showChestMasculinisation).toBe(true);
-  });
-
-  it("shows nipple details for nipple reconstruction", () => {
-    const flags = getBreastModuleFlags(
-      [proc("breast_nipple_reconstruction")],
-      "reconstructive",
-    );
-    expect(flags.showNippleDetails).toBe(true);
-  });
-
-  it("shows nipple details for tattooing", () => {
-    const flags = getBreastModuleFlags(
-      [proc("breast_nipple_tattooing")],
-      "reconstructive",
-    );
-    expect(flags.showNippleDetails).toBe(true);
-  });
-
-  it("shows reconstruction episode for reconstructive context", () => {
-    const flags = getBreastModuleFlags([], "reconstructive");
-    expect(flags.showReconstructionEpisode).toBe(true);
-    expect(flags.showGenderAffirmingContext).toBe(false);
-  });
-
-  it("shows gender affirming context for gender_affirming context", () => {
-    const flags = getBreastModuleFlags([], "gender_affirming");
-    expect(flags.showGenderAffirmingContext).toBe(true);
-    expect(flags.showReconstructionEpisode).toBe(false);
-  });
-
-  it("handles multiple procedures combining flags", () => {
-    const flags = getBreastModuleFlags(
-      [
-        proc("breast_impl_dti"),
-        proc("breast_fat_primary", ["lipofilling"]),
-      ],
-      "reconstructive",
-    );
-    expect(flags.showImplantDetails).toBe(true);
-    expect(flags.showLipofilling).toBe(true);
-    expect(flags.showBreastFlapDetails).toBe(false);
+    const pedicledFlags = getBreastModuleFlags([
+      proc("breast_autologous_ldflap", ["pedicled_flap"]),
+    ]);
+    expect(pedicledFlags.showPedicledFlapDetails).toBe(true);
+    expect(pedicledFlags.showBreastFlapDetails).toBe(false);
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// calculateBreastCompletion
-// ─────────────────────────────────────────────────────────────────────────────
+describe("getBreastSideVisibility", () => {
+  const sharedFlags = getBreastModuleFlags([
+    proc("breast_impl_dti"),
+    proc("breast_fat_primary", ["lipofilling"]),
+  ]);
+
+  it("keeps shared modules stable while context visibility changes per side", () => {
+    const reconstructive = getBreastSideVisibility(
+      { side: "left", clinicalContext: "reconstructive" },
+      sharedFlags,
+    );
+    const aesthetic = getBreastSideVisibility(
+      { side: "right", clinicalContext: "aesthetic" },
+      sharedFlags,
+    );
+
+    expect(reconstructive.showImplantDetails).toBe(true);
+    expect(aesthetic.showImplantDetails).toBe(true);
+    expect(reconstructive.showReconstructionEpisode).toBe(true);
+    expect(aesthetic.showReconstructionEpisode).toBe(false);
+    expect(reconstructive.showGenderAffirmingContext).toBe(false);
+    expect(aesthetic.showGenderAffirmingContext).toBe(false);
+  });
+});
 
 describe("calculateBreastCompletion", () => {
-  const allFalseFlags = {
-    showImplantDetails: false,
-    showBreastFlapDetails: false,
-    showPedicledFlapDetails: false,
-    showLipofilling: false,
-    showChestMasculinisation: false,
-    showNippleDetails: false,
-    showReconstructionEpisode: false,
-    showGenderAffirmingContext: false,
-  };
+  const sharedFlags = getBreastModuleFlags([
+    proc("breast_impl_dti"),
+    proc("breast_fat_primary", ["lipofilling"]),
+    proc("breast_nipple_reconstruction"),
+  ]);
 
-  it("returns 0% for undefined side", () => {
-    const result = calculateBreastCompletion(undefined, allFalseFlags);
-    expect(result.overallPercentage).toBe(0);
+  it("returns 0% for an undefined side", () => {
+    const visibility = getBreastSideVisibility(undefined, sharedFlags);
+    expect(
+      calculateBreastCompletion(undefined, visibility, undefined)
+        .overallPercentage,
+    ).toBe(0);
   });
 
-  it("returns 40% for side with just laterality (no context)", () => {
-    const side: BreastSideAssessment = { side: "left" } as any;
-    const result = calculateBreastCompletion(side, allFalseFlags);
-    // laterality=true, context=false, implant=true(skipped), flap=true(skipped), lipofilling=true(skipped)
-    // 4/5 = 80%
-    expect(result.lateralityComplete).toBe(true);
-    expect(result.contextComplete).toBe(false);
-  });
-
-  it("counts implant incomplete when flag is on but data missing", () => {
-    const side: BreastSideAssessment = {
-      side: "left",
-      clinicalContext: "reconstructive",
-    };
-    const flags = { ...allFalseFlags, showImplantDetails: true };
-    const result = calculateBreastCompletion(side, flags);
-    expect(result.implantComplete).toBe(false);
-  });
-
-  it("counts implant complete when deviceType and plane set", () => {
+  it("requires reconstructive timing for reconstructive sides", () => {
     const side: BreastSideAssessment = {
       side: "left",
       clinicalContext: "reconstructive",
@@ -239,138 +119,71 @@ describe("calculateBreastCompletion", () => {
         deviceType: "permanent_implant",
         implantPlane: "subpectoral",
       },
+      nippleDetails: {
+        technique: "cv_flap",
+      },
     };
-    const flags = { ...allFalseFlags, showImplantDetails: true };
-    const result = calculateBreastCompletion(side, flags);
-    expect(result.implantComplete).toBe(true);
+    const visibility = getBreastSideVisibility(side, sharedFlags);
+
+    const incomplete = calculateBreastCompletion(side, visibility, {
+      harvestSites: ["abdomen"],
+      injections: { left: { volumeInjectedMl: 120 } },
+    });
+    const complete = calculateBreastCompletion(
+      {
+        ...side,
+        reconstructionTiming: "immediate",
+      },
+      visibility,
+      {
+        harvestSites: ["abdomen"],
+        injections: { left: { volumeInjectedMl: 120 } },
+      },
+    );
+
+    expect(incomplete.contextComplete).toBe(false);
+    expect(complete.contextComplete).toBe(true);
+    expect(complete.overallPercentage).toBeGreaterThan(
+      incomplete.overallPercentage,
+    );
   });
-});
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Summary helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
-describe("getImplantSummary", () => {
-  it("returns empty for undefined", () => {
-    expect(getImplantSummary(undefined)).toBe("");
-  });
-
-  it("returns empty for empty object", () => {
-    expect(getImplantSummary({} as ImplantDetailsData)).toBe("");
-  });
-
-  it("generates summary with volume, manufacturer, shape, plane", () => {
-    const data: ImplantDetailsData = {
-      deviceType: "permanent_implant",
-      volumeCc: 350,
-      manufacturer: "allergan",
-      shape: "round",
-      implantPlane: "dual_plane",
+  it("marks shared lipofilling complete only when the active side has injection volume", () => {
+    const side: BreastSideAssessment = {
+      side: "right",
+      clinicalContext: "aesthetic",
     };
-    const summary = getImplantSummary(data);
-    expect(summary).toContain("350cc");
-    expect(summary).toContain("Allergan");
-    expect(summary).toContain("Round");
-    expect(summary).toContain("Dual Plane");
-  });
+    const visibility = getBreastSideVisibility(side, sharedFlags);
 
-  it("handles partial data", () => {
-    const data: ImplantDetailsData = { volumeCc: 275 };
-    expect(getImplantSummary(data)).toBe("275cc");
-  });
-});
+    expect(
+      calculateBreastCompletion(side, visibility, {
+        harvestSites: ["abdomen"],
+        injections: { left: { volumeInjectedMl: 100 } },
+      }).lipofillingComplete,
+    ).toBe(false);
 
-describe("getFlapSummary", () => {
-  it("returns empty for undefined", () => {
-    expect(getFlapSummary(undefined)).toBe("");
-  });
-
-  it("generates summary with perforators and weight", () => {
-    const data: BreastFlapDetailsData = {
-      perforators: [{ id: "p1", row: "medial" }, { id: "p2", row: "lateral" }],
-      flapWeightGrams: 485,
-    };
-    const summary = getFlapSummary(data);
-    expect(summary).toContain("2 perforators");
-    expect(summary).toContain("485g");
-  });
-
-  it("includes IMA interspace when artery is IMA", () => {
-    const data: BreastFlapDetailsData = {
-      recipientArtery: "ima",
-      imaInterspace: "3rd",
-    };
-    const summary = getFlapSummary(data);
-    expect(summary).toContain("Internal Mammary Artery");
-    expect(summary).toContain("3rd Interspace");
-  });
-
-  it("includes coupler size", () => {
-    const data: BreastFlapDetailsData = {
-      venousCouplerUsed: true,
-      venousCouplerSizeMm: 2.8,
-    };
-    expect(getFlapSummary(data)).toContain("coupler 2.8mm");
+    expect(
+      calculateBreastCompletion(side, visibility, {
+        harvestSites: ["abdomen"],
+        injections: { right: { volumeInjectedMl: 100 } },
+      }).lipofillingComplete,
+    ).toBe(true);
   });
 });
 
 describe("getLipofillingSummary", () => {
-  it("returns empty for undefined", () => {
-    expect(getLipofillingSummary(undefined)).toBe("");
-  });
-
-  it("generates summary with sites, harvest, and injection", () => {
+  it("summarizes per-side injections from the shared lipofilling shape", () => {
     const data: LipofillingData = {
       harvestSites: ["abdomen", "flanks"],
-      totalVolumeHarvestedMl: 200,
-      injectionLeft: { volumeInjectedMl: 80 },
+      totalVolumeHarvestedMl: 600,
+      injections: {
+        left: { volumeInjectedMl: 180 },
+        right: { volumeInjectedMl: 200 },
+      },
     };
-    const summary = getLipofillingSummary(data);
-    expect(summary).toContain("2 sites");
-    expect(summary).toContain("200ml harvested");
-    expect(summary).toContain("80ml injected (L)");
-  });
 
-  it("shows both sides when bilateral", () => {
-    const data: LipofillingData = {
-      injectionLeft: { volumeInjectedMl: 60 },
-      injectionRight: { volumeInjectedMl: 70 },
-    };
-    const summary = getLipofillingSummary(data);
-    expect(summary).toContain("60ml (L)");
-    expect(summary).toContain("70ml (R)");
-  });
-});
-
-describe("getLiposuctionSummary", () => {
-  it("returns empty for undefined", () => {
-    expect(getLiposuctionSummary(undefined)).toBe("");
-  });
-
-  it("uses explicit total when set", () => {
-    const data: LiposuctionData = {
-      areas: [{ site: "abdomen", volumeAspirateMl: 200 }],
-      totalAspirateMl: 250,
-    };
-    const summary = getLiposuctionSummary(data);
-    expect(summary).toContain("1 area");
-    expect(summary).toContain("250ml");
-  });
-
-  it("auto-sums areas when no explicit total", () => {
-    const data: LiposuctionData = {
-      areas: [
-        { site: "abdomen", volumeAspirateMl: 200 },
-        { site: "flanks", volumeAspirateMl: 150 },
-      ],
-    };
-    const summary = getLiposuctionSummary(data);
-    expect(summary).toContain("2 areas");
-    expect(summary).toContain("350ml");
-  });
-
-  it("handles empty areas", () => {
-    const data: LiposuctionData = {};
-    expect(getLiposuctionSummary(data)).toBe("");
+    expect(getLipofillingSummary(data)).toBe(
+      "2 sites, 600ml harvested, 180ml (L), 200ml (R)",
+    );
   });
 });

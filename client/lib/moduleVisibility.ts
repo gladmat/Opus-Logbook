@@ -11,6 +11,12 @@ import { PICKLIST_TO_FLAP_TYPE } from "@/lib/procedurePicklist";
 import { shouldActivateSkinCancerModuleForSnomed } from "@/lib/skinCancerConfig";
 import { isBreastSpecialty } from "@/lib/breastConfig";
 
+const HEAD_NECK_JOINT_CASE_PROCEDURE_IDS = new Set([
+  "hn_neck_dissection_radical",
+  "hn_neck_dissection_modified_radical",
+  "hn_neck_dissection_selective",
+]);
+
 export interface ModuleVisibility {
   flapDetails: boolean;
   flapOutcome: boolean;
@@ -74,7 +80,19 @@ export function caseNeedsJointContext(
   specialty: Specialty | undefined,
   diagnosisGroups: DiagnosisGroup[],
 ): boolean {
-  return specialty === "head_neck" && caseHasFlapProcedure(diagnosisGroups);
+  if (specialty !== "head_neck") {
+    return false;
+  }
+
+  return diagnosisGroups.some((group) =>
+    group.procedures.some(
+      (procedure) =>
+        procedureHasFreeFlap(procedure) ||
+        procedureHasPedicledFlap(procedure) ||
+        (procedure.picklistEntryId != null &&
+          HEAD_NECK_JOINT_CASE_PROCEDURE_IDS.has(procedure.picklistEntryId)),
+    ),
+  );
 }
 
 /**

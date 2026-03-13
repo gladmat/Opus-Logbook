@@ -13,8 +13,9 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { resolveFacilityName } from "@/lib/facilities";
 import {
-  useCaseFormState,
   useCaseFormDispatch,
+  useCaseFormField,
+  useCaseFormValidation,
 } from "@/contexts/CaseFormContext";
 import { setField } from "@/hooks/useCaseForm";
 import { Spacing } from "@/constants/theme";
@@ -29,19 +30,29 @@ import { formatNhi } from "@/lib/nhiValidation";
 export const PatientInfoSection = React.memo(function PatientInfoSection() {
   const { theme } = useTheme();
   const { facilities, profile } = useAuth();
-  const { state } = useCaseFormState();
-  const { dispatch, fieldErrors, onFieldBlur } = useCaseFormDispatch();
+  const patientNhi = useCaseFormField("patientNhi");
+  const patientIdentifier = useCaseFormField("patientIdentifier");
+  const patientDateOfBirth = useCaseFormField("patientDateOfBirth");
+  const patientFirstName = useCaseFormField("patientFirstName");
+  const patientLastName = useCaseFormField("patientLastName");
+  const procedureDate = useCaseFormField("procedureDate");
+  const facility = useCaseFormField("facility");
+  const gender = useCaseFormField("gender");
+  const ethnicity = useCaseFormField("ethnicity");
+  const isPlanMode = useCaseFormField("isPlanMode");
+  const { dispatch } = useCaseFormDispatch();
+  const { fieldErrors, onFieldBlur } = useCaseFormValidation();
 
   const isNZ = profile?.countryOfPractice === "NZ";
 
   const calculatedAge = useMemo(
-    () => calculateAgeFromDob(state.patientDateOfBirth),
-    [state.patientDateOfBirth],
+    () => calculateAgeFromDob(patientDateOfBirth),
+    [patientDateOfBirth],
   );
 
   const togglePlanMode = () => {
     Haptics.selectionAsync();
-    dispatch(setField("isPlanMode", !state.isPlanMode));
+    dispatch(setField("isPlanMode", !isPlanMode));
   };
 
   return (
@@ -53,27 +64,27 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
           style={[
             styles.planToggle,
             {
-              backgroundColor: state.isPlanMode
+              backgroundColor: isPlanMode
                 ? theme.info + "20"
                 : theme.backgroundDefault,
-              borderColor: state.isPlanMode ? theme.info : theme.border,
+              borderColor: isPlanMode ? theme.info : theme.border,
             },
           ]}
           accessibilityRole="button"
           accessibilityLabel={
-            state.isPlanMode ? "Plan mode active" : "Switch to plan mode"
+            isPlanMode ? "Plan mode active" : "Switch to plan mode"
           }
           hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
         >
           <Feather
             name="calendar"
             size={13}
-            color={state.isPlanMode ? theme.info : theme.textTertiary}
+            color={isPlanMode ? theme.info : theme.textTertiary}
           />
           <ThemedText
             style={[
               styles.planToggleText,
-              { color: state.isPlanMode ? theme.info : theme.textTertiary },
+              { color: isPlanMode ? theme.info : theme.textTertiary },
             ]}
           >
             Plan
@@ -87,7 +98,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
           {isNZ ? (
             <FormField
               label="NHI"
-              value={state.patientNhi}
+              value={patientNhi}
               onChangeText={(text: string) => {
                 const formatted = formatNhi(text);
                 dispatch(setField("patientNhi", formatted));
@@ -102,7 +113,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
           ) : (
             <FormField
               label="Identifier"
-              value={state.patientIdentifier}
+              value={patientIdentifier}
               onChangeText={(text: string) =>
                 dispatch(setField("patientIdentifier", text.toUpperCase()))
               }
@@ -117,7 +128,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
         <View style={styles.halfField}>
           <DatePickerField
             label="Date of Birth"
-            value={state.patientDateOfBirth}
+            value={patientDateOfBirth}
             onChange={(v: string) => {
               dispatch(setField("patientDateOfBirth", v));
             }}
@@ -151,7 +162,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
         <View style={styles.halfField}>
           <FormField
             label="First Name"
-            value={state.patientFirstName}
+            value={patientFirstName}
             onChangeText={(v: string) =>
               dispatch(setField("patientFirstName", v))
             }
@@ -162,7 +173,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
         <View style={styles.halfField}>
           <FormField
             label="Last Name"
-            value={state.patientLastName}
+            value={patientLastName}
             onChangeText={(v: string) =>
               dispatch(setField("patientLastName", v))
             }
@@ -177,7 +188,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
         <View style={styles.halfField}>
           <DatePickerField
             label="Procedure Date"
-            value={state.procedureDate}
+            value={procedureDate}
             onChange={(v: string) => {
               dispatch(setField("procedureDate", v));
               onFieldBlur("procedureDate");
@@ -192,7 +203,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
           {facilities.length > 0 ? (
             <PickerField
               label="Facility"
-              value={state.facility}
+              value={facility}
               options={facilities.map((facility) => {
                 const facilityName = resolveFacilityName(facility);
                 return {
@@ -211,7 +222,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
           ) : (
             <FormField
               label="Facility"
-              value={state.facility}
+              value={facility}
               onChangeText={(v: string) => dispatch(setField("facility", v))}
               placeholder="Hospital name"
               required
@@ -241,7 +252,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
           >
             {(Object.entries(GENDER_LABELS) as [Gender, string][]).map(
               ([value, label]) => {
-                const isSelected = state.gender === value;
+                const isSelected = gender === value;
                 return (
                   <Pressable
                     key={value}
@@ -272,7 +283,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
         <View style={styles.halfField}>
           <PickerField
             label="Ethnicity"
-            value={state.ethnicity}
+            value={ethnicity}
             options={ETHNICITY_OPTIONS}
             onSelect={(v: string) => dispatch(setField("ethnicity", v))}
           />

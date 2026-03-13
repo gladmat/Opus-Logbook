@@ -195,11 +195,10 @@ export function useAttentionItems(
             0,
             Math.round((today.getTime() - caseDate.getTime()) / DAY_MS),
           );
-          lastProcedureSummary =
-            getCasePrimaryTitle(mostRecent) || mostRecent.procedureType;
+          lastProcedureSummary = getAttentionDiagnosisTitle(mostRecent);
           lastCaseDate = mostRecent.procedureDate;
           lastCaseId = mostRecent.id;
-          lastCaseCanAddHistology = caseCanAddHistology(mostRecent);
+          lastCaseCanAddHistology = getAttentionCanAddHistology(mostRecent);
           facility = mostRecent.facility;
         }
       }

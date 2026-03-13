@@ -1,11 +1,11 @@
 /**
- * LipofillingCard — Per-side lipofilling data capture.
+ * LipofillingCard — Shared lipofilling data capture with per-side injections.
  *
- * Harvest → Process → Inject per-side:
- * 1. Harvest — sites (multi-select), total volume, technique, cannula, tumescent
- * 2. Processing — method, centrifuge RPM+min (conditional), volume after, additives
- * 3. Injection — per active side: volume (required), technique, planes, condition
- * 4. Session tracking (toggle) — session number, interval, indication, context
+ * Harvest → Process → Inject:
+ * 1. Harvest — shared across the assessment
+ * 2. Processing — shared across the assessment
+ * 3. Injection — repeated for each active side
+ * 4. Session tracking — shared across the assessment
  */
 
 import React, { useCallback, useState } from "react";
@@ -20,18 +20,20 @@ import {
   BreastSectionToggle,
 } from "./BreastCardHelpers";
 import { SectionWrapper } from "@/components/skin-cancer/SectionWrapper";
+import { ThemedText } from "@/components/ThemedText";
 import type {
+  BreastLaterality,
+  LipofillingAdditive,
+  LipofillingContext,
   LipofillingData,
-  LipofillingInjectionSide,
   LipofillingHarvestSite,
   LipofillingHarvestTechnique,
-  LipofillingProcessingMethod,
-  LipofillingAdditive,
-  LipofillingInjectionTechnique,
-  LipofillingInjectionPlane,
-  RecipientSiteCondition,
   LipofillingIndication,
-  LipofillingContext,
+  LipofillingInjectionPlane,
+  LipofillingInjectionSide,
+  LipofillingInjectionTechnique,
+  LipofillingProcessingMethod,
+  RecipientSiteCondition,
 } from "@/types/breast";
 import {
   HARVEST_SITE_LABELS,
@@ -44,12 +46,6 @@ import {
   LIPOFILLING_INDICATION_LABELS,
   LIPOFILLING_CONTEXT_LABELS,
 } from "@/types/breast";
-import type { BreastLaterality } from "@/types/breast";
-import { ThemedText } from "@/components/ThemedText";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Constants
-// ─────────────────────────────────────────────────────────────────────────────
 
 const HARVEST_SITES: readonly LipofillingHarvestSite[] = [
   "abdomen",
@@ -129,22 +125,18 @@ const CONTEXTS: readonly LipofillingContext[] = [
   "revision",
 ] as const;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Props
-// ─────────────────────────────────────────────────────────────────────────────
-
 interface Props {
-  side: BreastLaterality;
+  activeSides: BreastLaterality[];
   value: LipofillingData;
   onChange: (data: LipofillingData) => void;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Component
-// ─────────────────────────────────────────────────────────────────────────────
+function getSideLabel(side: BreastLaterality): string {
+  return side === "left" ? "Left Breast" : "Right Breast";
+}
 
 export const LipofillingCard = React.memo(function LipofillingCard({
-  side,
+  activeSides,
   value,
   onChange,
 }: Props) {
@@ -160,28 +152,36 @@ export const LipofillingCard = React.memo(function LipofillingCard({
     [onChange, value],
   );
 
-  const injectionKey =
-    side === "left" ? "injectionLeft" : "injectionRight";
-  const injection = value[injectionKey];
-
   const updateInjection = useCallback(
-    (patch: Partial<LipofillingInjectionSide>) => {
-      update({
-        [injectionKey]: { ...injection, ...patch } as LipofillingInjectionSide,
+    (side: BreastLaterality, patch: Partial<LipofillingInjectionSide>) => {
+      onChange({
+        ...value,
+        injections: {
+          ...(value.injections ?? {}),
+          [side]: {
+            ...(value.injections?.[side] ?? {}),
+            ...patch,
+          },
+        },
       });
     },
-    [injection, injectionKey, update],
+    [onChange, value],
   );
 
   const isCentrifuge = value.processingMethod === "coleman_centrifuge";
 
   const summaryParts: string[] = [];
-  if (value.harvestSites?.length)
+  if (value.harvestSites?.length) {
     summaryParts.push(
       `${value.harvestSites.length} site${value.harvestSites.length > 1 ? "s" : ""}`,
     );
-  if (injection?.volumeInjectedMl)
-    summaryParts.push(`${injection.volumeInjectedMl}ml injected`);
+  }
+  for (const side of activeSides) {
+    const injectedVolume = value.injections?.[side]?.volumeInjectedMl;
+    if (injectedVolume) {
+      summaryParts.push(`${side === "left" ? "L" : "R"} ${injectedVolume}ml`);
+    }
+  }
   const summary = summaryParts.join(", ") || "Tap to configure";
 
   return (
@@ -192,20 +192,20 @@ export const LipofillingCard = React.memo(function LipofillingCard({
       defaultCollapsed={false}
       subtitle={summary}
     >
-      {/* ── 1. Harvest ────────────────────────────────────────────────────── */}
-
       <BreastMultiChipRow
         label="Harvest Sites"
         options={HARVEST_SITES}
         labels={HARVEST_SITE_LABELS}
         selected={value.harvestSites ?? []}
-        onToggle={(v) => update({ harvestSites: v })}
+        onToggle={(harvestSites) => update({ harvestSites })}
       />
 
       <BreastNumericField
         label="Total Volume Harvested"
         value={value.totalVolumeHarvestedMl}
-        onValueChange={(v) => update({ totalVolumeHarvestedMl: v })}
+        onValueChange={(totalVolumeHarvestedMl) =>
+          update({ totalVolumeHarvestedMl })
+        }
         unit="ml"
         integer
       />
@@ -215,39 +215,39 @@ export const LipofillingCard = React.memo(function LipofillingCard({
         options={HARVEST_TECHNIQUES}
         labels={HARVEST_TECHNIQUE_LABELS}
         selected={value.harvestTechnique}
-        onSelect={(v) => update({ harvestTechnique: v })}
+        onSelect={(harvestTechnique) => update({ harvestTechnique })}
         allowDeselect
       />
 
       <BreastNumericField
         label="Cannula Size"
         value={value.cannulaSizeMm}
-        onValueChange={(v) => update({ cannulaSizeMm: v })}
+        onValueChange={(cannulaSizeMm) => update({ cannulaSizeMm })}
         unit="mm"
       />
 
       <BreastCheckboxRow
         label="Tumescent used"
         value={value.tumescentUsed ?? false}
-        onChange={(v) => {
+        onChange={(tumescentUsed) => {
           update({
-            tumescentUsed: v,
-            tumescentVolumeMl: v ? value.tumescentVolumeMl : undefined,
+            tumescentUsed,
+            tumescentVolumeMl: tumescentUsed
+              ? value.tumescentVolumeMl
+              : undefined,
           });
         }}
       />
 
-      {value.tumescentUsed && (
+      {value.tumescentUsed ? (
         <BreastNumericField
           label="Tumescent Volume"
           value={value.tumescentVolumeMl}
-          onValueChange={(v) => update({ tumescentVolumeMl: v })}
+          onValueChange={(tumescentVolumeMl) => update({ tumescentVolumeMl })}
           unit="ml"
           integer
         />
-      )}
-
-      {/* ── 2. Processing ─────────────────────────────────────────────────── */}
+      ) : null}
 
       <View style={styles.sectionDivider} />
 
@@ -256,9 +256,9 @@ export const LipofillingCard = React.memo(function LipofillingCard({
         options={PROCESSING_METHODS}
         labels={PROCESSING_METHOD_LABELS}
         selected={value.processingMethod}
-        onSelect={(v) => {
-          const patch: Partial<LipofillingData> = { processingMethod: v };
-          if (v !== "coleman_centrifuge") {
+        onSelect={(processingMethod) => {
+          const patch: Partial<LipofillingData> = { processingMethod };
+          if (processingMethod !== "coleman_centrifuge") {
             patch.centrifugationRpm = undefined;
             patch.centrifugationMinutes = undefined;
           }
@@ -267,32 +267,38 @@ export const LipofillingCard = React.memo(function LipofillingCard({
         allowDeselect
       />
 
-      {isCentrifuge && (
+      {isCentrifuge ? (
         <View style={styles.centrifugeRow}>
-          <View style={{ flex: 1 }}>
+          <View style={styles.equalColumn}>
             <BreastNumericField
               label="RPM"
               value={value.centrifugationRpm}
-              onValueChange={(v) => update({ centrifugationRpm: v })}
+              onValueChange={(centrifugationRpm) =>
+                update({ centrifugationRpm })
+              }
               integer
             />
           </View>
-          <View style={{ flex: 1 }}>
+          <View style={styles.equalColumn}>
             <BreastNumericField
               label="Duration"
               value={value.centrifugationMinutes}
-              onValueChange={(v) => update({ centrifugationMinutes: v })}
+              onValueChange={(centrifugationMinutes) =>
+                update({ centrifugationMinutes })
+              }
               unit="min"
               integer
             />
           </View>
         </View>
-      )}
+      ) : null}
 
       <BreastNumericField
         label="Volume After Processing"
         value={value.volumeAfterProcessingMl}
-        onValueChange={(v) => update({ volumeAfterProcessingMl: v })}
+        onValueChange={(volumeAfterProcessingMl) =>
+          update({ volumeAfterProcessingMl })
+        }
         unit="ml"
         integer
       />
@@ -302,83 +308,94 @@ export const LipofillingCard = React.memo(function LipofillingCard({
         options={ADDITIVES}
         labels={LIPOFILLING_ADDITIVE_LABELS}
         selected={value.additives ?? []}
-        onToggle={(v) => update({ additives: v })}
+        onToggle={(additives) => update({ additives })}
       />
 
-      {/* ── 3. Injection (per active side) ────────────────────────────────── */}
+      {activeSides.map((side, index) => {
+        const injection = value.injections?.[side];
 
-      <View style={styles.sectionDivider} />
+        return (
+          <View key={side}>
+            <View style={styles.sectionDivider} />
+            <ThemedText
+              type="small"
+              style={{ color: theme.textSecondary, fontWeight: "600" }}
+            >
+              Injection — {getSideLabel(side)}
+            </ThemedText>
 
-      <ThemedText
-        type="small"
-        style={{ color: theme.textSecondary, fontWeight: "600" }}
-      >
-        Injection — {side === "left" ? "Left" : "Right"} Breast
-      </ThemedText>
+            <BreastNumericField
+              label="Volume Injected"
+              value={injection?.volumeInjectedMl}
+              onValueChange={(volumeInjectedMl) =>
+                updateInjection(side, { volumeInjectedMl })
+              }
+              unit="ml"
+              integer
+            />
 
-      <BreastNumericField
-        label="Volume Injected"
-        value={injection?.volumeInjectedMl}
-        onValueChange={(v) =>
-          updateInjection({ volumeInjectedMl: v ?? 0 })
-        }
-        unit="ml"
-        integer
-      />
+            <BreastChipRow
+              label="Injection Technique"
+              options={INJECTION_TECHNIQUES}
+              labels={LIPOFILLING_INJECTION_TECHNIQUE_LABELS}
+              selected={injection?.injectionTechnique}
+              onSelect={(injectionTechnique) =>
+                updateInjection(side, { injectionTechnique })
+              }
+              allowDeselect
+            />
 
-      <BreastChipRow
-        label="Injection Technique"
-        options={INJECTION_TECHNIQUES}
-        labels={LIPOFILLING_INJECTION_TECHNIQUE_LABELS}
-        selected={injection?.injectionTechnique}
-        onSelect={(v) => updateInjection({ injectionTechnique: v })}
-        allowDeselect
-      />
+            <BreastMultiChipRow
+              label="Injection Planes"
+              options={INJECTION_PLANES}
+              labels={LIPOFILLING_INJECTION_PLANE_LABELS}
+              selected={injection?.injectionPlanes ?? []}
+              onToggle={(injectionPlanes) =>
+                updateInjection(side, { injectionPlanes })
+              }
+            />
 
-      <BreastMultiChipRow
-        label="Injection Planes"
-        options={INJECTION_PLANES}
-        labels={LIPOFILLING_INJECTION_PLANE_LABELS}
-        selected={injection?.injectionPlanes ?? []}
-        onToggle={(v) => updateInjection({ injectionPlanes: v })}
-      />
+            <BreastChipRow
+              label="Recipient Site Condition"
+              options={SITE_CONDITIONS}
+              labels={RECIPIENT_SITE_CONDITION_LABELS}
+              selected={injection?.recipientSiteCondition}
+              onSelect={(recipientSiteCondition) =>
+                updateInjection(side, { recipientSiteCondition })
+              }
+              allowDeselect
+            />
 
-      <BreastChipRow
-        label="Recipient Site Condition"
-        options={SITE_CONDITIONS}
-        labels={RECIPIENT_SITE_CONDITION_LABELS}
-        selected={injection?.recipientSiteCondition}
-        onSelect={(v) => updateInjection({ recipientSiteCondition: v })}
-        allowDeselect
-      />
-
-      {/* ── 4. Session Tracking ───────────────────────────────────────────── */}
+            {index < activeSides.length - 1 ? (
+              <View style={styles.sideDivider} />
+            ) : null}
+          </View>
+        );
+      })}
 
       <BreastSectionToggle
         label={showSession ? "Hide Session Details" : "Session Details"}
         isExpanded={showSession}
         onToggle={() => {
-          LayoutAnimation.configureNext(
-            LayoutAnimation.Presets.easeInEaseOut,
-          );
-          setShowSession(!showSession);
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+          setShowSession((current) => !current);
         }}
       />
 
-      {showSession && (
-        <View>
+      {showSession ? (
+        <>
           <BreastNumericField
             label="Session Number"
             value={value.sessionNumber}
-            onValueChange={(v) => update({ sessionNumber: v })}
+            onValueChange={(sessionNumber) => update({ sessionNumber })}
             integer
           />
 
           <BreastNumericField
-            label="Interval from Previous Session"
+            label="Interval From Previous Session"
             value={value.intervalFromPreviousMonths}
-            onValueChange={(v) =>
-              update({ intervalFromPreviousMonths: v })
+            onValueChange={(intervalFromPreviousMonths) =>
+              update({ intervalFromPreviousMonths })
             }
             unit="months"
             integer
@@ -389,7 +406,7 @@ export const LipofillingCard = React.memo(function LipofillingCard({
             options={INDICATIONS}
             labels={LIPOFILLING_INDICATION_LABELS}
             selected={value.indication}
-            onSelect={(v) => update({ indication: v })}
+            onSelect={(indication) => update({ indication })}
             allowDeselect
           />
 
@@ -398,27 +415,31 @@ export const LipofillingCard = React.memo(function LipofillingCard({
             options={CONTEXTS}
             labels={LIPOFILLING_CONTEXT_LABELS}
             selected={value.context}
-            onSelect={(v) => update({ context: v })}
+            onSelect={(context) => update({ context })}
             allowDeselect
           />
-        </View>
-      )}
+        </>
+      ) : null}
     </SectionWrapper>
   );
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Styles
-// ─────────────────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
   sectionDivider: {
     height: 1,
-    backgroundColor: "rgba(128,128,128,0.15)",
-    marginVertical: Spacing.sm,
+    backgroundColor: "rgba(127, 127, 127, 0.18)",
+    marginVertical: Spacing.md,
+  },
+  sideDivider: {
+    height: 1,
+    backgroundColor: "rgba(127, 127, 127, 0.1)",
+    marginTop: Spacing.sm,
   },
   centrifugeRow: {
     flexDirection: "row",
-    gap: Spacing.sm,
+    gap: Spacing.md,
+  },
+  equalColumn: {
+    flex: 1,
   },
 });
