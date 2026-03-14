@@ -51,6 +51,12 @@ interface Props {
   onUnlinkEpisode?: () => void;
   /** Breast surgical preferences for auto-fill */
   breastPreferences?: import("@/types/surgicalPreferences").BreastPreferences;
+  /**
+   * When true, skips the "Breast Assessment" header and laterality chips
+   * (they're rendered upstream by BreastContextSelector).
+   * Per-side cards render in "modules_only" mode.
+   */
+  hideContextSelector?: boolean;
 }
 
 type LateralityOption = "left" | "right" | "bilateral";
@@ -76,6 +82,7 @@ export const BreastAssessment = React.memo(function BreastAssessment({
   onCreateEpisode,
   onUnlinkEpisode,
   breastPreferences,
+  hideContextSelector,
 }: Props) {
   const { theme } = useTheme();
   const assessment = useMemo(
@@ -168,44 +175,49 @@ export const BreastAssessment = React.memo(function BreastAssessment({
 
   const isBilateral = assessment.laterality === "bilateral";
 
+  const sideRenderMode = hideContextSelector ? "modules_only" as const : "full" as const;
+
   return (
     <View style={styles.container}>
-      {/* Section header */}
-      <ThemedText type="h4" style={{ marginBottom: Spacing.sm }}>
-        Breast Assessment
-      </ThemedText>
+      {/* Section header + laterality — skipped when context is upstream */}
+      {!hideContextSelector && (
+        <>
+          <ThemedText type="h4" style={{ marginBottom: Spacing.sm }}>
+            Breast Assessment
+          </ThemedText>
 
-      {/* Laterality chips */}
-      <View style={styles.chipRow}>
-        {LATERALITY_OPTIONS.map(({ key, label }) => {
-          const selected = assessment.laterality === key;
-          return (
-            <Pressable
-              key={key}
-              onPress={() => handleLateralityChange(key)}
-              style={[
-                styles.chip,
-                {
-                  backgroundColor: selected
-                    ? theme.link
-                    : theme.backgroundSecondary,
-                  borderColor: selected ? theme.link : theme.border,
-                },
-              ]}
-            >
-              <ThemedText
-                type="small"
-                style={{
-                  color: selected ? theme.buttonText : theme.text,
-                  fontWeight: selected ? "600" : "400",
-                }}
-              >
-                {label}
-              </ThemedText>
-            </Pressable>
-          );
-        })}
-      </View>
+          <View style={styles.chipRow}>
+            {LATERALITY_OPTIONS.map(({ key, label }) => {
+              const selected = assessment.laterality === key;
+              return (
+                <Pressable
+                  key={key}
+                  onPress={() => handleLateralityChange(key)}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: selected
+                        ? theme.link
+                        : theme.backgroundSecondary,
+                      borderColor: selected ? theme.link : theme.border,
+                    },
+                  ]}
+                >
+                  <ThemedText
+                    type="small"
+                    style={{
+                      color: selected ? theme.buttonText : theme.text,
+                      fontWeight: selected ? "600" : "400",
+                    }}
+                  >
+                    {label}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+        </>
+      )}
 
       {/* Case-level liposuction — shown when lipofilling is active */}
       {moduleFlags.showLipofilling && (
@@ -236,7 +248,7 @@ export const BreastAssessment = React.memo(function BreastAssessment({
         // Show copy button only in bilateral mode when the OTHER side is empty/default
         const otherSide: BreastLaterality = side === "left" ? "right" : "left";
         const otherData = assessment.sides[otherSide];
-        const showCopy = isBilateral && isBreastSideEmpty(otherData);
+        const showCopy = !hideContextSelector && isBilateral && isBreastSideEmpty(otherData);
 
         return (
           <BreastSideCard
@@ -254,6 +266,7 @@ export const BreastAssessment = React.memo(function BreastAssessment({
             onCreateEpisode={onCreateEpisode}
             onUnlinkEpisode={onUnlinkEpisode}
             breastPreferences={breastPreferences}
+            renderMode={sideRenderMode}
           />
         );
       })}

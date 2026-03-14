@@ -23,6 +23,12 @@ interface DiagnosisPickerProps {
   selectedDiagnosisId?: string;
   onSelect: (diagnosis: DiagnosisPicklistEntry) => void;
   clinicalGroupFilter?: "trauma" | "acute" | "non-trauma";
+  /**
+   * When provided, overrides the built-in specialty picklist.
+   * Subcategories and search derive from this list instead.
+   * Used by breast module for context-filtered diagnosis display.
+   */
+  filteredDiagnoses?: DiagnosisPicklistEntry[];
 }
 
 function matchesGroupFilter(
@@ -41,6 +47,7 @@ export function DiagnosisPicker({
   selectedDiagnosisId,
   onSelect,
   clinicalGroupFilter,
+  filteredDiagnoses,
 }: DiagnosisPickerProps) {
   const { theme } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
@@ -58,10 +65,24 @@ export function DiagnosisPicker({
     [favouriteDiagnoses],
   );
 
-  const allSubcategories = getDiagnosisSubcategories(specialty);
+  const allSubcategories = useMemo(() => {
+    if (filteredDiagnoses) {
+      // Derive unique subcategories from filtered list, preserving order
+      const seen = new Set<string>();
+      return filteredDiagnoses
+        .map((d) => d.subcategory)
+        .filter((s) => {
+          if (seen.has(s)) return false;
+          seen.add(s);
+          return true;
+        });
+    }
+    return getDiagnosisSubcategories(specialty);
+  }, [filteredDiagnoses, specialty]);
 
   // Filter tabs to only show those with at least one matching diagnosis
   const subcategories = useMemo(() => {
+    if (filteredDiagnoses) return allSubcategories; // Already filtered
     if (!clinicalGroupFilter) return allSubcategories;
     return allSubcategories.filter((subcat) => {
       const dxInSubcat = getDiagnosesForSubcategory(specialty, subcat);
@@ -69,7 +90,7 @@ export function DiagnosisPicker({
         matchesGroupFilter(dx, clinicalGroupFilter),
       );
     });
-  }, [allSubcategories, clinicalGroupFilter, specialty]);
+  }, [allSubcategories, clinicalGroupFilter, filteredDiagnoses, specialty]);
 
   const initialSubcat = () => {
     if (selectedDiagnosisId) {
@@ -88,14 +109,29 @@ export function DiagnosisPicker({
 
   const searchResults = useMemo(() => {
     if (!isSearching) return [];
+    if (filteredDiagnoses) {
+      // Search within the filtered list only
+      const q = searchQuery.toLowerCase();
+      return filteredDiagnoses.filter(
+        (dx) =>
+          dx.displayName.toLowerCase().includes(q) ||
+          (dx.shortName && dx.shortName.toLowerCase().includes(q)) ||
+          dx.snomedCtCode.includes(q),
+      );
+    }
     const results = searchDiagnoses(searchQuery, specialty);
     return clinicalGroupFilter
       ? results.filter((dx) => matchesGroupFilter(dx, clinicalGroupFilter))
       : results;
-  }, [searchQuery, specialty, isSearching, clinicalGroupFilter]);
+  }, [searchQuery, specialty, isSearching, clinicalGroupFilter, filteredDiagnoses]);
 
   const diagnosesInSubcat = useMemo(() => {
     if (isSearching) return searchResults;
+    if (filteredDiagnoses) {
+      return filteredDiagnoses.filter(
+        (dx) => dx.subcategory === activeSubcategory,
+      );
+    }
     const raw = getDiagnosesForSubcategory(specialty, activeSubcategory);
     return clinicalGroupFilter
       ? raw.filter((dx) => matchesGroupFilter(dx, clinicalGroupFilter))
@@ -103,6 +139,7 @@ export function DiagnosisPicker({
   }, [
     isSearching,
     searchResults,
+    filteredDiagnoses,
     specialty,
     activeSubcategory,
     clinicalGroupFilter,
@@ -124,21 +161,33 @@ export function DiagnosisPicker({
     [toggleFavourite],
   );
 
-  // Filter favourites/recents by clinical group filter
+  // Filter favourites/recents by clinical group filter or filteredDiagnoses
+  const filteredDiagnosisIds = useMemo(
+    () =>
+      filteredDiagnoses
+        ? new Set(filteredDiagnoses.map((d) => d.id))
+        : undefined,
+    [filteredDiagnoses],
+  );
+
   const filteredFavourites = useMemo(
     () =>
       favouriteDiagnoses.filter((dx) =>
-        matchesGroupFilter(dx, clinicalGroupFilter),
+        filteredDiagnosisIds
+          ? filteredDiagnosisIds.has(dx.id)
+          : matchesGroupFilter(dx, clinicalGroupFilter),
       ),
-    [favouriteDiagnoses, clinicalGroupFilter],
+    [favouriteDiagnoses, clinicalGroupFilter, filteredDiagnosisIds],
   );
 
   const filteredRecents = useMemo(
     () =>
       recentDiagnoses.filter((dx) =>
-        matchesGroupFilter(dx, clinicalGroupFilter),
+        filteredDiagnosisIds
+          ? filteredDiagnosisIds.has(dx.id)
+          : matchesGroupFilter(dx, clinicalGroupFilter),
       ),
-    [recentDiagnoses, clinicalGroupFilter],
+    [recentDiagnoses, clinicalGroupFilter, filteredDiagnosisIds],
   );
 
   if (!hasDiagnosisPicklist(specialty)) {

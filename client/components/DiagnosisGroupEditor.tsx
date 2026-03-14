@@ -53,6 +53,7 @@ import {
   getActiveProcedureIds,
   evaluateSuggestions,
   findDiagnosisById,
+  getDiagnosesForSpecialty,
 } from "@/lib/diagnosisPicklists";
 import type { DiagnosisPicklistEntry } from "@/types/diagnosis";
 import {
@@ -118,10 +119,12 @@ import {
   isBreastSpecialty,
   getBreastModuleFlags,
   getBreastClinicalContext,
+  getBreastDiagnosesForContext,
   hasAnyBreastModuleFlag,
   hasExistingBreastData,
 } from "@/lib/breastConfig";
 import { BreastAssessment } from "@/components/breast/BreastAssessment";
+import { BreastContextSelector } from "@/components/breast/BreastContextSelector";
 import { CompactProcedureList } from "@/components/CompactProcedureList";
 import type { BreastAssessmentData } from "@/types/breast";
 import { normalizeBreastAssessment } from "@/lib/breastState";
@@ -969,6 +972,24 @@ function DiagnosisGroupEditorInner({
       defaultBreastClinicalContext,
     );
   }, [defaultBreastClinicalContext, group.breastAssessment, isBreastModule]);
+
+  // ── Breast context-filtered diagnoses ────────────────────────────────────
+  const [showAllBreastDiagnoses, setShowAllBreastDiagnoses] = useState(false);
+
+  // Primary context: use left side for bilateral, or the single side's context
+  const breastPrimaryContext = useMemo(() => {
+    if (!normalizedBreastAssessment) return undefined;
+    const lat = normalizedBreastAssessment.laterality;
+    const primarySide = lat === "right" ? "right" : "left";
+    return normalizedBreastAssessment.sides[primarySide]?.clinicalContext;
+  }, [normalizedBreastAssessment]);
+
+  const breastFilteredDiagnoses = useMemo(() => {
+    if (!isBreastModule || showAllBreastDiagnoses || !breastPrimaryContext)
+      return undefined;
+    const allBreast = getDiagnosesForSpecialty("breast");
+    return getBreastDiagnosesForContext(breastPrimaryContext, allBreast);
+  }, [isBreastModule, showAllBreastDiagnoses, breastPrimaryContext]);
 
   const linkedBreastEpisodeId =
     normalizedBreastAssessment?.reconstructionEpisodeId;
@@ -2350,6 +2371,20 @@ function DiagnosisGroupEditorInner({
           />
         ) : null}
 
+        {/* Breast context selector — laterality + clinical context BEFORE diagnosis */}
+        {isBreastModule && hasSelectedHandCaseType ? (
+          <BreastContextSelector
+            value={normalizedBreastAssessment!}
+            onChange={(breastAssessment: BreastAssessmentData) =>
+              onChange({ ...group, breastAssessment })
+            }
+            defaultClinicalContext={defaultBreastClinicalContext}
+            isTransmasculine={
+              selectedDiagnosis?.id === "breast_dx_gender_dysphoria_transmasc"
+            }
+          />
+        ) : null}
+
         {hasSelectedHandCaseType &&
         showTraumaDiagnosisEditor &&
         !isSkinCancerInlineFlow &&
@@ -2438,8 +2473,35 @@ function DiagnosisGroupEditorInner({
                         ? "acute"
                         : undefined
                   }
+                  filteredDiagnoses={breastFilteredDiagnoses}
                 />
               )
+            ) : null}
+
+            {/* Breast: show all / show filtered toggle */}
+            {isBreastModule &&
+            breastPrimaryContext &&
+            !isDiagnosisPickerCollapsed ? (
+              <Pressable
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setShowAllBreastDiagnoses((v) => !v);
+                }}
+                style={styles.showAllLink}
+              >
+                <Feather
+                  name={showAllBreastDiagnoses ? "filter" : "chevron-down"}
+                  size={14}
+                  color={theme.link}
+                />
+                <ThemedText
+                  style={[styles.showAllLinkText, { color: theme.link }]}
+                >
+                  {showAllBreastDiagnoses
+                    ? "Show context-filtered diagnoses"
+                    : "Show all breast diagnoses"}
+                </ThemedText>
+              </Pressable>
             ) : null}
 
             {/* SNOMED-only specialties: collapse when selected */}
@@ -3203,6 +3265,7 @@ function DiagnosisGroupEditorInner({
             }}
             onUnlinkEpisode={handleUnlinkBreastEpisode}
             breastPreferences={profile?.surgicalPreferences?.breast}
+            hideContextSelector
           />
         ) : null}
 
@@ -3673,5 +3736,16 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: Spacing.xs,
+  },
+  showAllLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  showAllLinkText: {
+    fontSize: 13,
+    fontWeight: "500",
   },
 });

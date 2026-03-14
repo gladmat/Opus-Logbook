@@ -58,6 +58,32 @@ export function getBreastClinicalContext(
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// CONTEXT → DIAGNOSIS FILTERING
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Maps each clinical context to the clinicalGroup values it should show.
+ * Reconstructive includes oncological, reconstructive, and congenital diagnoses.
+ */
+const CONTEXT_TO_CLINICAL_GROUPS: Record<BreastClinicalContext, string[]> = {
+  reconstructive: ["oncological", "reconstructive", "congenital"],
+  aesthetic: ["elective"],
+  gender_affirming: ["gender_affirming"],
+};
+
+/**
+ * Filter breast diagnoses by clinical context.
+ * Returns only diagnoses whose clinicalGroup matches the selected context.
+ */
+export function getBreastDiagnosesForContext(
+  context: BreastClinicalContext,
+  allDiagnoses: DiagnosisPicklistEntry[],
+): DiagnosisPicklistEntry[] {
+  const groups = CONTEXT_TO_CLINICAL_GROUPS[context];
+  return allDiagnoses.filter((d) => groups.includes(d.clinicalGroup ?? ""));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // MODULE VISIBILITY — which specialty cards to show per procedure
 // ═══════════════════════════════════════════════════════════════════════════════
 

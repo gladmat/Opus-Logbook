@@ -34,6 +34,14 @@ import { NippleDetailsCard } from "./NippleDetailsCard";
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Controls which sections render:
+ * - "full": Everything (backward compat, default)
+ * - "context_only": Header + clinical context + timing/gender-affirming context
+ * - "modules_only": Module cards only (implant, flap, chest masc, nipple, episode)
+ */
+type RenderMode = "full" | "context_only" | "modules_only";
+
 interface Props {
   side: BreastLaterality;
   value: BreastSideAssessment;
@@ -54,6 +62,8 @@ interface Props {
   onUnlinkEpisode?: () => void;
   /** Breast surgical preferences for auto-fill */
   breastPreferences?: import("@/types/surgicalPreferences").BreastPreferences;
+  /** Controls which sections render */
+  renderMode?: RenderMode;
 }
 
 const CONTEXT_OPTIONS: {
@@ -96,6 +106,7 @@ export const BreastSideCard = React.memo(function BreastSideCard({
   onCreateEpisode,
   onUnlinkEpisode,
   breastPreferences,
+  renderMode = "full",
 }: Props) {
   const { theme, isDark } = useTheme();
 
@@ -153,6 +164,9 @@ export const BreastSideCard = React.memo(function BreastSideCard({
 
   const visibility = getBreastSideVisibility(value, moduleFlags);
 
+  const showContext = renderMode !== "modules_only";
+  const showModules = renderMode !== "context_only";
+
   return (
     <View
       style={[
@@ -169,7 +183,7 @@ export const BreastSideCard = React.memo(function BreastSideCard({
         <View style={styles.headerLeft}>
           <ThemedText type="h4">{sideLabel}</ThemedText>
         </View>
-        {showCopyButton && onCopy && (
+        {showContext && showCopyButton && onCopy && (
           <Pressable onPress={onCopy} style={styles.copyButton}>
             <Feather name="copy" size={14} color={theme.link} />
             <ThemedText
@@ -182,79 +196,26 @@ export const BreastSideCard = React.memo(function BreastSideCard({
         )}
       </View>
 
-      {/* Clinical context chips */}
-      <ThemedText
-        type="small"
-        style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}
-      >
-        Clinical Context
-      </ThemedText>
-      <View style={styles.chipRow}>
-        {CONTEXT_OPTIONS.map(({ key, icon }) => {
-          const selected = value.clinicalContext === key;
-          return (
-            <Pressable
-              key={key}
-              onPress={() => handleContextChange(key)}
-              style={[
-                styles.contextChip,
-                {
-                  backgroundColor: selected
-                    ? theme.link
-                    : theme.backgroundSecondary,
-                  borderColor: selected ? theme.link : theme.border,
-                },
-              ]}
-            >
-              <Feather
-                name={icon}
-                size={14}
-                color={selected ? theme.buttonText : theme.textSecondary}
-                style={{ marginRight: 4 }}
-              />
-              <ThemedText
-                type="small"
-                style={{
-                  color: selected ? theme.buttonText : theme.text,
-                  fontWeight: selected ? "600" : "400",
-                }}
-              >
-                {BREAST_CLINICAL_CONTEXT_LABELS[key]}
-              </ThemedText>
-            </Pressable>
-          );
-        })}
-      </View>
+      {/* ── Context section ──────────────────────────────────────────── */}
 
-      {/* Gender-affirming context — shown for gender_affirming */}
-      {visibility.showGenderAffirmingContext && (
-        <GenderAffirmingContextCard
-          value={value.genderAffirmingContext ?? {}}
-          onChange={(genderAffirmingContext) =>
-            onChange({ ...value, genderAffirmingContext })
-          }
-          isTransmasculine={isTransmasculine}
-        />
-      )}
-
-      {/* Reconstructive timing — shown only for reconstructive context */}
-      {visibility.showReconstructiveFields && (
-        <View style={styles.timingSection}>
+      {showContext && (
+        <>
+          {/* Clinical context chips */}
           <ThemedText
             type="small"
             style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}
           >
-            Reconstruction Timing
+            Clinical Context
           </ThemedText>
           <View style={styles.chipRow}>
-            {TIMING_OPTIONS.map((timing) => {
-              const selected = value.reconstructionTiming === timing;
+            {CONTEXT_OPTIONS.map(({ key, icon }) => {
+              const selected = value.clinicalContext === key;
               return (
                 <Pressable
-                  key={timing}
-                  onPress={() => handleTimingChange(timing)}
+                  key={key}
+                  onPress={() => handleContextChange(key)}
                   style={[
-                    styles.timingChip,
+                    styles.contextChip,
                     {
                       backgroundColor: selected
                         ? theme.link
@@ -263,6 +224,12 @@ export const BreastSideCard = React.memo(function BreastSideCard({
                     },
                   ]}
                 >
+                  <Feather
+                    name={icon}
+                    size={14}
+                    color={selected ? theme.buttonText : theme.textSecondary}
+                    style={{ marginRight: 4 }}
+                  />
                   <ThemedText
                     type="small"
                     style={{
@@ -270,66 +237,125 @@ export const BreastSideCard = React.memo(function BreastSideCard({
                       fontWeight: selected ? "600" : "400",
                     }}
                   >
-                    {TIMING_SHORT_LABELS[timing]}
+                    {BREAST_CLINICAL_CONTEXT_LABELS[key]}
                   </ThemedText>
                 </Pressable>
               );
             })}
           </View>
-        </View>
+
+          {/* Gender-affirming context — shown for gender_affirming */}
+          {visibility.showGenderAffirmingContext && (
+            <GenderAffirmingContextCard
+              value={value.genderAffirmingContext ?? {}}
+              onChange={(genderAffirmingContext) =>
+                onChange({ ...value, genderAffirmingContext })
+              }
+              isTransmasculine={isTransmasculine}
+            />
+          )}
+
+          {/* Reconstructive timing — shown only for reconstructive context */}
+          {visibility.showReconstructiveFields && (
+            <View style={styles.timingSection}>
+              <ThemedText
+                type="small"
+                style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}
+              >
+                Reconstruction Timing
+              </ThemedText>
+              <View style={styles.chipRow}>
+                {TIMING_OPTIONS.map((timing) => {
+                  const selected = value.reconstructionTiming === timing;
+                  return (
+                    <Pressable
+                      key={timing}
+                      onPress={() => handleTimingChange(timing)}
+                      style={[
+                        styles.timingChip,
+                        {
+                          backgroundColor: selected
+                            ? theme.link
+                            : theme.backgroundSecondary,
+                          borderColor: selected ? theme.link : theme.border,
+                        },
+                      ]}
+                    >
+                      <ThemedText
+                        type="small"
+                        style={{
+                          color: selected ? theme.buttonText : theme.text,
+                          fontWeight: selected ? "600" : "400",
+                        }}
+                      >
+                        {TIMING_SHORT_LABELS[timing]}
+                      </ThemedText>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+        </>
       )}
 
       {/* ── Specialty module cards ────────────────────────────────────── */}
 
-      {visibility.showImplantDetails && (
-        <ImplantDetailsCard
-          value={value.implantDetails ?? {}}
-          onChange={(implantDetails) => onChange({ ...value, implantDetails })}
-          breastPreferences={breastPreferences}
-        />
-      )}
+      {showModules && (
+        <>
+          {visibility.showImplantDetails && (
+            <ImplantDetailsCard
+              value={value.implantDetails ?? {}}
+              onChange={(implantDetails) =>
+                onChange({ ...value, implantDetails })
+              }
+              breastPreferences={breastPreferences}
+            />
+          )}
 
-      {visibility.showBreastFlapDetails && (
-        <BreastFlapCard
-          value={value.flapDetails ?? {}}
-          onChange={(flapDetails) => onChange({ ...value, flapDetails })}
-        />
-      )}
+          {visibility.showBreastFlapDetails && (
+            <BreastFlapCard
+              value={value.flapDetails ?? {}}
+              onChange={(flapDetails) => onChange({ ...value, flapDetails })}
+            />
+          )}
 
-      {visibility.showPedicledFlapDetails && (
-        <BreastFlapCard
-          mode="pedicled"
-          value={value.flapDetails ?? {}}
-          onChange={(flapDetails) => onChange({ ...value, flapDetails })}
-        />
-      )}
+          {visibility.showPedicledFlapDetails && (
+            <BreastFlapCard
+              mode="pedicled"
+              value={value.flapDetails ?? {}}
+              onChange={(flapDetails) => onChange({ ...value, flapDetails })}
+            />
+          )}
 
-      {visibility.showChestMasculinisation && (
-        <ChestMasculinisationCard
-          value={value.chestMasculinisation ?? {}}
-          onChange={(chestMasculinisation) =>
-            onChange({ ...value, chestMasculinisation })
-          }
-        />
-      )}
+          {visibility.showChestMasculinisation && (
+            <ChestMasculinisationCard
+              value={value.chestMasculinisation ?? {}}
+              onChange={(chestMasculinisation) =>
+                onChange({ ...value, chestMasculinisation })
+              }
+            />
+          )}
 
-      {visibility.showNippleDetails && (
-        <NippleDetailsCard
-          value={value.nippleDetails ?? {}}
-          onChange={(nippleDetails) => onChange({ ...value, nippleDetails })}
-        />
-      )}
+          {visibility.showNippleDetails && (
+            <NippleDetailsCard
+              value={value.nippleDetails ?? {}}
+              onChange={(nippleDetails) => onChange({ ...value, nippleDetails })}
+            />
+          )}
 
-      {visibility.showReconstructionEpisode &&
-      onCreateEpisode &&
-      onUnlinkEpisode ? (
-        <ReconstructionEpisodeCard
-          linkedEpisodeId={linkedEpisodeId}
-          linkedEpisodeTitle={linkedEpisodeTitle}
-          onCreateEpisode={onCreateEpisode}
-          onUnlinkEpisode={onUnlinkEpisode}
-        />
-      ) : null}
+          {visibility.showReconstructionEpisode &&
+          onCreateEpisode &&
+          onUnlinkEpisode ? (
+            <ReconstructionEpisodeCard
+              linkedEpisodeId={linkedEpisodeId}
+              linkedEpisodeTitle={linkedEpisodeTitle}
+              onCreateEpisode={onCreateEpisode}
+              onUnlinkEpisode={onUnlinkEpisode}
+            />
+          ) : null}
+        </>
+      )}
     </View>
   );
 });
