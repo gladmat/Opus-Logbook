@@ -8,6 +8,8 @@ import {
   buildBreastEpisodeUpdatePlan,
   deriveBreastReconstructionMeta,
   getBreastEpisodeLinkedId,
+  getBreastEpisodePromptLabel,
+  suggestBreastEpisodeType,
 } from "@/lib/breastEpisodeHelpers";
 import {
   copyBreastSide,
@@ -233,5 +235,200 @@ describe("breastEpisodeHelpers", () => {
     expect(
       updatePlan?.breastReconstructionMeta?.primaryReconstructionType,
     ).toBe("implant_two_stage");
+  });
+});
+
+describe("getBreastEpisodePromptLabel", () => {
+  it("returns cancer pathway label for oncological + reconstructive", () => {
+    const assessment = normalizeBreastAssessment({
+      laterality: "left",
+      sides: {
+        left: { side: "left", clinicalContext: "reconstructive" },
+      },
+    });
+    const result = getBreastEpisodePromptLabel(assessment, "oncological");
+    expect(result.title).toBe("Start a cancer pathway episode?");
+    expect(result.subtitle).toBe("Track stages across multiple operations");
+  });
+
+  it("returns reconstruction label for reconstructive context", () => {
+    const assessment = normalizeBreastAssessment({
+      laterality: "left",
+      sides: {
+        left: { side: "left", clinicalContext: "reconstructive" },
+      },
+    });
+    const result = getBreastEpisodePromptLabel(assessment, "reconstructive");
+    expect(result.title).toBe("Start a reconstruction episode?");
+  });
+
+  it("returns generic treatment label for aesthetic context", () => {
+    const assessment = normalizeBreastAssessment({
+      laterality: "left",
+      sides: {
+        left: { side: "left", clinicalContext: "aesthetic" },
+      },
+    });
+    const result = getBreastEpisodePromptLabel(assessment, "aesthetic");
+    expect(result.title).toBe("Start a treatment episode?");
+  });
+});
+
+describe("suggestBreastEpisodeType", () => {
+  it("returns cancer_pathway for oncological diagnosis", () => {
+    const assessment = normalizeBreastAssessment({
+      laterality: "left",
+      sides: {
+        left: { side: "left", clinicalContext: "reconstructive" },
+      },
+    });
+    expect(suggestBreastEpisodeType(assessment, "oncological")).toBe(
+      "cancer_pathway",
+    );
+  });
+
+  it("returns staged_reconstruction for non-oncological", () => {
+    const assessment = normalizeBreastAssessment({
+      laterality: "left",
+      sides: {
+        left: { side: "left", clinicalContext: "aesthetic" },
+      },
+    });
+    expect(suggestBreastEpisodeType(assessment, "aesthetic")).toBe(
+      "staged_reconstruction",
+    );
+  });
+});
+
+describe("buildBreastEpisodeCreatePlan with overrides", () => {
+  const caseData: Case = {
+    id: "case-1",
+    patientIdentifier: "PAT-1",
+    procedureDate: "2026-03-10",
+    facility: "Test Hospital",
+    specialty: "breast",
+    procedureType: "Breast reconstruction",
+    diagnosisGroups: [
+      {
+        id: "group-1",
+        specialty: "breast",
+        diagnosis: {
+          displayName: "Delayed breast reconstruction",
+          snomedCtCode: "123",
+        },
+        procedures: [],
+        breastAssessment: {
+          laterality: "left",
+          sides: {
+            left: {
+              side: "left",
+              clinicalContext: "reconstructive",
+              reconstructionTiming: "delayed",
+              implantDetails: {
+                deviceType: "tissue_expander",
+                implantPlane: "prepectoral",
+              },
+            },
+          },
+        },
+      },
+    ],
+    teamMembers: [],
+    ownerId: "user-1",
+    createdAt: "2026-03-10T10:00:00.000Z",
+    updatedAt: "2026-03-10T10:00:00.000Z",
+  };
+
+  it("applies title override when creating a new episode", () => {
+    const plan = buildBreastEpisodeCreatePlan(
+      caseData,
+      [],
+      "2026-03-10T10:00:00.000Z",
+      "episode-new",
+      { title: "Custom Episode Title" },
+    );
+    expect(plan?.episodeToCreate?.title).toBe("Custom Episode Title");
+  });
+
+  it("applies episodeType override", () => {
+    const plan = buildBreastEpisodeCreatePlan(
+      caseData,
+      [],
+      "2026-03-10T10:00:00.000Z",
+      "episode-new",
+      { episodeType: "cancer_pathway" },
+    );
+    expect(plan?.episodeToCreate?.type).toBe("cancer_pathway");
+  });
+
+  it("applies pendingAction and onsetDate overrides", () => {
+    const plan = buildBreastEpisodeCreatePlan(
+      caseData,
+      [],
+      "2026-03-10T10:00:00.000Z",
+      "episode-new",
+      {
+        pendingAction: "awaiting_fat_grafting",
+        onsetDate: "2026-01-15",
+      },
+    );
+    expect(plan?.episodeToCreate?.pendingAction).toBe("awaiting_fat_grafting");
+    expect(plan?.episodeToCreate?.onsetDate).toBe("2026-01-15");
+  });
+
+  it("uses auto-derived values when no overrides provided", () => {
+    const plan = buildBreastEpisodeCreatePlan(
+      caseData,
+      [],
+      "2026-03-10T10:00:00.000Z",
+      "episode-new",
+    );
+    expect(plan?.episodeToCreate?.type).toBe("staged_reconstruction");
+    expect(plan?.episodeToCreate?.onsetDate).toBe("2026-03-10");
+  });
+});
+
+describe("broadened getBreastEpisodeTarget", () => {
+  it("finds aesthetic breast groups (not just reconstructive)", () => {
+    const aestheticCase: Case = {
+      id: "case-2",
+      patientIdentifier: "PAT-2",
+      procedureDate: "2026-03-10",
+      facility: "Test Hospital",
+      specialty: "breast",
+      procedureType: "Breast augmentation",
+      diagnosisGroups: [
+        {
+          id: "group-2",
+          specialty: "breast",
+          diagnosis: {
+            displayName: "Breast augmentation",
+            snomedCtCode: "456",
+          },
+          procedures: [],
+          breastAssessment: {
+            laterality: "bilateral",
+            sides: {
+              left: { side: "left", clinicalContext: "aesthetic" },
+              right: { side: "right", clinicalContext: "aesthetic" },
+            },
+          },
+        },
+      ],
+      teamMembers: [],
+      ownerId: "user-1",
+      createdAt: "2026-03-10T10:00:00.000Z",
+      updatedAt: "2026-03-10T10:00:00.000Z",
+    };
+
+    const plan = buildBreastEpisodeCreatePlan(
+      aestheticCase,
+      [],
+      "2026-03-10T10:00:00.000Z",
+      "episode-new",
+    );
+    expect(plan).not.toBeNull();
+    expect(plan?.linkedEpisodeId).toBe("episode-new");
+    expect(plan?.episodeToCreate).toBeDefined();
   });
 });

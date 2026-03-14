@@ -159,6 +159,7 @@ import {
   applyBreastEpisodeLinkToGroup,
   buildBreastEpisodeCreatePlan,
 } from "@/lib/breastEpisodeHelpers";
+import type { BreastEpisodeOverrides } from "@/lib/breastEpisodeHelpers";
 import {
   findEpisodesByPatientIdentifier,
   getEpisode,
@@ -1019,7 +1020,7 @@ function DiagnosisGroupEditorInner({
     };
   }, [linkedBreastEpisodeId]);
 
-  const handleCreateBreastEpisode = useCallback(async () => {
+  const handleCreateBreastEpisode = useCallback(async (overrides?: BreastEpisodeOverrides) => {
     if (!normalizedBreastAssessment) return;
 
     const caseFormState = getCaseFormState();
@@ -1055,6 +1056,7 @@ function DiagnosisGroupEditorInner({
         existingEpisodes,
         new Date().toISOString(),
         uuidv4(),
+        overrides,
       );
 
       if (!plan) return;
@@ -3260,12 +3262,15 @@ function DiagnosisGroupEditorInner({
             }
             linkedEpisodeId={linkedBreastEpisodeId}
             linkedEpisodeTitle={linkedBreastEpisodeTitle}
-            onCreateEpisode={() => {
-              void handleCreateBreastEpisode();
+            onCreateEpisode={(overrides) => {
+              void handleCreateBreastEpisode(overrides);
             }}
             onUnlinkEpisode={handleUnlinkBreastEpisode}
             breastPreferences={profile?.surgicalPreferences?.breast}
             hideContextSelector
+            procedureDate={getCaseFormState().procedureDate}
+            diagnosisClinicalGroup={selectedDiagnosis?.clinicalGroup}
+            diagnosisDisplay={selectedDiagnosis?.displayName}
           />
         ) : null}
 

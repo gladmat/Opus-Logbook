@@ -4,8 +4,17 @@ import type {
   BreastReconstructionMeta,
   BreastReconPrimaryType,
 } from "@/types/breast";
-import type { TreatmentEpisode } from "@/types/episode";
+import type { TreatmentEpisode, EpisodeType, PendingAction } from "@/types/episode";
 import { normalizeBreastAssessment } from "@/lib/breastState";
+
+// ── Override type for surgeon-editable episode fields ────────────────────────
+
+export interface BreastEpisodeOverrides {
+  title?: string;
+  episodeType?: EpisodeType;
+  onsetDate?: string;
+  pendingAction?: PendingAction;
+}
 
 interface BreastEpisodeTarget {
   assessment: BreastAssessmentData;
@@ -19,11 +28,14 @@ function getBreastEpisodeTarget(
   for (const group of caseData.diagnosisGroups ?? []) {
     if (!group.breastAssessment) continue;
     const assessment = normalizeBreastAssessment(group.breastAssessment);
-    const hasReconstructiveSide = Object.values(assessment.sides).some(
-      (side) => side?.clinicalContext === "reconstructive",
+
+    // Accept any group with a breast assessment that has at least one side
+    // with a clinical context, or an existing episode link
+    const hasAnySide = Object.values(assessment.sides).some(
+      (side) => side?.clinicalContext != null,
     );
 
-    if (!hasReconstructiveSide && !assessment.reconstructionEpisodeId) {
+    if (!hasAnySide && !assessment.reconstructionEpisodeId) {
       continue;
     }
 
@@ -115,6 +127,52 @@ export function buildBreastEpisodeTitle(
   return `${lateralityLabel} breast reconstruction`;
 }
 
+// ── Context-aware prompt labels ──────────────────────────────────────────────
+
+export function getBreastEpisodePromptLabel(
+  assessment: BreastAssessmentData,
+  diagnosisClinicalGroup?: string,
+): { title: string; subtitle: string } {
+  const subtitle = "Track stages across multiple operations";
+
+  const isOncological = diagnosisClinicalGroup === "oncological";
+  const hasReconstructive = Object.values(assessment.sides).some(
+    (s) => s?.clinicalContext === "reconstructive",
+  );
+
+  if (isOncological && hasReconstructive) {
+    return { title: "Start a cancer pathway episode?", subtitle };
+  }
+  if (hasReconstructive) {
+    return { title: "Start a reconstruction episode?", subtitle };
+  }
+  return { title: "Start a treatment episode?", subtitle };
+}
+
+// ── Context-aware episode type suggestion ────────────────────────────────────
+
+export function suggestBreastEpisodeType(
+  assessment: BreastAssessmentData,
+  diagnosisClinicalGroup?: string,
+): EpisodeType {
+  const isOncological = diagnosisClinicalGroup === "oncological";
+  if (isOncological) return "cancer_pathway";
+  return "staged_reconstruction";
+}
+
+// ── Breast-relevant pending actions (ordered first in dropdown) ──────────────
+
+export const BREAST_PENDING_ACTIONS: PendingAction[] = [
+  "awaiting_expander_exchange",
+  "expansion_in_progress",
+  "awaiting_nipple_recon",
+  "awaiting_fat_grafting",
+  "awaiting_symmetrisation",
+  "awaiting_tattoo",
+  "awaiting_reconstruction",
+  "staged_procedure_planned",
+];
+
 export function buildBreastEpisodeCreatePlan(
   caseData: Pick<
     Case,
@@ -128,6 +186,7 @@ export function buildBreastEpisodeCreatePlan(
   existingEpisodes: TreatmentEpisode[],
   now: string,
   episodeId: string,
+  overrides?: BreastEpisodeOverrides,
 ): {
   linkedEpisodeId: string;
   linkedEpisodeTitle: string;
@@ -207,10 +266,19 @@ export function buildBreastEpisodeCreatePlan(
     };
   }
 
-  const title = buildBreastEpisodeTitle(
+  const autoTitle = buildBreastEpisodeTitle(
     target.assessment,
     target.diagnosisDisplay,
   );
+  const title = overrides?.title?.trim() || autoTitle;
+
+  const autoPendingAction: PendingAction | undefined =
+    target.assessment.lipofilling ||
+    Object.values(target.assessment.sides).some(
+      (side) => side?.nippleDetails,
+    )
+      ? "staged_procedure_planned"
+      : "awaiting_reconstruction";
 
   return {
     linkedEpisodeId: episodeId,
@@ -223,17 +291,11 @@ export function buildBreastEpisodeCreatePlan(
       primaryDiagnosisDisplay:
         target.diagnosisDisplay ?? "Breast reconstruction",
       laterality: target.assessment.laterality,
-      type: "staged_reconstruction",
+      type: overrides?.episodeType ?? "staged_reconstruction",
       specialty: caseData.specialty,
       status: "planned",
-      pendingAction:
-        target.assessment.lipofilling ||
-        Object.values(target.assessment.sides).some(
-          (side) => side?.nippleDetails,
-        )
-          ? "staged_procedure_planned"
-          : "awaiting_reconstruction",
-      onsetDate: caseData.procedureDate,
+      pendingAction: overrides?.pendingAction ?? autoPendingAction,
+      onsetDate: overrides?.onsetDate ?? caseData.procedureDate,
       notes: "Breast reconstruction pathway",
       ownerId: caseData.ownerId,
       createdAt: now,

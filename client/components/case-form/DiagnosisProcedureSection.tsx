@@ -74,7 +74,8 @@ export const DiagnosisProcedureSection = React.memo(
     // Check if diagnosis is selected and no episode linked
     const primaryGroup = diagnosisGroups[0];
     const hasDiagnosis = !!primaryGroup?.diagnosis;
-    const showInlineEpisodeCreator = hasDiagnosis && !episodeId && !saving;
+    const isBreastCase = primaryGroup?.specialty === "breast";
+    const showInlineEpisodeCreator = hasDiagnosis && !episodeId && !saving && !isBreastCase;
 
     // Determine which group index is the first to trigger infection visibility
     const firstInfectionGroupIndex = useMemo(() => {

@@ -186,7 +186,7 @@ export function getBreastSideVisibility(
   return {
     ...moduleFlags,
     showReconstructiveFields,
-    showReconstructionEpisode: showReconstructiveFields,
+    showReconstructionEpisode: true,
     showGenderAffirmingContext,
   };
 }

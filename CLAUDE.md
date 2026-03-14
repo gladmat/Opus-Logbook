@@ -1079,6 +1079,22 @@ Following established patterns:
 - Liposuction: case-level (shared across sides)
 - Episode meta: TreatmentEpisode.breastReconstructionMeta (nullable JSONB)
 
+## Breast Module — Additional Locked Decisions (March 2026)
+
+### Episode Unification
+- Breast cases use the breast-specific episode prompt ONLY — generic "Start treatment episode?" toggle is HIDDEN for breast specialty
+- Breast episodes are `TreatmentEpisode` with `breastReconstructionMeta` — no separate entity
+- Episode prompt appears ONCE per case (below both side cards for bilateral, inside side card for unilateral)
+
+### Diagnosis Picker
+- SNOMED CT codes are NEVER shown to the surgeon in the diagnosis picker
+- Diagnoses render as chips, not list rows
+- SNOMED search is collapsed by default behind "Can't find your diagnosis?" link
+
+### Cross-Context Visibility
+- Implant complication diagnoses have `crossContextVisible: true` and appear under both Reconstructive and Aesthetic contexts
+- Gender-affirming context still only shows gender-affirming diagnoses
+
 ## Design system: Charcoal + Amber
 
 All tokens in `client/constants/theme.ts` (single source of truth, 273 lines).

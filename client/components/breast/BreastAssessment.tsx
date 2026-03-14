@@ -12,6 +12,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { BreastSideCard } from "./BreastSideCard";
+import { ReconstructionEpisodeCard } from "./ReconstructionEpisodeCard";
 import { LipofillingCard } from "./LipofillingCard";
 import { LiposuctionCard } from "./LiposuctionCard";
 import type {
@@ -23,6 +24,12 @@ import type {
   LiposuctionData,
 } from "@/types/breast";
 import type { BreastModuleFlags } from "@/lib/breastConfig";
+import type { BreastEpisodeOverrides } from "@/lib/breastEpisodeHelpers";
+import {
+  getBreastEpisodePromptLabel,
+  suggestBreastEpisodeType,
+  buildBreastEpisodeTitle,
+} from "@/lib/breastEpisodeHelpers";
 import {
   copyBreastSide,
   getBreastAssessmentActiveSides,
@@ -46,11 +53,17 @@ interface Props {
   /** Linked episode title */
   linkedEpisodeTitle?: string;
   /** Called when user creates a new reconstruction episode */
-  onCreateEpisode?: () => void;
+  onCreateEpisode?: (overrides: BreastEpisodeOverrides) => void;
   /** Called when user unlinks the episode */
   onUnlinkEpisode?: () => void;
   /** Breast surgical preferences for auto-fill */
   breastPreferences?: import("@/types/surgicalPreferences").BreastPreferences;
+  /** Procedure date for episode onset default */
+  procedureDate?: string;
+  /** Diagnosis clinical group for context-aware labels */
+  diagnosisClinicalGroup?: string;
+  /** Diagnosis display name for episode title derivation */
+  diagnosisDisplay?: string;
   /**
    * When true, skips the "Breast Assessment" header and laterality chips
    * (they're rendered upstream by BreastContextSelector).
@@ -83,11 +96,31 @@ export const BreastAssessment = React.memo(function BreastAssessment({
   onUnlinkEpisode,
   breastPreferences,
   hideContextSelector,
+  procedureDate,
+  diagnosisClinicalGroup,
+  diagnosisDisplay,
 }: Props) {
   const { theme } = useTheme();
   const assessment = useMemo(
     () => normalizeBreastAssessment(value, defaultClinicalContext),
     [defaultClinicalContext, value],
+  );
+
+  // ── Episode label & suggestion derivation ─────────────────────────────
+
+  const promptLabel = useMemo(
+    () => getBreastEpisodePromptLabel(assessment, diagnosisClinicalGroup),
+    [assessment, diagnosisClinicalGroup],
+  );
+
+  const suggestedTitle = useMemo(
+    () => buildBreastEpisodeTitle(assessment, diagnosisDisplay),
+    [assessment, diagnosisDisplay],
+  );
+
+  const suggestedEpisodeType = useMemo(
+    () => suggestBreastEpisodeType(assessment, diagnosisClinicalGroup),
+    [assessment, diagnosisClinicalGroup],
   );
 
   // ── Laterality ──────────────────────────────────────────────────────────
@@ -261,15 +294,25 @@ export const BreastAssessment = React.memo(function BreastAssessment({
             showCopyButton={showCopy}
             onCopy={() => handleCopy(side)}
             isTransmasculine={isTransmasculine}
-            linkedEpisodeId={linkedEpisodeId}
-            linkedEpisodeTitle={linkedEpisodeTitle}
-            onCreateEpisode={onCreateEpisode}
-            onUnlinkEpisode={onUnlinkEpisode}
             breastPreferences={breastPreferences}
             renderMode={sideRenderMode}
           />
         );
       })}
+
+      {/* Episode card — rendered ONCE after all side cards */}
+      {onCreateEpisode && onUnlinkEpisode ? (
+        <ReconstructionEpisodeCard
+          linkedEpisodeId={linkedEpisodeId}
+          linkedEpisodeTitle={linkedEpisodeTitle}
+          promptTitle={promptLabel.title}
+          suggestedTitle={suggestedTitle}
+          suggestedEpisodeType={suggestedEpisodeType}
+          suggestedOnsetDate={procedureDate ?? ""}
+          onCreateEpisode={onCreateEpisode}
+          onUnlinkEpisode={onUnlinkEpisode}
+        />
+      ) : null}
     </View>
   );
 });

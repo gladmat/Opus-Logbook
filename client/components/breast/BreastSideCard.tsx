@@ -27,7 +27,6 @@ import { ImplantDetailsCard } from "./ImplantDetailsCard";
 import { BreastFlapCard } from "./BreastFlapCard";
 import { GenderAffirmingContextCard } from "./GenderAffirmingContextCard";
 import { ChestMasculinisationCard } from "./ChestMasculinisationCard";
-import { ReconstructionEpisodeCard } from "./ReconstructionEpisodeCard";
 import { NippleDetailsCard } from "./NippleDetailsCard";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -38,7 +37,7 @@ import { NippleDetailsCard } from "./NippleDetailsCard";
  * Controls which sections render:
  * - "full": Everything (backward compat, default)
  * - "context_only": Header + clinical context + timing/gender-affirming context
- * - "modules_only": Module cards only (implant, flap, chest masc, nipple, episode)
+ * - "modules_only": Module cards only (implant, flap, chest masc, nipple)
  */
 type RenderMode = "full" | "context_only" | "modules_only";
 
@@ -52,14 +51,6 @@ interface Props {
   onCopy?: () => void;
   /** Whether the diagnosis suggests transmasculine context (for binding history) */
   isTransmasculine?: boolean;
-  /** Linked reconstruction episode ID, if any */
-  linkedEpisodeId?: string;
-  /** Linked episode title */
-  linkedEpisodeTitle?: string;
-  /** Called when user creates a new reconstruction episode */
-  onCreateEpisode?: () => void;
-  /** Called when user unlinks the episode */
-  onUnlinkEpisode?: () => void;
   /** Breast surgical preferences for auto-fill */
   breastPreferences?: import("@/types/surgicalPreferences").BreastPreferences;
   /** Controls which sections render */
@@ -101,10 +92,6 @@ export const BreastSideCard = React.memo(function BreastSideCard({
   showCopyButton,
   onCopy,
   isTransmasculine,
-  linkedEpisodeId,
-  linkedEpisodeTitle,
-  onCreateEpisode,
-  onUnlinkEpisode,
   breastPreferences,
   renderMode = "full",
 }: Props) {
@@ -343,17 +330,6 @@ export const BreastSideCard = React.memo(function BreastSideCard({
               onChange={(nippleDetails) => onChange({ ...value, nippleDetails })}
             />
           )}
-
-          {visibility.showReconstructionEpisode &&
-          onCreateEpisode &&
-          onUnlinkEpisode ? (
-            <ReconstructionEpisodeCard
-              linkedEpisodeId={linkedEpisodeId}
-              linkedEpisodeTitle={linkedEpisodeTitle}
-              onCreateEpisode={onCreateEpisode}
-              onUnlinkEpisode={onUnlinkEpisode}
-            />
-          ) : null}
         </>
       )}
     </View>
