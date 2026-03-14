@@ -39,6 +39,7 @@ Key capabilities: multi-specialty case logging, SNOMED CT coded diagnoses and pr
 - **Capture Pipeline Audit Remediation COMPLETE** — Inbox hardened into encrypted MMKV state with SecureStore-backed key, schema v2 metadata (`capturedAt`, `importedAt`, `status`, `sourceAssetId`, dimensions, patient hash) and deterministic captured-time sorting; inbox selection is now transactional (`unassigned` → `reserved` → `assigned`) with finalize-on-save, cancel/discard release, and stale reservation cleanup; Smart Import preserves original asset creation time and can stage to Inbox or attach directly to a case; Opus Camera now supports `targetMode` (`inbox` vs direct case attach), blocks dismissal while queued encryption finishes, and surfaces save failures; planned-case camera flow now auto-saves the minimal planned case before opening capture; Dashboard Inbox relocated from large shortcut row + attention card to compact header icon with badge count, case picker search now expands beyond the previous recent-only slice; iOS native scaffold added via `@bacons/apple-targets` with App Group entitlement, Inbox widget + Control Center capture control, shared extension storage bridge, pending locked-camera capture ingestion, locked-camera extension scaffold, and `opus://camera` / `opus://inbox` deep-link handling; targeted capture workflow suites now cover inbox storage, assignment, protocol tagging, media UI, and shared native ingress (75 passing tests)
 - **Operative Role & Supervision COMPLETE** — Three-dimensional role model (OperativeRole × SupervisionLevel × Responsible Consultant) replacing legacy 7-value `Role` type. Case-level defaults with per-procedure override, smart profile-based defaults (`suggestRoleDefaults`), 6 export format mappings (RACS MALT, JDocs, UK eLogbook, ACGME, German, Swiss), `migrateLegacyRole()` for backward compat, operating team UI removed, `RoleBadge` supports both Role and OperativeRole types, CSV/FHIR/PDF exports updated with role+supervision+consultant columns, statistics role breakdown uses OperativeRole, 68 new tests (703 total)
 - **UX Polish COMPLETE** — FAB animation softer springs, PatientInfoSection compact 2-row layout, OperativeMediaSection camera button removed (From Inbox + From Gallery only), OutcomesSection day-case auto-fill + collapsible 30-day RACS MALT audit section, CaseDetailScreen 30-day complication review with audit fields (readmission/ICU/return to theatre), GuidedCaptureScreen (NHI + template picker → Opus Camera → Inbox), FAB speed dial updated (Log a Case / Quick Capture / Guided Capture), plan mode toggle on CaseFormScreen (relaxed validation, "planned" status, "Plan a Case" header), Inbox badge excludes NHI-assigned photos via `getUnassignedInboxCount()`, InboxScreen two-section layout (unassigned date-grouped + NHI patient-grouped with collapsible rows)
+- **Head & Neck Progressive Disclosure COMPLETE** — CompactProcedureList (renamed from BreastProcedureList, shared by breast + H&N), HeadNeckDiagnosisPicker (chip-based, 88 diagnoses across 9 subcategories with shortName labels, search, favourites/recents), DiagnosisGroupEditor H&N branches for diagnosis picker and compact procedure rendering
 - **Phase 5 IN PROGRESS** — Version 2.5.0, EAS config done (dev/preview/production profiles), pending manual regression + TestFlight submission
 
 ## Tech stack
@@ -136,6 +137,7 @@ client/
     acute-hand/                  # AcuteHandAssessment + AcuteHandSummaryPanel
     joint-implant/               # JointImplantSection — 3-layer progressive disclosure implant tracking
     skin-cancer/                 # 14 files — inline skin cancer assessment module
+    head-neck/                   # HeadNeckDiagnosisPicker — chip-based diagnosis picker using shortName labels
     media/                       # 5 files — MediaTagBadge, MediaTagPicker, ProtocolBadge, CaptureStepCard, GuidedCaptureFlow
     detail-sheets/               # 7 bottom-sheet detail views
     brand/                       # OpusMark, OpusLogo, index
@@ -1067,7 +1069,7 @@ Following established patterns:
 ### Component Registry
 - Config: `client/lib/breastConfig.ts`
 - Types: `client/types/breast.ts`
-- Components: `client/components/breast/` (created in Phase 2+)
+- Components: `client/components/breast/` (created in Phase 2+), `client/components/CompactProcedureList.tsx` (shared, used by breast + H&N)
 
 ### Data Flow
 - Implant details: BreastSideAssessment.implantDetails (per-side)
@@ -1302,7 +1304,7 @@ The `OperatingTeamRole`, `OperatingTeamMember` types and operating team UI (add/
 
 ## Testing
 
-- **Framework:** Vitest 4.0.18, **705 tests** across 42 files
+- **Framework:** Vitest 4.0.18, **755 tests** across 49 files
 - **Client tests:** `client/lib/__tests__/` and `client/components/media/__tests__/` — handTraumaDiagnosis, handTraumaMapping, handTraumaUx, skinCancerConfig (89 tests), skinCancerPhase4 (11 tests), skinCancerPhase5 (18 tests), skinCancerDiagnoses (7 tests), dashboardSelectors (7 tests), handInfection (42 tests), handElective (52 tests), jointImplant (44 tests), mediaEncryption (7 tests), mediaFileStorage (3 tests), mediaMigration (4 tests), caseSpecialty (5 tests), storageCache (4 tests), storageSpecialtyRepair (2 tests), statisticsHelpers (3 tests), statistics (7 tests), dateValues (12 tests), dateFieldNormalization (4 tests), operativeMedia (19 tests), operativeMediaForm (4 tests), mediaAttachmentDefaults (4 tests), mediaContext (3 tests), mediaTagMigration (82 tests), mediaCaptureProtocols (41 tests), implantExport (3 tests), caseDraftPersistence (1 test), inboxStorage (13 tests), inboxAssignment (17 tests), smartImportPrefs (10 tests), plannedCase (18 tests), mediaOrganiser (15 tests), nhiValidation (12 tests), patientIdentity (11 tests), sharedCaptureIngress (2 tests), operativeRole (68 tests — migration, resolution, export mappings, role defaults), plus media UI coverage for `MediaTagPicker` resync and resolved `MediaTagBadge` rendering
 - **Server tests:** `server/__tests__/` — auth (17 tests), validation (7 tests), diagnosisStagingConfig (3 tests)
 - **Run:** `npm run test` (once) or `npm run test:watch` (watch mode)
