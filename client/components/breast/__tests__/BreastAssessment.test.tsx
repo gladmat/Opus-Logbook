@@ -53,6 +53,10 @@ vi.mock("expo-haptics", () => ({
   },
 }));
 
+vi.mock("@expo/vector-icons", () => ({
+  Feather: (props: any) => React.createElement("Feather", props),
+}));
+
 vi.mock("@/hooks/useTheme", () => ({
   useTheme: () => ({
     theme: {
@@ -70,6 +74,13 @@ vi.mock("@/components/ThemedText", () => ({
     React.createElement("Text", props, children),
 }));
 
+vi.mock("@/components/FormField", () => ({
+  FormField: (props: any) => React.createElement("FormField", props),
+  SelectField: (props: any) => React.createElement("SelectField", props),
+  DatePickerField: (props: any) =>
+    React.createElement("DatePickerField", props),
+}));
+
 vi.mock("@/components/breast/BreastSideCard", () => ({
   BreastSideCard: (props: any) => React.createElement("BreastSideCard", props),
 }));
@@ -82,6 +93,11 @@ vi.mock("@/components/breast/LiposuctionCard", () => ({
 vi.mock("@/components/breast/LipofillingCard", () => ({
   LipofillingCard: (props: any) =>
     React.createElement("LipofillingCard", props),
+}));
+
+vi.mock("@/components/breast/ReconstructionEpisodeCard", () => ({
+  ReconstructionEpisodeCard: (props: any) =>
+    React.createElement("ReconstructionEpisodeCard", props),
 }));
 
 describe("BreastAssessment", () => {

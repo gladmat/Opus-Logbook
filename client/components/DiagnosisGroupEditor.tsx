@@ -117,14 +117,10 @@ import { HandElectivePicker } from "@/components/hand-elective/HandElectivePicke
 import { HeadNeckDiagnosisPicker } from "@/components/head-neck/HeadNeckDiagnosisPicker";
 import {
   isBreastSpecialty,
-  getBreastModuleFlags,
   getBreastClinicalContext,
-  getBreastDiagnosesForContext,
-  hasAnyBreastModuleFlag,
-  hasExistingBreastData,
 } from "@/lib/breastConfig";
-import { BreastAssessment } from "@/components/breast/BreastAssessment";
-import { BreastContextSelector } from "@/components/breast/BreastContextSelector";
+import { BreastProgressiveAssessment } from "@/components/breast/BreastProgressiveAssessment";
+import { ReconstructionEpisodeCard } from "@/components/breast/ReconstructionEpisodeCard";
 import { CompactProcedureList } from "@/components/CompactProcedureList";
 import type { BreastAssessmentData } from "@/types/breast";
 import { normalizeBreastAssessment } from "@/lib/breastState";
@@ -158,6 +154,9 @@ import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import {
   applyBreastEpisodeLinkToGroup,
   buildBreastEpisodeCreatePlan,
+  buildBreastEpisodeTitle,
+  getBreastEpisodePromptLabel,
+  suggestBreastEpisodeType,
 } from "@/lib/breastEpisodeHelpers";
 import type { BreastEpisodeOverrides } from "@/lib/breastEpisodeHelpers";
 import {
@@ -767,6 +766,92 @@ function DiagnosisGroupEditorInner({
     [buildDefaultProcedures],
   );
 
+  const buildProcedureFromPicklistId = useCallback(
+    (picklistId: string): CaseProcedure | undefined => {
+      const entry = findPicklistEntry(picklistId);
+      if (!entry) return undefined;
+
+      const clinicalDetails =
+        entry.hasFreeFlap ||
+        procedureHasFreeFlap({
+          picklistEntryId: picklistId,
+          tags: entry.tags,
+        })
+          ? buildFreeFlapClinicalDetails(picklistId, selectedDiagnosis)
+          : undefined;
+
+      return {
+        id: uuidv4(),
+        sequenceOrder: 1,
+        procedureName: entry.displayName,
+        specialty: groupSpecialty,
+        surgeonRole: "PS" as Role,
+        picklistEntryId: picklistId,
+        snomedCtCode: entry.snomedCtCode,
+        snomedCtDisplay: entry.snomedCtDisplay,
+        subcategory: entry.subcategory,
+        tags: entry.tags,
+        clinicalDetails,
+      };
+    },
+    [buildFreeFlapClinicalDetails, groupSpecialty, selectedDiagnosis],
+  );
+
+  const handleBreastDiagnosisSelect = useCallback(
+    (dx: DiagnosisPicklistEntry) => {
+      setSelectedDiagnosis(dx);
+      setPrimaryDiagnosis({ conceptId: dx.snomedCtCode, term: dx.displayName });
+      setDiagnosis(dx.displayName);
+      setStagingValues({});
+      setSelectedSuggestionIds(new Set());
+      setIsDiagnosisPickerCollapsed(true);
+      setShowAllProcedures(false);
+      setShowCustomProcedureEntry(false);
+      setProcedures([]);
+    },
+    [],
+  );
+
+  const handleBreastSnomedSelect = useCallback(
+    (result: { conceptId: string; term: string } | null) => {
+      if (!result) return;
+
+      setSelectedDiagnosis(null);
+      setPrimaryDiagnosis(result);
+      setDiagnosis(result.term);
+      setStagingValues({});
+      setSelectedSuggestionIds(new Set());
+      setIsDiagnosisPickerCollapsed(true);
+      setShowAllProcedures(false);
+      setShowCustomProcedureEntry(false);
+      setProcedures([]);
+    },
+    [],
+  );
+
+  const handleBreastStagingChange = useCallback(
+    (systemName: string, value: string) => {
+      setStagingValues((prev) => ({
+        ...prev,
+        [systemName]: value,
+      }));
+    },
+    [],
+  );
+
+  const handleBreastCommittedProceduresChange = useCallback(
+    (nextProcedures: CaseProcedure[]) => {
+      setProcedures(
+        nextProcedures.map((procedure, index) => ({
+          ...procedure,
+          sequenceOrder: index + 1,
+        })),
+      );
+      setShowCustomProcedureEntry(false);
+    },
+    [],
+  );
+
   const handleStagingChangeForSuggestions = useCallback(
     (systemName: string, value: string) => {
       const newStagingValues = { ...stagingValues, [systemName]: value };
@@ -952,16 +1037,6 @@ function DiagnosisGroupEditorInner({
   const isBreastModule = isBreastSpecialty(groupSpecialty);
   const isHeadNeck = groupSpecialty === "head_neck";
 
-  const breastModuleFlags = useMemo(() => {
-    if (!isBreastModule) return undefined;
-    const picklistEntries = procedures
-      .map((p) =>
-        p.picklistEntryId ? findPicklistEntry(p.picklistEntryId) : undefined,
-      )
-      .filter((e): e is NonNullable<typeof e> => !!e);
-    return getBreastModuleFlags(picklistEntries);
-  }, [isBreastModule, procedures]);
-
   const defaultBreastClinicalContext = useMemo(
     () => getBreastClinicalContext(selectedDiagnosis ?? undefined),
     [selectedDiagnosis],
@@ -975,29 +1050,46 @@ function DiagnosisGroupEditorInner({
     );
   }, [defaultBreastClinicalContext, group.breastAssessment, isBreastModule]);
 
-  // ── Breast context-filtered diagnoses ────────────────────────────────────
-  const [showAllBreastDiagnoses, setShowAllBreastDiagnoses] = useState(false);
-
-  // Primary context: use left side for bilateral, or the single side's context
-  const breastPrimaryContext = useMemo(() => {
-    if (!normalizedBreastAssessment) return undefined;
-    const lat = normalizedBreastAssessment.laterality;
-    const primarySide = lat === "right" ? "right" : "left";
-    return normalizedBreastAssessment.sides[primarySide]?.clinicalContext;
-  }, [normalizedBreastAssessment]);
-
-  const breastFilteredDiagnoses = useMemo(() => {
-    if (!isBreastModule || showAllBreastDiagnoses || !breastPrimaryContext)
-      return undefined;
-    const allBreast = getDiagnosesForSpecialty("breast");
-    return getBreastDiagnosesForContext(breastPrimaryContext, allBreast);
-  }, [isBreastModule, showAllBreastDiagnoses, breastPrimaryContext]);
+  const hasAcceptedBreastMapping =
+    isBreastModule &&
+    !!(selectedDiagnosis || primaryDiagnosis) &&
+    procedures.some((procedure) => procedure.procedureName.trim().length > 0);
 
   const linkedBreastEpisodeId =
     normalizedBreastAssessment?.reconstructionEpisodeId;
   const [linkedBreastEpisodeTitle, setLinkedBreastEpisodeTitle] = useState<
     string | undefined
   >(undefined);
+  const breastEpisodePromptLabel = useMemo(
+    () =>
+      normalizedBreastAssessment
+        ? getBreastEpisodePromptLabel(
+            normalizedBreastAssessment,
+            selectedDiagnosis?.clinicalGroup,
+          )
+        : undefined,
+    [normalizedBreastAssessment, selectedDiagnosis?.clinicalGroup],
+  );
+  const suggestedBreastEpisodeTitle = useMemo(
+    () =>
+      normalizedBreastAssessment
+        ? buildBreastEpisodeTitle(
+            normalizedBreastAssessment,
+            selectedDiagnosis?.displayName ?? primaryDiagnosis?.term,
+          )
+        : "",
+    [normalizedBreastAssessment, primaryDiagnosis?.term, selectedDiagnosis?.displayName],
+  );
+  const suggestedBreastEpisodeType = useMemo(
+    () =>
+      normalizedBreastAssessment
+        ? suggestBreastEpisodeType(
+            normalizedBreastAssessment,
+            selectedDiagnosis?.clinicalGroup,
+          )
+        : "staged_reconstruction",
+    [normalizedBreastAssessment, selectedDiagnosis?.clinicalGroup],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -1502,6 +1594,7 @@ function DiagnosisGroupEditorInner({
     setShowManualTraumaDiagnosisPicker(false);
     setShowManualTraumaProcedureEditor(false);
     setAutoAppliedTraumaSuggestionIds(new Set());
+    setShowCustomProcedureEntry(false);
 
     // Skin cancer inline flow: auto-initialize empty assessment
     if (s === "skin_cancer") {
@@ -1510,6 +1603,11 @@ function DiagnosisGroupEditorInner({
     } else {
       setSkinCancerAssessment(undefined);
       setSkinCancerProceduresAccepted(false);
+    }
+
+    if (s === "breast") {
+      setProcedures([]);
+      return;
     }
 
     setProcedures([
@@ -1545,6 +1643,12 @@ function DiagnosisGroupEditorInner({
     setShowAcuteFullProcedurePicker(false);
     setHandInfectionDetails(undefined);
   }, [handCaseType]);
+
+  const handleBreastDiagnosisClear = useCallback(() => {
+    clearDiagnosis();
+    setShowCustomProcedureEntry(false);
+    setProcedures([]);
+  }, [clearDiagnosis]);
 
   // Skin cancer accept-mapping handler
   const handleSkinCancerAcceptProcedures = useCallback(
@@ -2374,24 +2478,38 @@ function DiagnosisGroupEditorInner({
           />
         ) : null}
 
-        {/* Breast context selector — laterality + clinical context BEFORE diagnosis */}
         {isBreastModule && hasSelectedHandCaseType ? (
-          <BreastContextSelector
-            value={normalizedBreastAssessment!}
-            onChange={(breastAssessment: BreastAssessmentData) =>
+          <BreastProgressiveAssessment
+            assessment={normalizedBreastAssessment!}
+            onAssessmentChange={(breastAssessment: BreastAssessmentData) =>
               onChange({ ...group, breastAssessment })
             }
             defaultClinicalContext={defaultBreastClinicalContext}
+            hasPersistedAssessment={!!group.breastAssessment}
             isTransmasculine={
               selectedDiagnosis?.id === "breast_dx_gender_dysphoria_transmasc"
             }
+            breastPreferences={profile?.surgicalPreferences?.breast}
+            selectedDiagnosis={selectedDiagnosis}
+            primaryDiagnosis={primaryDiagnosis}
+            diagnosisStaging={diagnosisStaging}
+            stagingValues={stagingValues}
+            onDiagnosisSelect={handleBreastDiagnosisSelect}
+            onSnomedDiagnosisSelect={handleBreastSnomedSelect}
+            onDiagnosisClear={handleBreastDiagnosisClear}
+            onStagingChange={handleBreastStagingChange}
+            committedProcedures={procedures}
+            hasAcceptedMapping={hasAcceptedBreastMapping}
+            onCommittedProceduresChange={handleBreastCommittedProceduresChange}
+            createProcedureFromPicklistId={buildProcedureFromPicklistId}
           />
         ) : null}
 
         {hasSelectedHandCaseType &&
         showTraumaDiagnosisEditor &&
         !isSkinCancerInlineFlow &&
-        !isAcuteHandFlow ? (
+        !isAcuteHandFlow &&
+        !isBreastModule ? (
           <>
             {isInlineHandTraumaFlow && showManualTraumaDiagnosisPicker ? (
               <View
@@ -2476,35 +2594,8 @@ function DiagnosisGroupEditorInner({
                         ? "acute"
                         : undefined
                   }
-                  filteredDiagnoses={breastFilteredDiagnoses}
                 />
               )
-            ) : null}
-
-            {/* Breast: show all / show filtered toggle */}
-            {isBreastModule &&
-            breastPrimaryContext &&
-            !isDiagnosisPickerCollapsed ? (
-              <Pressable
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setShowAllBreastDiagnoses((v) => !v);
-                }}
-                style={styles.showAllLink}
-              >
-                <Feather
-                  name={showAllBreastDiagnoses ? "filter" : "chevron-down"}
-                  size={14}
-                  color={theme.link}
-                />
-                <ThemedText
-                  style={[styles.showAllLinkText, { color: theme.link }]}
-                >
-                  {showAllBreastDiagnoses
-                    ? "Show context-filtered diagnoses"
-                    : "Show all breast diagnoses"}
-                </ThemedText>
-              </Pressable>
             ) : null}
 
             {/* SNOMED-only specialties: collapse when selected */}
@@ -2764,17 +2855,18 @@ function DiagnosisGroupEditorInner({
         {/* Visual connector between diagnosis and procedures */}
         {hasSelectedHandCaseType &&
         showTraumaDiagnosisEditor &&
-        !isAcuteHandFlow ? (
+        !isAcuteHandFlow &&
+        !isBreastModule ? (
           <View style={styles.connector}>
             <Feather name="arrow-down" size={16} color={theme.textTertiary} />
           </View>
         ) : null}
 
-        {hasSelectedHandCaseType && !isAcuteHandFlow ? (
+        {hasSelectedHandCaseType && !isAcuteHandFlow && !isBreastModule ? (
           <SectionHeader title="Procedures Performed" />
         ) : null}
 
-        {hasSelectedHandCaseType && !isAcuteHandFlow ? (
+        {hasSelectedHandCaseType && !isAcuteHandFlow && !isBreastModule ? (
           <ThemedText
             style={[styles.sectionDescription, { color: theme.textSecondary }]}
           >
@@ -2869,6 +2961,7 @@ function DiagnosisGroupEditorInner({
         {hasSelectedHandCaseType &&
         skinCancerHasDiagnosis &&
         acuteHandAllowsProcedures &&
+        !isBreastModule &&
         !showTraumaProcedureSummary ? (
           <>
             {isInlineHandTraumaFlow && showManualTraumaProcedureEditor ? (
@@ -3272,36 +3365,6 @@ function DiagnosisGroupEditorInner({
           </>
         ) : null}
 
-        {/* Inline breast module — laterality + per-side clinical context */}
-        {/* Renders AFTER procedures so module flags are driven by selected procedures */}
-        {isBreastModule &&
-        breastModuleFlags &&
-        (hasAnyBreastModuleFlag(breastModuleFlags) ||
-          hasExistingBreastData(group.breastAssessment)) ? (
-          <BreastAssessment
-            value={normalizedBreastAssessment!}
-            onChange={(breastAssessment: BreastAssessmentData) =>
-              onChange({ ...group, breastAssessment })
-            }
-            moduleFlags={breastModuleFlags}
-            defaultClinicalContext={defaultBreastClinicalContext}
-            isTransmasculine={
-              selectedDiagnosis?.id === "breast_dx_gender_dysphoria_transmasc"
-            }
-            linkedEpisodeId={linkedBreastEpisodeId}
-            linkedEpisodeTitle={linkedBreastEpisodeTitle}
-            onCreateEpisode={(overrides) => {
-              void handleCreateBreastEpisode(overrides);
-            }}
-            onUnlinkEpisode={handleUnlinkBreastEpisode}
-            breastPreferences={profile?.surgicalPreferences?.breast}
-            hideContextSelector
-            procedureDate={getCaseFormState().procedureDate}
-            diagnosisClinicalGroup={selectedDiagnosis?.clinicalGroup}
-            diagnosisDisplay={selectedDiagnosis?.displayName}
-          />
-        ) : null}
-
         {/* Histology pending toggle — non-skin-cancer specialties only */}
         {hasSelectedHandCaseType &&
         !isSkinCancerModule &&
@@ -3355,8 +3418,28 @@ function DiagnosisGroupEditorInner({
           </View>
         ) : null}
 
+        {isBreastModule && normalizedBreastAssessment ? (
+          <View style={{ marginBottom: Spacing.sm }}>
+            <ReconstructionEpisodeCard
+              linkedEpisodeId={linkedBreastEpisodeId}
+              linkedEpisodeTitle={linkedBreastEpisodeTitle}
+              promptTitle={
+                breastEpisodePromptLabel?.title ??
+                "Start a reconstruction episode?"
+              }
+              suggestedTitle={suggestedBreastEpisodeTitle}
+              suggestedEpisodeType={suggestedBreastEpisodeType}
+              suggestedOnsetDate={getCaseFormState().procedureDate}
+              onCreateEpisode={(overrides) => {
+                void handleCreateBreastEpisode(overrides);
+              }}
+              onUnlinkEpisode={handleUnlinkBreastEpisode}
+            />
+          </View>
+        ) : null}
+
         {/* Hub-and-spoke: Clinical Details module rows */}
-        {hasSelectedHandCaseType && hasAnyModule ? (
+        {hasSelectedHandCaseType && hasAnyModule && !isBreastModule ? (
           <View style={styles.hubSection}>
             <ThemedText
               style={[styles.hubSectionTitle, { color: theme.textSecondary }]}

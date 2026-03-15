@@ -24,6 +24,8 @@ interface CompactProcedureListProps {
   onRemove: (procedure: CaseProcedure) => void;
   onMoveUp: (procedureId: string) => void;
   onMoveDown: (procedureId: string) => void;
+  hideSnomedCodes?: boolean;
+  title?: string;
 }
 
 export const CompactProcedureList = React.memo(function CompactProcedureList({
@@ -31,6 +33,8 @@ export const CompactProcedureList = React.memo(function CompactProcedureList({
   onRemove,
   onMoveUp,
   onMoveDown,
+  hideSnomedCodes = false,
+  title = "Selected Procedures",
 }: CompactProcedureListProps) {
   const { theme, isDark } = useTheme();
 
@@ -39,7 +43,7 @@ export const CompactProcedureList = React.memo(function CompactProcedureList({
   return (
     <View style={styles.container}>
       <ThemedText type="h4" style={styles.header}>
-        Selected Procedures
+        {title}
       </ThemedText>
       {procedures.map((proc, idx) => (
         <CompactProcedureRow
@@ -50,6 +54,7 @@ export const CompactProcedureList = React.memo(function CompactProcedureList({
           onRemove={onRemove}
           onMoveUp={onMoveUp}
           onMoveDown={onMoveDown}
+          hideSnomedCodes={hideSnomedCodes}
           theme={theme}
           isDark={isDark}
         />
@@ -67,6 +72,7 @@ interface RowProps {
   onRemove: (procedure: CaseProcedure) => void;
   onMoveUp: (procedureId: string) => void;
   onMoveDown: (procedureId: string) => void;
+  hideSnomedCodes: boolean;
   theme: ReturnType<typeof useTheme>["theme"];
   isDark: boolean;
 }
@@ -78,6 +84,7 @@ const CompactProcedureRow = React.memo(function CompactProcedureRow({
   onRemove,
   onMoveUp,
   onMoveDown,
+  hideSnomedCodes,
   theme,
   isDark,
 }: RowProps) {
@@ -117,7 +124,7 @@ const CompactProcedureRow = React.memo(function CompactProcedureRow({
 
         {/* SNOMED code + tags */}
         <View style={styles.metaRow}>
-          {procedure.snomedCtCode ? (
+          {!hideSnomedCodes && procedure.snomedCtCode ? (
             <ThemedText
               type="small"
               style={{ color: theme.textTertiary }}

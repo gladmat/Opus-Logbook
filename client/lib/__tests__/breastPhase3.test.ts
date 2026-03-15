@@ -5,6 +5,8 @@ import type { BreastSideAssessment, LipofillingData } from "@/types/breast";
 import {
   calculateBreastCompletion,
   getBreastClinicalContext,
+  getBreastAssessmentSummary,
+  getBreastDiagnosisBuckets,
   getBreastDiagnosesForContext,
   getBreastModuleFlags,
   getBreastSideVisibility,
@@ -188,6 +190,123 @@ describe("getLipofillingSummary", () => {
     expect(getLipofillingSummary(data)).toBe(
       "2 sites, 600ml harvested, 180ml (L), 200ml (R)",
     );
+  });
+});
+
+describe("getBreastAssessmentSummary", () => {
+  it("summarizes a unilateral reconstructive assessment", () => {
+    expect(
+      getBreastAssessmentSummary({
+        laterality: "left",
+        sides: {
+          left: {
+            side: "left",
+            clinicalContext: "reconstructive",
+            reconstructionTiming: "immediate",
+          },
+        },
+      }),
+    ).toBe("Left · Reconstructive · Immediate");
+  });
+
+  it("keeps bilateral mixed-context timing side-specific", () => {
+    expect(
+      getBreastAssessmentSummary({
+        laterality: "bilateral",
+        sides: {
+          left: {
+            side: "left",
+            clinicalContext: "reconstructive",
+            reconstructionTiming: "immediate",
+          },
+          right: {
+            side: "right",
+            clinicalContext: "aesthetic",
+          },
+        },
+      }),
+    ).toBe("Bilateral · L: Reconstructive · R: Aesthetic · L: Immediate");
+  });
+});
+
+describe("getBreastDiagnosisBuckets", () => {
+  it("prioritizes oncological and reconstruction diagnoses for reconstructive cases", () => {
+    expect(
+      getBreastDiagnosisBuckets({
+        laterality: "left",
+        sides: {
+          left: {
+            side: "left",
+            clinicalContext: "reconstructive",
+            reconstructionTiming: "immediate",
+          },
+        },
+      }),
+    ).toEqual({
+      prioritizedSubcategories: ["Oncological", "Reconstruction"],
+      overflowSubcategories: [
+        "Implant Complications",
+        "Aesthetic / Functional",
+        "Gender-Affirming",
+        "Post-Treatment",
+        "Congenital & Other",
+      ],
+    });
+  });
+
+  it("prioritizes aesthetic diagnoses for aesthetic cases", () => {
+    expect(
+      getBreastDiagnosisBuckets({
+        laterality: "right",
+        sides: {
+          right: {
+            side: "right",
+            clinicalContext: "aesthetic",
+          },
+        },
+      }).prioritizedSubcategories,
+    ).toEqual(["Aesthetic / Functional", "Implant Complications"]);
+  });
+
+  it("shows only gender-affirming diagnoses for all-GA cases", () => {
+    expect(
+      getBreastDiagnosisBuckets({
+        laterality: "left",
+        sides: {
+          left: {
+            side: "left",
+            clinicalContext: "gender_affirming",
+          },
+        },
+      }),
+    ).toEqual({
+      prioritizedSubcategories: ["Gender-Affirming"],
+      overflowSubcategories: [],
+    });
+  });
+
+  it("uses active-side union priority ordering for mixed bilateral cases", () => {
+    expect(
+      getBreastDiagnosisBuckets({
+        laterality: "bilateral",
+        sides: {
+          left: {
+            side: "left",
+            clinicalContext: "reconstructive",
+            reconstructionTiming: "immediate",
+          },
+          right: {
+            side: "right",
+            clinicalContext: "aesthetic",
+          },
+        },
+      }).prioritizedSubcategories,
+    ).toEqual([
+      "Oncological",
+      "Reconstruction",
+      "Aesthetic / Functional",
+      "Implant Complications",
+    ]);
   });
 });
 

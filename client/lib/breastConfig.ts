@@ -10,6 +10,7 @@ import type { ProcedurePicklistEntry } from "@/lib/procedurePicklist";
 import type {
   BreastAssessmentData,
   BreastClinicalContext,
+  BreastLaterality,
   BreastSideAssessment,
   LipofillingData,
   ImplantDetailsData,
@@ -29,6 +30,9 @@ import {
   IMA_INTERSPACE_LABELS,
   CHEST_MASC_TECHNIQUE_LABELS,
   NAC_MANAGEMENT_LABELS,
+  BREAST_CLINICAL_CONTEXT_LABELS,
+  BREAST_RECON_TIMING_LABELS,
+  NIPPLE_RECON_TECHNIQUE_LABELS,
 } from "@/types/breast";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -70,6 +74,171 @@ const CONTEXT_TO_CLINICAL_GROUPS: Record<BreastClinicalContext, string[]> = {
   aesthetic: ["elective"],
   gender_affirming: ["gender_affirming"],
 };
+
+const BREAST_SUBCATEGORY_ORDER = [
+  "Oncological",
+  "Reconstruction",
+  "Implant Complications",
+  "Aesthetic / Functional",
+  "Gender-Affirming",
+  "Post-Treatment",
+  "Congenital & Other",
+] as const;
+
+const CONTEXT_PRIORITY_SUBCATEGORIES: Record<BreastClinicalContext, string[]> = {
+  reconstructive: ["Oncological", "Reconstruction"],
+  aesthetic: ["Aesthetic / Functional", "Implant Complications"],
+  gender_affirming: ["Gender-Affirming"],
+};
+
+function getActiveBreastSides(
+  laterality: BreastAssessmentData["laterality"],
+): BreastLaterality[] {
+  if (laterality === "bilateral") return ["left", "right"];
+  return [laterality];
+}
+
+function getTimingShortLabel(timing: string | undefined): string {
+  if (!timing) return "";
+  return BREAST_RECON_TIMING_LABELS[timing as keyof typeof BREAST_RECON_TIMING_LABELS]
+    ?.split(" (")[0] ?? timing;
+}
+
+function uniqInOrder<T>(values: T[]): T[] {
+  const seen = new Set<T>();
+  return values.filter((value) => {
+    if (seen.has(value)) return false;
+    seen.add(value);
+    return true;
+  });
+}
+
+export function getBreastAssessmentContextOrder(
+  assessment: BreastAssessmentData | undefined,
+): BreastClinicalContext[] {
+  if (!assessment) return [];
+
+  return uniqInOrder(
+    getActiveBreastSides(assessment.laterality)
+      .map((side) => assessment.sides[side]?.clinicalContext)
+      .filter((context): context is BreastClinicalContext => !!context),
+  );
+}
+
+export function getBreastDiagnosisBuckets(
+  assessment: BreastAssessmentData | undefined,
+): {
+  prioritizedSubcategories: string[];
+  overflowSubcategories: string[];
+} {
+  const contexts = getBreastAssessmentContextOrder(assessment);
+  if (contexts.length === 0) {
+    return {
+      prioritizedSubcategories: [...BREAST_SUBCATEGORY_ORDER],
+      overflowSubcategories: [],
+    };
+  }
+
+  const prioritizedSubcategories = uniqInOrder(
+    contexts.flatMap((context) => CONTEXT_PRIORITY_SUBCATEGORIES[context]),
+  );
+
+  if (
+    contexts.length === 1 &&
+    prioritizedSubcategories.length === 1 &&
+    prioritizedSubcategories[0] === "Gender-Affirming"
+  ) {
+    return {
+      prioritizedSubcategories,
+      overflowSubcategories: [],
+    };
+  }
+
+  return {
+    prioritizedSubcategories,
+    overflowSubcategories: BREAST_SUBCATEGORY_ORDER.filter(
+      (subcategory) => !prioritizedSubcategories.includes(subcategory),
+    ),
+  };
+}
+
+export function getBreastAssessmentSummaryParts(
+  assessment: BreastAssessmentData | undefined,
+): string[] {
+  if (!assessment) return [];
+
+  const activeSides = getActiveBreastSides(assessment.laterality);
+  const sideEntries = activeSides
+    .map((side) => {
+      const sideData = assessment.sides[side];
+      if (!sideData) return null;
+
+      return {
+        side,
+        context: sideData.clinicalContext,
+        timing:
+          sideData.clinicalContext === "reconstructive"
+            ? getTimingShortLabel(sideData.reconstructionTiming)
+            : "",
+      };
+    })
+    .filter(Boolean) as {
+    side: BreastLaterality;
+    context: BreastClinicalContext;
+    timing: string;
+  }[];
+
+  if (sideEntries.length === 0) return [];
+
+  if (assessment.laterality !== "bilateral") {
+    const entry = sideEntries[0]!;
+    const label = entry.side === "left" ? "Left" : "Right";
+    const parts = [label, BREAST_CLINICAL_CONTEXT_LABELS[entry.context]];
+    if (entry.timing) parts.push(entry.timing);
+    return parts;
+  }
+
+  const contextLabels = uniqInOrder(
+    sideEntries.map((entry) => BREAST_CLINICAL_CONTEXT_LABELS[entry.context]),
+  );
+  const timingLabels = uniqInOrder(
+    sideEntries.map((entry) => entry.timing).filter(Boolean),
+  );
+  const timedEntries = sideEntries.filter((entry) => entry.timing);
+
+  const parts = ["Bilateral"];
+
+  if (contextLabels.length === 1) {
+    parts.push(contextLabels[0]!);
+  } else {
+    for (const entry of sideEntries) {
+      parts.push(
+        `${entry.side === "left" ? "L" : "R"}: ${BREAST_CLINICAL_CONTEXT_LABELS[entry.context]}`,
+      );
+    }
+  }
+
+  if (
+    timedEntries.length === sideEntries.length &&
+    timingLabels.length === 1 &&
+    timingLabels[0]
+  ) {
+    parts.push(timingLabels[0]);
+  } else {
+    for (const entry of timedEntries) {
+      if (!entry.timing) continue;
+      parts.push(`${entry.side === "left" ? "L" : "R"}: ${entry.timing}`);
+    }
+  }
+
+  return parts;
+}
+
+export function getBreastAssessmentSummary(
+  assessment: BreastAssessmentData | undefined,
+): string {
+  return getBreastAssessmentSummaryParts(assessment).join(" · ");
+}
 
 /**
  * Filter breast diagnoses by clinical context.
@@ -438,6 +607,18 @@ export function getChestMascSummary(
     parts.push(`L ${leftW}g`);
   } else if (rightW) {
     parts.push(`R ${rightW}g`);
+  }
+  return parts.join(", ");
+}
+
+export function getNippleSummary(data: BreastSideAssessment["nippleDetails"]): string {
+  if (!data) return "";
+  const parts: string[] = [];
+  if (data.technique) {
+    parts.push(NIPPLE_RECON_TECHNIQUE_LABELS[data.technique]);
+  }
+  if (data.nacPosition?.xCm != null || data.nacPosition?.yCm != null) {
+    parts.push("Position marked");
   }
   return parts.join(", ");
 }
