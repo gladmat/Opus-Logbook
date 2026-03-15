@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from "react";
-import { View, StyleSheet, Pressable, TextInput } from "react-native";
+import { View, StyleSheet, Pressable } from "react-native";
 import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
@@ -11,7 +11,6 @@ import {
   getDiagnosisSubcategories,
   getDiagnosesForSubcategory,
   getDiagnosesForSpecialty,
-  searchDiagnoses,
   hasDiagnosisPicklist,
   findDiagnosisById,
 } from "@/lib/diagnosisPicklists";
@@ -50,7 +49,6 @@ export function DiagnosisPicker({
   filteredDiagnoses,
 }: DiagnosisPickerProps) {
   const { theme } = useTheme();
-  const [searchQuery, setSearchQuery] = useState("");
 
   const {
     favouriteDiagnoses,
@@ -105,28 +103,7 @@ export function DiagnosisPicker({
   const [activeSubcategory, setActiveSubcategory] =
     useState<string>(initialSubcat);
 
-  const isSearching = searchQuery.length >= 2;
-
-  const searchResults = useMemo(() => {
-    if (!isSearching) return [];
-    if (filteredDiagnoses) {
-      // Search within the filtered list only
-      const q = searchQuery.toLowerCase();
-      return filteredDiagnoses.filter(
-        (dx) =>
-          dx.displayName.toLowerCase().includes(q) ||
-          (dx.shortName && dx.shortName.toLowerCase().includes(q)) ||
-          dx.snomedCtCode.includes(q),
-      );
-    }
-    const results = searchDiagnoses(searchQuery, specialty);
-    return clinicalGroupFilter
-      ? results.filter((dx) => matchesGroupFilter(dx, clinicalGroupFilter))
-      : results;
-  }, [searchQuery, specialty, isSearching, clinicalGroupFilter, filteredDiagnoses]);
-
   const diagnosesInSubcat = useMemo(() => {
-    if (isSearching) return searchResults;
     if (filteredDiagnoses) {
       return filteredDiagnoses.filter(
         (dx) => dx.subcategory === activeSubcategory,
@@ -136,14 +113,7 @@ export function DiagnosisPicker({
     return clinicalGroupFilter
       ? raw.filter((dx) => matchesGroupFilter(dx, clinicalGroupFilter))
       : raw;
-  }, [
-    isSearching,
-    searchResults,
-    filteredDiagnoses,
-    specialty,
-    activeSubcategory,
-    clinicalGroupFilter,
-  ]);
+  }, [filteredDiagnoses, specialty, activeSubcategory, clinicalGroupFilter]);
 
   // Favourites/recents chip handlers
   const handleChipSelect = useCallback(
@@ -205,42 +175,8 @@ export function DiagnosisPicker({
 
   return (
     <View style={styles.container}>
-      {specialty !== "skin_cancer" ? (
-        <View
-          style={[
-            styles.searchContainer,
-            {
-              backgroundColor: theme.backgroundDefault,
-              borderColor: theme.border,
-            },
-          ]}
-        >
-          <Feather name="search" size={16} color={theme.textTertiary} />
-          <TextInput
-            style={[styles.searchInput, { color: theme.text }]}
-            placeholder="Search diagnoses..."
-            placeholderTextColor={theme.textTertiary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-            autoCorrect={false}
-            testID="input-diagnosis-search"
-          />
-          {searchQuery.length > 0 ? (
-            <Pressable
-              onPress={() => setSearchQuery("")}
-              hitSlop={8}
-              testID="button-clear-diagnosis-search"
-            >
-              <Feather name="x" size={16} color={theme.textTertiary} />
-            </Pressable>
-          ) : null}
-        </View>
-      ) : null}
-
-      {/* Favourites & Recents chips — only when not searching */}
-      {!isSearching &&
-      favsLoaded &&
+      {/* Favourites & Recents chips */}
+      {favsLoaded &&
       (filteredFavourites.length > 0 || filteredRecents.length > 0) ? (
         <FavouritesRecentsChips
           favourites={filteredFavourites}
@@ -251,8 +187,7 @@ export function DiagnosisPicker({
         />
       ) : null}
 
-      {!isSearching ? (
-        <View style={styles.subcatGrid}>
+      <View style={styles.subcatGrid}>
           {subcategories.map((subcat) => {
             const isActive = subcat === activeSubcategory;
             return (
@@ -286,7 +221,15 @@ export function DiagnosisPicker({
               </Pressable>
             );
           })}
-        </View>
+      </View>
+
+      {/* Section label for active subcategory */}
+      {activeSubcategory ? (
+        <ThemedText
+          style={[styles.sectionLabel, { color: theme.textSecondary }]}
+        >
+          {activeSubcategory}
+        </ThemedText>
       ) : null}
 
       <View style={styles.diagnosisChipGrid}>
@@ -310,8 +253,10 @@ export function DiagnosisPicker({
                   {
                     backgroundColor: isSelected
                       ? theme.link
-                      : theme.backgroundDefault,
-                    borderColor: isSelected ? theme.link : theme.border,
+                      : theme.backgroundSecondary,
+                    borderColor: isSelected
+                      ? theme.link
+                      : theme.border + "80",
                   },
                 ]}
                 testID={`button-diagnosis-${dx.id}`}
@@ -345,12 +290,6 @@ export function DiagnosisPicker({
               </Pressable>
             );
           })
-        ) : isSearching ? (
-          <ThemedText
-            style={[styles.emptyText, { color: theme.textSecondary }]}
-          >
-            No matching diagnoses found
-          </ThemedText>
         ) : null}
       </View>
 
@@ -405,26 +344,18 @@ const styles = StyleSheet.create({
   container: {
     marginBottom: Spacing.md,
   },
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: Spacing.md,
-    height: 40,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 1,
-    marginBottom: Spacing.md,
-    gap: Spacing.sm,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    height: "100%",
-  },
   subcatGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: Spacing.sm,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: "500",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: Spacing.sm,
   },
   subcatChip: {
     paddingHorizontal: Spacing.md,
@@ -459,11 +390,5 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.sm,
     borderWidth: 1,
-  },
-  emptyText: {
-    fontSize: 14,
-    textAlign: "center",
-    paddingVertical: Spacing.lg,
-    width: "100%",
   },
 });

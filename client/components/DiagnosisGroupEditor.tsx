@@ -2419,7 +2419,7 @@ function DiagnosisGroupEditorInner({
                 isInlineHandTraumaFlow && showManualTraumaDiagnosisPicker
                   ? "Override the coded diagnosis if the auto-mapped trauma diagnosis needs correction."
                   : hasDiagnosisPicklist(groupSpecialty)
-                    ? "Select from structured list or search SNOMED CT"
+                    ? "Select from structured list"
                     : "SNOMED CT coded diagnosis"
               }
             />
