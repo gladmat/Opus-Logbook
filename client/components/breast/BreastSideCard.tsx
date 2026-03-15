@@ -6,7 +6,7 @@
  * (ImplantDetails, BreastFlapDetails, Lipofilling, ChestMasculinisation).
  */
 
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { View, Pressable, LayoutAnimation, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Feather } from "@expo/vector-icons";
@@ -96,6 +96,7 @@ export const BreastSideCard = React.memo(function BreastSideCard({
   renderMode = "full",
 }: Props) {
   const { theme, isDark } = useTheme();
+  const [showTimingInfo, setShowTimingInfo] = useState(false);
 
   const sideLabel = side === "left" ? "Left Breast" : "Right Breast";
 
@@ -245,12 +246,50 @@ export const BreastSideCard = React.memo(function BreastSideCard({
           {/* Reconstructive timing — shown only for reconstructive context */}
           {visibility.showReconstructiveFields && (
             <View style={styles.timingSection}>
-              <ThemedText
-                type="small"
-                style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}
-              >
-                Reconstruction Timing
-              </ThemedText>
+              <View style={styles.timingLabelRow}>
+                <ThemedText
+                  type="small"
+                  style={{ color: theme.textSecondary }}
+                >
+                  Reconstruction Timing
+                </ThemedText>
+                <Pressable
+                  onPress={() => setShowTimingInfo((v) => !v)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Feather
+                    name="info"
+                    size={16}
+                    color={theme.textTertiary}
+                  />
+                </Pressable>
+              </View>
+              {showTimingInfo && (
+                <View
+                  style={[
+                    styles.timingInfoBox,
+                    {
+                      backgroundColor: theme.backgroundSecondary,
+                      borderRadius: BorderRadius.sm,
+                    },
+                  ]}
+                >
+                  <ThemedText type="small" style={{ color: theme.textSecondary, fontSize: 13, lineHeight: 18 }}>
+                    <ThemedText type="small" style={{ fontWeight: "600", color: theme.textSecondary, fontSize: 13 }}>
+                      Immediate
+                    </ThemedText>
+                    {" \u2014 Reconstruction at the same operation as the mastectomy\n\n"}
+                    <ThemedText type="small" style={{ fontWeight: "600", color: theme.textSecondary, fontSize: 13 }}>
+                      Delayed-Immediate
+                    </ThemedText>
+                    {" \u2014 Expander or spacer placed at mastectomy; definitive reconstruction at a later operation\n\n"}
+                    <ThemedText type="small" style={{ fontWeight: "600", color: theme.textSecondary, fontSize: 13 }}>
+                      Delayed
+                    </ThemedText>
+                    {" \u2014 Reconstruction as a separate operation, weeks to years after mastectomy"}
+                  </ThemedText>
+                </View>
+              )}
               <View style={styles.chipRow}>
                 {TIMING_OPTIONS.map((timing) => {
                   const selected = value.reconstructionTiming === timing;
@@ -380,6 +419,17 @@ const styles = StyleSheet.create({
   },
   timingSection: {
     marginTop: Spacing.xs,
+  },
+  timingLabelRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 4,
+    marginBottom: Spacing.xs,
+  },
+  timingInfoBox: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   timingChip: {
     paddingHorizontal: Spacing.md,
