@@ -27,7 +27,6 @@ import type { BreastModuleFlags } from "@/lib/breastConfig";
 import type { BreastEpisodeOverrides } from "@/lib/breastEpisodeHelpers";
 import {
   getBreastEpisodePromptLabel,
-  suggestBreastEpisodeType,
   buildBreastEpisodeTitle,
 } from "@/lib/breastEpisodeHelpers";
 import {
@@ -116,11 +115,6 @@ export const BreastAssessment = React.memo(function BreastAssessment({
   const suggestedTitle = useMemo(
     () => buildBreastEpisodeTitle(assessment, diagnosisDisplay),
     [assessment, diagnosisDisplay],
-  );
-
-  const suggestedEpisodeType = useMemo(
-    () => suggestBreastEpisodeType(assessment, diagnosisClinicalGroup),
-    [assessment, diagnosisClinicalGroup],
   );
 
   // ── Laterality ──────────────────────────────────────────────────────────
@@ -307,7 +301,6 @@ export const BreastAssessment = React.memo(function BreastAssessment({
           linkedEpisodeTitle={linkedEpisodeTitle}
           promptTitle={promptLabel.title}
           suggestedTitle={suggestedTitle}
-          suggestedEpisodeType={suggestedEpisodeType}
           suggestedOnsetDate={procedureDate ?? ""}
           onCreateEpisode={onCreateEpisode}
           onUnlinkEpisode={onUnlinkEpisode}

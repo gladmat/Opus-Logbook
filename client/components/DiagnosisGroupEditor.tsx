@@ -156,7 +156,6 @@ import {
   buildBreastEpisodeCreatePlan,
   buildBreastEpisodeTitle,
   getBreastEpisodePromptLabel,
-  suggestBreastEpisodeType,
 } from "@/lib/breastEpisodeHelpers";
 import type { BreastEpisodeOverrides } from "@/lib/breastEpisodeHelpers";
 import {
@@ -1080,17 +1079,6 @@ function DiagnosisGroupEditorInner({
         : "",
     [normalizedBreastAssessment, primaryDiagnosis?.term, selectedDiagnosis?.displayName],
   );
-  const suggestedBreastEpisodeType = useMemo(
-    () =>
-      normalizedBreastAssessment
-        ? suggestBreastEpisodeType(
-            normalizedBreastAssessment,
-            selectedDiagnosis?.clinicalGroup,
-          )
-        : "staged_reconstruction",
-    [normalizedBreastAssessment, selectedDiagnosis?.clinicalGroup],
-  );
-
   useEffect(() => {
     let cancelled = false;
 
@@ -3436,10 +3424,9 @@ function DiagnosisGroupEditorInner({
               linkedEpisodeTitle={linkedBreastEpisodeTitle}
               promptTitle={
                 breastEpisodePromptLabel?.title ??
-                "Start a reconstruction episode?"
+                "Start a reconstruction pathway?"
               }
               suggestedTitle={suggestedBreastEpisodeTitle}
-              suggestedEpisodeType={suggestedBreastEpisodeType}
               suggestedOnsetDate={getCaseFormState().procedureDate}
               onCreateEpisode={(overrides) => {
                 void handleCreateBreastEpisode(overrides);

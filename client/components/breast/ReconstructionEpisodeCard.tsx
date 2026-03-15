@@ -11,18 +11,13 @@ import { View, Pressable, StyleSheet, Animated } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Feather } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
-import { FormField, SelectField, DatePickerField } from "@/components/FormField";
+import { FormField } from "@/components/FormField";
 import { Button } from "@/components/Button";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { normalizeDateOnlyValue, toIsoDateValue } from "@/lib/dateValues";
-import {
-  EPISODE_TYPE_LABELS,
-  PENDING_ACTION_LABELS,
-} from "@/types/episode";
-import type { EpisodeType, PendingAction } from "@/types/episode";
+import type { PendingAction } from "@/types/episode";
 import type { BreastEpisodeOverrides } from "@/lib/breastEpisodeHelpers";
-import { BREAST_PENDING_ACTIONS } from "@/lib/breastEpisodeHelpers";
 
 interface Props {
   /** Existing linked episode ID, if any */
@@ -33,8 +28,6 @@ interface Props {
   promptTitle: string;
   /** Auto-suggested episode title */
   suggestedTitle: string;
-  /** Auto-suggested episode type */
-  suggestedEpisodeType: EpisodeType;
   /** Procedure date for onset default */
   suggestedOnsetDate: string;
   /** Called with overrides when user creates */
@@ -43,20 +36,16 @@ interface Props {
   onUnlinkEpisode: () => void;
 }
 
-// Build pending action options with breast-relevant ones first
-function buildPendingActionOptions(): { value: string; label: string }[] {
-  const breastSet = new Set<string>(BREAST_PENDING_ACTIONS);
-  const breastOptions = BREAST_PENDING_ACTIONS.map((key) => ({
-    value: key,
-    label: PENDING_ACTION_LABELS[key] ?? key,
-  }));
-  const genericOptions = Object.entries(PENDING_ACTION_LABELS)
-    .filter(([key]) => !breastSet.has(key))
-    .map(([value, label]) => ({ value, label }));
-  return [{ value: "", label: "None" }, ...breastOptions, ...genericOptions];
-}
-
-const PENDING_ACTION_OPTIONS = buildPendingActionOptions();
+/** Breast-specific "what's next" options shown as tappable chips */
+const BREAST_NEXT_STEPS: { value: PendingAction; label: string; icon: string }[] = [
+  { value: "awaiting_reconstruction", label: "Awaiting recon", icon: "clock" },
+  { value: "expansion_in_progress", label: "Expansion", icon: "trending-up" },
+  { value: "awaiting_expander_exchange", label: "Awaiting exchange", icon: "refresh-cw" },
+  { value: "awaiting_fat_grafting", label: "Fat grafting", icon: "droplet" },
+  { value: "awaiting_nipple_recon", label: "Nipple recon", icon: "target" },
+  { value: "awaiting_symmetrisation", label: "Symmetrisation", icon: "columns" },
+  { value: "awaiting_tattoo", label: "Tattoo", icon: "edit-3" },
+];
 
 export const ReconstructionEpisodeCard = React.memo(
   function ReconstructionEpisodeCard({
@@ -64,7 +53,6 @@ export const ReconstructionEpisodeCard = React.memo(
     linkedEpisodeTitle,
     promptTitle,
     suggestedTitle,
-    suggestedEpisodeType,
     suggestedOnsetDate,
     onCreateEpisode,
     onUnlinkEpisode,
@@ -73,8 +61,6 @@ export const ReconstructionEpisodeCard = React.memo(
 
     const [expanded, setExpanded] = useState(false);
     const [title, setTitle] = useState(suggestedTitle);
-    const [episodeType, setEpisodeType] =
-      useState<EpisodeType>(suggestedEpisodeType);
     const [onsetDate, setOnsetDate] = useState(
       () =>
         normalizeDateOnlyValue(suggestedOnsetDate) ??
@@ -89,9 +75,8 @@ export const ReconstructionEpisodeCard = React.memo(
     useEffect(() => {
       if (!expanded) {
         setTitle(suggestedTitle);
-        setEpisodeType(suggestedEpisodeType);
       }
-    }, [suggestedTitle, suggestedEpisodeType, expanded]);
+    }, [suggestedTitle, expanded]);
 
     useEffect(() => {
       if (!expanded) {
@@ -115,18 +100,23 @@ export const ReconstructionEpisodeCard = React.memo(
       setExpanded((prev) => !prev);
     }, []);
 
-    const handleCreate = useCallback(() => {
+    const handleCreate = useCallback(async () => {
       if (!title.trim()) return;
       setSaving(true);
-      onCreateEpisode({
-        title: title.trim(),
-        episodeType,
-        onsetDate,
-        pendingAction: pendingAction || undefined,
-      });
-      // Parent handles async save — reset after a short delay
-      setTimeout(() => setSaving(false), 500);
-    }, [title, episodeType, onsetDate, pendingAction, onCreateEpisode]);
+      try {
+        await Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Success,
+        );
+        onCreateEpisode({
+          title: title.trim(),
+          episodeType: "staged_reconstruction",
+          onsetDate,
+          pendingAction: pendingAction || undefined,
+        });
+      } finally {
+        setSaving(false);
+      }
+    }, [title, onsetDate, pendingAction, onCreateEpisode]);
 
     // ── Linked state ────────────────────────────────────────────────────────
 
@@ -147,7 +137,7 @@ export const ReconstructionEpisodeCard = React.memo(
             style={[styles.linkedText, { color: theme.link }]}
             numberOfLines={1}
           >
-            {linkedEpisodeTitle ?? "Reconstruction Episode"}
+            {linkedEpisodeTitle ?? "Reconstruction Pathway"}
           </ThemedText>
           <Pressable
             onPress={() => {
@@ -231,38 +221,70 @@ export const ReconstructionEpisodeCard = React.memo(
                 label="Episode Title"
                 value={title}
                 onChangeText={setTitle}
-                placeholder="e.g. L breast staged reconstruction"
+                placeholder="e.g. L Breast reconstruction"
               />
 
-              <SelectField
-                label="Episode Type"
-                value={episodeType}
-                options={Object.entries(EPISODE_TYPE_LABELS).map(
-                  ([value, label]) => ({ value, label }),
-                )}
-                onSelect={(v: string) => setEpisodeType(v as EpisodeType)}
-              />
-
-              <DatePickerField
-                label="Onset Date"
-                value={onsetDate}
-                onChange={setOnsetDate}
-              />
-
-              <SelectField
-                label="Pending Action (optional)"
-                value={pendingAction}
-                options={PENDING_ACTION_OPTIONS}
-                onSelect={(v: string) =>
-                  setPendingAction(v as PendingAction | "")
-                }
-              />
+              <View style={styles.nextStepSection}>
+                <ThemedText
+                  type="small"
+                  style={{
+                    color: theme.textSecondary,
+                    fontWeight: "600",
+                    marginBottom: 6,
+                  }}
+                >
+                  What's next?
+                </ThemedText>
+                <View style={styles.chipGrid}>
+                  {BREAST_NEXT_STEPS.map((step) => {
+                    const isSelected = pendingAction === step.value;
+                    return (
+                      <Pressable
+                        key={step.value}
+                        onPress={() => {
+                          Haptics.selectionAsync();
+                          setPendingAction(isSelected ? "" : step.value);
+                        }}
+                        style={[
+                          styles.nextStepChip,
+                          {
+                            backgroundColor: isSelected
+                              ? theme.link + "18"
+                              : theme.backgroundElevated,
+                            borderColor: isSelected
+                              ? theme.link
+                              : theme.border,
+                          },
+                        ]}
+                      >
+                        <Feather
+                          name={step.icon as any}
+                          size={13}
+                          color={
+                            isSelected ? theme.link : theme.textSecondary
+                          }
+                        />
+                        <ThemedText
+                          type="small"
+                          style={{
+                            color: isSelected ? theme.link : theme.text,
+                            fontWeight: isSelected ? "600" : "400",
+                            fontSize: 13,
+                          }}
+                        >
+                          {step.label}
+                        </ThemedText>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
 
               <Button
                 onPress={handleCreate}
                 disabled={saving || !title.trim()}
               >
-                {saving ? "Creating..." : "Create Episode"}
+                {saving ? "Creating..." : "Create Pathway"}
               </Button>
             </View>
           ) : null}
@@ -296,6 +318,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.md,
     gap: Spacing.sm,
+  },
+  nextStepSection: {
+    gap: 0,
+  },
+  chipGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  nextStepChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
   },
   linkedBanner: {
     flexDirection: "row",

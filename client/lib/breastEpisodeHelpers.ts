@@ -111,7 +111,7 @@ export function getBreastEpisodeLinkedId(
 
 export function buildBreastEpisodeTitle(
   assessment: BreastAssessmentData,
-  diagnosisDisplay?: string,
+  _diagnosisDisplay?: string,
 ): string {
   const lateralityLabel =
     assessment.laterality === "bilateral"
@@ -120,43 +120,36 @@ export function buildBreastEpisodeTitle(
         ? "L"
         : "R";
 
-  if (diagnosisDisplay?.trim()) {
-    return `${lateralityLabel} ${diagnosisDisplay.trim()}`.trim();
-  }
-
-  return `${lateralityLabel} breast reconstruction`;
+  return `${lateralityLabel} Breast reconstruction`;
 }
 
 // ── Context-aware prompt labels ──────────────────────────────────────────────
 
 export function getBreastEpisodePromptLabel(
   assessment: BreastAssessmentData,
-  diagnosisClinicalGroup?: string,
+  _diagnosisClinicalGroup?: string,
 ): { title: string; subtitle: string } {
   const subtitle = "Track stages across multiple operations";
 
-  const isOncological = diagnosisClinicalGroup === "oncological";
+  // Always call it "reconstruction pathway" for breast.
+  // The cancer diagnosis is already captured on the case —
+  // the episode tracks the reconstruction journey.
   const hasReconstructive = Object.values(assessment.sides).some(
     (s) => s?.clinicalContext === "reconstructive",
   );
 
-  if (isOncological && hasReconstructive) {
-    return { title: "Start a cancer pathway episode?", subtitle };
-  }
   if (hasReconstructive) {
-    return { title: "Start a reconstruction episode?", subtitle };
+    return { title: "Start a reconstruction pathway?", subtitle };
   }
-  return { title: "Start a treatment episode?", subtitle };
+  return { title: "Start a treatment pathway?", subtitle };
 }
 
 // ── Context-aware episode type suggestion ────────────────────────────────────
 
 export function suggestBreastEpisodeType(
-  assessment: BreastAssessmentData,
-  diagnosisClinicalGroup?: string,
+  _assessment: BreastAssessmentData,
+  _diagnosisClinicalGroup?: string,
 ): EpisodeType {
-  const isOncological = diagnosisClinicalGroup === "oncological";
-  if (isOncological) return "cancer_pathway";
   return "staged_reconstruction";
 }
 
@@ -337,6 +330,59 @@ export function applyBreastEpisodeLinkToCase(
   };
 }
 
+/**
+ * Given the breast assessment from the case just saved, suggest
+ * the next pending action for the reconstruction episode.
+ * Returns undefined if no suggestion can be inferred.
+ */
+export function suggestNextBreastPendingAction(
+  assessment: BreastAssessmentData,
+): PendingAction | undefined {
+  const sides = Object.values(assessment.sides).filter(Boolean);
+
+  // Check what was done in this case
+  const hasNippleRecon = sides.some((s) => s?.nippleDetails);
+  const hasLipofilling = !!assessment.lipofilling;
+  const hasExpander = sides.some(
+    (s) =>
+      s?.implantDetails?.deviceType === "tissue_expander" ||
+      s?.implantDetails?.deviceType === "expander_implant",
+  );
+  const hasDefinitiveImplant = sides.some(
+    (s) =>
+      s?.implantDetails?.deviceType === "permanent_implant",
+  );
+  const hasFlap = sides.some((s) => !!s?.flapDetails);
+
+  // Nipple recon was done → tattoo or completed
+  if (hasNippleRecon) {
+    return "awaiting_tattoo";
+  }
+
+  // Lipofilling session → probably more fat grafting or nipple recon next
+  if (hasLipofilling && !hasFlap && !hasExpander) {
+    return "awaiting_nipple_recon";
+  }
+
+  // Flap done → fat grafting or nipple recon next
+  if (hasFlap) {
+    return "awaiting_fat_grafting";
+  }
+
+  // Definitive implant placed (exchange done) → fat grafting or nipple recon
+  if (hasDefinitiveImplant && !hasExpander) {
+    return "awaiting_fat_grafting";
+  }
+
+  // Expander placed → expansion in progress
+  if (hasExpander) {
+    return "expansion_in_progress";
+  }
+
+  // Fallback — no specific suggestion
+  return "awaiting_reconstruction";
+}
+
 export function buildBreastEpisodeUpdatePlan(
   caseData: Pick<Case, "diagnosisGroups" | "episodeId">,
   episode: TreatmentEpisode,
@@ -352,15 +398,7 @@ export function buildBreastEpisodeUpdatePlan(
     status: episode.status === "planned" ? "active" : episode.status,
     breastReconstructionMeta: deriveBreastReconstructionMeta(target.assessment),
     pendingAction:
-      target.assessment.lipofilling &&
-      !Object.values(target.assessment.sides).some(
-        (side) => side?.nippleDetails,
-      )
-        ? "awaiting_fat_grafting"
-        : Object.values(target.assessment.sides).some(
-              (side) => side?.implantDetails?.deviceType === "tissue_expander",
-            )
-          ? "awaiting_expander_exchange"
-          : episode.pendingAction,
+      suggestNextBreastPendingAction(target.assessment) ??
+      episode.pendingAction,
   };
 }

@@ -239,7 +239,7 @@ describe("breastEpisodeHelpers", () => {
 });
 
 describe("getBreastEpisodePromptLabel", () => {
-  it("returns cancer pathway label for oncological + reconstructive", () => {
+  it("returns reconstruction pathway label for oncological + reconstructive", () => {
     const assessment = normalizeBreastAssessment({
       laterality: "left",
       sides: {
@@ -247,11 +247,11 @@ describe("getBreastEpisodePromptLabel", () => {
       },
     });
     const result = getBreastEpisodePromptLabel(assessment, "oncological");
-    expect(result.title).toBe("Start a cancer pathway episode?");
+    expect(result.title).toBe("Start a reconstruction pathway?");
     expect(result.subtitle).toBe("Track stages across multiple operations");
   });
 
-  it("returns reconstruction label for reconstructive context", () => {
+  it("returns reconstruction pathway label for reconstructive context", () => {
     const assessment = normalizeBreastAssessment({
       laterality: "left",
       sides: {
@@ -259,10 +259,10 @@ describe("getBreastEpisodePromptLabel", () => {
       },
     });
     const result = getBreastEpisodePromptLabel(assessment, "reconstructive");
-    expect(result.title).toBe("Start a reconstruction episode?");
+    expect(result.title).toBe("Start a reconstruction pathway?");
   });
 
-  it("returns generic treatment label for aesthetic context", () => {
+  it("returns generic treatment pathway label for aesthetic context", () => {
     const assessment = normalizeBreastAssessment({
       laterality: "left",
       sides: {
@@ -270,12 +270,12 @@ describe("getBreastEpisodePromptLabel", () => {
       },
     });
     const result = getBreastEpisodePromptLabel(assessment, "aesthetic");
-    expect(result.title).toBe("Start a treatment episode?");
+    expect(result.title).toBe("Start a treatment pathway?");
   });
 });
 
 describe("suggestBreastEpisodeType", () => {
-  it("returns cancer_pathway for oncological diagnosis", () => {
+  it("always returns staged_reconstruction regardless of diagnosis context", () => {
     const assessment = normalizeBreastAssessment({
       laterality: "left",
       sides: {
@@ -283,17 +283,8 @@ describe("suggestBreastEpisodeType", () => {
       },
     });
     expect(suggestBreastEpisodeType(assessment, "oncological")).toBe(
-      "cancer_pathway",
+      "staged_reconstruction",
     );
-  });
-
-  it("returns staged_reconstruction for non-oncological", () => {
-    const assessment = normalizeBreastAssessment({
-      laterality: "left",
-      sides: {
-        left: { side: "left", clinicalContext: "aesthetic" },
-      },
-    });
     expect(suggestBreastEpisodeType(assessment, "aesthetic")).toBe(
       "staged_reconstruction",
     );
