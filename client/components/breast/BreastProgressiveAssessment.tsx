@@ -72,6 +72,9 @@ interface BreastProgressiveAssessmentProps {
   hasAcceptedMapping: boolean;
   onCommittedProceduresChange: (procedures: CaseProcedure[]) => void;
   createProcedureFromPicklistId: (picklistId: string) => CaseProcedure | undefined;
+  histologyPending?: boolean;
+  onHistologyPendingChange?: (pending: boolean) => void;
+  showHistologyToggle?: boolean;
 }
 
 const EMPTY_MODULE_FLAGS: BreastModuleFlags = {
@@ -164,6 +167,9 @@ export function BreastProgressiveAssessment({
   hasAcceptedMapping,
   onCommittedProceduresChange,
   createProcedureFromPicklistId,
+  histologyPending,
+  onHistologyPendingChange,
+  showHistologyToggle,
 }: BreastProgressiveAssessmentProps) {
   const { theme } = useTheme();
   const assessment = useMemo(
@@ -190,9 +196,7 @@ export function BreastProgressiveAssessment({
     loaded: favouritesLoaded,
   } = useFavouritesRecents("breast");
 
-  const [lateralityConfirmed, setLateralityConfirmed] = useState(
-    hasPersistedAssessment,
-  );
+  const [lateralityConfirmed, setLateralityConfirmed] = useState(true);
   const [showAllDiagnoses, setShowAllDiagnoses] = useState(false);
   const [showSnomedSearch, setShowSnomedSearch] = useState(false);
   const [showFullProcedurePicker, setShowFullProcedurePicker] = useState(false);
@@ -968,18 +972,19 @@ export function BreastProgressiveAssessment({
                 >
                   {CATEGORY_LABELS[subcategory] ?? subcategory.toUpperCase()}
                 </ThemedText>
-                <View style={styles.diagnosisGrid}>
+                <View style={styles.diagnosisChipGrid}>
                   {diagnoses.map((diagnosis) => {
                     const selected = selectedDiagnosis?.id === diagnosis.id;
+                    const isFav = isFavourite("diagnosis", diagnosis.id);
                     return (
                       <Pressable
                         key={diagnosis.id}
                         style={[
-                          styles.diagnosisCard,
+                          styles.diagnosisChip,
                           {
                             backgroundColor: selected
                               ? theme.link
-                              : theme.backgroundSecondary,
+                              : theme.backgroundDefault,
                             borderColor: selected ? theme.link : theme.border,
                           },
                         ]}
@@ -989,32 +994,32 @@ export function BreastProgressiveAssessment({
                           toggleFavourite("diagnosis", diagnosis.id);
                         }}
                       >
-                        <View style={styles.diagnosisCardTopRow}>
-                          {isFavourite("diagnosis", diagnosis.id) ? (
-                            <Feather
-                              name="star"
-                              size={12}
-                              color={selected ? theme.buttonText : theme.link}
-                            />
-                          ) : null}
-                          {selected ? (
-                            <Feather
-                              name="check"
-                              size={14}
-                              color={theme.buttonText}
-                            />
-                          ) : null}
-                        </View>
+                        {isFav ? (
+                          <Feather
+                            name="star"
+                            size={11}
+                            color={selected ? theme.buttonText : theme.link}
+                          />
+                        ) : null}
                         <ThemedText
+                          numberOfLines={1}
                           style={[
-                            styles.diagnosisCardText,
+                            styles.diagnosisChipText,
                             {
                               color: selected ? theme.buttonText : theme.text,
+                              fontWeight: selected ? "600" : "400",
                             },
                           ]}
                         >
-                          {diagnosis.displayName}
+                          {diagnosis.shortName ?? diagnosis.displayName}
                         </ThemedText>
+                        {selected ? (
+                          <Feather
+                            name="check"
+                            size={13}
+                            color={theme.buttonText}
+                          />
+                        ) : null}
                       </Pressable>
                     );
                   })}
@@ -1063,18 +1068,19 @@ export function BreastProgressiveAssessment({
                         >
                           {CATEGORY_LABELS[subcategory] ?? subcategory.toUpperCase()}
                         </ThemedText>
-                        <View style={styles.diagnosisGrid}>
+                        <View style={styles.diagnosisChipGrid}>
                           {diagnoses.map((diagnosis) => {
                             const selected = selectedDiagnosis?.id === diagnosis.id;
+                            const isFav = isFavourite("diagnosis", diagnosis.id);
                             return (
                               <Pressable
                                 key={diagnosis.id}
                                 style={[
-                                  styles.diagnosisCard,
+                                  styles.diagnosisChip,
                                   {
                                     backgroundColor: selected
                                       ? theme.link
-                                      : theme.backgroundSecondary,
+                                      : theme.backgroundDefault,
                                     borderColor: selected
                                       ? theme.link
                                       : theme.border,
@@ -1088,36 +1094,36 @@ export function BreastProgressiveAssessment({
                                   toggleFavourite("diagnosis", diagnosis.id);
                                 }}
                               >
-                                <View style={styles.diagnosisCardTopRow}>
-                                  {isFavourite("diagnosis", diagnosis.id) ? (
-                                    <Feather
-                                      name="star"
-                                      size={12}
-                                      color={
-                                        selected ? theme.buttonText : theme.link
-                                      }
-                                    />
-                                  ) : null}
-                                  {selected ? (
-                                    <Feather
-                                      name="check"
-                                      size={14}
-                                      color={theme.buttonText}
-                                    />
-                                  ) : null}
-                                </View>
+                                {isFav ? (
+                                  <Feather
+                                    name="star"
+                                    size={11}
+                                    color={
+                                      selected ? theme.buttonText : theme.link
+                                    }
+                                  />
+                                ) : null}
                                 <ThemedText
+                                  numberOfLines={1}
                                   style={[
-                                    styles.diagnosisCardText,
+                                    styles.diagnosisChipText,
                                     {
                                       color: selected
                                         ? theme.buttonText
                                         : theme.text,
+                                      fontWeight: selected ? "600" : "400",
                                     },
                                   ]}
                                 >
-                                  {diagnosis.displayName}
+                                  {diagnosis.shortName ?? diagnosis.displayName}
                                 </ThemedText>
+                                {selected ? (
+                                  <Feather
+                                    name="check"
+                                    size={13}
+                                    color={theme.buttonText}
+                                  />
+                                ) : null}
                               </Pressable>
                             );
                           })}
@@ -1127,6 +1133,27 @@ export function BreastProgressiveAssessment({
                   })
                 : null}
             </>
+          ) : null}
+
+          {/* Selected diagnosis full-name detail row */}
+          {selectedDiagnosis?.shortName && selectedDiagnosis.shortName !== selectedDiagnosis.displayName ? (
+            <View
+              style={[
+                styles.selectedDiagnosisDetail,
+                {
+                  backgroundColor: theme.link + "10",
+                  borderColor: theme.link + "30",
+                },
+              ]}
+            >
+              <ThemedText
+                type="small"
+                style={{ color: theme.text, fontWeight: "500" }}
+                numberOfLines={2}
+              >
+                {selectedDiagnosis.displayName}
+              </ThemedText>
+            </View>
           ) : null}
 
           <Pressable
@@ -1220,6 +1247,55 @@ export function BreastProgressiveAssessment({
             onAccept={handleAcceptMapping}
             onEditMapping={accepted ? handleEditMapping : undefined}
           />
+
+          {showHistologyToggle && onHistologyPendingChange ? (
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onHistologyPendingChange(!histologyPending);
+              }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+                paddingVertical: 10,
+                paddingHorizontal: 14,
+                borderRadius: BorderRadius.sm,
+                borderWidth: 1,
+                borderColor: histologyPending ? theme.warning : theme.border,
+                backgroundColor: histologyPending
+                  ? theme.warning + "10"
+                  : theme.backgroundDefault,
+                marginTop: Spacing.sm,
+              }}
+            >
+              <Feather
+                name={histologyPending ? "check-square" : "square"}
+                size={18}
+                color={histologyPending ? theme.warning : theme.textSecondary}
+              />
+              <View style={{ flex: 1 }}>
+                <ThemedText
+                  style={{
+                    fontSize: 14,
+                    fontWeight: "600",
+                    color: histologyPending ? theme.warning : theme.text,
+                  }}
+                >
+                  Histology pending
+                </ThemedText>
+                <ThemedText
+                  style={{
+                    fontSize: 12,
+                    color: theme.textSecondary,
+                    marginTop: 2,
+                  }}
+                >
+                  Specimen sent for pathology — add results later
+                </ThemedText>
+              </View>
+            </Pressable>
+          ) : null}
 
           {showFullProcedurePicker && !accepted ? (
             <View
@@ -1352,41 +1428,37 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   categorySection: {
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
+    gap: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
   categoryLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.6,
+    fontSize: 10,
+    fontWeight: "600",
+    letterSpacing: 0.5,
   },
-  diagnosisGrid: {
+  diagnosisChipGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
-  diagnosisCard: {
-    flexBasis: "31%",
-    flexGrow: 1,
-    minWidth: 104,
-    minHeight: 52,
+  diagnosisChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  diagnosisChipText: {
+    fontSize: 13,
+  },
+  selectedDiagnosisDetail: {
+    marginTop: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.sm,
     borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    justifyContent: "space-between",
-    gap: 6,
-  },
-  diagnosisCardTopRow: {
-    minHeight: 14,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  diagnosisCardText: {
-    fontSize: 13,
-    fontWeight: "600",
-    lineHeight: 17,
   },
   showAllRow: {
     flexDirection: "row",

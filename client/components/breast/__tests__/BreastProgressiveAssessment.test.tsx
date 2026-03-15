@@ -313,25 +313,14 @@ function Harness({
 }
 
 describe("BreastProgressiveAssessment", () => {
-  it("keeps diagnosis hidden until laterality is explicitly confirmed", () => {
+  it("shows diagnosis immediately for new cases since laterality defaults to left", () => {
     let tree: TestRenderer.ReactTestRenderer;
 
     act(() => {
       tree = TestRenderer.create(<Harness />);
     });
 
-    expect(
-      tree!.root.findAll(
-        (node) =>
-          node.type === ("SectionWrapper" as any) &&
-          node.props.title === "2. Diagnosis",
-      ),
-    ).toHaveLength(0);
-
-    act(() => {
-      findPressableByText(tree!, "Left").props.onPress();
-    });
-
+    // Diagnosis section visible immediately — laterality defaults to left and is pre-confirmed
     expect(findSection(tree!, "2. Diagnosis").props.title).toBe("2. Diagnosis");
   });
 
@@ -347,7 +336,7 @@ describe("BreastProgressiveAssessment", () => {
     );
 
     act(() => {
-      findPressableByText(tree!, "Breast cancer — invasive").props.onPress();
+      findPressableByText(tree!, "Breast Ca invasive").props.onPress();
     });
 
     expect(findSection(tree!, "2. Diagnosis").props.isCollapsed).toBe(true);

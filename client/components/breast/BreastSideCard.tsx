@@ -290,7 +290,7 @@ export const BreastSideCard = React.memo(function BreastSideCard({
                   </ThemedText>
                 </View>
               )}
-              <View style={styles.chipRow}>
+              <View style={styles.timingChipRow}>
                 {TIMING_OPTIONS.map((timing) => {
                   const selected = value.reconstructionTiming === timing;
                   return (
@@ -309,9 +309,13 @@ export const BreastSideCard = React.memo(function BreastSideCard({
                     >
                       <ThemedText
                         type="small"
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.75}
                         style={{
                           color: selected ? theme.buttonText : theme.text,
                           fontWeight: selected ? "600" : "400",
+                          textAlign: "center",
                         }}
                       >
                         {TIMING_SHORT_LABELS[timing]}
@@ -431,10 +435,16 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     marginBottom: Spacing.xs,
   },
+  timingChipRow: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
   timingChip: {
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
+    flexShrink: 1,
   },
 });

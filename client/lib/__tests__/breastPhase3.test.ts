@@ -95,7 +95,7 @@ describe("getBreastSideVisibility", () => {
     expect(reconstructive.showImplantDetails).toBe(true);
     expect(aesthetic.showImplantDetails).toBe(true);
     expect(reconstructive.showReconstructionEpisode).toBe(true);
-    expect(aesthetic.showReconstructionEpisode).toBe(true);
+    expect(aesthetic.showReconstructionEpisode).toBe(false);
     expect(reconstructive.showGenderAffirmingContext).toBe(false);
     expect(aesthetic.showGenderAffirmingContext).toBe(false);
   });

@@ -2502,6 +2502,12 @@ function DiagnosisGroupEditorInner({
             hasAcceptedMapping={hasAcceptedBreastMapping}
             onCommittedProceduresChange={handleBreastCommittedProceduresChange}
             createProcedureFromPicklistId={buildProcedureFromPicklistId}
+            histologyPending={histologyPending}
+            onHistologyPendingChange={setHistologyPending}
+            showHistologyToggle={
+              !isSkinCancerModule &&
+              !isExcisionBiopsyDiagnosis(selectedDiagnosis?.id)
+            }
           />
         ) : null}
 
@@ -3365,9 +3371,10 @@ function DiagnosisGroupEditorInner({
           </>
         ) : null}
 
-        {/* Histology pending toggle — non-skin-cancer specialties only */}
+        {/* Histology pending toggle — non-skin-cancer, non-breast specialties only (breast has it in section 3) */}
         {hasSelectedHandCaseType &&
         !isSkinCancerModule &&
+        !isBreastModule &&
         !isExcisionBiopsyDiagnosis(selectedDiagnosis?.id) ? (
           <View style={{ marginTop: Spacing.md, marginBottom: Spacing.sm }}>
             <Pressable
@@ -3418,7 +3425,11 @@ function DiagnosisGroupEditorInner({
           </View>
         ) : null}
 
-        {isBreastModule && normalizedBreastAssessment ? (
+        {isBreastModule &&
+        normalizedBreastAssessment &&
+        Object.values(normalizedBreastAssessment.sides).some(
+          (s) => s?.clinicalContext === "reconstructive",
+        ) ? (
           <View style={{ marginBottom: Spacing.sm }}>
             <ReconstructionEpisodeCard
               linkedEpisodeId={linkedBreastEpisodeId}
