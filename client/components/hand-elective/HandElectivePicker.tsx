@@ -74,6 +74,7 @@ export function HandElectivePicker({
     null,
   );
   const [searchQuery, setSearchQuery] = useState("");
+  const [showSnomedFallback, setShowSnomedFallback] = useState(false);
 
   // All elective hand diagnoses (excludes trauma + acute)
   const allElective = useMemo(
@@ -310,32 +311,40 @@ export function HandElectivePicker({
       ) : null}
 
       {onSnomedSelect ? (
-        <View
-          style={[
-            styles.fallbackSection,
-            {
-              backgroundColor: theme.backgroundSecondary,
-              borderColor: theme.border,
-            },
-          ]}
-        >
-          <ThemedText style={[styles.fallbackTitle, { color: theme.text }]}>
-            SNOMED CT fallback
-          </ThemedText>
-          <ThemedText
-            style={[styles.fallbackBody, { color: theme.textSecondary }]}
+        <>
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              LayoutAnimation.configureNext(
+                LayoutAnimation.Presets.easeInEaseOut,
+              );
+              setShowSnomedFallback((v) => !v);
+            }}
+            style={styles.snomedToggle}
           >
-            Use this when the elective hand picker does not contain the
-            diagnosis you need.
-          </ThemedText>
-          <SnomedSearchPicker
-            label="Search diagnosis"
-            onSelect={onSnomedSelect}
-            searchType="diagnosis"
-            specialty="hand_wrist"
-            placeholder="Search SNOMED CT diagnoses..."
-          />
-        </View>
+            <Feather
+              name={showSnomedFallback ? "chevron-up" : "search"}
+              size={14}
+              color={theme.link}
+            />
+            <ThemedText
+              style={[styles.snomedToggleText, { color: theme.link }]}
+            >
+              {showSnomedFallback
+                ? "Hide search"
+                : "Can't find your diagnosis? Search SNOMED CT"}
+            </ThemedText>
+          </Pressable>
+          {showSnomedFallback ? (
+            <SnomedSearchPicker
+              label="Search diagnosis"
+              onSelect={onSnomedSelect}
+              searchType="diagnosis"
+              specialty="hand_wrist"
+              placeholder="Search SNOMED CT diagnoses..."
+            />
+          ) : null}
+        </>
       ) : null}
     </View>
   );
@@ -449,20 +458,15 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 18,
   },
-  fallbackSection: {
-    marginTop: Spacing.md,
-    borderWidth: 1,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
+  snomedToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    marginTop: Spacing.xs,
   },
-  fallbackTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: Spacing.xs,
-  },
-  fallbackBody: {
+  snomedToggleText: {
     fontSize: 13,
-    lineHeight: 18,
-    marginBottom: Spacing.md,
+    fontWeight: "500",
   },
 });

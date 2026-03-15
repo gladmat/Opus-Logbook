@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Alert, View, StyleSheet, Pressable } from "react-native";
+import { Alert, View, StyleSheet, Pressable, LayoutAnimation } from "react-native";
 import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
 import { v4 as uuidv4 } from "uuid";
@@ -352,6 +352,7 @@ function DiagnosisGroupEditorInner({
     useState(false);
   const [showManualTraumaProcedureEditor, setShowManualTraumaProcedureEditor] =
     useState(false);
+  const [showSnomedSearch, setShowSnomedSearch] = useState(false);
   const [autoAppliedTraumaSuggestionIds, setAutoAppliedTraumaSuggestionIds] =
     useState<Set<string>>(new Set());
   const latestGroupRef = useRef(group);
@@ -2531,19 +2532,46 @@ function DiagnosisGroupEditorInner({
               )
             ) : null}
 
-            {/* For specialties with picklist: still show SNOMED search below picker (unless collapsed) */}
+            {/* For specialties with picklist: SNOMED search collapsed behind disclosure link */}
             {showGenericDiagnosisSnomedPicker ? (
-              <SnomedSearchPicker
-                label="Search Diagnosis"
-                value={primaryDiagnosis || undefined}
-                onSelect={(val) => {
-                  setPrimaryDiagnosis(val);
-                  if (val) setIsDiagnosisPickerCollapsed(true);
-                }}
-                searchType="diagnosis"
-                specialty={groupSpecialty}
-                placeholder="Search for diagnosis (e.g., fracture, Dupuytren)..."
-              />
+              <>
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    LayoutAnimation.configureNext(
+                      LayoutAnimation.Presets.easeInEaseOut,
+                    );
+                    setShowSnomedSearch((v) => !v);
+                  }}
+                  style={styles.showAllLink}
+                >
+                  <Feather
+                    name={showSnomedSearch ? "chevron-up" : "search"}
+                    size={14}
+                    color={theme.link}
+                  />
+                  <ThemedText
+                    style={[styles.showAllLinkText, { color: theme.link }]}
+                  >
+                    {showSnomedSearch
+                      ? "Hide search"
+                      : "Can't find your diagnosis? Search SNOMED CT"}
+                  </ThemedText>
+                </Pressable>
+                {showSnomedSearch ? (
+                  <SnomedSearchPicker
+                    label="Search Diagnosis"
+                    value={primaryDiagnosis || undefined}
+                    onSelect={(val) => {
+                      setPrimaryDiagnosis(val);
+                      if (val) setIsDiagnosisPickerCollapsed(true);
+                    }}
+                    searchType="diagnosis"
+                    specialty={groupSpecialty}
+                    placeholder="Search for diagnosis (e.g., fracture, Dupuytren)..."
+                  />
+                ) : null}
+              </>
             ) : null}
 
             {hasFractureSubcategory &&
