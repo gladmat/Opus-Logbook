@@ -128,6 +128,9 @@ import { extractBreastFlapExtension } from "@/types/breast";
 import { normalizeBreastAssessment } from "@/lib/breastState";
 import type { BreastFlapContext } from "@/components/ProcedureClinicalDetails";
 import { JointImplantSection } from "@/components/joint-implant/JointImplantSection";
+import { CraniofacialAssessment } from "@/components/craniofacial/CraniofacialAssessment";
+import { isCraniofacialDiagnosis } from "@/lib/craniofacialConfig";
+import type { CraniofacialAssessmentData } from "@/types/craniofacial";
 import type {
   SkinCancerLesionAssessment,
   LesionPhoto,
@@ -229,6 +232,8 @@ function DiagnosisGroupEditorInner({
   const { profile, user } = useAuth();
   const injuryDate = useCaseFormField("injuryDate");
   const priorRadiotherapy = useCaseFormField("priorRadiotherapy");
+  const patientDateOfBirth = useCaseFormField("patientDateOfBirth");
+  const procedureDate = useCaseFormField("procedureDate");
   const {
     dispatch: caseFormDispatch,
     getState: getCaseFormState,
@@ -1100,6 +1105,16 @@ function DiagnosisGroupEditorInner({
 
   const isBreastModule = isBreastSpecialty(groupSpecialty);
   const isHeadNeck = groupSpecialty === "head_neck";
+  const isCraniofacialModule = isCraniofacialDiagnosis(groupSpecialty);
+
+  const normalizedCraniofacialAssessment = useMemo(():
+    | CraniofacialAssessmentData
+    | undefined => {
+    if (!isCraniofacialModule) return undefined;
+    return (
+      group.craniofacialAssessment ?? { operativeDetails: {} }
+    );
+  }, [isCraniofacialModule, group.craniofacialAssessment]);
 
   const defaultBreastClinicalContext = useMemo(
     () => getBreastClinicalContext(selectedDiagnosis ?? undefined),
@@ -2719,6 +2734,22 @@ function DiagnosisGroupEditorInner({
               !isExcisionBiopsyDiagnosis(selectedDiagnosis?.id)
             }
             suppressFreeFlap={moduleVisibility.flapDetails}
+          />
+        ) : null}
+
+        {isCraniofacialModule &&
+        hasSelectedHandCaseType &&
+        normalizedCraniofacialAssessment ? (
+          <CraniofacialAssessment
+            assessment={normalizedCraniofacialAssessment}
+            onAssessmentChange={(
+              craniofacialAssessment: CraniofacialAssessmentData,
+            ) => onChange({ ...group, craniofacialAssessment })}
+            diagnosisId={selectedDiagnosis?.id}
+            subcategory={selectedDiagnosis?.subcategory}
+            patientDob={patientDateOfBirth || undefined}
+            surgeryDate={procedureDate || undefined}
+            selectedProcedureIds={procedurePicklistIds}
           />
         ) : null}
 

@@ -227,6 +227,62 @@ export function checkAgeWarning(
   return null;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// PROCEDURE-DRIVEN FIELD VISIBILITY
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const LIP_REPAIR_IDS = new Set([
+  "cc_lip_repair_unilateral",
+  "cc_lip_repair_bilateral",
+  "cc_lip_adhesion",
+  "cc_lip_revision",
+]);
+
+const PALATE_REPAIR_IDS = new Set([
+  "cc_palatoplasty",
+  "cc_palate_repair_soft",
+  "cc_palate_repair_hard",
+  "cc_von_langenbeck",
+  "cc_vomer_flap",
+  "cc_two_stage_palate",
+  "cc_revision_palatoplasty",
+  "cc_pharyngoplasty",
+  "cc_pharyngeal_flap",
+]);
+
+const BONE_GRAFT_PROCEDURE_IDS = new Set([
+  "cc_alveolar_bone_graft_secondary",
+  "cc_alveolar_bone_graft_tertiary",
+  "cc_cranioplasty",
+  "cc_cranial_bone_graft_harvest",
+  "cc_bone_graft_harvest_iliac",
+  "cc_costochondral_rib_graft",
+  "cc_fronto_orbital_advancement",
+  "cc_cranial_vault_remodelling",
+]);
+
+/**
+ * Returns the technique picker options for the given procedure set.
+ * Lip repair → CLEFT_LIP_TECHNIQUES, palate repair → PALATOPLASTY_TECHNIQUES.
+ * Returns null when no procedure maps to a technique list.
+ */
+export function getNamedTechniques(
+  procedureIds: string[],
+): readonly { readonly value: string; readonly label: string }[] | null {
+  if (procedureIds.some((id) => LIP_REPAIR_IDS.has(id)))
+    return CLEFT_LIP_TECHNIQUES;
+  if (procedureIds.some((id) => PALATE_REPAIR_IDS.has(id)))
+    return PALATOPLASTY_TECHNIQUES;
+  return null;
+}
+
+/**
+ * Whether bone graft donor picker should be shown for the current procedures.
+ */
+export function shouldShowBoneGraftDonor(procedureIds: string[]): boolean {
+  return procedureIds.some((id) => BONE_GRAFT_PROCEDURE_IDS.has(id));
+}
+
 // Re-export section visibility
 export { getCraniofacialSections };
 export type { CraniofacialSubcategory };
