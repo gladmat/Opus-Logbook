@@ -41,7 +41,8 @@ import type {
   BreastLaterality,
   BreastSideAssessment,
 } from "@/types/breast";
-import type { CaseProcedure } from "@/types/case";
+import type { CaseProcedure, FreeFlapDetails } from "@/types/case";
+import { procedureHasFreeFlap } from "@/lib/moduleVisibility";
 import { BreastSideCard } from "./BreastSideCard";
 import { BreastFlapCard } from "./BreastFlapCard";
 import { BreastSummaryPanel } from "./BreastSummaryPanel";
@@ -116,6 +117,84 @@ function getNamedProcedures(procedures: CaseProcedure[]): CaseProcedure[] {
   return normalizeDraftProcedures(
     procedures.filter((procedure) => procedure.procedureName.trim().length > 0),
   );
+}
+
+/**
+ * Expand bilateral free flap procedures into one entry per side.
+ * Stacked DIEP (two flaps → same breast) is NOT split.
+ * Non-flap procedures pass through unchanged.
+ */
+function expandBilateralFreeFlaps(
+  procedures: CaseProcedure[],
+  activeSides: BreastLaterality[],
+): CaseProcedure[] {
+  const result: CaseProcedure[] = [];
+
+  for (const proc of procedures) {
+    if (!procedureHasFreeFlap(proc)) {
+      result.push(proc);
+      continue;
+    }
+
+    // Stacked / bipedicled: two flaps to same breast — do NOT split per side
+    if (proc.picklistEntryId === "breast_recon_stacked") {
+      result.push(proc);
+      continue;
+    }
+
+    // Also detect stacked via flapSpecificDetails config
+    const details = proc.clinicalDetails as FreeFlapDetails | undefined;
+    if (
+      details?.flapSpecificDetails?.diepFlapConfiguration === "stacked" ||
+      details?.flapSpecificDetails?.diepFlapConfiguration === "conjoined_double_pedicle" ||
+      details?.flapSpecificDetails?.diepFlapConfiguration === "bipedicled"
+    ) {
+      result.push(proc);
+      continue;
+    }
+
+    // Standard bilateral: one procedure entry per side
+    for (const side of activeSides) {
+      // For standard bilateral DIEP: harvest from same side as target breast
+      const harvestSide: "left" | "right" = side as "left" | "right";
+      result.push({
+        ...proc,
+        id: side === activeSides[0] ? proc.id : uuidv4(),
+        laterality: side as "left" | "right",
+        clinicalDetails: details
+          ? { ...details, harvestSide }
+          : undefined,
+      });
+    }
+  }
+
+  return normalizeDraftProcedures(result);
+}
+
+/**
+ * Collapse laterality-tagged bilateral procedure pairs back to a single
+ * draft entry for editing. Keeps the first (left) entry's data.
+ */
+function collapseBilateralFreeFlaps(
+  procedures: CaseProcedure[],
+): CaseProcedure[] {
+  const seenFlaps = new Set<string>();
+  const result: CaseProcedure[] = [];
+
+  for (const proc of procedures) {
+    if (proc.laterality && proc.picklistEntryId && procedureHasFreeFlap(proc)) {
+      if (seenFlaps.has(proc.picklistEntryId)) {
+        // Skip the second laterality copy — already represented by the first
+        continue;
+      }
+      seenFlaps.add(proc.picklistEntryId);
+      // Strip laterality for draft editing
+      result.push({ ...proc, laterality: undefined });
+    } else {
+      result.push(proc);
+    }
+  }
+  return normalizeDraftProcedures(result);
 }
 
 function getBreastSectionSummaryText(
@@ -598,13 +677,28 @@ export function BreastProgressiveAssessment({
   }, [draftProcedures.length, updateDraftProcedures]);
 
   const handleAcceptMapping = useCallback(() => {
-    onCommittedProceduresChange(getNamedProcedures(draftProcedures));
+    const named = getNamedProcedures(draftProcedures);
+
+    if (assessment.laterality === "bilateral") {
+      // Bilateral: split free flap procedures into one per side
+      onCommittedProceduresChange(expandBilateralFreeFlaps(named, activeSides));
+    } else {
+      // Unilateral: tag laterality on free flap procedures
+      const side = assessment.laterality as "left" | "right";
+      const tagged = named.map((proc) =>
+        procedureHasFreeFlap(proc) ? { ...proc, laterality: side } : proc,
+      );
+      onCommittedProceduresChange(tagged);
+    }
+
     setShowFullProcedurePicker(false);
     setActiveCustomProcedureId(null);
-  }, [draftProcedures, onCommittedProceduresChange]);
+  }, [draftProcedures, assessment.laterality, activeSides, onCommittedProceduresChange]);
 
   const handleEditMapping = useCallback(() => {
-    setDraftProcedures(cloneProcedures(committedProcedures));
+    // Collapse bilateral pairs back to single draft entries for editing
+    const collapsed = collapseBilateralFreeFlaps(committedProcedures);
+    setDraftProcedures(cloneProcedures(collapsed));
     setDraftDirty(true);
     setShowFullProcedurePicker(false);
     setActiveCustomProcedureId(null);

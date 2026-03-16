@@ -368,7 +368,10 @@ function caseToRow(c: Case, options: CsvExportOptions): string {
     ...secondaryGroups.flatMap((g) => g.procedures),
   ];
   const secondaryProcedures = allSecondaryProcs
-    .map((p) => p.procedureName)
+    .map((p) => {
+      const lat = p.laterality ? ` (${p.laterality === "left" ? "Left" : "Right"})` : "";
+      return p.procedureName ? `${p.procedureName}${lat}` : "";
+    })
     .filter(Boolean)
     .join("; ");
 
@@ -412,7 +415,9 @@ function caseToRow(c: Case, options: CsvExportOptions): string {
     primaryGroup?.diagnosis?.snomedCtCode,
     primaryGroup?.diagnosisClinicalDetails?.laterality ?? "",
     formatStagingSelections(primaryGroup?.diagnosisStagingSelections),
-    primaryProc?.procedureName,
+    primaryProc
+      ? `${primaryProc.procedureName}${primaryProc.laterality ? ` (${primaryProc.laterality === "left" ? "Left" : "Right"})` : ""}`
+      : "",
     primaryProc?.snomedCtCode,
     // primary_procedure_role — backward compat (legacy code)
     (() => {

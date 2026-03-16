@@ -1543,8 +1543,6 @@ export interface FreeFlapDetails {
 
   // Registry fields (all optional, added in Free Flap Registry Upgrade)
   preoperativeImaging?: PreoperativeImaging;
-  warmIschemiaMinutes?: number;
-  coldIschemiaMinutes?: number;
   anticoagulationProtocol?: AnticoagulationProtocolId;
   perfusionAssessment?: PerfusionAssessment;
   positionChangeRequired?: boolean;
@@ -1759,6 +1757,8 @@ export interface CaseProcedure {
   clinicalDetails?: ClinicalDetails;
   implantDetails?: JointImplantDetails;
   notes?: string;
+  /** Procedure-level laterality for bilateral cases (e.g., bilateral DIEP) */
+  laterality?: "left" | "right";
 }
 
 // ─── Diagnosis Certainty ─────────────────────────────────────────────────────

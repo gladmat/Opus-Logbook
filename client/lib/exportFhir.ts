@@ -706,8 +706,9 @@ function buildProcedure(
     }
   }
 
-  // bodySite with implant-aware laterality and digit context
-  const laterality = (proc.implantDetails?.laterality ??
+  // bodySite with procedure/implant-aware laterality and digit context
+  const laterality = (proc.laterality ??
+    proc.implantDetails?.laterality ??
     group.diagnosisClinicalDetails?.laterality) as Laterality | undefined;
   const digit = proc.implantDetails?.digit;
   if (laterality && LATERALITY_SNOMED[laterality]) {
