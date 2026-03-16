@@ -246,6 +246,103 @@ export const DIEP_BILATERAL_DEFAULTS: Partial<FlapSpecificDetails> = {
   diepPerforatorRow: "medial",
   diepPerfusionZones: "zone_i_iii",
   diepFlapConfiguration: "standard_unilateral",
+  diepVenousSupercharge: "none",
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FLAP DONOR VESSELS
+// Default donor vessel names per free flap type — shared by procedure init
+// and FreeFlapClinicalFields auto-fill.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const FLAP_DONOR_VESSELS: Record<
+  FreeFlap,
+  { artery: string; vein: string }
+> = {
+  alt: {
+    artery: "Descending branch of lateral circumflex femoral artery",
+    vein: "Venae comitantes of lateral circumflex femoral artery",
+  },
+  diep: {
+    artery: "Deep inferior epigastric artery",
+    vein: "Deep inferior epigastric vein",
+  },
+  radial_forearm: {
+    artery: "Radial artery",
+    vein: "Venae comitantes of radial artery",
+  },
+  fibula: {
+    artery: "Peroneal artery",
+    vein: "Venae comitantes of peroneal artery",
+  },
+  latissimus_dorsi: {
+    artery: "Thoracodorsal artery",
+    vein: "Thoracodorsal vein",
+  },
+  gracilis: {
+    artery: "Gracilis branch of medial circumflex femoral artery",
+    vein: "Venae comitantes of medial circumflex femoral artery",
+  },
+  tug: {
+    artery: "Gracilis branch of medial circumflex femoral artery",
+    vein: "Venae comitantes of medial circumflex femoral artery",
+  },
+  scip: {
+    artery: "Superficial circumflex iliac artery",
+    vein: "Superficial circumflex iliac vein",
+  },
+  siea: {
+    artery: "Superficial inferior epigastric artery",
+    vein: "Superficial inferior epigastric vein",
+  },
+  medial_sural: {
+    artery: "Medial sural artery",
+    vein: "Venae comitantes of medial sural artery",
+  },
+  sgap: {
+    artery: "Superior gluteal artery (perforator branch)",
+    vein: "Superior gluteal vein",
+  },
+  igap: {
+    artery: "Inferior gluteal artery (perforator branch)",
+    vein: "Inferior gluteal vein",
+  },
+  pap: {
+    artery: "Profunda femoris artery (perforator branch)",
+    vein: "Venae comitantes of profunda femoris artery",
+  },
+  tdap: {
+    artery: "Thoracodorsal artery (perforator branch)",
+    vein: "Thoracodorsal vein",
+  },
+  parascapular: {
+    artery: "Circumflex scapular artery",
+    vein: "Circumflex scapular vein",
+  },
+  scapular: {
+    artery: "Circumflex scapular artery",
+    vein: "Circumflex scapular vein",
+  },
+  serratus_anterior: {
+    artery: "Thoracodorsal artery (serratus branch)",
+    vein: "Thoracodorsal vein",
+  },
+  lap: {
+    artery: "Lumbar artery (perforator branch)",
+    vein: "Lumbar vein",
+  },
+  medial_femoral_condyle: {
+    artery: "Descending genicular artery",
+    vein: "Descending genicular vein",
+  },
+  omentum: {
+    artery: "Right gastroepiploic artery",
+    vein: "Right gastroepiploic vein",
+  },
+  other: {
+    artery: "",
+    vein: "",
+  },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

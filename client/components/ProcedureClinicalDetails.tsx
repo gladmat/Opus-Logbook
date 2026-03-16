@@ -60,6 +60,7 @@ import {
   getFibulaContextDefaults,
   ALT_ELEVATION_TO_COMPOSITION,
   DIEP_BILATERAL_DEFAULTS,
+  FLAP_DONOR_VESSELS,
   normalizeVesselName,
   resolveConcomitantVeinName,
 } from "@/data/autoFillMappings";
@@ -112,95 +113,6 @@ interface FreeFlapClinicalFieldsProps {
   breastContext?: BreastFlapContext;
 }
 
-const DEFAULT_DONOR_VESSELS: Record<
-  FreeFlap,
-  { artery: string; vein: string }
-> = {
-  alt: {
-    artery: "Descending branch of lateral circumflex femoral artery",
-    vein: "Venae comitantes of lateral circumflex femoral artery",
-  },
-  diep: {
-    artery: "Deep inferior epigastric artery",
-    vein: "Deep inferior epigastric vein",
-  },
-  radial_forearm: {
-    artery: "Radial artery",
-    vein: "Venae comitantes of radial artery",
-  },
-  fibula: {
-    artery: "Peroneal artery",
-    vein: "Venae comitantes of peroneal artery",
-  },
-  latissimus_dorsi: {
-    artery: "Thoracodorsal artery",
-    vein: "Thoracodorsal vein",
-  },
-  gracilis: {
-    artery: "Gracilis branch of medial circumflex femoral artery",
-    vein: "Venae comitantes of medial circumflex femoral artery",
-  },
-  tug: {
-    artery: "Gracilis branch of medial circumflex femoral artery",
-    vein: "Venae comitantes of medial circumflex femoral artery",
-  },
-  scip: {
-    artery: "Superficial circumflex iliac artery",
-    vein: "Superficial circumflex iliac vein",
-  },
-  siea: {
-    artery: "Superficial inferior epigastric artery",
-    vein: "Superficial inferior epigastric vein",
-  },
-  medial_sural: {
-    artery: "Medial sural artery",
-    vein: "Venae comitantes of medial sural artery",
-  },
-  sgap: {
-    artery: "Superior gluteal artery (perforator branch)",
-    vein: "Superior gluteal vein",
-  },
-  igap: {
-    artery: "Inferior gluteal artery (perforator branch)",
-    vein: "Inferior gluteal vein",
-  },
-  pap: {
-    artery: "Profunda femoris artery (perforator branch)",
-    vein: "Venae comitantes of profunda femoris artery",
-  },
-  tdap: {
-    artery: "Thoracodorsal artery (perforator branch)",
-    vein: "Thoracodorsal vein",
-  },
-  parascapular: {
-    artery: "Circumflex scapular artery",
-    vein: "Circumflex scapular vein",
-  },
-  scapular: {
-    artery: "Circumflex scapular artery",
-    vein: "Circumflex scapular vein",
-  },
-  serratus_anterior: {
-    artery: "Thoracodorsal artery (serratus branch)",
-    vein: "Thoracodorsal vein",
-  },
-  lap: {
-    artery: "Lumbar artery (perforator branch)",
-    vein: "Lumbar vein",
-  },
-  medial_femoral_condyle: {
-    artery: "Descending genicular artery",
-    vein: "Descending genicular vein",
-  },
-  omentum: {
-    artery: "Right gastroepiploic artery",
-    vein: "Right gastroepiploic vein",
-  },
-  other: {
-    artery: "",
-    vein: "",
-  },
-};
 
 /** Default IMA/IMV vessel names for breast auto-fill */
 const BREAST_DEFAULT_IMA = "Internal mammary artery (IMA)";
@@ -240,10 +152,13 @@ export function FreeFlapClinicalFields({
       return;
     }
     breastAutoFillDone.current = true;
+    const flapType = clinicalDetails.flapType;
+    const donorVessels = flapType ? FLAP_DONOR_VESSELS[flapType] : undefined;
     const defaultArtery: AnastomosisEntry = {
       id: uuidv4(),
       vesselType: "artery",
       recipientVesselName: BREAST_DEFAULT_IMA,
+      donorVesselName: donorVessels?.artery,
       couplingMethod: "hand_sewn",
       configuration: "end_to_end",
     };
@@ -251,8 +166,10 @@ export function FreeFlapClinicalFields({
       id: uuidv4(),
       vesselType: "vein",
       recipientVesselName: BREAST_DEFAULT_IMV,
+      donorVesselName: donorVessels?.vein,
       couplingMethod: "coupler",
       configuration: "end_to_end",
+      couplerSizeMm: 2.5,
     };
     onUpdate({
       ...clinicalDetails,
@@ -377,7 +294,7 @@ export function FreeFlapClinicalFields({
   };
 
   const flapType = clinicalDetails.flapType;
-  const donorVessels = flapType ? DEFAULT_DONOR_VESSELS[flapType] : undefined;
+  const donorVessels = flapType ? FLAP_DONOR_VESSELS[flapType] : undefined;
 
   const FLAPS_WITH_SKIN_ISLAND: FreeFlap[] = [
     "gracilis",
@@ -762,7 +679,7 @@ export function FreeFlapClinicalFields({
       </CollapsibleFormSection>
 
       <FormField
-        label="Ischemia Time (Total)"
+        label="Ischemia Time"
         value={
           clinicalDetails.ischemiaTimeMinutes
             ? String(clinicalDetails.ischemiaTimeMinutes)
@@ -779,47 +696,6 @@ export function FreeFlapClinicalFields({
         unit="min"
         required
       />
-
-      <View style={styles.row}>
-        <View style={styles.halfField}>
-          <FormField
-            label="Warm Ischemia"
-            value={
-              clinicalDetails.warmIschemiaMinutes
-                ? String(clinicalDetails.warmIschemiaMinutes)
-                : ""
-            }
-            onChangeText={(v) =>
-              onUpdate({
-                ...clinicalDetails,
-                warmIschemiaMinutes: v ? parseInt(v) : undefined,
-              })
-            }
-            placeholder="—"
-            keyboardType="numeric"
-            unit="min"
-          />
-        </View>
-        <View style={styles.halfField}>
-          <FormField
-            label="Cold Ischemia"
-            value={
-              clinicalDetails.coldIschemiaMinutes
-                ? String(clinicalDetails.coldIschemiaMinutes)
-                : ""
-            }
-            onChangeText={(v) =>
-              onUpdate({
-                ...clinicalDetails,
-                coldIschemiaMinutes: v ? parseInt(v) : undefined,
-              })
-            }
-            placeholder="—"
-            keyboardType="numeric"
-            unit="min"
-          />
-        </View>
-      </View>
 
       <View style={styles.row}>
         <View style={styles.halfField}>

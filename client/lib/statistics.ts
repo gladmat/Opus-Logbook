@@ -54,7 +54,6 @@ export interface FreeFlapStatistics extends BaseStatistics {
   partialLossRate: number;
   totalLossRate: number;
   averageIschemiaTimeMinutes: number | null;
-  averageWarmIschemiaMinutes: number | null;
   casesByFlapType: { flapType: string; count: number }[];
   casesByIndication: { indication: string; count: number }[];
   takeBackRate: number;
@@ -446,7 +445,6 @@ export function calculateFreeFlapStatistics(cases: Case[]): FreeFlapStatistics {
 
   // Ischemia
   const ischemiaTimesMinutes: number[] = [];
-  const warmIschemiaTimesMinutes: number[] = [];
 
   // Flap type & indication
   const flapTypeMap = new Map<string, number>();
@@ -522,10 +520,6 @@ export function calculateFreeFlapStatistics(cases: Case[]): FreeFlapStatistics {
       if (details.ischemiaTimeMinutes && details.ischemiaTimeMinutes > 0) {
         ischemiaTimesMinutes.push(details.ischemiaTimeMinutes);
       }
-      if (details.warmIschemiaMinutes && details.warmIschemiaMinutes > 0) {
-        warmIschemiaTimesMinutes.push(details.warmIschemiaMinutes);
-      }
-
       // ── Anticoagulation ──
       if (details.anticoagulationProtocol) {
         const label =
@@ -583,14 +577,6 @@ export function calculateFreeFlapStatistics(cases: Case[]): FreeFlapStatistics {
       ? Math.round(
           ischemiaTimesMinutes.reduce((a, b) => a + b, 0) /
             ischemiaTimesMinutes.length,
-        )
-      : null;
-
-  const averageWarmIschemiaMinutes =
-    warmIschemiaTimesMinutes.length > 0
-      ? Math.round(
-          warmIschemiaTimesMinutes.reduce((a, b) => a + b, 0) /
-            warmIschemiaTimesMinutes.length,
         )
       : null;
 
@@ -662,7 +648,6 @@ export function calculateFreeFlapStatistics(cases: Case[]): FreeFlapStatistics {
     partialLossRate,
     totalLossRate,
     averageIschemiaTimeMinutes,
-    averageWarmIschemiaMinutes,
     casesByFlapType,
     casesByIndication,
     takeBackRate,
