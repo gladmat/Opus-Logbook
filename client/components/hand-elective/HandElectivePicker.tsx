@@ -154,45 +154,47 @@ export function HandElectivePicker({
 
   return (
     <View style={styles.container}>
-      {/* Search bar */}
-      <View
-        style={[
-          styles.searchContainer,
-          {
-            backgroundColor: theme.backgroundDefault,
-            borderColor: theme.border,
-          },
-        ]}
-      >
-        <Feather name="search" size={16} color={theme.textTertiary} />
-        <TextInput
-          style={[styles.searchInput, { color: theme.text }]}
-          placeholder="Search all elective diagnoses..."
-          placeholderTextColor={theme.textTertiary}
-          value={searchQuery}
-          onChangeText={(text) => {
-            if (text.length >= 2 && selectedSubcategory) {
-              LayoutAnimation.configureNext(
-                LayoutAnimation.Presets.easeInEaseOut,
-              );
-              setSelectedSubcategory(null);
-            }
-            setSearchQuery(text);
-          }}
-          autoCapitalize="none"
-          autoCorrect={false}
-          testID="input-elective-search"
-        />
-        {searchQuery.length > 0 ? (
-          <Pressable
-            onPress={() => setSearchQuery("")}
-            hitSlop={8}
-            testID="button-clear-elective-search"
-          >
-            <Feather name="x" size={16} color={theme.textTertiary} />
-          </Pressable>
-        ) : null}
-      </View>
+      {/* Search bar — hidden when browsing inside a subcategory */}
+      {!selectedSubcategory && (
+        <View
+          style={[
+            styles.searchContainer,
+            {
+              backgroundColor: theme.backgroundDefault,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Feather name="search" size={16} color={theme.textTertiary} />
+          <TextInput
+            style={[styles.searchInput, { color: theme.text }]}
+            placeholder="Search all elective diagnoses..."
+            placeholderTextColor={theme.textTertiary}
+            value={searchQuery}
+            onChangeText={(text) => {
+              if (text.length >= 2 && selectedSubcategory) {
+                LayoutAnimation.configureNext(
+                  LayoutAnimation.Presets.easeInEaseOut,
+                );
+                setSelectedSubcategory(null);
+              }
+              setSearchQuery(text);
+            }}
+            autoCapitalize="none"
+            autoCorrect={false}
+            testID="input-elective-search"
+          />
+          {searchQuery.length > 0 ? (
+            <Pressable
+              onPress={() => setSearchQuery("")}
+              hitSlop={8}
+              testID="button-clear-elective-search"
+            >
+              <Feather name="x" size={16} color={theme.textTertiary} />
+            </Pressable>
+          ) : null}
+        </View>
+      )}
 
       {/* Subcategory grid — shown when not searching and no subcategory selected */}
       {!isSearching && !selectedSubcategory ? (
