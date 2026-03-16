@@ -1301,7 +1301,7 @@ const CC_DX_CRANIOFACIAL: DiagnosisPicklistEntry[] = [
     specialty: "cleft_cranio",
     subcategory: "Craniofacial Conditions",
     clinicalGroup: "congenital",
-    hasStaging: true, // OMENS+
+    hasStaging: false, // OMENS+ handled by CraniofacialAssessment component (multi-component structured input)
     searchSynonyms: [
       "hemifacial microsomia",
       "HFM",
