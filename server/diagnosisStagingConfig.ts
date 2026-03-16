@@ -785,6 +785,147 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
     ],
   },
 
+  // ─── Cleft & Craniofacial Classifications ──────────────────────────────────
+
+  // Veau Classification — Cleft Palate
+  {
+    snomedCtCodes: [
+      "47563007", // Cleft soft palate
+      "63567004", // Cleft hard and soft palate
+      "87979003", // Cleft lip and palate (unilateral)
+      "70241007", // Bilateral cleft lip and palate
+    ],
+    keywords: ["veau", "cleft palate", "cleft lip and palate"],
+    stagingSystems: [
+      {
+        name: "Veau Classification",
+        description: "Classification of cleft palate extent",
+        options: [
+          {
+            value: "I",
+            label: "Veau I — Soft palate only",
+            description: "Cleft of soft palate only",
+          },
+          {
+            value: "II",
+            label: "Veau II — Hard and soft palate",
+            description: "Cleft extending through hard and soft palate",
+          },
+          {
+            value: "III",
+            label: "Veau III — Unilateral complete CLP",
+            description:
+              "Unilateral complete cleft of lip, alveolus, and palate",
+          },
+          {
+            value: "IV",
+            label: "Veau IV — Bilateral complete CLP",
+            description:
+              "Bilateral complete cleft of lip, alveolus, and palate",
+          },
+          {
+            value: "submucous",
+            label: "Submucous",
+            description: "Submucous cleft palate",
+          },
+        ],
+      },
+    ],
+  },
+
+  // Pittsburgh Fistula Classification — Oronasal Fistula
+  {
+    snomedCtCodes: [
+      "118947004", // Oronasal fistula
+    ],
+    keywords: ["pittsburgh", "oronasal fistula", "palatal fistula"],
+    stagingSystems: [
+      {
+        name: "Pittsburgh Fistula Classification",
+        description: "Classification of palatal fistula location",
+        options: [
+          {
+            value: "I",
+            label: "Type I — Bifid uvula",
+            description: "Bifid uvula",
+          },
+          {
+            value: "II",
+            label: "Type II — Soft palate",
+            description: "Fistula in soft palate",
+          },
+          {
+            value: "III",
+            label: "Type III — Junction of hard/soft palate",
+            description: "Fistula at junction of hard and soft palate",
+          },
+          {
+            value: "IV",
+            label: "Type IV — Hard palate",
+            description: "Fistula in hard palate",
+          },
+          {
+            value: "V",
+            label: "Type V — Junction primary/secondary palate",
+            description:
+              "Fistula at junction of primary and secondary palate",
+          },
+          {
+            value: "VI",
+            label: "Type VI — Lingual-alveolar",
+            description: "Lingual-alveolar fistula",
+          },
+          {
+            value: "VII",
+            label: "Type VII — Labial-alveolar",
+            description: "Labial-alveolar fistula",
+          },
+        ],
+      },
+    ],
+  },
+
+  // Whitaker Classification — Craniosynostosis Revision Outcomes
+  {
+    snomedCtCodes: [
+      "57219006", // Secondary / revision craniosynostosis
+    ],
+    keywords: ["whitaker", "secondary craniosynostosis", "re-synostosis"],
+    stagingSystems: [
+      {
+        name: "Whitaker Classification",
+        description:
+          "Outcome classification for craniosynostosis revision surgery",
+        options: [
+          {
+            value: "I",
+            label: "Category I — No revision indicated",
+            description:
+              "No refinements or surgical revisions considered necessary",
+          },
+          {
+            value: "II",
+            label: "Category II — Minor refinement desirable",
+            description:
+              "Soft tissue or minor bony work that would improve the result",
+          },
+          {
+            value: "III",
+            label: "Category III — Major osteotomy required",
+            description:
+              "Major alternative osteotomy or bone grafting procedure needed",
+          },
+          {
+            value: "IV",
+            label: "Category IV — Equivalent to original surgery",
+            description:
+              "A major procedure equivalent to the original operation is needed",
+          },
+        ],
+      },
+    ],
+  },
+
   // ─── Head & Neck Cancer — TNM Staging (AJCC 8th Edition) ─────────────────
   {
     snomedCtCodes: [
