@@ -373,6 +373,98 @@ export const OLD_TO_NEW_SNOMED: Record<string, SnomedMigrationEntry> = {
     newCode: "34685000",
     newDisplay: "Ray amputation of finger (procedure)",
   },
+
+  // ── Craniofacial SNOMED CT fixes (validated against Ontoserver March 2026) ──
+
+  // Diagnosis codes — cleft & craniofacial
+  "253983005": {
+    newCode: "65404009",
+    newDisplay: "Cleft lip, unilateral (disorder)",
+  },
+  "253986002": {
+    newCode: "763108005",
+    newDisplay: "Submucous cleft palate (disorder)",
+  },
+  "253982000": {
+    newCode: "445306000",
+    newDisplay: "Cleft of alveolar ridge of maxilla (disorder)",
+  },
+  "253985003": {
+    newCode: "27299009",
+    newDisplay: "Congenital maxillary hypoplasia (disorder)",
+  },
+
+  // Procedure codes — cleft lip repair
+  "278578005": {
+    newCode: "234647001",
+    newDisplay: "Repair of cleft lip (procedure)",
+  },
+  "82371002": {
+    newCode: "71917006",
+    newDisplay: "Repair of lip (procedure)",
+  },
+
+  // Procedure codes — palate repair
+  "73682005": {
+    newCode: "262267008",
+    newDisplay: "Vomerine flap (procedure)",
+  },
+  "441790007": {
+    newCode: "178493006",
+    newDisplay: "Alveolar bone graft (procedure)",
+  },
+  "239404006": {
+    newCode: "178406005",
+    newDisplay: "Alveolar bone graft to maxilla (procedure)",
+  },
+  "174580009": {
+    newCode: "276184008",
+    newDisplay: "Repair of palate (procedure)",
+  },
+  "275023003": {
+    newCode: "276184008",
+    newDisplay: "Repair of palate (procedure)",
+  },
+
+  // Procedure codes — orthognathic & maxillary
+  "360820005": {
+    newCode: "58544004",
+    newDisplay: "Le Fort I osteotomy (procedure)",
+  },
+  "36936005": {
+    newCode: "256697007",
+    newDisplay: "Buccal fat pad flap (procedure)",
+  },
+
+  // Procedure codes — craniosynostosis & craniofacial
+  "429376006": {
+    newCode: "178411007",
+    newDisplay: "Frontofacial advancement (procedure)",
+  },
+  "89655001": {
+    newCode: "64833008",
+    newDisplay: "Costochondral graft to mandible (procedure)",
+  },
+  "31611004": {
+    newCode: "303453000",
+    newDisplay: "Orbital osteotomy (procedure)",
+  },
+  "63961008": {
+    newCode: "231548001",
+    newDisplay: "Correction of orbital hypertelorism (procedure)",
+  },
+  "48962002": {
+    newCode: "25353009",
+    newDisplay: "Craniotomy (procedure)",
+  },
+  "302301003": {
+    newCode: "172605007",
+    newDisplay: "Reconstruction of external ear (procedure)",
+  },
+  "173422003": {
+    newCode: "112854004",
+    newDisplay: "Fixation of tongue (procedure)",
+  },
 };
 
 export function migrateSnomedCode(code: string): SnomedMigrationEntry | null {

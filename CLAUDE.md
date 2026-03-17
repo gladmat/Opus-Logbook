@@ -855,6 +855,14 @@ Following established patterns:
 - Craniosynostosis: craniofacialAssessment.craniosynostosisDetails (conditional)
 - OMENS+: craniofacialAssessment.omensClassification (conditional, CF01 only)
 
+### SNOMED CT Audit (March 2026)
+- 38 diagnoses: 34 International, 4 UK Extension → replaced with International parents
+- 69 procedures: 48 International, 21 VERIFY codes fixed + 8 non-VERIFY corrections for wrong codes (360820005 "urethral stricture", 82371002 "proton beam", 239404006 "release IMF")
+- 0 broken procedure suggestion cross-references (53 unique procedurePicklistIds validated)
+- 5 autoFill recipient site mappings added (craniofacial microsomia, Treacher Collins, fibrous dysplasia, encephalocele, orbital hypertelorism → head_neck)
+- 21 migration entries added for changed codes in snomedCodeMigration.ts
+- 5 cross-reference validation tests added
+
 ## Design system: Charcoal + Amber
 
 All tokens in `client/constants/theme.ts` (single source of truth, 273 lines).

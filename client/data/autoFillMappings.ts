@@ -179,6 +179,13 @@ export const DIAGNOSIS_TO_RECIPIENT_SITE: Record<string, AnatomicalRegion> = {
   gen_dx_pressure_ischial: "perineum",
   gen_dx_pressure_trochanteric: "thigh",
   gen_dx_pressure_heel: "foot",
+
+  // Craniofacial — potential free tissue transfer
+  cc_dx_craniofacial_microsomia: "head_neck",
+  cc_dx_treacher_collins: "head_neck",
+  cc_dx_fibrous_dysplasia_craniofacial: "head_neck",
+  cc_dx_encephalocele: "head_neck",
+  cc_dx_orbital_hypertelorism: "head_neck",
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

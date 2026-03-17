@@ -144,8 +144,8 @@ const CC_DX_CLEFT_LIP: DiagnosisPicklistEntry[] = [
     id: "cc_dx_cleft_lip_microform",
     displayName: "Microform cleft lip",
     shortName: "Microform CL",
-    snomedCtCode: "253983005", // VERIFY — may be UK extension
-    snomedCtDisplay: "Microform cleft lip (disorder)",
+    snomedCtCode: "65404009", // Intl parent — no Intl code for microform qualifier
+    snomedCtDisplay: "Cleft lip, unilateral (disorder)",
     specialty: "cleft_cranio",
     subcategory: "Cleft Lip",
     clinicalGroup: "congenital",
@@ -258,7 +258,7 @@ const CC_DX_CLEFT_PALATE: DiagnosisPicklistEntry[] = [
     id: "cc_dx_submucous_cleft_palate",
     displayName: "Submucous cleft palate",
     shortName: "SMCP",
-    snomedCtCode: "253986002", // VERIFY
+    snomedCtCode: "763108005",
     snomedCtDisplay: "Submucous cleft palate (disorder)",
     specialty: "cleft_cranio",
     subcategory: "Cleft Palate",
@@ -706,7 +706,7 @@ const CC_DX_ALVEOLAR: DiagnosisPicklistEntry[] = [
     id: "cc_dx_alveolar_cleft",
     displayName: "Alveolar cleft",
     shortName: "Alveolar cleft",
-    snomedCtCode: "253982000", // VERIFY — may be extension code
+    snomedCtCode: "445306000",
     snomedCtDisplay: "Cleft of alveolar ridge (disorder)",
     specialty: "cleft_cranio",
     subcategory: "Alveolar & Maxillary",
@@ -745,8 +745,8 @@ const CC_DX_ALVEOLAR: DiagnosisPicklistEntry[] = [
     id: "cc_dx_cleft_maxillary_hypoplasia",
     displayName: "Cleft maxillary hypoplasia",
     shortName: "Midface hypoplasia",
-    snomedCtCode: "253985003", // VERIFY — may be extension code
-    snomedCtDisplay: "Maxillary hypoplasia associated with cleft (disorder)",
+    snomedCtCode: "27299009",
+    snomedCtDisplay: "Congenital maxillary hypoplasia (disorder)",
     specialty: "cleft_cranio",
     subcategory: "Alveolar & Maxillary",
     clinicalGroup: "congenital",
@@ -874,9 +874,8 @@ const CC_DX_CRANIOSYNOSTOSIS: DiagnosisPicklistEntry[] = [
     id: "cc_dx_unicoronal_synostosis",
     displayName: "Craniosynostosis — unicoronal (anterior plagiocephaly)",
     shortName: "Unicoronal synostosis",
-    snomedCtCode: "254020001", // VERIFY
-    snomedCtDisplay:
-      "Premature closure of coronal suture, unilateral (disorder)",
+    snomedCtCode: "254020001",
+    snomedCtDisplay: "Unicoronal craniosynostosis (disorder)",
     specialty: "cleft_cranio",
     subcategory: "Non-Syndromic Craniosynostosis",
     clinicalGroup: "congenital",
@@ -1587,3 +1586,21 @@ export function getCleftCranioDiagnosesForSubcategory(
     (dx) => dx.subcategory === subcategory,
   );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SNOMED CT Audit — March 2026
+// Validated against SNOMED CT International Edition via Ontoserver FHIR API
+// (r4.ontoserver.csiro.au, CodeSystem/$lookup + ValueSet/$expand)
+//
+// 38 diagnoses:
+//   - 34 International codes (confirmed moduleId 900000000000207008)
+//   - 4 UK Clinical Extension codes replaced with International parents:
+//       253983005 → 65404009  (microform cleft lip → unilateral cleft lip)
+//       253986002 → 763108005 (submucous cleft palate — exact Intl match)
+//       253982000 → 445306000 (cleft of alveolar ridge — exact Intl match)
+//       253985003 → 27299009  (maxillary hypoplasia + cleft → congenital maxillary hypoplasia)
+//   - 254020001 kept (unicoronal craniosynostosis — International, display corrected)
+//
+// 0 broken procedure suggestion cross-references (53 unique procedurePicklistIds)
+// Migration entries added to snomedCodeMigration.ts for all 4 changed codes
+// ═══════════════════════════════════════════════════════════════════════════════

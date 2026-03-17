@@ -4,6 +4,8 @@ import {
   getOutcomeSectionVisibility,
   getEdgeCaseNote,
 } from "../craniofacialConfig";
+import { CLEFT_CRANIO_DIAGNOSES } from "../diagnosisPicklists/cleftCranioDiagnoses";
+import { PROCEDURE_PICKLIST } from "../procedurePicklist";
 import type {
   CraniofacialAssessmentData,
   CraniofacialSubcategory,
@@ -342,5 +344,61 @@ describe("getEdgeCaseNote", () => {
   it("returns null for undefined diagnosisId", () => {
     const result = getEdgeCaseNote(undefined, []);
     expect(result).toBeNull();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Cross-reference validation (SNOMED audit)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe("craniofacial data integrity", () => {
+  const procedureIds = new Set(PROCEDURE_PICKLIST.map((p) => p.id));
+
+  it("all suggestedProcedures reference existing procedure picklist entries", () => {
+    const broken: string[] = [];
+    for (const dx of CLEFT_CRANIO_DIAGNOSES) {
+      for (const sp of dx.suggestedProcedures ?? []) {
+        if (!procedureIds.has(sp.procedurePicklistId)) {
+          broken.push(
+            `${dx.id} → ${sp.procedurePicklistId}`,
+          );
+        }
+      }
+    }
+    expect(broken).toEqual([]);
+  });
+
+  it("all diagnoses have non-empty SNOMED CT codes", () => {
+    const missing = CLEFT_CRANIO_DIAGNOSES.filter(
+      (dx) => !dx.snomedCtCode || dx.snomedCtCode.trim() === "",
+    ).map((dx) => dx.id);
+    expect(missing).toEqual([]);
+  });
+
+  it("all diagnoses have non-empty SNOMED CT display names", () => {
+    const missing = CLEFT_CRANIO_DIAGNOSES.filter(
+      (dx) => !dx.snomedCtDisplay || dx.snomedCtDisplay.trim() === "",
+    ).map((dx) => dx.id);
+    expect(missing).toEqual([]);
+  });
+
+  it("no duplicate diagnosis IDs", () => {
+    const ids = CLEFT_CRANIO_DIAGNOSES.map((dx) => dx.id);
+    const duplicates = ids.filter((id, i) => ids.indexOf(id) !== i);
+    expect(duplicates).toEqual([]);
+  });
+
+  it("all cc_* procedures have non-empty SNOMED CT codes (except NAM)", () => {
+    // cc_presurgical_nam is a non-surgical orthotic — no SNOMED procedure code exists
+    const KNOWN_NO_CODE = new Set(["cc_presurgical_nam"]);
+    const ccProcs = PROCEDURE_PICKLIST.filter((p) => p.id.startsWith("cc_"));
+    const missing = ccProcs
+      .filter(
+        (p) =>
+          !KNOWN_NO_CODE.has(p.id) &&
+          (!p.snomedCtCode || p.snomedCtCode.trim() === ""),
+      )
+      .map((p) => p.id);
+    expect(missing).toEqual([]);
   });
 });
