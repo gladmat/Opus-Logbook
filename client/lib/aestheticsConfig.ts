@@ -42,24 +42,30 @@ export function getInterventionType(
   if (
     procedurePicklistId.includes("_inj_") ||
     procedurePicklistId.includes("_botox_") ||
-    procedurePicklistId.includes("_filler_")
+    procedurePicklistId.includes("_filler_") ||
+    procedurePicklistId.includes("_biostim_") ||
+    procedurePicklistId.includes("_prp")
   ) {
     return "non_surgical_injectable";
   }
   if (
     procedurePicklistId.includes("_laser_") ||
     procedurePicklistId.includes("_rf_") ||
-    procedurePicklistId.includes("_hifu_") ||
-    procedurePicklistId.includes("_ipl_") ||
-    procedurePicklistId.includes("_cryo_") ||
-    procedurePicklistId.includes("_plasma_")
+    procedurePicklistId.includes("_hifu") ||
+    procedurePicklistId.includes("_ipl") ||
+    procedurePicklistId.includes("_cryo") ||
+    procedurePicklistId.includes("_plasma") ||
+    procedurePicklistId.includes("_emsculpt") ||
+    procedurePicklistId.includes("_led")
   ) {
     return "non_surgical_energy";
   }
   if (
     procedurePicklistId.includes("_peel_") ||
-    procedurePicklistId.includes("_microneedling_") ||
-    procedurePicklistId.includes("_thread_")
+    procedurePicklistId.includes("_microneedling") ||
+    procedurePicklistId.includes("_thread_") ||
+    procedurePicklistId.startsWith("aes_thread_") ||
+    procedurePicklistId.includes("_dermabrasion")
   ) {
     return "non_surgical_skin_treatment";
   }

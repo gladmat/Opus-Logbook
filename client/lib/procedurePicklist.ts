@@ -5278,14 +5278,14 @@ const BURNS_SCAR_TREATMENT: ProcedurePicklistEntry[] = [
 //   gynaecomastia
 // ═══════════════════════════════════════════════════════════════════════════
 
-const AESTHETICS_FACELIFT: ProcedurePicklistEntry[] = [
+const AESTHETICS_FACE_NECK_LIFT: ProcedurePicklistEntry[] = [
   {
     id: "aes_face_smas_facelift",
     displayName: "SMAS facelift (rhytidectomy)",
     snomedCtCode: "54516008",
     snomedCtDisplay: "Rhytidectomy (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Facial Rejuvenation",
+    subcategory: "Face & Neck Lift",
     tags: ["elective"],
     sortOrder: 1,
   },
@@ -5295,7 +5295,7 @@ const AESTHETICS_FACELIFT: ProcedurePicklistEntry[] = [
     snomedCtCode: "54516008",
     snomedCtDisplay: "Rhytidectomy (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Facial Rejuvenation",
+    subcategory: "Face & Neck Lift",
     tags: ["elective"],
     sortOrder: 2,
   },
@@ -5305,7 +5305,7 @@ const AESTHETICS_FACELIFT: ProcedurePicklistEntry[] = [
     snomedCtCode: "54516008",
     snomedCtDisplay: "Rhytidectomy (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Facial Rejuvenation",
+    subcategory: "Face & Neck Lift",
     tags: ["elective"],
     sortOrder: 3,
   },
@@ -5315,19 +5315,32 @@ const AESTHETICS_FACELIFT: ProcedurePicklistEntry[] = [
     snomedCtCode: "54516008", // VERIFY
     snomedCtDisplay: "Platysmaplasty (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Facial Rejuvenation",
+    subcategory: "Face & Neck Lift",
     tags: ["elective"],
     sortOrder: 4,
   },
+  {
+    id: "aes_facelift_submentoplasty",
+    displayName: "Submentoplasty (isolated)",
+    snomedCtCode: "54516008", // VERIFY
+    snomedCtDisplay: "Rhytidectomy (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Face & Neck Lift",
+    tags: ["elective"],
+    sortOrder: 5,
+  },
+];
+
+const AESTHETICS_BLEPHAROPLASTY: ProcedurePicklistEntry[] = [
   {
     id: "aes_face_upper_bleph",
     displayName: "Upper blepharoplasty",
     snomedCtCode: "75732000",
     snomedCtDisplay: "Blepharoplasty of upper eyelid (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Facial Rejuvenation",
+    subcategory: "Blepharoplasty",
     tags: ["elective"],
-    sortOrder: 5,
+    sortOrder: 1,
   },
   {
     id: "aes_face_lower_bleph",
@@ -5335,19 +5348,42 @@ const AESTHETICS_FACELIFT: ProcedurePicklistEntry[] = [
     snomedCtCode: "23420007",
     snomedCtDisplay: "Blepharoplasty of lower eyelid (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Facial Rejuvenation",
+    subcategory: "Blepharoplasty",
     tags: ["elective"],
-    sortOrder: 6,
+    sortOrder: 2,
   },
+  {
+    id: "aes_bleph_asian",
+    displayName: "Asian blepharoplasty (double eyelid)",
+    snomedCtCode: "75732000", // VERIFY
+    snomedCtDisplay: "Blepharoplasty (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Blepharoplasty",
+    tags: ["elective"],
+    sortOrder: 3,
+  },
+  {
+    id: "aes_bleph_lower_canthoplasty",
+    displayName: "Lower lid canthoplasty",
+    snomedCtCode: "23420007", // VERIFY
+    snomedCtDisplay: "Canthoplasty (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Blepharoplasty",
+    tags: ["elective"],
+    sortOrder: 4,
+  },
+];
+
+const AESTHETICS_BROW_FOREHEAD: ProcedurePicklistEntry[] = [
   {
     id: "aes_face_brow_lift_endoscopic",
     displayName: "Brow lift — endoscopic",
     snomedCtCode: "239124000", // VERIFY
     snomedCtDisplay: "Endoscopic brow lift (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Facial Rejuvenation",
+    subcategory: "Brow & Forehead",
     tags: ["elective"],
-    sortOrder: 7,
+    sortOrder: 1,
   },
   {
     id: "aes_face_brow_lift_open",
@@ -5355,39 +5391,45 @@ const AESTHETICS_FACELIFT: ProcedurePicklistEntry[] = [
     snomedCtCode: "239124000", // VERIFY
     snomedCtDisplay: "Open brow lift (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Facial Rejuvenation",
+    subcategory: "Brow & Forehead",
     tags: ["elective"],
-    sortOrder: 8,
+    sortOrder: 2,
   },
-  {
-    id: "aes_face_fat_transfer",
-    displayName: "Facial fat transfer / lipofilling",
-    snomedCtCode: "37834008", // VERIFY
-    snomedCtDisplay: "Lipofilling of face (procedure)",
-    specialties: ["aesthetics"],
-    subcategory: "Facial Rejuvenation",
-    tags: ["elective"],
-    sortOrder: 9,
-  },
-  {
-    id: "aes_face_thread_lift",
-    displayName: "Thread lift",
-    snomedCtCode: "286553006",
-    snomedCtDisplay: "Plastic operation on face (procedure)",
-    specialties: ["aesthetics"],
-    subcategory: "Facial Rejuvenation",
-    tags: ["elective"],
-    sortOrder: 10,
-  },
+];
+
+const AESTHETICS_LIP: ProcedurePicklistEntry[] = [
   {
     id: "aes_lip_lift",
     displayName: "Lip lift (subnasal bullhorn)",
     snomedCtCode: "286553006", // VERIFY
     snomedCtDisplay: "Plastic operation on face (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Facial Rejuvenation",
+    subcategory: "Lip Procedures",
     tags: ["elective"],
-    sortOrder: 11,
+    sortOrder: 1,
+  },
+  {
+    id: "aes_lip_reduction",
+    displayName: "Lip reduction",
+    snomedCtCode: "282089006", // VERIFY
+    snomedCtDisplay: "Plastic repair of lip (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Lip Procedures",
+    tags: ["elective"],
+    sortOrder: 2,
+  },
+];
+
+const AESTHETICS_FACIAL_OTHER: ProcedurePicklistEntry[] = [
+  {
+    id: "aes_face_fat_transfer",
+    displayName: "Facial fat transfer / lipofilling",
+    snomedCtCode: "37834008", // VERIFY
+    snomedCtDisplay: "Lipofilling of face (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Facial Aesthetic",
+    tags: ["elective"],
+    sortOrder: 1,
   },
   {
     id: "aes_face_chin_implant",
@@ -5395,9 +5437,19 @@ const AESTHETICS_FACELIFT: ProcedurePicklistEntry[] = [
     snomedCtCode: "69031006", // VERIFY
     snomedCtDisplay: "Insertion of chin prosthesis (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Facial Rejuvenation",
+    subcategory: "Facial Aesthetic",
     tags: ["elective"],
-    sortOrder: 12,
+    sortOrder: 2,
+  },
+  {
+    id: "aes_face_perioral_dermabrasion",
+    displayName: "Perioral dermabrasion",
+    snomedCtCode: "37744006",
+    snomedCtDisplay: "Dermabrasion (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Facial Scar Revision",
+    tags: ["elective"],
+    sortOrder: 3,
   },
 ];
 
@@ -5486,7 +5538,7 @@ const AESTHETICS_INJECTABLES: ProcedurePicklistEntry[] = [
     snomedCtDisplay: "Injection of botulinum toxin (procedure)",
     specialties: ["aesthetics"],
     subcategory: "Injectables",
-    tags: ["elective"],
+    tags: ["non_surgical_injectable", "elective"],
     sortOrder: 1,
   },
   {
@@ -5497,7 +5549,7 @@ const AESTHETICS_INJECTABLES: ProcedurePicklistEntry[] = [
     snomedCtDisplay: "Injection of botulinum toxin (procedure)",
     specialties: ["aesthetics"],
     subcategory: "Injectables",
-    tags: ["elective"],
+    tags: ["non_surgical_injectable", "elective"],
     sortOrder: 2,
   },
   {
@@ -5507,8 +5559,28 @@ const AESTHETICS_INJECTABLES: ProcedurePicklistEntry[] = [
     snomedCtDisplay: "Injection of botulinum toxin (procedure)",
     specialties: ["aesthetics"],
     subcategory: "Injectables",
-    tags: ["elective"],
+    tags: ["non_surgical_injectable", "elective"],
     sortOrder: 3,
+  },
+  {
+    id: "aes_inj_botox_masseter",
+    displayName: "Botulinum toxin — masseter (jawline slimming)",
+    snomedCtCode: "442695005",
+    snomedCtDisplay: "Injection of botulinum toxin (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Injectables",
+    tags: ["non_surgical_injectable", "elective"],
+    sortOrder: 4,
+  },
+  {
+    id: "aes_inj_botox_platysma",
+    displayName: "Botulinum toxin — platysma (Nefertiti lift)",
+    snomedCtCode: "442695005",
+    snomedCtDisplay: "Injection of botulinum toxin (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Injectables",
+    tags: ["non_surgical_injectable", "elective"],
+    sortOrder: 5,
   },
   {
     id: "aes_inj_filler_midface",
@@ -5517,8 +5589,8 @@ const AESTHETICS_INJECTABLES: ProcedurePicklistEntry[] = [
     snomedCtDisplay: "Injection of dermal filler (procedure)",
     specialties: ["aesthetics"],
     subcategory: "Injectables",
-    tags: ["elective"],
-    sortOrder: 4,
+    tags: ["non_surgical_injectable", "elective"],
+    sortOrder: 6,
   },
   {
     id: "aes_inj_filler_lips",
@@ -5527,8 +5599,8 @@ const AESTHETICS_INJECTABLES: ProcedurePicklistEntry[] = [
     snomedCtDisplay: "Injection of dermal filler (procedure)",
     specialties: ["aesthetics"],
     subcategory: "Injectables",
-    tags: ["elective"],
-    sortOrder: 5,
+    tags: ["non_surgical_injectable", "elective"],
+    sortOrder: 7,
   },
   {
     id: "aes_inj_filler_nasolabial",
@@ -5537,8 +5609,8 @@ const AESTHETICS_INJECTABLES: ProcedurePicklistEntry[] = [
     snomedCtDisplay: "Injection of dermal filler (procedure)",
     specialties: ["aesthetics"],
     subcategory: "Injectables",
-    tags: ["elective"],
-    sortOrder: 6,
+    tags: ["non_surgical_injectable", "elective"],
+    sortOrder: 8,
   },
   {
     id: "aes_inj_filler_jawline_chin",
@@ -5547,8 +5619,8 @@ const AESTHETICS_INJECTABLES: ProcedurePicklistEntry[] = [
     snomedCtDisplay: "Injection of dermal filler (procedure)",
     specialties: ["aesthetics"],
     subcategory: "Injectables",
-    tags: ["elective"],
-    sortOrder: 7,
+    tags: ["non_surgical_injectable", "elective"],
+    sortOrder: 9,
   },
   {
     id: "aes_inj_filler_tear_trough",
@@ -5557,8 +5629,18 @@ const AESTHETICS_INJECTABLES: ProcedurePicklistEntry[] = [
     snomedCtDisplay: "Injection of dermal filler (procedure)",
     specialties: ["aesthetics"],
     subcategory: "Injectables",
-    tags: ["elective"],
-    sortOrder: 8,
+    tags: ["non_surgical_injectable", "elective"],
+    sortOrder: 10,
+  },
+  {
+    id: "aes_inj_filler_nose",
+    displayName: "Dermal filler — non-surgical rhinoplasty",
+    snomedCtCode: "787876008", // VERIFY
+    snomedCtDisplay: "Injection of dermal filler (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Injectables",
+    tags: ["non_surgical_injectable", "elective"],
+    sortOrder: 11,
   },
   {
     id: "aes_inj_filler_temples",
@@ -5567,8 +5649,8 @@ const AESTHETICS_INJECTABLES: ProcedurePicklistEntry[] = [
     snomedCtDisplay: "Injection of dermal filler (procedure)",
     specialties: ["aesthetics"],
     subcategory: "Injectables",
-    tags: ["elective"],
-    sortOrder: 9,
+    tags: ["non_surgical_injectable", "elective"],
+    sortOrder: 12,
   },
   {
     id: "aes_inj_filler_hands",
@@ -5577,8 +5659,18 @@ const AESTHETICS_INJECTABLES: ProcedurePicklistEntry[] = [
     snomedCtDisplay: "Injection of dermal filler (procedure)",
     specialties: ["aesthetics"],
     subcategory: "Injectables",
-    tags: ["elective"],
-    sortOrder: 10,
+    tags: ["non_surgical_injectable", "elective"],
+    sortOrder: 13,
+  },
+  {
+    id: "aes_inj_filler_other",
+    displayName: "Dermal filler — other site",
+    snomedCtCode: "787876008", // VERIFY
+    snomedCtDisplay: "Injection of dermal filler (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Injectables",
+    tags: ["non_surgical_injectable", "elective"],
+    sortOrder: 14,
   },
   {
     id: "aes_inj_filler_dissolve",
@@ -5587,30 +5679,60 @@ const AESTHETICS_INJECTABLES: ProcedurePicklistEntry[] = [
     snomedCtDisplay: "Injection of hyaluronidase (procedure)",
     specialties: ["aesthetics"],
     subcategory: "Injectables",
-    tags: ["elective", "revision"],
-    sortOrder: 11,
+    tags: ["non_surgical_injectable", "elective", "revision"],
+    sortOrder: 15,
+  },
+  {
+    id: "aes_inj_biostim_sculptra",
+    displayName: "Biostimulator — Sculptra (PLLA) session",
+    snomedCtCode: "271807003", // VERIFY
+    snomedCtDisplay: "Injection into subcutaneous tissue (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Injectables",
+    tags: ["non_surgical_injectable", "elective"],
+    sortOrder: 16,
+  },
+  {
+    id: "aes_inj_biostim_radiesse_dilute",
+    displayName: "Biostimulator — hyperdilute Radiesse (CaHA)",
+    snomedCtCode: "271807003", // VERIFY
+    snomedCtDisplay: "Injection into subcutaneous tissue (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Injectables",
+    tags: ["non_surgical_injectable", "elective"],
+    sortOrder: 17,
+  },
+  {
+    id: "aes_inj_biostim_profhilo",
+    displayName: "Biostimulator — Profhilo / skin booster",
+    snomedCtCode: "271807003", // VERIFY
+    snomedCtDisplay: "Injection into subcutaneous tissue (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Injectables",
+    tags: ["non_surgical_injectable", "elective"],
+    sortOrder: 18,
   },
   {
     id: "aes_inj_prp",
-    displayName: "PRP injection — face / scalp",
+    displayName: "PRP / PRF injection — face / scalp",
     snomedCtCode: "13413003", // VERIFY
     snomedCtDisplay: "Platelet-rich plasma injection (procedure)",
     specialties: ["aesthetics"],
     subcategory: "Injectables",
-    tags: ["elective"],
-    sortOrder: 12,
+    tags: ["non_surgical_injectable", "elective"],
+    sortOrder: 19,
   },
 ];
 
-const AESTHETICS_SKIN_RESURFACING: ProcedurePicklistEntry[] = [
+const AESTHETICS_SKIN_TREATMENTS: ProcedurePicklistEntry[] = [
   {
     id: "aes_skin_chemical_peel_superficial",
     displayName: "Chemical peel — superficial (glycolic / salicylic)",
     snomedCtCode: "31956003", // VERIFY
     snomedCtDisplay: "Chemical peel of skin (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Skin Resurfacing",
-    tags: ["elective"],
+    subcategory: "Skin Treatments",
+    tags: ["non_surgical_skin_treatment", "elective"],
     sortOrder: 1,
   },
   {
@@ -5619,8 +5741,8 @@ const AESTHETICS_SKIN_RESURFACING: ProcedurePicklistEntry[] = [
     snomedCtCode: "31956003", // VERIFY
     snomedCtDisplay: "Chemical peel of skin (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Skin Resurfacing",
-    tags: ["elective"],
+    subcategory: "Skin Treatments",
+    tags: ["non_surgical_skin_treatment", "elective"],
     sortOrder: 2,
   },
   {
@@ -5629,59 +5751,9 @@ const AESTHETICS_SKIN_RESURFACING: ProcedurePicklistEntry[] = [
     snomedCtCode: "31956003", // VERIFY
     snomedCtDisplay: "Chemical peel of skin (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Skin Resurfacing",
-    tags: ["elective"],
+    subcategory: "Skin Treatments",
+    tags: ["non_surgical_skin_treatment", "elective"],
     sortOrder: 3,
-  },
-  {
-    id: "aes_skin_laser_ablative",
-    displayName: "Laser resurfacing — ablative (CO₂ / Er:YAG)",
-    snomedCtCode: "122456005", // VERIFY
-    snomedCtDisplay: "Ablative laser resurfacing (procedure)",
-    specialties: ["aesthetics"],
-    subcategory: "Skin Resurfacing",
-    tags: ["elective"],
-    sortOrder: 4,
-  },
-  {
-    id: "aes_skin_laser_fractional",
-    displayName: "Laser resurfacing — fractional (non-ablative / ablative)",
-    snomedCtCode: "122456005", // VERIFY
-    snomedCtDisplay: "Fractional laser resurfacing (procedure)",
-    specialties: ["aesthetics"],
-    subcategory: "Skin Resurfacing",
-    tags: ["elective"],
-    sortOrder: 5,
-  },
-  {
-    id: "aes_skin_laser_ipl",
-    displayName: "IPL (intense pulsed light) treatment",
-    snomedCtCode: "122456005", // VERIFY
-    snomedCtDisplay: "Intense pulsed light therapy (procedure)",
-    specialties: ["aesthetics"],
-    subcategory: "Skin Resurfacing",
-    tags: ["elective"],
-    sortOrder: 6,
-  },
-  {
-    id: "aes_skin_laser_vascular",
-    displayName: "Vascular laser (pulsed dye / Nd:YAG)",
-    snomedCtCode: "122456005", // VERIFY
-    snomedCtDisplay: "Vascular laser therapy (procedure)",
-    specialties: ["aesthetics"],
-    subcategory: "Skin Resurfacing",
-    tags: ["elective"],
-    sortOrder: 7,
-  },
-  {
-    id: "aes_skin_laser_pigment",
-    displayName: "Pigment laser (Q-switched / picosecond)",
-    snomedCtCode: "122456005", // VERIFY
-    snomedCtDisplay: "Pigment laser therapy (procedure)",
-    specialties: ["aesthetics"],
-    subcategory: "Skin Resurfacing",
-    tags: ["elective"],
-    sortOrder: 8,
   },
   {
     id: "aes_skin_microneedling",
@@ -5689,19 +5761,52 @@ const AESTHETICS_SKIN_RESURFACING: ProcedurePicklistEntry[] = [
     snomedCtCode: "122456005", // VERIFY
     snomedCtDisplay: "Microneedling (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Skin Resurfacing",
-    tags: ["elective"],
-    sortOrder: 9,
+    subcategory: "Skin Treatments",
+    tags: ["non_surgical_skin_treatment", "elective"],
+    sortOrder: 4,
   },
   {
     id: "aes_skin_dermabrasion",
-    displayName: "Dermabrasion",
+    displayName: "Dermabrasion / microdermabrasion",
     snomedCtCode: "37744006",
     snomedCtDisplay: "Dermabrasion (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Skin Resurfacing",
-    tags: ["elective"],
-    sortOrder: 10,
+    subcategory: "Skin Treatments",
+    tags: ["non_surgical_skin_treatment", "elective"],
+    sortOrder: 5,
+  },
+];
+
+const AESTHETICS_THREAD_LIFT: ProcedurePicklistEntry[] = [
+  {
+    id: "aes_face_thread_lift",
+    displayName: "Thread lift — face (PDO / PLLA / PCL)",
+    snomedCtCode: "286553006",
+    snomedCtDisplay: "Plastic operation on face (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Thread Lift",
+    tags: ["non_surgical_skin_treatment", "elective"],
+    sortOrder: 1,
+  },
+  {
+    id: "aes_thread_neck",
+    displayName: "Thread lift — neck",
+    snomedCtCode: "122456005", // VERIFY
+    snomedCtDisplay: "Thread lift procedure (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Thread Lift",
+    tags: ["non_surgical_skin_treatment", "elective"],
+    sortOrder: 2,
+  },
+  {
+    id: "aes_thread_body",
+    displayName: "Thread lift — body (abdomen / arms / thighs)",
+    snomedCtCode: "122456005", // VERIFY
+    snomedCtDisplay: "Thread lift procedure (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Thread Lift",
+    tags: ["non_surgical_skin_treatment", "elective"],
+    sortOrder: 3,
   },
 ];
 
@@ -5790,6 +5895,16 @@ const AESTHETICS_BODY: ProcedurePicklistEntry[] = [
     sortOrder: 4,
   },
   {
+    id: "aes_body_gynaecomastia_excision",
+    displayName: "Gynaecomastia excision ± liposuction",
+    snomedCtCode: "69031006", // VERIFY
+    snomedCtDisplay: "Excision of breast tissue (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Body Aesthetics",
+    tags: ["elective"],
+    sortOrder: 5,
+  },
+  {
     id: "aes_body_scar_revision",
     displayName: "Scar revision — body (excision / dermabrasion / laser)",
     snomedCtCode: "234140001",
@@ -5797,7 +5912,7 @@ const AESTHETICS_BODY: ProcedurePicklistEntry[] = [
     specialties: ["aesthetics", "general"],
     subcategory: "Body Aesthetics",
     tags: ["elective", "revision"],
-    sortOrder: 5,
+    sortOrder: 6,
   },
   {
     id: "aes_body_tattoo_removal",
@@ -5807,40 +5922,152 @@ const AESTHETICS_BODY: ProcedurePicklistEntry[] = [
     specialties: ["aesthetics"],
     subcategory: "Body Aesthetics",
     tags: ["elective"],
-    sortOrder: 6,
+    sortOrder: 7,
   },
 ];
 
 const AESTHETICS_ENERGY: ProcedurePicklistEntry[] = [
+  // Lasers (moved from Skin Resurfacing)
+  {
+    id: "aes_skin_laser_ablative",
+    displayName: "Laser resurfacing — ablative (CO₂ / Er:YAG)",
+    snomedCtCode: "122456005", // VERIFY
+    snomedCtDisplay: "Ablative laser resurfacing (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Energy-Based Devices",
+    tags: ["non_surgical_energy", "elective"],
+    sortOrder: 1,
+  },
+  {
+    id: "aes_skin_laser_fractional",
+    displayName: "Laser resurfacing — fractional non-ablative",
+    snomedCtCode: "122456005", // VERIFY
+    snomedCtDisplay: "Fractional laser resurfacing (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Energy-Based Devices",
+    tags: ["non_surgical_energy", "elective"],
+    sortOrder: 2,
+  },
+  {
+    id: "aes_energy_laser_hybrid",
+    displayName: "Laser resurfacing — hybrid fractional (HALO)",
+    snomedCtCode: "122456005", // VERIFY
+    snomedCtDisplay: "Hybrid fractional laser resurfacing (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Energy-Based Devices",
+    tags: ["non_surgical_energy", "elective"],
+    sortOrder: 3,
+  },
+  {
+    id: "aes_skin_laser_vascular",
+    displayName: "Vascular laser (PDL / KTP / Nd:YAG)",
+    snomedCtCode: "122456005", // VERIFY
+    snomedCtDisplay: "Vascular laser therapy (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Energy-Based Devices",
+    tags: ["non_surgical_energy", "elective"],
+    sortOrder: 4,
+  },
+  {
+    id: "aes_skin_laser_pigment",
+    displayName: "Pigment / tattoo laser (Q-switched / picosecond)",
+    snomedCtCode: "122456005", // VERIFY
+    snomedCtDisplay: "Pigment laser therapy (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Energy-Based Devices",
+    tags: ["non_surgical_energy", "elective"],
+    sortOrder: 5,
+  },
+  {
+    id: "aes_energy_laser_hair_removal",
+    displayName: "Laser hair removal",
+    snomedCtCode: "122456005", // VERIFY
+    snomedCtDisplay: "Laser hair removal (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Energy-Based Devices",
+    tags: ["non_surgical_energy", "elective"],
+    sortOrder: 6,
+  },
+  {
+    id: "aes_skin_laser_ipl",
+    displayName: "IPL / BBL (intense pulsed light)",
+    snomedCtCode: "122456005", // VERIFY
+    snomedCtDisplay: "Intense pulsed light therapy (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Energy-Based Devices",
+    tags: ["non_surgical_energy", "elective"],
+    sortOrder: 7,
+  },
+  // RF / Ultrasound / Other energy
   {
     id: "aes_energy_rf_microneedling",
-    displayName: "Radiofrequency microneedling",
+    displayName: "RF microneedling (Morpheus8 / Sylfirm / Genius / Potenza)",
     snomedCtCode: "441900009", // VERIFY
     snomedCtDisplay: "Radiofrequency procedure on skin (procedure)",
     specialties: ["aesthetics"],
     subcategory: "Energy-Based Devices",
-    tags: ["elective"],
-    sortOrder: 1,
-  },
-  {
-    id: "aes_energy_hifu",
-    displayName: "High-intensity focused ultrasound (HIFU)",
-    snomedCtCode: "441900009", // VERIFY
-    snomedCtDisplay: "High-intensity focused ultrasound of skin (procedure)",
-    specialties: ["aesthetics"],
-    subcategory: "Energy-Based Devices",
-    tags: ["elective"],
-    sortOrder: 2,
+    tags: ["non_surgical_energy", "elective"],
+    sortOrder: 8,
   },
   {
     id: "aes_energy_monopolar_rf",
-    displayName: "Monopolar radiofrequency skin tightening",
+    displayName: "Monopolar RF (Thermage FLX)",
     snomedCtCode: "441900009", // VERIFY
     snomedCtDisplay: "Radiofrequency skin tightening (procedure)",
     specialties: ["aesthetics"],
     subcategory: "Energy-Based Devices",
-    tags: ["elective"],
-    sortOrder: 3,
+    tags: ["non_surgical_energy", "elective"],
+    sortOrder: 9,
+  },
+  {
+    id: "aes_energy_hifu",
+    displayName: "HIFU / microfocused ultrasound (Ultherapy)",
+    snomedCtCode: "441900009", // VERIFY
+    snomedCtDisplay: "High-intensity focused ultrasound of skin (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Energy-Based Devices",
+    tags: ["non_surgical_energy", "elective"],
+    sortOrder: 10,
+  },
+  {
+    id: "aes_energy_cryolipolysis",
+    displayName: "Cryolipolysis (CoolSculpting)",
+    snomedCtCode: "122456005", // VERIFY
+    snomedCtDisplay: "Cryolipolysis (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Energy-Based Devices",
+    tags: ["non_surgical_energy", "elective"],
+    sortOrder: 11,
+  },
+  {
+    id: "aes_energy_plasma",
+    displayName: "Plasma device (Neogen / Renuvion)",
+    snomedCtCode: "122456005", // VERIFY
+    snomedCtDisplay: "Plasma device procedure (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Energy-Based Devices",
+    tags: ["non_surgical_energy", "elective"],
+    sortOrder: 12,
+  },
+  {
+    id: "aes_energy_emsculpt",
+    displayName: "HIFEM body contouring (Emsculpt NEO)",
+    snomedCtCode: "122456005", // VERIFY
+    snomedCtDisplay: "High-intensity electromagnetic therapy (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Energy-Based Devices",
+    tags: ["non_surgical_energy", "elective"],
+    sortOrder: 13,
+  },
+  {
+    id: "aes_energy_led",
+    displayName: "LED phototherapy",
+    snomedCtCode: "122456005", // VERIFY
+    snomedCtDisplay: "LED phototherapy (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Energy-Based Devices",
+    tags: ["non_surgical_energy", "elective"],
+    sortOrder: 14,
   },
 ];
 
@@ -5851,7 +6078,7 @@ const AESTHETICS_GENITAL: ProcedurePicklistEntry[] = [
     snomedCtCode: "176275007", // VERIFY
     snomedCtDisplay: "Reduction of clitoral hood (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Genital Aesthetics",
+    subcategory: "Genital / Intimate",
     tags: ["elective"],
     sortOrder: 1,
   },
@@ -5861,7 +6088,7 @@ const AESTHETICS_GENITAL: ProcedurePicklistEntry[] = [
     snomedCtCode: "176275007", // VERIFY
     snomedCtDisplay: "Aesthetic vaginoplasty (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Genital Aesthetics",
+    subcategory: "Genital / Intimate",
     tags: ["elective"],
     sortOrder: 2,
   },
@@ -5871,7 +6098,7 @@ const AESTHETICS_GENITAL: ProcedurePicklistEntry[] = [
     snomedCtCode: "286553006", // VERIFY
     snomedCtDisplay: "Monsplasty (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Genital Aesthetics",
+    subcategory: "Genital / Intimate",
     tags: ["elective"],
     sortOrder: 3,
   },
@@ -5881,7 +6108,7 @@ const AESTHETICS_GENITAL: ProcedurePicklistEntry[] = [
     snomedCtCode: "286553006", // VERIFY
     snomedCtDisplay: "Plastic operation on penis (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Genital Aesthetics",
+    subcategory: "Genital / Intimate",
     tags: ["elective"],
     sortOrder: 4,
   },
@@ -5973,6 +6200,16 @@ const BODY_CONTOUR_ABDOMINOPLASTY: ProcedurePicklistEntry[] = [
     tags: ["elective"],
     sortOrder: 8,
   },
+  {
+    id: "aes_body_high_tension_abdominoplasty",
+    displayName: "High-tension abdominoplasty",
+    snomedCtCode: "72310004", // VERIFY
+    snomedCtDisplay: "Abdominoplasty (procedure)",
+    specialties: ["aesthetics"],
+    subcategory: "Abdominoplasty",
+    tags: ["elective"],
+    sortOrder: 9,
+  },
 ];
 
 const BODY_CONTOUR_UPPER: ProcedurePicklistEntry[] = [
@@ -5982,7 +6219,7 @@ const BODY_CONTOUR_UPPER: ProcedurePicklistEntry[] = [
     snomedCtCode: "119954001",
     snomedCtDisplay: "Brachioplasty (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Upper Body Contouring",
+    subcategory: "Brachioplasty",
     tags: ["elective"],
     sortOrder: 1,
   },
@@ -5992,7 +6229,7 @@ const BODY_CONTOUR_UPPER: ProcedurePicklistEntry[] = [
     snomedCtCode: "119954001", // VERIFY
     snomedCtDisplay: "Extended brachioplasty (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Upper Body Contouring",
+    subcategory: "Brachioplasty",
     tags: ["elective"],
     sortOrder: 2,
   },
@@ -6002,7 +6239,7 @@ const BODY_CONTOUR_UPPER: ProcedurePicklistEntry[] = [
     snomedCtCode: "119954001",
     snomedCtDisplay: "Brachioplasty (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Upper Body Contouring",
+    subcategory: "Other Body",
     tags: ["elective"],
     sortOrder: 3,
   },
@@ -6012,7 +6249,7 @@ const BODY_CONTOUR_UPPER: ProcedurePicklistEntry[] = [
     snomedCtCode: "119954001",
     snomedCtDisplay: "Brachioplasty (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Upper Body Contouring",
+    subcategory: "Other Body",
     tags: ["elective"],
     sortOrder: 4,
   },
@@ -6025,7 +6262,7 @@ const BODY_CONTOUR_LOWER: ProcedurePicklistEntry[] = [
     snomedCtCode: "392022003", // VERIFY
     snomedCtDisplay: "Thigh lift (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Lower Body Contouring",
+    subcategory: "Thighplasty",
     tags: ["elective"],
     sortOrder: 1,
   },
@@ -6035,7 +6272,7 @@ const BODY_CONTOUR_LOWER: ProcedurePicklistEntry[] = [
     snomedCtCode: "392022003", // VERIFY
     snomedCtDisplay: "Thigh lift (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Lower Body Contouring",
+    subcategory: "Thighplasty",
     tags: ["elective"],
     sortOrder: 2,
   },
@@ -6045,7 +6282,7 @@ const BODY_CONTOUR_LOWER: ProcedurePicklistEntry[] = [
     snomedCtCode: "72310004",
     snomedCtDisplay: "Abdominoplasty (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Lower Body Contouring",
+    subcategory: "Body Lift",
     tags: ["elective"],
     sortOrder: 3,
   },
@@ -6055,7 +6292,7 @@ const BODY_CONTOUR_LOWER: ProcedurePicklistEntry[] = [
     snomedCtCode: "72310004",
     snomedCtDisplay: "Abdominoplasty (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Lower Body Contouring",
+    subcategory: "Body Lift",
     tags: ["elective"],
     sortOrder: 4,
   },
@@ -6065,7 +6302,7 @@ const BODY_CONTOUR_LOWER: ProcedurePicklistEntry[] = [
     snomedCtCode: "286553006",
     snomedCtDisplay: "Plastic operation (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Lower Body Contouring",
+    subcategory: "Body Lift",
     tags: ["elective"],
     sortOrder: 5,
   },
@@ -6111,7 +6348,7 @@ const BODY_CONTOUR_POST_BARIATRIC: ProcedurePicklistEntry[] = [
     snomedCtCode: "72310004", // VERIFY
     snomedCtDisplay: "Post-bariatric body contouring (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Post-Bariatric",
+    subcategory: "Post-Bariatric Contouring",
     tags: ["elective"],
     sortOrder: 1,
   },
@@ -6121,7 +6358,7 @@ const BODY_CONTOUR_POST_BARIATRIC: ProcedurePicklistEntry[] = [
     snomedCtCode: "286553006",
     snomedCtDisplay: "Plastic operation (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Post-Bariatric",
+    subcategory: "Post-Bariatric Contouring",
     tags: ["elective"],
     sortOrder: 2,
   },
@@ -6131,7 +6368,7 @@ const BODY_CONTOUR_POST_BARIATRIC: ProcedurePicklistEntry[] = [
     snomedCtCode: "35646002", // VERIFY
     snomedCtDisplay: "Excision of redundant skin (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Post-Bariatric",
+    subcategory: "Post-Bariatric Contouring",
     tags: ["elective"],
     sortOrder: 3,
   },
@@ -6144,7 +6381,7 @@ const BODY_CONTOUR_OTHER: ProcedurePicklistEntry[] = [
     snomedCtCode: "69031006", // VERIFY
     snomedCtDisplay: "Insertion of calf prosthesis (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Other Body Contouring",
+    subcategory: "Other Body",
     tags: ["elective"],
     sortOrder: 1,
   },
@@ -6154,7 +6391,7 @@ const BODY_CONTOUR_OTHER: ProcedurePicklistEntry[] = [
     snomedCtCode: "69031006", // VERIFY
     snomedCtDisplay: "Insertion of pectoral prosthesis (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Other Body Contouring",
+    subcategory: "Other Body",
     tags: ["elective"],
     sortOrder: 2,
   },
@@ -6164,7 +6401,7 @@ const BODY_CONTOUR_OTHER: ProcedurePicklistEntry[] = [
     snomedCtCode: "234140001",
     snomedCtDisplay: "Revision of scar (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Other Body Contouring",
+    subcategory: "Other Body",
     tags: ["revision", "elective"],
     sortOrder: 3,
   },
@@ -6174,7 +6411,7 @@ const BODY_CONTOUR_OTHER: ProcedurePicklistEntry[] = [
     snomedCtCode: "234140001", // VERIFY
     snomedCtDisplay: "Revision of skin excess (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Other Body Contouring",
+    subcategory: "Other Body",
     tags: ["revision", "elective"],
     sortOrder: 4,
   },
@@ -6184,7 +6421,7 @@ const BODY_CONTOUR_OTHER: ProcedurePicklistEntry[] = [
     snomedCtCode: "69794004",
     snomedCtDisplay: "Aspiration procedure (procedure)",
     specialties: ["aesthetics"],
-    subcategory: "Other Body Contouring",
+    subcategory: "Other Body",
     tags: ["revision"],
     sortOrder: 5,
   },
@@ -6760,12 +6997,17 @@ export const PROCEDURE_PICKLIST: ProcedurePicklistEntry[] = [
   ...BURNS_RECONSTRUCTION,
   ...BURNS_SITE_SPECIFIC,
   ...BURNS_SCAR_TREATMENT,
-  // Aesthetics
-  ...AESTHETICS_FACELIFT,
+  // Aesthetics — Facial
+  ...AESTHETICS_FACE_NECK_LIFT,
+  ...AESTHETICS_BLEPHAROPLASTY,
+  ...AESTHETICS_BROW_FOREHEAD,
+  ...AESTHETICS_LIP,
+  ...AESTHETICS_FACIAL_OTHER,
   ...AESTHETICS_RHINOPLASTY,
   ...AESTHETICS_OTOPLASTY,
   ...AESTHETICS_INJECTABLES,
-  ...AESTHETICS_SKIN_RESURFACING,
+  ...AESTHETICS_SKIN_TREATMENTS,
+  ...AESTHETICS_THREAD_LIFT,
   ...AESTHETICS_HAIR,
   ...AESTHETICS_BODY,
   ...AESTHETICS_ENERGY,

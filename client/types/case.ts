@@ -255,7 +255,10 @@ export type ProcedureTag =
   | "donor_site"
   | "tissue_expansion"
   | "concurrent"
-  | "presurgical";
+  | "presurgical"
+  | "non_surgical_injectable"
+  | "non_surgical_energy"
+  | "non_surgical_skin_treatment";
 
 export type ASAScore = 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -2250,6 +2253,9 @@ export const PROCEDURE_TAG_LABELS: Record<ProcedureTag, string> = {
   tissue_expansion: "Tissue Expansion",
   concurrent: "Concurrent",
   presurgical: "Presurgical",
+  non_surgical_injectable: "Non-Surgical Injectable",
+  non_surgical_energy: "Non-Surgical Energy",
+  non_surgical_skin_treatment: "Non-Surgical Skin Treatment",
 };
 
 // RACS MALT Supervision Level Labels
