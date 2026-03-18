@@ -10,7 +10,7 @@
  *
  * SNOMED CT codes are from the Clinical Finding hierarchy (<<404684003).
  * Procedure suggestion IDs reference ProcedurePicklistEntry.id values.
- * Codes marked // VERIFY need validation against Ontoserver.
+ * All codes validated against CSIRO Ontoserver (2026-03-19).
  */
 
 import type { DiagnosisPicklistEntry } from "@/types/diagnosis";
@@ -602,8 +602,8 @@ const BURNS_DX_ACUTE_EXPANDED: DiagnosisPicklistEntry[] = [
     id: "burns_dx_radiation",
     displayName: "Radiation burn",
     shortName: "Radiation burn",
-    snomedCtCode: "62404004", // VERIFY — may need radiation-specific code
-    snomedCtDisplay: "Burn injury (disorder)",
+    snomedCtCode: "425656005",
+    snomedCtDisplay: "Burn caused by radiation (disorder)",
     specialty: "burns",
     subcategory: "Acute Other",
     clinicalGroup: "trauma",
@@ -630,7 +630,7 @@ const BURNS_DX_ACUTE_EXPANDED: DiagnosisPicklistEntry[] = [
     id: "burns_dx_cold_frostbite",
     displayName: "Cold injury / frostbite",
     shortName: "Frostbite",
-    snomedCtCode: "370977006", // VERIFY
+    snomedCtCode: "370977006",
     snomedCtDisplay: "Frostbite (disorder)",
     specialty: "burns",
     subcategory: "Acute Other",
@@ -644,8 +644,8 @@ const BURNS_DX_ACUTE_EXPANDED: DiagnosisPicklistEntry[] = [
     id: "burns_dx_inhalation",
     displayName: "Inhalation injury",
     shortName: "Inhalation injury",
-    snomedCtCode: "426284001", // VERIFY — may need specific inhalation code
-    snomedCtDisplay: "Inhalation burn (disorder)",
+    snomedCtCode: "423234004",
+    snomedCtDisplay: "Inhalation injury (disorder)",
     specialty: "burns",
     subcategory: "Acute Other",
     clinicalGroup: "trauma",
@@ -943,8 +943,8 @@ const BURNS_DX_RECON_EXPANDED: DiagnosisPicklistEntry[] = [
     id: "burns_dx_ectropion_burn",
     displayName: "Burn ectropion (eyelid)",
     shortName: "Burn ectropion",
-    snomedCtCode: "262562005", // VERIFY — may need ectropion-specific code
-    snomedCtDisplay: "Post-burn ectropion (disorder)",
+    snomedCtCode: "28914006",
+    snomedCtDisplay: "Cicatricial ectropion (disorder)",
     specialty: "burns",
     subcategory: "Burn Contractures",
     clinicalGroup: "reconstructive",
@@ -970,8 +970,8 @@ const BURNS_DX_RECON_EXPANDED: DiagnosisPicklistEntry[] = [
     id: "burns_dx_microstomia",
     displayName: "Burn microstomia",
     shortName: "Microstomia",
-    snomedCtCode: "262562005", // VERIFY
-    snomedCtDisplay: "Post-burn microstomia (disorder)",
+    snomedCtCode: "14582003",
+    snomedCtDisplay: "Microstomia (disorder)",
     specialty: "burns",
     subcategory: "Burn Contractures",
     clinicalGroup: "reconstructive",
@@ -996,8 +996,8 @@ const BURNS_DX_RECON_EXPANDED: DiagnosisPicklistEntry[] = [
     id: "burns_dx_nasal_contracture",
     displayName: "Burn nasal contracture / stenosis",
     shortName: "Nasal contracture",
-    snomedCtCode: "262562005", // VERIFY
-    snomedCtDisplay: "Post-burn nasal contracture (disorder)",
+    snomedCtCode: "408294007",
+    snomedCtDisplay: "Burn contracture of skin (disorder)",
     specialty: "burns",
     subcategory: "Burn Contractures",
     clinicalGroup: "reconstructive",
@@ -1017,8 +1017,8 @@ const BURNS_DX_RECON_EXPANDED: DiagnosisPicklistEntry[] = [
     id: "burns_dx_ear_contracture",
     displayName: "Burn ear deformity",
     shortName: "Ear deformity",
-    snomedCtCode: "262562005", // VERIFY
-    snomedCtDisplay: "Post-burn ear deformity (disorder)",
+    snomedCtCode: "408294007",
+    snomedCtDisplay: "Burn contracture of skin (disorder)",
     specialty: "burns",
     subcategory: "Burn Contractures",
     clinicalGroup: "reconstructive",
@@ -1122,8 +1122,8 @@ const BURNS_DX_SCAR: DiagnosisPicklistEntry[] = [
     id: "burns_dx_scar_unstable",
     displayName: "Unstable burn scar (Marjolin concern)",
     shortName: "Unstable scar",
-    snomedCtCode: "403191005", // VERIFY
-    snomedCtDisplay: "Unstable burn scar (disorder)",
+    snomedCtCode: "403193008",
+    snomedCtDisplay: "Burn scar (disorder)",
     specialty: "burns",
     subcategory: "Burn Scars",
     clinicalGroup: "reconstructive",
@@ -1148,7 +1148,7 @@ const BURNS_DX_SCAR: DiagnosisPicklistEntry[] = [
     id: "burns_dx_heterotopic_ossification",
     displayName: "Post-burn heterotopic ossification",
     shortName: "HO (burn)",
-    snomedCtCode: "203433007", // VERIFY
+    snomedCtCode: "128491006",
     snomedCtDisplay: "Heterotopic ossification (disorder)",
     specialty: "burns",
     subcategory: "Burn Scars",
@@ -1167,7 +1167,7 @@ const BURNS_DX_SCAR: DiagnosisPicklistEntry[] = [
     id: "burns_dx_neuropathic_pain",
     displayName: "Post-burn neuropathic pain",
     shortName: "Neuropathic pain",
-    snomedCtCode: "247398009", // VERIFY
+    snomedCtCode: "247398009",
     snomedCtDisplay: "Neuropathic pain (finding)",
     specialty: "burns",
     subcategory: "Burn Scars",
@@ -1259,8 +1259,8 @@ const BURNS_DX_NON_OPERATIVE: DiagnosisPicklistEntry[] = [
     id: "burns_dx_nonop_garment_fit",
     displayName: "Pressure garment fitting",
     shortName: "Garment fitting",
-    snomedCtCode: "403191005", // VERIFY
-    snomedCtDisplay: "Scar due to burn (disorder)",
+    snomedCtCode: "403193008",
+    snomedCtDisplay: "Burn scar (disorder)",
     specialty: "burns",
     subcategory: "Non-Operative Burns",
     clinicalGroup: "reconstructive",

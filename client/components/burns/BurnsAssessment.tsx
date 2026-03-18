@@ -39,6 +39,13 @@ import { TBSARegionalBreakdown } from "./TBSARegionalBreakdown";
 import { TBSABodyOutline } from "./TBSABodyOutline";
 import { BurnInjuryEventSection } from "./BurnInjuryEventSection";
 import { BurnSeverityBadges } from "./BurnSeverityBadges";
+import { ExcisionDetailsSection } from "./ExcisionDetailsSection";
+import { GraftDetailsSection } from "./GraftDetailsSection";
+import { DermalSubstituteSection } from "./DermalSubstituteSection";
+import { ContractureReleaseSection } from "./ContractureReleaseSection";
+import { LaserSection } from "./LaserSection";
+import { getBurnProcedureCategory } from "@/lib/burnsConfig";
+import type { BurnProcedureDetails } from "@/types/burns";
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -49,6 +56,11 @@ interface BurnsAssessmentProps {
   procedures?: CaseProcedure[];
   patientAge?: number;
   patientSex?: "male" | "female";
+  /** Callback to update burnProcedureDetails on a specific CaseProcedure */
+  onProcedureDetailsChange?: (
+    procedureId: string,
+    details: BurnProcedureDetails,
+  ) => void;
 }
 
 // ─── Phase chips ────────────────────────────────────────────────────────────
@@ -64,6 +76,7 @@ export const BurnsAssessment = React.memo(function BurnsAssessment({
   procedures,
   patientAge,
   patientSex,
+  onProcedureDetailsChange,
 }: BurnsAssessmentProps) {
   const { theme } = useTheme();
   const [showRegionalDetail, setShowRegionalDetail] = useState(
@@ -229,8 +242,81 @@ export const BurnsAssessment = React.memo(function BurnsAssessment({
         </SectionWrapper>
       ) : null}
 
-      {/* Reconstructive phase hint */}
-      {phase === "reconstructive" ? (
+      {/* Procedure-specific detail sections */}
+      {procedures && onProcedureDetailsChange
+        ? procedures.map((proc) => {
+            const category = proc.picklistEntryId
+              ? getBurnProcedureCategory(proc.picklistEntryId)
+              : null;
+            if (!category) return null;
+            const details = proc.burnProcedureDetails ?? {};
+            const updateDetails = (patch: BurnProcedureDetails) =>
+              onProcedureDetailsChange(proc.id, { ...details, ...patch });
+
+            switch (category) {
+              case "excision":
+                return (
+                  <ExcisionDetailsSection
+                    key={proc.id}
+                    value={details.excision ?? {}}
+                    onChange={(excision) => updateDetails({ excision })}
+                    tbsaData={assessment.tbsa}
+                    procedureName={proc.procedureName}
+                  />
+                );
+              case "grafting":
+                return (
+                  <GraftDetailsSection
+                    key={proc.id}
+                    value={details.grafting ?? {}}
+                    onChange={(grafting) => updateDetails({ grafting })}
+                    procedureId={proc.picklistEntryId}
+                    procedureName={proc.procedureName}
+                  />
+                );
+              case "dermalSubstitute":
+                return (
+                  <DermalSubstituteSection
+                    key={proc.id}
+                    value={details.dermalSubstitute ?? {}}
+                    onChange={(dermalSubstitute) =>
+                      updateDetails({ dermalSubstitute })
+                    }
+                    procedureName={proc.procedureName}
+                  />
+                );
+              case "contractureRelease":
+                return (
+                  <ContractureReleaseSection
+                    key={proc.id}
+                    value={details.contractureRelease ?? {}}
+                    onChange={(contractureRelease) =>
+                      updateDetails({ contractureRelease })
+                    }
+                    procedureName={proc.procedureName}
+                  />
+                );
+              case "laser":
+                return (
+                  <LaserSection
+                    key={proc.id}
+                    value={details.laser ?? {}}
+                    onChange={(laser) => updateDetails({ laser })}
+                    procedureName={proc.procedureName}
+                  />
+                );
+              default:
+                return null;
+            }
+          })
+        : null}
+
+      {/* Reconstructive phase hint — only when no procedure sections rendered */}
+      {phase === "reconstructive" &&
+      (!procedures ||
+        !procedures.some(
+          (p) => p.picklistEntryId && getBurnProcedureCategory(p.picklistEntryId),
+        )) ? (
         <View
           style={[
             styles.phaseHint,

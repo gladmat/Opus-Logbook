@@ -209,3 +209,125 @@ export function isBurnFreeFlap(procedureId: string): boolean {
     procedureId === "burns_recon_contracture_free_flap"
   );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PROCEDURE CATEGORY DISPATCHER
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export type BurnProcedureCategory =
+  | "excision"
+  | "grafting"
+  | "dermalSubstitute"
+  | "temporaryCoverage"
+  | "contractureRelease"
+  | "laser";
+
+/**
+ * Returns the burn-specific detail category for a procedure ID,
+ * or null if the procedure doesn't have burn-specific fields.
+ */
+export function getBurnProcedureCategory(
+  procedureId: string,
+): BurnProcedureCategory | null {
+  if (isBurnExcisionProcedure(procedureId)) return "excision";
+  if (isBurnGraftProcedure(procedureId)) return "grafting";
+  if (isBurnDermalSubstituteProcedure(procedureId)) return "dermalSubstitute";
+  if (isBurnTemporaryCoverageProcedure(procedureId)) return "temporaryCoverage";
+  if (isBurnContractureReleaseProcedure(procedureId)) return "contractureRelease";
+  if (isBurnLaserProcedure(procedureId)) return "laser";
+  return null;
+}
+
+/** Returns true if mesh ratio is relevant for this graft type */
+export function graftTypeShowsMeshRatio(
+  graftType?: string,
+): boolean {
+  return graftType === "stsg_meshed" || graftType === "meek";
+}
+
+/** Returns default interval to autograft (days) for a dermal substitute product */
+export function getDefaultIntervalDays(
+  product?: string,
+): number | undefined {
+  switch (product) {
+    case "integra_bilayer":
+      return 21;
+    case "btm_novosorb":
+      return 14;
+    case "matriderm":
+      return 0; // Simultaneous with graft
+    default:
+      return undefined;
+  }
+}
+
+/** Calculates ROM improvement in degrees */
+export function calculateROMImprovement(
+  preOp?: number,
+  postOp?: number,
+): number | undefined {
+  if (preOp == null || postOp == null) return undefined;
+  return postOp - preOp;
+}
+
+/** Returns severity colour key for ROM improvement */
+export function getROMImprovementSeverity(
+  improvement?: number,
+): "good" | "moderate" | "minimal" | undefined {
+  if (improvement == null) return undefined;
+  if (improvement >= 30) return "good";
+  if (improvement >= 10) return "moderate";
+  return "minimal";
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SCAR ASSESSMENT CALCULATORS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+import type { VancouverScarScale, POSASObserver } from "../types/burns";
+
+/** Calculates VSS total from partial data */
+export function calculateVSSTotal(vss: Partial<VancouverScarScale>): number {
+  return (
+    (vss.vascularity ?? 0) +
+    (vss.pigmentation ?? 0) +
+    (vss.pliability ?? 0) +
+    (vss.height ?? 0)
+  );
+}
+
+/** Returns severity label for VSS total */
+export function getVSSSeverity(
+  total: number,
+): "minimal" | "moderate" | "severe" {
+  if (total <= 4) return "minimal";
+  if (total <= 8) return "moderate";
+  return "severe";
+}
+
+/** Calculates POSAS total from partial data */
+export function calculatePOSASTotal(posas: Partial<POSASObserver>): number {
+  const keys: (keyof POSASObserver)[] = [
+    "vascularity",
+    "pigmentation",
+    "thickness",
+    "relief",
+    "pliability",
+    "surfaceArea",
+    "overallOpinion",
+  ];
+  return keys.reduce((sum, k) => sum + (posas[k] ?? 0), 0);
+}
+
+/** Infers graft type from procedure ID */
+export function inferGraftTypeFromProcedure(
+  procedureId: string,
+): string | undefined {
+  if (procedureId === "burns_graft_stsg_sheet") return "stsg_sheet";
+  if (procedureId === "burns_graft_stsg_meshed") return "stsg_meshed";
+  if (procedureId === "burns_graft_ftsg") return "ftsg";
+  if (procedureId === "burns_graft_meek") return "meek";
+  if (procedureId === "burns_graft_cea") return "cea";
+  if (procedureId === "burns_graft_recell") return "recell";
+  return undefined;
+}

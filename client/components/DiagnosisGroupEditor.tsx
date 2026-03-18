@@ -3318,6 +3318,14 @@ function DiagnosisGroupEditorInner({
                 ) => onChange({ ...group, burnsAssessment })}
                 diagnosisId={selectedDiagnosis?.id}
                 procedures={group.procedures}
+                onProcedureDetailsChange={(procedureId, details) => {
+                  const updatedProcedures = group.procedures.map((p) =>
+                    p.id === procedureId
+                      ? { ...p, burnProcedureDetails: details }
+                      : p,
+                  );
+                  onChange({ ...group, procedures: updatedProcedures });
+                }}
               />
             ) : null}
 

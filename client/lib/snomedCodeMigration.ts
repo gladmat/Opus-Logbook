@@ -5,12 +5,13 @@ interface SnomedMigrationEntry {
 
 export const OLD_TO_NEW_SNOMED: Record<string, SnomedMigrationEntry> = {
   "428191000124101": {
-    newCode: "442695005",
+    newCode: "404909007",
     newDisplay: "Injection of botulinum toxin (procedure)",
   },
   "13413003": {
-    newCode: "787876008",
-    newDisplay: "Injection of dermal filler (procedure)",
+    newCode: "1373233002",
+    newDisplay:
+      "Subcutaneous injection of soft tissue filling material (procedure)",
   },
   "36777000": {
     newCode: "89658006",
@@ -464,6 +465,54 @@ export const OLD_TO_NEW_SNOMED: Record<string, SnomedMigrationEntry> = {
   "173422003": {
     newCode: "112854004",
     newDisplay: "Fixation of tongue (procedure)",
+  },
+
+  // ── Aesthetics SNOMED CT fixes (validated against Ontoserver March 2026) ──
+
+  // Diagnosis codes — aesthetics
+  "248296006": {
+    newCode: "201093004",
+    newDisplay: "Redundant skin (disorder)",
+  },
+  "248295007": {
+    newCode: "15253005",
+    newDisplay: "Facial asymmetry (disorder)",
+  },
+  "95345000": {
+    newCode: "16924008",
+    newDisplay: "Hypertrophy of vulva (disorder)",
+  },
+  "419459005": {
+    newCode: "201093004",
+    newDisplay: "Redundant skin (disorder)",
+  },
+
+  // Procedure codes — aesthetics
+  "69031006": {
+    newCode: "286553006",
+    newDisplay: "Plastic operation (procedure)",
+  },
+
+  // Burns diagnosis codes — audit 2026-03-19
+  "62404004": {
+    newCode: "425656005",
+    newDisplay: "Burn caused by radiation (disorder)",
+  },
+  "426284001": {
+    newCode: "423234004",
+    newDisplay: "Inhalation injury (disorder)",
+  },
+  "262562005": {
+    newCode: "408294007",
+    newDisplay: "Burn contracture of skin (disorder)",
+  },
+  "403191005": {
+    newCode: "403193008",
+    newDisplay: "Burn scar (disorder)",
+  },
+  "203433007": {
+    newCode: "128491006",
+    newDisplay: "Heterotopic ossification (disorder)",
   },
 };
 

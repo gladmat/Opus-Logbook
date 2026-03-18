@@ -351,6 +351,7 @@ export interface BurnsAssessmentData {
   tbsa?: TBSAData;
   injuryEvent?: BurnInjuryEvent;
   severityScores?: BurnSeverityScores;
+  outcomes?: BurnOutcomeData;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
