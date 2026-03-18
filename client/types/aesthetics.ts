@@ -423,7 +423,53 @@ export interface AestheticAssessment {
   preBariatricWeightKg?: number;
   currentWeightKg?: number;
   weightLossKg?: number;
-  bariatricProcedureType?: string;
+  heightCm?: number;
+  bmi?: number;
+  bariatricProcedureType?: BariatricProcedureType;
+  timeSinceBariatricSurgery?: TimeSinceBariatricSurgery;
+  weightStable?: boolean;
+  pittsburghRatingScale?: PittsburghRatingScale;
+}
+
+// ═══════════════════════════════════════════
+// POST-BARIATRIC CONTEXT
+// ═══════════════════════════════════════════
+
+export type BariatricProcedureType =
+  | "gastric_bypass_rygb"
+  | "sleeve_gastrectomy"
+  | "gastric_band"
+  | "duodenal_switch"
+  | "bpd"
+  | "sadi_s"
+  | "other"
+  | "unknown";
+
+export type TimeSinceBariatricSurgery =
+  | "less_than_6m"
+  | "6_to_12m"
+  | "1_to_2y"
+  | "2_to_5y"
+  | "over_5y";
+
+export type PittsburghRegion =
+  | "chin_neck"
+  | "chest"
+  | "arms"
+  | "abdomen"
+  | "flanks_back"
+  | "buttock"
+  | "inner_thighs"
+  | "outer_thighs"
+  | "breasts"
+  | "mons_pubis";
+
+export type PittsburghScore = 0 | 1 | 2 | 3;
+
+export interface PittsburghRatingScale {
+  scores: Partial<Record<PittsburghRegion, PittsburghScore>>;
+  /** Auto-calculated sum (0–30) */
+  total?: number;
 }
 
 export type CombinationPreset =

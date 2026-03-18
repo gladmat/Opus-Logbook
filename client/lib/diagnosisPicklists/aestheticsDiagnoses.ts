@@ -176,8 +176,8 @@ const AES_DX_FACIAL_AGEING: DiagnosisPicklistEntry[] = [
     id: "aes_dx_lip_ageing",
     displayName: "Lip ageing / thin lips",
     shortName: "Lip ageing",
-    snomedCtCode: "248296006", // VERIFY
-    snomedCtDisplay: "Aging (finding)",
+    snomedCtCode: "201093004",
+    snomedCtDisplay: "Redundant skin (disorder)",
     specialty: "aesthetics",
     subcategory: "Facial Ageing",
     clinicalGroup: "elective",
@@ -210,8 +210,8 @@ const AES_DX_FACIAL_AGEING: DiagnosisPicklistEntry[] = [
     id: "aes_dx_periorbital_ageing",
     displayName: "Periorbital ageing / hollowing",
     shortName: "Periorbital ageing",
-    snomedCtCode: "248296006", // VERIFY
-    snomedCtDisplay: "Aging (finding)",
+    snomedCtCode: "201093004",
+    snomedCtDisplay: "Redundant skin (disorder)",
     specialty: "aesthetics",
     subcategory: "Facial Ageing",
     clinicalGroup: "elective",
@@ -243,8 +243,8 @@ const AES_DX_FACIAL_AGEING: DiagnosisPicklistEntry[] = [
     id: "aes_dx_facial_asymmetry_aesthetic",
     displayName: "Facial asymmetry — aesthetic correction",
     shortName: "Facial asymmetry",
-    snomedCtCode: "248295007", // VERIFY
-    snomedCtDisplay: "Asymmetry of face (finding)",
+    snomedCtCode: "15253005",
+    snomedCtDisplay: "Facial asymmetry (disorder)",
     specialty: "aesthetics",
     subcategory: "Facial Ageing",
     clinicalGroup: "elective",
@@ -271,8 +271,8 @@ const AES_DX_FACIAL_AGEING: DiagnosisPicklistEntry[] = [
     id: "aes_dx_jawline_contour",
     displayName: "Jawline / chin contour dissatisfaction",
     shortName: "Jawline contour",
-    snomedCtCode: "248296006", // VERIFY
-    snomedCtDisplay: "Aging (finding)",
+    snomedCtCode: "201093004",
+    snomedCtDisplay: "Redundant skin (disorder)",
     specialty: "aesthetics",
     subcategory: "Facial Ageing",
     clinicalGroup: "elective",
@@ -811,8 +811,8 @@ const AES_DX_BODY: DiagnosisPicklistEntry[] = [
     id: "aes_dx_calf_contour",
     displayName: "Calf contour dissatisfaction",
     shortName: "Calf contour",
-    snomedCtCode: "248296006", // VERIFY
-    snomedCtDisplay: "Aging (finding)",
+    snomedCtCode: "201093004", // POST-COORDINATED: redundant skin + calf body site
+    snomedCtDisplay: "Redundant skin (disorder)",
     specialty: "aesthetics",
     subcategory: "Body Aesthetics",
     clinicalGroup: "elective",
@@ -840,8 +840,8 @@ const AES_DX_ENERGY: DiagnosisPicklistEntry[] = [
     id: "aes_dx_skin_laxity",
     displayName: "Skin laxity — non-surgical candidate",
     shortName: "Skin laxity",
-    snomedCtCode: "248296006", // VERIFY
-    snomedCtDisplay: "Aging (finding)",
+    snomedCtCode: "201093004",
+    snomedCtDisplay: "Redundant skin (disorder)",
     specialty: "aesthetics",
     subcategory: "Energy-Based",
     clinicalGroup: "elective",
@@ -888,7 +888,7 @@ const AES_DX_GENITAL: DiagnosisPicklistEntry[] = [
     id: "aes_dx_clitoral_hood_excess",
     displayName: "Clitoral hood excess",
     shortName: "Clitoral hood",
-    snomedCtCode: "95345000", // VERIFY
+    snomedCtCode: "16924008",
     snomedCtDisplay: "Hypertrophy of vulva (disorder)",
     specialty: "aesthetics",
     subcategory: "Genital / Intimate",
@@ -910,8 +910,8 @@ const AES_DX_GENITAL: DiagnosisPicklistEntry[] = [
     id: "aes_dx_vaginal_laxity",
     displayName: "Vaginal laxity (aesthetic)",
     shortName: "Vaginal laxity",
-    snomedCtCode: "95345000", // VERIFY
-    snomedCtDisplay: "Hypertrophy of vulva (disorder)",
+    snomedCtCode: "3751000119101", // POST-COORDINATED: hypertrophy of labia — closest concept for vaginal laxity
+    snomedCtDisplay: "Hypertrophy of labia (disorder)",
     specialty: "aesthetics",
     subcategory: "Genital / Intimate",
     clinicalGroup: "elective",
@@ -936,8 +936,8 @@ const AES_DX_GENITAL: DiagnosisPicklistEntry[] = [
     id: "aes_dx_penile_aesthetic",
     displayName: "Penile aesthetic concern",
     shortName: "Penile aesthetic",
-    snomedCtCode: "248296006", // VERIFY
-    snomedCtDisplay: "Aging (finding)",
+    snomedCtCode: "201093004", // POST-COORDINATED: redundant skin + penile body site
+    snomedCtDisplay: "Redundant skin (disorder)",
     specialty: "aesthetics",
     subcategory: "Genital / Intimate",
     clinicalGroup: "elective",
@@ -1325,8 +1325,8 @@ const AES_DX_POST_BARIATRIC: DiagnosisPicklistEntry[] = [
     id: "aes_dx_post_bariatric_breast",
     displayName: "Post-bariatric breast ptosis",
     shortName: "Post-bariatric breast",
-    snomedCtCode: "419459005", // VERIFY
-    snomedCtDisplay: "Excess skin (finding)",
+    snomedCtCode: "201093004", // POST-COORDINATED: redundant skin + breast body site
+    snomedCtDisplay: "Redundant skin (disorder)",
     specialty: "aesthetics",
     subcategory: "Post-Bariatric",
     clinicalGroup: "elective",
