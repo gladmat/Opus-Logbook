@@ -27,7 +27,8 @@ import { PickerField } from "@/components/FormField";
 import { ProcedureSuggestions } from "@/components/ProcedureSuggestions";
 import { FingerSelectionChips } from "./FingerSelectionChips";
 import { DigitMultiSelect } from "./DigitMultiSelect";
-import { getFingerConfigForDiagnosis, FINGER_OPTIONS } from "@/lib/handElectiveFieldConfig";
+import { PerFingerQuinnellGrading } from "./PerFingerQuinnellGrading";
+import { getFingerConfigForDiagnosis, hasPerFingerQuinnell, formatTriggerFingerGrading, FINGER_OPTIONS } from "@/lib/handElectiveFieldConfig";
 import { DIGIT_LABELS } from "@/lib/diagnosisPicklists/multiDigitConfig";
 import { generateDupuytrenSummaryText } from "@/lib/dupuytrenHelpers";
 import { DupuytrenAssessment as DupuytrenAssessmentUI } from "@/components/dupuytren/DupuytrenAssessment";
@@ -88,6 +89,10 @@ interface HandElectiveAssessmentProps {
   onDigitsChange?: (digits: DigitId[]) => void;
   /** Called when multi-digit selection is confirmed */
   onMultiDigitConfirm?: () => void;
+  /** Per-finger Quinnell grading (finger ID → grade value) */
+  triggerFingerGrading?: Record<string, string>;
+  /** Called when per-finger Quinnell grading changes */
+  onTriggerFingerGradingChange?: (grading: Record<string, string>) => void;
   /** Dupuytren assessment data */
   dupuytrenAssessment?: DupuytrenAssessmentType;
   /** Called when Dupuytren assessment changes */
@@ -126,6 +131,8 @@ export function HandElectiveAssessment({
   selectedDigits,
   onDigitsChange,
   onMultiDigitConfirm,
+  triggerFingerGrading,
+  onTriggerFingerGradingChange,
   dupuytrenAssessment,
   onDupuytrenAssessmentChange,
   selectedSuggestionIds,
@@ -160,6 +167,7 @@ export function HandElectiveAssessment({
   const hasDupuytren = selectedDiagnosis?.hasDupuytrenAssessment === true;
   const fingerConfig = getFingerConfigForDiagnosis(selectedDiagnosis?.id);
   const isPendingMultiDigit = !!pendingMultiDigitDiagnosis;
+  const showQuinnell = hasPerFingerQuinnell(selectedDiagnosis?.id) && (affectedFingers?.length ?? 0) > 0;
   const showClassificationSection = hasDiagnosis && !isPendingMultiDigit;
 
   // Auto-progression: collapse diagnosis, expand next section
@@ -219,10 +227,23 @@ export function HandElectiveAssessment({
       .join(", ");
     stagingSummaryParts.push(digitLabels);
   } else if (affectedFingers && affectedFingers.length > 0) {
-    const fingerLabels = affectedFingers
-      .map((id) => FINGER_OPTIONS.find((f) => f.id === id)?.label ?? id)
-      .join(", ");
-    stagingSummaryParts.push(fingerLabels);
+    if (triggerFingerGrading && Object.keys(triggerFingerGrading).length > 0) {
+      const gradingText = formatTriggerFingerGrading(triggerFingerGrading, affectedFingers);
+      if (gradingText) stagingSummaryParts.push(gradingText);
+      // Show ungraded fingers too
+      const ungradedFingers = affectedFingers.filter((f) => !triggerFingerGrading[f]);
+      if (ungradedFingers.length > 0) {
+        const labels = ungradedFingers
+          .map((id) => FINGER_OPTIONS.find((f) => f.id === id)?.label ?? id)
+          .join(", ");
+        stagingSummaryParts.push(labels);
+      }
+    } else {
+      const fingerLabels = affectedFingers
+        .map((id) => FINGER_OPTIONS.find((f) => f.id === id)?.label ?? id)
+        .join(", ");
+      stagingSummaryParts.push(fingerLabels);
+    }
   }
   if (hasDupuytren && dupuytrenAssessment && dupuytrenAssessment.rays.length > 0) {
     stagingSummaryParts.push(generateDupuytrenSummaryText(dupuytrenAssessment));
@@ -363,6 +384,15 @@ export function HandElectiveAssessment({
                 onChange={onAffectedFingersChange}
               />
             ) : null}
+
+          {/* Per-finger Quinnell grading */}
+          {showQuinnell && onTriggerFingerGradingChange ? (
+            <PerFingerQuinnellGrading
+              affectedFingers={affectedFingers ?? []}
+              grading={triggerFingerGrading ?? {}}
+              onChange={onTriggerFingerGradingChange}
+            />
+          ) : null}
 
           {/* Dupuytren per-ray assessment */}
           {hasDupuytren && onDupuytrenAssessmentChange ? (

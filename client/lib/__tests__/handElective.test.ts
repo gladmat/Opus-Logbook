@@ -6,6 +6,12 @@ import {
   buildElectiveSnomedFallbackState,
   shouldRenderGenericDiagnosisSnomedPicker,
 } from "@/lib/handElectiveFlow";
+import {
+  getFingerConfigForDiagnosis,
+  hasPerFingerQuinnell,
+  formatTriggerFingerGrading,
+  QUINNELL_GRADES,
+} from "@/lib/handElectiveFieldConfig";
 
 // ═══════════════════════════════════════════════════════════
 // Helpers
@@ -464,5 +470,99 @@ describe("Elective SNOMED fallback helpers", () => {
     expect(nextState.acuteProceduresAccepted).toBe(false);
     expect(nextState.showAcuteFullProcedurePicker).toBe(false);
     expect(nextState.procedures).toEqual(defaultProcedures);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
+// Per-finger Quinnell grading
+// ═══════════════════════════════════════════════════════════
+
+describe("Per-finger Quinnell grading", () => {
+  it("unified trigger digit uses DigitMultiSelect (not finger config)", () => {
+    // Old per-finger config removed — unified trigger digit uses hasDigitMultiSelect
+    const config = getFingerConfigForDiagnosis("hand_dx_trigger_digit");
+    expect(config).toBeNull();
+
+    const dx = HAND_SURGERY_DIAGNOSES.find(
+      (d) => d.id === "hand_dx_trigger_digit",
+    );
+    expect(dx).toBeDefined();
+    expect(dx!.hasDigitMultiSelect).toBe(true);
+  });
+
+  it("old trigger thumb ID no longer has separate finger config", () => {
+    const config = getFingerConfigForDiagnosis("hand_dx_trigger_thumb");
+    expect(config).toBeNull();
+  });
+
+  it("hasPerFingerQuinnell returns true for trigger finger", () => {
+    expect(hasPerFingerQuinnell("hand_dx_trigger_finger")).toBe(true);
+  });
+
+  it("hasPerFingerQuinnell returns true for legacy trigger thumb ID", () => {
+    expect(hasPerFingerQuinnell("hand_dx_trigger_thumb")).toBe(true);
+  });
+
+  it("hasPerFingerQuinnell returns false for unrelated diagnosis", () => {
+    expect(hasPerFingerQuinnell("hand_dx_dequervain")).toBe(false);
+    expect(hasPerFingerQuinnell(undefined)).toBe(false);
+  });
+
+  it("QUINNELL_GRADES has 5 grades (0-IV)", () => {
+    expect(QUINNELL_GRADES).toHaveLength(5);
+    expect(QUINNELL_GRADES.map((g) => g.value)).toEqual([
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+    ]);
+  });
+
+  it("formatTriggerFingerGrading formats single finger", () => {
+    const result = formatTriggerFingerGrading(
+      { index: "2" },
+      ["index"],
+    );
+    expect(result).toBe("Index Grade II");
+  });
+
+  it("formatTriggerFingerGrading formats multiple fingers", () => {
+    const result = formatTriggerFingerGrading(
+      { index: "2", ring: "3" },
+      ["index", "ring"],
+    );
+    expect(result).toBe("Index Grade II, Ring Grade III");
+  });
+
+  it("formatTriggerFingerGrading skips ungraded fingers", () => {
+    const result = formatTriggerFingerGrading(
+      { index: "1" },
+      ["index", "middle"],
+    );
+    expect(result).toBe("Index Grade I");
+  });
+
+  it("formatTriggerFingerGrading returns empty for no grades", () => {
+    const result = formatTriggerFingerGrading({}, ["index", "middle"]);
+    expect(result).toBe("");
+  });
+
+  it("unified trigger digit suggests trigger finger release procedure", () => {
+    const dx = HAND_SURGERY_DIAGNOSES.find(
+      (d) => d.id === "hand_dx_trigger_digit",
+    );
+    expect(dx).toBeDefined();
+    expect(dx!.suggestedProcedures!.length).toBeGreaterThanOrEqual(1);
+    const ids = dx!.suggestedProcedures!.map((p) => p.procedurePicklistId);
+    expect(ids).toContain("hand_comp_trigger_finger");
+  });
+
+  it("unified trigger digit has hasStaging true (Quinnell via staging config)", () => {
+    const dx = HAND_SURGERY_DIAGNOSES.find(
+      (d) => d.id === "hand_dx_trigger_digit",
+    );
+    expect(dx).toBeDefined();
+    expect(dx!.hasStaging).toBe(true);
   });
 });

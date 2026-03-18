@@ -418,6 +418,9 @@ Tests: `client/lib/__tests__/skinCancerConfig.test.ts` (89 tests), `skinCancerPh
 - Recipient site regions (10 regions including Knee) with vessel presets
 - Simplified anastomosis documentation via `AnastomosisEntryCard` with segmented buttons
 - Coupler constraint: selecting "Coupler" auto-sets "End-to-End" and locks other options
+- **Ischaemia: total only.** Warm/cold ischaemia split removed from all free flap types — not clinically meaningful for flap transfer logging. Only `ischemiaTimeMinutes` is captured.
+- **Bilateral DIEP:** Generates two `CaseProcedure` entries (one per side) with independent `freeFlapDetails`, `laterality`, and flap outcomes. Stacked/bipedicled DIEP is NOT split. "Copy to Other Side" button in FreeFlapSheet copies protocol/setup fields but not intraop measurements.
+- **Breast anastomosis pre-fill:** All breast free flaps to `breast_chest` auto-fill IMA/IMV recipient vessels, flap-type-specific donor vessels, `end_to_end` configuration, and 2.5mm coupler size on the venous entry. `FLAP_DONOR_VESSELS` shared constant in `autoFillMappings.ts`.
 
 ### Wound episode tracker
 

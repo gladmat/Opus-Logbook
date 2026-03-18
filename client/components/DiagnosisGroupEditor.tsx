@@ -69,6 +69,7 @@ import {
   getFibulaContextDefaults,
   BREAST_RECON_DEFAULT_RECIPIENT_VESSELS,
   DIEP_BILATERAL_DEFAULTS,
+  FLAP_DONOR_VESSELS,
 } from "@/data/autoFillMappings";
 import { SectionHeader } from "@/components/SectionHeader";
 import { DiagnosisSuggestions } from "@/components/DiagnosisSuggestions";
@@ -290,6 +291,9 @@ function DiagnosisGroupEditorInner({
   const [affectedDigits, setAffectedDigits] = useState<
     import("@/types/case").DigitId[]
   >(group.affectedDigits ?? []);
+  const [triggerFingerGrading, setTriggerFingerGrading] = useState<
+    Record<string, string>
+  >(group.triggerFingerGrading ?? {});
   const [dupuytrenAssessment, setDupuytrenAssessment] = useState<
     import("@/types/dupuytren").DupuytrenAssessment | undefined
   >(group.dupuytrenAssessment);
@@ -559,6 +563,12 @@ function DiagnosisGroupEditorInner({
         handCaseType === "elective" && affectedDigits.length > 0
           ? affectedDigits
           : undefined,
+      triggerFingerGrading:
+        handCaseType === "elective" &&
+        affectedFingers.length > 0 &&
+        Object.keys(triggerFingerGrading).length > 0
+          ? triggerFingerGrading
+          : undefined,
       dupuytrenAssessment:
         handCaseType === "elective" && dupuytrenAssessment
           ? dupuytrenAssessment
@@ -584,6 +594,7 @@ function DiagnosisGroupEditorInner({
     handInfectionDetails,
     affectedFingers,
     affectedDigits,
+    triggerFingerGrading,
     dupuytrenAssessment,
   ]);
 
@@ -652,21 +663,27 @@ function DiagnosisGroupEditorInner({
         };
       }
 
-      // Breast recon defaults: IMA + IMV.
+      // Breast recon defaults: IMA + IMV with donor vessels, configuration, coupler size.
       let anastomoses: AnastomosisEntry[] = [];
       if (recipientSite === "breast_chest") {
+        const donorVessels = FLAP_DONOR_VESSELS[mappedFlapType];
         anastomoses = [
           {
             id: uuidv4(),
             vesselType: "artery",
             recipientVesselName: BREAST_RECON_DEFAULT_RECIPIENT_VESSELS.artery,
+            donorVesselName: donorVessels?.artery,
             couplingMethod: "hand_sewn",
+            configuration: "end_to_end",
           },
           {
             id: uuidv4(),
             vesselType: "vein",
             recipientVesselName: BREAST_RECON_DEFAULT_RECIPIENT_VESSELS.vein,
+            donorVesselName: donorVessels?.vein,
             couplingMethod: "coupler",
+            configuration: "end_to_end",
+            couplerSizeMm: 2.5,
           },
         ];
       }
@@ -1348,46 +1365,49 @@ function DiagnosisGroupEditorInner({
     [activeFlapOutcomeProcedureId, freeFlapProcedures],
   );
 
-  // Compute breast context for FreeFlapSheet when in breast module
-  const breastFlapContext = useMemo((): BreastFlapContext | undefined => {
-    if (!isBreastModule || !normalizedBreastAssessment) return undefined;
-    // Derive side: for unilateral use the laterality, for bilateral default to "left"
-    const side =
-      normalizedBreastAssessment.laterality === "bilateral"
-        ? "left"
-        : (normalizedBreastAssessment.laterality as "left" | "right");
-    const sideData = normalizedBreastAssessment.sides[side];
-    // Extract extension data from existing breast flapDetails (legacy BreastFlapDetailsData)
-    const extension = sideData?.flapDetails
-      ? extractBreastFlapExtension(sideData.flapDetails)
-      : {};
-    return {
-      side,
-      breastFlapExtension: extension,
-      onBreastFlapExtensionChange: (updated: BreastFlapExtensionData) => {
-        if (!normalizedBreastAssessment) return;
-        const currentSide = normalizedBreastAssessment.sides[side];
-        if (!currentSide) return;
-        const updatedFlapDetails = {
-          ...(currentSide.flapDetails ?? {}),
-          ...updated,
-        };
-        onChange({
-          ...group,
-          breastAssessment: {
-            ...normalizedBreastAssessment,
-            sides: {
-              ...normalizedBreastAssessment.sides,
-              [side]: {
-                ...currentSide,
-                flapDetails: updatedFlapDetails,
+  // Compute breast context for FreeFlapSheet — per-procedure to support bilateral
+  const getBreastFlapContext = useCallback(
+    (procedure: CaseProcedure): BreastFlapContext | undefined => {
+      if (!isBreastModule || !normalizedBreastAssessment) return undefined;
+      // Derive side from procedure laterality (bilateral), falling back to assessment laterality
+      const side: "left" | "right" =
+        procedure.laterality ??
+        (normalizedBreastAssessment.laterality === "bilateral"
+          ? "left"
+          : (normalizedBreastAssessment.laterality as "left" | "right"));
+      const sideData = normalizedBreastAssessment.sides[side];
+      const extension = sideData?.flapDetails
+        ? extractBreastFlapExtension(sideData.flapDetails)
+        : { fascialClosureMethod: "primary" as const };
+      return {
+        side,
+        breastFlapExtension: extension,
+        onBreastFlapExtensionChange: (updated: BreastFlapExtensionData) => {
+          if (!normalizedBreastAssessment) return;
+          const currentSide = normalizedBreastAssessment.sides[side];
+          if (!currentSide) return;
+          const updatedFlapDetails = {
+            ...(currentSide.flapDetails ?? {}),
+            ...updated,
+          };
+          onChange({
+            ...group,
+            breastAssessment: {
+              ...normalizedBreastAssessment,
+              sides: {
+                ...normalizedBreastAssessment.sides,
+                [side]: {
+                  ...currentSide,
+                  flapDetails: updatedFlapDetails,
+                },
               },
             },
-          },
-        });
-      },
-    };
-  }, [isBreastModule, normalizedBreastAssessment, group, onChange]);
+          });
+        },
+      };
+    },
+    [isBreastModule, normalizedBreastAssessment, group, onChange],
+  );
 
   useEffect(() => {
     if (
@@ -2038,6 +2058,55 @@ function DiagnosisGroupEditorInner({
       });
     },
     [activeFlapSheetProcedure],
+  );
+
+  const handleCopyFlapToOtherSide = useCallback(
+    (sourceDetails: FreeFlapDetails) => {
+      if (!activeFlapSheetProcedure?.laterality) return;
+
+      const targetSide =
+        activeFlapSheetProcedure.laterality === "left" ? "right" : "left";
+      const targetProcedure = freeFlapProcedures.find(
+        (p) => p.laterality === targetSide,
+      );
+      if (!targetProcedure) return;
+
+      // Copy protocol/setup fields, NOT intraop measurements
+      const copiedDetails: FreeFlapDetails = {
+        ...(targetProcedure.clinicalDetails as FreeFlapDetails | undefined) || {
+          harvestSide: targetSide,
+          anastomoses: [],
+        },
+        harvestSide: targetSide,
+        // Copy these fields from source
+        flapSpecificDetails: sourceDetails.flapSpecificDetails
+          ? { ...sourceDetails.flapSpecificDetails }
+          : undefined,
+        anastomoses: sourceDetails.anastomoses.map((a) => ({
+          ...a,
+          id: uuidv4(),
+        })),
+        donorSiteClosureMethod: sourceDetails.donorSiteClosureMethod,
+        anticoagulationProtocol: sourceDetails.anticoagulationProtocol,
+        preoperativeImaging: sourceDetails.preoperativeImaging,
+        perfusionAssessment: sourceDetails.perfusionAssessment,
+        positionChangeRequired: sourceDetails.positionChangeRequired,
+        // Preserve type/site fields from target (should already match)
+        flapType: sourceDetails.flapType,
+        flapSnomedCode: sourceDetails.flapSnomedCode,
+        flapSnomedDisplay: sourceDetails.flapSnomedDisplay,
+        indication: sourceDetails.indication,
+        recipientSiteRegion: sourceDetails.recipientSiteRegion,
+        recipientSiteSnomedCode: sourceDetails.recipientSiteSnomedCode,
+        recipientSiteSnomedDisplay: sourceDetails.recipientSiteSnomedDisplay,
+      };
+
+      updateProcedure({
+        ...targetProcedure,
+        clinicalDetails: copiedDetails,
+      });
+    },
+    [activeFlapSheetProcedure, freeFlapProcedures, updateProcedure],
   );
 
   const handleFlapOutcomeSave = useCallback(
@@ -2801,6 +2870,8 @@ function DiagnosisGroupEditorInner({
                     onAffectedFingersChange={setAffectedFingers}
                     affectedDigits={affectedDigits}
                     onAffectedDigitsChange={setAffectedDigits}
+                    triggerFingerGrading={triggerFingerGrading}
+                    onTriggerFingerGradingChange={setTriggerFingerGrading}
                     dupuytrenAssessment={dupuytrenAssessment}
                     onDupuytrenAssessmentChange={setDupuytrenAssessment}
                     selectedSuggestionIds={selectedSuggestionIds}
@@ -3775,12 +3846,15 @@ function DiagnosisGroupEditorInner({
             {moduleVisibility.flapDetails
               ? freeFlapProcedures.map((procedure, flapIndex) => {
                   const flapSummary = getFlapSummaryForProcedure(procedure);
+                  const lateralityLabel = procedure.laterality
+                    ? ` (${procedure.laterality === "left" ? "Left" : "Right"})`
+                    : "";
                   const title =
-                    freeFlapProcedures.length === 1
+                    freeFlapProcedures.length === 1 && !procedure.laterality
                       ? "Flap Details"
                       : `${
                           procedure.procedureName || `Flap ${flapIndex + 1}`
-                        } Details`;
+                        }${lateralityLabel} Details`;
 
                   return (
                     <DetailModuleRow
@@ -3800,12 +3874,15 @@ function DiagnosisGroupEditorInner({
               ? freeFlapProcedures.map((procedure, flapIndex) => {
                   const flapOutcomeSummary =
                     getFlapOutcomeSummaryForProcedure(procedure);
+                  const outcomeLateralityLabel = procedure.laterality
+                    ? ` (${procedure.laterality === "left" ? "Left" : "Right"})`
+                    : "";
                   const title =
-                    freeFlapProcedures.length === 1
+                    freeFlapProcedures.length === 1 && !procedure.laterality
                       ? "Flap Outcome"
                       : `${
                           procedure.procedureName || `Flap ${flapIndex + 1}`
-                        } Outcome`;
+                        }${outcomeLateralityLabel} Outcome`;
 
                   return (
                     <DetailModuleRow
@@ -3869,7 +3946,19 @@ function DiagnosisGroupEditorInner({
             procedureType={activeFlapSheetProcedure.procedureName}
             picklistEntryId={activeFlapSheetProcedure.picklistEntryId}
             priorRadiotherapy={priorRadiotherapy}
-            breastContext={breastFlapContext}
+            breastContext={activeFlapSheetProcedure ? getBreastFlapContext(activeFlapSheetProcedure) : undefined}
+            onCopyToOtherSide={
+              activeFlapSheetProcedure.laterality && freeFlapProcedures.length > 1
+                ? handleCopyFlapToOtherSide
+                : undefined
+            }
+            copyTargetSideLabel={
+              activeFlapSheetProcedure.laterality
+                ? activeFlapSheetProcedure.laterality === "left"
+                  ? "Right"
+                  : "Left"
+                : undefined
+            }
           />
         ) : null}
 

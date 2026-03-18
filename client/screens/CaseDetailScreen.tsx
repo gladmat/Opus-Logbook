@@ -122,6 +122,7 @@ import {
   calculateDiathesisScore,
 } from "@/lib/dupuytrenHelpers";
 import { PREVIOUS_TREATMENT_LABELS } from "@/types/dupuytren";
+import { formatTriggerFingerGrading } from "@/lib/handElectiveFieldConfig";
 
 type RouteParams = RouteProp<RootStackParamList, "CaseDetail">;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -1542,15 +1543,27 @@ export default function CaseDetailScreen() {
                           { color: theme.textSecondary },
                         ]}
                       >
-                        Affected Fingers
+                        Affected Digits
                       </ThemedText>
                       <ThemedText style={styles.diagnosisValue}>
-                        {group.affectedFingers
-                          .map(
-                            (f) =>
-                              f.charAt(0).toUpperCase() + f.slice(1),
-                          )
-                          .join(", ")}
+                        {group.triggerFingerGrading &&
+                        Object.keys(group.triggerFingerGrading).length > 0
+                          ? formatTriggerFingerGrading(
+                              group.triggerFingerGrading,
+                              group.affectedFingers,
+                            ) ||
+                            group.affectedFingers
+                              .map(
+                                (f) =>
+                                  f.charAt(0).toUpperCase() + f.slice(1),
+                              )
+                              .join(", ")
+                          : group.affectedFingers
+                              .map(
+                                (f) =>
+                                  f.charAt(0).toUpperCase() + f.slice(1),
+                              )
+                              .join(", ")}
                       </ThemedText>
                     </View>
                   ) : null}

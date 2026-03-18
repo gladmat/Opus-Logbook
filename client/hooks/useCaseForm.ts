@@ -1016,6 +1016,9 @@ export function buildDuplicateState(
       ? structuredClone(g.breastAssessment)
       : undefined,
     affectedFingers: g.affectedFingers ? [...g.affectedFingers] : undefined,
+    triggerFingerGrading: g.triggerFingerGrading
+      ? { ...g.triggerFingerGrading }
+      : undefined,
     dupuytrenAssessment: g.dupuytrenAssessment
       ? structuredClone(g.dupuytrenAssessment)
       : undefined,

@@ -40,3 +40,40 @@ export function getFingerConfigForDiagnosis(
   if (!diagnosisId) return null;
   return DIAGNOSIS_FINGER_CONFIG[diagnosisId] ?? null;
 }
+
+/**
+ * Quinnell grading options for trigger finger severity.
+ * Used inline per-finger rather than via server staging config.
+ */
+export const QUINNELL_GRADES: { value: string; label: string; description: string }[] = [
+  { value: "0", label: "0", description: "Normal movement" },
+  { value: "1", label: "I", description: "Uneven movement" },
+  { value: "2", label: "II", description: "Actively correctable" },
+  { value: "3", label: "III", description: "Passively correctable" },
+  { value: "4", label: "IV", description: "Fixed contracture" },
+];
+
+/**
+ * Diagnoses that support per-finger Quinnell grading.
+ */
+export function hasPerFingerQuinnell(diagnosisId: string | undefined): boolean {
+  return diagnosisId === "hand_dx_trigger_finger" || diagnosisId === "hand_dx_trigger_thumb";
+}
+
+/**
+ * Format per-finger Quinnell grading as a summary string.
+ * e.g. "Index Grade II, Ring Grade III"
+ */
+export function formatTriggerFingerGrading(
+  grading: Record<string, string>,
+  affectedFingers: string[],
+): string {
+  return affectedFingers
+    .filter((f) => grading[f])
+    .map((f) => {
+      const label = FINGER_OPTIONS.find((o) => o.id === f)?.label ?? f;
+      const grade = QUINNELL_GRADES.find((g) => g.value === grading[f]);
+      return `${label} Grade ${grade?.label ?? grading[f]}`;
+    })
+    .join(", ");
+}

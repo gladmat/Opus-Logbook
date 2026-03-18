@@ -1557,8 +1557,6 @@ export interface FreeFlapDetails {
 
   // Registry fields (all optional, added in Free Flap Registry Upgrade)
   preoperativeImaging?: PreoperativeImaging;
-  warmIschemiaMinutes?: number;
-  coldIschemiaMinutes?: number;
   anticoagulationProtocol?: AnticoagulationProtocolId;
   perfusionAssessment?: PerfusionAssessment;
   positionChangeRequired?: boolean;
@@ -1775,6 +1773,8 @@ export interface CaseProcedure {
   notes?: string;
   /** Which specific digit this procedure targets (for multi-digit cases like trigger finger). */
   digitId?: DigitId;
+  /** Procedure-level laterality for bilateral cases (e.g., bilateral DIEP) */
+  laterality?: "left" | "right";
 }
 
 // ─── Diagnosis Certainty ─────────────────────────────────────────────────────
@@ -1850,6 +1850,8 @@ export interface DiagnosisGroup {
   affectedFingers?: string[];
   /** Affected digits using DigitId (I-V) for multi-digit diagnoses (trigger digit). */
   affectedDigits?: DigitId[];
+  /** Per-finger Quinnell grading for trigger finger/thumb (finger ID → grade "0"-"4") */
+  triggerFingerGrading?: Record<string, string>;
   /** Dupuytren's disease assessment data (per-ray contracture measurements) */
   dupuytrenAssessment?: import("./dupuytren").DupuytrenAssessment;
   /** Transient hint for auto-selecting hand case type on new groups. Not persisted. */
