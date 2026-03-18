@@ -37,6 +37,8 @@ export interface ModuleVisibility {
   aestheticAssessment: boolean;
   /** Burns assessment module — specialty-gated */
   burnsAssessment: boolean;
+  /** Peripheral nerve assessment module — diagnosis-metadata driven */
+  peripheralNerveAssessment: boolean;
 }
 
 /**
@@ -185,6 +187,11 @@ export function getModuleVisibility(
   const burnsAssessment =
     group.specialty === "burns" || !!group.burnsAssessment;
 
+  // Peripheral nerve: diagnosis-metadata driven + existing data
+  const peripheralNerveAssessment =
+    group.specialty === "peripheral_nerve" ||
+    !!group.peripheralNerveAssessment;
+
   return {
     flapDetails,
     flapOutcome,
@@ -197,5 +204,6 @@ export function getModuleVisibility(
     craniofacialAssessment,
     aestheticAssessment,
     burnsAssessment,
+    peripheralNerveAssessment,
   };
 }

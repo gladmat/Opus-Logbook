@@ -1873,6 +1873,8 @@ export interface DiagnosisGroup {
   aestheticAssessment?: import("./aesthetics").AestheticAssessment;
   /** Burns assessment data (TBSA, injury event, severity scores) */
   burnsAssessment?: import("./burns").BurnsAssessmentData;
+  /** Peripheral nerve assessment data (Sunderland grade, EDX, brachial plexus, neuroma) */
+  peripheralNerveAssessment?: import("./peripheralNerve").PeripheralNerveAssessmentData;
 }
 
 export type GeneralHistologyCategory =

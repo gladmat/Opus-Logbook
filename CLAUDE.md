@@ -932,6 +932,47 @@ Following established patterns:
 - Outcomes: BurnOutcomeData (episode-level or per-case for graft take)
 - Episode: uses existing burns_management EpisodeType
 
+## Peripheral Nerve Module — Locked Decisions
+
+### Architecture
+- Assessment activates on diagnosis metadata (`peripheralNerveModule: true`), NOT specialty gate
+- PeripheralNerveAssessment renders INLINE in DiagnosisGroupEditor (like HandTraumaAssessment)
+- BrachialPlexusAssessment is a sub-module WITHIN PeripheralNerveAssessment (amber-bordered) — Phase 4
+- NeuromaAssessment is a sub-module WITHIN PeripheralNerveAssessment (amber-bordered) — Phase 5
+
+### Anti-Patterns — DO NOT
+- DO NOT duplicate compression neuropathy procedures — CTS, cubital tunnel stay in hand_wrist
+- DO NOT duplicate digital/median/ulnar nerve repair — stay in hand_wrist, get secondary tag
+- DO NOT duplicate facial reanimation procedures — stay in head_neck, get secondary tag
+- DO NOT create separate types for brachial plexus — it's nested within PeripheralNerveAssessmentData
+- DO NOT use free text for nerve identification — always use NerveIdentifier enum
+- DO NOT create a hard specialty gate — use diagnosis-driven activation
+- DO NOT put electrodiagnostic details in a modal — it's a collapsible inline section
+- DO NOT duplicate brand components — import from client/components/brand/
+
+### Cross-Specialty Rules
+- Procedures with MULTIPLE specialties use the FIRST listed as primary
+- CTS logged under hand_wrist context → counts for hand surgery training numbers
+- CTS logged under peripheral_nerve context → also appears in peripheral nerve audit
+- Brachial plexus cases can be tagged both peripheral_nerve and microsurgery
+
+### Component Registry
+- `PeripheralNerveAssessment` → `client/components/peripheral-nerve/PeripheralNerveAssessment.tsx`
+- `NerveInjuryClassification` → `client/components/peripheral-nerve/NerveInjuryClassification.tsx`
+- `ElectrodiagnosticSummaryComponent` → `client/components/peripheral-nerve/ElectrodiagnosticSummary.tsx`
+- `NerveGraftDetailsComponent` → `client/components/peripheral-nerve/NerveGraftDetailsComponent.tsx`
+- `NerveTransferPicker` → `client/components/peripheral-nerve/NerveTransferPicker.tsx`
+- Config: `client/lib/peripheralNerveConfig.ts`
+- Types: `client/types/peripheralNerve.ts`
+- Diagnoses: `client/lib/diagnosisPicklists/peripheralNerveDiagnoses.ts`
+
+### Data Flow
+- Nerve assessment data: DiagnosisGroup.peripheralNerveAssessment
+- Brachial plexus data: DiagnosisGroup.peripheralNerveAssessment.brachialPlexus
+- Neuroma data: DiagnosisGroup.peripheralNerveAssessment.neuroma
+- Graft/conduit details: on assessment, NOT on procedure
+- FFMT procedures: trigger existing FreeFlapDetailsForm via hasFreeFlap: true
+
 ## Design system: Charcoal + Amber
 
 All tokens in `client/constants/theme.ts` (single source of truth, 273 lines).

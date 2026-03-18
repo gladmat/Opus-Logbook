@@ -113,6 +113,15 @@ export interface DiagnosisPicklistEntry {
   /** Whether this diagnosis activates the digit multi-select (e.g., trigger finger/thumb) */
   hasDigitMultiSelect?: boolean;
 
+  /** Whether this diagnosis activates the peripheral nerve assessment module */
+  peripheralNerveModule?: boolean;
+
+  /** Whether this diagnosis activates the brachial plexus sub-module */
+  brachialPlexusModule?: boolean;
+
+  /** Whether this diagnosis activates the neuroma sub-module */
+  neuromaModule?: boolean;
+
   /** Whether this diagnosis represents a revision/recurrent case */
   isRevision?: boolean;
 

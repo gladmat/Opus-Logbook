@@ -347,43 +347,33 @@ describe("Nerve compression reclassification", () => {
     expect(ids).toContain("hand_dx_trigger_digit");
   });
 
-  it("CTS, CuTS, Guyon's exist in peripheral nerve diagnoses", () => {
+  it("Guyon's canal exists in peripheral nerve diagnoses", () => {
     const pnIds = PERIPHERAL_NERVE_DIAGNOSES.map((d) => d.id);
-    expect(pnIds).toContain("pn_dx_carpal_tunnel");
-    expect(pnIds).toContain("pn_dx_cubital_tunnel");
-    expect(pnIds).toContain("pn_dx_guyon_canal");
+    // CTS and cubital tunnel stay in hand_wrist as primary home; Guyon's has a peripheral nerve entry
+    expect(pnIds).toContain("pn_dx_guyon_canal_syndrome");
   });
 
-  it("peripheral nerve compression entries have correct specialty and clinical group", () => {
-    const compressionIds = [
-      "pn_dx_carpal_tunnel",
-      "pn_dx_cubital_tunnel",
-      "pn_dx_guyon_canal",
+  it("peripheral nerve upper extremity entries have correct specialty", () => {
+    const ueIds = [
+      "pn_dx_guyon_canal_syndrome",
+      "pn_dx_pronator_syndrome",
+      "pn_dx_radial_tunnel_syndrome",
     ];
-    for (const id of compressionIds) {
+    for (const id of ueIds) {
       const dx = PERIPHERAL_NERVE_DIAGNOSES.find((d) => d.id === id);
       expect(dx).toBeDefined();
       expect(dx!.specialty).toBe("peripheral_nerve");
       expect(dx!.clinicalGroup).toBe("elective");
-      expect(dx!.subcategory).toBe("Compression Neuropathy");
     }
   });
 
-  it("CTS has hasStaging: true", () => {
-    const dx = PERIPHERAL_NERVE_DIAGNOSES.find(
-      (d) => d.id === "pn_dx_carpal_tunnel",
-    );
-    expect(dx).toBeDefined();
-    expect(dx!.hasStaging).toBe(true);
-  });
-
-  it("peripheral nerve compression diagnoses reference valid procedures", () => {
-    const compressionIds = [
-      "pn_dx_carpal_tunnel",
-      "pn_dx_cubital_tunnel",
-      "pn_dx_guyon_canal",
+  it("peripheral nerve diagnoses reference valid procedures", () => {
+    const testIds = [
+      "pn_dx_guyon_canal_syndrome",
+      "pn_dx_pronator_syndrome",
+      "pn_dx_radial_tunnel_syndrome",
     ];
-    for (const id of compressionIds) {
+    for (const id of testIds) {
       const dx = PERIPHERAL_NERVE_DIAGNOSES.find((d) => d.id === id)!;
       for (const sp of dx.suggestedProcedures) {
         expect(procedureIds.has(sp.procedurePicklistId)).toBe(true);

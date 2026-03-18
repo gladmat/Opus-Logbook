@@ -138,6 +138,9 @@ import type { AestheticAssessment as AestheticAssessmentData } from "@/types/aes
 import { BurnsAssessment } from "@/components/burns/BurnsAssessment";
 import { isBurnsDiagnosis, getDefaultBurnsAssessment, getBurnPhaseFromDiagnosis } from "@/lib/burnsConfig";
 import type { BurnsAssessmentData } from "@/types/burns";
+import { isPeripheralNerveDiagnosis } from "@/lib/peripheralNerveConfig";
+import type { PeripheralNerveAssessmentData } from "@/types/peripheralNerve";
+import { PeripheralNerveAssessment } from "@/components/peripheral-nerve";
 import type {
   SkinCancerLesionAssessment,
   LesionPhoto,
@@ -1183,6 +1186,19 @@ function DiagnosisGroupEditorInner({
       : "acute";
     return getDefaultBurnsAssessment(phase);
   }, [isBurnsModule, group.burnsAssessment, selectedDiagnosis?.id]);
+
+  // Peripheral nerve: diagnosis-metadata driven + existing data
+  const isPeripheralNerveModule = useMemo(
+    () =>
+      isPeripheralNerveDiagnosis(selectedDiagnosis ?? undefined) ||
+      !!group.peripheralNerveAssessment,
+    [selectedDiagnosis, group.peripheralNerveAssessment],
+  );
+
+  const normalizedPeripheralNerveAssessment = useMemo(() => {
+    if (!isPeripheralNerveModule) return undefined;
+    return group.peripheralNerveAssessment ?? {};
+  }, [isPeripheralNerveModule, group.peripheralNerveAssessment]);
 
   const defaultBreastClinicalContext = useMemo(
     () => getBreastClinicalContext(selectedDiagnosis ?? undefined),
@@ -3326,6 +3342,18 @@ function DiagnosisGroupEditorInner({
                   );
                   onChange({ ...group, procedures: updatedProcedures });
                 }}
+              />
+            ) : null}
+
+            {isPeripheralNerveModule &&
+            normalizedPeripheralNerveAssessment ? (
+              <PeripheralNerveAssessment
+                assessment={normalizedPeripheralNerveAssessment}
+                onAssessmentChange={(
+                  peripheralNerveAssessment: PeripheralNerveAssessmentData,
+                ) => onChange({ ...group, peripheralNerveAssessment })}
+                diagnosisId={selectedDiagnosis?.id}
+                selectedProcedureIds={procedurePicklistIds}
               />
             ) : null}
 
