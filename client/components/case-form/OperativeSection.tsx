@@ -268,7 +268,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
               return (
                 <Pressable
                   key={value}
-                  testID={`toggle-urgency-${value}`}
+                  testID={`caseForm.operative.chip-urgency-${value}`}
                   style={[
                     styles.segmentedButton,
                     isSelected ? { backgroundColor: theme.link } : undefined,
@@ -312,7 +312,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
                 return (
                   <Pressable
                     key={value}
-                    testID={`toggle-stay-${value}`}
+                    testID={`caseForm.operative.chip-stay-${value}`}
                     style={[
                       styles.segmentedButton,
                       isSelected ? { backgroundColor: theme.link } : undefined,

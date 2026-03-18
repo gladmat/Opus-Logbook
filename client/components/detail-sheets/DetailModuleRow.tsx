@@ -20,6 +20,7 @@ interface DetailModuleRowProps {
   onPress: () => void;
   /** Feather icon name */
   icon?: string;
+  testID?: string;
 }
 
 export function DetailModuleRow({
@@ -28,11 +29,13 @@ export function DetailModuleRow({
   isComplete,
   onPress,
   icon = "file-text",
+  testID,
 }: DetailModuleRowProps) {
   const { theme } = useTheme();
 
   return (
     <Pressable
+      testID={testID}
       style={[
         styles.row,
         {

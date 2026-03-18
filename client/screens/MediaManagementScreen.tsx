@@ -500,7 +500,7 @@ export default function MediaManagementScreen() {
             </View>
 
             <TextInput
-              testID="input-caption"
+              testID="media.management.input-caption"
               style={[
                 styles.captionInput,
                 {

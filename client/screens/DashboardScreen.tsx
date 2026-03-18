@@ -561,7 +561,7 @@ export default function DashboardScreen() {
                       { backgroundColor: theme.success },
                     ]}
                     onPress={handleConfirmDischarge}
-                    testID="confirm-discharge-button"
+                    testID="dashboard.discharge.btn-confirm"
                   >
                     <Feather name="check" size={18} color={theme.buttonText} />
                     <ThemedText

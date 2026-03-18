@@ -338,7 +338,7 @@ export default function AuthScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
-                testID="input-reset-email"
+                testID="onboarding.auth.input-resetEmail"
               />
             </View>
 
@@ -352,7 +352,7 @@ export default function AuthScreen() {
               ]}
               onPress={handleForgotPassword}
               disabled={isRequestingReset}
-              testID="button-request-reset"
+              testID="onboarding.auth.btn-requestReset"
             >
               {isRequestingReset ? (
                 <ActivityIndicator color="#FFF" size="small" />

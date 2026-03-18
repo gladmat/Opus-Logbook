@@ -18,6 +18,7 @@ interface FavouritesRecentsChipsProps {
   favouriteIds: Set<string>;
   onSelect: (id: string) => void;
   onToggleFavourite: (id: string) => void;
+  testID?: string;
 }
 
 export function FavouritesRecentsChips({
@@ -26,13 +27,14 @@ export function FavouritesRecentsChips({
   favouriteIds,
   onSelect,
   onToggleFavourite,
+  testID,
 }: FavouritesRecentsChipsProps) {
   const { theme } = useTheme();
 
   if (favourites.length === 0 && recents.length === 0) return null;
 
   return (
-    <View style={styles.container}>
+    <View testID={testID} style={styles.container}>
       {favourites.length > 0 ? (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>

@@ -206,7 +206,7 @@ export function DiagnosisPicker({
                     borderColor: isActive ? theme.link : theme.border,
                   },
                 ]}
-                testID={`button-subcat-${subcat}`}
+                testID={`caseForm.diagnosis.chip-subcat-${subcat}`}
               >
                 <ThemedText
                   style={[
@@ -259,7 +259,7 @@ export function DiagnosisPicker({
                       : theme.border + "80",
                   },
                 ]}
-                testID={`button-diagnosis-${dx.id}`}
+                testID={`caseForm.diagnosis.chip-${dx.id}`}
               >
                 {isFav ? (
                   <Feather

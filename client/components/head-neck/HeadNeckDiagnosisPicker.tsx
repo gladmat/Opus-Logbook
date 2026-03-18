@@ -139,13 +139,13 @@ export function HeadNeckDiagnosisPicker({
           onChangeText={setSearchQuery}
           autoCapitalize="none"
           autoCorrect={false}
-          testID="input-hn-diagnosis-search"
+          testID="caseForm.headNeck.input-search"
         />
         {searchQuery.length > 0 ? (
           <Pressable
             onPress={() => setSearchQuery("")}
             hitSlop={8}
-            testID="button-clear-hn-diagnosis-search"
+            testID="caseForm.headNeck.btn-clearSearch"
           >
             <Feather name="x" size={16} color={theme.textTertiary} />
           </Pressable>
@@ -186,7 +186,7 @@ export function HeadNeckDiagnosisPicker({
                     borderColor: isActive ? theme.link : theme.border,
                   },
                 ]}
-                testID={`button-hn-subcat-${subcat}`}
+                testID={`caseForm.headNeck.chip-subcat-${subcat}`}
               >
                 <ThemedText
                   style={[
@@ -230,7 +230,7 @@ export function HeadNeckDiagnosisPicker({
                     borderColor: isSelected ? theme.link : theme.border,
                   },
                 ]}
-                testID={`button-hn-dx-${dx.id}`}
+                testID={`caseForm.headNeck.chip-${dx.id}`}
               >
                 {isFav ? (
                   <Feather

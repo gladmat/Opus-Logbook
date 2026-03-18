@@ -48,7 +48,7 @@ export default function MainTabNavigator() {
         component={DashboardStackNavigator}
         options={{
           title: "Cases",
-          tabBarTestID: "tab-dashboard",
+          tabBarTestID: "main.tab-dashboard",
           tabBarIcon: ({ color, size }) => (
             <Feather name="folder" size={size} color={color} />
           ),
@@ -59,7 +59,7 @@ export default function MainTabNavigator() {
         component={StatisticsStackNavigator}
         options={{
           title: "Statistics",
-          tabBarTestID: "tab-statistics",
+          tabBarTestID: "main.tab-statistics",
           tabBarIcon: ({ color, size }) => (
             <Feather name="bar-chart-2" size={size} color={color} />
           ),
@@ -70,7 +70,7 @@ export default function MainTabNavigator() {
         component={SettingsStackNavigator}
         options={{
           title: "Settings",
-          tabBarTestID: "tab-settings",
+          tabBarTestID: "main.tab-settings",
           tabBarIcon: ({ color, size }) => (
             <Feather name="settings" size={size} color={color} />
           ),

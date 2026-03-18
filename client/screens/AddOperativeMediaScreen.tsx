@@ -337,7 +337,7 @@ export default function AddOperativeMediaScreen() {
             Caption (optional)
           </ThemedText>
           <TextInput
-            testID="input-media-caption"
+            testID="media.add.input-caption"
             value={captionInput}
             onChangeText={setCaptionInput}
             placeholder="e.g., Pre-fixation view, Flap inset..."
@@ -355,7 +355,7 @@ export default function AddOperativeMediaScreen() {
           />
 
           <Pressable
-            testID="button-confirm-media"
+            testID="media.add.btn-confirm"
             onPress={handleConfirm}
             disabled={saving}
             style={[

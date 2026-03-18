@@ -44,7 +44,7 @@ function NeedsAttentionCarouselInner({
   if (items.length === 0) return null;
 
   return (
-    <View testID="carousel-attention" style={styles.container}>
+    <View testID="dashboard.attention.carousel" style={styles.container}>
       {/* Section header */}
       <View style={styles.header}>
         <View style={styles.headerTitleRow}>

@@ -55,6 +55,7 @@ export function SectionNavBar({
           return (
             <Pressable
               key={section.id}
+              testID={`caseForm.nav.pill-${section.id}`}
               onPress={() => onSectionPress(section.id)}
               accessibilityRole="tab"
               accessibilityLabel={section.label}

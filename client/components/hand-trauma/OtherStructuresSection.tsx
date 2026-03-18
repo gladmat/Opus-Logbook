@@ -70,7 +70,7 @@ export function OtherStructuresSection({
   return (
     <View style={styles.container}>
       <Pressable
-        testID="other-nail_bed"
+        testID="caseForm.hand.chip-other-nailBed"
         style={[styles.checkRow, { borderColor: theme.border }]}
         onPress={handleToggleNailBed}
       >
@@ -99,7 +99,7 @@ export function OtherStructuresSection({
               return (
                 <Pressable
                   key={digit}
-                  testID={`nail-bed-digit-${digit}`}
+                  testID={`caseForm.hand.chip-nailBedDigit-${digit}`}
                   style={[
                     styles.digitPill,
                     {

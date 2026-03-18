@@ -480,7 +480,7 @@ export default function EditProfileScreen() {
               placeholder="First name"
               placeholderTextColor={theme.textTertiary}
               autoCapitalize="words"
-              testID="input-first-name"
+              testID="settings.profile.input-firstName"
             />
           </View>
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
@@ -507,7 +507,7 @@ export default function EditProfileScreen() {
               placeholder="Last name"
               placeholderTextColor={theme.textTertiary}
               autoCapitalize="words"
-              testID="input-last-name"
+              testID="settings.profile.input-lastName"
             />
           </View>
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
@@ -884,7 +884,7 @@ export default function EditProfileScreen() {
                         }
                         placeholder={option.placeholder}
                         placeholderTextColor={theme.textTertiary}
-                        testID={`input-registration-${option.id}`}
+                        testID={`settings.profile.input-registration-${option.id}`}
                       />
                     </View>
                   ))
@@ -980,7 +980,7 @@ export default function EditProfileScreen() {
           ]}
           onPress={handleSave}
           disabled={isSaving}
-          testID="button-save-profile"
+          testID="settings.profile.btn-save"
         >
           {isSaving ? (
             <ActivityIndicator color={theme.buttonText} size="small" />

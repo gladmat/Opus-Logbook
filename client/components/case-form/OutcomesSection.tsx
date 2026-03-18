@@ -163,7 +163,7 @@ export const OutcomesSection = React.memo(function OutcomesSection({
         <>
           <Pressable
             style={styles.checkboxRow}
-            testID="checkbox-unplanned-readmission"
+            testID="caseForm.outcomes.toggle-unplannedReadmission"
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               const newValue = !isUnplannedReadmission;

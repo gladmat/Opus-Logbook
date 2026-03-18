@@ -12,6 +12,7 @@ interface TimeFieldProps {
   placeholder?: string;
   required?: boolean;
   error?: string;
+  testID?: string;
 }
 
 function formatTimeInput(input: string): string {
@@ -77,6 +78,7 @@ export function TimeField({
   placeholder = "HH:MM",
   required = false,
   error,
+  testID,
 }: TimeFieldProps) {
   const { theme } = useTheme();
   const [displayValue, setDisplayValue] = useState(value);
@@ -141,6 +143,7 @@ export function TimeField({
           style={styles.icon}
         />
         <TextInput
+          testID={testID}
           value={displayValue}
           onChangeText={handleChangeText}
           onBlur={handleBlur}

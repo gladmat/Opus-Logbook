@@ -61,7 +61,7 @@ export function NerveSection({
             return (
               <Pressable
                 key={nerve.id}
-                testID={`nerve-${nerve.id}`}
+                testID={`caseForm.hand.chip-nerve-${nerve.id}`}
                 style={[styles.checkRow, { borderColor: theme.border }]}
                 onPress={() =>
                   onToggleStructure(
@@ -102,7 +102,7 @@ export function NerveSection({
           return (
             <Pressable
               key={nerve.id}
-              testID={`nerve-${nerve.id}`}
+              testID={`caseForm.hand.chip-nerve-${nerve.id}`}
               style={[styles.checkRow, { borderColor: theme.border }]}
               onPress={() => onToggleStructure(nerve.id, "nerve", nerve.label)}
             >

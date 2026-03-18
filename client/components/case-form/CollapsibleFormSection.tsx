@@ -18,6 +18,7 @@ interface CollapsibleFormSectionProps {
   totalCount: number;
   children: React.ReactNode;
   defaultExpanded?: boolean;
+  testID?: string;
 }
 
 export const CollapsibleFormSection = React.memo(
@@ -28,6 +29,7 @@ export const CollapsibleFormSection = React.memo(
     totalCount,
     children,
     defaultExpanded = true,
+    testID,
   }: CollapsibleFormSectionProps) {
     const { theme } = useTheme();
     const [expanded, setExpanded] = useState(defaultExpanded);
@@ -81,6 +83,7 @@ export const CollapsibleFormSection = React.memo(
     return (
       <View style={styles.wrapper}>
         <Pressable
+          testID={testID}
           onPress={toggle}
           style={styles.header}
           accessibilityRole="button"

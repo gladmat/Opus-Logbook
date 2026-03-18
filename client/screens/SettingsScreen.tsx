@@ -1041,7 +1041,7 @@ export default function SettingsScreen() {
                 value={currentPassword}
                 onChangeText={setCurrentPassword}
                 autoCapitalize="none"
-                testID="input-current-password"
+                testID="settings.security.input-currentPassword"
               />
             </View>
 
@@ -1066,7 +1066,7 @@ export default function SettingsScreen() {
                 value={newPassword}
                 onChangeText={setNewPassword}
                 autoCapitalize="none"
-                testID="input-new-password"
+                testID="settings.security.input-newPassword"
               />
             </View>
 
@@ -1091,7 +1091,7 @@ export default function SettingsScreen() {
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 autoCapitalize="none"
-                testID="input-confirm-password"
+                testID="settings.security.input-confirmPassword"
               />
             </View>
 
@@ -1103,7 +1103,7 @@ export default function SettingsScreen() {
               ]}
               onPress={handleChangePassword}
               disabled={isChangingPassword}
-              testID="button-change-password"
+              testID="settings.security.btn-changePassword"
             >
               {isChangingPassword ? (
                 <ActivityIndicator color="#FFF" size="small" />

@@ -20,6 +20,7 @@ interface DetailModuleSheetProps {
   onCancel: () => void;
   saveDisabled?: boolean;
   children: React.ReactNode;
+  testID?: string;
 }
 
 export function DetailModuleSheet({
@@ -30,6 +31,7 @@ export function DetailModuleSheet({
   onCancel,
   saveDisabled,
   children,
+  testID,
 }: DetailModuleSheetProps) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -42,6 +44,7 @@ export function DetailModuleSheet({
       onRequestClose={onCancel}
     >
       <View
+        testID={testID}
         style={[styles.container, { backgroundColor: theme.backgroundDefault }]}
       >
         {/* Header */}

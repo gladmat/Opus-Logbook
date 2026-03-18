@@ -150,7 +150,7 @@ function SuggestionChip({
   return (
     <View>
       <Pressable
-        testID={`chip-procedure-${suggestion.procedurePicklistId}`}
+        testID={`caseForm.procedure.chip-${suggestion.procedurePicklistId}`}
         style={chipStyle}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

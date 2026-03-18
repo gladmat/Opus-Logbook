@@ -233,7 +233,7 @@ function DashboardCaseCardInner({
 
   return (
     <Pressable
-      testID={`card-case-${caseData.id}`}
+      testID={`dashboard.cases.card-${caseData.id}`}
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel={`${caseData.patientIdentifier}, ${caseTitle}, ${formattedDate}`}

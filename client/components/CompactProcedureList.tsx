@@ -26,6 +26,7 @@ interface CompactProcedureListProps {
   onMoveDown: (procedureId: string) => void;
   hideSnomedCodes?: boolean;
   title?: string;
+  testID?: string;
 }
 
 export const CompactProcedureList = React.memo(function CompactProcedureList({
@@ -35,13 +36,14 @@ export const CompactProcedureList = React.memo(function CompactProcedureList({
   onMoveDown,
   hideSnomedCodes = false,
   title = "Selected Procedures",
+  testID,
 }: CompactProcedureListProps) {
   const { theme, isDark } = useTheme();
 
   if (procedures.length === 0) return null;
 
   return (
-    <View style={styles.container}>
+    <View testID={testID} style={styles.container}>
       <ThemedText type="h4" style={styles.header}>
         {title}
       </ThemedText>

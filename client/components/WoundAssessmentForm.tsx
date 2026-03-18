@@ -64,7 +64,7 @@ function AccordionSection({
       <Pressable
         style={accordionStyles.header}
         onPress={onToggle}
-        testID={`accordion-${title.toLowerCase().replace(/\s+/g, "-")}`}
+        testID={`caseForm.wound.section-${title.toLowerCase().replace(/\s+/g, "-")}`}
       >
         <View style={accordionStyles.headerLeft}>
           <Feather name={icon} size={18} color={theme.link} />
@@ -361,7 +361,7 @@ export function WoundAssessmentForm({
                   },
                 ]}
                 onPress={() => toggleInfectionSign(sign)}
-                testID={`checkbox-infection-${sign}`}
+                testID={`caseForm.wound.toggle-infection-${sign}`}
               >
                 <Feather
                   name={checked ? "check-square" : "square"}
@@ -420,7 +420,7 @@ export function WoundAssessmentForm({
                   <Pressable
                     onPress={() => removeDressing(entry.productId)}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    testID={`remove-dressing-${entry.productId}`}
+                    testID={`caseForm.wound.btn-removeDressing-${entry.productId}`}
                   >
                     <Feather name="x-circle" size={20} color={theme.error} />
                   </Pressable>
@@ -539,7 +539,7 @@ export function WoundAssessmentForm({
                   },
                 ]}
                 onPress={() => update({ healingTrend: trend })}
-                testID={`trend-${trend}`}
+                testID={`caseForm.wound.chip-trend-${trend}`}
               >
                 <Feather
                   name={
@@ -672,7 +672,7 @@ function DressingCategorySection({
                   }
                 }}
                 disabled={isSelected}
-                testID={`dressing-product-${product.id}`}
+                testID={`caseForm.wound.chip-dressing-${product.id}`}
               >
                 <View style={styles.productInfo}>
                   <ThemedText

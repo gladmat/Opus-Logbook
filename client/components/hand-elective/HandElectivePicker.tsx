@@ -182,13 +182,13 @@ export function HandElectivePicker({
             }}
             autoCapitalize="none"
             autoCorrect={false}
-            testID="input-elective-search"
+            testID="caseForm.handElective.input-search"
           />
           {searchQuery.length > 0 ? (
             <Pressable
               onPress={() => setSearchQuery("")}
               hitSlop={8}
-              testID="button-clear-elective-search"
+              testID="caseForm.handElective.btn-clearSearch"
             >
               <Feather name="x" size={16} color={theme.textTertiary} />
             </Pressable>
@@ -213,7 +213,7 @@ export function HandElectivePicker({
                     borderColor: theme.border,
                   },
                 ]}
-                testID={`button-elective-subcat-${subcat.key}`}
+                testID={`caseForm.handElective.chip-subcat-${subcat.key}`}
               >
                 <Feather
                   name={subcat.icon as "zap"}
@@ -245,7 +245,7 @@ export function HandElectivePicker({
         <Pressable
           onPress={handleBack}
           style={[styles.backRow, { borderBottomColor: theme.border }]}
-          testID="button-elective-back"
+          testID="caseForm.handElective.btn-back"
         >
           <Feather name="arrow-left" size={16} color={theme.link} />
           <ThemedText style={[styles.backText, { color: theme.link }]}>
@@ -268,7 +268,7 @@ export function HandElectivePicker({
                   borderColor: theme.border,
                 },
               ]}
-              testID={`button-elective-dx-${dx.id}`}
+              testID={`caseForm.handElective.chip-${dx.id}`}
             >
               <View style={styles.diagnosisRowLeft}>
                 <ThemedText

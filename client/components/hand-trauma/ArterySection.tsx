@@ -136,7 +136,7 @@ export function ArterySection({
             return (
               <Pressable
                 key={artery.id}
-                testID={`artery-${artery.id}`}
+                testID={`caseForm.hand.chip-artery-${artery.id}`}
                 style={[styles.checkRow, { borderColor: theme.border }]}
                 onPress={() =>
                   onToggleStructure(
@@ -177,7 +177,7 @@ export function ArterySection({
           return (
             <Pressable
               key={artery.id}
-              testID={`artery-${artery.id}`}
+              testID={`caseForm.hand.chip-artery-${artery.id}`}
               style={[styles.checkRow, { borderColor: theme.border }]}
               onPress={() =>
                 onToggleStructure(artery.id, "artery", artery.label)

@@ -61,7 +61,7 @@ export function LigamentSection({
                   {DIGIT_LABELS[digit]} ({digit})
                 </ThemedText>
                 <Pressable
-                  testID={`ligament-${radialId}`}
+                  testID={`caseForm.hand.chip-ligament-${radialId}`}
                   style={[styles.checkRow, { borderColor: theme.border }]}
                   onPress={() =>
                     onToggleStructure(
@@ -86,7 +86,7 @@ export function LigamentSection({
                   </ThemedText>
                 </Pressable>
                 <Pressable
-                  testID={`ligament-${ulnarId}`}
+                  testID={`caseForm.hand.chip-ligament-${ulnarId}`}
                   style={[styles.checkRow, { borderColor: theme.border }]}
                   onPress={() =>
                     onToggleStructure(
@@ -125,7 +125,7 @@ export function LigamentSection({
             MCP I collateral ligaments
           </ThemedText>
           <Pressable
-            testID="ligament-mcp1_ucl"
+            testID="caseForm.hand.chip-ligament-mcp1Ucl"
             style={[styles.checkRow, { borderColor: theme.border }]}
             onPress={() =>
               onToggleStructure(
@@ -150,7 +150,7 @@ export function LigamentSection({
             </ThemedText>
           </Pressable>
           <Pressable
-            testID="ligament-mcp1_rcl"
+            testID="caseForm.hand.chip-ligament-mcp1Rcl"
             style={[styles.checkRow, { borderColor: theme.border }]}
             onPress={() =>
               onToggleStructure(
@@ -192,7 +192,7 @@ export function LigamentSection({
             return (
               <Pressable
                 key={digit}
-                testID={`ligament-${vpId}`}
+                testID={`caseForm.hand.chip-ligament-${vpId}`}
                 style={[styles.checkRow, { borderColor: theme.border }]}
                 onPress={() =>
                   onToggleStructure(

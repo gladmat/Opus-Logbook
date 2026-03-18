@@ -2656,7 +2656,7 @@ function DiagnosisGroupEditorInner({
                         borderColor: isActive ? theme.link : theme.border,
                       },
                     ]}
-                    testID={`button-case-type-${type}`}
+                    testID={`caseForm.hand.chip-caseType-${type}`}
                   >
                     <ThemedText
                       style={[
@@ -2709,7 +2709,7 @@ function DiagnosisGroupEditorInner({
                         borderColor: isSelected ? theme.link : theme.border,
                       },
                     ]}
-                    testID={`btn-laterality-${side}`}
+                    testID={`caseForm.hand.chip-laterality-${side}`}
                   >
                     <ThemedText
                       style={[
@@ -3700,7 +3700,7 @@ function DiagnosisGroupEditorInner({
                             return (
                               <Pressable
                                 key={s.id}
-                                testID={`chip-procedure-${s.id}`}
+                                testID={`caseForm.procedure.chip-${s.id}`}
                                 style={[
                                   {
                                     flexDirection: "row",
@@ -3764,7 +3764,7 @@ function DiagnosisGroupEditorInner({
                       <Pressable
                         style={styles.showAllProceduresLink}
                         onPress={() => setShowAllProcedures(true)}
-                        testID="button-show-all-procedures"
+                        testID="caseForm.procedure.btn-showAll"
                       >
                         <Feather
                           name="chevron-down"
@@ -3866,7 +3866,7 @@ function DiagnosisGroupEditorInner({
                           <Pressable
                             style={styles.showAllProceduresLink}
                             onPress={() => setShowAllProcedures(false)}
-                            testID="button-show-fewer-procedures"
+                            testID="caseForm.procedure.btn-showFewer"
                           >
                             <Feather
                               name="chevron-up"

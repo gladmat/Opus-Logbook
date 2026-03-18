@@ -43,7 +43,7 @@ export function DigitSelector({
           return (
             <Pressable
               key={digit}
-              testID={`digit-${digit}`}
+              testID={`caseForm.hand.chip-digit-${digit}`}
               style={[
                 styles.chip,
                 {

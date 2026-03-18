@@ -51,6 +51,7 @@ interface FormFieldProps {
     | "emailAddress"
     | "telephoneNumber";
   returnKeyType?: "done" | "next" | "go" | "search" | "default";
+  testID?: string;
 }
 
 export function FormField({
@@ -68,6 +69,7 @@ export function FormField({
   onBlur,
   textContentType,
   returnKeyType,
+  testID,
 }: FormFieldProps) {
   const { theme } = useTheme();
 
@@ -93,6 +95,7 @@ export function FormField({
         ]}
       >
         <TextInput
+          testID={testID}
           value={value}
           onChangeText={onChangeText}
           onBlur={onBlur}
@@ -138,6 +141,7 @@ interface SelectFieldProps {
   onSelect: (value: string) => void;
   required?: boolean;
   error?: string;
+  testID?: string;
 }
 
 export function SelectField({
@@ -147,6 +151,7 @@ export function SelectField({
   onSelect,
   required = false,
   error,
+  testID,
 }: SelectFieldProps) {
   const { theme } = useTheme();
 
@@ -163,6 +168,7 @@ export function SelectField({
         ) : null}
       </View>
       <View
+        testID={testID}
         style={styles.optionsRow}
         accessibilityRole="radiogroup"
         accessibilityLabel={label}
@@ -371,6 +377,7 @@ interface PickerFieldProps {
   placeholder?: string;
   required?: boolean;
   error?: string;
+  testID?: string;
 }
 
 export function PickerField({
@@ -381,6 +388,7 @@ export function PickerField({
   placeholder = "Select...",
   required = false,
   error,
+  testID,
 }: PickerFieldProps) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -444,6 +452,7 @@ export function PickerField({
       ) : null}
 
       <TouchableOpacity
+        testID={testID}
         style={[
           styles.pickerButton,
           {
@@ -567,6 +576,7 @@ interface DatePickerFieldProps {
   clearable?: boolean;
   minimumDate?: Date;
   maximumDate?: Date;
+  testID?: string;
 }
 
 export function DatePickerField({
@@ -580,6 +590,7 @@ export function DatePickerField({
   clearable = false,
   minimumDate,
   maximumDate,
+  testID,
 }: DatePickerFieldProps) {
   const { theme, isDark } = useTheme();
   const [showPicker, setShowPicker] = useState(false);
@@ -669,6 +680,7 @@ export function DatePickerField({
 
       <View style={{ flexDirection: "row", alignItems: "center" }}>
         <Pressable
+          testID={testID}
           style={[
             styles.dateButton,
             {

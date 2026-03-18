@@ -401,7 +401,7 @@ export default function OnboardingScreen() {
               First Name
             </Text>
             <TextInput
-              testID="input-first-name"
+              testID="onboarding.profile.input-firstName"
               style={[
                 styles.input,
                 {
@@ -426,7 +426,7 @@ export default function OnboardingScreen() {
               Last Name
             </Text>
             <TextInput
-              testID="input-last-name"
+              testID="onboarding.profile.input-lastName"
               style={[
                 styles.input,
                 {
@@ -828,7 +828,7 @@ export default function OnboardingScreen() {
           )}
 
           <Pressable
-            testID="button-continue"
+            testID="onboarding.profile.btn-continue"
             style={[
               styles.nextButton,
               { backgroundColor: colors.link, opacity: isLoading ? 0.7 : 1 },

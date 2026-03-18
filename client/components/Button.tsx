@@ -23,6 +23,7 @@ interface ButtonProps {
   loading?: boolean;
   style?: ViewStyle;
   accessibilityLabel?: string;
+  testID?: string;
 }
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -35,6 +36,7 @@ export function Button({
   loading = false,
   style,
   accessibilityLabel,
+  testID,
 }: ButtonProps) {
   const { theme } = useTheme();
   const scale = useSharedValue(1);
@@ -86,6 +88,7 @@ export function Button({
 
   return (
     <AnimatedPressable
+      testID={testID}
       onPress={handlePress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}

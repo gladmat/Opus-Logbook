@@ -46,7 +46,7 @@ export function SelectedDiagnosisCard({
         <Pressable
           onPress={onClear}
           hitSlop={8}
-          testID="button-clear-selected-diagnosis"
+          testID="caseForm.diagnosis.btn-clearSelected"
         >
           <Feather name="x-circle" size={20} color={theme.textSecondary} />
         </Pressable>

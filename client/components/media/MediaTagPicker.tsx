@@ -89,7 +89,7 @@ function MediaTagPickerInner({
           return (
             <Pressable
               key={group}
-              testID={`media-tag-group-${group}`}
+              testID={`caseForm.media.chip-tagGroup-${group}`}
               onPress={() => handleGroupPress(group)}
               style={[
                 styles.tab,
@@ -122,7 +122,7 @@ function MediaTagPickerInner({
           return (
             <Pressable
               key={meta.tag}
-              testID={`media-tag-chip-${meta.tag}`}
+              testID={`caseForm.media.chip-tag-${meta.tag}`}
               onPress={() => handleTagPress(meta.tag)}
               style={[
                 styles.chip,

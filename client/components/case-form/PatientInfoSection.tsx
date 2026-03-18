@@ -256,7 +256,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
                 return (
                   <Pressable
                     key={value}
-                    testID={`toggle-gender-${value}`}
+                    testID={`caseForm.patient.chip-gender-${value}`}
                     style={[
                       styles.segmentedButton,
                       isSelected ? { backgroundColor: theme.link } : undefined,

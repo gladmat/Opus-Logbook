@@ -137,7 +137,7 @@ export function ExtensorTendonSection({
             return (
               <Pressable
                 key={z}
-                testID={`extensor-zone-${z}`}
+                testID={`caseForm.hand.chip-extensorZone-${z}`}
                 style={[
                   styles.zoneChip,
                   {
@@ -190,7 +190,7 @@ export function ExtensorTendonSection({
                 return (
                   <Pressable
                     key={`${digit}-${tendon}`}
-                    testID={`extensor-${digit}-${tendon}`}
+                    testID={`caseForm.hand.chip-extensor-${digit}-${tendon}`}
                     style={[
                       styles.tendonChip,
                       isTwoColumn

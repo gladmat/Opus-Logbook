@@ -29,6 +29,8 @@ interface SectionWrapperProps {
   isCollapsed?: boolean;
   /** Called when collapse state changes (works in both controlled and uncontrolled modes) */
   onCollapsedChange?: (collapsed: boolean) => void;
+  /** Test identifier for automation (forwarded to header touchable) */
+  testID?: string;
 }
 
 export function SectionWrapper({
@@ -40,6 +42,7 @@ export function SectionWrapper({
   subtitle,
   isCollapsed,
   onCollapsedChange,
+  testID,
 }: SectionWrapperProps) {
   const { theme } = useTheme();
   const isControlled = isCollapsed !== undefined;
@@ -73,6 +76,7 @@ export function SectionWrapper({
       ]}
     >
       <HeaderTag
+        testID={testID}
         style={[styles.header, collapsed && styles.headerCollapsed]}
         {...(collapsible
           ? {
