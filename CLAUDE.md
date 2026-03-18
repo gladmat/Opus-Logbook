@@ -893,6 +893,45 @@ Following established patterns:
 - Products: `client/lib/aestheticProducts.ts` (Phase 4)
 - Types: `client/types/aesthetics.ts`
 
+## Burns Module — Locked Decisions
+
+### Architecture
+- Hard phase gate: acute / reconstructive / non_operative (mutually exclusive per case entry)
+- BurnsAssessment renders INLINE in DiagnosisGroupEditor (like HandTraumaAssessment)
+- TBSA uses three-tier progressive disclosure (Quick → Regional → Lund-Browder)
+- Burn-specific procedure details stored as burnProcedureDetails on CaseProcedure
+- Injury event data stored once on episode, not repeated per operation
+- Severity scores (Revised Baux, ABSI) are auto-calculated badges, never manual entry
+
+### Anti-Patterns — DO NOT
+- DO NOT implement a free-draw body map — use tap-on-region with numeric entry only
+- DO NOT duplicate free flap fields — burn free flap triggers existing free flap module
+- DO NOT duplicate wound assessment — integrate with existing WoundAssessmentSheet if it exists
+- DO NOT create a new episode type — use existing burns_management
+- DO NOT make TBSA Tier 2/3 mandatory — Tier 1 quick entry is always sufficient
+- DO NOT duplicate cross-specialty procedures (STSG, FTSG, debridement) — burns gets own IDs with burn-specific fields
+- DO NOT replace existing burns diagnoses — extend the existing file
+- DO NOT put graft details in a modal — inline CollapsibleFormSection
+- DO NOT duplicate brand components — import from client/components/brand/
+
+### Component Registry
+- `BurnsAssessment` → `client/components/burns/BurnsAssessment.tsx`
+- `TBSAQuickEntry` → `client/components/burns/TBSAQuickEntry.tsx`
+- `TBSARegionalBreakdown` → `client/components/burns/TBSARegionalBreakdown.tsx`
+- `TBSABodyOutline` → `client/components/burns/TBSABodyOutline.tsx`
+- `BurnInjuryEventSection` → `client/components/burns/BurnInjuryEventSection.tsx`
+- `BurnSeverityBadges` → `client/components/burns/BurnSeverityBadges.tsx`
+- Config: `client/lib/burnsConfig.ts`
+- Types: `client/types/burns.ts`
+
+### Data Flow
+- Injury event: TreatmentEpisode.burnInjuryEvent (episode-level, captured once)
+- TBSA data: BurnsAssessmentData.tbsa (per-case, may update across operations)
+- Procedure details: CaseProcedure.burnProcedureDetails (per-procedure)
+- Graft tracking: CaseProcedure.burnProcedureDetails.grafting (per-graft procedure)
+- Outcomes: BurnOutcomeData (episode-level or per-case for graft take)
+- Episode: uses existing burns_management EpisodeType
+
 ## Design system: Charcoal + Amber
 
 All tokens in `client/constants/theme.ts` (single source of truth, 273 lines).

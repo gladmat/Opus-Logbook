@@ -10,6 +10,7 @@ import { procedureHasImplant } from "@/lib/jointImplant";
 import { PICKLIST_TO_FLAP_TYPE } from "@/lib/procedurePicklist";
 import { shouldActivateSkinCancerModuleForSnomed } from "@/lib/skinCancerConfig";
 import { isBreastSpecialty } from "@/lib/breastConfig";
+import { isAestheticProcedure } from "@/lib/aestheticsConfig";
 
 const HEAD_NECK_JOINT_CASE_PROCEDURE_IDS = new Set([
   "hn_neck_dissection_radical",
@@ -32,6 +33,10 @@ export interface ModuleVisibility {
   breast: boolean;
   /** Craniofacial assessment module — specialty-gated */
   craniofacialAssessment: boolean;
+  /** Aesthetic assessment module — procedure-driven + specialty-gated */
+  aestheticAssessment: boolean;
+  /** Burns assessment module — specialty-gated */
+  burnsAssessment: boolean;
 }
 
 /**
@@ -167,6 +172,19 @@ export function getModuleVisibility(
   // Craniofacial: specialty-gated
   const craniofacialAssessment = group.specialty === "cleft_cranio";
 
+  // Aesthetic: specialty-gated + procedure-driven (aes_/bc_ prefix) + existing data
+  const aestheticAssessment =
+    group.specialty === "aesthetics" ||
+    procedures.some(
+      (p) =>
+        p.picklistEntryId != null && isAestheticProcedure(p.picklistEntryId),
+    ) ||
+    !!group.aestheticAssessment;
+
+  // Burns: specialty-gated + existing data
+  const burnsAssessment =
+    group.specialty === "burns" || !!group.burnsAssessment;
+
   return {
     flapDetails,
     flapOutcome,
@@ -177,5 +195,7 @@ export function getModuleVisibility(
     implant,
     breast,
     craniofacialAssessment,
+    aestheticAssessment,
+    burnsAssessment,
   };
 }

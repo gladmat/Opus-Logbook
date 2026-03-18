@@ -132,6 +132,12 @@ import { JointImplantSection } from "@/components/joint-implant/JointImplantSect
 import { CraniofacialAssessment } from "@/components/craniofacial/CraniofacialAssessment";
 import { isCraniofacialDiagnosis } from "@/lib/craniofacialConfig";
 import type { CraniofacialAssessmentData } from "@/types/craniofacial";
+import { AestheticAssessment as AestheticAssessmentComponent } from "@/components/aesthetics/AestheticAssessment";
+import { isAestheticProcedure } from "@/lib/aestheticsConfig";
+import type { AestheticAssessment as AestheticAssessmentData } from "@/types/aesthetics";
+import { BurnsAssessment } from "@/components/burns/BurnsAssessment";
+import { isBurnsDiagnosis, getDefaultBurnsAssessment, getBurnPhaseFromDiagnosis } from "@/lib/burnsConfig";
+import type { BurnsAssessmentData } from "@/types/burns";
 import type {
   SkinCancerLesionAssessment,
   LesionPhoto,
@@ -1132,6 +1138,14 @@ function DiagnosisGroupEditorInner({
   const isBreastModule = isBreastSpecialty(groupSpecialty);
   const isHeadNeck = groupSpecialty === "head_neck";
   const isCraniofacialModule = isCraniofacialDiagnosis(groupSpecialty);
+  const isAestheticModule =
+    groupSpecialty === "aesthetics" ||
+    procedures.some(
+      (p) =>
+        p.picklistEntryId != null &&
+        isAestheticProcedure(p.picklistEntryId),
+    ) ||
+    !!group.aestheticAssessment;
 
   const normalizedCraniofacialAssessment = useMemo(():
     | CraniofacialAssessmentData
@@ -1141,6 +1155,34 @@ function DiagnosisGroupEditorInner({
       group.craniofacialAssessment ?? { operativeDetails: {} }
     );
   }, [isCraniofacialModule, group.craniofacialAssessment]);
+
+  const normalizedAestheticAssessment = useMemo(():
+    | AestheticAssessmentData
+    | undefined => {
+    if (!isAestheticModule) return undefined;
+    return (
+      group.aestheticAssessment ?? {
+        interventionType: "surgical",
+        intent: "cosmetic",
+      }
+    );
+  }, [isAestheticModule, group.aestheticAssessment]);
+
+  const isBurnsModule = useMemo(
+    () => groupSpecialty === "burns" || !!group.burnsAssessment,
+    [groupSpecialty, group.burnsAssessment],
+  );
+
+  const normalizedBurnsAssessment = useMemo(():
+    | BurnsAssessmentData
+    | undefined => {
+    if (!isBurnsModule) return undefined;
+    if (group.burnsAssessment) return group.burnsAssessment;
+    const phase = selectedDiagnosis?.id
+      ? getBurnPhaseFromDiagnosis(selectedDiagnosis.id)
+      : "acute";
+    return getDefaultBurnsAssessment(phase);
+  }, [isBurnsModule, group.burnsAssessment, selectedDiagnosis?.id]);
 
   const defaultBreastClinicalContext = useMemo(
     () => getBreastClinicalContext(selectedDiagnosis ?? undefined),
@@ -3252,6 +3294,30 @@ function DiagnosisGroupEditorInner({
                 patientDob={patientDateOfBirth || undefined}
                 surgeryDate={procedureDate || undefined}
                 selectedProcedureIds={procedurePicklistIds}
+              />
+            ) : null}
+
+            {/* Aesthetic assessment module (procedure-driven + specialty-gated) */}
+            {isAestheticModule && normalizedAestheticAssessment ? (
+              <AestheticAssessmentComponent
+                assessment={normalizedAestheticAssessment}
+                onAssessmentChange={(
+                  aestheticAssessment: AestheticAssessmentData,
+                ) => onChange({ ...group, aestheticAssessment })}
+                procedureIds={procedurePicklistIds}
+                diagnosisId={selectedDiagnosis?.id}
+              />
+            ) : null}
+
+            {/* Burns assessment module (specialty-gated) */}
+            {isBurnsModule && normalizedBurnsAssessment ? (
+              <BurnsAssessment
+                assessment={normalizedBurnsAssessment}
+                onAssessmentChange={(
+                  burnsAssessment: BurnsAssessmentData,
+                ) => onChange({ ...group, burnsAssessment })}
+                diagnosisId={selectedDiagnosis?.id}
+                procedures={group.procedures}
               />
             ) : null}
 

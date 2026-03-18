@@ -186,6 +186,14 @@ export const DIAGNOSIS_TO_RECIPIENT_SITE: Record<string, AnatomicalRegion> = {
   cc_dx_fibrous_dysplasia_craniofacial: "head_neck",
   cc_dx_encephalocele: "head_neck",
   cc_dx_orbital_hypertelorism: "head_neck",
+
+  // Burns — acute and reconstructive free flap cases
+  burns_dx_contracture_neck: "head_neck",
+  burns_dx_contracture_hand: "hand",
+  burns_dx_ectropion_burn: "head_neck",
+  burns_dx_microstomia: "head_neck",
+  burns_dx_nasal_contracture: "head_neck",
+  burns_dx_ear_contracture: "head_neck",
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

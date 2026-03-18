@@ -1779,6 +1779,8 @@ export interface CaseProcedure {
   supervisionLevelOverride?: SupervisionLevel;
   clinicalDetails?: ClinicalDetails;
   implantDetails?: JointImplantDetails;
+  /** Burn-specific procedure details (graft, excision, dermal substitute, etc.) */
+  burnProcedureDetails?: import("./burns").BurnProcedureDetails;
   notes?: string;
   /** Which specific digit this procedure targets (for multi-digit cases like trigger finger). */
   digitId?: DigitId;
@@ -1869,6 +1871,8 @@ export interface DiagnosisGroup {
   craniofacialAssessment?: import("./craniofacial").CraniofacialAssessmentData;
   /** Aesthetic assessment data (injectable/energy/surgical details) */
   aestheticAssessment?: import("./aesthetics").AestheticAssessment;
+  /** Burns assessment data (TBSA, injury event, severity scores) */
+  burnsAssessment?: import("./burns").BurnsAssessmentData;
 }
 
 export type GeneralHistologyCategory =

@@ -128,6 +128,8 @@ export interface TreatmentEpisode {
   updatedAt: string;
   /** Breast reconstruction episode metadata (nullable, populated for staged_reconstruction breast episodes) */
   breastReconstructionMeta?: import("./breast").BreastReconstructionMeta;
+  /** Burn injury event data (episode-level, captured once on first acute case) */
+  burnInjuryEvent?: import("./burns").BurnInjuryEvent;
 }
 
 // ── Episode Prefill Data (for "+ Log Case" workflow) ────────────────────────
