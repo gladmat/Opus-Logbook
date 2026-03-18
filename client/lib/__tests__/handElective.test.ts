@@ -10,6 +10,7 @@ import {
   getFingerConfigForDiagnosis,
   hasPerFingerQuinnell,
   formatTriggerFingerGrading,
+  bridgeDigitsToFingers,
   QUINNELL_GRADES,
 } from "@/lib/handElectiveFieldConfig";
 
@@ -495,17 +496,28 @@ describe("Per-finger Quinnell grading", () => {
     expect(config).toBeNull();
   });
 
-  it("hasPerFingerQuinnell returns true for trigger finger", () => {
-    expect(hasPerFingerQuinnell("hand_dx_trigger_finger")).toBe(true);
+  it("hasPerFingerQuinnell returns true for unified trigger digit", () => {
+    expect(hasPerFingerQuinnell("hand_dx_trigger_digit")).toBe(true);
   });
 
-  it("hasPerFingerQuinnell returns true for legacy trigger thumb ID", () => {
-    expect(hasPerFingerQuinnell("hand_dx_trigger_thumb")).toBe(true);
+  it("hasPerFingerQuinnell returns false for legacy trigger IDs", () => {
+    expect(hasPerFingerQuinnell("hand_dx_trigger_finger")).toBe(false);
+    expect(hasPerFingerQuinnell("hand_dx_trigger_thumb")).toBe(false);
   });
 
   it("hasPerFingerQuinnell returns false for unrelated diagnosis", () => {
     expect(hasPerFingerQuinnell("hand_dx_dequervain")).toBe(false);
     expect(hasPerFingerQuinnell(undefined)).toBe(false);
+  });
+
+  it("bridgeDigitsToFingers maps DigitIds to finger IDs", () => {
+    expect(bridgeDigitsToFingers(["I", "III", "V"])).toEqual([
+      "thumb",
+      "middle",
+      "little",
+    ]);
+    expect(bridgeDigitsToFingers(["II", "IV"])).toEqual(["index", "ring"]);
+    expect(bridgeDigitsToFingers([])).toEqual([]);
   });
 
   it("QUINNELL_GRADES has 5 grades (0-IV)", () => {
@@ -558,11 +570,11 @@ describe("Per-finger Quinnell grading", () => {
     expect(ids).toContain("hand_comp_trigger_finger");
   });
 
-  it("unified trigger digit has hasStaging true (Quinnell via staging config)", () => {
+  it("unified trigger digit has hasStaging false (Quinnell handled per-digit client-side)", () => {
     const dx = HAND_SURGERY_DIAGNOSES.find(
       (d) => d.id === "hand_dx_trigger_digit",
     );
     expect(dx).toBeDefined();
-    expect(dx!.hasStaging).toBe(true);
+    expect(dx!.hasStaging).toBe(false);
   });
 });

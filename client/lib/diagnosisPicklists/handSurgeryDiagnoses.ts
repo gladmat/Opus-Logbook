@@ -1101,7 +1101,7 @@ const HAND_DX_STENOSING_TENOSYNOVITIS: DiagnosisPicklistEntry[] = [
     specialty: "hand_wrist",
     subcategory: "Stenosing Tenosynovitis",
     clinicalGroup: "elective",
-    hasStaging: true, // Quinnell grade in diagnosisStagingConfig
+    hasStaging: false, // Quinnell grading handled per-digit via PerFingerQuinnellGrading
     hasDigitMultiSelect: true,
     searchSynonyms: [
       "trigger finger",

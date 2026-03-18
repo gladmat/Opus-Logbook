@@ -112,6 +112,8 @@ const CSV_HEADERS = [
   "dupuytren_revision",
   "dupuytren_web_space",
   "dupuytren_diathesis_score",
+  "dupuytren_palm_nodule",
+  "dupuytren_palm_cord",
   "implant_system",
   "implant_size",
   "implant_fixation",
@@ -519,6 +521,10 @@ function caseToRow(c: Case, options: CsvExportOptions): string {
           calculateDiathesisScore(primaryGroup.dupuytrenAssessment.diathesis),
         )
       : "",
+    primaryGroup?.dupuytrenAssessment?.palmInvolvement?.hasNodule
+      ? "Yes"
+      : "",
+    primaryGroup?.dupuytrenAssessment?.palmInvolvement?.hasCord ? "Yes" : "",
     implantFields.system,
     implantFields.size,
     implantFields.fixation,

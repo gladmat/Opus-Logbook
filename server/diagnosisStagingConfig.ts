@@ -184,39 +184,8 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
     ],
   },
 
-  // Trigger Finger
-  {
-    snomedCtCodes: [
-      "1539003", // Trigger finger
-      "42786005", // Snapping thumb
-    ],
-    keywords: ["trigger finger", "trigger thumb", "stenosing tenosynovitis"],
-    stagingSystems: [
-      {
-        name: "Quinnell Grade",
-        description: "Grading of trigger finger severity",
-        options: [
-          { value: "0", label: "Grade 0", description: "Normal movement" },
-          { value: "1", label: "Grade I", description: "Uneven movement" },
-          {
-            value: "2",
-            label: "Grade II",
-            description: "Actively correctable triggering",
-          },
-          {
-            value: "3",
-            label: "Grade III",
-            description: "Passively correctable triggering",
-          },
-          {
-            value: "4",
-            label: "Grade IV",
-            description: "Fixed flexion contracture",
-          },
-        ],
-      },
-    ],
-  },
+  // NOTE: Trigger finger Quinnell grading removed — now handled per-digit
+  // client-side via PerFingerQuinnellGrading component.
 
   // Breast Cancer
   {

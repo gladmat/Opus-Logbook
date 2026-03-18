@@ -503,6 +503,18 @@ function buildCondition(
         valueString: "true",
       });
     }
+    if (da.palmInvolvement?.hasNodule) {
+      dupuytrenExtensions.push({
+        url: "palmNodule",
+        valueString: "true",
+      });
+    }
+    if (da.palmInvolvement?.hasCord) {
+      dupuytrenExtensions.push({
+        url: "palmCord",
+        valueString: "true",
+      });
+    }
     if (da.totalHandScore != null) {
       dupuytrenExtensions.push({
         url: "totalHandScore",

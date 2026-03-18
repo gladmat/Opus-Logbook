@@ -57,7 +57,24 @@ export const QUINNELL_GRADES: { value: string; label: string; description: strin
  * Diagnoses that support per-finger Quinnell grading.
  */
 export function hasPerFingerQuinnell(diagnosisId: string | undefined): boolean {
-  return diagnosisId === "hand_dx_trigger_finger" || diagnosisId === "hand_dx_trigger_thumb";
+  return diagnosisId === "hand_dx_trigger_digit";
+}
+
+/**
+ * Bridge DigitId (I–V) to finger IDs used by PerFingerQuinnellGrading.
+ * Needed because DigitMultiSelect uses Roman numeral DigitIds
+ * while PerFingerQuinnellGrading uses named finger IDs.
+ */
+const DIGIT_TO_FINGER: Record<string, string> = {
+  I: "thumb",
+  II: "index",
+  III: "middle",
+  IV: "ring",
+  V: "little",
+};
+
+export function bridgeDigitsToFingers(digits: string[]): string[] {
+  return digits.map((d) => DIGIT_TO_FINGER[d] ?? d);
 }
 
 /**

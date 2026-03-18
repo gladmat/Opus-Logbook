@@ -42,6 +42,16 @@ export interface FirstWebSpaceAssessment {
 }
 
 /**
+ * Palm involvement — palmar nodules and cords.
+ * Clinically important for documenting palm-only disease or
+ * palm involvement accompanying finger contractures.
+ */
+export interface PalmInvolvement {
+  hasNodule: boolean;
+  hasCord: boolean;
+}
+
+/**
  * Dupuytren's diathesis features — prognostic indicators.
  * Optional Tier 3 depth fields.
  */
@@ -88,6 +98,9 @@ export interface DupuytrenAssessment {
 
   /** First web space (separate from finger contractures) */
   firstWebSpace?: FirstWebSpaceAssessment;
+
+  /** Palm involvement — palmar nodules and/or cords */
+  palmInvolvement?: PalmInvolvement;
 
   /** Is this a revision case? (derived from diagnosis selection) */
   isRevision: boolean;

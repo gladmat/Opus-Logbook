@@ -157,6 +157,13 @@ export function generateDupuytrenSummaryText(
     parts.push("1st web");
   }
 
+  if (assessment.palmInvolvement?.hasNodule || assessment.palmInvolvement?.hasCord) {
+    const palmParts: string[] = [];
+    if (assessment.palmInvolvement.hasNodule) palmParts.push("nodule");
+    if (assessment.palmInvolvement.hasCord) palmParts.push("cord");
+    parts.push(`palm (${palmParts.join(" + ")})`);
+  }
+
   if (assessment.isRevision) {
     parts.push("recurrent");
   }

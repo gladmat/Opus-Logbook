@@ -157,6 +157,7 @@ import {
   isElectiveHandFlow,
   shouldRenderGenericDiagnosisSnomedPicker,
 } from "@/lib/handElectiveFlow";
+import { bridgeDigitsToFingers } from "@/lib/handElectiveFieldConfig";
 import {
   resolveDigitConfig,
   DIGIT_LABELS,
@@ -424,6 +425,14 @@ function DiagnosisGroupEditorInner({
                 ? "acute"
                 : "elective",
           );
+        }
+
+        // Bridge affectedDigits → affectedFingers for legacy data
+        if (
+          group.affectedDigits?.length &&
+          !group.affectedFingers?.length
+        ) {
+          setAffectedFingers(bridgeDigitsToFingers(group.affectedDigits));
         }
       }
     }
@@ -1903,6 +1912,7 @@ function DiagnosisGroupEditorInner({
       newProcedures.length > 0 ? newProcedures : buildDefaultProcedures(),
     );
     setAffectedDigits([...selectedDigits]);
+    setAffectedFingers(bridgeDigitsToFingers(selectedDigits));
     setPendingMultiDigitDiagnosis(null);
     setSelectedDigits([]);
   }, [
@@ -2575,6 +2585,59 @@ function DiagnosisGroupEditorInner({
           </View>
         ) : null}
 
+        {/* Laterality selector for acute + elective (trauma has its own inside HandTraumaAssessment) */}
+        {groupSpecialty === "hand_wrist" &&
+        (handCaseType === "acute" || handCaseType === "elective") ? (
+          <View style={styles.handLateralityContainer}>
+            <ThemedText
+              style={[styles.caseTypeLabel, { color: theme.textSecondary }]}
+            >
+              Laterality
+            </ThemedText>
+            <View style={styles.handLateralityButtons}>
+              {(["left", "right"] as const).map((side) => {
+                const isSelected =
+                  diagnosisClinicalDetails.laterality === side;
+                return (
+                  <Pressable
+                    key={side}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setDiagnosisClinicalDetails((prev) => ({
+                        ...prev,
+                        laterality: prev.laterality === side ? undefined : side,
+                      }));
+                    }}
+                    style={[
+                      styles.handLateralityButton,
+                      {
+                        backgroundColor: isSelected
+                          ? theme.link
+                          : theme.backgroundDefault,
+                        borderColor: isSelected ? theme.link : theme.border,
+                      },
+                    ]}
+                    testID={`btn-laterality-${side}`}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.handLateralityButtonText,
+                        {
+                          color: isSelected
+                            ? theme.buttonText
+                            : theme.text,
+                        },
+                      ]}
+                    >
+                      {side === "left" ? "Left hand" : "Right hand"}
+                    </ThemedText>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
+
         {!hasSelectedHandCaseType ? (
           <View
             style={[
@@ -2860,12 +2923,6 @@ function DiagnosisGroupEditorInner({
                     stagingValues={stagingValues}
                     onStagingChange={handleStagingChangeForSuggestions}
                     laterality={diagnosisClinicalDetails.laterality}
-                    onLateralityChange={(value) =>
-                      setDiagnosisClinicalDetails((prev) => ({
-                        ...prev,
-                        laterality: value,
-                      }))
-                    }
                     affectedFingers={affectedFingers}
                     onAffectedFingersChange={setAffectedFingers}
                     affectedDigits={affectedDigits}
@@ -4200,6 +4257,27 @@ const styles = StyleSheet.create({
   },
   caseTypeButtonText: {
     fontSize: 14,
+    fontWeight: "600",
+  },
+  handLateralityContainer: {
+    marginBottom: Spacing.md,
+  },
+  handLateralityButtons: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+  },
+  handLateralityButton: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 48,
+  },
+  handLateralityButtonText: {
+    fontSize: 15,
     fontWeight: "600",
   },
   aoSection: {

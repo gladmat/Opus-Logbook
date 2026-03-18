@@ -38,15 +38,6 @@ import type { DupuytrenAssessment as DupuytrenAssessmentType } from "@/types/dup
 import type { DiagnosisStagingConfig } from "@/lib/snomedApi";
 
 // ═══════════════════════════════════════════════════════════════
-// Laterality options (subset of DiagnosisClinicalFields)
-// ═══════════════════════════════════════════════════════════════
-
-const LATERALITY_OPTIONS: { value: Laterality; label: string }[] = [
-  { value: "left", label: "Left" },
-  { value: "right", label: "Right" },
-];
-
-// ═══════════════════════════════════════════════════════════════
 // Props
 // ═══════════════════════════════════════════════════════════════
 
@@ -69,10 +60,8 @@ interface HandElectiveAssessmentProps {
   stagingValues: Record<string, string>;
   /** Called when a staging value changes */
   onStagingChange: (systemName: string, value: string) => void;
-  /** Current laterality value */
+  /** Current laterality value (set by parent laterality selector) */
   laterality: Laterality | undefined;
-  /** Called when laterality changes */
-  onLateralityChange: (value: Laterality | undefined) => void;
   /** Affected fingers for per-finger conditions (legacy) */
   affectedFingers?: string[];
   /** Called when affected fingers change */
@@ -122,7 +111,6 @@ export function HandElectiveAssessment({
   stagingValues,
   onStagingChange,
   laterality,
-  onLateralityChange,
   affectedFingers,
   onAffectedFingersChange,
   affectedDigits,
@@ -315,49 +303,6 @@ export function HandElectiveAssessment({
           onCollapsedChange={(c) => setSectionCollapsed("classification", c)}
           subtitle={classificationSubtitle}
         >
-          {/* Laterality */}
-          <View style={styles.fieldGroup}>
-            <ThemedText
-              style={[styles.fieldLabel, { color: theme.textSecondary }]}
-            >
-              Laterality
-            </ThemedText>
-            <View style={styles.chipRow}>
-              {LATERALITY_OPTIONS.map((opt) => {
-                const isSelected = laterality === opt.value;
-                return (
-                  <Pressable
-                    key={opt.value}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      onLateralityChange(isSelected ? undefined : opt.value);
-                    }}
-                    style={[
-                      styles.lateralityChip,
-                      {
-                        backgroundColor: isSelected
-                          ? theme.link
-                          : theme.backgroundTertiary,
-                        borderColor: isSelected ? theme.link : theme.border,
-                      },
-                    ]}
-                  >
-                    <ThemedText
-                      style={[
-                        styles.lateralityChipText,
-                        {
-                          color: isSelected ? theme.buttonText : theme.text,
-                        },
-                      ]}
-                    >
-                      {opt.label}
-                    </ThemedText>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-
           {/* Confirmed digit summary (read-only after multi-digit confirm) */}
           {affectedDigits &&
             affectedDigits.length > 0 &&
@@ -560,25 +505,6 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 13,
     fontWeight: "500",
-  },
-  chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: Spacing.xs,
-  },
-  lateralityChip: {
-    flex: 1,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 1,
-    minHeight: 44,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  lateralityChipText: {
-    fontSize: 15,
-    fontWeight: "600",
   },
   summaryCard: {
     borderWidth: 1,

@@ -636,6 +636,32 @@ export const DupuytrenAssessment = React.memo(function DupuytrenAssessment({
     });
   };
 
+  // ── Palm involvement ──────────────────────────────────────────────
+
+  const togglePalmNodule = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const current = assessment.palmInvolvement;
+    const hasNodule = !current?.hasNodule;
+    const hasCord = current?.hasCord ?? false;
+    emitChange({
+      ...assessment,
+      palmInvolvement:
+        hasNodule || hasCord ? { hasNodule, hasCord } : undefined,
+    });
+  };
+
+  const togglePalmCord = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const current = assessment.palmInvolvement;
+    const hasNodule = current?.hasNodule ?? false;
+    const hasCord = !current?.hasCord;
+    emitChange({
+      ...assessment,
+      palmInvolvement:
+        hasNodule || hasCord ? { hasNodule, hasCord } : undefined,
+    });
+  };
+
   // ── Previous treatment ─────────────────────────────────────────────
 
   const updatePreviousTreatment = (pt: DupuytrenPreviousTreatment) => {
@@ -739,6 +765,67 @@ export const DupuytrenAssessment = React.memo(function DupuytrenAssessment({
           First web space involved
         </ThemedText>
       </Pressable>
+
+      {/* Palm involvement */}
+      <View style={styles.section}>
+        <ThemedText
+          style={[styles.sectionLabel, { color: theme.textSecondary }]}
+        >
+          PALM INVOLVEMENT
+        </ThemedText>
+        <View style={styles.palmToggles}>
+          <Pressable onPress={togglePalmNodule} style={styles.toggleRow}>
+            <Feather
+              name={
+                assessment.palmInvolvement?.hasNodule
+                  ? "check-square"
+                  : "square"
+              }
+              size={18}
+              color={
+                assessment.palmInvolvement?.hasNodule
+                  ? theme.link
+                  : theme.textSecondary
+              }
+            />
+            <ThemedText
+              style={{
+                fontSize: 14,
+                color: assessment.palmInvolvement?.hasNodule
+                  ? theme.text
+                  : theme.textSecondary,
+              }}
+            >
+              Palmar nodule
+            </ThemedText>
+          </Pressable>
+          <Pressable onPress={togglePalmCord} style={styles.toggleRow}>
+            <Feather
+              name={
+                assessment.palmInvolvement?.hasCord
+                  ? "check-square"
+                  : "square"
+              }
+              size={18}
+              color={
+                assessment.palmInvolvement?.hasCord
+                  ? theme.link
+                  : theme.textSecondary
+              }
+            />
+            <ThemedText
+              style={{
+                fontSize: 14,
+                color: assessment.palmInvolvement?.hasCord
+                  ? theme.text
+                  : theme.textSecondary,
+              }}
+            >
+              Palmar cord
+            </ThemedText>
+          </Pressable>
+        </View>
+      </View>
 
       {/* Previous treatment (recurrent only) */}
       {isRevision ? (
@@ -1048,6 +1135,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Spacing.xs,
     paddingVertical: 4,
+  },
+  palmToggles: {
+    gap: Spacing.xs,
   },
   collapsibleHeader: {
     flexDirection: "row",
