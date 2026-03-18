@@ -101,6 +101,50 @@ function getHeadNeckFlapSummary(caseData: Case): string {
   return "";
 }
 
+function getCraniofacialSummary(caseData: Case): string {
+  const group = (caseData.diagnosisGroups ?? []).find(
+    (g) => g.craniofacialAssessment,
+  );
+  if (!group?.craniofacialAssessment) return "";
+
+  const ca = group.craniofacialAssessment;
+  const parts: string[] = [];
+
+  if (ca.cleftClassification) {
+    const cleft = ca.cleftClassification;
+    if (cleft.veauClass) parts.push(`Veau ${cleft.veauClass}`);
+    if (cleft.laterality)
+      parts.push(cleft.laterality.charAt(0).toUpperCase() + cleft.laterality.slice(1));
+  }
+
+  if (ca.craniosynostosisDetails) {
+    const cranio = ca.craniosynostosisDetails;
+    const sutures = cranio.suturesInvolved?.join(", ") ?? "";
+    parts.push(
+      `Cranio: ${sutures}${cranio.syndromic ? ` (${cranio.syndromeName ?? "syndromic"})` : ""}`,
+    );
+  }
+
+  if (ca.omensClassification) {
+    const o = ca.omensClassification;
+    parts.push(`OMENS: O${o.orbit}M-${o.mandible}E${o.ear}N${o.nerve}S${o.softTissue}`);
+  }
+
+  const od = ca.operativeDetails;
+  if (od.namedTechnique) parts.push(od.namedTechnique);
+  if (od.boneGraftDonor) parts.push(`Graft: ${od.boneGraftDonor.replace(/_/g, " ")}`);
+
+  if (ca.outcomes?.speech?.vpcRating != null) {
+    const vpcLabels: Record<number, string> = { 0: "competent", 1: "borderline", 2: "incompetent" };
+    parts.push(`VPC: ${vpcLabels[ca.outcomes.speech.vpcRating] ?? ca.outcomes.speech.vpcRating}`);
+  }
+  if (ca.outcomes?.dental?.goslonScore) {
+    parts.push(`GOSLON: ${ca.outcomes.dental.goslonScore}/5`);
+  }
+
+  return parts.join(", ");
+}
+
 function escapeHtml(str: string): string {
   return str
     .replace(/&/g, "&amp;")
@@ -212,6 +256,8 @@ export function buildPdfHtml(cases: Case[], options: PdfExportOptions): string {
       dupuytrenSummary = parts.join(", ");
     }
 
+    const craniofacialSummary = getCraniofacialSummary(c);
+
     const implantSummary = [jointImplantSummary, ...breastParts]
       .filter(Boolean)
       .join("; ");
@@ -263,7 +309,7 @@ export function buildPdfHtml(cases: Case[], options: PdfExportOptions): string {
       escapeHtml(primary?.diagnosis?.displayName || ""),
       escapeHtml(primaryProc?.procedureName || ""),
       escapeHtml(
-        [implantSummary, headNeckFlapSummary, dupuytrenSummary].filter(Boolean).join("; "),
+        [implantSummary, headNeckFlapSummary, dupuytrenSummary, craniofacialSummary].filter(Boolean).join("; "),
       ),
       escapeHtml(complications),
       escapeHtml(c.outcome || ""),

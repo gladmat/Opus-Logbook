@@ -39,6 +39,10 @@ import {
   getDominantPatternLabel,
 } from "@/lib/dupuytrenHelpers";
 import { formatAffectedDigits } from "@/lib/diagnosisPicklists/multiDigitConfig";
+import type {
+  CleftCompleteness,
+  LAHSHALClassification,
+} from "@/types/craniofacial";
 import { formatTriggerFingerGrading } from "@/lib/handElectiveFieldConfig";
 
 export interface CsvExportOptions {
@@ -178,6 +182,27 @@ const CSV_HEADERS = [
   "hn_vein_graft_length_cm",
   "hn_fibula_brown_class",
   "hn_fibula_mandible_segments",
+  // ── Craniofacial module columns ──
+  "cf_laterality",
+  "cf_lahshal",
+  "cf_veau_class",
+  "cf_associated_syndrome",
+  "cf_pathway_stage",
+  "cf_age_at_surgery_months",
+  "cf_named_technique",
+  "cf_bone_graft_donor",
+  "cf_blood_loss_ml",
+  "cf_transfusion",
+  "cf_sutures_involved",
+  "cf_syndromic",
+  "cf_icp_mmhg",
+  "cf_whitaker",
+  "cf_omens",
+  "cf_speech_vpc",
+  "cf_dental_goslon",
+  "cf_hearing_grommets",
+  "cf_feeding_method",
+  "cf_complications",
 ] as const;
 
 function escapeCsvField(
@@ -357,6 +382,87 @@ function extractHeadNeckCsvFields(c: Case): (string | number | undefined)[] {
   ];
 }
 
+// ── Craniofacial helpers ──
+
+const CF_EMPTY = new Array(20).fill("") as string[];
+
+function lahshalChar(c: CleftCompleteness, letter: string): string {
+  return c === "complete"
+    ? letter.toUpperCase()
+    : c === "incomplete"
+      ? letter.toLowerCase()
+      : ".";
+}
+
+function formatLahshal(l: LAHSHALClassification): string {
+  return [
+    lahshalChar(l.rightLip, "L"),
+    lahshalChar(l.rightAlveolus, "A"),
+    lahshalChar(l.hardPalate, "H"),
+    lahshalChar(l.softPalate, "S"),
+    lahshalChar(l.leftAlveolus, "A"),
+    lahshalChar(l.leftLip, "L"),
+  ].join("");
+}
+
+function formatOmens(o: {
+  orbit: number;
+  mandible: string;
+  ear: number;
+  nerve: number;
+  softTissue: number;
+}): string {
+  return `O${o.orbit}M-${o.mandible}E${o.ear}N${o.nerve}S${o.softTissue}`;
+}
+
+function extractCraniofacialCsvFields(
+  groups: DiagnosisGroup[],
+): (string | number | undefined)[] {
+  const group = groups.find((g) => g.craniofacialAssessment);
+  if (!group?.craniofacialAssessment) return CF_EMPTY;
+
+  const ca = group.craniofacialAssessment;
+  const od = ca.operativeDetails;
+  const cleft = ca.cleftClassification;
+  const cranio = ca.craniosynostosisDetails;
+  const omens = ca.omensClassification;
+  const out = ca.outcomes;
+
+  return [
+    cleft?.laterality ?? "",
+    cleft?.lahshal ? formatLahshal(cleft.lahshal) : "",
+    cleft?.veauClass ?? "",
+    cleft?.associatedSyndrome ?? "",
+    od.pathwayStage ?? "",
+    od.ageAtSurgery
+      ? od.ageAtSurgery.years * 12 + od.ageAtSurgery.months
+      : "",
+    od.namedTechnique ?? "",
+    od.boneGraftDonor ?? "",
+    od.estimatedBloodLossMl ?? "",
+    od.transfusionRequired ? "Yes" : "",
+    cranio?.suturesInvolved?.join("; ") ?? "",
+    cranio?.syndromic ? "Yes" : "",
+    cranio?.icpAssessment?.preOperative?.valueMmHg ?? "",
+    cranio?.whitakerOutcome ?? "",
+    omens ? formatOmens(omens) : "",
+    out?.speech?.vpcRating != null ? String(out.speech.vpcRating) : "",
+    out?.dental?.goslonScore != null ? String(out.dental.goslonScore) : "",
+    out?.hearing?.grommetsInserted
+      ? (out.hearing.grommetSets != null
+          ? `Yes (${out.hearing.grommetSets})`
+          : "Yes")
+      : "",
+    out?.feeding?.method ?? "",
+    out?.complications
+      ? Object.entries(out.complications)
+          .filter(([, v]) => v)
+          .map(([k]) => k)
+          .join("; ")
+      : "",
+  ];
+}
+
 function caseToRow(c: Case, options: CsvExportOptions): string {
   const groups = c.diagnosisGroups || [];
   const primaryGroup = groups[0];
@@ -398,6 +504,7 @@ function caseToRow(c: Case, options: CsvExportOptions): string {
   const implantFields = getCaseImplantExportFields(c);
   const breastFields = extractBreastCsvFields(groups);
   const headNeckFields = extractHeadNeckCsvFields(c);
+  const craniofacialFields = extractCraniofacialCsvFields(groups);
 
   const values: (string | number | boolean | undefined | null)[] = [
     c.id,
@@ -559,6 +666,8 @@ function caseToRow(c: Case, options: CsvExportOptions): string {
       : "",
     // ── Head & Neck flap details ──
     ...headNeckFields,
+    // ── Craniofacial module ──
+    ...craniofacialFields,
   ];
 
   return values.map(escapeCsvField).join(",");

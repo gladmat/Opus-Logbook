@@ -542,6 +542,132 @@ function buildCondition(
     ];
   }
 
+  // Craniofacial assessment extension
+  if (group.craniofacialAssessment) {
+    const ca = group.craniofacialAssessment;
+    const cfExt: { url: string; valueString: string }[] = [];
+
+    // Cleft classification
+    if (ca.cleftClassification) {
+      const cleft = ca.cleftClassification;
+      if (cleft.lahshal) {
+        const chars = (
+          c: "complete" | "incomplete" | "none",
+          l: string,
+        ) => (c === "complete" ? l.toUpperCase() : c === "incomplete" ? l.toLowerCase() : ".");
+        cfExt.push({
+          url: "lahshal",
+          valueString: [
+            chars(cleft.lahshal.rightLip, "L"),
+            chars(cleft.lahshal.rightAlveolus, "A"),
+            chars(cleft.lahshal.hardPalate, "H"),
+            chars(cleft.lahshal.softPalate, "S"),
+            chars(cleft.lahshal.leftAlveolus, "A"),
+            chars(cleft.lahshal.leftLip, "L"),
+          ].join(""),
+        });
+      }
+      if (cleft.veauClass) {
+        cfExt.push({ url: "veauClass", valueString: cleft.veauClass });
+      }
+      if (cleft.laterality) {
+        cfExt.push({ url: "cleftLaterality", valueString: cleft.laterality });
+      }
+      if (cleft.associatedSyndrome) {
+        cfExt.push({
+          url: "associatedSyndrome",
+          valueString: cleft.associatedSyndrome,
+        });
+      }
+    }
+
+    // Operative details
+    const od = ca.operativeDetails;
+    if (od.ageAtSurgery) {
+      cfExt.push({
+        url: "ageAtSurgeryMonths",
+        valueString: String(od.ageAtSurgery.years * 12 + od.ageAtSurgery.months),
+      });
+    }
+    if (od.namedTechnique) {
+      cfExt.push({ url: "namedTechnique", valueString: od.namedTechnique });
+    }
+    if (od.boneGraftDonor) {
+      cfExt.push({ url: "boneGraftDonor", valueString: od.boneGraftDonor });
+    }
+    if (od.estimatedBloodLossMl) {
+      cfExt.push({
+        url: "estimatedBloodLossMl",
+        valueString: String(od.estimatedBloodLossMl),
+      });
+    }
+    if (od.pathwayStage) {
+      cfExt.push({ url: "pathwayStage", valueString: od.pathwayStage });
+    }
+
+    // Craniosynostosis
+    if (ca.craniosynostosisDetails) {
+      const cranio = ca.craniosynostosisDetails;
+      if (cranio.suturesInvolved?.length) {
+        cfExt.push({
+          url: "suturesInvolved",
+          valueString: cranio.suturesInvolved.join("; "),
+        });
+      }
+      if (cranio.syndromic) {
+        cfExt.push({ url: "syndromic", valueString: "true" });
+        if (cranio.syndromeName) {
+          cfExt.push({ url: "syndromeName", valueString: cranio.syndromeName });
+        }
+      }
+      if (cranio.whitakerOutcome) {
+        cfExt.push({
+          url: "whitakerOutcome",
+          valueString: cranio.whitakerOutcome,
+        });
+      }
+    }
+
+    // OMENS classification
+    if (ca.omensClassification) {
+      const o = ca.omensClassification;
+      cfExt.push({
+        url: "omensClassification",
+        valueString: `O${o.orbit}M-${o.mandible}E${o.ear}N${o.nerve}S${o.softTissue}`,
+      });
+    }
+
+    // Outcomes
+    if (ca.outcomes) {
+      const out = ca.outcomes;
+      if (out.speech?.vpcRating != null) {
+        cfExt.push({
+          url: "speechVpcRating",
+          valueString: String(out.speech.vpcRating),
+        });
+      }
+      if (out.dental?.goslonScore) {
+        cfExt.push({
+          url: "dentalGoslonScore",
+          valueString: String(out.dental.goslonScore),
+        });
+      }
+      if (out.hearing?.grommetsInserted) {
+        cfExt.push({ url: "hearingGrommets", valueString: "true" });
+      }
+    }
+
+    if (cfExt.length > 0) {
+      condition.extension = [
+        ...(condition.extension ?? []),
+        {
+          url: "opus:craniofacialAssessment",
+          extension: cfExt,
+        },
+      ];
+    }
+  }
+
   return condition;
 }
 
