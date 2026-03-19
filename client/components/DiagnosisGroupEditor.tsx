@@ -132,6 +132,7 @@ import { CraniofacialAssessment } from "@/components/craniofacial/CraniofacialAs
 import { isCraniofacialDiagnosis } from "@/lib/craniofacialConfig";
 import type { CraniofacialAssessmentData } from "@/types/craniofacial";
 import { AestheticAssessment as AestheticAssessmentComponent } from "@/components/aesthetics/AestheticAssessment";
+import { AestheticProcedureFirstFlow } from "@/components/aesthetics/AestheticProcedureFirstFlow";
 import { isAestheticProcedure } from "@/lib/aestheticsConfig";
 import type { AestheticAssessment as AestheticAssessmentData } from "@/types/aesthetics";
 import { BurnsAssessment } from "@/components/burns/BurnsAssessment";
@@ -907,6 +908,20 @@ function DiagnosisGroupEditorInner({
     [buildFreeFlapClinicalDetails, groupSpecialty, selectedDiagnosis],
   );
 
+  // Aesthetic procedure-first: auto-inferred diagnosis propagation
+  const handleAestheticDiagnosisInferred = useCallback(
+    (entry: DiagnosisPicklistEntry) => {
+      setSelectedDiagnosis(entry);
+      setPrimaryDiagnosis({
+        conceptId: entry.snomedCtCode,
+        term: entry.displayName,
+      });
+      setDiagnosis(entry.displayName);
+      setIsDiagnosisPickerCollapsed(true);
+    },
+    [],
+  );
+
   const handleBreastDiagnosisSelect = useCallback(
     (dx: DiagnosisPicklistEntry) => {
       setSelectedDiagnosis(dx);
@@ -1155,6 +1170,8 @@ function DiagnosisGroupEditorInner({
         isAestheticProcedure(p.picklistEntryId),
     ) ||
     !!group.aestheticAssessment;
+  // Procedure-first flow: only when specialty IS aesthetics (not just aes_ procedures in another specialty)
+  const isAestheticProcedureFirst = groupSpecialty === "aesthetics";
 
   const normalizedCraniofacialAssessment = useMemo(():
     | CraniofacialAssessmentData
@@ -2963,11 +2980,31 @@ function DiagnosisGroupEditorInner({
           />
         ) : null}
 
+        {/* Aesthetic procedure-first flow */}
+        {isAestheticProcedureFirst && hasSelectedHandCaseType ? (
+          <AestheticProcedureFirstFlow
+            procedures={procedures}
+            onProceduresChange={(procs) =>
+              setProcedures(procs.map((p, i) => ({ ...p, sequenceOrder: i + 1 })))
+            }
+            aestheticAssessment={normalizedAestheticAssessment!}
+            onAssessmentChange={(aestheticAssessment: AestheticAssessmentData) =>
+              onChange({ ...group, aestheticAssessment })
+            }
+            diagnosisClinicalDetails={diagnosisClinicalDetails}
+            onDiagnosisClinicalDetailsChange={setDiagnosisClinicalDetails}
+            onDiagnosisInferred={handleAestheticDiagnosisInferred}
+            groupSpecialty={groupSpecialty}
+            buildProcedureFromPicklistId={buildProcedureFromPicklistId}
+          />
+        ) : null}
+
         {hasSelectedHandCaseType &&
         showTraumaDiagnosisEditor &&
         !isSkinCancerInlineFlow &&
         !isAcuteHandFlow &&
-        !isBreastModule ? (
+        !isBreastModule &&
+        !isAestheticProcedureFirst ? (
           <>
             {isInlineHandTraumaFlow && showManualTraumaDiagnosisPicker ? (
               <View
@@ -3352,8 +3389,8 @@ function DiagnosisGroupEditorInner({
               />
             ) : null}
 
-            {/* Aesthetic assessment module (procedure-driven + specialty-gated) */}
-            {isAestheticModule && normalizedAestheticAssessment ? (
+            {/* Aesthetic assessment module (diagnosis-first path — skipped in procedure-first flow) */}
+            {isAestheticModule && !isAestheticProcedureFirst && normalizedAestheticAssessment ? (
               <AestheticAssessmentComponent
                 assessment={normalizedAestheticAssessment}
                 onAssessmentChange={(
@@ -3418,7 +3455,7 @@ function DiagnosisGroupEditorInner({
               />
             ) : null}
 
-            {primaryDiagnosis && !isSkinCancerModule && !isElectiveHand && !isCraniofacialModule ? (
+            {primaryDiagnosis && !isSkinCancerModule && !isElectiveHand && !isCraniofacialModule && !isAestheticProcedureFirst ? (
               <DiagnosisClinicalFields
                 diagnosis={{
                   snomedCtCode: primaryDiagnosis.conceptId,
@@ -3468,17 +3505,18 @@ function DiagnosisGroupEditorInner({
         showTraumaDiagnosisEditor &&
         !isAcuteHandFlow &&
         !isElectiveHand &&
-        !isBreastModule ? (
+        !isBreastModule &&
+        !isAestheticProcedureFirst ? (
           <View style={styles.connector}>
             <Feather name="arrow-down" size={16} color={theme.textTertiary} />
           </View>
         ) : null}
 
-        {hasSelectedHandCaseType && !isAcuteHandFlow && (!isElectiveHand || showAllProcedures) && !isBreastModule ? (
+        {hasSelectedHandCaseType && !isAcuteHandFlow && (!isElectiveHand || showAllProcedures) && !isBreastModule && !isAestheticProcedureFirst ? (
           <SectionHeader title="Procedures Performed" />
         ) : null}
 
-        {hasSelectedHandCaseType && !isAcuteHandFlow && (!isElectiveHand || showAllProcedures) && !isBreastModule ? (
+        {hasSelectedHandCaseType && !isAcuteHandFlow && (!isElectiveHand || showAllProcedures) && !isBreastModule && !isAestheticProcedureFirst ? (
           <ThemedText
             style={[styles.sectionDescription, { color: theme.textSecondary }]}
           >
@@ -3575,6 +3613,7 @@ function DiagnosisGroupEditorInner({
         acuteHandAllowsProcedures &&
         (!isElectiveHand || showAllProcedures) &&
         !isBreastModule &&
+        !isAestheticProcedureFirst &&
         !showTraumaProcedureSummary ? (
           <>
             {isInlineHandTraumaFlow && showManualTraumaProcedureEditor ? (
@@ -3978,10 +4017,11 @@ function DiagnosisGroupEditorInner({
           </>
         ) : null}
 
-        {/* Histology pending toggle — non-skin-cancer, non-breast specialties only (breast has it in section 3) */}
+        {/* Histology pending toggle — non-skin-cancer, non-breast, non-aesthetic specialties only */}
         {hasSelectedHandCaseType &&
         !isSkinCancerModule &&
         !isBreastModule &&
+        !isAestheticProcedureFirst &&
         !isExcisionBiopsyDiagnosis(selectedDiagnosis?.id) ? (
           <View style={{ marginTop: Spacing.md, marginBottom: Spacing.sm }}>
             <Pressable

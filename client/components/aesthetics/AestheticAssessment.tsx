@@ -17,6 +17,9 @@ import {
   getAcgmeCategory,
   getAcgmeSubcategory,
   isAestheticProcedure,
+  INTENT_LABELS,
+  INTENT_COLORS,
+  ACGME_LABELS,
 } from "@/lib/aestheticsConfig";
 import type {
   AestheticAssessment as AestheticAssessmentData,
@@ -38,36 +41,13 @@ interface AestheticAssessmentProps {
   onAssessmentChange: (assessment: AestheticAssessmentData) => void;
   /** All picklistEntryIds in the diagnosis group */
   procedureIds: string[];
-  /** Selected diagnosis ID for intent derivation */
+  /** Selected diagnosis ID for intent derivation (used in diagnosis-first flow) */
   diagnosisId?: string;
+  /** Direct intent override (used in procedure-first flow) */
+  intent?: AestheticIntent;
+  /** Hide badge row (procedure-first flow shows coding details separately) */
+  hideBadges?: boolean;
 }
-
-// ─── Intent badge config ────────────────────────────────────────────────────
-
-const INTENT_LABELS: Record<AestheticIntent, string> = {
-  cosmetic: "Cosmetic",
-  post_bariatric_mwl: "Post-Bariatric",
-  functional_reconstructive: "Functional / Reconstructive",
-  combined: "Combined",
-};
-
-const INTENT_COLORS: Record<AestheticIntent, string> = {
-  cosmetic: "#E5A00D",
-  post_bariatric_mwl: "#58A6FF",
-  functional_reconstructive: "#2EA043",
-  combined: "#D8B4FE",
-};
-
-// ─── ACGME labels ───────────────────────────────────────────────────────────
-
-const ACGME_LABELS: Record<string, string> = {
-  head_neck_aesthetic: "Head & Neck Aesthetic",
-  breast_aesthetic: "Breast Aesthetic",
-  trunk_extremity_aesthetic: "Trunk / Extremity",
-  injectable_non_index: "Injectables",
-  laser_non_index: "Laser / Energy",
-  other_non_index: "Other Non-Index",
-};
 
 // ─── Detail card type derivation ────────────────────────────────────────────
 
@@ -123,6 +103,8 @@ export const AestheticAssessment = React.memo(function AestheticAssessment({
   onAssessmentChange,
   procedureIds,
   diagnosisId,
+  intent: intentOverride,
+  hideBadges,
 }: AestheticAssessmentProps) {
   const { theme } = useTheme();
 
@@ -139,9 +121,10 @@ export const AestheticAssessment = React.memo(function AestheticAssessment({
   }, [primaryAestheticProcedureId]);
 
   const derivedIntent = useMemo((): AestheticIntent => {
+    if (intentOverride) return intentOverride;
     if (!diagnosisId) return "cosmetic";
     return getAestheticIntentFromDiagnosis(diagnosisId);
-  }, [diagnosisId]);
+  }, [intentOverride, diagnosisId]);
 
   const derivedAcgmeCategory = useMemo(() => {
     if (!primaryAestheticProcedureId) return undefined;
@@ -248,39 +231,41 @@ export const AestheticAssessment = React.memo(function AestheticAssessment({
 
   return (
     <View style={styles.container} testID="caseForm.aesthetics.assessment">
-      {/* Badges row */}
-      <View style={styles.badgeRow}>
-        {/* Intent badge */}
-        <View
-          style={[
-            styles.badge,
-            { backgroundColor: intentColor + "1A", borderColor: intentColor },
-          ]}
-        >
-          <ThemedText style={[styles.badgeText, { color: intentColor }]}>
-            {INTENT_LABELS[derivedIntent]}
-          </ThemedText>
-        </View>
-
-        {/* ACGME category badge */}
-        {acgmeLabel && (
+      {/* Badges row — hidden in procedure-first flow (coding details shown separately) */}
+      {!hideBadges && (
+        <View style={styles.badgeRow}>
+          {/* Intent badge */}
           <View
             style={[
               styles.badge,
-              {
-                backgroundColor: theme.backgroundSecondary,
-                borderColor: theme.border,
-              },
+              { backgroundColor: intentColor + "1A", borderColor: intentColor },
             ]}
           >
-            <ThemedText
-              style={[styles.badgeText, { color: theme.textSecondary }]}
-            >
-              {acgmeLabel}
+            <ThemedText style={[styles.badgeText, { color: intentColor }]}>
+              {INTENT_LABELS[derivedIntent]}
             </ThemedText>
           </View>
-        )}
-      </View>
+
+          {/* ACGME category badge */}
+          {acgmeLabel && (
+            <View
+              style={[
+                styles.badge,
+                {
+                  backgroundColor: theme.backgroundSecondary,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <ThemedText
+                style={[styles.badgeText, { color: theme.textSecondary }]}
+              >
+                {acgmeLabel}
+              </ThemedText>
+            </View>
+          )}
+        </View>
+      )}
 
       {/* Detail card */}
       {detailCardType === "neurotoxin" && (
@@ -347,7 +332,7 @@ export const AestheticAssessment = React.memo(function AestheticAssessment({
         />
       )}
 
-      {detailCardType === "none" && primaryAestheticProcedureId && (
+      {!hideBadges && detailCardType === "none" && primaryAestheticProcedureId && (
         <View
           style={[
             styles.noDetailCard,
