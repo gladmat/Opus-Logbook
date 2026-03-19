@@ -464,7 +464,7 @@ export function FreeFlapClinicalFields({
         />
       )}
 
-      <ThemedText style={[styles.subsectionTitle, { color: theme.text }]}>
+      <ThemedText style={[styles.subsectionTitle, { color: theme.text }]} testID="caseForm.freeFlap.section-anastomosis">
         Anastomoses
       </ThemedText>
       <ThemedText
@@ -670,6 +670,7 @@ export function FreeFlapClinicalFields({
         keyboardType="numeric"
         unit="min"
         required
+        testID="caseForm.freeFlap.input-ischaemiaTime"
       />
 
       <View style={styles.row}>

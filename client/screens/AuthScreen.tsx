@@ -129,6 +129,7 @@ export default function AuthScreen() {
 
   return (
     <KeyboardAvoidingView
+      testID="screen-auth"
       style={[styles.container, { backgroundColor: colors.backgroundRoot }]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
@@ -171,6 +172,7 @@ export default function AuthScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              testID="onboarding.auth.input-email"
             />
           </View>
 
@@ -197,6 +199,7 @@ export default function AuthScreen() {
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
+                testID="onboarding.auth.input-password"
               />
               <Pressable
                 style={[
@@ -204,6 +207,7 @@ export default function AuthScreen() {
                   { borderColor: colors.border },
                 ]}
                 onPress={() => setShowPassword(!showPassword)}
+                testID="onboarding.auth.btn-showPassword"
               >
                 <Feather
                   name={showPassword ? "eye-off" : "eye"}
@@ -235,6 +239,7 @@ export default function AuthScreen() {
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
+                testID="onboarding.auth.input-confirmPassword"
               />
             </View>
           )}
@@ -246,6 +251,7 @@ export default function AuthScreen() {
                 setShowForgotPasswordModal(true);
               }}
               style={styles.forgotPasswordLink}
+              testID="onboarding.auth.btn-forgotPassword"
             >
               <Text style={[styles.forgotPasswordText, { color: colors.link }]}>
                 Forgot password?
@@ -260,6 +266,7 @@ export default function AuthScreen() {
             ]}
             onPress={handleSubmit}
             disabled={isLoading}
+            testID="onboarding.auth.btn-submit"
           >
             {isLoading ? (
               <ActivityIndicator color="#FFF" size="small" />
@@ -277,7 +284,7 @@ export default function AuthScreen() {
               ? "Don't have an account?"
               : "Already have an account?"}
           </Text>
-          <Pressable onPress={toggleMode}>
+          <Pressable onPress={toggleMode} testID="onboarding.auth.btn-toggleMode">
             <Text style={[styles.footerLink, { color: colors.link }]}>
               {mode === "login" ? "Sign Up" : "Sign In"}
             </Text>
@@ -306,7 +313,7 @@ export default function AuthScreen() {
               <Text style={[styles.modalTitle, { color: colors.text }]}>
                 Reset Password
               </Text>
-              <Pressable onPress={() => setShowForgotPasswordModal(false)}>
+              <Pressable onPress={() => setShowForgotPasswordModal(false)} testID="onboarding.auth.btn-closeResetModal">
                 <Feather name="x" size={24} color={colors.textSecondary} />
               </Pressable>
             </View>

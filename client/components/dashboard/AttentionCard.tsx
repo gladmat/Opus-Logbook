@@ -14,6 +14,7 @@ interface AttentionCardProps {
   onAddEvent?: (caseId: string) => void;
   onAddHistology?: (caseId: string) => void;
   onViewEpisode?: (episodeId: string) => void;
+  testID?: string;
 }
 
 function getStatusBadge(
@@ -55,6 +56,7 @@ function AttentionCardInner({
   onAddEvent,
   onAddHistology,
   onViewEpisode,
+  testID,
 }: AttentionCardProps) {
   const { theme, isDark } = useTheme();
   const badge = getStatusBadge(
@@ -78,6 +80,7 @@ function AttentionCardInner({
 
   return (
     <Pressable
+      testID={testID}
       accessibilityRole="button"
       accessibilityLabel={`${badge.label}, ${item.patientIdentifier}, ${item.diagnosisTitle}`}
       accessibilityHint="Opens the related case or episode"
@@ -166,6 +169,7 @@ function AttentionCardInner({
             accessibilityRole="button"
             accessibilityLabel={`Add histology for ${item.patientIdentifier}`}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            testID={testID ? `${testID}.btn-histology` : undefined}
           >
             <Feather name="file-text" size={13} color={theme.accent} />
             <ThemedText
@@ -191,6 +195,7 @@ function AttentionCardInner({
             accessibilityRole="button"
             accessibilityLabel={`Add event for ${item.patientIdentifier}`}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            testID={testID ? `${testID}.btn-event` : undefined}
           >
             <Feather name="plus" size={13} color={theme.textSecondary} />
             <ThemedText
@@ -241,6 +246,7 @@ function AttentionCardInner({
             accessibilityRole="button"
             accessibilityLabel={`Discharge ${item.patientIdentifier}`}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            testID={testID ? `${testID}.btn-discharge` : undefined}
           >
             <ThemedText
               style={[styles.dischargeChipText, { color: theme.accent }]}
@@ -259,6 +265,7 @@ function AttentionCardInner({
             accessibilityRole="button"
             accessibilityLabel={`${logCaseLabel} for ${item.patientIdentifier}`}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            testID={testID ? `${testID}.btn-logCase` : undefined}
           >
             <ThemedText
               style={[styles.logCaseText, { color: theme.accentContrast }]}

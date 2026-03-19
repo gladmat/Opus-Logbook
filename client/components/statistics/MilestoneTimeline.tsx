@@ -77,6 +77,7 @@ export const MilestoneTimeline = React.memo(function MilestoneTimeline({
             setShowAll(true);
           }}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          testID="statistics.btn-seeAllMilestones"
         >
           <ThemedText style={[styles.seeAll, { color: theme.accent }]}>
             See all {milestones.length} milestones

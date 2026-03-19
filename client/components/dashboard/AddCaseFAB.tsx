@@ -192,6 +192,7 @@ function AddCaseFABInner({
           style={[styles.backdrop, backdropAnimatedStyle]}
           accessibilityRole="button"
           accessibilityLabel="Close menu"
+          testID="dashboard.fab.backdrop"
         />
       )}
 
@@ -230,6 +231,7 @@ function AddCaseFABInner({
             onPress={() => handleItemPress(i)}
             accessibilityRole="button"
             accessibilityLabel={item.label}
+            testID={`dashboard.fab.btn-${item.key}`}
             style={[
               styles.miniFab,
               {
@@ -258,6 +260,7 @@ function AddCaseFABInner({
         accessibilityLabel="Add case"
         accessibilityHint="Opens options to log or plan a case"
         accessibilityState={{ expanded: isExpanded }}
+        testID="dashboard.fab.btn-main"
         style={[
           styles.fab,
           { backgroundColor: theme.accent, bottom: fabBottom },

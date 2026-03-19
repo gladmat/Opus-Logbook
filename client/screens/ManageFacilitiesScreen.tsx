@@ -120,6 +120,7 @@ export default function ManageFacilitiesScreen() {
   return (
     <>
       <KeyboardAwareScrollViewCompat
+        testID="screen-manageFacilities"
         style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
         contentContainerStyle={[
           styles.content,

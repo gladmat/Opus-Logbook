@@ -365,8 +365,9 @@ export default function DashboardScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+    <View testID="screen-dashboard" style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
       <ScrollView
+        testID="dashboard.scroll"
         stickyHeaderIndices={[0]}
         scrollEventThrottle={16}
         onScroll={handleScroll}

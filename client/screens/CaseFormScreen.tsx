@@ -483,6 +483,7 @@ export default function CaseFormScreen() {
               accessibilityLabel={
                 form.isEditMode ? "Revert changes" : "Clear form"
               }
+              testID="caseForm.header.btn-overflow"
             >
               <Feather
                 name="more-horizontal"
@@ -522,6 +523,7 @@ export default function CaseFormScreen() {
               style={styles.headerSaveButton}
               accessibilityRole="button"
               accessibilityLabel="Save case"
+              testID="caseForm.header.btn-save"
             >
               <ThemedText
                 style={{
@@ -618,6 +620,7 @@ export default function CaseFormScreen() {
       fieldErrors={fieldErrors}
       onFieldBlur={onFieldBlur}
     >
+      <View testID="screen-caseForm" style={styles.container}>
       {!reviewMode ? (
         <View
           style={[
@@ -783,6 +786,7 @@ export default function CaseFormScreen() {
       </KeyboardAwareScrollViewCompat>
 
       {!reviewMode ? <KeyboardToolbar /> : null}
+      </View>
     </CaseFormProvider>
   );
 }

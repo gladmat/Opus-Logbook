@@ -83,7 +83,7 @@ function RecentCasesListInner({
           />
         </View>
         {totalCount > cases.length && onSeeAll ? (
-          <Pressable onPress={onSeeAll}>
+          <Pressable onPress={onSeeAll} testID="dashboard.recentCases.btn-seeAll">
             <ThemedText style={[styles.seeAllText, { color: theme.link }]}>
               See All ({totalCount})
             </ThemedText>

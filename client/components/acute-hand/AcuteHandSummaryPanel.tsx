@@ -168,6 +168,7 @@ export function AcuteHandSummaryPanel({
           borderColor: isAccepted ? theme.success + "50" : theme.border,
         },
       ]}
+      testID="caseForm.handAcute.summary"
     >
       {/* ── Summary card ── */}
       <View

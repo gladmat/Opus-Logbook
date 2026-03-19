@@ -350,6 +350,7 @@ export default function OnboardingScreen() {
                 setAgreementAccepted(!agreementAccepted);
                 setAgreementError(false);
               }}
+              testID="onboarding.agreement.toggle-accept"
             >
               <View
                 style={[
@@ -466,6 +467,7 @@ export default function OnboardingScreen() {
                     },
                   ]}
                   onPress={() => setCountryOfPractice(country.value)}
+                  testID={`onboarding.country.card-${country.value}`}
                 >
                   <Text
                     style={[
@@ -506,6 +508,7 @@ export default function OnboardingScreen() {
               onChangeText={setMedicalCouncilNumber}
               placeholder="e.g. MCNZ 12345"
               placeholderTextColor={colors.textTertiary}
+              testID="onboarding.country.input-registrationNumber"
             />
           </View>
         );
@@ -538,6 +541,7 @@ export default function OnboardingScreen() {
                     },
                   ]}
                   onPress={() => setCareerStage(stage.value)}
+                  testID={`onboarding.career.option-${stage.value}`}
                 >
                   <Text
                     style={[
@@ -585,6 +589,7 @@ export default function OnboardingScreen() {
                   ]}
                   onPress={() => setFacilitySelectorVisible(true)}
                   disabled={isLoading}
+                  testID="onboarding.facilities.btn-searchNz"
                 >
                   <Feather name="search" size={18} color="#FFF" />
                   <Text style={styles.selectFacilityButtonText}>
@@ -625,6 +630,7 @@ export default function OnboardingScreen() {
                   placeholderTextColor={colors.textTertiary}
                   onSubmitEditing={handleAddFacility}
                   returnKeyType="done"
+                  testID="onboarding.facilities.input-name"
                 />
                 <Pressable
                   style={[
@@ -636,6 +642,7 @@ export default function OnboardingScreen() {
                   ]}
                   onPress={handleAddFacility}
                   disabled={!newFacility.trim() || isLoading}
+                  testID="onboarding.facilities.btn-add"
                 >
                   <Feather name="plus" size={22} color="#FFF" />
                 </Pressable>
@@ -657,6 +664,7 @@ export default function OnboardingScreen() {
                   >
                     <Pressable
                       style={styles.facilityInfo}
+                      testID={`onboarding.facilities.row-${index}`}
                       onPress={async () => {
                         if (!facility.isPrimary) {
                           try {
@@ -720,6 +728,7 @@ export default function OnboardingScreen() {
                         }
                       }}
                       hitSlop={8}
+                      testID={`onboarding.facilities.btn-remove-${index}`}
                     >
                       <Feather name="x" size={18} color={colors.textTertiary} />
                     </Pressable>
@@ -768,6 +777,7 @@ export default function OnboardingScreen() {
 
   return (
     <KeyboardAvoidingView
+      testID="screen-onboarding"
       style={[styles.container, { backgroundColor: colors.backgroundRoot }]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
@@ -781,7 +791,7 @@ export default function OnboardingScreen() {
         ]}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.progressContainer}>
+        <View style={styles.progressContainer} testID="onboarding.progressDots">
           {[0, 1, 2, 3].map((i) => (
             <View
               key={i}
@@ -817,6 +827,7 @@ export default function OnboardingScreen() {
               style={[styles.backButton, { borderColor: colors.border }]}
               onPress={handleBack}
               disabled={isLoading}
+              testID="onboarding.btn-back"
             >
               <Feather name="arrow-left" size={20} color={colors.text} />
               <Text style={[styles.backButtonText, { color: colors.text }]}>

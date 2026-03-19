@@ -267,6 +267,7 @@ export function SkinCancerSummaryPanel({
 
           {isAccepted && onEditMapping ? (
             <Pressable
+              testID="caseForm.skinCancer.btn-editMapping"
               style={[
                 styles.inlineActionPill,
                 {
@@ -345,6 +346,7 @@ export function SkinCancerSummaryPanel({
                 return (
                   <Pressable
                     key={proc.id}
+                    testID={`caseForm.skinCancer.chip-procedure-${proc.id}`}
                     style={[
                       styles.procedureRow,
                       {
@@ -424,6 +426,7 @@ export function SkinCancerSummaryPanel({
       {/* ── Accept button / post-accept state ── */}
       {isAccepted ? null : (
         <Pressable
+          testID="caseForm.skinCancer.btn-acceptMapping"
           style={[
             styles.acceptButton,
             {

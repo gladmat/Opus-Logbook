@@ -376,6 +376,7 @@ export function JointImplantSection({
                   },
                 ]}
                 onPress={() => selectImplant(entry)}
+                testID={`caseForm.jointImplant.chip-system-${entry.id}`}
               >
                 <View style={styles.implantRowContent}>
                   {entry.availableInNZ && !discontinued ? (
@@ -464,6 +465,7 @@ export function JointImplantSection({
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                       update({ sizeUnified: selected ? undefined : size });
                     }}
+                    testID={`caseForm.jointImplant.chip-size-${size}`}
                   >
                     <ThemedText
                       style={[
@@ -800,6 +802,7 @@ export function JointImplantSection({
                     approach: selected ? undefined : approach,
                   });
                 }}
+                testID={`caseForm.jointImplant.chip-approach-${approach}`}
               >
                 <ThemedText
                   style={[
@@ -868,6 +871,7 @@ export function JointImplantSection({
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                       update({ fixation: selected ? undefined : fix });
                     }}
+                    testID={`caseForm.jointImplant.chip-fixation-${fix}`}
                   >
                     <ThemedText
                       style={[

@@ -260,6 +260,7 @@ export const SLNBSection = React.memo(function SLNBSection({
                 return (
                   <Pressable
                     key={label}
+                    testID={`caseForm.skinCancer.chip-slnbOffered-${label.toLowerCase()}`}
                     style={[
                       styles.chip,
                       {
@@ -287,6 +288,7 @@ export const SLNBSection = React.memo(function SLNBSection({
             {/* Reason not offered */}
             {slnb?.offered === false ? (
               <TextInput
+                testID="caseForm.skinCancer.input-slnbDeclinedReason"
                 style={[
                   styles.textInput,
                   {
@@ -321,6 +323,7 @@ export const SLNBSection = React.memo(function SLNBSection({
                   return (
                     <Pressable
                       key={label}
+                      testID={`caseForm.skinCancer.chip-slnbPerformed-${label.toLowerCase()}`}
                       style={[
                         styles.chip,
                         {
@@ -384,6 +387,7 @@ export const SLNBSection = React.memo(function SLNBSection({
                     return (
                       <Pressable
                         key={opt.value}
+                        testID={`caseForm.skinCancer.chip-slnbSite-${opt.value}`}
                         style={[
                           styles.chip,
                           {
@@ -419,6 +423,7 @@ export const SLNBSection = React.memo(function SLNBSection({
                   NODES RETRIEVED
                 </ThemedText>
                 <TextInput
+                  testID="caseForm.skinCancer.input-nodesRetrieved"
                   style={[
                     styles.numericInput,
                     {
@@ -459,6 +464,7 @@ export const SLNBSection = React.memo(function SLNBSection({
                     return (
                       <Pressable
                         key={opt.value}
+                        testID={`caseForm.skinCancer.chip-slnbResult-${opt.value}`}
                         style={[
                           styles.chip,
                           {

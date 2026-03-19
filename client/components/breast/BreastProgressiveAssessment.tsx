@@ -981,6 +981,7 @@ export function BreastProgressiveAssessment({
             return (
               <Pressable
                 key={key}
+                testID={`caseForm.breast.option-laterality-${key}`}
                 onPress={() => handleLateralityChange(key)}
                 style={[
                   styles.chip,
@@ -1019,6 +1020,7 @@ export function BreastProgressiveAssessment({
             <BreastSideCard
               key={side}
               side={side}
+              testID={`caseForm.breast.side-${side}`}
               value={sideData}
               onChange={(updated) => handleSideChange(side, updated)}
               moduleFlags={EMPTY_MODULE_FLAGS}

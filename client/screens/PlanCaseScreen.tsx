@@ -167,6 +167,7 @@ export default function PlanCaseScreen() {
 
   return (
     <ScrollView
+      testID="screen-planCase"
       style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
       contentContainerStyle={[
         styles.content,

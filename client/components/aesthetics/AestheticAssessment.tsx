@@ -247,7 +247,7 @@ export const AestheticAssessment = React.memo(function AestheticAssessment({
     : undefined;
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="caseForm.aesthetics.assessment">
       {/* Badges row */}
       <View style={styles.badgeRow}>
         {/* Intent badge */}

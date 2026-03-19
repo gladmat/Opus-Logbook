@@ -26,11 +26,13 @@ function CategoryCard({
   selected,
   onPress,
   color,
+  testID,
 }: {
   label: string;
   selected: boolean;
   onPress: () => void;
   color: string;
+  testID?: string;
 }) {
   return (
     <Pressable
@@ -43,6 +45,7 @@ function CategoryCard({
           opacity: pressed ? 0.85 : 1,
         },
       ]}
+      testID={testID}
     >
       <ThemedText
         style={[styles.cardLabel, selected && styles.cardLabelSelected]}
@@ -131,6 +134,7 @@ export default function PersonalisationScreen() {
 
   return (
     <KeyboardAwareScrollViewCompat
+      testID="screen-personalisation"
       style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
       contentContainerStyle={{
         paddingTop: Spacing.lg,
@@ -158,7 +162,7 @@ export default function PersonalisationScreen() {
           >
             {selectedCount} categories selected
           </ThemedText>
-          <Pressable onPress={handleSelectAll}>
+          <Pressable onPress={handleSelectAll} testID="settings.personalisation.btn-selectAll">
             <ThemedText style={[styles.heroLink, { color: theme.link }]}>
               Select all
             </ThemedText>
@@ -174,6 +178,7 @@ export default function PersonalisationScreen() {
             selected={selected.has(category.id)}
             onPress={() => toggleSpecialty(category.id)}
             color={theme.link}
+            testID={`settings.personalisation.card-${category.id}`}
           />
         ))}
       </View>
@@ -188,6 +193,7 @@ export default function PersonalisationScreen() {
             opacity: isSaving || !hasChanges ? 0.5 : 1,
           },
         ]}
+        testID="settings.personalisation.btn-save"
       >
         <ThemedText
           style={[styles.saveButtonText, { color: theme.buttonText }]}

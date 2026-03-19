@@ -13,6 +13,7 @@ interface PulseMetricCardProps {
   dailyDots?: boolean[];
   todayIndex?: number;
   percentage?: number;
+  testID?: string;
 }
 
 function PulseMetricCardInner({
@@ -23,6 +24,7 @@ function PulseMetricCardInner({
   dailyDots,
   todayIndex,
   percentage,
+  testID,
 }: PulseMetricCardProps) {
   const { theme } = useTheme();
   const deltaText =
@@ -44,6 +46,7 @@ function PulseMetricCardInner({
 
   return (
     <View
+      testID={testID}
       style={[
         styles.card,
         {

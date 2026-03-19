@@ -254,6 +254,7 @@ export const ImplantDetailsCard = React.memo(function ImplantDetailsCard({
       collapsible
       defaultCollapsed={false}
       subtitle={summary}
+      testID="caseForm.breast.section-implant"
     >
       {/* ── Tier 1: Core fields ──────────────────────────────────────────── */}
 

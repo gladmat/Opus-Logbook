@@ -187,6 +187,7 @@ export default function PlannedCaseListScreen() {
 
   return (
     <FlatList
+      testID="screen-plannedCaseList"
       data={planned}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => (

@@ -357,6 +357,7 @@ export default function CaseDetailScreen() {
             style={styles.headerMenuButton}
             accessibilityRole="button"
             accessibilityLabel="Case actions"
+            testID="caseDetail.btn-actions"
           >
             <Feather
               name="more-horizontal"
@@ -641,7 +642,7 @@ export default function CaseDetailScreen() {
     caseData.discussedAtMDM;
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+    <View testID="screen-caseDetail" style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
       <ScrollView
         contentContainerStyle={[
           styles.content,
@@ -1909,6 +1910,7 @@ export default function CaseDetailScreen() {
                 borderColor: theme.warning + "40",
               },
             ]}
+            testID="caseDetail.btn-addHistology"
           >
             <Feather name="file-text" size={18} color={theme.warning} />
             <View style={styles.histologyButtonText}>
@@ -3046,6 +3048,7 @@ export default function CaseDetailScreen() {
           <Pressable
             onPress={handleDelete}
             style={[styles.deleteButton, { borderColor: theme.error }]}
+            testID="caseDetail.btn-delete"
           >
             <Feather name="trash-2" size={18} color={theme.error} />
             <ThemedText style={[styles.deleteText, { color: theme.error }]}>
@@ -3065,6 +3068,7 @@ export default function CaseDetailScreen() {
             transform: [{ scale: pressed ? 0.95 : 1 }],
           },
         ]}
+        testID="caseDetail.btn-addEvent"
       >
         <Feather name="plus" size={24} color={theme.buttonText} />
         <ThemedText style={[styles.fabText, { color: theme.buttonText }]}>

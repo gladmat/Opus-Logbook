@@ -205,6 +205,7 @@ export const DiagnosisProcedureSection = React.memo(
             },
           ]}
           onPress={() => addDiagnosisGroup()}
+          testID="caseForm.case.btn-addGroup"
         >
           <Feather name="plus-circle" size={18} color={theme.link} />
           <ThemedText

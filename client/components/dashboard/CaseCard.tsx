@@ -317,6 +317,7 @@ function DashboardCaseCardInner({
                   accessibilityRole="button"
                   accessibilityLabel={`Add histology for ${caseData.patientIdentifier}`}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  testID={`dashboard.cases.btn-histology-${caseData.id}`}
                   style={[
                     styles.actionChip,
                     {
@@ -343,6 +344,7 @@ function DashboardCaseCardInner({
                   accessibilityRole="button"
                   accessibilityLabel={`Add event for ${caseData.patientIdentifier}`}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  testID={`dashboard.cases.btn-event-${caseData.id}`}
                   style={[
                     styles.actionChip,
                     {

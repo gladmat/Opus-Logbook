@@ -65,6 +65,7 @@ function NeedsAttentionCarouselInner({
               accessibilityRole="button"
               accessibilityLabel="View all attention items"
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              testID="dashboard.attention.btn-viewAll"
             >
               <ThemedText style={[styles.viewAllText, { color: theme.accent }]}>
                 View all
@@ -84,7 +85,7 @@ function NeedsAttentionCarouselInner({
         ItemSeparatorComponent={Separator}
         data={items}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
+        renderItem={({ item, index }) => (
           <AttentionCard
             item={item}
             cardWidth={CARD_WIDTH}
@@ -94,6 +95,7 @@ function NeedsAttentionCarouselInner({
             onAddEvent={onAddEvent}
             onAddHistology={onAddHistology}
             onViewEpisode={onViewEpisode}
+            testID={`dashboard.attention.card-${index}`}
           />
         )}
       />

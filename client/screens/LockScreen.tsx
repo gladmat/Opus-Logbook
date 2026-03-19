@@ -257,6 +257,7 @@ export default function LockScreen() {
 
   return (
     <View
+      testID="screen-lock"
       style={[
         styles.container,
         {

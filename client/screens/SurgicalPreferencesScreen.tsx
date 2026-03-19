@@ -103,6 +103,7 @@ export default function SurgicalPreferencesScreen() {
 
   return (
     <ScrollView
+      testID="screen-surgicalPreferences"
       style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
       contentContainerStyle={{
         paddingTop: Spacing.lg,

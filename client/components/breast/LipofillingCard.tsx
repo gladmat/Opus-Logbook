@@ -191,6 +191,7 @@ export const LipofillingCard = React.memo(function LipofillingCard({
       collapsible
       defaultCollapsed={false}
       subtitle={summary}
+      testID="caseForm.breast.section-lipofilling"
     >
       <BreastMultiChipRow
         label="Harvest Sites"

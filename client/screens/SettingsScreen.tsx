@@ -63,6 +63,7 @@ interface SettingsItemProps {
   destructive?: boolean;
   subtitle?: string;
   value?: string;
+  testID?: string;
 }
 
 function SettingsItem({
@@ -72,6 +73,7 @@ function SettingsItem({
   destructive = false,
   subtitle,
   value,
+  testID,
 }: SettingsItemProps) {
   const { theme } = useTheme();
 
@@ -82,6 +84,7 @@ function SettingsItem({
         styles.settingsItem,
         { opacity: pressed ? 0.7 : 1 },
       ]}
+      testID={testID}
     >
       <View
         style={[
@@ -464,6 +467,7 @@ export default function SettingsScreen() {
   return (
     <>
       <KeyboardAwareScrollViewCompat
+        testID="screen-settings"
         style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
         contentContainerStyle={[
           styles.content,
@@ -491,6 +495,7 @@ export default function SettingsScreen() {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 navigation.navigate("EditProfile");
               }}
+              testID="settings.row-editProfile"
             >
               <View
                 style={[
@@ -624,6 +629,7 @@ export default function SettingsScreen() {
               subtitle="PIN and biometric protection"
               value={isAppLockConfigured ? "On" : "Off"}
               onPress={() => navigation.navigate("SetupAppLock")}
+              testID="settings.row-appLock"
             />
             <View style={[styles.divider, { backgroundColor: theme.border }]} />
             <SettingsItem
@@ -631,6 +637,7 @@ export default function SettingsScreen() {
               label="Change Password"
               subtitle="Update your account password"
               onPress={() => setShowChangePasswordModal(true)}
+              testID="settings.row-changePassword"
             />
           </View>
         </View>
@@ -724,6 +731,7 @@ export default function SettingsScreen() {
               label="My Facilities"
               subtitle={`${facilities.length} ${facilities.length === 1 ? "hospital" : "hospitals"}`}
               onPress={() => navigation.navigate("ManageFacilities")}
+              testID="settings.row-facilities"
             />
           </View>
         </View>
@@ -745,6 +753,7 @@ export default function SettingsScreen() {
               label="Personalisation"
               subtitle={personalisationSubtitle}
               onPress={() => navigation.navigate("Personalisation")}
+              testID="settings.row-personalisation"
             />
             <View style={[styles.divider, { backgroundColor: theme.border }]} />
             <SettingsItem
@@ -752,6 +761,7 @@ export default function SettingsScreen() {
               label="Surgical Preferences"
               subtitle="Anticoagulation & monitoring defaults"
               onPress={() => navigation.navigate("SurgicalPreferences")}
+              testID="settings.row-surgicalPreferences"
             />
             <View style={[styles.divider, { backgroundColor: theme.border }]} />
             <SettingsItem
@@ -780,6 +790,7 @@ export default function SettingsScreen() {
               label="Export Cases"
               subtitle={caseCount !== null ? `${caseCount} cases` : undefined}
               onPress={handleExport}
+              testID="settings.row-export"
             />
           </View>
         </View>
@@ -926,6 +937,7 @@ export default function SettingsScreen() {
               label="Send Feedback"
               subtitle="Report bugs or suggest features"
               onPress={handleSendFeedback}
+              testID="settings.row-feedback"
             />
           </View>
         </View>
@@ -947,6 +959,7 @@ export default function SettingsScreen() {
               label="Sign Out"
               onPress={handleLogout}
               destructive
+              testID="settings.btn-signOut"
             />
           </View>
         </View>
@@ -968,6 +981,7 @@ export default function SettingsScreen() {
               label="Clear All Data"
               onPress={handleClearData}
               destructive
+              testID="settings.row-clearData"
             />
             <View style={[styles.divider, { backgroundColor: theme.border }]} />
             <SettingsItem
@@ -976,6 +990,7 @@ export default function SettingsScreen() {
               subtitle="Permanently delete your account and all data"
               onPress={handleDeleteAccount}
               destructive
+              testID="settings.row-deleteAccount"
             />
           </View>
         </View>

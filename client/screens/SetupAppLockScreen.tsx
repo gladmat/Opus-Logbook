@@ -384,6 +384,7 @@ export default function SetupAppLockScreen() {
 
   return (
     <ScrollView
+      testID="screen-setupAppLock"
       style={[
         styles.scrollContainer,
         { backgroundColor: colors.backgroundRoot },

@@ -1202,6 +1202,7 @@ export function HandTraumaAssessment({
                             : undefined,
                       })
                     }
+                    testID={`caseForm.hand.chip-mechanism-${option.value}`}
                   >
                     <ThemedText
                       style={[
@@ -1238,6 +1239,7 @@ export function HandTraumaAssessment({
             onChange={(value) => updateIncident({ injuryDate: value })}
             placeholder="Select date..."
             maximumDate={new Date()}
+            testID="caseForm.hand.picker-injuryDate"
           />
 
           {sideLabel ? (

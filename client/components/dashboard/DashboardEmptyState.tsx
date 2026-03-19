@@ -8,7 +8,7 @@ function DashboardEmptyStateInner() {
   const { theme } = useTheme();
 
   return (
-    <View style={styles.container}>
+    <View testID="dashboard.emptyState" style={styles.container}>
       <View style={{ opacity: 0.5 }}>
         <OpusMark size={64} color={theme.textTertiary} />
       </View>

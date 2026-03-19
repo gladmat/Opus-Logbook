@@ -214,6 +214,7 @@ export function AcuteHandAssessment({
                   },
                 ]}
                 onPress={() => handleChipTap(dx)}
+                testID={`caseForm.handAcute.chip-${dx.id}`}
               >
                 <ThemedText
                   style={[
@@ -255,6 +256,7 @@ export function AcuteHandAssessment({
                   },
                 ]}
                 onPress={() => handleChipTap(dx)}
+                testID={`caseForm.handAcute.chip-${dx.id}`}
               >
                 <ThemedText
                   style={[
@@ -274,6 +276,7 @@ export function AcuteHandAssessment({
         {/* SNOMED fallback */}
         <Pressable
           style={[styles.snomedFallbackRow, { borderTopColor: theme.border }]}
+          testID="caseForm.handAcute.btn-snomedSearch"
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             LayoutAnimation.configureNext(
@@ -314,6 +317,7 @@ export function AcuteHandAssessment({
           collapsible
           isCollapsed={isSectionCollapsed("infection")}
           onCollapsedChange={(v) => setSectionCollapsed("infection", v)}
+          testID="caseForm.handAcute.section-infection"
         >
           <HandInfectionCard
             diagnosisId={selectedDiagnosis.id}

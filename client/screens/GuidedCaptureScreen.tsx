@@ -64,6 +64,7 @@ export default function GuidedCaptureScreen() {
 
   return (
     <ScrollView
+      testID="screen-guidedCapture"
       style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
       contentContainerStyle={[
         styles.content,

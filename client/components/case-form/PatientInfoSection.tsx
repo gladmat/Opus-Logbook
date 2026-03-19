@@ -75,6 +75,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
             isPlanMode ? "Plan mode active" : "Switch to plan mode"
           }
           hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+          testID="caseForm.patient.toggle-planMode"
         >
           <Feather
             name="calendar"
@@ -109,6 +110,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
               autoCapitalize="characters"
               onBlur={() => onFieldBlur("patientIdentifier")}
               error={fieldErrors.patientIdentifier}
+              testID="caseForm.patient.input-identifier"
             />
           ) : (
             <FormField
@@ -122,6 +124,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
               autoCapitalize="characters"
               onBlur={() => onFieldBlur("patientIdentifier")}
               error={fieldErrors.patientIdentifier}
+              testID="caseForm.patient.input-identifier"
             />
           )}
         </View>
@@ -134,6 +137,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
             }}
             placeholder="DOB..."
             maximumDate={new Date()}
+            testID="caseForm.patient.picker-dob"
           />
         </View>
       </View>
@@ -168,6 +172,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
             }
             placeholder="First name"
             autoCapitalize="words"
+            testID="caseForm.patient.input-firstName"
           />
         </View>
         <View style={styles.halfField}>
@@ -179,6 +184,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
             }
             placeholder="Last name"
             autoCapitalize="words"
+            testID="caseForm.patient.input-lastName"
           />
         </View>
       </View>
@@ -197,6 +203,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
             required
             error={fieldErrors.procedureDate}
             maximumDate={new Date()}
+            testID="caseForm.patient.picker-procedureDate"
           />
         </View>
         <View style={styles.halfField}>
@@ -218,6 +225,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
               placeholder="Select..."
               required
               error={fieldErrors.facility}
+              testID="caseForm.patient.picker-facility"
             />
           ) : (
             <FormField
@@ -228,6 +236,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
               required
               onBlur={() => onFieldBlur("facility")}
               error={fieldErrors.facility}
+              testID="caseForm.patient.picker-facility"
             />
           )}
         </View>
@@ -286,6 +295,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
             value={ethnicity}
             options={ETHNICITY_OPTIONS}
             onSelect={(v: string) => dispatch(setField("ethnicity", v))}
+            testID="caseForm.patient.picker-ethnicity"
           />
         </View>
       </View>

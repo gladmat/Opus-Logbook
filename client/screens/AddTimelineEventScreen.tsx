@@ -373,6 +373,7 @@ export default function AddTimelineEventScreen() {
                   : theme.backgroundDefault,
               },
             ]}
+            testID={`timelineEvent.picker-type-${type.value}`}
           >
             <Feather
               name={icon}
@@ -420,6 +421,7 @@ export default function AddTimelineEventScreen() {
 
   return (
     <KeyboardAwareScrollViewCompat
+      testID="screen-addTimelineEvent"
       style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
       contentContainerStyle={[
         styles.content,
@@ -702,7 +704,7 @@ export default function AddTimelineEventScreen() {
 
       {eventType ? (
         <View style={styles.buttonContainer}>
-          <Button onPress={handleSave} disabled={saving}>
+          <Button onPress={handleSave} disabled={saving} testID="timelineEvent.btn-save">
             {saving
               ? "Saving..."
               : isEditMode

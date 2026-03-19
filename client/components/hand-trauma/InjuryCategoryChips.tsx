@@ -74,6 +74,7 @@ export function InjuryCategoryChips({
                 },
               ]}
               onPress={() => handlePress(key)}
+              testID={`caseForm.hand.chip-category-${key}`}
             >
               <View style={styles.chipContent}>
                 <Feather

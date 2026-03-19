@@ -384,6 +384,7 @@ export default function EditProfileScreen() {
 
   return (
     <KeyboardAwareScrollViewCompat
+      testID="screen-editProfile"
       style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
       contentContainerStyle={[
         styles.content,
@@ -401,6 +402,7 @@ export default function EditProfileScreen() {
             styles.avatarWrapper,
             { backgroundColor: theme.backgroundDefault },
           ]}
+          testID="settings.profile.btn-pickAvatar"
         >
           {isUploadingPicture ? (
             <View
@@ -685,6 +687,7 @@ export default function EditProfileScreen() {
                       setCountryOfPractice(country.value);
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     }}
+                    testID={`settings.profile.chip-country-${country.value}`}
                   >
                     <ThemedText
                       style={[
@@ -732,6 +735,7 @@ export default function EditProfileScreen() {
                       setCareerStage(stage.value);
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     }}
+                    testID={`settings.profile.option-careerStage-${stage.value}`}
                   >
                     <ThemedText
                       style={[

@@ -239,6 +239,7 @@ export const LymphaticAssessment = React.memo(function LymphaticAssessment({
 
   return (
     <View
+      testID="caseForm.lymphatic.assessment"
       style={[
         styles.container,
         { borderColor: theme.accent, backgroundColor: theme.backgroundElevated },

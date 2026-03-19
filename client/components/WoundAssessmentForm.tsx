@@ -230,6 +230,7 @@ export function WoundAssessmentForm({
               keyboardType="decimal-pad"
               unit="cm"
               placeholder="0.0"
+              testID="caseForm.wound.input-length"
             />
           </View>
           <View style={styles.thirdCol}>
@@ -240,6 +241,7 @@ export function WoundAssessmentForm({
               keyboardType="decimal-pad"
               unit="cm"
               placeholder="0.0"
+              testID="caseForm.wound.input-width"
             />
           </View>
           <View style={styles.thirdCol}>
@@ -250,6 +252,7 @@ export function WoundAssessmentForm({
               keyboardType="decimal-pad"
               unit="cm"
               placeholder="0.0"
+              testID="caseForm.wound.input-depth"
             />
           </View>
         </View>
@@ -280,6 +283,7 @@ export function WoundAssessmentForm({
           options={toPickerOptions(WOUND_BED_TISSUE_LABELS)}
           onSelect={(v) => update({ tissueType: v as WoundBedTissue })}
           placeholder="Select tissue type..."
+          testID="caseForm.wound.picker-bedTissue"
         />
       </AccordionSection>
 

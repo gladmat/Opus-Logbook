@@ -95,6 +95,7 @@ export const OutcomesSection = React.memo(function OutcomesSection({
         onSelect={(v: string) =>
           dispatch(setField("outcome", v as DischargeOutcome))
         }
+        testID="caseForm.outcomes.picker-dischargeOutcome"
       />
 
       {outcome === "died" ? (
@@ -109,6 +110,7 @@ export const OutcomesSection = React.memo(function OutcomesSection({
               setField("mortalityClassification", v as MortalityClassification),
             )
           }
+          testID="caseForm.outcomes.picker-mortalityClassification"
         />
       ) : null}
 
@@ -127,6 +129,7 @@ export const OutcomesSection = React.memo(function OutcomesSection({
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             dispatch(setField("discussedAtMDM", !discussedAtMDM));
           }}
+          testID="caseForm.outcomes.toggle-mdm"
         >
           {discussedAtMDM ? (
             <Feather name="check" size={16} color={theme.link} />
@@ -143,6 +146,7 @@ export const OutcomesSection = React.memo(function OutcomesSection({
           Haptics.selectionAsync();
           setIsAuditExpanded((v) => !v);
         }}
+        testID="caseForm.outcomes.section-30dayAudit"
       >
         <Feather
           name={isAuditExpanded ? "chevron-down" : "chevron-right"}
@@ -228,6 +232,7 @@ export const OutcomesSection = React.memo(function OutcomesSection({
             onSelect={(v: string) =>
               dispatch(setField("unplannedICU", v as UnplannedICUReason))
             }
+            testID="caseForm.outcomes.toggle-unplannedIcu"
           />
 
           <View style={styles.checkboxRow}>
@@ -245,6 +250,7 @@ export const OutcomesSection = React.memo(function OutcomesSection({
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 dispatch(setField("returnToTheatre", !returnToTheatre));
               }}
+              testID="caseForm.outcomes.toggle-returnToTheatre"
             >
               {returnToTheatre ? (
                 <Feather name="check" size={16} color={theme.error} />

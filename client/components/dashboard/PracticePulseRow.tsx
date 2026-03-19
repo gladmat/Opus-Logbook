@@ -40,6 +40,7 @@ function PracticePulseRowInner({
           label="This month"
           value={pulseData.thisMonth.count}
           delta={pulseData.thisMonth.delta}
+          testID="dashboard.pulse.card-thisMonth"
         />
         <PulseMetricCard
           type="thisWeek"
@@ -47,12 +48,14 @@ function PracticePulseRowInner({
           value={pulseData.thisWeek.count}
           dailyDots={pulseData.thisWeek.dailyDots}
           todayIndex={pulseData.thisWeek.todayIndex}
+          testID="dashboard.pulse.card-thisWeek"
         />
         <PulseMetricCard
           type="completion"
           label="Completion"
           value={pulseData.completion.percentage}
           percentage={pulseData.completion.percentage}
+          testID="dashboard.pulse.card-completion"
         />
       </View>
     </View>

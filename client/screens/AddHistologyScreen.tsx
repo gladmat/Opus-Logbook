@@ -107,6 +107,7 @@ function GeneralHistologyForm({ result, onChange }: GeneralHistologyFormProps) {
                     borderColor: selected ? theme.link : theme.border,
                   },
                 ]}
+                testID={`histology.chip-category-${opt.value}`}
               >
                 <ThemedText
                   style={[
@@ -141,6 +142,7 @@ function GeneralHistologyForm({ result, onChange }: GeneralHistologyFormProps) {
           multiline
           textAlignVertical="top"
           numberOfLines={4}
+          testID="histology.input-report"
         />
       </View>
 
@@ -166,6 +168,7 @@ function GeneralHistologyForm({ result, onChange }: GeneralHistologyFormProps) {
                     borderColor: selected ? theme.link : theme.border,
                   },
                 ]}
+                testID={`histology.chip-marginStatus-${opt.value}`}
               >
                 <ThemedText
                   style={[
@@ -405,6 +408,7 @@ export default function AddHistologyScreen() {
           onPress={handleSave}
           disabled={saving}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          testID="histology.btn-save"
         >
           <ThemedText
             style={[
@@ -447,6 +451,7 @@ export default function AddHistologyScreen() {
 
   return (
     <KeyboardAvoidingView
+      testID="screen-addHistology"
       style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={100}

@@ -232,7 +232,7 @@ export default function AddOperativeMediaScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView testID="screen-addOperativeMedia" style={styles.container}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior="padding"

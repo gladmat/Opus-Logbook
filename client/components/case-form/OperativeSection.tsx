@@ -225,6 +225,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
             dispatch(setField("defaultSupervisionLevel", "NOT_APPLICABLE"));
           }
         }}
+        testID="caseForm.operative.picker-operativeRole"
       />
 
       {supervisionApplicable(defaultOperativeRole as OperativeRole) ? (
@@ -235,6 +236,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
           onSelect={(v: string) =>
             dispatch(setField("defaultSupervisionLevel", v as SupervisionLevel))
           }
+          testID="caseForm.operative.picker-supervisionLevel"
         />
       ) : null}
 
@@ -345,6 +347,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
             value={admissionDate}
             onChange={(v: string) => dispatch(setField("admissionDate", v))}
             maximumDate={new Date()}
+            testID="caseForm.operative.picker-admissionDate"
           />
         </View>
         <View style={styles.halfField}>
@@ -354,6 +357,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
             onChange={(v: string) => dispatch(setField("dischargeDate", v))}
             minimumDate={parseDateOnlyValue(admissionDate) ?? undefined}
             clearable
+            testID="caseForm.operative.picker-dischargeDate"
           />
         </View>
       </View>
@@ -394,6 +398,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
               dispatch(setField("surgeryStartTime", v))
             }
             placeholder="e.g., 0830"
+            testID="caseForm.operative.picker-surgeryStart"
           />
         </View>
         <View style={styles.halfField}>
@@ -404,6 +409,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
               dispatch(setField("surgeryEndTime", v))
             }
             placeholder="e.g., 1415"
+            testID="caseForm.operative.picker-surgeryEnd"
           />
         </View>
       </View>
@@ -430,6 +436,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
         onSelect={(v: string) =>
           dispatch(setField("anaestheticType", v as AnaestheticType))
         }
+        testID="caseForm.operative.picker-anaestheticType"
       />
 
       {/* ── Surgical Factors ────────────────────────────────────────────── */}
@@ -443,6 +450,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
         onSelect={(v: string) =>
           dispatch(setField("woundInfectionRisk", v as WoundInfectionRisk))
         }
+        testID="caseForm.operative.picker-woundRisk"
       />
 
       <View style={styles.checkboxRow}>
@@ -460,6 +468,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             dispatch(setField("antibioticProphylaxis", !antibioticProphylaxis));
           }}
+          testID="caseForm.operative.toggle-antibioticProphylaxis"
         >
           {antibioticProphylaxis ? (
             <Feather name="check" size={16} color={theme.link} />
@@ -485,6 +494,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             dispatch(setField("dvtProphylaxis", !dvtProphylaxis));
           }}
+          testID="caseForm.operative.toggle-dvtProphylaxis"
         >
           {dvtProphylaxis ? (
             <Feather name="check" size={16} color={theme.link} />
@@ -605,6 +615,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
             placeholder="170"
             keyboardType="decimal-pad"
             unit="cm"
+            testID="caseForm.operative.input-height"
           />
         </View>
         <View style={styles.thirdField}>
@@ -615,6 +626,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
             placeholder="70"
             keyboardType="decimal-pad"
             unit="kg"
+            testID="caseForm.operative.input-weight"
           />
         </View>
         <View style={styles.thirdField}>

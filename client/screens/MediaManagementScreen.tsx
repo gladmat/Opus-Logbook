@@ -378,7 +378,7 @@ export default function MediaManagementScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView testID="screen-mediaManagement" style={styles.container}>
       <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
         behavior="padding"

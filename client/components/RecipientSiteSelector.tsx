@@ -60,6 +60,7 @@ export function RecipientSiteSelector({
                 borderColor: value === region ? theme.link : theme.border,
               },
             ]}
+            testID={`caseForm.freeFlap.chip-recipientSite-${region}`}
           >
             <ThemedText
               style={[

@@ -137,7 +137,7 @@ export default function EpisodeListScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+    <View testID="screen-episodeList" style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
       {/* Search bar */}
       <View
         style={[
@@ -157,6 +157,7 @@ export default function EpisodeListScreen() {
           style={[styles.searchInput, { color: theme.text }]}
           autoCapitalize="none"
           autoCorrect={false}
+          testID="episodes.input-search"
         />
         {search ? (
           <Feather
@@ -172,7 +173,7 @@ export default function EpisodeListScreen() {
         sections={sections}
         keyExtractor={(item) => item.episode.id}
         renderItem={({ item }) => (
-          <View style={styles.cardContainer}>
+          <View style={styles.cardContainer} testID={`episodes.card-${item.episode.id}`}>
             <EpisodeCard
               episode={item.episode}
               linkedCases={item.cases}

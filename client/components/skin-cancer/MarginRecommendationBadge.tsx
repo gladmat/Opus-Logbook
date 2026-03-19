@@ -30,6 +30,7 @@ export const MarginRecommendationBadge = React.memo(
 
     return (
       <View
+        testID="caseForm.skinCancer.badge-marginRec"
         style={[
           styles.container,
           {

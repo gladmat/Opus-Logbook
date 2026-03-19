@@ -418,6 +418,7 @@ export default function StatisticsScreen() {
 
   return (
     <ScrollView
+      testID="screen-statistics"
       style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
       contentContainerStyle={[
         styles.content,
@@ -492,6 +493,7 @@ export default function StatisticsScreen() {
                   label: "Flap survival",
                   value: formatPercentage(freeFlapStats.flapSurvivalRate),
                 }}
+                testID="statistics.card-freeFlap"
               >
                 <FreeFlapContent stats={freeFlapStats} />
               </SpecialtyDeepDiveCard>
@@ -512,6 +514,7 @@ export default function StatisticsScreen() {
                     caseCount={count}
                     color={color}
                     heroMetric={heroMetric}
+                    testID={`statistics.card-${specialty}`}
                   >
                     {renderSpecialtyContent(specialty, stats)}
                   </SpecialtyDeepDiveCard>

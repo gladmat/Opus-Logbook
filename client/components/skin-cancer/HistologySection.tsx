@@ -713,6 +713,7 @@ export const HistologySection = React.memo(function HistologySection({
                   return (
                     <Pressable
                       key={opt.value}
+                      testID={`caseForm.skinCancer.histology.chip-marginStatus-${opt.value}`}
                       style={[
                         styles.chip,
                         {
@@ -890,6 +891,7 @@ function BCCFields({ histology, update, theme }: FieldProps) {
           return (
             <Pressable
               key={opt.value}
+              testID={`caseForm.skinCancer.histology.chip-bccSubtype-${opt.value}`}
               style={[
                 styles.chip,
                 {
@@ -939,6 +941,7 @@ function SCCFields({ histology, update, theme }: FieldProps) {
             return (
               <Pressable
                 key={opt.value}
+                testID={`caseForm.skinCancer.histology.chip-sccDifferentiation-${opt.value}`}
                 style={[
                   styles.chip,
                   {
@@ -1015,6 +1018,7 @@ function SCCFields({ histology, update, theme }: FieldProps) {
         value={histology.sccPerineuralInvasion ?? false}
         onValueChange={(v) => update({ sccPerineuralInvasion: v })}
         theme={theme}
+        testID="caseForm.skinCancer.toggle-pni"
       />
 
       {/* LVI toggle */}
@@ -1023,6 +1027,7 @@ function SCCFields({ histology, update, theme }: FieldProps) {
         value={histology.sccLymphovascularInvasion ?? false}
         onValueChange={(v) => update({ sccLymphovascularInvasion: v })}
         theme={theme}
+        testID="caseForm.skinCancer.toggle-lvi"
       />
 
       {/* Risk level */}
@@ -1099,6 +1104,7 @@ function MelanomaFields({
         </ThemedText>
         <View style={styles.inputWithUnit}>
           <TextInput
+            testID="caseForm.skinCancer.input-breslow"
             style={[
               styles.numericInput,
               {
@@ -1133,6 +1139,7 @@ function MelanomaFields({
         value={histology.melanomaUlceration ?? false}
         onValueChange={(v) => update({ melanomaUlceration: v })}
         theme={theme}
+        testID="caseForm.skinCancer.toggle-ulceration"
       />
 
       {/* Auto T-stage */}
@@ -1509,11 +1516,13 @@ function ToggleRow({
   value,
   onValueChange,
   theme,
+  testID,
 }: {
   label: string;
   value: boolean;
   onValueChange: (v: boolean) => void;
   theme: ReturnType<typeof useTheme>["theme"];
+  testID?: string;
 }) {
   return (
     <View style={styles.toggleRow}>
@@ -1521,6 +1530,7 @@ function ToggleRow({
         {label}
       </ThemedText>
       <Switch
+        testID={testID}
         value={value}
         onValueChange={onValueChange}
         trackColor={{

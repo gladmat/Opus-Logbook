@@ -57,6 +57,8 @@ interface Props {
   renderMode?: RenderMode;
   /** When true, suppresses inline BreastFlapCard for free flap cases (handled by hub row FreeFlapSheet) */
   suppressFreeFlap?: boolean;
+  /** Test identifier for automation */
+  testID?: string;
 }
 
 const CONTEXT_OPTIONS: {
@@ -97,6 +99,7 @@ export const BreastSideCard = React.memo(function BreastSideCard({
   breastPreferences,
   renderMode = "full",
   suppressFreeFlap,
+  testID,
 }: Props) {
   const { theme, isDark } = useTheme();
   const [showTimingInfo, setShowTimingInfo] = useState(false);
@@ -160,6 +163,7 @@ export const BreastSideCard = React.memo(function BreastSideCard({
 
   return (
     <View
+      testID={testID ?? `caseForm.breast.side-${side}`}
       style={[
         styles.card,
         {
@@ -175,7 +179,7 @@ export const BreastSideCard = React.memo(function BreastSideCard({
           <ThemedText type="h4">{sideLabel}</ThemedText>
         </View>
         {showContext && showCopyButton && onCopy && (
-          <Pressable onPress={onCopy} style={styles.copyButton}>
+          <Pressable testID="caseForm.breast.btn-copyToOtherSide" onPress={onCopy} style={styles.copyButton}>
             <Feather name="copy" size={14} color={theme.link} />
             <ThemedText
               type="small"
@@ -204,6 +208,7 @@ export const BreastSideCard = React.memo(function BreastSideCard({
               return (
                 <Pressable
                   key={key}
+                  testID={`caseForm.breast.${side}.chip-context-${key}`}
                   onPress={() => handleContextChange(key)}
                   style={[
                     styles.contextChip,
@@ -299,6 +304,7 @@ export const BreastSideCard = React.memo(function BreastSideCard({
                   return (
                     <Pressable
                       key={timing}
+                      testID={`caseForm.breast.${side}.chip-timing-${timing}`}
                       onPress={() => handleTimingChange(timing)}
                       style={[
                         styles.timingChip,

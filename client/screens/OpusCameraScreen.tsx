@@ -574,7 +574,7 @@ export default function OpusCameraScreen({ navigation, route }: Props) {
   const totalSteps = selectedProtocol ? filteredSteps.length : undefined;
 
   return (
-    <View style={styles.viewfinderContainer}>
+    <View testID="screen-opusCamera" style={styles.viewfinderContainer}>
       <CameraView
         ref={cameraRef}
         style={StyleSheet.absoluteFill}

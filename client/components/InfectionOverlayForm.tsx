@@ -291,6 +291,7 @@ export function InfectionOverlayForm({
               updateOverlay({ syndromePrimary: v as InfectionSyndrome })
             }
             required
+            testID="caseForm.infection.picker-type"
           />
 
           <View style={styles.row}>
@@ -322,6 +323,7 @@ export function InfectionOverlayForm({
             value={value.subregion || ""}
             onChangeText={(v) => updateOverlay({ subregion: v })}
             placeholder="e.g., thenar space, web space"
+            testID="caseForm.infection.input-subregion"
           />
 
           <View style={styles.row}>

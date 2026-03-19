@@ -2522,6 +2522,7 @@ function DiagnosisGroupEditorInner({
 
   return (
     <View
+      testID={`caseForm.diagnosis.group-${index}`}
       style={[
         styles.diagnosisCard,
         {
@@ -2589,6 +2590,7 @@ function DiagnosisGroupEditorInner({
                   onDelete();
                 }}
                 hitSlop={8}
+                testID={`caseForm.diagnosis.btn-deleteGroup-${index}`}
               >
                 <Feather name="trash-2" size={18} color={theme.error} />
               </Pressable>
@@ -3124,6 +3126,7 @@ function DiagnosisGroupEditorInner({
                   searchType="diagnosis"
                   specialty={groupSpecialty}
                   placeholder="Search for diagnosis (e.g., fracture, Dupuytren)..."
+                  testID="caseForm.diagnosis.input-search"
                 />
               )
             ) : null}
@@ -3140,6 +3143,7 @@ function DiagnosisGroupEditorInner({
                     setShowSnomedSearch((v) => !v);
                   }}
                   style={styles.showAllLink}
+                  testID="caseForm.diagnosis.btn-snomedSearch"
                 >
                   <Feather
                     name={showSnomedSearch ? "chevron-up" : "search"}
@@ -3165,6 +3169,7 @@ function DiagnosisGroupEditorInner({
                     searchType="diagnosis"
                     specialty={groupSpecialty}
                     placeholder="Search for diagnosis (e.g., fracture, Dupuytren)..."
+                    testID="caseForm.diagnosis.input-search"
                   />
                 ) : null}
               </>

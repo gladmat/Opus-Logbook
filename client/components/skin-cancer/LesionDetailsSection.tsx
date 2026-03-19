@@ -285,6 +285,7 @@ export function LesionDetailsSection({
             SITE
           </ThemedText>
           <Pressable
+            testID="caseForm.skinCancer.btn-lesionPhoto"
             style={styles.cameraButton}
             onPress={handleCameraPress}
             hitSlop={8}
@@ -328,6 +329,7 @@ export function LesionDetailsSection({
                 return (
                   <Pressable
                     key={site}
+                    testID={`caseForm.skinCancer.chip-site-${site.toLowerCase().replace(/\s+/g, "_")}`}
                     style={[
                       styles.chip,
                       {
@@ -370,6 +372,7 @@ export function LesionDetailsSection({
             return (
               <Pressable
                 key={opt.value}
+                testID={`caseForm.skinCancer.chip-laterality-${opt.value}`}
                 style={[
                   styles.chip,
                   {
@@ -406,6 +409,7 @@ export function LesionDetailsSection({
         </ThemedText>
         <View style={styles.dimensionRow}>
           <SkinCancerNumericInput
+            testID="caseForm.skinCancer.input-length"
             style={[
               styles.dimensionInput,
               {
@@ -434,6 +438,7 @@ export function LesionDetailsSection({
             ×
           </ThemedText>
           <SkinCancerNumericInput
+            testID="caseForm.skinCancer.input-width"
             ref={widthInputRef}
             style={[
               styles.dimensionInput,

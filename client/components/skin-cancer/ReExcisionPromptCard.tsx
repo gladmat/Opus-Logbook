@@ -40,6 +40,7 @@ export function ReExcisionPromptCard({
 
   return (
     <View
+      testID="caseForm.skinCancer.card-reExcisionPrompt"
       style={[
         styles.container,
         {
@@ -61,6 +62,7 @@ export function ReExcisionPromptCard({
       </ThemedText>
 
       <Pressable
+        testID="caseForm.skinCancer.btn-createFollowUp"
         onPress={handlePress}
         style={[styles.button, { backgroundColor: theme.warning }]}
         accessibilityRole="button"

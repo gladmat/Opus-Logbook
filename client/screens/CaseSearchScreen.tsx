@@ -83,7 +83,7 @@ export default function CaseSearchScreen() {
   const keyExtractor = useCallback((item: CaseSummary) => item.id, []);
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+    <View testID="screen-caseSearch" style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
       <View
         style={[
           styles.searchBar,
@@ -106,6 +106,7 @@ export default function CaseSearchScreen() {
           autoCapitalize="none"
           autoCorrect={false}
           returnKeyType="search"
+          testID="caseSearch.input-search"
         />
         {query.length > 0 ? (
           <Pressable
@@ -113,6 +114,7 @@ export default function CaseSearchScreen() {
             accessibilityRole="button"
             accessibilityLabel="Clear search"
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            testID="caseSearch.btn-clear"
           >
             <Feather name="x-circle" size={16} color={theme.textTertiary} />
           </Pressable>

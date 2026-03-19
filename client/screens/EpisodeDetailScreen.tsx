@@ -166,7 +166,7 @@ export default function EpisodeDetailScreen() {
       : 0;
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+    <View testID="screen-episodeDetail" style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
@@ -189,6 +189,7 @@ export default function EpisodeDetailScreen() {
                 styles.statusBadge,
                 { backgroundColor: statusColor + "20" },
               ]}
+              testID="episodeDetail.badge-status"
             >
               <ThemedText style={[styles.statusText, { color: statusColor }]}>
                 {EPISODE_STATUS_LABELS[episode.status]}
@@ -338,6 +339,7 @@ export default function EpisodeDetailScreen() {
                         borderColor: color + "40",
                       },
                     ]}
+                    testID={`episodeDetail.btn-changeStatus-${status}`}
                   >
                     <ThemedText
                       style={[styles.transitionButtonText, { color }]}
@@ -386,6 +388,7 @@ export default function EpisodeDetailScreen() {
                     styles.timelineItem,
                     { backgroundColor: theme.backgroundDefault },
                   ]}
+                  testID={`episodeDetail.case-${idx}`}
                 >
                   {/* Sequence circle */}
                   <View
@@ -457,6 +460,7 @@ export default function EpisodeDetailScreen() {
         <Pressable
           onPress={handleLogCase}
           style={[styles.logCaseButton, { backgroundColor: theme.link }]}
+          testID="episodeDetail.btn-logCase"
         >
           <Feather name="plus" size={20} color={theme.buttonText} />
           <ThemedText

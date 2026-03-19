@@ -96,6 +96,7 @@ export function FreeFlapPicker({
                 borderColor: flapType === flap ? theme.link : theme.border,
               },
             ]}
+            testID={`caseForm.freeFlap.chip-flapType-${flap}`}
           >
             <ThemedText
               style={[

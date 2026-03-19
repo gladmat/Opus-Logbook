@@ -149,6 +149,8 @@ interface SkinCancerAssessmentProps {
   scrollViewRef?: React.RefObject<any>;
   /** Current scroll Y position (tracked by parent) */
   scrollPositionRef?: React.MutableRefObject<number>;
+  /** Test identifier for automation */
+  testID?: string;
 }
 
 export function SkinCancerAssessment({
@@ -166,6 +168,7 @@ export function SkinCancerAssessment({
   onCreateFollowUp,
   scrollViewRef,
   scrollPositionRef,
+  testID,
 }: SkinCancerAssessmentProps) {
   const { theme } = useTheme();
   const isEditMode = useCaseFormSelector((snapshot) => snapshot.isEditMode);
@@ -558,7 +561,7 @@ export function SkinCancerAssessment({
       autoConfig.autoPathologyCategory === "melanoma");
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID={testID}>
       {/* ── 1. Diagnosis (Tier 1 chips — ALWAYS VISIBLE) ── */}
       <SectionWrapper
         title={`${++sectionNum}. Diagnosis`}
@@ -566,6 +569,7 @@ export function SkinCancerAssessment({
         collapsible
         isCollapsed={isSectionCollapsed("diagnosis")}
         onCollapsedChange={(v) => setSectionCollapsedState("diagnosis", v)}
+        testID="caseForm.skinCancer.section-diagnosis"
         subtitle={
           assessment?.clinicalSuspicion
             ? DIAGNOSIS_CATEGORIES.find(
@@ -580,6 +584,7 @@ export function SkinCancerAssessment({
             return (
               <Pressable
                 key={opt.value}
+                testID={`caseForm.skinCancer.chip-category-${opt.value}`}
                 style={[
                   styles.tier1Chip,
                   {
@@ -627,6 +632,7 @@ export function SkinCancerAssessment({
               </ThemedText>
               <View style={styles.marginInputWrap}>
                 <SkinCancerNumericInput
+                  testID="caseForm.skinCancer.input-quickBreslow"
                   style={[
                     styles.marginInput,
                     styles.quickBreslowInput,
@@ -664,6 +670,7 @@ export function SkinCancerAssessment({
               onCollapsedChange={(v) =>
                 setSectionCollapsedState("pathology", v)
               }
+              testID="caseForm.skinCancer.section-priorHistology"
               subtitle="Optional — prior biopsy report details"
             >
               <PathologySection
@@ -690,6 +697,7 @@ export function SkinCancerAssessment({
             collapsible
             isCollapsed={isSectionCollapsed("lesion")}
             onCollapsedChange={(v) => setSectionCollapsedState("lesion", v)}
+            testID="caseForm.skinCancer.section-lesion"
           >
             <LesionDetailsSection
               assessment={assessment}
@@ -711,6 +719,7 @@ export function SkinCancerAssessment({
               collapsible
               isCollapsed={isSectionCollapsed("slnb")}
               onCollapsedChange={(v) => setSectionCollapsedState("slnb", v)}
+              testID="caseForm.skinCancer.section-slnb"
             >
               <SLNBSection
                 slnb={assessment.slnb}
@@ -725,6 +734,7 @@ export function SkinCancerAssessment({
                 Consider SLNB
               </ThemedText>
               <Switch
+                testID="caseForm.skinCancer.toggle-considerSlnb"
                 value={manualSlnbToggle}
                 onValueChange={setManualSlnbToggle}
                 trackColor={{
@@ -744,6 +754,7 @@ export function SkinCancerAssessment({
               collapsible
               isCollapsed={isSectionCollapsed("excision")}
               onCollapsedChange={(v) => setSectionCollapsedState("excision", v)}
+              testID="caseForm.skinCancer.section-biopsy"
             >
               {/* Biopsy method chips */}
               <View style={styles.biopsyGrid}>
@@ -752,6 +763,7 @@ export function SkinCancerAssessment({
                   return (
                     <Pressable
                       key={opt.value}
+                      testID={`caseForm.skinCancer.chip-biopsyType-${opt.value}`}
                       style={[
                         styles.biopsyChip,
                         {
@@ -788,6 +800,7 @@ export function SkinCancerAssessment({
                   </ThemedText>
                   <View style={styles.marginInputWrap}>
                     <SkinCancerNumericInput
+                      testID="caseForm.skinCancer.input-biopsyMargin"
                       style={[
                         styles.marginInput,
                         {
@@ -833,6 +846,7 @@ export function SkinCancerAssessment({
                       return (
                         <Pressable
                           key={size}
+                          testID={`caseForm.skinCancer.chip-punchSize-${size}`}
                           style={[
                             styles.punchChip,
                             {
@@ -883,6 +897,7 @@ export function SkinCancerAssessment({
               collapsible
               isCollapsed={isSectionCollapsed("excision")}
               onCollapsedChange={(v) => setSectionCollapsedState("excision", v)}
+              testID="caseForm.skinCancer.section-excision"
             >
               <HistologySection
                 label=""
@@ -905,6 +920,7 @@ export function SkinCancerAssessment({
               onCollapsedChange={(v) =>
                 setSectionCollapsedState("currentHistology", v)
               }
+              testID="caseForm.skinCancer.section-specimenHistology"
               subtitle={
                 isBiopsy
                   ? "Enter histology when the specimen report returns"
@@ -931,6 +947,7 @@ export function SkinCancerAssessment({
             assessment.biopsyType &&
             assessment.site && (
               <Pressable
+                testID="caseForm.skinCancer.btn-addLesion"
                 style={[styles.addLesionButton, { borderColor: theme.border }]}
                 onPress={onAddLesion}
               >
@@ -949,6 +966,7 @@ export function SkinCancerAssessment({
                 Discussed at MDT
               </ThemedText>
               <Switch
+                testID="caseForm.skinCancer.toggle-mdt"
                 value={assessment.discussedAtMdt ?? false}
                 onValueChange={(v) =>
                   handleAssessmentMetaChange({ discussedAtMdt: v })
@@ -975,6 +993,7 @@ export function SkinCancerAssessment({
                 onCollapsedChange={(v) =>
                   setSectionCollapsedState("summary", v)
                 }
+                testID="caseForm.skinCancer.section-summary"
               >
                 <SkinCancerSummaryPanel
                   assessment={assessment}

@@ -192,6 +192,7 @@ export const PeripheralNerveAssessment = React.memo(
 
     return (
       <View
+        testID="caseForm.peripheralNerve.assessment"
         style={[
           styles.container,
           {

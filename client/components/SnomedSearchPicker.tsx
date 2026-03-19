@@ -30,6 +30,7 @@ interface SnomedSearchPickerProps {
   placeholder?: string;
   required?: boolean;
   error?: string;
+  testID?: string;
 }
 
 export function SnomedSearchPicker({
@@ -41,6 +42,7 @@ export function SnomedSearchPicker({
   placeholder = "Search...",
   required = false,
   error,
+  testID,
 }: SnomedSearchPickerProps) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -222,6 +224,7 @@ export function SnomedSearchPicker({
           >
             <Feather name="search" size={20} color={theme.textTertiary} />
             <TextInput
+              testID={testID}
               style={[styles.searchInput, { color: theme.text }]}
               value={searchQuery}
               onChangeText={handleSearchChange}

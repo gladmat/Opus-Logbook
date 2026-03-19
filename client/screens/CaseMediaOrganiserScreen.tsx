@@ -265,7 +265,7 @@ export default function CaseMediaOrganiserScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+    <View testID="screen-caseMediaOrganiser" style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
       {/* Header row */}
       <View style={styles.headerRow}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={12}>

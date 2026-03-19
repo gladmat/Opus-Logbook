@@ -94,6 +94,7 @@ function DegreeStepper({
   step = 5,
   min = 0,
   max = 180,
+  testID,
 }: {
   label: string;
   value: number;
@@ -101,6 +102,7 @@ function DegreeStepper({
   step?: number;
   min?: number;
   max?: number;
+  testID?: string;
 }) {
   const { theme } = useTheme();
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -176,7 +178,7 @@ function DegreeStepper({
   };
 
   return (
-    <View style={styles.stepperRow}>
+    <View style={styles.stepperRow} testID={testID}>
       <ThemedText
         style={[styles.stepperLabel, { color: theme.textSecondary }]}
         numberOfLines={1}
@@ -346,11 +348,13 @@ function RayCard({
         label="MCP deficit"
         value={ray.mcpExtensionDeficit}
         onChange={(v) => onUpdate(updateRayJointDeficit(ray, "mcp", v))}
+        testID={`caseForm.dupuytren.input-mcp-${ray.fingerId}`}
       />
       <DegreeStepper
         label="PIP deficit"
         value={ray.pipExtensionDeficit}
         onChange={(v) => onUpdate(updateRayJointDeficit(ray, "pip", v))}
+        testID={`caseForm.dupuytren.input-pip-${ray.fingerId}`}
       />
       {/* DIP toggle (rare) */}
       <Pressable
@@ -715,6 +719,7 @@ export const DupuytrenAssessment = React.memo(function DupuytrenAssessment({
                         : theme.border,
                   },
                 ]}
+                testID={`caseForm.dupuytren.chip-ray-${id}`}
               >
                 <ThemedText
                   style={{
@@ -740,7 +745,7 @@ export const DupuytrenAssessment = React.memo(function DupuytrenAssessment({
       <SummaryCard assessment={assessment} />
 
       {/* First web space toggle */}
-      <Pressable onPress={toggleWebSpace} style={styles.toggleRow}>
+      <Pressable onPress={toggleWebSpace} style={styles.toggleRow} testID="caseForm.dupuytren.toggle-firstWebSpace">
         <Feather
           name={
             assessment.firstWebSpace?.isAffected
@@ -991,6 +996,7 @@ export const DupuytrenAssessment = React.memo(function DupuytrenAssessment({
                     });
                   }}
                   style={styles.toggleRow}
+                  testID={`caseForm.dupuytren.chip-diathesis-${key}`}
                 >
                   <Feather
                     name={isChecked ? "check-square" : "square"}

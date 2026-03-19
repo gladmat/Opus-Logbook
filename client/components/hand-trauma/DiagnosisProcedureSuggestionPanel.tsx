@@ -962,6 +962,7 @@ export function DiagnosisProcedureSuggestionPanel({
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               onAccept([...selectedProcedureIds]);
             }}
+            testID="caseForm.hand.btn-acceptMapping"
           >
             <Feather name="check" size={18} color={theme.buttonText} />
             <ThemedText

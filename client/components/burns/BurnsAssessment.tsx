@@ -137,7 +137,7 @@ export const BurnsAssessment = React.memo(function BurnsAssessment({
   // ── Render ──────────────────────────────────────────────────────────────
 
   return (
-    <View style={[styles.outerContainer, { borderColor: theme.link }]}>
+    <View style={[styles.outerContainer, { borderColor: theme.link }]} testID="caseForm.burns.assessment">
       {/* Module header */}
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
@@ -175,6 +175,7 @@ export const BurnsAssessment = React.memo(function BurnsAssessment({
                   borderColor: isSelected ? theme.link : theme.border,
                 },
               ]}
+              testID={`caseForm.burns.chip-phase-${p}`}
             >
               <ThemedText
                 style={[

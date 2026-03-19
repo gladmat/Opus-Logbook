@@ -501,7 +501,7 @@ export default function InboxScreen() {
   const isEmpty = items.length === 0;
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView testID="screen-inbox" style={styles.container}>
       {/* Header bar */}
       <View style={[styles.headerBar, { borderBottomColor: theme.border }]}>
         <ThemedText style={[styles.countText, { color: theme.textSecondary }]}>

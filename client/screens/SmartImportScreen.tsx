@@ -316,7 +316,7 @@ export default function SmartImportScreen() {
   }
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView testID="screen-smartImport" style={styles.container}>
       <View style={styles.center}>
         {phase === "encrypting" && (
           <>

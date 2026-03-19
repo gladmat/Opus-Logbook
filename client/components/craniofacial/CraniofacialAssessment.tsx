@@ -386,7 +386,7 @@ export function CraniofacialAssessment({
   const ops = assessment.operativeDetails;
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="caseForm.craniofacial.assessment">
       {/* ────────────────────────────────────────────────────────────────────
        * COMPLETION BADGE
        * ──────────────────────────────────────────────────────────────────── */}

@@ -317,6 +317,7 @@ export function PathologySection({
               return (
                 <Pressable
                   key={opt.value}
+                  testID={`caseForm.skinCancer.priorHistology.chip-category-${opt.value}`}
                   style={[
                     styles.tier1Chip,
                     {
@@ -383,6 +384,7 @@ export function PathologySection({
                 return (
                   <Pressable
                     key={opt.value}
+                    testID={`caseForm.skinCancer.chip-excisionMethod-${opt.value}`}
                     style={[
                       styles.chip,
                       {
@@ -542,6 +544,7 @@ export function PathologySection({
                   return (
                     <Pressable
                       key={opt.value}
+                      testID={`caseForm.skinCancer.chip-marginStatus-${opt.value}`}
                       style={[
                         styles.chip,
                         {
@@ -615,6 +618,7 @@ function BCCFields({ histology, update, theme }: FieldProps) {
           return (
             <Pressable
               key={opt.value}
+              testID={`caseForm.skinCancer.chip-bccSubtype-${opt.value}`}
               style={[
                 styles.chip,
                 {
@@ -664,6 +668,7 @@ function SCCFields({ histology, update, theme }: FieldProps) {
             return (
               <Pressable
                 key={opt.value}
+                testID={`caseForm.skinCancer.chip-sccDifferentiation-${opt.value}`}
                 style={[
                   styles.chip,
                   {

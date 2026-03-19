@@ -54,6 +54,7 @@ function SummaryCard({
   const { theme } = useTheme();
   return (
     <View
+      testID={`caseForm.summary.card-${sectionId}`}
       style={[
         styles.card,
         {
@@ -68,7 +69,11 @@ function SummaryCard({
         <ThemedText style={[styles.cardTitle, { color: theme.text }]}>
           {title}
         </ThemedText>
-        <Pressable onPress={() => onEdit(sectionId)} hitSlop={8}>
+        <Pressable
+          onPress={() => onEdit(sectionId)}
+          hitSlop={8}
+          testID={`caseForm.summary.btn-edit-${sectionId}`}
+        >
           <ThemedText style={[styles.editLink, { color: theme.link }]}>
             Edit
           </ThemedText>
@@ -481,10 +486,18 @@ export function CaseSummaryView({
 
       {/* Buttons */}
       <View style={styles.buttonGroup}>
-        <Button onPress={onConfirmSave} disabled={saving || hasWarnings}>
+        <Button
+          onPress={onConfirmSave}
+          disabled={saving || hasWarnings}
+          testID="caseForm.summary.btn-confirmSave"
+        >
           {saving ? "Saving..." : "Confirm & Save"}
         </Button>
-        <Pressable onPress={onBackToEdit} style={styles.backButton}>
+        <Pressable
+          onPress={onBackToEdit}
+          style={styles.backButton}
+          testID="caseForm.summary.btn-backToEdit"
+        >
           <ThemedText style={[styles.backButtonText, { color: theme.link }]}>
             Back to Edit
           </ThemedText>

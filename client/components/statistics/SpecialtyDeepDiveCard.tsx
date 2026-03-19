@@ -24,6 +24,7 @@ interface SpecialtyDeepDiveCardProps {
   heroMetric?: { label: string; value: string };
   minCasesForDetail?: number;
   children: React.ReactNode;
+  testID?: string;
 }
 
 if (
@@ -40,6 +41,7 @@ export const SpecialtyDeepDiveCard = React.memo(function SpecialtyDeepDiveCard({
   heroMetric,
   minCasesForDetail = 5,
   children,
+  testID,
 }: SpecialtyDeepDiveCardProps) {
   const { theme, isDark } = useTheme();
   const [expanded, setExpanded] = useState(false);
@@ -68,6 +70,7 @@ export const SpecialtyDeepDiveCard = React.memo(function SpecialtyDeepDiveCard({
         },
         !isDark && Shadows.card,
       ]}
+      testID={testID}
     >
       <Pressable
         onPress={hasSufficientData ? toggleExpand : undefined}
