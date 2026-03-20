@@ -815,7 +815,7 @@ const BREAST_DX_IMPLANT_COMPLICATIONS_EXTENDED: DiagnosisPicklistEntry[] = [
     id: "breast_dx_implant_malposition",
     displayName: "Implant malposition",
     shortName: "Malposition",
-    snomedCtCode: "236507001", // VERIFY
+    snomedCtCode: "1255231000",
     snomedCtDisplay: "Malposition of breast implant (disorder)",
     specialty: "breast",
     subcategory: "Implant Complications",
@@ -848,8 +848,8 @@ const BREAST_DX_IMPLANT_COMPLICATIONS_EXTENDED: DiagnosisPicklistEntry[] = [
     id: "breast_dx_animation_deformity",
     displayName: "Animation deformity",
     shortName: "Animation deformity",
-    snomedCtCode: "236507001", // VERIFY
-    snomedCtDisplay: "Animation deformity of breast (disorder)",
+    snomedCtCode: "69260008",
+    snomedCtDisplay: "Complication of internal prosthetic device (disorder)",
     specialty: "breast",
     subcategory: "Implant Complications",
     clinicalGroup: "reconstructive",
@@ -880,8 +880,8 @@ const BREAST_DX_IMPLANT_COMPLICATIONS_EXTENDED: DiagnosisPicklistEntry[] = [
     id: "breast_dx_symmastia",
     displayName: "Symmastia (breadloafing / uniboob)",
     shortName: "Symmastia",
-    snomedCtCode: "236507001", // VERIFY
-    snomedCtDisplay: "Symmastia (disorder)",
+    snomedCtCode: "69260008",
+    snomedCtDisplay: "Complication of internal prosthetic device (disorder)",
     specialty: "breast",
     subcategory: "Implant Complications",
     clinicalGroup: "reconstructive",
@@ -913,8 +913,8 @@ const BREAST_DX_IMPLANT_COMPLICATIONS_EXTENDED: DiagnosisPicklistEntry[] = [
     id: "breast_dx_implant_infection",
     displayName: "Breast implant infection / periprosthetic infection",
     shortName: "Implant infection",
-    snomedCtCode: "236507001", // VERIFY
-    snomedCtDisplay: "Infection of breast implant (disorder)",
+    snomedCtCode: "69260008",
+    snomedCtDisplay: "Complication of internal prosthetic device (disorder)",
     specialty: "breast",
     subcategory: "Implant Complications",
     clinicalGroup: "reconstructive",
@@ -940,8 +940,8 @@ const BREAST_DX_IMPLANT_COMPLICATIONS_EXTENDED: DiagnosisPicklistEntry[] = [
     id: "breast_dx_capsule_calcification",
     displayName: "Capsule calcification",
     shortName: "Capsule calcification",
-    snomedCtCode: "236507001", // VERIFY
-    snomedCtDisplay: "Calcification of breast implant capsule (disorder)",
+    snomedCtCode: "69260008",
+    snomedCtDisplay: "Complication of internal prosthetic device (disorder)",
     specialty: "breast",
     subcategory: "Implant Complications",
     clinicalGroup: "reconstructive",
