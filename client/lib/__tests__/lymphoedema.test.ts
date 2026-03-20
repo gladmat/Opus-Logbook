@@ -476,12 +476,12 @@ describe("SNOMED code format validation", () => {
     }
   });
 
-  it("all procedure codes are 6-10 digit numeric strings", () => {
+  it("all procedure codes are 6-18 digit numeric strings (includes AU extension codes)", () => {
     const lymphProcs = PROCEDURE_PICKLIST.filter(
       (p) => typeof p.id === "string" && p.id.startsWith("lymph_"),
     );
     for (const proc of lymphProcs) {
-      expect(proc.snomedCtCode).toMatch(/^\d{6,10}$/);
+      expect(proc.snomedCtCode).toMatch(/^\d{6,18}$/);
     }
   });
 });

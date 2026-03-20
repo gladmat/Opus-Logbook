@@ -3997,8 +3997,8 @@ const GENERAL_LYMPHOEDEMA: ProcedurePicklistEntry[] = [
   {
     id: "gen_lymph_lva",
     displayName: "Lymphovenous anastomosis (LVA)",
-    snomedCtCode: "264597004", // VERIFY — generic microsurgery code, no specific LVA SNOMED
-    snomedCtDisplay: "Microsurgery (procedure)",
+    snomedCtCode: "234300000",
+    snomedCtDisplay: "Lymphovenous anastomosis (procedure)",
     specialties: ["lymphoedema", "general"],
     subcategory: "Lymphoedema Surgery",
     tags: ["microsurgery", "elective"],
@@ -4007,8 +4007,8 @@ const GENERAL_LYMPHOEDEMA: ProcedurePicklistEntry[] = [
   {
     id: "gen_lymph_vlnt",
     displayName: "Vascularised lymph node transfer (VLNT)",
-    snomedCtCode: "234019008", // VERIFY — free flap reconstruction
-    snomedCtDisplay: "Free flap reconstruction (procedure)",
+    snomedCtCode: "896969002",
+    snomedCtDisplay: "Transfer of vascularized lymph node (procedure)",
     specialties: ["lymphoedema", "general"],
     subcategory: "Lymphoedema Surgery",
     tags: ["free_flap", "microsurgery", "elective"],
@@ -4018,8 +4018,8 @@ const GENERAL_LYMPHOEDEMA: ProcedurePicklistEntry[] = [
   {
     id: "gen_lymph_liposuction",
     displayName: "Liposuction for lymphoedema",
-    snomedCtCode: "302441004", // VERIFY — liposuction generic
-    snomedCtDisplay: "Liposuction (procedure)",
+    snomedCtCode: "302441008",
+    snomedCtDisplay: "Liposuction of subcutaneous tissue (procedure)",
     specialties: ["lymphoedema", "general"],
     subcategory: "Lymphoedema Surgery",
     tags: ["elective"],
@@ -4028,8 +4028,8 @@ const GENERAL_LYMPHOEDEMA: ProcedurePicklistEntry[] = [
   {
     id: "gen_lymph_debulking",
     displayName: "Lymphoedema debulking / Charles procedure",
-    snomedCtCode: "234097001", // VERIFY — no specific Charles code
-    snomedCtDisplay: "Excisional debulking for lymphoedema (procedure)",
+    snomedCtCode: "44166002",
+    snomedCtDisplay: "Radical excision of lesion of skin (procedure)",
     specialties: ["lymphoedema", "general"],
     subcategory: "Lymphoedema Surgery",
     tags: ["elective"],
@@ -5010,8 +5010,8 @@ const BURNS_ACUTE: ProcedurePicklistEntry[] = [
   {
     id: "burns_acute_fascial_excision",
     displayName: "Fascial excision (deep burn)",
-    snomedCtCode: "36777000", // VERIFY
-    snomedCtDisplay: "Fascial excision of burn (procedure)",
+    snomedCtCode: "40872008",
+    snomedCtDisplay: "Excisional debridement of burn (procedure)",
     specialties: ["burns"],
     subcategory: "Acute Burns Management",
     tags: ["trauma"],
@@ -5043,8 +5043,8 @@ const BURNS_SKIN_GRAFT: ProcedurePicklistEntry[] = [
   {
     id: "burns_graft_meek",
     displayName: "Meek micrografting",
-    snomedCtCode: "14413003", // VERIFY
-    snomedCtDisplay: "Meek micrografting (procedure)",
+    snomedCtCode: "304040003",
+    snomedCtDisplay: "Grafting to skin (procedure)",
     specialties: ["burns"],
     subcategory: "Skin Grafting for Burns",
     tags: ["skin_graft"],
@@ -5053,8 +5053,8 @@ const BURNS_SKIN_GRAFT: ProcedurePicklistEntry[] = [
   {
     id: "burns_graft_cea",
     displayName: "Cultured epithelial autograft (CEA)",
-    snomedCtCode: "14413003", // VERIFY
-    snomedCtDisplay: "Application of cultured epithelial autograft (procedure)",
+    snomedCtCode: "304040003",
+    snomedCtDisplay: "Grafting to skin (procedure)",
     specialties: ["burns"],
     subcategory: "Skin Grafting for Burns",
     tags: ["skin_graft"],
@@ -5063,8 +5063,8 @@ const BURNS_SKIN_GRAFT: ProcedurePicklistEntry[] = [
   {
     id: "burns_graft_dermal_substitute",
     displayName: "Dermal substitute application (Integra / Matriderm / BTM)",
-    snomedCtCode: "14413003", // VERIFY
-    snomedCtDisplay: "Application of dermal substitute (procedure)",
+    snomedCtCode: "1084841000168109", // INTL fallback: 304040003
+    snomedCtDisplay: "Application of skin substitute (procedure)",
     specialties: ["burns"],
     subcategory: "Skin Grafting for Burns",
     tags: ["skin_graft", "complex_wound"],
@@ -5073,8 +5073,8 @@ const BURNS_SKIN_GRAFT: ProcedurePicklistEntry[] = [
   {
     id: "burns_graft_xenograft",
     displayName: "Xenograft / allograft (temporary biological cover)",
-    snomedCtCode: "14413003", // VERIFY
-    snomedCtDisplay: "Application of biological dressing (procedure)",
+    snomedCtCode: "12365002",
+    snomedCtDisplay: "Xenograft of skin to skin (procedure)",
     specialties: ["burns"],
     subcategory: "Skin Grafting for Burns",
     tags: ["skin_graft"],
@@ -5086,8 +5086,8 @@ const BURNS_RECONSTRUCTION: ProcedurePicklistEntry[] = [
   {
     id: "burns_recon_contracture_zplasty",
     displayName: "Burn contracture release — Z-plasty",
-    snomedCtCode: "13760004",
-    snomedCtDisplay: "Z-plasty (procedure)",
+    snomedCtCode: "27786007",
+    snomedCtDisplay: "Z-plasty of skin (procedure)",
     specialties: ["burns"],
     subcategory: "Burns Reconstruction",
     tags: ["local_flap", "revision"],
@@ -5096,8 +5096,8 @@ const BURNS_RECONSTRUCTION: ProcedurePicklistEntry[] = [
   {
     id: "burns_recon_contracture_graft",
     displayName: "Burn contracture release — skin graft",
-    snomedCtCode: "14413003",
-    snomedCtDisplay: "Skin graft for burn contracture (procedure)",
+    snomedCtCode: "304040003",
+    snomedCtDisplay: "Grafting to skin (procedure)",
     specialties: ["burns"],
     subcategory: "Burns Reconstruction",
     tags: ["skin_graft", "revision"],
@@ -5106,8 +5106,8 @@ const BURNS_RECONSTRUCTION: ProcedurePicklistEntry[] = [
   {
     id: "burns_recon_contracture_local_flap",
     displayName: "Burn contracture release — local flap",
-    snomedCtCode: "122462001",
-    snomedCtDisplay: "Flap reconstruction (procedure)",
+    snomedCtCode: "304099003",
+    snomedCtDisplay: "Local transposition flap (procedure)",
     specialties: ["burns"],
     subcategory: "Burns Reconstruction",
     tags: ["local_flap", "revision"],
@@ -5116,8 +5116,8 @@ const BURNS_RECONSTRUCTION: ProcedurePicklistEntry[] = [
   {
     id: "burns_recon_contracture_regional_flap",
     displayName: "Burn contracture release — regional / pedicled flap",
-    snomedCtCode: "122462001",
-    snomedCtDisplay: "Flap reconstruction (procedure)",
+    snomedCtCode: "1201942004",
+    snomedCtDisplay: "Reconstruction using pedicle skin flap (procedure)",
     specialties: ["burns"],
     subcategory: "Burns Reconstruction",
     tags: ["pedicled_flap", "revision"],
@@ -5126,8 +5126,8 @@ const BURNS_RECONSTRUCTION: ProcedurePicklistEntry[] = [
   {
     id: "burns_recon_contracture_free_flap",
     displayName: "Burn contracture release — free flap",
-    snomedCtCode: "122462001",
-    snomedCtDisplay: "Flap reconstruction (procedure)",
+    snomedCtCode: "771225007",
+    snomedCtDisplay: "Reconstruction using free flap (procedure)",
     specialties: ["burns"],
     subcategory: "Burns Reconstruction",
     tags: ["free_flap", "microsurgery", "revision"],
@@ -5137,8 +5137,8 @@ const BURNS_RECONSTRUCTION: ProcedurePicklistEntry[] = [
   {
     id: "burns_recon_scar_excision",
     displayName: "Burn scar excision + direct closure / graft",
-    snomedCtCode: "234140001",
-    snomedCtDisplay: "Revision of scar (procedure)",
+    snomedCtCode: "72013005",
+    snomedCtDisplay: "Revision of scar of skin with excision (procedure)",
     specialties: ["burns"],
     subcategory: "Burns Reconstruction",
     tags: ["revision"],
@@ -5147,8 +5147,8 @@ const BURNS_RECONSTRUCTION: ProcedurePicklistEntry[] = [
   {
     id: "burns_recon_web_space",
     displayName: "Web space reconstruction (hand / neck)",
-    snomedCtCode: "122462001", // VERIFY
-    snomedCtDisplay: "Reconstruction of web space (procedure)",
+    snomedCtCode: "178858008",
+    snomedCtDisplay: "Reconstruction of first web space with local flaps (procedure)",
     specialties: ["burns"],
     subcategory: "Burns Reconstruction",
     tags: ["local_flap", "revision"],
@@ -5157,8 +5157,8 @@ const BURNS_RECONSTRUCTION: ProcedurePicklistEntry[] = [
   {
     id: "burns_recon_tissue_expansion",
     displayName: "Tissue expansion for burns reconstruction",
-    snomedCtCode: "61218004", // VERIFY
-    snomedCtDisplay: "Tissue expansion (procedure)",
+    snomedCtCode: "76790002",
+    snomedCtDisplay: "Insertion of tissue expander (procedure)",
     specialties: ["burns"],
     subcategory: "Burns Reconstruction",
     tags: ["elective", "revision"],
@@ -5170,8 +5170,8 @@ const BURNS_SITE_SPECIFIC: ProcedurePicklistEntry[] = [
   {
     id: "burns_site_hand",
     displayName: "Burns surgery — hand (acute / reconstruction)",
-    snomedCtCode: "89658006",
-    snomedCtDisplay: "Treatment of burn (procedure)",
+    snomedCtCode: "221270009",
+    snomedCtDisplay: "Debridement of burnt skin (procedure)",
     specialties: ["burns"],
     subcategory: "Site-Specific Burns",
     tags: ["trauma"],
@@ -5180,8 +5180,8 @@ const BURNS_SITE_SPECIFIC: ProcedurePicklistEntry[] = [
   {
     id: "burns_site_face",
     displayName: "Burns surgery — face (acute / reconstruction)",
-    snomedCtCode: "89658006",
-    snomedCtDisplay: "Treatment of burn (procedure)",
+    snomedCtCode: "221270009",
+    snomedCtDisplay: "Debridement of burnt skin (procedure)",
     specialties: ["burns"],
     subcategory: "Site-Specific Burns",
     tags: ["trauma"],
@@ -5190,8 +5190,8 @@ const BURNS_SITE_SPECIFIC: ProcedurePicklistEntry[] = [
   {
     id: "burns_site_perineal",
     displayName: "Burns surgery — perineal",
-    snomedCtCode: "89658006",
-    snomedCtDisplay: "Treatment of burn (procedure)",
+    snomedCtCode: "221270009",
+    snomedCtDisplay: "Debridement of burnt skin (procedure)",
     specialties: ["burns"],
     subcategory: "Site-Specific Burns",
     tags: ["trauma"],
@@ -5200,8 +5200,8 @@ const BURNS_SITE_SPECIFIC: ProcedurePicklistEntry[] = [
   {
     id: "burns_site_paediatric",
     displayName: "Paediatric burns surgery",
-    snomedCtCode: "89658006",
-    snomedCtDisplay: "Treatment of burn (procedure)",
+    snomedCtCode: "221270009",
+    snomedCtDisplay: "Debridement of burnt skin (procedure)",
     specialties: ["burns"],
     subcategory: "Site-Specific Burns",
     tags: ["trauma"],
@@ -5210,8 +5210,8 @@ const BURNS_SITE_SPECIFIC: ProcedurePicklistEntry[] = [
   {
     id: "burns_site_chemical",
     displayName: "Chemical burn management",
-    snomedCtCode: "73553004",
-    snomedCtDisplay: "Treatment of chemical burn (procedure)",
+    snomedCtCode: "221270009",
+    snomedCtDisplay: "Debridement of burnt skin (procedure)",
     specialties: ["burns"],
     subcategory: "Site-Specific Burns",
     tags: ["trauma"],
@@ -5220,8 +5220,8 @@ const BURNS_SITE_SPECIFIC: ProcedurePicklistEntry[] = [
   {
     id: "burns_site_electrical",
     displayName: "Electrical burn management",
-    snomedCtCode: "409580007",
-    snomedCtDisplay: "Treatment of electrical burn (procedure)",
+    snomedCtCode: "221270009",
+    snomedCtDisplay: "Debridement of burnt skin (procedure)",
     specialties: ["burns"],
     subcategory: "Site-Specific Burns",
     tags: ["trauma"],
@@ -5233,8 +5233,8 @@ const BURNS_SCAR_TREATMENT: ProcedurePicklistEntry[] = [
   {
     id: "burns_scar_laser",
     displayName: "Laser treatment — burn scar (fractional / pulsed dye)",
-    snomedCtCode: "122456005", // VERIFY
-    snomedCtDisplay: "Laser therapy for burn scar (procedure)",
+    snomedCtCode: "445907001",
+    snomedCtDisplay: "Laser procedure on skin (procedure)",
     specialties: ["burns"],
     subcategory: "Burn Scar Treatment",
     tags: ["elective", "revision"],
@@ -5243,8 +5243,8 @@ const BURNS_SCAR_TREATMENT: ProcedurePicklistEntry[] = [
   {
     id: "burns_scar_steroid_injection",
     displayName: "Intralesional steroid injection — burn scar",
-    snomedCtCode: "231274008",
-    snomedCtDisplay: "Injection of corticosteroid (procedure)",
+    snomedCtCode: "27581000",
+    snomedCtDisplay: "Intralesional injection of skin (procedure)",
     specialties: ["burns"],
     subcategory: "Burn Scar Treatment",
     tags: ["elective", "revision"],
@@ -5253,8 +5253,8 @@ const BURNS_SCAR_TREATMENT: ProcedurePicklistEntry[] = [
   {
     id: "burns_scar_fat_grafting",
     displayName: "Fat grafting — burn scar",
-    snomedCtCode: "37834008", // VERIFY
-    snomedCtDisplay: "Lipofilling for burn scar (procedure)",
+    snomedCtCode: "712822003",
+    snomedCtDisplay: "Grafting of fat (procedure)",
     specialties: ["burns"],
     subcategory: "Burn Scar Treatment",
     tags: ["elective", "revision"],
@@ -5263,8 +5263,8 @@ const BURNS_SCAR_TREATMENT: ProcedurePicklistEntry[] = [
   {
     id: "burns_scar_microneedling",
     displayName: "Microneedling — burn scar",
-    snomedCtCode: "122456005", // VERIFY
-    snomedCtDisplay: "Microneedling for burn scar (procedure)",
+    snomedCtCode: "1381181000168108", // INTL fallback: 1575071000168100
+    snomedCtDisplay: "Puncture of scar of skin surface using microneedles (procedure)",
     specialties: ["burns"],
     subcategory: "Burn Scar Treatment",
     tags: ["elective", "revision"],
@@ -5282,8 +5282,8 @@ const BURNS_GRAFT_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_graft_stsg_sheet",
     displayName: "STSG — sheet (burns)",
-    snomedCtCode: "72456001", // VERIFY
-    snomedCtDisplay: "Application of split-thickness skin graft (procedure)",
+    snomedCtCode: "265675003",
+    snomedCtDisplay: "Split thickness graft of skin to skin (procedure)",
     specialties: ["burns"],
     subcategory: "Burns Skin Grafting",
     tags: ["skin_graft"],
@@ -5292,8 +5292,8 @@ const BURNS_GRAFT_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_graft_stsg_meshed",
     displayName: "STSG — meshed (burns)",
-    snomedCtCode: "72456001", // VERIFY
-    snomedCtDisplay: "Application of split-thickness skin graft (procedure)",
+    snomedCtCode: "265675003",
+    snomedCtDisplay: "Split thickness graft of skin to skin (procedure)",
     specialties: ["burns"],
     subcategory: "Burns Skin Grafting",
     tags: ["skin_graft"],
@@ -5302,8 +5302,8 @@ const BURNS_GRAFT_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_graft_ftsg",
     displayName: "FTSG (burns)",
-    snomedCtCode: "57274006", // VERIFY
-    snomedCtDisplay: "Application of full-thickness skin graft (procedure)",
+    snomedCtCode: "783539008",
+    snomedCtDisplay: "Full thickness skin graft (procedure)",
     specialties: ["burns"],
     subcategory: "Burns Skin Grafting",
     tags: ["skin_graft"],
@@ -5312,8 +5312,8 @@ const BURNS_GRAFT_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_graft_recell",
     displayName: "ReCell (spray-on skin)",
-    snomedCtCode: "72456001", // VERIFY
-    snomedCtDisplay: "Application of skin cell suspension (procedure)",
+    snomedCtCode: "304040003",
+    snomedCtDisplay: "Grafting to skin (procedure)",
     specialties: ["burns"],
     subcategory: "Burns Skin Grafting",
     tags: ["skin_graft"],
@@ -5325,8 +5325,8 @@ const BURNS_DERMAL_SUBSTITUTES: ProcedurePicklistEntry[] = [
   {
     id: "burns_sub_integra_bilayer",
     displayName: "Integra — bilayer",
-    snomedCtCode: "360145006", // VERIFY
-    snomedCtDisplay: "Application of dermal substitute (procedure)",
+    snomedCtCode: "1084841000168109", // INTL fallback: 304040003
+    snomedCtDisplay: "Application of skin substitute (procedure)",
     specialties: ["burns"],
     subcategory: "Dermal Substitutes",
     tags: ["complex_wound"],
@@ -5335,8 +5335,8 @@ const BURNS_DERMAL_SUBSTITUTES: ProcedurePicklistEntry[] = [
   {
     id: "burns_sub_integra_thin",
     displayName: "Integra — thin (single layer)",
-    snomedCtCode: "360145006", // VERIFY
-    snomedCtDisplay: "Application of dermal substitute (procedure)",
+    snomedCtCode: "1084841000168109", // INTL fallback: 304040003
+    snomedCtDisplay: "Application of skin substitute (procedure)",
     specialties: ["burns"],
     subcategory: "Dermal Substitutes",
     tags: ["complex_wound"],
@@ -5345,8 +5345,8 @@ const BURNS_DERMAL_SUBSTITUTES: ProcedurePicklistEntry[] = [
   {
     id: "burns_sub_matriderm",
     displayName: "Matriderm",
-    snomedCtCode: "360145006", // VERIFY
-    snomedCtDisplay: "Application of dermal substitute (procedure)",
+    snomedCtCode: "1084841000168109", // INTL fallback: 304040003
+    snomedCtDisplay: "Application of skin substitute (procedure)",
     specialties: ["burns"],
     subcategory: "Dermal Substitutes",
     tags: ["complex_wound"],
@@ -5355,8 +5355,8 @@ const BURNS_DERMAL_SUBSTITUTES: ProcedurePicklistEntry[] = [
   {
     id: "burns_sub_btm_novosorb",
     displayName: "BTM / NovoSorb",
-    snomedCtCode: "360145006", // VERIFY
-    snomedCtDisplay: "Application of dermal substitute (procedure)",
+    snomedCtCode: "1084841000168109", // INTL fallback: 304040003
+    snomedCtDisplay: "Application of skin substitute (procedure)",
     specialties: ["burns"],
     subcategory: "Dermal Substitutes",
     tags: ["complex_wound"],
@@ -5368,8 +5368,8 @@ const BURNS_TEMPORARY_COVERAGE: ProcedurePicklistEntry[] = [
   {
     id: "burns_temp_allograft",
     displayName: "Allograft (cadaveric skin)",
-    snomedCtCode: "61512001", // VERIFY
-    snomedCtDisplay: "Application of skin allograft (procedure)",
+    snomedCtCode: "19835001",
+    snomedCtDisplay: "Allograft of skin to skin (procedure)",
     specialties: ["burns"],
     subcategory: "Temporary Coverage",
     tags: ["complex_wound"],
@@ -5378,8 +5378,8 @@ const BURNS_TEMPORARY_COVERAGE: ProcedurePicklistEntry[] = [
   {
     id: "burns_temp_xenograft",
     displayName: "Xenograft (porcine)",
-    snomedCtCode: "12726009", // VERIFY
-    snomedCtDisplay: "Application of skin xenograft (procedure)",
+    snomedCtCode: "12365002",
+    snomedCtDisplay: "Xenograft of skin to skin (procedure)",
     specialties: ["burns"],
     subcategory: "Temporary Coverage",
     tags: ["complex_wound"],
@@ -5388,8 +5388,8 @@ const BURNS_TEMPORARY_COVERAGE: ProcedurePicklistEntry[] = [
   {
     id: "burns_temp_synthetic",
     displayName: "Synthetic coverage (Biobrane / Suprathel)",
-    snomedCtCode: "360145006", // VERIFY
-    snomedCtDisplay: "Application of synthetic skin substitute (procedure)",
+    snomedCtCode: "1084841000168109", // INTL fallback: 304040003
+    snomedCtDisplay: "Application of skin substitute (procedure)",
     specialties: ["burns"],
     subcategory: "Temporary Coverage",
     tags: ["complex_wound"],
@@ -5401,8 +5401,8 @@ const BURNS_ACUTE_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_acute_enzymatic_debridement",
     displayName: "Enzymatic debridement (NexoBrid)",
-    snomedCtCode: "63782009", // VERIFY
-    snomedCtDisplay: "Enzymatic debridement of burn wound (procedure)",
+    snomedCtCode: "34390007",
+    snomedCtDisplay: "Nonexcisional debridement of burn (procedure)",
     specialties: ["burns"],
     subcategory: "Acute Burns Management",
     tags: ["trauma"],
@@ -5411,8 +5411,8 @@ const BURNS_ACUTE_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_acute_free_flap",
     displayName: "Acute free flap for burn",
-    snomedCtCode: "70978006",
-    snomedCtDisplay: "Free flap transfer (procedure)",
+    snomedCtCode: "771225007",
+    snomedCtDisplay: "Reconstruction using free flap (procedure)",
     specialties: ["burns"],
     subcategory: "Acute Burns Management",
     tags: ["free_flap", "microsurgery"],
@@ -5422,7 +5422,7 @@ const BURNS_ACUTE_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_acute_tracheostomy",
     displayName: "Tracheostomy (burn)",
-    snomedCtCode: "48387007",
+    snomedCtCode: "810551000168104", // INTL fallback: 43988005
     snomedCtDisplay: "Tracheostomy (procedure)",
     specialties: ["burns"],
     subcategory: "Acute Burns Management",
@@ -5432,8 +5432,8 @@ const BURNS_ACUTE_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_acute_npwt",
     displayName: "NPWT application (burn)",
-    snomedCtCode: "448543002", // VERIFY
-    snomedCtDisplay: "Application of negative pressure wound therapy (procedure)",
+    snomedCtCode: "1217560008",
+    snomedCtDisplay: "Application of negative pressure wound dressing (procedure)",
     specialties: ["burns"],
     subcategory: "Acute Burns Management",
     tags: ["complex_wound"],
@@ -5452,7 +5452,7 @@ const BURNS_ACUTE_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_acute_nail_removal",
     displayName: "Nail removal (burn)",
-    snomedCtCode: "19939008", // VERIFY
+    snomedCtCode: "386018007",
     snomedCtDisplay: "Removal of nail (procedure)",
     specialties: ["burns"],
     subcategory: "Acute Burns Management",
@@ -5462,8 +5462,8 @@ const BURNS_ACUTE_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_acute_eyelid_tarsorrhaphy",
     displayName: "Temporary tarsorrhaphy",
-    snomedCtCode: "17561005", // VERIFY
-    snomedCtDisplay: "Tarsorrhaphy (procedure)",
+    snomedCtCode: "388008",
+    snomedCtDisplay: "Blepharorrhaphy (procedure)",
     specialties: ["burns"],
     subcategory: "Acute Burns Management",
     tags: ["trauma"],
@@ -5475,7 +5475,7 @@ const BURNS_RECON_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_recon_zplasty_single",
     displayName: "Z-plasty (single)",
-    snomedCtCode: "18758008",
+    snomedCtCode: "27786007",
     snomedCtDisplay: "Z-plasty of skin (procedure)",
     specialties: ["burns"],
     subcategory: "Contracture Release",
@@ -5485,7 +5485,7 @@ const BURNS_RECON_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_recon_zplasty_multiple",
     displayName: "Multiple Z-plasties",
-    snomedCtCode: "18758008",
+    snomedCtCode: "27786007",
     snomedCtDisplay: "Z-plasty of skin (procedure)",
     specialties: ["burns"],
     subcategory: "Contracture Release",
@@ -5495,8 +5495,8 @@ const BURNS_RECON_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_recon_wplasty",
     displayName: "W-plasty",
-    snomedCtCode: "72578000", // VERIFY
-    snomedCtDisplay: "Scar revision (procedure)",
+    snomedCtCode: "8136007",
+    snomedCtDisplay: "Revision of scar of skin (procedure)",
     specialties: ["burns"],
     subcategory: "Contracture Release",
     tags: ["local_flap", "revision"],
@@ -5505,7 +5505,7 @@ const BURNS_RECON_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_recon_5flap",
     displayName: "5-flap Z-plasty (jumping man)",
-    snomedCtCode: "18758008", // VERIFY
+    snomedCtCode: "27786007",
     snomedCtDisplay: "Z-plasty of skin (procedure)",
     specialties: ["burns"],
     subcategory: "Contracture Release",
@@ -5515,8 +5515,8 @@ const BURNS_RECON_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_recon_contracture_release",
     displayName: "Scar contracture release",
-    snomedCtCode: "58662008", // VERIFY
-    snomedCtDisplay: "Release of scar contracture (procedure)",
+    snomedCtCode: "240995003",
+    snomedCtDisplay: "Release of burns contracture (procedure)",
     specialties: ["burns"],
     subcategory: "Contracture Release",
     tags: ["revision"],
@@ -5525,8 +5525,8 @@ const BURNS_RECON_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_recon_contracture_graft_expanded",
     displayName: "Contracture release + skin graft",
-    snomedCtCode: "58662008", // VERIFY
-    snomedCtDisplay: "Release of scar contracture with skin graft (procedure)",
+    snomedCtCode: "240995003",
+    snomedCtDisplay: "Release of burns contracture (procedure)",
     specialties: ["burns"],
     subcategory: "Contracture Release",
     tags: ["skin_graft", "revision"],
@@ -5535,8 +5535,8 @@ const BURNS_RECON_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_recon_local_flap",
     displayName: "Local flap (burn reconstruction)",
-    snomedCtCode: "13361003",
-    snomedCtDisplay: "Local flap (procedure)",
+    snomedCtCode: "304099003",
+    snomedCtDisplay: "Local transposition flap (procedure)",
     specialties: ["burns"],
     subcategory: "Flap Reconstruction",
     tags: ["local_flap", "revision"],
@@ -5545,8 +5545,8 @@ const BURNS_RECON_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_recon_regional_flap",
     displayName: "Regional / pedicled flap (burn)",
-    snomedCtCode: "32477003", // VERIFY
-    snomedCtDisplay: "Regional pedicle flap (procedure)",
+    snomedCtCode: "1201942004",
+    snomedCtDisplay: "Reconstruction using pedicle skin flap (procedure)",
     specialties: ["burns"],
     subcategory: "Flap Reconstruction",
     tags: ["pedicled_flap", "revision"],
@@ -5555,8 +5555,8 @@ const BURNS_RECON_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_recon_free_flap",
     displayName: "Free flap (burn reconstruction)",
-    snomedCtCode: "70978006",
-    snomedCtDisplay: "Free flap transfer (procedure)",
+    snomedCtCode: "771225007",
+    snomedCtDisplay: "Reconstruction using free flap (procedure)",
     specialties: ["burns"],
     subcategory: "Flap Reconstruction",
     tags: ["free_flap", "microsurgery", "revision"],
@@ -5566,7 +5566,7 @@ const BURNS_RECON_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_recon_expander_insert",
     displayName: "Tissue expander insertion",
-    snomedCtCode: "61070003", // VERIFY
+    snomedCtCode: "76790002",
     snomedCtDisplay: "Insertion of tissue expander (procedure)",
     specialties: ["burns"],
     subcategory: "Tissue Expansion",
@@ -5576,8 +5576,8 @@ const BURNS_RECON_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_recon_expander_remove_flap",
     displayName: "Tissue expander removal + flap",
-    snomedCtCode: "61070003", // VERIFY
-    snomedCtDisplay: "Removal of tissue expander with flap advancement (procedure)",
+    snomedCtCode: "76790002",
+    snomedCtDisplay: "Insertion of tissue expander (procedure)",
     specialties: ["burns"],
     subcategory: "Tissue Expansion",
     tags: ["elective", "revision"],
@@ -5586,8 +5586,8 @@ const BURNS_RECON_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_scar_laser_ablative",
     displayName: "Ablative fractional laser (CO2)",
-    snomedCtCode: "414510009", // VERIFY
-    snomedCtDisplay: "Fractional laser ablation of skin (procedure)",
+    snomedCtCode: "933316211000036100", // INTL fallback: 445907001
+    snomedCtDisplay: "Ablative resurfacing of skin using laser (procedure)",
     specialties: ["burns"],
     subcategory: "Scar Treatment",
     tags: ["elective", "revision"],
@@ -5596,8 +5596,8 @@ const BURNS_RECON_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_scar_laser_pulsed_dye",
     displayName: "Pulsed dye laser",
-    snomedCtCode: "128921006", // VERIFY
-    snomedCtDisplay: "Pulsed dye laser treatment (procedure)",
+    snomedCtCode: "707286005",
+    snomedCtDisplay: "Pulsed dye laser therapy to skin (procedure)",
     specialties: ["burns"],
     subcategory: "Scar Treatment",
     tags: ["elective", "revision"],
@@ -5606,8 +5606,8 @@ const BURNS_RECON_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_scar_laser_nonablative",
     displayName: "Non-ablative fractional laser",
-    snomedCtCode: "414510009", // VERIFY
-    snomedCtDisplay: "Fractional laser treatment of skin (procedure)",
+    snomedCtCode: "933359931000036100", // INTL fallback: 445907001
+    snomedCtDisplay: "Non-ablative resurfacing of skin using laser (procedure)",
     specialties: ["burns"],
     subcategory: "Scar Treatment",
     tags: ["elective", "revision"],
@@ -5616,8 +5616,8 @@ const BURNS_RECON_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_scar_excision_regraft",
     displayName: "Scar excision + re-grafting",
-    snomedCtCode: "58662008", // VERIFY
-    snomedCtDisplay: "Excision of scar with skin graft (procedure)",
+    snomedCtCode: "72013005",
+    snomedCtDisplay: "Revision of scar of skin with excision (procedure)",
     specialties: ["burns"],
     subcategory: "Scar Treatment",
     tags: ["skin_graft", "revision"],
@@ -5626,7 +5626,7 @@ const BURNS_RECON_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_recon_eyelid",
     displayName: "Eyelid reconstruction (burn)",
-    snomedCtCode: "58662008", // VERIFY
+    snomedCtCode: "2242005",
     snomedCtDisplay: "Reconstruction of eyelid (procedure)",
     specialties: ["burns"],
     subcategory: "Anatomic-Specific Reconstruction",
@@ -5636,8 +5636,8 @@ const BURNS_RECON_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_recon_microstomia_release",
     displayName: "Microstomia release",
-    snomedCtCode: "58662008", // VERIFY
-    snomedCtDisplay: "Release of oral commissure contracture (procedure)",
+    snomedCtCode: "1385901000168100", // INTL fallback: 284079008
+    snomedCtDisplay: "Reconstruction of commissure of lip (procedure)",
     specialties: ["burns"],
     subcategory: "Anatomic-Specific Reconstruction",
     tags: ["revision"],
@@ -5646,8 +5646,8 @@ const BURNS_RECON_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_recon_hand_web_space",
     displayName: "Hand web space reconstruction",
-    snomedCtCode: "58662008", // VERIFY
-    snomedCtDisplay: "Reconstruction of web space (procedure)",
+    snomedCtCode: "240995003",
+    snomedCtDisplay: "Release of burns contracture (procedure)",
     specialties: ["burns"],
     subcategory: "Anatomic-Specific Reconstruction",
     tags: ["local_flap", "revision"],
@@ -5656,8 +5656,8 @@ const BURNS_RECON_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_recon_hand_boutonniere",
     displayName: "Hand burn boutonnière correction",
-    snomedCtCode: "58662008", // VERIFY
-    snomedCtDisplay: "Correction of boutonniere deformity (procedure)",
+    snomedCtCode: "240995003",
+    snomedCtDisplay: "Release of burns contracture (procedure)",
     specialties: ["burns"],
     subcategory: "Anatomic-Specific Reconstruction",
     tags: ["revision"],
@@ -5666,8 +5666,8 @@ const BURNS_RECON_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_recon_nose",
     displayName: "Nasal reconstruction (burn)",
-    snomedCtCode: "58662008", // VERIFY
-    snomedCtDisplay: "Reconstruction of nose (procedure)",
+    snomedCtCode: "72013005",
+    snomedCtDisplay: "Revision of scar of skin with excision (procedure)",
     specialties: ["burns"],
     subcategory: "Anatomic-Specific Reconstruction",
     tags: ["revision"],
@@ -5676,8 +5676,8 @@ const BURNS_RECON_EXPANDED: ProcedurePicklistEntry[] = [
   {
     id: "burns_recon_ear",
     displayName: "Ear reconstruction (burn)",
-    snomedCtCode: "58662008", // VERIFY
-    snomedCtDisplay: "Reconstruction of ear (procedure)",
+    snomedCtCode: "72013005",
+    snomedCtDisplay: "Revision of scar of skin with excision (procedure)",
     specialties: ["burns"],
     subcategory: "Anatomic-Specific Reconstruction",
     tags: ["revision"],
@@ -7005,59 +7005,59 @@ const SKIN_CANCER_ADDITIONAL: ProcedurePicklistEntry[] = [
 
 // 4A. Lymphaticovenular Anastomosis — LVA
 const LYMPH_LVA: ProcedurePicklistEntry[] = [
-  { id: "lymph_lva_upper", displayName: "LVA — upper extremity", snomedCtCode: "264597004", snomedCtDisplay: "Microsurgery (procedure)", specialties: ["lymphoedema"], subcategory: "LVA (Supermicrosurgery)", tags: ["supermicrosurgery", "microsurgery"], sortOrder: 1 }, // VERIFY — no specific LVA SNOMED
-  { id: "lymph_lva_lower", displayName: "LVA — lower extremity", snomedCtCode: "264597004", snomedCtDisplay: "Microsurgery (procedure)", specialties: ["lymphoedema"], subcategory: "LVA (Supermicrosurgery)", tags: ["supermicrosurgery", "microsurgery"], sortOrder: 2 },
-  { id: "lymph_lva_cervical", displayName: "LVA — cervical / head & neck", snomedCtCode: "264597004", snomedCtDisplay: "Microsurgery (procedure)", specialties: ["lymphoedema", "head_neck"], subcategory: "LVA (Supermicrosurgery)", tags: ["supermicrosurgery", "microsurgery"], sortOrder: 3 },
-  { id: "lymph_lympha", displayName: "LYMPHA (lymphatic microsurgical preventive healing approach)", snomedCtCode: "264597004", snomedCtDisplay: "Prophylactic lymphovenous anastomosis (procedure)", specialties: ["lymphoedema"], subcategory: "LVA (Supermicrosurgery)", tags: ["supermicrosurgery", "microsurgery", "prophylactic"], sortOrder: 4 },
-  { id: "lymph_elva", displayName: "Efferent LVA (prophylactic/subclinical)", snomedCtCode: "264597004", snomedCtDisplay: "Microsurgery (procedure)", specialties: ["lymphoedema"], subcategory: "LVA (Supermicrosurgery)", tags: ["supermicrosurgery", "microsurgery", "prophylactic"], sortOrder: 5 },
-  { id: "lymph_dc_lva", displayName: "Deep cervical LVA (glymphatic/experimental)", snomedCtCode: "264597004", snomedCtDisplay: "Microsurgery (procedure)", specialties: ["lymphoedema"], subcategory: "LVA (Supermicrosurgery)", tags: ["supermicrosurgery", "microsurgery", "experimental"], sortOrder: 6 },
+  { id: "lymph_lva_upper", displayName: "LVA — upper extremity", snomedCtCode: "234300000", snomedCtDisplay: "Lymphovenous anastomosis (procedure)", specialties: ["lymphoedema"], subcategory: "LVA (Supermicrosurgery)", tags: ["supermicrosurgery", "microsurgery"], sortOrder: 1 },
+  { id: "lymph_lva_lower", displayName: "LVA — lower extremity", snomedCtCode: "234300000", snomedCtDisplay: "Lymphovenous anastomosis (procedure)", specialties: ["lymphoedema"], subcategory: "LVA (Supermicrosurgery)", tags: ["supermicrosurgery", "microsurgery"], sortOrder: 2 },
+  { id: "lymph_lva_cervical", displayName: "LVA — cervical / head & neck", snomedCtCode: "234300000", snomedCtDisplay: "Lymphovenous anastomosis (procedure)", specialties: ["lymphoedema", "head_neck"], subcategory: "LVA (Supermicrosurgery)", tags: ["supermicrosurgery", "microsurgery"], sortOrder: 3 },
+  { id: "lymph_lympha", displayName: "LYMPHA (lymphatic microsurgical preventive healing approach)", snomedCtCode: "234300000", snomedCtDisplay: "Lymphovenous anastomosis (procedure)", specialties: ["lymphoedema"], subcategory: "LVA (Supermicrosurgery)", tags: ["supermicrosurgery", "microsurgery", "prophylactic"], sortOrder: 4 },
+  { id: "lymph_elva", displayName: "Efferent LVA (prophylactic/subclinical)", snomedCtCode: "234300000", snomedCtDisplay: "Lymphovenous anastomosis (procedure)", specialties: ["lymphoedema"], subcategory: "LVA (Supermicrosurgery)", tags: ["supermicrosurgery", "microsurgery", "prophylactic"], sortOrder: 5 },
+  { id: "lymph_dc_lva", displayName: "Deep cervical LVA (glymphatic/experimental)", snomedCtCode: "10724008", snomedCtDisplay: "Microsurgery (procedure)", specialties: ["lymphoedema"], subcategory: "LVA (Supermicrosurgery)", tags: ["supermicrosurgery", "microsurgery", "experimental"], sortOrder: 6 },
 ];
 
 // 4B. Vascularized Lymph Node Transfer — VLNT (all hasFreeFlap: true)
 const LYMPH_VLNT: ProcedurePicklistEntry[] = [
-  { id: "lymph_vlnt_submental", displayName: "VLNT — submental donor", snomedCtCode: "234019008", snomedCtDisplay: "Free flap reconstruction (procedure)", specialties: ["lymphoedema"], subcategory: "VLNT (Free Flap)", tags: ["free_flap", "microsurgery"], hasFreeFlap: true, sortOrder: 1 }, // VERIFY
-  { id: "lymph_vlnt_supraclavicular", displayName: "VLNT — supraclavicular donor", snomedCtCode: "234019008", snomedCtDisplay: "Free flap reconstruction (procedure)", specialties: ["lymphoedema"], subcategory: "VLNT (Free Flap)", tags: ["free_flap", "microsurgery"], hasFreeFlap: true, sortOrder: 2 },
-  { id: "lymph_vlnt_lateral_thoracic", displayName: "VLNT — lateral thoracic donor", snomedCtCode: "234019008", snomedCtDisplay: "Free flap reconstruction (procedure)", specialties: ["lymphoedema"], subcategory: "VLNT (Free Flap)", tags: ["free_flap", "microsurgery"], hasFreeFlap: true, sortOrder: 3 },
-  { id: "lymph_vlnt_thoracodorsal", displayName: "VLNT — thoracodorsal donor", snomedCtCode: "234019008", snomedCtDisplay: "Free flap reconstruction (procedure)", specialties: ["lymphoedema"], subcategory: "VLNT (Free Flap)", tags: ["free_flap", "microsurgery"], hasFreeFlap: true, sortOrder: 4 },
-  { id: "lymph_vlnt_inguinal", displayName: "VLNT — inguinal / groin (SCIP-based) donor", snomedCtCode: "234019008", snomedCtDisplay: "Free flap reconstruction (procedure)", specialties: ["lymphoedema"], subcategory: "VLNT (Free Flap)", tags: ["free_flap", "microsurgery"], hasFreeFlap: true, sortOrder: 5 },
-  { id: "lymph_vlnt_gastroepiploic", displayName: "VLNT — gastroepiploic / omental donor", snomedCtCode: "234019008", snomedCtDisplay: "Free flap reconstruction (procedure)", specialties: ["lymphoedema"], subcategory: "VLNT (Free Flap)", tags: ["free_flap", "microsurgery"], hasFreeFlap: true, sortOrder: 6 },
-  { id: "lymph_vlnt_jejunal", displayName: "VLNT — jejunal mesenteric donor", snomedCtCode: "234019008", snomedCtDisplay: "Free flap reconstruction (procedure)", specialties: ["lymphoedema"], subcategory: "VLNT (Free Flap)", tags: ["free_flap", "microsurgery"], hasFreeFlap: true, sortOrder: 7 },
-  { id: "lymph_vlnt_combined_diep", displayName: "VLNT combined with DIEP flap", snomedCtCode: "234019008", snomedCtDisplay: "Free flap reconstruction (procedure)", specialties: ["lymphoedema", "breast"], subcategory: "VLNT (Free Flap)", tags: ["free_flap", "microsurgery"], hasFreeFlap: true, sortOrder: 8 },
-  { id: "lymph_vlnt_other", displayName: "VLNT — other donor site", snomedCtCode: "234019008", snomedCtDisplay: "Free flap reconstruction (procedure)", specialties: ["lymphoedema"], subcategory: "VLNT (Free Flap)", tags: ["free_flap", "microsurgery"], hasFreeFlap: true, sortOrder: 9 },
+  { id: "lymph_vlnt_submental", displayName: "VLNT — submental donor", snomedCtCode: "896969002", snomedCtDisplay: "Transfer of vascularized lymph node (procedure)", specialties: ["lymphoedema"], subcategory: "VLNT (Free Flap)", tags: ["free_flap", "microsurgery"], hasFreeFlap: true, sortOrder: 1 },
+  { id: "lymph_vlnt_supraclavicular", displayName: "VLNT — supraclavicular donor", snomedCtCode: "896969002", snomedCtDisplay: "Transfer of vascularized lymph node (procedure)", specialties: ["lymphoedema"], subcategory: "VLNT (Free Flap)", tags: ["free_flap", "microsurgery"], hasFreeFlap: true, sortOrder: 2 },
+  { id: "lymph_vlnt_lateral_thoracic", displayName: "VLNT — lateral thoracic donor", snomedCtCode: "896969002", snomedCtDisplay: "Transfer of vascularized lymph node (procedure)", specialties: ["lymphoedema"], subcategory: "VLNT (Free Flap)", tags: ["free_flap", "microsurgery"], hasFreeFlap: true, sortOrder: 3 },
+  { id: "lymph_vlnt_thoracodorsal", displayName: "VLNT — thoracodorsal donor", snomedCtCode: "896969002", snomedCtDisplay: "Transfer of vascularized lymph node (procedure)", specialties: ["lymphoedema"], subcategory: "VLNT (Free Flap)", tags: ["free_flap", "microsurgery"], hasFreeFlap: true, sortOrder: 4 },
+  { id: "lymph_vlnt_inguinal", displayName: "VLNT — inguinal / groin (SCIP-based) donor", snomedCtCode: "896969002", snomedCtDisplay: "Transfer of vascularized lymph node (procedure)", specialties: ["lymphoedema"], subcategory: "VLNT (Free Flap)", tags: ["free_flap", "microsurgery"], hasFreeFlap: true, sortOrder: 5 },
+  { id: "lymph_vlnt_gastroepiploic", displayName: "VLNT — gastroepiploic / omental donor", snomedCtCode: "896969002", snomedCtDisplay: "Transfer of vascularized lymph node (procedure)", specialties: ["lymphoedema"], subcategory: "VLNT (Free Flap)", tags: ["free_flap", "microsurgery"], hasFreeFlap: true, sortOrder: 6 },
+  { id: "lymph_vlnt_jejunal", displayName: "VLNT — jejunal mesenteric donor", snomedCtCode: "896969002", snomedCtDisplay: "Transfer of vascularized lymph node (procedure)", specialties: ["lymphoedema"], subcategory: "VLNT (Free Flap)", tags: ["free_flap", "microsurgery"], hasFreeFlap: true, sortOrder: 7 },
+  { id: "lymph_vlnt_combined_diep", displayName: "VLNT combined with DIEP flap", snomedCtCode: "896969002", snomedCtDisplay: "Transfer of vascularized lymph node (procedure)", specialties: ["lymphoedema", "breast"], subcategory: "VLNT (Free Flap)", tags: ["free_flap", "microsurgery"], hasFreeFlap: true, sortOrder: 8 },
+  { id: "lymph_vlnt_other", displayName: "VLNT — other donor site", snomedCtCode: "896969002", snomedCtDisplay: "Transfer of vascularized lymph node (procedure)", specialties: ["lymphoedema"], subcategory: "VLNT (Free Flap)", tags: ["free_flap", "microsurgery"], hasFreeFlap: true, sortOrder: 9 },
 ];
 
 // 4C. Debulking / Ablative
 const LYMPH_DEBULKING: ProcedurePicklistEntry[] = [
-  { id: "lymph_sapl", displayName: "Suction-assisted protein lipectomy (SAPL / Brorson technique)", snomedCtCode: "302441004", snomedCtDisplay: "Liposuction (procedure)", specialties: ["lymphoedema"], subcategory: "Debulking / Ablative", tags: ["debulking"], sortOrder: 1 }, // VERIFY
-  { id: "lymph_lipo_lipedema", displayName: "Liposuction for lipedema (tumescent)", snomedCtCode: "302441004", snomedCtDisplay: "Liposuction (procedure)", specialties: ["lymphoedema"], subcategory: "Debulking / Ablative", tags: ["debulking"], sortOrder: 2 },
-  { id: "lymph_charles", displayName: "Charles procedure (radical excision + STSG)", snomedCtCode: "234097001", snomedCtDisplay: "Radical excision (procedure)", specialties: ["lymphoedema"], subcategory: "Debulking / Ablative", tags: ["debulking"], sortOrder: 3 }, // VERIFY
-  { id: "lymph_charles_modified", displayName: "Modified Charles procedure (\u00b1 VLNT)", snomedCtCode: "234097001", snomedCtDisplay: "Radical excision (procedure)", specialties: ["lymphoedema"], subcategory: "Debulking / Ablative", tags: ["debulking"], sortOrder: 4 }, // VERIFY
-  { id: "lymph_staged_reduction", displayName: "Staged debulking / direct excision", snomedCtCode: "234097001", snomedCtDisplay: "Excision (procedure)", specialties: ["lymphoedema"], subcategory: "Debulking / Ablative", tags: ["debulking"], sortOrder: 5 }, // VERIFY
-  { id: "lymph_genital_excision", displayName: "Genital lymphoedema excision + reconstruction", snomedCtCode: "234097001", snomedCtDisplay: "Excision (procedure)", specialties: ["lymphoedema"], subcategory: "Debulking / Ablative", tags: ["debulking"], sortOrder: 6 }, // VERIFY
+  { id: "lymph_sapl", displayName: "Suction-assisted protein lipectomy (SAPL / Brorson technique)", snomedCtCode: "302441008", snomedCtDisplay: "Liposuction of subcutaneous tissue (procedure)", specialties: ["lymphoedema"], subcategory: "Debulking / Ablative", tags: ["debulking"], sortOrder: 1 },
+  { id: "lymph_lipo_lipedema", displayName: "Liposuction for lipedema (tumescent)", snomedCtCode: "302441008", snomedCtDisplay: "Liposuction of subcutaneous tissue (procedure)", specialties: ["lymphoedema"], subcategory: "Debulking / Ablative", tags: ["debulking"], sortOrder: 2 },
+  { id: "lymph_charles", displayName: "Charles procedure (radical excision + STSG)", snomedCtCode: "44166002", snomedCtDisplay: "Radical excision of lesion of skin (procedure)", specialties: ["lymphoedema"], subcategory: "Debulking / Ablative", tags: ["debulking"], sortOrder: 3 },
+  { id: "lymph_charles_modified", displayName: "Modified Charles procedure (\u00b1 VLNT)", snomedCtCode: "44166002", snomedCtDisplay: "Radical excision of lesion of skin (procedure)", specialties: ["lymphoedema"], subcategory: "Debulking / Ablative", tags: ["debulking"], sortOrder: 4 },
+  { id: "lymph_staged_reduction", displayName: "Staged debulking / direct excision", snomedCtCode: "446295000", snomedCtDisplay: "Excision of scar (procedure)", specialties: ["lymphoedema"], subcategory: "Debulking / Ablative", tags: ["debulking"], sortOrder: 5 },
+  { id: "lymph_genital_excision", displayName: "Genital lymphoedema excision + reconstruction", snomedCtCode: "44166002", snomedCtDisplay: "Radical excision of lesion of skin (procedure)", specialties: ["lymphoedema"], subcategory: "Debulking / Ablative", tags: ["debulking"], sortOrder: 6 },
 ];
 
 // 4D. Combined / Staged Approaches
 const LYMPH_COMBINED: ProcedurePicklistEntry[] = [
-  { id: "lymph_combined_lva_vlnt", displayName: "Combined LVA + VLNT (same session)", snomedCtCode: "264597004", snomedCtDisplay: "Microsurgery (procedure)", specialties: ["lymphoedema"], subcategory: "Combined / Staged", tags: ["supermicrosurgery", "free_flap", "microsurgery"], hasFreeFlap: true, sortOrder: 1 },
-  { id: "lymph_staged_physio_debulk", displayName: "Staged: physiological procedure + later debulking", snomedCtCode: "264597004", snomedCtDisplay: "Microsurgery (procedure)", specialties: ["lymphoedema"], subcategory: "Combined / Staged", tags: ["supermicrosurgery"], sortOrder: 2 },
-  { id: "lymph_simultaneous_breast_vlnt", displayName: "Simultaneous autologous breast reconstruction + VLNT", snomedCtCode: "234019008", snomedCtDisplay: "Free flap reconstruction (procedure)", specialties: ["lymphoedema", "breast"], subcategory: "Combined / Staged", tags: ["free_flap", "microsurgery"], hasFreeFlap: true, sortOrder: 3 },
+  { id: "lymph_combined_lva_vlnt", displayName: "Combined LVA + VLNT (same session)", snomedCtCode: "10724008", snomedCtDisplay: "Microsurgery (procedure)", specialties: ["lymphoedema"], subcategory: "Combined / Staged", tags: ["supermicrosurgery", "free_flap", "microsurgery"], hasFreeFlap: true, sortOrder: 1 },
+  { id: "lymph_staged_physio_debulk", displayName: "Staged: physiological procedure + later debulking", snomedCtCode: "10724008", snomedCtDisplay: "Microsurgery (procedure)", specialties: ["lymphoedema"], subcategory: "Combined / Staged", tags: ["supermicrosurgery"], sortOrder: 2 },
+  { id: "lymph_simultaneous_breast_vlnt", displayName: "Simultaneous autologous breast reconstruction + VLNT", snomedCtCode: "771225007", snomedCtDisplay: "Reconstruction using free flap (procedure)", specialties: ["lymphoedema", "breast"], subcategory: "Combined / Staged", tags: ["free_flap", "microsurgery"], hasFreeFlap: true, sortOrder: 3 },
 ];
 
 // 4E. Lymphatic Malformation & Chylous Procedures
 const LYMPH_MALFORMATION: ProcedurePicklistEntry[] = [
-  { id: "lymph_malf_excision", displayName: "Excision of lymphatic malformation", snomedCtCode: "174481005", snomedCtDisplay: "Excision of lymphangioma (procedure)", specialties: ["lymphoedema", "general"], subcategory: "Malformation & Chylous", tags: ["elective"], sortOrder: 1 },
-  { id: "lymph_malf_sclerotherapy", displayName: "Sclerotherapy for lymphatic malformation", snomedCtCode: "234097001", snomedCtDisplay: "Sclerotherapy (procedure)", specialties: ["lymphoedema", "general"], subcategory: "Malformation & Chylous", tags: ["elective"], sortOrder: 2 }, // VERIFY
+  { id: "lymph_malf_excision", displayName: "Excision of lymphatic malformation", snomedCtCode: "799211000168109" /* INTL fallback: 67418003 */, snomedCtDisplay: "Excision of lymphatic malformation (procedure)", specialties: ["lymphoedema", "general"], subcategory: "Malformation & Chylous", tags: ["elective"], sortOrder: 1 },
+  { id: "lymph_malf_sclerotherapy", displayName: "Sclerotherapy for lymphatic malformation", snomedCtCode: "80227005", snomedCtDisplay: "Injection of sclerosing agent in vein (procedure)", specialties: ["lymphoedema", "general"], subcategory: "Malformation & Chylous", tags: ["elective"], sortOrder: 2 },
   { id: "lymph_thoracic_duct_ligation", displayName: "Thoracic duct ligation", snomedCtCode: "13782005", snomedCtDisplay: "Ligation of thoracic duct (procedure)", specialties: ["lymphoedema", "general"], subcategory: "Malformation & Chylous", tags: ["elective"], sortOrder: 3 },
   { id: "lymph_thoracic_duct_embolisation", displayName: "Thoracic duct embolisation", snomedCtCode: "234097001", snomedCtDisplay: "Thoracic duct embolisation (procedure)", specialties: ["lymphoedema"], subcategory: "Malformation & Chylous", tags: ["elective"], sortOrder: 4 }, // VERIFY
-  { id: "lymph_lla", displayName: "Lymphaticolymphatic anastomosis (LLA)", snomedCtCode: "264597004", snomedCtDisplay: "Microsurgery (procedure)", specialties: ["lymphoedema"], subcategory: "Malformation & Chylous", tags: ["supermicrosurgery", "microsurgery"], sortOrder: 5 },
+  { id: "lymph_lla", displayName: "Lymphaticolymphatic anastomosis (LLA)", snomedCtCode: "234300000", snomedCtDisplay: "Lymphovenous anastomosis (procedure)", specialties: ["lymphoedema"], subcategory: "Malformation & Chylous", tags: ["supermicrosurgery", "microsurgery"], sortOrder: 5 },
 ];
 
 // 4F. Support / Adjunct
 const LYMPH_SUPPORT: ProcedurePicklistEntry[] = [
-  { id: "lymph_fat_grafting", displayName: "Fat grafting for lymphoedema", snomedCtCode: "302441004", snomedCtDisplay: "Autologous fat transfer (procedure)", specialties: ["lymphoedema"], subcategory: "Support / Adjunct", tags: ["elective"], sortOrder: 1 }, // VERIFY
-  { id: "lymph_robotic_lva", displayName: "Robot-assisted LVA (Symani/MUSA)", snomedCtCode: "264597004", snomedCtDisplay: "Microsurgery (procedure)", specialties: ["lymphoedema"], subcategory: "Support / Adjunct", tags: ["supermicrosurgery", "microsurgery", "experimental"], sortOrder: 2 },
-  { id: "lymph_revision_lva", displayName: "Revision / redo LVA", snomedCtCode: "264597004", snomedCtDisplay: "Microsurgery (procedure)", specialties: ["lymphoedema"], subcategory: "Support / Adjunct", tags: ["supermicrosurgery", "microsurgery"], sortOrder: 3 },
-  { id: "lymph_icg", displayName: "ICG lymphography (diagnostic)", snomedCtCode: "264597004", snomedCtDisplay: "Indocyanine green lymphography (procedure)", specialties: ["lymphoedema"], subcategory: "Support / Adjunct", tags: ["elective"], sortOrder: 4 }, // VERIFY
+  { id: "lymph_fat_grafting", displayName: "Fat grafting for lymphoedema", snomedCtCode: "793191000168105", snomedCtDisplay: "Autologous fat transfer (procedure)", specialties: ["lymphoedema"], subcategory: "Support / Adjunct", tags: ["elective"], sortOrder: 1 }, // INTL fallback: 712822003
+  { id: "lymph_robotic_lva", displayName: "Robot-assisted LVA (Symani/MUSA)", snomedCtCode: "234300000", snomedCtDisplay: "Lymphovenous anastomosis (procedure)", specialties: ["lymphoedema"], subcategory: "Support / Adjunct", tags: ["supermicrosurgery", "microsurgery", "experimental"], sortOrder: 2 },
+  { id: "lymph_revision_lva", displayName: "Revision / redo LVA", snomedCtCode: "234300000", snomedCtDisplay: "Lymphovenous anastomosis (procedure)", specialties: ["lymphoedema"], subcategory: "Support / Adjunct", tags: ["supermicrosurgery", "microsurgery"], sortOrder: 3 },
+  { id: "lymph_icg", displayName: "ICG lymphography (diagnostic)", snomedCtCode: "10724008", snomedCtDisplay: "Microsurgery (procedure)", specialties: ["lymphoedema"], subcategory: "Support / Adjunct", tags: ["elective"], sortOrder: 4 },
 ];
 
 // Backward-compatible alias: keep old array name for the spread in PROCEDURE_PICKLIST
