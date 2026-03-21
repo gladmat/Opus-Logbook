@@ -3792,7 +3792,7 @@ const GENERAL_SKIN_LESION: ProcedurePicklistEntry[] = [
   {
     id: "gen_skin_biopsy_punch",
     displayName: "Skin biopsy — punch / incisional",
-    snomedCtCode: "240977001",
+    snomedCtCode: "87697008",
     snomedCtDisplay: "Punch biopsy of skin (procedure)",
     specialties: ["skin_cancer", "general", "head_neck"],
     subcategory: "Skin Lesion Surgery",
@@ -3939,8 +3939,8 @@ const GENERAL_SCAR_WOUND: ProcedurePicklistEntry[] = [
   {
     id: "gen_tissue_expansion",
     displayName: "Tissue expansion (insertion / exchange / removal)",
-    snomedCtCode: "61218004", // VERIFY
-    snomedCtDisplay: "Tissue expansion (procedure)",
+    snomedCtCode: "76790002",
+    snomedCtDisplay: "Insertion of tissue expander (procedure)",
     specialties: ["general"],
     subcategory: "Scar & Wound Management",
     tags: ["elective"],
@@ -3953,8 +3953,8 @@ const GENERAL_PRESSURE_SORE: ProcedurePicklistEntry[] = [
     id: "gen_ps_sacral_flap",
     displayName:
       "Sacral pressure sore — flap closure (gluteal / fasciocutaneous)",
-    snomedCtCode: "771225007",
-    snomedCtDisplay: "Reconstruction using free flap (procedure)",
+    snomedCtCode: "1202018003",
+    snomedCtDisplay: "Reconstruction using flap (procedure)",
     specialties: ["general"],
     subcategory: "Pressure Sore Reconstruction",
     tags: ["pedicled_flap", "complex_wound"],
@@ -3963,8 +3963,8 @@ const GENERAL_PRESSURE_SORE: ProcedurePicklistEntry[] = [
   {
     id: "gen_ps_ischial_flap",
     displayName: "Ischial pressure sore — flap closure (hamstring / VY)",
-    snomedCtCode: "771225007",
-    snomedCtDisplay: "Reconstruction using free flap (procedure)",
+    snomedCtCode: "62923002",
+    snomedCtDisplay: "Excision of ischial pressure injury with skin flap reconstruction (procedure)",
     specialties: ["general"],
     subcategory: "Pressure Sore Reconstruction",
     tags: ["pedicled_flap", "complex_wound"],
@@ -3973,8 +3973,8 @@ const GENERAL_PRESSURE_SORE: ProcedurePicklistEntry[] = [
   {
     id: "gen_ps_trochanteric_flap",
     displayName: "Trochanteric pressure sore — flap closure (TFL / VL)",
-    snomedCtCode: "771225007",
-    snomedCtDisplay: "Reconstruction using free flap (procedure)",
+    snomedCtCode: "38813006",
+    snomedCtDisplay: "Excision of trochanteric pressure injury with skin flap reconstruction (procedure)",
     specialties: ["general"],
     subcategory: "Pressure Sore Reconstruction",
     tags: ["pedicled_flap", "complex_wound"],
@@ -3983,8 +3983,8 @@ const GENERAL_PRESSURE_SORE: ProcedurePicklistEntry[] = [
   {
     id: "gen_ps_other_flap",
     displayName: "Pressure sore — other site / flap",
-    snomedCtCode: "771225007",
-    snomedCtDisplay: "Reconstruction using free flap (procedure)",
+    snomedCtCode: "1202018003",
+    snomedCtDisplay: "Reconstruction using flap (procedure)",
     specialties: ["general"],
     subcategory: "Pressure Sore Reconstruction",
     tags: ["pedicled_flap", "complex_wound"],
@@ -4040,8 +4040,8 @@ const GENERAL_VASCULAR_MALFORMATION: ProcedurePicklistEntry[] = [
   {
     id: "gen_vasc_excision",
     displayName: "Vascular malformation excision",
-    snomedCtCode: "35646002", // VERIFY
-    snomedCtDisplay: "Excision of vascular malformation (procedure)",
+    snomedCtCode: "42534004",
+    snomedCtDisplay: "Excision of subcutaneous vascular malformation of extremity (procedure)",
     specialties: ["general"],
     subcategory: "Vascular Malformations",
     tags: ["elective"],
@@ -4050,8 +4050,8 @@ const GENERAL_VASCULAR_MALFORMATION: ProcedurePicklistEntry[] = [
   {
     id: "gen_vasc_sclerotherapy",
     displayName: "Sclerotherapy for vascular malformation",
-    snomedCtCode: "17382005", // VERIFY
-    snomedCtDisplay: "Sclerotherapy (procedure)",
+    snomedCtCode: "80227005",
+    snomedCtDisplay: "Injection of sclerosing agent in vein (procedure)",
     specialties: ["general"],
     subcategory: "Vascular Malformations",
     tags: ["elective"],
@@ -4060,8 +4060,8 @@ const GENERAL_VASCULAR_MALFORMATION: ProcedurePicklistEntry[] = [
   {
     id: "gen_vasc_laser",
     displayName: "Laser treatment for vascular malformation",
-    snomedCtCode: "122456005", // VERIFY
-    snomedCtDisplay: "Laser therapy (procedure)",
+    snomedCtCode: "302394000",
+    snomedCtDisplay: "Laser destruction of skin lesion (procedure)",
     specialties: ["general"],
     subcategory: "Vascular Malformations",
     tags: ["elective"],
@@ -4073,8 +4073,8 @@ const GENERAL_HIDRADENITIS: ProcedurePicklistEntry[] = [
   {
     id: "gen_hs_excision_axilla",
     displayName: "Hidradenitis suppurativa excision — axilla",
-    snomedCtCode: "35646002", // VERIFY
-    snomedCtDisplay: "Excision for hidradenitis suppurativa (procedure)",
+    snomedCtCode: "856911000168102",
+    snomedCtDisplay: "Excision of hidradenitis suppurativa skin sinus (procedure)",
     specialties: ["general"],
     subcategory: "Hidradenitis Suppurativa",
     tags: ["oncological", "elective"],
@@ -4083,8 +4083,8 @@ const GENERAL_HIDRADENITIS: ProcedurePicklistEntry[] = [
   {
     id: "gen_hs_excision_groin",
     displayName: "Hidradenitis suppurativa excision — groin / perineal",
-    snomedCtCode: "35646002", // VERIFY
-    snomedCtDisplay: "Excision for hidradenitis suppurativa (procedure)",
+    snomedCtCode: "856911000168102",
+    snomedCtDisplay: "Excision of hidradenitis suppurativa skin sinus (procedure)",
     specialties: ["general"],
     subcategory: "Hidradenitis Suppurativa",
     tags: ["oncological", "elective"],
@@ -4093,8 +4093,8 @@ const GENERAL_HIDRADENITIS: ProcedurePicklistEntry[] = [
   {
     id: "gen_hs_excision_other",
     displayName: "Hidradenitis suppurativa excision — other site",
-    snomedCtCode: "35646002", // VERIFY
-    snomedCtDisplay: "Excision for hidradenitis suppurativa (procedure)",
+    snomedCtCode: "856911000168102",
+    snomedCtDisplay: "Excision of hidradenitis suppurativa skin sinus (procedure)",
     specialties: ["general"],
     subcategory: "Hidradenitis Suppurativa",
     tags: ["oncological", "elective"],
@@ -4103,8 +4103,8 @@ const GENERAL_HIDRADENITIS: ProcedurePicklistEntry[] = [
   {
     id: "gen_hs_deroofing",
     displayName: "Hidradenitis suppurativa — deroofing / unroofing",
-    snomedCtCode: "35646002", // VERIFY
-    snomedCtDisplay: "Deroofing for hidradenitis suppurativa (procedure)",
+    snomedCtCode: "900001000168101",
+    snomedCtDisplay: "Deroofing of skin lesion (procedure)",
     specialties: ["general"],
     subcategory: "Hidradenitis Suppurativa",
     tags: ["elective"],
@@ -4116,8 +4116,8 @@ const GENERAL_GENDER_AFFIRMING: ProcedurePicklistEntry[] = [
   {
     id: "gen_ga_chest_masculinisation",
     displayName: "Chest masculinisation (top surgery — FTM)",
-    snomedCtCode: "456903003", // VERIFY
-    snomedCtDisplay: "Gender affirming mastectomy (procedure)",
+    snomedCtCode: "70183006",
+    snomedCtDisplay: "Subcutaneous mastectomy (procedure)",
     specialties: ["general"],
     subcategory: "Gender-Affirming Surgery",
     tags: ["elective"],
@@ -4136,8 +4136,8 @@ const GENERAL_GENDER_AFFIRMING: ProcedurePicklistEntry[] = [
   {
     id: "gen_ga_facial_feminisation",
     displayName: "Facial feminisation surgery (FFS)",
-    snomedCtCode: "122465003", // VERIFY
-    snomedCtDisplay: "Facial feminisation surgery (procedure)",
+    snomedCtCode: "122465003",
+    snomedCtDisplay: "Reconstruction procedure (procedure)",
     specialties: ["general"],
     subcategory: "Gender-Affirming Surgery",
     tags: ["elective"],
@@ -4146,8 +4146,8 @@ const GENERAL_GENDER_AFFIRMING: ProcedurePicklistEntry[] = [
   {
     id: "gen_ga_other",
     displayName: "Gender-affirming surgery — other (specify in notes)",
-    snomedCtCode: "122465003", // VERIFY
-    snomedCtDisplay: "Gender affirming surgery (procedure)",
+    snomedCtCode: "122465003",
+    snomedCtDisplay: "Reconstruction procedure (procedure)",
     specialties: ["general"],
     subcategory: "Gender-Affirming Surgery",
     tags: ["elective"],
@@ -4159,8 +4159,8 @@ const GENERAL_SOFT_TISSUE_TRAUMA: ProcedurePicklistEntry[] = [
   {
     id: "gen_trauma_lac_simple",
     displayName: "Laceration repair — simple (skin / subcutaneous)",
-    snomedCtCode: "238182008",
-    snomedCtDisplay: "Suture of skin (procedure)",
+    snomedCtCode: "302410007",
+    snomedCtDisplay: "Primary suture of skin (procedure)",
     specialties: ["general"],
     subcategory: "Soft Tissue Trauma",
     tags: ["trauma"],
@@ -4169,8 +4169,8 @@ const GENERAL_SOFT_TISSUE_TRAUMA: ProcedurePicklistEntry[] = [
   {
     id: "gen_trauma_lac_complex",
     displayName: "Laceration repair — complex / layered",
-    snomedCtCode: "20720004",
-    snomedCtDisplay: "Wound repair (procedure)",
+    snomedCtCode: "288088005",
+    snomedCtDisplay: "Wound repair skin-plasty (procedure)",
     specialties: ["general"],
     subcategory: "Soft Tissue Trauma",
     tags: ["trauma"],
@@ -4179,8 +4179,8 @@ const GENERAL_SOFT_TISSUE_TRAUMA: ProcedurePicklistEntry[] = [
   {
     id: "gen_trauma_pretibial_repair",
     displayName: "Pretibial laceration repair — primary closure",
-    snomedCtCode: "238182008",
-    snomedCtDisplay: "Suture of skin (procedure)",
+    snomedCtCode: "302410007",
+    snomedCtDisplay: "Primary suture of skin (procedure)",
     specialties: ["general", "orthoplastic"],
     subcategory: "Soft Tissue Trauma",
     tags: ["trauma"],
@@ -4189,8 +4189,8 @@ const GENERAL_SOFT_TISSUE_TRAUMA: ProcedurePicklistEntry[] = [
   {
     id: "gen_trauma_degloving",
     displayName: "Degloving injury — primary management",
-    snomedCtCode: "20720004",
-    snomedCtDisplay: "Wound repair (procedure)",
+    snomedCtCode: "746011009",
+    snomedCtDisplay: "Closure of skin wound (procedure)",
     specialties: ["general", "orthoplastic"],
     subcategory: "Soft Tissue Trauma",
     tags: ["trauma", "complex_wound"],
@@ -4209,8 +4209,8 @@ const GENERAL_SOFT_TISSUE_TRAUMA: ProcedurePicklistEntry[] = [
   {
     id: "gen_trauma_skin_loss_closure",
     displayName: "Traumatic skin loss — direct closure / graft",
-    snomedCtCode: "20720004",
-    snomedCtDisplay: "Wound repair (procedure)",
+    snomedCtCode: "746011009",
+    snomedCtDisplay: "Closure of skin wound (procedure)",
     specialties: ["general"],
     subcategory: "Soft Tissue Trauma",
     tags: ["trauma", "skin_graft"],
