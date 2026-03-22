@@ -92,6 +92,13 @@ import {
   buildBreastEpisodeUpdatePlan,
   getBreastEpisodeLinkedId,
 } from "@/lib/breastEpisodeHelpers";
+import { buildShareableBlob } from "@/lib/buildShareableBlob";
+import { shareCase } from "@/lib/sharingApi";
+import {
+  generateCaseKeyHex,
+  encryptPayloadWithCaseKey,
+  wrapCaseKeyForRecipient,
+} from "@/lib/e2ee";
 
 // ─── Default Donor Vessels ──────────────────────────────────────────────────
 
@@ -266,6 +273,14 @@ export interface CaseFormState {
   episodeSequence: number;
   encounterClass: EncounterClass | "";
 
+  // Team sharing (tagged team members for share-on-save)
+  teamMembers: {
+    userId: string;
+    displayName: string;
+    role: string;
+    publicKeys: { deviceId: string; publicKey: string }[];
+  }[];
+
   // UI state
   saving: boolean;
   isPlanMode: boolean;
@@ -280,7 +295,12 @@ export type CaseFormAction =
   | { type: "RESET_FORM"; defaults: CaseFormState }
   | { type: "LOAD_DRAFT"; draft: Partial<CaseFormState> }
   | { type: "LOAD_CASE"; formState: CaseFormState }
-  | { type: "BULK_UPDATE"; updates: Partial<CaseFormState> };
+  | { type: "BULK_UPDATE"; updates: Partial<CaseFormState> }
+  | {
+      type: "ADD_TEAM_MEMBER";
+      member: CaseFormState["teamMembers"][number];
+    }
+  | { type: "REMOVE_TEAM_MEMBER"; userId: string };
 
 export function setField<K extends keyof CaseFormState>(
   field: K,
@@ -368,6 +388,7 @@ export function getDefaultFormState(
     episodeId: "",
     episodeSequence: 0,
     encounterClass: "",
+    teamMembers: [],
     saving: false,
     isPlanMode: false,
   };
@@ -488,6 +509,7 @@ function loadCaseIntoFormState(
     episodeId: caseData.episodeId ?? "",
     episodeSequence: caseData.episodeSequence ?? 0,
     encounterClass: (caseData.encounterClass as EncounterClass) ?? "",
+    teamMembers: [],
     saving: false,
     isPlanMode: false,
   };
@@ -855,6 +877,20 @@ function caseFormReducer(
       return action.formState;
     case "BULK_UPDATE":
       return { ...state, ...action.updates };
+    case "ADD_TEAM_MEMBER": {
+      const exists = state.teamMembers.some(
+        (m) => m.userId === action.member.userId,
+      );
+      if (exists) return state;
+      return { ...state, teamMembers: [...state.teamMembers, action.member] };
+    }
+    case "REMOVE_TEAM_MEMBER":
+      return {
+        ...state,
+        teamMembers: state.teamMembers.filter(
+          (m) => m.userId !== action.userId,
+        ),
+      };
     default:
       return state;
   }
@@ -987,7 +1023,9 @@ export function buildDuplicateState(
       id: uuidv4(),
       clinicalDetails: p.clinicalDetails ? { ...p.clinicalDetails } : undefined,
       implantDetails: p.implantDetails ? { ...p.implantDetails } : undefined,
-      lvaOperativeDetails: p.lvaOperativeDetails ? structuredClone(p.lvaOperativeDetails) : undefined,
+      lvaOperativeDetails: p.lvaOperativeDetails
+        ? structuredClone(p.lvaOperativeDetails)
+        : undefined,
       vlntDetails: p.vlntDetails ? { ...p.vlntDetails } : undefined,
       saplDetails: p.saplDetails ? { ...p.saplDetails } : undefined,
     })),
@@ -1061,8 +1099,7 @@ export function buildDuplicateState(
     // ── Copied fields ────────────────────────────────────────
     facility: source.facility || primaryFacility,
     diagnosisGroups: normalizeBreastDiagnosisGroups(clonedGroups),
-    role:
-      source.teamMembers?.find((m) => m.name === "You")?.role ?? "PS",
+    role: source.teamMembers?.find((m) => m.name === "You")?.role ?? "PS",
     responsibleConsultantName: source.responsibleConsultantName ?? "",
     responsibleConsultantUserId: source.responsibleConsultantUserId ?? "",
     defaultOperativeRole: source.defaultOperativeRole ?? "",
@@ -1122,6 +1159,7 @@ export function buildDuplicateState(
       ? (source.episodeSequence ?? 0)
       : 0,
     encounterClass: "",
+    teamMembers: [],
     saving: false,
     isPlanMode: false,
   };
@@ -1301,7 +1339,7 @@ export function useCaseForm({
   const specialty: Specialty =
     isEditMode && existingCase?.specialty
       ? existingCase.specialty
-      : routeSpecialty ?? duplicateFrom?.specialty ?? "general";
+      : (routeSpecialty ?? duplicateFrom?.specialty ?? "general");
 
   const draftLoadedRef = useRef(false);
   const savedRef = useRef(false);
@@ -1968,6 +2006,14 @@ export function useCaseForm({
                     confirmed: true,
                     addedAt: new Date().toISOString(),
                   },
+                  ...state.teamMembers.map((m) => ({
+                    id: uuidv4(),
+                    userId: m.userId,
+                    name: m.displayName,
+                    role: m.role,
+                    confirmed: false,
+                    addedAt: new Date().toISOString(),
+                  })),
                 ],
           ownerId: isEditMode && existingCase ? existingCase.ownerId : userId,
           formOpenedAt: formOpenedAt || undefined,
@@ -2007,6 +2053,52 @@ export function useCaseForm({
             }
           } catch {
             // Non-critical — episode activation failure shouldn't block case save
+          }
+        }
+
+        // Share with tagged team members (non-blocking — failures don't affect save)
+        if (state.teamMembers.length > 0) {
+          try {
+            const caseKeyHex = await generateCaseKeyHex();
+            const teamRoles = state.teamMembers.map((m) => ({
+              userId: m.userId,
+              displayName: m.displayName,
+              role: m.role,
+            }));
+            const blob = buildShareableBlob(savedCase, teamRoles);
+            const encryptedBlob = await encryptPayloadWithCaseKey(
+              JSON.stringify(blob),
+              caseKeyHex,
+            );
+
+            const recipients = [];
+            for (const member of state.teamMembers) {
+              const keyEnvelopes = [];
+              for (const pk of member.publicKeys) {
+                const envelope = await wrapCaseKeyForRecipient(
+                  caseKeyHex,
+                  pk.publicKey,
+                );
+                keyEnvelopes.push({
+                  deviceId: pk.deviceId,
+                  envelopeJson: JSON.stringify(envelope),
+                });
+              }
+              recipients.push({
+                userId: member.userId,
+                role: member.role,
+                keyEnvelopes,
+              });
+            }
+
+            await shareCase({
+              caseId: savedCase.id,
+              encryptedShareableBlob: encryptedBlob,
+              recipients,
+            });
+          } catch (sharingError) {
+            console.warn("Sharing failed:", sharingError);
+            // Case saved successfully — sharing will need manual retry
           }
         }
 

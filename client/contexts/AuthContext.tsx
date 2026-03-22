@@ -32,6 +32,9 @@ import { clearAllAppLockData } from "@/lib/appLockStorage";
 import { normalizeUserFacility } from "@/lib/facilities";
 import { decryptData, encryptData } from "@/lib/encryption";
 import { clearDecryptedCache } from "@/components/EncryptedImage";
+import * as Notifications from "expo-notifications";
+import Constants from "expo-constants";
+import { registerPushTokenOnServer } from "@/lib/sharingApi";
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -126,6 +129,26 @@ async function loadCachedProfile(): Promise<UserProfile | null> {
   return null;
 }
 
+async function registerDeviceAndPushToken(): Promise<void> {
+  const { deviceId, publicKey } = await getOrCreateDeviceIdentity();
+  await registerDeviceKey(deviceId, publicKey, Platform.OS);
+
+  // Register push token if permissions already granted (non-blocking)
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status === "granted") {
+      const projectId =
+        Constants.expoConfig?.extra?.eas?.projectId ?? undefined;
+      const tokenData = await Notifications.getExpoPushTokenAsync({
+        projectId,
+      });
+      await registerPushTokenOnServer(tokenData.data, deviceId);
+    }
+  } catch (pushError) {
+    console.warn("Push token registration failed:", pushError);
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -146,8 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setFacilities((data.facilities || []).map(normalizeUserFacility));
 
         try {
-          const { deviceId, publicKey } = await getOrCreateDeviceIdentity();
-          await registerDeviceKey(deviceId, publicKey, Platform.OS);
+          await registerDeviceAndPushToken();
         } catch (error) {
           console.warn("Device key registration failed:", error);
         }
@@ -198,8 +220,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setFacilities((data.facilities || []).map(normalizeUserFacility));
 
     try {
-      const { deviceId, publicKey } = await getOrCreateDeviceIdentity();
-      await registerDeviceKey(deviceId, publicKey, Platform.OS);
+      await registerDeviceAndPushToken();
     } catch (error) {
       console.warn("Device key registration failed:", error);
     }
@@ -218,8 +239,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setFacilities([]);
 
     try {
-      const { deviceId, publicKey } = await getOrCreateDeviceIdentity();
-      await registerDeviceKey(deviceId, publicKey, Platform.OS);
+      await registerDeviceAndPushToken();
     } catch (error) {
       console.warn("Device key registration failed:", error);
     }
