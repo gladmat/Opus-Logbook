@@ -25,6 +25,7 @@ const envSchema = z.object({
   APP_DOMAIN: z.string().optional(),
   ENABLE_SEED: z.string().optional(),
   SEED_TOKEN: z.string().optional(),
+  EXPO_ACCESS_TOKEN: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

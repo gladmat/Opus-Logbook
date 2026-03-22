@@ -15,9 +15,23 @@ import {
   type PasswordResetToken,
   userDeviceKeys,
   type UserDeviceKey,
+  sharedCases,
+  type SharedCase,
+  type InsertSharedCase,
+  caseKeyEnvelopes,
+  type CaseKeyEnvelope,
+  type InsertCaseKeyEnvelope,
+  caseAssessments,
+  type CaseAssessment,
+  type InsertCaseAssessment,
+  assessmentKeyEnvelopes,
+  type AssessmentKeyEnvelope,
+  type InsertAssessmentKeyEnvelope,
+  pushTokens,
+  type PushToken,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, ne, sql, lt, isNull } from "drizzle-orm";
+import { eq, and, ne, sql, lt, isNull, isNotNull, desc } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -70,6 +84,78 @@ export interface IStorage {
     label?: string | null,
   ): Promise<UserDeviceKey>;
   revokeUserDeviceKey(userId: string, deviceId: string): Promise<boolean>;
+
+  // Shared cases
+  createSharedCase(data: InsertSharedCase): Promise<SharedCase>;
+  getSharedCaseById(id: string): Promise<SharedCase | undefined>;
+  getSharedInbox(
+    userId: string,
+    opts: { status?: string; limit: number; offset: number },
+  ): Promise<
+    (SharedCase & { ownerDisplayName: string | null })[]
+  >;
+  getSharedOutbox(
+    userId: string,
+  ): Promise<(SharedCase & { recipientDisplayName: string | null })[]>;
+  updateSharedCaseVerification(
+    id: string,
+    recipientUserId: string,
+    status: string,
+    note?: string,
+  ): Promise<SharedCase | undefined>;
+  updateSharedCaseBlob(
+    id: string,
+    ownerUserId: string,
+    blob: string,
+    version: number,
+  ): Promise<SharedCase | undefined>;
+  deleteSharedCase(id: string, ownerUserId: string): Promise<boolean>;
+
+  // Case key envelopes
+  createCaseKeyEnvelopes(
+    envelopes: InsertCaseKeyEnvelope[],
+  ): Promise<CaseKeyEnvelope[]>;
+  getCaseKeyEnvelopes(
+    sharedCaseId: string,
+    recipientUserId: string,
+  ): Promise<CaseKeyEnvelope[]>;
+
+  // Case assessments
+  createCaseAssessment(data: InsertCaseAssessment): Promise<CaseAssessment>;
+  getCaseAssessments(sharedCaseId: string): Promise<CaseAssessment[]>;
+  revealAssessments(sharedCaseId: string): Promise<void>;
+
+  // Assessment key envelopes
+  createAssessmentKeyEnvelopes(
+    envelopes: InsertAssessmentKeyEnvelope[],
+  ): Promise<AssessmentKeyEnvelope[]>;
+  getAssessmentKeyEnvelopes(
+    assessmentId: string,
+    recipientUserId: string,
+    releasedOnly: boolean,
+  ): Promise<AssessmentKeyEnvelope[]>;
+  releaseAssessmentKeyEnvelopes(sharedCaseId: string): Promise<void>;
+
+  // Assessment history
+  getRevealedAssessments(
+    userId: string,
+    opts: { role?: string; limit: number; offset: number },
+  ): Promise<
+    Pick<
+      CaseAssessment,
+      "id" | "sharedCaseId" | "assessorRole" | "submittedAt" | "revealedAt"
+    >[]
+  >;
+
+  // Push tokens
+  upsertPushToken(
+    userId: string,
+    token: string,
+    deviceId: string,
+    platform?: string,
+  ): Promise<PushToken>;
+  deletePushToken(userId: string, deviceId: string): Promise<boolean>;
+  getPushTokensForUser(userId: string): Promise<PushToken[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -341,6 +427,334 @@ export class DatabaseStorage implements IStorage {
         ),
       );
     return true;
+  }
+
+  // ── Shared cases ────────────────────────────────────────────────────────────
+
+  async createSharedCase(data: InsertSharedCase): Promise<SharedCase> {
+    const [created] = await db.insert(sharedCases).values(data).returning();
+    return created!;
+  }
+
+  async getSharedCaseById(id: string): Promise<SharedCase | undefined> {
+    const [row] = await db
+      .select()
+      .from(sharedCases)
+      .where(eq(sharedCases.id, id));
+    return row || undefined;
+  }
+
+  async getSharedInbox(
+    userId: string,
+    opts: { status?: string; limit: number; offset: number },
+  ): Promise<(SharedCase & { ownerDisplayName: string | null })[]> {
+    const conditions = [eq(sharedCases.recipientUserId, userId)];
+    if (opts.status) {
+      conditions.push(eq(sharedCases.verificationStatus, opts.status));
+    }
+
+    const rows = await db
+      .select({
+        id: sharedCases.id,
+        caseId: sharedCases.caseId,
+        ownerUserId: sharedCases.ownerUserId,
+        recipientUserId: sharedCases.recipientUserId,
+        encryptedShareableBlob: sharedCases.encryptedShareableBlob,
+        blobVersion: sharedCases.blobVersion,
+        recipientRole: sharedCases.recipientRole,
+        verificationStatus: sharedCases.verificationStatus,
+        verificationNote: sharedCases.verificationNote,
+        verifiedAt: sharedCases.verifiedAt,
+        createdAt: sharedCases.createdAt,
+        updatedAt: sharedCases.updatedAt,
+        ownerDisplayName: profiles.fullName,
+      })
+      .from(sharedCases)
+      .leftJoin(profiles, eq(profiles.userId, sharedCases.ownerUserId))
+      .where(and(...conditions))
+      .orderBy(desc(sharedCases.createdAt))
+      .limit(opts.limit)
+      .offset(opts.offset);
+
+    return rows;
+  }
+
+  async getSharedOutbox(
+    userId: string,
+  ): Promise<(SharedCase & { recipientDisplayName: string | null })[]> {
+    const rows = await db
+      .select({
+        id: sharedCases.id,
+        caseId: sharedCases.caseId,
+        ownerUserId: sharedCases.ownerUserId,
+        recipientUserId: sharedCases.recipientUserId,
+        encryptedShareableBlob: sharedCases.encryptedShareableBlob,
+        blobVersion: sharedCases.blobVersion,
+        recipientRole: sharedCases.recipientRole,
+        verificationStatus: sharedCases.verificationStatus,
+        verificationNote: sharedCases.verificationNote,
+        verifiedAt: sharedCases.verifiedAt,
+        createdAt: sharedCases.createdAt,
+        updatedAt: sharedCases.updatedAt,
+        recipientDisplayName: profiles.fullName,
+      })
+      .from(sharedCases)
+      .leftJoin(profiles, eq(profiles.userId, sharedCases.recipientUserId))
+      .where(eq(sharedCases.ownerUserId, userId))
+      .orderBy(desc(sharedCases.createdAt));
+
+    return rows;
+  }
+
+  async updateSharedCaseVerification(
+    id: string,
+    recipientUserId: string,
+    status: string,
+    note?: string,
+  ): Promise<SharedCase | undefined> {
+    const [updated] = await db
+      .update(sharedCases)
+      .set({
+        verificationStatus: status,
+        verificationNote: note ?? null,
+        verifiedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(sharedCases.id, id),
+          eq(sharedCases.recipientUserId, recipientUserId),
+        ),
+      )
+      .returning();
+    return updated || undefined;
+  }
+
+  async updateSharedCaseBlob(
+    id: string,
+    ownerUserId: string,
+    blob: string,
+    version: number,
+  ): Promise<SharedCase | undefined> {
+    // Optimistic locking: only update if new version > current version
+    const [updated] = await db
+      .update(sharedCases)
+      .set({
+        encryptedShareableBlob: blob,
+        blobVersion: version,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(sharedCases.id, id),
+          eq(sharedCases.ownerUserId, ownerUserId),
+          lt(sharedCases.blobVersion, version),
+        ),
+      )
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteSharedCase(id: string, ownerUserId: string): Promise<boolean> {
+    const result = await db
+      .delete(sharedCases)
+      .where(
+        and(eq(sharedCases.id, id), eq(sharedCases.ownerUserId, ownerUserId)),
+      )
+      .returning();
+    return result.length > 0;
+  }
+
+  // ── Case key envelopes ──────────────────────────────────────────────────────
+
+  async createCaseKeyEnvelopes(
+    envelopes: InsertCaseKeyEnvelope[],
+  ): Promise<CaseKeyEnvelope[]> {
+    if (envelopes.length === 0) return [];
+    return db.insert(caseKeyEnvelopes).values(envelopes).returning();
+  }
+
+  async getCaseKeyEnvelopes(
+    sharedCaseId: string,
+    recipientUserId: string,
+  ): Promise<CaseKeyEnvelope[]> {
+    return db
+      .select()
+      .from(caseKeyEnvelopes)
+      .where(
+        and(
+          eq(caseKeyEnvelopes.sharedCaseId, sharedCaseId),
+          eq(caseKeyEnvelopes.recipientUserId, recipientUserId),
+        ),
+      );
+  }
+
+  // ── Case assessments ────────────────────────────────────────────────────────
+
+  async createCaseAssessment(
+    data: InsertCaseAssessment,
+  ): Promise<CaseAssessment> {
+    const [created] = await db
+      .insert(caseAssessments)
+      .values(data)
+      .returning();
+    return created!;
+  }
+
+  async getCaseAssessments(sharedCaseId: string): Promise<CaseAssessment[]> {
+    return db
+      .select()
+      .from(caseAssessments)
+      .where(eq(caseAssessments.sharedCaseId, sharedCaseId));
+  }
+
+  async revealAssessments(sharedCaseId: string): Promise<void> {
+    await db
+      .update(caseAssessments)
+      .set({ revealedAt: new Date() })
+      .where(
+        and(
+          eq(caseAssessments.sharedCaseId, sharedCaseId),
+          isNull(caseAssessments.revealedAt),
+        ),
+      );
+  }
+
+  // ── Assessment key envelopes ────────────────────────────────────────────────
+
+  async createAssessmentKeyEnvelopes(
+    envelopes: InsertAssessmentKeyEnvelope[],
+  ): Promise<AssessmentKeyEnvelope[]> {
+    if (envelopes.length === 0) return [];
+    return db.insert(assessmentKeyEnvelopes).values(envelopes).returning();
+  }
+
+  async getAssessmentKeyEnvelopes(
+    assessmentId: string,
+    recipientUserId: string,
+    releasedOnly: boolean,
+  ): Promise<AssessmentKeyEnvelope[]> {
+    const conditions = [
+      eq(assessmentKeyEnvelopes.caseAssessmentId, assessmentId),
+      eq(assessmentKeyEnvelopes.recipientUserId, recipientUserId),
+    ];
+    if (releasedOnly) {
+      conditions.push(eq(assessmentKeyEnvelopes.released, true));
+    }
+    return db
+      .select()
+      .from(assessmentKeyEnvelopes)
+      .where(and(...conditions));
+  }
+
+  async releaseAssessmentKeyEnvelopes(sharedCaseId: string): Promise<void> {
+    // Get all assessment IDs for this shared case
+    const assessments = await db
+      .select({ id: caseAssessments.id })
+      .from(caseAssessments)
+      .where(eq(caseAssessments.sharedCaseId, sharedCaseId));
+
+    const assessmentIds = assessments.map((a) => a.id);
+    if (assessmentIds.length === 0) return;
+
+    // Release all envelopes for these assessments
+    for (const assessmentId of assessmentIds) {
+      await db
+        .update(assessmentKeyEnvelopes)
+        .set({ released: true })
+        .where(eq(assessmentKeyEnvelopes.caseAssessmentId, assessmentId));
+    }
+  }
+
+  // ── Assessment history ───────────────────────────────────────────────────────
+
+  async getRevealedAssessments(
+    userId: string,
+    opts: { role?: string; limit: number; offset: number },
+  ): Promise<
+    Pick<
+      CaseAssessment,
+      "id" | "sharedCaseId" | "assessorRole" | "submittedAt" | "revealedAt"
+    >[]
+  > {
+    const conditions = [
+      eq(caseAssessments.assessorUserId, userId),
+      isNotNull(caseAssessments.revealedAt),
+    ];
+    if (opts.role) {
+      conditions.push(eq(caseAssessments.assessorRole, opts.role));
+    }
+
+    return db
+      .select({
+        id: caseAssessments.id,
+        sharedCaseId: caseAssessments.sharedCaseId,
+        assessorRole: caseAssessments.assessorRole,
+        submittedAt: caseAssessments.submittedAt,
+        revealedAt: caseAssessments.revealedAt,
+      })
+      .from(caseAssessments)
+      .where(and(...conditions))
+      .orderBy(desc(caseAssessments.submittedAt))
+      .limit(opts.limit)
+      .offset(opts.offset);
+  }
+
+  // ── Push tokens ─────────────────────────────────────────────────────────────
+
+  async upsertPushToken(
+    userId: string,
+    token: string,
+    deviceId: string,
+    platform?: string,
+  ): Promise<PushToken> {
+    const [existing] = await db
+      .select()
+      .from(pushTokens)
+      .where(
+        and(eq(pushTokens.userId, userId), eq(pushTokens.deviceId, deviceId)),
+      );
+
+    if (existing) {
+      const [updated] = await db
+        .update(pushTokens)
+        .set({
+          expoPushToken: token,
+          platform: platform ?? existing.platform,
+          updatedAt: new Date(),
+        })
+        .where(eq(pushTokens.id, existing.id))
+        .returning();
+      return updated!;
+    }
+
+    const [created] = await db
+      .insert(pushTokens)
+      .values({
+        userId,
+        expoPushToken: token,
+        deviceId,
+        platform: platform ?? "ios",
+      })
+      .returning();
+    return created!;
+  }
+
+  async deletePushToken(userId: string, deviceId: string): Promise<boolean> {
+    const result = await db
+      .delete(pushTokens)
+      .where(
+        and(eq(pushTokens.userId, userId), eq(pushTokens.deviceId, deviceId)),
+      )
+      .returning();
+    return result.length > 0;
+  }
+
+  async getPushTokensForUser(userId: string): Promise<PushToken[]> {
+    return db
+      .select()
+      .from(pushTokens)
+      .where(eq(pushTokens.userId, userId));
   }
 }
 

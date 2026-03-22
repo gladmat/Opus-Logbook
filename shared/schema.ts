@@ -335,3 +335,203 @@ export const insertSnomedRefSchema = createInsertSchema(snomedRef).omit({
 
 export type SnomedRef = typeof snomedRef.$inferSelect;
 export type InsertSnomedRef = z.infer<typeof insertSnomedRefSchema>;
+
+// ── Team Sharing Tables ─────────────────────────────────────────────────────
+
+export const sharedCases = pgTable(
+  "shared_cases",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    caseId: varchar("case_id").notNull(),
+    ownerUserId: varchar("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    recipientUserId: varchar("recipient_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    encryptedShareableBlob: text("encrypted_shareable_blob").notNull(),
+    blobVersion: integer("blob_version").notNull().default(1),
+    recipientRole: varchar("recipient_role", { length: 30 }).notNull(),
+    verificationStatus: varchar("verification_status", { length: 20 })
+      .notNull()
+      .default("pending"),
+    verificationNote: text("verification_note"),
+    verifiedAt: timestamp("verified_at"),
+    createdAt: timestamp("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: timestamp("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => [
+    index("shared_cases_owner_idx").on(t.ownerUserId),
+    index("shared_cases_recipient_idx").on(t.recipientUserId),
+    index("shared_cases_case_idx").on(t.caseId),
+    uniqueIndex("shared_cases_case_recipient_idx").on(
+      t.caseId,
+      t.recipientUserId,
+    ),
+  ],
+);
+
+export const insertSharedCaseSchema = createInsertSchema(sharedCases).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  verifiedAt: true,
+});
+
+export type SharedCase = typeof sharedCases.$inferSelect;
+export type InsertSharedCase = z.infer<typeof insertSharedCaseSchema>;
+
+export const caseKeyEnvelopes = pgTable(
+  "case_key_envelopes",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    sharedCaseId: varchar("shared_case_id")
+      .notNull()
+      .references(() => sharedCases.id, { onDelete: "cascade" }),
+    recipientUserId: varchar("recipient_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    recipientDeviceId: varchar("recipient_device_id").notNull(),
+    envelopeJson: text("envelope_json").notNull(),
+    createdAt: timestamp("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => [
+    index("case_key_envelopes_recipient_device_idx").on(
+      t.recipientUserId,
+      t.recipientDeviceId,
+    ),
+  ],
+);
+
+export const insertCaseKeyEnvelopeSchema = createInsertSchema(
+  caseKeyEnvelopes,
+).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type CaseKeyEnvelope = typeof caseKeyEnvelopes.$inferSelect;
+export type InsertCaseKeyEnvelope = z.infer<typeof insertCaseKeyEnvelopeSchema>;
+
+export const caseAssessments = pgTable(
+  "case_assessments",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    sharedCaseId: varchar("shared_case_id")
+      .notNull()
+      .references(() => sharedCases.id, { onDelete: "cascade" }),
+    assessorUserId: varchar("assessor_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    assessorRole: varchar("assessor_role", { length: 20 }).notNull(),
+    encryptedAssessment: text("encrypted_assessment").notNull(),
+    submittedAt: timestamp("submitted_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    revealedAt: timestamp("revealed_at"),
+  },
+  (t) => [
+    index("case_assessments_shared_case_idx").on(t.sharedCaseId),
+    uniqueIndex("case_assessments_case_role_idx").on(
+      t.sharedCaseId,
+      t.assessorRole,
+    ),
+  ],
+);
+
+export const insertCaseAssessmentSchema = createInsertSchema(
+  caseAssessments,
+).omit({
+  id: true,
+  submittedAt: true,
+  revealedAt: true,
+});
+
+export type CaseAssessment = typeof caseAssessments.$inferSelect;
+export type InsertCaseAssessment = z.infer<typeof insertCaseAssessmentSchema>;
+
+export const assessmentKeyEnvelopes = pgTable(
+  "assessment_key_envelopes",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    caseAssessmentId: varchar("case_assessment_id")
+      .notNull()
+      .references(() => caseAssessments.id, { onDelete: "cascade" }),
+    recipientUserId: varchar("recipient_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    recipientDeviceId: varchar("recipient_device_id").notNull(),
+    envelopeJson: text("envelope_json").notNull(),
+    released: boolean("released").notNull().default(false),
+    createdAt: timestamp("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => [
+    index("assessment_key_envelopes_recipient_released_idx").on(
+      t.recipientUserId,
+      t.released,
+    ),
+  ],
+);
+
+export const insertAssessmentKeyEnvelopeSchema = createInsertSchema(
+  assessmentKeyEnvelopes,
+).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type AssessmentKeyEnvelope =
+  typeof assessmentKeyEnvelopes.$inferSelect;
+export type InsertAssessmentKeyEnvelope = z.infer<
+  typeof insertAssessmentKeyEnvelopeSchema
+>;
+
+export const pushTokens = pgTable(
+  "push_tokens",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    expoPushToken: varchar("expo_push_token").notNull(),
+    deviceId: varchar("device_id").notNull(),
+    platform: varchar("platform", { length: 10 }).notNull().default("ios"),
+    createdAt: timestamp("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: timestamp("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => [
+    index("push_tokens_user_idx").on(t.userId),
+    uniqueIndex("push_tokens_user_device_idx").on(t.userId, t.deviceId),
+  ],
+);
+
+export const insertPushTokenSchema = createInsertSchema(pushTokens).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type PushToken = typeof pushTokens.$inferSelect;
+export type InsertPushToken = z.infer<typeof insertPushTokenSchema>;

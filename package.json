@@ -54,6 +54,7 @@
     "expo-media-library": "~18.2.1",
     "expo-print": "~15.0.8",
     "expo-secure-store": "^15.0.8",
+    "expo-server-sdk": "^6.1.0",
     "expo-sharing": "~14.0.8",
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",

@@ -27,6 +27,7 @@ import {
   getProfessionalRegistrations,
   professionalRegistrationsSchema,
 } from "@shared/professionalRegistrations";
+import { sendPushNotification } from "./push";
 import { env } from "./env";
 import { z } from "zod";
 
@@ -155,6 +156,60 @@ const revokeDeviceKeySchema = z.object({
   deviceId: z.string().min(1).max(64),
 });
 
+// ── Sharing validation schemas ──────────────────────────────────────────────
+
+const shareSchema = z.object({
+  caseId: z.string().min(1),
+  encryptedShareableBlob: z.string().min(1),
+  recipients: z
+    .array(
+      z.object({
+        userId: z.string().min(1),
+        role: z.string().min(1).max(30),
+        keyEnvelopes: z
+          .array(
+            z.object({
+              deviceId: z.string().min(1),
+              envelopeJson: z.string().min(1),
+            }),
+          )
+          .min(1),
+      }),
+    )
+    .min(1),
+});
+
+const verifySchema = z.object({
+  status: z.enum(["verified", "disputed"]),
+  note: z.string().optional(),
+});
+
+const updateBlobSchema = z.object({
+  encryptedShareableBlob: z.string().min(1),
+  blobVersion: z.number().int().positive(),
+});
+
+const assessmentSchema = z.object({
+  sharedCaseId: z.string().min(1),
+  assessorRole: z.enum(["supervisor", "trainee"]),
+  encryptedAssessment: z.string().min(1),
+  keyEnvelopes: z
+    .array(
+      z.object({
+        recipientUserId: z.string().min(1),
+        recipientDeviceId: z.string().min(1),
+        envelopeJson: z.string().min(1),
+      }),
+    )
+    .min(1),
+});
+
+const pushTokenSchema = z.object({
+  expoPushToken: z.string().min(1),
+  deviceId: z.string().min(1).max(64),
+  platform: z.string().max(10).optional(),
+});
+
 function parseJsonObject(
   value: unknown,
 ): { ok: true; value: Record<string, unknown> | undefined } | { ok: false } {
@@ -219,12 +274,24 @@ const AUTH_RATE_LIMIT = 10;
 const AUTH_RATE_WINDOW_MS = 60 * 1000;
 const AUTH_RATE_LIMITER_MAX_ENTRIES = 5000;
 
+const userSearchRateLimiter = new Map<
+  string,
+  { count: number; resetTime: number }
+>();
+const USER_SEARCH_RATE_LIMIT = 10;
+const USER_SEARCH_RATE_WINDOW_MS = 60 * 1000;
+
 // Periodic cleanup: evict expired entries every 60 seconds
 setInterval(() => {
   const now = Date.now();
   for (const [ip, entry] of authRateLimiter) {
     if (now > entry.resetTime) {
       authRateLimiter.delete(ip);
+    }
+  }
+  for (const [key, entry] of userSearchRateLimiter) {
+    if (now > entry.resetTime) {
+      userSearchRateLimiter.delete(key);
     }
   }
 }, 60_000).unref();
@@ -260,6 +327,26 @@ function checkAuthRateLimit(ip: string): boolean {
   }
 
   if (entry.count >= AUTH_RATE_LIMIT) {
+    return false;
+  }
+
+  entry.count++;
+  return true;
+}
+
+function checkUserSearchRateLimit(userId: string): boolean {
+  const now = Date.now();
+  const entry = userSearchRateLimiter.get(userId);
+
+  if (!entry || now > entry.resetTime) {
+    userSearchRateLimiter.set(userId, {
+      count: 1,
+      resetTime: now + USER_SEARCH_RATE_WINDOW_MS,
+    });
+    return true;
+  }
+
+  if (entry.count >= USER_SEARCH_RATE_LIMIT) {
     return false;
   }
 
@@ -1424,6 +1511,593 @@ export async function registerRoutes(app: Express): Promise<void> {
         res
           .status(500)
           .json({ error: "Failed to fetch staging configurations" });
+      }
+    },
+  );
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Team Sharing Routes
+  // Consumer: Mobile client (case sharing, verification, blinded assessments)
+  // ──────────────────────────────────────────────────────────────────────────
+
+  // Share a case with team members
+  app.post(
+    "/api/share",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const parseResult = shareSchema.safeParse(req.body);
+        if (!parseResult.success) {
+          res.status(400).json({
+            error: "Invalid input",
+            details: parseResult.error.flatten(),
+          });
+          return;
+        }
+
+        const { caseId, encryptedShareableBlob, recipients } =
+          parseResult.data;
+        const ownerUserId = req.userId!;
+
+        const sharedCases: { id: string; recipientUserId: string }[] = [];
+
+        for (const recipient of recipients) {
+          // Owner cannot share with themselves
+          if (recipient.userId === ownerUserId) {
+            res
+              .status(400)
+              .json({ error: "Cannot share a case with yourself" });
+            return;
+          }
+
+          // Verify recipient exists
+          const recipientUser = await storage.getUser(recipient.userId);
+          if (!recipientUser) {
+            res.status(400).json({
+              error: `Recipient ${recipient.userId} not found`,
+            });
+            return;
+          }
+
+          const sharedCase = await storage.createSharedCase({
+            caseId,
+            ownerUserId,
+            recipientUserId: recipient.userId,
+            encryptedShareableBlob,
+            recipientRole: recipient.role,
+          });
+
+          const envelopes = recipient.keyEnvelopes.map((ke) => ({
+            sharedCaseId: sharedCase.id,
+            recipientUserId: recipient.userId,
+            recipientDeviceId: ke.deviceId,
+            envelopeJson: ke.envelopeJson,
+          }));
+
+          await storage.createCaseKeyEnvelopes(envelopes);
+
+          sharedCases.push({
+            id: sharedCase.id,
+            recipientUserId: recipient.userId,
+          });
+
+          // Fire push notification (non-blocking)
+          sendPushNotification(
+            recipient.userId,
+            "Case Shared",
+            "A colleague has shared a case with you",
+            { type: "case_shared", sharedCaseId: sharedCase.id },
+          ).catch(() => {});
+        }
+
+        res.status(201).json({ sharedCases });
+      } catch (error) {
+        console.error(
+          "Error sharing case:",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+        res.status(500).json({ error: "Failed to share case" });
+      }
+    },
+  );
+
+  // Get cases shared with the current user (inbox)
+  app.get(
+    "/api/shared/inbox",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const status = req.query.status as string | undefined;
+        const limit = Math.min(
+          parseInt(req.query.limit as string) || 50,
+          100,
+        );
+        const offset = parseInt(req.query.offset as string) || 0;
+
+        const cases = await storage.getSharedInbox(req.userId!, {
+          status,
+          limit,
+          offset,
+        });
+
+        // Strip the blob from list view for bandwidth efficiency
+        const result = cases.map(
+          ({ encryptedShareableBlob: _blob, ...rest }) => rest,
+        );
+        res.json(result);
+      } catch (error) {
+        console.error(
+          "Error fetching shared inbox:",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+        res.status(500).json({ error: "Failed to fetch shared inbox" });
+      }
+    },
+  );
+
+  // Download a specific shared case blob + envelopes
+  app.get(
+    "/api/shared/inbox/:id",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const sharedCase = await storage.getSharedCaseById(req.params.id!);
+        if (!sharedCase) {
+          res.status(404).json({ error: "Shared case not found" });
+          return;
+        }
+
+        // IDOR: only the recipient can access
+        if (sharedCase.recipientUserId !== req.userId!) {
+          res.status(403).json({ error: "Access denied" });
+          return;
+        }
+
+        const keyEnvelopes = await storage.getCaseKeyEnvelopes(
+          sharedCase.id,
+          req.userId!,
+        );
+
+        res.json({
+          encryptedShareableBlob: sharedCase.encryptedShareableBlob,
+          keyEnvelopes: keyEnvelopes.map((ke) => ({
+            recipientDeviceId: ke.recipientDeviceId,
+            envelopeJson: ke.envelopeJson,
+          })),
+          blobVersion: sharedCase.blobVersion,
+          recipientRole: sharedCase.recipientRole,
+          verificationStatus: sharedCase.verificationStatus,
+        });
+      } catch (error) {
+        console.error(
+          "Error fetching shared case:",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+        res.status(500).json({ error: "Failed to fetch shared case" });
+      }
+    },
+  );
+
+  // Get cases the current user shared with others (outbox)
+  app.get(
+    "/api/shared/outbox",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const cases = await storage.getSharedOutbox(req.userId!);
+
+        // Strip the blob from list view
+        const result = cases.map(
+          ({ encryptedShareableBlob: _blob, ...rest }) => rest,
+        );
+        res.json(result);
+      } catch (error) {
+        console.error(
+          "Error fetching shared outbox:",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+        res.status(500).json({ error: "Failed to fetch shared outbox" });
+      }
+    },
+  );
+
+  // Verify or dispute involvement in a shared case
+  app.put(
+    "/api/shared/:id/verify",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const parseResult = verifySchema.safeParse(req.body);
+        if (!parseResult.success) {
+          res.status(400).json({
+            error: "Invalid input",
+            details: parseResult.error.flatten(),
+          });
+          return;
+        }
+
+        const updated = await storage.updateSharedCaseVerification(
+          req.params.id!,
+          req.userId!,
+          parseResult.data.status,
+          parseResult.data.note,
+        );
+
+        if (!updated) {
+          res.status(404).json({ error: "Shared case not found" });
+          return;
+        }
+
+        res.json(updated);
+      } catch (error) {
+        console.error(
+          "Error verifying shared case:",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+        res.status(500).json({ error: "Failed to verify shared case" });
+      }
+    },
+  );
+
+  // Revoke sharing (owner only — cascade deletes envelopes)
+  app.delete(
+    "/api/shared/:id",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const deleted = await storage.deleteSharedCase(
+          req.params.id!,
+          req.userId!,
+        );
+
+        if (!deleted) {
+          res.status(404).json({ error: "Shared case not found" });
+          return;
+        }
+
+        res.json({ success: true });
+      } catch (error) {
+        console.error(
+          "Error revoking shared case:",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+        res.status(500).json({ error: "Failed to revoke shared case" });
+      }
+    },
+  );
+
+  // Update shared case blob (owner only, optimistic locking)
+  app.put(
+    "/api/shared/:id/blob",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const parseResult = updateBlobSchema.safeParse(req.body);
+        if (!parseResult.success) {
+          res.status(400).json({
+            error: "Invalid input",
+            details: parseResult.error.flatten(),
+          });
+          return;
+        }
+
+        const updated = await storage.updateSharedCaseBlob(
+          req.params.id!,
+          req.userId!,
+          parseResult.data.encryptedShareableBlob,
+          parseResult.data.blobVersion,
+        );
+
+        if (!updated) {
+          res.status(409).json({
+            error: "Version conflict or shared case not found",
+          });
+          return;
+        }
+
+        res.json(updated);
+      } catch (error) {
+        console.error(
+          "Error updating shared case blob:",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+        res.status(500).json({ error: "Failed to update shared case" });
+      }
+    },
+  );
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // User Lookup Routes
+  // Consumer: Mobile client (find team members by email for sharing)
+  // ──────────────────────────────────────────────────────────────────────────
+
+  // Search by exact email — returns user info + public keys for E2EE
+  app.get(
+    "/api/users/search",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        if (!checkUserSearchRateLimit(req.userId!)) {
+          res
+            .status(429)
+            .json({ error: "Too many requests. Please try again later." });
+          return;
+        }
+
+        const email = req.query.email as string;
+        if (!email) {
+          res.status(400).json({ error: "Email query parameter is required" });
+          return;
+        }
+
+        const user = await storage.getUserByEmail(email);
+        if (!user) {
+          res.status(404).json({ error: "User not found" });
+          return;
+        }
+
+        const profile = await storage.getProfile(user.id);
+        const deviceKeys = await storage.getUserDeviceKeys(user.id);
+
+        res.json({
+          id: user.id,
+          displayName: profile?.fullName ?? null,
+          publicKeys: deviceKeys.map((dk) => ({
+            deviceId: dk.deviceId,
+            publicKey: dk.publicKey,
+          })),
+        });
+      } catch (error) {
+        console.error(
+          "Error searching users:",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+        res.status(500).json({ error: "Failed to search users" });
+      }
+    },
+  );
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Assessment Routes
+  // Consumer: Mobile client (blinded supervisor/trainee assessments)
+  // ──────────────────────────────────────────────────────────────────────────
+
+  // Submit an assessment (blinded until both parties submit)
+  app.post(
+    "/api/assessments",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const parseResult = assessmentSchema.safeParse(req.body);
+        if (!parseResult.success) {
+          res.status(400).json({
+            error: "Invalid input",
+            details: parseResult.error.flatten(),
+          });
+          return;
+        }
+
+        const { sharedCaseId, assessorRole, encryptedAssessment, keyEnvelopes } =
+          parseResult.data;
+
+        // Verify the shared case exists
+        const sharedCase = await storage.getSharedCaseById(sharedCaseId);
+        if (!sharedCase) {
+          res.status(404).json({ error: "Shared case not found" });
+          return;
+        }
+
+        const assessment = await storage.createCaseAssessment({
+          sharedCaseId,
+          assessorUserId: req.userId!,
+          assessorRole,
+          encryptedAssessment,
+        });
+
+        const envelopeRows = keyEnvelopes.map((ke) => ({
+          caseAssessmentId: assessment.id,
+          recipientUserId: ke.recipientUserId,
+          recipientDeviceId: ke.recipientDeviceId,
+          envelopeJson: ke.envelopeJson,
+        }));
+
+        await storage.createAssessmentKeyEnvelopes(envelopeRows);
+
+        // Check if both roles have submitted → reveal
+        const allAssessments =
+          await storage.getCaseAssessments(sharedCaseId);
+        const unrevealed = allAssessments.filter((a) => !a.revealedAt);
+        let revealed = false;
+
+        if (unrevealed.length >= 2) {
+          await storage.revealAssessments(sharedCaseId);
+          await storage.releaseAssessmentKeyEnvelopes(sharedCaseId);
+          revealed = true;
+
+          // Notify both parties that assessments are revealed
+          const otherAssessment = unrevealed.find(
+            (a) => a.assessorUserId !== req.userId!,
+          );
+          if (otherAssessment) {
+            sendPushNotification(
+              otherAssessment.assessorUserId,
+              "Assessments Revealed",
+              "Both assessments are now available for review",
+              {
+                type: "assessments_revealed",
+                sharedCaseId,
+              },
+            ).catch(() => {});
+          }
+          sendPushNotification(
+            req.userId!,
+            "Assessments Revealed",
+            "Both assessments are now available for review",
+            { type: "assessments_revealed", sharedCaseId },
+          ).catch(() => {});
+        }
+
+        res.status(201).json({ id: assessment.id, revealed });
+      } catch (error) {
+        console.error(
+          "Error submitting assessment:",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+        res.status(500).json({ error: "Failed to submit assessment" });
+      }
+    },
+  );
+
+  // Get assessment status for a shared case
+  app.get(
+    "/api/assessments/:sharedCaseId",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const sharedCaseId = req.params.sharedCaseId!;
+        const assessments = await storage.getCaseAssessments(sharedCaseId);
+
+        const myAssessment = assessments.find(
+          (a) => a.assessorUserId === req.userId!,
+        );
+        const otherAssessment = assessments.find(
+          (a) => a.assessorUserId !== req.userId!,
+        );
+
+        let otherEnvelopes: { recipientDeviceId: string; envelopeJson: string }[] = [];
+        if (otherAssessment) {
+          const envelopes = await storage.getAssessmentKeyEnvelopes(
+            otherAssessment.id,
+            req.userId!,
+            true, // released only
+          );
+          otherEnvelopes = envelopes.map((e) => ({
+            recipientDeviceId: e.recipientDeviceId,
+            envelopeJson: e.envelopeJson,
+          }));
+        }
+
+        res.json({
+          myAssessment: myAssessment
+            ? {
+                id: myAssessment.id,
+                assessorRole: myAssessment.assessorRole,
+                submittedAt: myAssessment.submittedAt,
+                revealedAt: myAssessment.revealedAt,
+              }
+            : null,
+          otherAssessment: otherAssessment
+            ? {
+                id: otherAssessment.id,
+                assessorRole: otherAssessment.assessorRole,
+                submittedAt: otherAssessment.submittedAt,
+                revealedAt: otherAssessment.revealedAt,
+                keyEnvelopes:
+                  otherAssessment.revealedAt ? otherEnvelopes : [],
+              }
+            : null,
+        });
+      } catch (error) {
+        console.error(
+          "Error fetching assessments:",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+        res.status(500).json({ error: "Failed to fetch assessments" });
+      }
+    },
+  );
+
+  // Get revealed assessment history
+  app.get(
+    "/api/assessments/history",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const role = req.query.role as string | undefined;
+        const limit = Math.min(
+          parseInt(req.query.limit as string) || 50,
+          100,
+        );
+        const offset = parseInt(req.query.offset as string) || 0;
+
+        const results = await storage.getRevealedAssessments(req.userId!, {
+          role,
+          limit,
+          offset,
+        });
+
+        res.json(results);
+      } catch (error) {
+        console.error(
+          "Error fetching assessment history:",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+        res.status(500).json({ error: "Failed to fetch assessment history" });
+      }
+    },
+  );
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Push Token Routes
+  // Consumer: Mobile client (register/unregister push notification tokens)
+  // ──────────────────────────────────────────────────────────────────────────
+
+  // Register or update a push token
+  app.post(
+    "/api/push-tokens",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const parseResult = pushTokenSchema.safeParse(req.body);
+        if (!parseResult.success) {
+          res.status(400).json({
+            error: "Invalid input",
+            details: parseResult.error.flatten(),
+          });
+          return;
+        }
+
+        const token = await storage.upsertPushToken(
+          req.userId!,
+          parseResult.data.expoPushToken,
+          parseResult.data.deviceId,
+          parseResult.data.platform,
+        );
+
+        res.status(201).json(token);
+      } catch (error) {
+        console.error(
+          "Error registering push token:",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+        res.status(500).json({ error: "Failed to register push token" });
+      }
+    },
+  );
+
+  // Remove a push token
+  app.delete(
+    "/api/push-tokens/:deviceId",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const deleted = await storage.deletePushToken(
+          req.userId!,
+          req.params.deviceId!,
+        );
+
+        if (!deleted) {
+          res.status(404).json({ error: "Push token not found" });
+          return;
+        }
+
+        res.json({ success: true });
+      } catch (error) {
+        console.error(
+          "Error removing push token:",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+        res.status(500).json({ error: "Failed to remove push token" });
       }
     },
   );
