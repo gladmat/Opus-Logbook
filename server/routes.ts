@@ -17,6 +17,7 @@ import {
 import { sendPasswordResetEmail } from "./email";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 import {
   insertProfileSchema,
   insertUserFacilitySchema,
@@ -45,6 +46,24 @@ const loginSchema = z.object({
   email: z.string().email("Invalid email address").max(255),
   password: z.string().min(1, "Password is required").max(128),
 });
+
+const appleAuthSchema = z.object({
+  identityToken: z.string().min(1),
+  fullName: z
+    .object({
+      givenName: z.string().nullish(),
+      familyName: z.string().nullish(),
+    })
+    .nullish(),
+  email: z.string().email().nullish(),
+});
+
+// Apple JWKS for identity token verification (cached by jose)
+const appleJWKS = createRemoteJWKSet(
+  new URL("https://appleid.apple.com/auth/keys"),
+);
+
+const APPLE_BUNDLE_ID = "com.drgladysz.opus";
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required").max(128),
@@ -523,6 +542,151 @@ export async function registerRoutes(app: Express): Promise<void> {
           error instanceof Error ? error.message : "Unknown error",
         );
         res.status(500).json({ error: "Failed to login" });
+      }
+    },
+  );
+
+  app.post(
+    "/api/auth/apple",
+    async (req: Request, res: Response): Promise<void> => {
+      try {
+        const clientIp = req.ip || req.socket.remoteAddress || "unknown";
+        if (!checkAuthRateLimit(clientIp)) {
+          res
+            .status(429)
+            .json({ error: "Too many requests. Please try again later." });
+          return;
+        }
+
+        const parseResult = appleAuthSchema.safeParse(req.body);
+        if (!parseResult.success) {
+          res.status(400).json({
+            error: "Invalid input",
+            details: parseResult.error.flatten(),
+          });
+          return;
+        }
+        const { identityToken, fullName, email } = parseResult.data;
+
+        // Verify Apple identity token
+        let appleUserId: string;
+        let tokenEmail: string | undefined;
+        try {
+          const { payload } = await jwtVerify(identityToken, appleJWKS, {
+            issuer: "https://appleid.apple.com",
+            audience: APPLE_BUNDLE_ID,
+          });
+          appleUserId = payload.sub!;
+          tokenEmail =
+            typeof payload.email === "string" ? payload.email : undefined;
+        } catch (verifyError) {
+          console.error(
+            "Apple token verification failed:",
+            verifyError instanceof Error
+              ? verifyError.message
+              : "Unknown error",
+          );
+          res.status(401).json({ error: "Invalid Apple identity token" });
+          return;
+        }
+
+        // Look up existing user by Apple ID
+        const existingUser = await storage.getUserByAppleId(appleUserId);
+
+        if (existingUser) {
+          // Returning user — issue token
+          const profile = await storage.getProfile(existingUser.id);
+          const facilities = await storage.getUserFacilities(existingUser.id);
+          const token = jwt.sign(
+            {
+              userId: existingUser.id,
+              tokenVersion: existingUser.tokenVersion ?? 0,
+            },
+            JWT_SECRET,
+            { algorithm: "HS256", expiresIn: "7d" },
+          );
+
+          res.json({
+            token,
+            user: { id: existingUser.id, email: existingUser.email },
+            profile: serializeProfile(profile),
+            facilities,
+            onboardingComplete: profile?.onboardingComplete ?? false,
+          });
+          return;
+        }
+
+        // New user — create account
+        const userEmail =
+          email || tokenEmail || `apple_${appleUserId}@private.opus.local`;
+
+        // Check if email already exists (user may have signed up with email first)
+        const emailUser = await storage.getUserByEmail(userEmail);
+        if (emailUser) {
+          // Link Apple ID to existing email account
+          await storage.updateUser(emailUser.id, { appleUserId });
+          const profile = await storage.getProfile(emailUser.id);
+          const facilities = await storage.getUserFacilities(emailUser.id);
+          const token = jwt.sign(
+            {
+              userId: emailUser.id,
+              tokenVersion: emailUser.tokenVersion ?? 0,
+            },
+            JWT_SECRET,
+            { algorithm: "HS256", expiresIn: "7d" },
+          );
+
+          res.json({
+            token,
+            user: { id: emailUser.id, email: emailUser.email },
+            profile: serializeProfile(profile),
+            facilities,
+            onboardingComplete: profile?.onboardingComplete ?? false,
+          });
+          return;
+        }
+
+        // Generate random password (Apple users authenticate via Apple, not password)
+        const randomPassword = randomBytes(32).toString("hex");
+        const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+        const user = await storage.createUser({
+          email: userEmail,
+          password: hashedPassword,
+          appleUserId,
+        });
+
+        // Create profile with name from Apple if provided
+        const profileData: Record<string, unknown> = {
+          userId: user.id,
+          onboardingComplete: false,
+        };
+        if (fullName?.givenName) profileData.firstName = fullName.givenName;
+        if (fullName?.familyName) profileData.lastName = fullName.familyName;
+        if (fullName?.givenName || fullName?.familyName) {
+          profileData.fullName = [fullName.givenName, fullName.familyName]
+            .filter(Boolean)
+            .join(" ");
+        }
+
+        await storage.createProfile(profileData as any);
+
+        const token = jwt.sign(
+          { userId: user.id, tokenVersion: user.tokenVersion ?? 0 },
+          JWT_SECRET,
+          { algorithm: "HS256", expiresIn: "7d" },
+        );
+
+        res.json({
+          token,
+          user: { id: user.id, email: user.email },
+        });
+      } catch (error) {
+        console.error(
+          "Apple auth error:",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+        res.status(500).json({ error: "Apple Sign In failed" });
       }
     },
   );

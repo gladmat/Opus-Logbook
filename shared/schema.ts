@@ -21,6 +21,7 @@ export const users = pgTable("users", {
     .default(sql`gen_random_uuid()`),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
+  appleUserId: text("apple_user_id"),
   tokenVersion: integer("token_version").default(0).notNull(),
   createdAt: timestamp("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
@@ -30,6 +31,7 @@ export const users = pgTable("users", {
 export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
   password: true,
+  appleUserId: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

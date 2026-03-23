@@ -13,6 +13,7 @@
       "bundleIdentifier": "com.drgladysz.opus",
       "buildNumber": "5",
       "appleTeamId": "8CQ38RR2W4",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSFaceIDUsageDescription": "Opus uses Face ID to protect your surgical case data."
@@ -48,6 +49,7 @@
         }
       ],
       "expo-web-browser",
+      "expo-apple-authentication",
       "expo-local-authentication",
       [
         "expo-image-picker",

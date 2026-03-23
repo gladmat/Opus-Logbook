@@ -16,6 +16,7 @@ import {
   getAuthToken,
   login as authLogin,
   signup as authSignup,
+  appleSignIn as authAppleSignIn,
   logout as authLogout,
   deleteAccount as authDeleteAccount,
   updateProfile as authUpdateProfile,
@@ -57,6 +58,11 @@ interface AuthContextType {
   onboardingComplete: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
+  appleLogin: (
+    identityToken: string,
+    fullName?: { givenName?: string; familyName?: string } | null,
+    email?: string | null,
+  ) => Promise<void>;
   logout: () => Promise<void>;
   deleteAccount: (password: string) => Promise<void>;
   updateProfile: (profile: Partial<UserProfile>) => Promise<void>;
@@ -291,6 +297,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const appleLogin = async (
+    identityToken: string,
+    fullName?: { givenName?: string; familyName?: string } | null,
+    email?: string | null,
+  ) => {
+    const data = await authAppleSignIn(identityToken, fullName, email);
+
+    // Set active user BEFORE any storage access
+    setActiveUserId(data.user.id);
+    await AsyncStorage.setItem(LAST_ACTIVE_USER_KEY, data.user.id);
+    await migrateUnscopedStorage(data.user.id);
+    await initializeInboxStorage();
+
+    setUser(data.user);
+    if (data.profile) {
+      setProfile(data.profile);
+      void cacheProfile(data.profile);
+    } else {
+      const cachedProfile = await loadCachedProfile();
+      if (cachedProfile?.userId === data.user.id) {
+        setProfile(cachedProfile);
+      } else {
+        setProfile(null);
+        void cacheProfile(null);
+      }
+    }
+    setFacilities((data.facilities || []).map(normalizeUserFacility));
+
+    try {
+      await registerDeviceAndPushToken();
+    } catch (error) {
+      console.warn("Device key registration failed:", error);
+    }
+  };
+
   const logout = async () => {
     // Clear sensitive data from RAM
     clearEncryptionKeyCache();
@@ -437,6 +478,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         onboardingComplete: profile?.onboardingComplete ?? false,
         login,
         signup,
+        appleLogin,
         logout,
         deleteAccount,
         updateProfile,

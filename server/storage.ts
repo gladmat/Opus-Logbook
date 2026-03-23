@@ -36,7 +36,12 @@ import { eq, and, ne, sql, lt, isNull, isNotNull, desc } from "drizzle-orm";
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByAppleId(appleUserId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(
+    userId: string,
+    data: Partial<Pick<User, "appleUserId">>,
+  ): Promise<void>;
   updateUserPassword(userId: string, hashedPassword: string): Promise<boolean>;
   deleteUserAccount(userId: string): Promise<void>;
 
@@ -169,9 +174,24 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
+  async getUserByAppleId(appleUserId: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.appleUserId, appleUserId));
+    return user || undefined;
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db.insert(users).values(insertUser).returning();
     return user!;
+  }
+
+  async updateUser(
+    userId: string,
+    data: Partial<Pick<User, "appleUserId">>,
+  ): Promise<void> {
+    await db.update(users).set(data).where(eq(users.id, userId));
   }
 
   async updateUserPassword(

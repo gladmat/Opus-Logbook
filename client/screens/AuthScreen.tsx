@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Modal,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as AppleAuthentication from "expo-apple-authentication";
 import { Feather } from "@/components/FeatherIcon";
 import { OpusLogo } from "@/components/brand";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,7 +25,50 @@ type Mode = "login" | "signup";
 export default function AuthScreen() {
   const insets = useSafeAreaInsets();
   const { theme: colors } = useTheme();
-  const { login, signup } = useAuth();
+  const { login, signup, appleLogin } = useAuth();
+  const [appleAuthAvailable, setAppleAuthAvailable] = useState(false);
+  const [isAppleLoading, setIsAppleLoading] = useState(false);
+
+  useEffect(() => {
+    AppleAuthentication.isAvailableAsync().then(setAppleAuthAvailable);
+  }, []);
+
+  const handleAppleSignIn = async () => {
+    setIsAppleLoading(true);
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      if (!credential.identityToken) {
+        throw new Error("No identity token received from Apple");
+      }
+
+      await appleLogin(
+        credential.identityToken,
+        credential.fullName
+          ? {
+              givenName: credential.fullName.givenName ?? undefined,
+              familyName: credential.fullName.familyName ?? undefined,
+            }
+          : null,
+        credential.email,
+      );
+    } catch (error: any) {
+      // Don't show error if user cancelled
+      if (error.code !== "ERR_REQUEST_CANCELED") {
+        Alert.alert(
+          "Apple Sign In Failed",
+          error.message || "Something went wrong",
+        );
+      }
+    } finally {
+      setIsAppleLoading(false);
+    }
+  };
 
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
@@ -150,6 +194,42 @@ export default function AuthScreen() {
               : "Create your account"}
           </Text>
         </View>
+
+        {appleAuthAvailable && (
+          <View style={styles.appleSection}>
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={
+                AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN
+              }
+              buttonStyle={
+                AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
+              }
+              cornerRadius={BorderRadius.sm}
+              style={styles.appleButton}
+              onPress={handleAppleSignIn}
+            />
+            {isAppleLoading && (
+              <ActivityIndicator
+                style={styles.appleSpinner}
+                color={colors.textSecondary}
+                size="small"
+              />
+            )}
+            <View style={styles.divider}>
+              <View
+                style={[styles.dividerLine, { backgroundColor: colors.border }]}
+              />
+              <Text
+                style={[styles.dividerText, { color: colors.textTertiary }]}
+              >
+                or
+              </Text>
+              <View
+                style={[styles.dividerLine, { backgroundColor: colors.border }]}
+              />
+            </View>
+          </View>
+        )}
 
         <View style={styles.form}>
           <View style={styles.inputGroup}>
@@ -388,6 +468,31 @@ const styles = StyleSheet.create({
   header: {
     alignItems: "center",
     marginBottom: Spacing["4xl"],
+  },
+  appleSection: {
+    marginBottom: Spacing.lg,
+  },
+  appleButton: {
+    width: "100%" as any,
+    height: Spacing.buttonHeight,
+  },
+  appleSpinner: {
+    marginTop: Spacing.sm,
+  },
+  divider: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: Spacing.lg,
+    gap: Spacing.md,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    ...Typography.caption,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   subtitle: {
     ...Typography.body,

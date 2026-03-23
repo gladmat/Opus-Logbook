@@ -133,6 +133,26 @@ export async function login(
   return data;
 }
 
+export async function appleSignIn(
+  identityToken: string,
+  fullName?: { givenName?: string; familyName?: string } | null,
+  email?: string | null,
+): Promise<AuthResponse> {
+  const res = await authFetch("/api/auth/apple", {
+    method: "POST",
+    body: JSON.stringify({ identityToken, fullName, email }),
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Apple Sign In failed");
+  }
+
+  const data: AuthResponse = await res.json();
+  await setAuthToken(data.token);
+  return data;
+}
+
 export async function getCurrentUser(): Promise<AuthResponse | null> {
   const token = await getAuthToken();
   if (!token) return null;
