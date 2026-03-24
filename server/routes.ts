@@ -674,7 +674,17 @@ export async function registerRoutes(app: Express): Promise<void> {
         }
 
         // Look up existing user by Apple ID
-        const existingUser = await storage.getUserByAppleId(appleUserId);
+        let existingUser;
+        try {
+          existingUser = await storage.getUserByAppleId(appleUserId);
+        } catch (lookupErr) {
+          console.error("Apple auth: user lookup by Apple ID failed:", lookupErr);
+          res.status(500).json({
+            error: "Apple Sign In failed",
+            detail: lookupErr instanceof Error ? lookupErr.message : "User lookup failed",
+          });
+          return;
+        }
 
         if (existingUser) {
           // Returning user — issue token
@@ -704,10 +714,30 @@ export async function registerRoutes(app: Express): Promise<void> {
           email || tokenEmail || `apple_${appleUserId}@private.opus.local`;
 
         // Check if email already exists (user may have signed up with email first)
-        const emailUser = await storage.getUserByEmail(userEmail);
+        let emailUser;
+        try {
+          emailUser = await storage.getUserByEmail(userEmail);
+        } catch (emailErr) {
+          console.error("Apple auth: email lookup failed:", emailErr);
+          res.status(500).json({
+            error: "Apple Sign In failed",
+            detail: emailErr instanceof Error ? emailErr.message : "Email lookup failed",
+          });
+          return;
+        }
+
         if (emailUser) {
           // Link Apple ID to existing email account
-          await storage.updateUser(emailUser.id, { appleUserId });
+          try {
+            await storage.updateUser(emailUser.id, { appleUserId });
+          } catch (linkErr) {
+            console.error("Apple auth: account linking failed:", linkErr);
+            res.status(500).json({
+              error: "Apple Sign In failed",
+              detail: linkErr instanceof Error ? linkErr.message : "Account linking failed",
+            });
+            return;
+          }
           const profile = await storage.getProfile(emailUser.id);
           const facilities = await storage.getUserFacilities(emailUser.id);
           const token = jwt.sign(
@@ -733,13 +763,23 @@ export async function registerRoutes(app: Express): Promise<void> {
         const randomPassword = randomBytes(32).toString("hex");
         const hashedPassword = await bcrypt.hash(randomPassword, 10);
 
-        const user = await storage.createUser({
-          email: userEmail,
-          password: hashedPassword,
-          appleUserId,
-        });
+        let user;
+        try {
+          user = await storage.createUser({
+            email: userEmail,
+            password: hashedPassword,
+            appleUserId,
+          });
+        } catch (createErr) {
+          console.error("Apple auth: user creation failed:", createErr);
+          res.status(500).json({
+            error: "Apple Sign In failed",
+            detail: createErr instanceof Error ? createErr.message : "User creation failed",
+          });
+          return;
+        }
 
-        // Create profile with name from Apple if provided
+        // Create profile with name from Apple if provided (non-blocking — don't fail auth)
         const profileData: Record<string, unknown> = {
           userId: user.id,
           onboardingComplete: false,
@@ -752,7 +792,13 @@ export async function registerRoutes(app: Express): Promise<void> {
             .join(" ");
         }
 
-        await storage.createProfile(profileData as any);
+        try {
+          await storage.createProfile(profileData as any);
+        } catch (profileErr) {
+          // Don't fail auth — user was created, JWT is valid.
+          // User can complete profile in onboarding.
+          console.warn("Apple auth: profile creation failed, user can complete in onboarding:", profileErr);
+        }
 
         const token = jwt.sign(
           { userId: user.id, tokenVersion: user.tokenVersion ?? 0 },
@@ -767,9 +813,12 @@ export async function registerRoutes(app: Express): Promise<void> {
       } catch (error) {
         console.error(
           "Apple auth error:",
-          error instanceof Error ? error.message : "Unknown error",
+          error instanceof Error ? error.stack : "Unknown error",
         );
-        res.status(500).json({ error: "Apple Sign In failed" });
+        res.status(500).json({
+          error: "Apple Sign In failed",
+          detail: error instanceof Error ? error.message : "Unknown error",
+        });
       }
     },
   );
