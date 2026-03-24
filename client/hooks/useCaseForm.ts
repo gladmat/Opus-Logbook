@@ -37,6 +37,7 @@ import {
   ReconstructionTiming,
   QuickCasePrefillData,
   JointCaseContext,
+  getAllProcedures,
 } from "@/types/case";
 import { InfectionOverlay } from "@/types/infection";
 import type { EncounterClass, EpisodePrefillData } from "@/types/episode";
@@ -107,6 +108,7 @@ import {
   encryptPayloadWithCaseKey,
   wrapCaseKeyForRecipient,
 } from "@/lib/e2ee";
+import { deriveEpaAssessments } from "@/lib/epaDerivation";
 
 // ─── Default Donor Vessels ──────────────────────────────────────────────────
 

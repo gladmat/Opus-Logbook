@@ -32,7 +32,7 @@ Key capabilities: multi-specialty case logging, SNOMED CT coded diagnoses and pr
 - **UX Polish COMPLETE** — FAB animation, compact PatientInfoSection, day-case auto-fill, 30-day RACS MALT audit, plan mode toggle
 - **Head & Neck Progressive Disclosure COMPLETE** — CompactProcedureList (shared by breast + H&N), HeadNeckDiagnosisPicker (88 diagnoses, 9 subcategories)
 - **Hand Elective UX + Dupuytren Module COMPLETE** — reconstruction pathway multi-select pending actions, elective hand laterality simplified to Left/Right only, trigger finger per-finger multi-select, Dupuytren's split into primary/recurrent/palm-only diagnoses with DupuytrenAssessment component (per-ray MCP/PIP measurement, auto-calculated Tubiana staging, first web space, diathesis features, previous treatment tracking), removed flat Tubiana staging config, CSV/FHIR export support, 37 tests
-- **Team Sharing Phases 1–5 COMPLETE** — Career stage internationalisation (88 stages, 6 countries, 6-tier seniority), team contacts CRUD + Settings UI, case form Team section (chip-based operative team tagging, 6-pill SectionNavBar), sharing server infrastructure (E2EE, assessments, push), operativeTeam → share-on-save bridge
+- **Team Sharing Phases 1–8 COMPLETE** — Career stage internationalisation (88 stages, 6 countries, 6-tier seniority), team contacts CRUD + Settings UI, case form Team section (chip-based operative team tagging, 6-pill SectionNavBar), sharing server infrastructure (E2EE, assessments, push), operativeTeam → share-on-save bridge, EPA derivation (seniority-chain algorithm, 14 tests), seniority-tier-based assessor role detection, background contact discovery (24h throttle), link confirmation + discovery badges, invitation emails (Resend, amber-branded), signup email matching, learning curve dashboard (dot plot charts, teaching aggregate, calibration score)
 - **Phase 5 IN PROGRESS** — Version 2.5.0, EAS config done (dev/preview/production profiles), pending manual regression + TestFlight submission
 
 ## Tech stack
@@ -102,13 +102,18 @@ client/
   hooks/                         # useCaseForm, useCaseDraft, useTheme, useStatistics, useDecryptedImage, etc.
   lib/                           # 80+ files — storage, encryption, export, normalization, selectors, sharing, etc.
     diagnosisPicklists/          # 12 specialty picklists + lazy-loaded index
-    teamContactsApi.ts           # Team contacts + user device keys API helpers
+    teamContactsApi.ts           # Team contacts + user device keys + invitations API helpers
     sharingApi.ts                # E2EE case sharing API helpers
     assessmentApi.ts             # Blinded assessment API helpers
+    assessmentRoles.ts           # Seniority-tier-based assessor role detection
+    assessmentStorage.ts         # Encrypted local assessment storage
+    assessmentAnalytics.ts       # Learning curves, teaching aggregate, calibration score
     buildShareableBlob.ts        # Case → SharedCaseData extraction
     e2ee.ts                      # X25519 + XChaCha20-Poly1305 crypto
+    epaDerivation.ts             # Seniority-chain EPA pair algorithm
+    discoveryService.ts          # Background contact discovery (24h throttle)
     seniorityTier.ts             # 6-tier career seniority model
-    __tests__/                   # 73 test files
+    __tests__/                   # 76 test files
   types/                         # case, media, inbox, episode, infection, skinCancer, breast, dupuytren,
                                  #   handInfection, wound, jointImplant, operativeRole, teamContacts, sharing, etc.
   constants/                     # theme.ts (design tokens), categories, hospitals, trainingProgrammes
@@ -1274,12 +1279,12 @@ RACS MALT codes and other training-programme formats are derived at export time 
 
 **Share-on-save bridge:** At save time, both arrays merge into `shareableMembers`. Linked `operativeTeam` members have their device keys fetched via `GET /api/users/:id/keys`. Deduplication prevents double-sharing. Non-blocking — share failure doesn't block case save.
 
-**Key files:** `client/types/teamContacts.ts` (CaseTeamMember, TeamContact, TeamMemberOperativeRole), `client/lib/teamContactsApi.ts` (CRUD + device keys), `client/components/case-form/TeamSection.tsx` (chip UI), `shared/careerStages.ts` (88 career stages, 6-tier seniority), `client/lib/seniorityTier.ts` (getSeniorityTier, isSeniorTo).
+**Key files:** `client/types/teamContacts.ts` (CaseTeamMember, TeamContact, TeamMemberOperativeRole), `client/lib/teamContactsApi.ts` (CRUD + device keys + invitations), `client/components/case-form/TeamSection.tsx` (chip UI), `shared/careerStages.ts` (88 career stages, 6-tier seniority), `client/lib/seniorityTier.ts` (getSeniorityTier, isSeniorTo), `client/lib/epaDerivation.ts` (seniority-chain EPA pair algorithm), `client/lib/assessmentRoles.ts` (seniority-tier-based role detection), `client/lib/discoveryService.ts` (background contact discovery), `client/lib/assessmentAnalytics.ts` (learning curves, teaching aggregate, calibration).
 
 ## Testing
 
-- **Framework:** Vitest 4.0.18, **1351 tests** across 73 files
-- **Client tests:** `client/lib/__tests__/` and `client/components/` — covering hand trauma (diagnosis, mapping, ux), skin cancer (config 89, phase4 11, phase5 18, diagnoses 7), dashboard (selectors 7), hand (infection 42, elective 52), dupuytren (37), joint implant (44), media (encryption 7, fileStorage 3, tagHelpers 82, captureProtocols 41, operativeMedia 19, form 4, defaults 4, context 3), inbox (storage 13, assignment 17), capture (smartImportPrefs 10, sharedIngress 2), case (specialty 5, storageCache 4, draftPersistence 1), statistics (helpers 3, stats 7), dates (values 12, normalization 4), export (implant 3, breast), planned case (18), media organiser (15), NHI validation (12), patient identity (11), operative role (68), head & neck integration (4), breast (phase3, phase4, export), FISS calculator (12), craniofacial, aesthetics, burns, peripheral nerve, lymphoedema, team contacts (11), operative team (15), sharing bridge (8), plus media UI coverage
+- **Framework:** Vitest 4.0.18, **1368 tests** across 74 files
+- **Client tests:** `client/lib/__tests__/` and `client/components/` — covering hand trauma (diagnosis, mapping, ux), skin cancer (config 89, phase4 11, phase5 18, diagnoses 7), dashboard (selectors 7), hand (infection 42, elective 52), dupuytren (37), joint implant (44), media (encryption 7, fileStorage 3, tagHelpers 82, captureProtocols 41, operativeMedia 19, form 4, defaults 4, context 3), inbox (storage 13, assignment 17), capture (smartImportPrefs 10, sharedIngress 2), case (specialty 5, storageCache 4, draftPersistence 1), statistics (helpers 3, stats 7), dates (values 12, normalization 4), export (implant 3, breast), planned case (18), media organiser (15), NHI validation (12), patient identity (11), operative role (68), head & neck integration (4), breast (phase3, phase4, export), FISS calculator (12), craniofacial, aesthetics, burns, peripheral nerve, lymphoedema, team contacts (11), operative team (15), sharing bridge (8), EPA derivation (14), assessment roles + calibration (22), plus media UI coverage
 - **Server tests:** `server/__tests__/` — auth (17), validation (7), diagnosisStagingConfig (3), teamContacts (17), invitations (6)
 - **Run:** `npm run test` (once) or `npm run test:watch` (watch mode)
 

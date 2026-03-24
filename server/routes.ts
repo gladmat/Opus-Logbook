@@ -14,7 +14,7 @@ import {
   getStagingForDiagnosis,
   getAllStagingConfigs,
 } from "./diagnosisStagingConfig";
-import { sendPasswordResetEmail } from "./email";
+import { sendPasswordResetEmail, sendInvitationEmail } from "./email";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { createRemoteJWKSet, jwtVerify } from "jose";
@@ -551,6 +551,13 @@ export async function registerRoutes(app: Express): Promise<void> {
           JWT_SECRET,
           { algorithm: "HS256", expiresIn: "7d" },
         );
+
+        // Match new user's email against pending team_contacts invitations
+        void storage
+          .matchInvitationsByEmail(email)
+          .catch((e: unknown) =>
+            console.warn("Invitation matching failed:", e),
+          );
 
         res.json({ token, user: { id: user.id, email: user.email } });
       } catch (error) {
@@ -2364,7 +2371,18 @@ export async function registerRoutes(app: Express): Promise<void> {
         const invitedAt = new Date();
         await storage.recordInvitation(contactId, req.userId!, email);
 
-        // Actual email sending is deferred to Phase 7
+        // Send invitation email (best-effort — failure doesn't block response)
+        try {
+          const senderProfile = await storage.getProfile(req.userId!);
+          const senderName =
+            senderProfile?.fullName ||
+            senderProfile?.firstName ||
+            "A colleague";
+          await sendInvitationEmail(email, senderName);
+        } catch (emailError) {
+          console.warn("Invitation email failed:", emailError);
+        }
+
         res.json({ success: true, invitedAt: invitedAt.toISOString() });
       } catch (error) {
         console.error(

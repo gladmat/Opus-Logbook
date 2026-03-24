@@ -104,6 +104,106 @@ describe("determineAssessorRole", () => {
       ),
     ).toBe("trainee");
   });
+
+  // Seniority-tier-based detection via operativeTeam
+  it("seniority tier: consultant owner + fellow recipient → owner is supervisor", () => {
+    const caseData: SharedCaseData = {
+      ...baseCaseData,
+      operativeTeam: [
+        {
+          contactId: "c1",
+          linkedUserId: ownerUserId,
+          displayName: "Owner",
+          abbreviatedName: "O.",
+          careerStage: "nz_consultant", // tier 5
+          operativeRole: "FA",
+        },
+        {
+          contactId: "c2",
+          linkedUserId: recipientUserId,
+          displayName: "Recipient",
+          abbreviatedName: "R.",
+          careerStage: "nz_fellow", // tier 4
+          operativeRole: "PS",
+        },
+      ],
+    };
+    // Even though operative role says FA (not supervisor), seniority wins
+    expect(
+      determineAssessorRole(
+        ownerUserId,
+        ownerUserId,
+        recipientUserId,
+        caseData,
+      ),
+    ).toBe("supervisor");
+  });
+
+  it("seniority tier: fellow owner + consultant recipient → owner is trainee", () => {
+    const caseData: SharedCaseData = {
+      ...baseCaseData,
+      operativeTeam: [
+        {
+          contactId: "c1",
+          linkedUserId: ownerUserId,
+          displayName: "Owner",
+          abbreviatedName: "O.",
+          careerStage: "nz_fellow", // tier 4
+          operativeRole: "PS",
+        },
+        {
+          contactId: "c2",
+          linkedUserId: recipientUserId,
+          displayName: "Recipient",
+          abbreviatedName: "R.",
+          careerStage: "nz_consultant", // tier 5
+          operativeRole: "FA",
+        },
+      ],
+    };
+    expect(
+      determineAssessorRole(
+        ownerUserId,
+        ownerUserId,
+        recipientUserId,
+        caseData,
+      ),
+    ).toBe("trainee");
+  });
+
+  it("seniority tier: equal tiers → falls back to heuristic", () => {
+    const caseData: SharedCaseData = {
+      ...baseCaseData,
+      supervisionLevel: "SUP_SCRUBBED",
+      operativeTeam: [
+        {
+          contactId: "c1",
+          linkedUserId: ownerUserId,
+          displayName: "Owner",
+          abbreviatedName: "O.",
+          careerStage: "nz_consultant", // tier 5
+          operativeRole: "PS",
+        },
+        {
+          contactId: "c2",
+          linkedUserId: recipientUserId,
+          displayName: "Recipient",
+          abbreviatedName: "R.",
+          careerStage: "uk_consultant", // also tier 5
+          operativeRole: "FA",
+        },
+      ],
+    };
+    // Equal tiers → seniority can't decide → falls to SUP_ heuristic
+    expect(
+      determineAssessorRole(
+        ownerUserId,
+        ownerUserId,
+        recipientUserId,
+        caseData,
+      ),
+    ).toBe("supervisor");
+  });
 });
 
 // ─── Reflective notes stripping ────────────────────────────────────────────────

@@ -48,6 +48,7 @@ import { clearAllEpisodes } from "@/lib/episodeStorage";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import { registerPushTokenOnServer } from "@/lib/sharingApi";
+import { discoverUnlinkedContacts } from "@/lib/discoveryService";
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -204,6 +205,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (error) {
           console.warn("Device key registration failed:", error);
         }
+
+        // Background discovery: check if unlinked contacts have joined Opus
+        void discoverUnlinkedContacts();
       } else {
         // getCurrentUser returned null — could be offline or token cleared
         // Only clear state if token was actually cleared (auth failure)

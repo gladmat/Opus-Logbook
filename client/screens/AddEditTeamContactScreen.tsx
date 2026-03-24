@@ -22,6 +22,7 @@ import {
   createTeamContact,
   updateTeamContact,
   deleteTeamContact,
+  sendInvitation,
 } from "@/lib/teamContactsApi";
 import { getCareerStagesForCountry } from "@shared/careerStages";
 import {
@@ -54,6 +55,9 @@ export default function AddEditTeamContactScreen() {
     useState<TeamMemberOperativeRole | null>(null);
   const [notes, setNotes] = useState("");
   const [selectedFacilityIds, setSelectedFacilityIds] = useState<string[]>([]);
+  const [linkedUserId, setLinkedUserId] = useState<string | null>(null);
+  const [invitationSentAt, setInvitationSentAt] = useState<string | null>(null);
+  const [sendingInvite, setSendingInvite] = useState(false);
 
   const careerStages = useMemo(
     () => getCareerStagesForCountry(profile?.countryOfPractice ?? null),
@@ -80,6 +84,8 @@ export default function AddEditTeamContactScreen() {
         setSelectedFacilityIds(
           (contact.facilityIds as string[]) ?? [],
         );
+        setLinkedUserId(contact.linkedUserId ?? null);
+        setInvitationSentAt(contact.invitationSentAt ?? null);
       } catch {
         Alert.alert("Error", "Failed to load contact");
         navigation.goBack();
@@ -458,6 +464,58 @@ export default function AddEditTeamContactScreen() {
           )}
         </Pressable>
 
+        {/* Invite to Opus — unlinked contacts with email */}
+        {isEdit && !linkedUserId && email.trim() && (
+          <Pressable
+            style={[
+              styles.inviteButton,
+              {
+                borderColor: theme.link,
+                opacity:
+                  sendingInvite ||
+                  (invitationSentAt &&
+                    Date.now() - new Date(invitationSentAt).getTime() <
+                      24 * 60 * 60 * 1000)
+                    ? 0.5
+                    : 1,
+              },
+            ]}
+            disabled={
+              sendingInvite ||
+              (!!invitationSentAt &&
+                Date.now() - new Date(invitationSentAt).getTime() <
+                  24 * 60 * 60 * 1000)
+            }
+            onPress={async () => {
+              if (!contactId) return;
+              setSendingInvite(true);
+              try {
+                const result = await sendInvitation(contactId, email.trim());
+                setInvitationSentAt(result.invitedAt);
+                Haptics.notificationAsync(
+                  Haptics.NotificationFeedbackType.Success,
+                );
+                Alert.alert("Invitation Sent", `Invitation sent to ${email}`);
+              } catch (error) {
+                Alert.alert(
+                  "Error",
+                  error instanceof Error
+                    ? error.message
+                    : "Failed to send invitation",
+                );
+              } finally {
+                setSendingInvite(false);
+              }
+            }}
+            testID="teamContact.btn-invite"
+          >
+            <Feather name="send" size={16} color={theme.link} />
+            <ThemedText style={[styles.inviteButtonText, { color: theme.link }]}>
+              {invitationSentAt ? "Invitation Sent" : "Invite to Opus"}
+            </ThemedText>
+          </Pressable>
+        )}
+
         {/* Delete */}
         {isEdit && (
           <Pressable
@@ -571,6 +629,20 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 16,
     fontWeight: "600",
+  },
+  inviteButton: {
+    height: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    gap: Spacing.sm,
+  },
+  inviteButtonText: {
+    fontSize: 16,
+    fontWeight: "500",
   },
   deleteButton: {
     height: 48,

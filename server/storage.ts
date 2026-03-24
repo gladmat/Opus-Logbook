@@ -198,6 +198,9 @@ export interface IStorage {
     email: string,
   ): Promise<TeamContactRow | undefined>;
 
+  /** Mark team_contacts rows as accepted when a new user signs up with a matching email. */
+  matchInvitationsByEmail(email: string): Promise<number>;
+
   // Sharing authorization helpers
   isSharedCaseOwner(userId: string, sharedCaseId: string): Promise<boolean>;
   isSharedCaseRecipient(userId: string, sharedCaseId: string): Promise<boolean>;
@@ -933,6 +936,20 @@ export class DatabaseStorage implements IStorage {
       email,
       invitationSentAt: new Date(),
     });
+  }
+
+  async matchInvitationsByEmail(email: string): Promise<number> {
+    const result = await db
+      .update(teamContacts)
+      .set({ invitationAcceptedAt: new Date() })
+      .where(
+        and(
+          eq(teamContacts.email, email),
+          isNull(teamContacts.invitationAcceptedAt),
+        ),
+      )
+      .returning();
+    return result.length;
   }
 
   // ──────────────────────────────────────────────────────────────────────────

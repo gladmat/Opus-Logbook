@@ -6,6 +6,7 @@ import {
   SectionList,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -15,13 +16,18 @@ import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { Spacing, BorderRadius, Shadows } from "@/constants/theme";
-import { getTeamContacts } from "@/lib/teamContactsApi";
+import { getTeamContacts, linkContact } from "@/lib/teamContactsApi";
 import { getCareerStageLabel } from "@shared/careerStages";
 import type { TeamContact } from "@/types/teamContacts";
 import {
   TEAM_MEMBER_ROLE_SHORT,
   type TeamMemberOperativeRole,
 } from "@/types/teamContacts";
+import {
+  getDiscoveryMatches,
+  removeDiscoveryMatch,
+} from "@/lib/discoveryService";
+import type { DiscoverMatch } from "@/lib/teamContactsApi";
 
 type Section = { title: string; data: TeamContact[] };
 
@@ -34,11 +40,16 @@ export default function TeamContactsScreen() {
   const [contacts, setContacts] = useState<TeamContact[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [discoveryMatches, setDiscoveryMatches] = useState<DiscoverMatch[]>([]);
 
   const loadContacts = useCallback(async () => {
     try {
-      const data = await getTeamContacts();
+      const [data, matches] = await Promise.all([
+        getTeamContacts(),
+        getDiscoveryMatches(),
+      ]);
       setContacts(data);
+      setDiscoveryMatches(matches);
     } catch {
       // Silently fail — empty list shown
     } finally {
@@ -46,6 +57,38 @@ export default function TeamContactsScreen() {
       setRefreshing(false);
     }
   }, []);
+
+  /** Map contactId → DiscoverMatch for quick lookup */
+  const matchByContactId = useMemo(() => {
+    const map = new Map<string, DiscoverMatch>();
+    for (const m of discoveryMatches) {
+      map.set(m.contactId, m);
+    }
+    return map;
+  }, [discoveryMatches]);
+
+  const handleLinkContact = useCallback(
+    async (contact: TeamContact, match: DiscoverMatch) => {
+      try {
+        await linkContact(contact.id, match.userId);
+        await removeDiscoveryMatch(contact.id);
+        // Refresh list to show updated linked state
+        loadContacts();
+        Alert.alert(
+          "Contact Linked",
+          `${contact.displayName} is now linked to their Opus account.`,
+        );
+      } catch (error) {
+        Alert.alert(
+          "Link Failed",
+          error instanceof Error
+            ? error.message
+            : "Failed to link contact.",
+        );
+      }
+    },
+    [loadContacts],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -119,6 +162,25 @@ export default function TeamContactsScreen() {
       style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
       testID="screen-teamContacts"
     >
+      {/* Discovery badge */}
+      {discoveryMatches.length > 0 && (
+        <View
+          style={[
+            styles.discoveryBanner,
+            {
+              backgroundColor: theme.link + "15",
+              borderColor: theme.link + "30",
+            },
+          ]}
+        >
+          <Feather name="user-plus" size={16} color={theme.link} />
+          <ThemedText style={[styles.discoveryText, { color: theme.link }]}>
+            {discoveryMatches.length} colleague
+            {discoveryMatches.length !== 1 ? "s" : ""} found on Opus
+          </ThemedText>
+        </View>
+      )}
+
       {contacts.length === 0 ? (
         <View style={styles.emptyState}>
           <Feather
@@ -203,6 +265,30 @@ export default function TeamContactsScreen() {
                   </ThemedText>
                 )}
               </View>
+              {/* Discovery "Link" button for matched unlinked contacts */}
+              {!item.linkedUserId && matchByContactId.has(item.id) && (
+                <Pressable
+                  style={[
+                    styles.linkButton,
+                    { backgroundColor: theme.link },
+                  ]}
+                  onPress={(e) => {
+                    e.stopPropagation?.();
+                    const match = matchByContactId.get(item.id)!;
+                    handleLinkContact(item, match);
+                  }}
+                  testID={`teamContacts.btn-link-${item.id}`}
+                >
+                  <ThemedText
+                    style={[
+                      styles.linkButtonText,
+                      { color: theme.buttonText },
+                    ]}
+                  >
+                    Link
+                  </ThemedText>
+                </Pressable>
+              )}
               {item.defaultRole && (
                 <View
                   style={[
@@ -319,6 +405,31 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textAlign: "center",
     marginTop: Spacing.xs,
+  },
+  discoveryBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    gap: Spacing.sm,
+  },
+  discoveryText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  linkButton: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.xs,
+    marginRight: Spacing.sm,
+  },
+  linkButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
   },
   fab: {
     position: "absolute",

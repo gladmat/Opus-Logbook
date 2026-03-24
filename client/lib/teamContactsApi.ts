@@ -153,6 +153,24 @@ export async function discoverContacts(
 }
 
 /**
+ * Send an invitation email to an unlinked contact.
+ */
+export async function sendInvitation(
+  contactId: string,
+  email: string,
+): Promise<{ success: boolean; invitedAt: string }> {
+  const res = await authFetch("/api/invitations", {
+    method: "POST",
+    body: JSON.stringify({ contactId, email }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Failed to send invitation");
+  }
+  return res.json();
+}
+
+/**
  * Fetch device public keys for a specific Opus user (for E2EE sharing).
  */
 export async function getUserDeviceKeys(
