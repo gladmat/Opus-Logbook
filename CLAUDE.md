@@ -32,6 +32,7 @@ Key capabilities: multi-specialty case logging, SNOMED CT coded diagnoses and pr
 - **UX Polish COMPLETE** — FAB animation, compact PatientInfoSection, day-case auto-fill, 30-day RACS MALT audit, plan mode toggle
 - **Head & Neck Progressive Disclosure COMPLETE** — CompactProcedureList (shared by breast + H&N), HeadNeckDiagnosisPicker (88 diagnoses, 9 subcategories)
 - **Hand Elective UX + Dupuytren Module COMPLETE** — reconstruction pathway multi-select pending actions, elective hand laterality simplified to Left/Right only, trigger finger per-finger multi-select, Dupuytren's split into primary/recurrent/palm-only diagnoses with DupuytrenAssessment component (per-ray MCP/PIP measurement, auto-calculated Tubiana staging, first web space, diathesis features, previous treatment tracking), removed flat Tubiana staging config, CSV/FHIR export support, 37 tests
+- **Team Sharing Phases 1–5 COMPLETE** — Career stage internationalisation (88 stages, 6 countries, 6-tier seniority), team contacts CRUD + Settings UI, case form Team section (chip-based operative team tagging, 6-pill SectionNavBar), sharing server infrastructure (E2EE, assessments, push), operativeTeam → share-on-save bridge
 - **Phase 5 IN PROGRESS** — Version 2.5.0, EAS config done (dev/preview/production profiles), pending manual regression + TestFlight submission
 
 ## Tech stack
@@ -80,9 +81,9 @@ npm run test:watch     # Vitest (watch mode)
 ```
 client/
   App.tsx                        # Root: providers + deep-link routing + locked-capture ingress
-  screens/                       # 29 screens + 9 onboarding sub-screens
+  screens/                       # 31 screens + 9 onboarding sub-screens
   components/                    # 160+ files across 18 subdirectories
-    case-form/                   # 5 sections + CollapsibleFormSection, SectionNavBar, CaseSummaryView
+    case-form/                   # 6 sections (incl. TeamSection) + CollapsibleFormSection, SectionNavBar, CaseSummaryView
     dashboard/                   # 10 files — dashboard v2 (see Dashboard v2 section)
     statistics/                  # BarChart, HorizontalBarChart, StatCard, MilestoneTimeline, SpecialtyDeepDiveCard
     hand-trauma/                 # 15 files — unified hand trauma assessment
@@ -99,11 +100,17 @@ client/
     detail-sheets/ onboarding/ shared/ staging/
   contexts/                      # AuthContext, CaseFormContext, AppLockContext, MediaCallbackContext
   hooks/                         # useCaseForm, useCaseDraft, useTheme, useStatistics, useDecryptedImage, etc.
-  lib/                           # 75+ files — storage, encryption, export, normalization, selectors, etc.
+  lib/                           # 80+ files — storage, encryption, export, normalization, selectors, sharing, etc.
     diagnosisPicklists/          # 12 specialty picklists + lazy-loaded index
-    __tests__/                   # 63 test files
+    teamContactsApi.ts           # Team contacts + user device keys API helpers
+    sharingApi.ts                # E2EE case sharing API helpers
+    assessmentApi.ts             # Blinded assessment API helpers
+    buildShareableBlob.ts        # Case → SharedCaseData extraction
+    e2ee.ts                      # X25519 + XChaCha20-Poly1305 crypto
+    seniorityTier.ts             # 6-tier career seniority model
+    __tests__/                   # 73 test files
   types/                         # case, media, inbox, episode, infection, skinCancer, breast, dupuytren,
-                                 #   handInfection, wound, jointImplant, operativeRole, etc.
+                                 #   handInfection, wound, jointImplant, operativeRole, teamContacts, sharing, etc.
   constants/                     # theme.ts (design tokens), categories, hospitals, trainingProgrammes
   data/                          # AO codes, flap configs, implant catalogue, capture protocols, clinical data
   navigation/                    # RootStack → Auth/Onboarding/Main; Main = Dashboard + Statistics + Settings tabs
@@ -112,7 +119,7 @@ targets/
   opus-camera-control/           # Inbox widget + Control Center capture control
   opus-locked-camera/            # LockedCameraCapture extension scaffold
 server/
-  app.ts, routes.ts              # Express API (~41 endpoints), security headers, CORS, body parsing
+  app.ts, routes.ts              # Express API (~55 endpoints), security headers, CORS, body parsing
   storage.ts                     # DatabaseStorage with ownership checks
   snomedApi.ts                   # Ontoserver FHIR integration
   email.ts                       # Resend email service
@@ -141,7 +148,7 @@ Auth → Onboarding → Main (bottom tabs: Dashboard, Statistics, Settings) with
 ### Data flow
 
 - **Local cases:** Encrypted in AsyncStorage (offline-first). Draft auto-save via `useCaseDraft.ts` (debounced + AppState background flush). Summary indexes are persisted separately so list/dashboard/episode surfaces do not need to hydrate full cases eagerly.
-- **Form state:** `useCaseForm()` hook → `useReducer` with 15+ actions (`SET_FIELD`, `SET_FIELDS`, `RESET_FORM`, `LOAD_CASE`, `LOAD_DRAFT`, `ADD_TEAM_MEMBER`, `REMOVE_TEAM_MEMBER`, `ADD_ANASTOMOSIS`, `UPDATE_ANASTOMOSIS`, `REMOVE_ANASTOMOSIS`, `ADD_DIAGNOSIS_GROUP`, `REMOVE_DIAGNOSIS_GROUP`, `UPDATE_DIAGNOSIS_GROUP`, `REORDER_DIAGNOSIS_GROUPS`, `UPDATE_CLINICAL_DETAIL`). `CaseFormContext` now exposes selector-based subscriptions plus separate actions/validation contexts so unchanged sections do not rerender on unrelated edits.
+- **Form state:** `useCaseForm()` hook → `useReducer` with 19+ actions (`SET_FIELD`, `SET_FIELDS`, `RESET_FORM`, `LOAD_CASE`, `LOAD_DRAFT`, `BULK_UPDATE`, `ADD_TEAM_MEMBER`, `REMOVE_TEAM_MEMBER`, `TOGGLE_OPERATIVE_TEAM`, `SET_OPERATIVE_TEAM_ROLE`, `REMOVE_OPERATIVE_TEAM_MEMBER`, `CLEAR_OPERATIVE_TEAM`, `ADD_ANASTOMOSIS`, `UPDATE_ANASTOMOSIS`, `REMOVE_ANASTOMOSIS`, `ADD_DIAGNOSIS_GROUP`, `REMOVE_DIAGNOSIS_GROUP`, `UPDATE_DIAGNOSIS_GROUP`, `REORDER_DIAGNOSIS_GROUPS`, `UPDATE_CLINICAL_DETAIL`). `CaseFormContext` now exposes selector-based subscriptions plus separate actions/validation contexts so unchanged sections do not rerender on unrelated edits.
 - **Server state:** Direct API helpers built on `getApiUrl()` + `fetch`.
 - **Auth state:** `AuthContext` with JWT tokens, profile, facilities, device keys.
 - **Patient privacy:** Identifiers HMAC-SHA256 hashed in local case index (per-user key in iOS Keychain). Patient identity fields (`patientFirstName`, `patientLastName`, `patientDateOfBirth`, `patientNhi`) stored on-device only, stripped before server sync via `stripPatientIdentityForSync()`.
@@ -150,17 +157,18 @@ Auth → Onboarding → Main (bottom tabs: Dashboard, Statistics, Settings) with
 
 Each Case has `diagnosisGroups: DiagnosisGroup[]` instead of flat diagnosis/procedures fields. Each group bundles: specialty, diagnosis, staging, fractures, procedures, and optional `handInfectionDetails`. `procedureSuggestionSource` tracks origin: `"picklist"`, `"skinCancer"`, `"acuteHand"`, or `"manual"`. Enables multi-specialty cases (e.g., hand surgery + orthoplastic in one session). Helpers: `getAllProcedures(c)`, `getCaseSpecialties(c)`, `getPrimaryDiagnosisName(c)` in `client/types/case.ts`. Save-time normalization via `client/lib/caseNormalization.ts`.
 
-### Case form sections (5-tab architecture)
+### Case form sections (6-tab architecture)
 
-`CaseFormScreen.tsx` delegates to 5 section components via `CaseFormContext`. All 5 pills are visible simultaneously on any iPhone (no horizontal scrolling):
+`CaseFormScreen.tsx` delegates to 6 section components via `CaseFormContext`. All 6 pills are visible simultaneously on any iPhone (no horizontal scrolling):
 
 1. `PatientInfoSection` (`patient`) — Patient identity (NHI/name/DOB for NZ, generic identifier for non-NZ), privacy indicator, procedure date, facility, demographics
-2. `CaseSection` (`case`) — Wraps `DiagnosisProcedureSection` (diagnosis groups, specialty-specific UI) + conditional `TreatmentContextSection` (flap cases only)
-3. `OperativeSection` (`operative`) — 4 sub-groups: Admission & Timing (urgency, stay type, dates, surgery times), Team & Anaesthesia (role, anaesthetic, operating team), Surgical Factors (wound risk, prophylaxis), Patient Factors (ASA, smoking, BMI, comorbidities — collapsed by default)
-4. `OperativeMediaSection` (`media`) — Operative photos with capture protocols
-5. `OutcomesSection` (`outcomes`) — Discharge outcome, mortality classification, collapsible 30-day RACS MALT audit (unplanned readmission/ICU/return to theatre), MDM, infection documentation. Day-case auto-fills "Discharged home"
+2. `TeamSection` (`team`) — Chip-based operative team tagging from `team_contacts` filtered by facility. Contacts shown as toggleable chips with inline role picker (PS/FA/SS/US/SA). Depends on facility selection in Patient. "+" chip navigates to AddEditTeamContact for quick-add.
+3. `CaseSection` (`case`) — Wraps `DiagnosisProcedureSection` (diagnosis groups, specialty-specific UI) + conditional `TreatmentContextSection` (flap cases only)
+4. `OperativeSection` (`operative`) — 4 sub-groups: Admission & Timing (urgency, stay type, dates, surgery times), Role & Anaesthesia (role, anaesthetic), Surgical Factors (wound risk, prophylaxis), Patient Factors (ASA, smoking, BMI, comorbidities — collapsed by default)
+5. `OperativeMediaSection` (`media`) — Operative photos with capture protocols
+6. `OutcomesSection` (`outcomes`) — Discharge outcome, mortality classification, collapsible 30-day RACS MALT audit (unplanned readmission/ICU/return to theatre), MDM, infection documentation. Day-case auto-fills "Discharged home"
 
-Plus: `CollapsibleFormSection` (card wrapper), `SectionNavBar` (fixed-width pill navigation), `CaseSummaryView` (read-only 5-card review gating save with validation).
+Plus: `CollapsibleFormSection` (card wrapper), `SectionNavBar` (fixed-width pill navigation, 6 pills), `CaseSummaryView` (read-only review gating save with validation).
 
 Header uses a truncating centered title. Header right is compact: overflow icon for Clear/Revert + Save button. `CollapsibleFormSection` now measures closed content safely so default-collapsed sections like Treatment Context open reliably on first tap. SectionNavBar has no bottom border.
 
@@ -174,19 +182,19 @@ Header uses a truncating centered title. Header right is compact: overflow icon 
 - All field setters use `?? ""` / `?? defaultValue` (unconditional) so cleared fields persist
 - `handleSaveRef.current` always points to latest `handleSave` closure
 
-## Database schema (PostgreSQL, 8 tables)
+## Database schema (PostgreSQL, 14 tables)
 
 Defined in `shared/schema.ts`. All PKs are UUIDs via `gen_random_uuid()`. Cascade deletes on user deletion.
 
-Tables: `users` (auth + tokenVersion for JWT revocation), `profiles` (1:1 with JSONB professionalRegistrations + surgicalPreferences), `user_facilities`, `user_device_keys` (X25519 E2EE), `password_reset_tokens` (single-use, 1hr expiry), `teams`, `team_members`, `snomed_ref`.
+Tables: `users` (auth + tokenVersion for JWT revocation), `profiles` (1:1 with JSONB professionalRegistrations + surgicalPreferences + phone + discoverable), `user_facilities`, `user_device_keys` (X25519 E2EE), `password_reset_tokens` (single-use, 1hr expiry), `snomed_ref`, `team_contacts` (per-user operative team roster, JSONB facilityIds, optional linkedUserId → users), `shared_cases` (E2EE case sharing with recipient role + verification status), `case_key_envelopes` (per-device wrapped case keys), `case_assessments` (blinded supervisor/trainee assessments), `assessment_key_envelopes` (released on mutual reveal), `push_tokens` (Expo push notification tokens).
 
 **Performance indexes** (`migrations/add_performance_indexes.sql`): 8 additional indexes on high-frequency query paths. All `IF NOT EXISTS`.
 
 ## API endpoints (server/routes.ts)
 
-~41 endpoints under `/api/`, JWT bearer auth via `authenticateToken` middleware. See `server/routes.ts` for full details.
+~55 endpoints under `/api/`, JWT bearer auth via `authenticateToken` middleware. See `server/routes.ts` for full details.
 
-**Groups:** Auth (rate-limited, 8 endpoints including signup/login/refresh/password-reset), Profile (CRUD + avatar), Facilities (CRUD with isPrimary auto-clear), Device Keys (E2EE key management), Anastomoses (CRUD), Treatment Episodes (CRUD), Procedure Outcomes (CRUD), SNOMED CT (live search via Ontoserver + reference data for vessels/flaps/regions/coupling), Staging (14 configs), Health check.
+**Groups:** Auth (rate-limited, 8 endpoints including signup/login/refresh/password-reset), Profile (CRUD + avatar), Facilities (CRUD with isPrimary auto-clear), Device Keys (E2EE key management), Team Contacts (CRUD + link/unlink + invitations, rate-limited), User Lookup (search by email/phone + batch discover + device keys by user ID), Sharing (create/inbox/outbox/verify/revoke/update blob), Assessments (submit + status + history with auto-reveal), Push Tokens (register/unregister), SNOMED CT (live search via Ontoserver + reference data for vessels/flaps/regions/coupling), Staging (14 configs), Health check.
 
 **Non-obvious:** Auth rate-limited. Password reset always returns success (no email leak). Avatar upload capped at 5MB via Multer. `seed-snomed-ref` is dev-only (env-gated).
 
@@ -1256,15 +1264,23 @@ RACS MALT codes and other training-programme formats are derived at export time 
 - `toGermanWeiterbildung(role, supervision)` → German Weiterbildung format
 - `toSwissSiwf(role, supervision)` → Swiss SIWF format
 
-### Operating team removal
+### Team sharing & operative team architecture
 
-The operating team UI and types (`OperatingTeamRole`, `OperatingTeamMember`) have been fully removed. Team sharing will be handled by a separate feature.
+**Two separate team member concepts coexist on CaseFormState:**
+
+1. **`operativeTeam: CaseTeamMember[]`** — Contact-based team tagging from Phase 3. Members come from `team_contacts` table, selected via chip-based UI in the Team section. Stored on the Case, included in SharedCaseData blob, persisted in drafts. Facility-change auto-clears the array. Members may or may not be Opus users (`linkedUserId` is optional).
+
+2. **`teamMembers: { userId, displayName, role, publicKeys }[]`** — Legacy share-on-save E2EE field. Members added via email search (`TeamMemberTagging` component, currently unused after Phase 3 moved tagging to TeamSection). Kept for backward compatibility with existing share pipeline.
+
+**Share-on-save bridge:** At save time, both arrays merge into `shareableMembers`. Linked `operativeTeam` members have their device keys fetched via `GET /api/users/:id/keys`. Deduplication prevents double-sharing. Non-blocking — share failure doesn't block case save.
+
+**Key files:** `client/types/teamContacts.ts` (CaseTeamMember, TeamContact, TeamMemberOperativeRole), `client/lib/teamContactsApi.ts` (CRUD + device keys), `client/components/case-form/TeamSection.tsx` (chip UI), `shared/careerStages.ts` (88 career stages, 6-tier seniority), `client/lib/seniorityTier.ts` (getSeniorityTier, isSeniorTo).
 
 ## Testing
 
-- **Framework:** Vitest 4.0.18, **1173 tests** across 63 files
-- **Client tests:** `client/lib/__tests__/` and `client/components/` — covering hand trauma (diagnosis, mapping, ux), skin cancer (config 89, phase4 11, phase5 18, diagnoses 7), dashboard (selectors 7), hand (infection 42, elective 52), dupuytren (37), joint implant (44), media (encryption 7, fileStorage 3, tagHelpers 82, captureProtocols 41, operativeMedia 19, form 4, defaults 4, context 3), inbox (storage 13, assignment 17), capture (smartImportPrefs 10, sharedIngress 2), case (specialty 5, storageCache 4, draftPersistence 1), statistics (helpers 3, stats 7), dates (values 12, normalization 4), export (implant 3, breast), planned case (18), media organiser (15), NHI validation (12), patient identity (11), operative role (68), head & neck integration (4), breast (phase3, phase4, export), FISS calculator (12), craniofacial, aesthetics, burns, peripheral nerve, lymphoedema, plus media UI coverage
-- **Server tests:** `server/__tests__/` — auth (17), validation (7), diagnosisStagingConfig (3)
+- **Framework:** Vitest 4.0.18, **1351 tests** across 73 files
+- **Client tests:** `client/lib/__tests__/` and `client/components/` — covering hand trauma (diagnosis, mapping, ux), skin cancer (config 89, phase4 11, phase5 18, diagnoses 7), dashboard (selectors 7), hand (infection 42, elective 52), dupuytren (37), joint implant (44), media (encryption 7, fileStorage 3, tagHelpers 82, captureProtocols 41, operativeMedia 19, form 4, defaults 4, context 3), inbox (storage 13, assignment 17), capture (smartImportPrefs 10, sharedIngress 2), case (specialty 5, storageCache 4, draftPersistence 1), statistics (helpers 3, stats 7), dates (values 12, normalization 4), export (implant 3, breast), planned case (18), media organiser (15), NHI validation (12), patient identity (11), operative role (68), head & neck integration (4), breast (phase3, phase4, export), FISS calculator (12), craniofacial, aesthetics, burns, peripheral nerve, lymphoedema, team contacts (11), operative team (15), sharing bridge (8), plus media UI coverage
+- **Server tests:** `server/__tests__/` — auth (17), validation (7), diagnosisStagingConfig (3), teamContacts (17), invitations (6)
 - **Run:** `npm run test` (once) or `npm run test:watch` (watch mode)
 
 ## Visual Verification (Expo MCP)
@@ -1301,7 +1317,7 @@ After taking a screenshot, check for:
 5. **Dark mode** — all surfaces use `theme.backgroundRoot` / `theme.backgroundElevated` / `theme.backgroundSecondary`, never raw hex
 6. **Safe areas** — content respects `useSafeAreaInsets()` at top and bottom
 7. **Keyboard avoidance** — form inputs not obscured when keyboard is open
-8. **Section nav bar** — all 5 pills (Patient, Case, Operative, Media, Outcomes) visible without horizontal scrolling
+8. **Section nav bar** — all 6 pills (Patient, Team, Case, Operative, Media, Outcomes) visible without horizontal scrolling
 9. **Charcoal + Amber brand** — accent colour is `#E5A00D`, backgrounds are dark charcoal spectrum, no stray bright colours
 
 ### testID naming conventions
@@ -1387,10 +1403,12 @@ Conditional screen switching based on `isAuthenticated`, `hasSeenWelcome`, `hasS
 | PlannedCaseList | `PlannedCaseListScreen.tsx` | `screen-plannedCaseList` | push |
 | CaseMediaOrganiser | `CaseMediaOrganiserScreen.tsx` | `screen-caseMediaOrganiser` | modal |
 | AddHistology | `AddHistologyScreen.tsx` | `screen-addHistology` | push |
+| TeamContacts | `TeamContactsScreen.tsx` | `screen-teamContacts` | push |
+| AddEditTeamContact | `AddEditTeamContactScreen.tsx` | `screen-addEditTeamContact` | push |
 
 **Lock overlay:** `LockScreen.tsx` (`screen-lock`) renders as absolute overlay when `isAppLockConfigured && isLocked`.
 
-**Total: 38 screen files** (29 main + 9 onboarding).
+**Total: 40 screen files** (31 main + 9 onboarding).
 
 ### Diagnosis Inventory
 
@@ -1419,9 +1437,10 @@ Component tree based on verified file existence:
 
 ```
 CaseFormScreen.tsx
-├── SectionNavBar (5 pills: Patient, Case, Operative, Media, Outcomes)
+├── SectionNavBar (6 pills: Patient, Team, Case, Operative, Media, Outcomes)
 │
 ├── PatientInfoSection.tsx              — client/components/case-form/PatientInfoSection.tsx
+├── TeamSection.tsx                     — client/components/case-form/TeamSection.tsx
 ├── CaseSection.tsx                     — client/components/case-form/CaseSection.tsx
 │   ├── DiagnosisProcedureSection.tsx   — client/components/case-form/DiagnosisProcedureSection.tsx
 │   │   └── DiagnosisGroupEditor.tsx    — client/components/DiagnosisGroupEditor.tsx
