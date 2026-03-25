@@ -20,7 +20,7 @@ import {
   BURN_COMPLICATION_LABELS,
   DERMAL_SUBSTITUTE_LABELS,
 } from "../types/burns";
-import { getBurnProcedureCategory, calculateVSSTotal, calculatePOSASTotal } from "./burnsConfig";
+import { getBurnProcedureCategory, getBurnPhaseFromDiagnosis, calculateVSSTotal, calculatePOSASTotal } from "./burnsConfig";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CSV EXPORT
@@ -109,9 +109,12 @@ export function extractBurnsCsvFields(
   if (!burnGroup?.burnsAssessment) return empty;
 
   const ba = burnGroup.burnsAssessment;
+  const derivedPhase = burnGroup.diagnosisPicklistId
+    ? getBurnPhaseFromDiagnosis(burnGroup.diagnosisPicklistId)
+    : "acute";
 
   // Assessment-level fields
-  empty.burn_phase = ba.phase ? BURN_PHASE_LABELS[ba.phase] : "";
+  empty.burn_phase = BURN_PHASE_LABELS[derivedPhase];
   empty.burn_tbsa_total = ba.tbsa?.totalTBSA != null ? String(ba.tbsa.totalTBSA) : "";
   empty.burn_tbsa_partial = ba.tbsa?.partialThicknessTBSA != null
     ? String(ba.tbsa.partialThicknessTBSA) : "";
@@ -198,6 +201,7 @@ export function extractBurnsCsvFields(
  */
 export function buildBurnsFhirExtension(
   ba: BurnsAssessmentData,
+  diagnosisPicklistId?: string,
 ): Array<{ url: string; valueString?: string; valueDecimal?: number; valueBoolean?: boolean }> {
   const extensions: Array<{
     url: string;
@@ -206,7 +210,10 @@ export function buildBurnsFhirExtension(
     valueBoolean?: boolean;
   }> = [];
 
-  extensions.push({ url: "phase", valueString: ba.phase });
+  const phase = diagnosisPicklistId
+    ? getBurnPhaseFromDiagnosis(diagnosisPicklistId)
+    : "acute";
+  extensions.push({ url: "phase", valueString: phase });
 
   if (ba.tbsa?.totalTBSA != null) {
     extensions.push({ url: "tbsaTotal", valueDecimal: ba.tbsa.totalTBSA });
@@ -280,7 +287,10 @@ export function getBurnsPdfSummary(groups: DiagnosisGroup[]): string {
   const parts: string[] = [];
 
   // Phase
-  if (ba.phase) parts.push(BURN_PHASE_LABELS[ba.phase]);
+  const pdfPhase = burnGroup.diagnosisPicklistId
+    ? getBurnPhaseFromDiagnosis(burnGroup.diagnosisPicklistId)
+    : "acute";
+  parts.push(BURN_PHASE_LABELS[pdfPhase]);
 
   // TBSA
   if (ba.tbsa?.totalTBSA != null) {

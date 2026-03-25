@@ -208,7 +208,7 @@ function CaseTimelineCard({
         ]}
       >
         <ThemedText style={[styles.phaseBadgeText, { color: theme.link }]}>
-          {BURN_PHASE_LABELS[caseData.phase]}
+          {caseData.phase ? BURN_PHASE_LABELS[caseData.phase] : "Acute"}
         </ThemedText>
       </View>
 

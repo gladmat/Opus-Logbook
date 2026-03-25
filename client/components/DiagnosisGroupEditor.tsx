@@ -138,7 +138,7 @@ import { AestheticProcedureFirstFlow } from "@/components/aesthetics/AestheticPr
 import { isAestheticProcedure } from "@/lib/aestheticsConfig";
 import type { AestheticAssessment as AestheticAssessmentData } from "@/types/aesthetics";
 import { BurnsAssessment } from "@/components/burns/BurnsAssessment";
-import { isBurnsDiagnosis, getDefaultBurnsAssessment, getBurnPhaseFromDiagnosis } from "@/lib/burnsConfig";
+import { isBurnsDiagnosis, getDefaultBurnsAssessment } from "@/lib/burnsConfig";
 import type { BurnsAssessmentData } from "@/types/burns";
 import {
   isPeripheralNerveDiagnosis,
@@ -1199,8 +1199,11 @@ function DiagnosisGroupEditorInner({
   }, [isAestheticModule, group.aestheticAssessment]);
 
   const isBurnsModule = useMemo(
-    () => groupSpecialty === "burns" || !!group.burnsAssessment,
-    [groupSpecialty, group.burnsAssessment],
+    () =>
+      (groupSpecialty === "burns" &&
+        selectedDiagnosis?.id === "burns_dx_acute") ||
+      !!group.burnsAssessment,
+    [groupSpecialty, selectedDiagnosis?.id, group.burnsAssessment],
   );
 
   const normalizedBurnsAssessment = useMemo(():
@@ -1208,11 +1211,8 @@ function DiagnosisGroupEditorInner({
     | undefined => {
     if (!isBurnsModule) return undefined;
     if (group.burnsAssessment) return group.burnsAssessment;
-    const phase = selectedDiagnosis?.id
-      ? getBurnPhaseFromDiagnosis(selectedDiagnosis.id)
-      : "acute";
-    return getDefaultBurnsAssessment(phase);
-  }, [isBurnsModule, group.burnsAssessment, selectedDiagnosis?.id]);
+    return getDefaultBurnsAssessment();
+  }, [isBurnsModule, group.burnsAssessment]);
 
   // Peripheral nerve: diagnosis-metadata driven + existing data
   const isPeripheralNerveModule = useMemo(
@@ -3485,7 +3485,7 @@ function DiagnosisGroupEditorInner({
               />
             ) : null}
 
-            {primaryDiagnosis && !isSkinCancerModule && !isElectiveHand && !isCraniofacialModule && !isAestheticProcedureFirst && !isPeripheralNerveModule ? (
+            {primaryDiagnosis && !isSkinCancerModule && !isElectiveHand && !isCraniofacialModule && !isAestheticProcedureFirst && !isPeripheralNerveModule && !isBurnsModule ? (
               <DiagnosisClinicalFields
                 diagnosis={{
                   snomedCtCode: primaryDiagnosis.conceptId,

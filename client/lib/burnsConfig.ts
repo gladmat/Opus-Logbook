@@ -3,10 +3,13 @@
 import type {
   BurnPhase,
   BurnsAssessmentData,
+  DerivedBurnDiagnosis,
+  BurnInjuryEvent,
   TBSAData,
   TBSARegionalEntry,
 } from "../types/burns";
 import { LUND_BROWDER_AGE_ADJUSTMENT } from "../types/burns";
+import type { ProcedureSuggestion } from "@/types/diagnosis";
 
 // Re-export the age adjustment table for external use
 export { LUND_BROWDER_AGE_ADJUSTMENT };
@@ -20,27 +23,270 @@ export function isBurnsDiagnosis(diagnosisId: string): boolean {
   return diagnosisId.startsWith("burns_dx_");
 }
 
-/** Infers burn phase from diagnosis ID segments */
+/** Returns true if the diagnosis ID is the single acute burn entry */
+export function isAcuteBurnDiagnosis(diagnosisId: string): boolean {
+  return diagnosisId === "burns_dx_acute";
+}
+
+/** Infers burn phase from diagnosis ID */
 export function getBurnPhaseFromDiagnosis(diagnosisId: string): BurnPhase {
-  // Non-operative must be checked first — some IDs contain both _nonop_ and _scar_
-  if (diagnosisId.includes("_nonop_")) {
-    return "non_operative";
+  if (diagnosisId === "burns_dx_acute") {
+    return "acute";
   }
+  // All other burns_dx_* entries are reconstructive
+  return "reconstructive";
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DERIVED DIAGNOSIS (Assessment → SNOMED CT code)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Derive the specific SNOMED-coded diagnosis from BurnsAssessment injury event data.
+ * Analogous to handTraumaDiagnosis.ts — assessment data deterministically produces diagnosis.
+ */
+export function deriveBurnDiagnosis(
+  injuryEvent?: BurnInjuryEvent,
+): DerivedBurnDiagnosis {
+  const mechanism = injuryEvent?.mechanism;
+  const detail = injuryEvent?.mechanismDetail;
+
+  let primary: DerivedBurnDiagnosis;
+
+  switch (mechanism) {
+    case "thermal":
+      switch (detail) {
+        case "scald":
+        case "steam":
+          primary = {
+            snomedCtCode: "423858006",
+            snomedCtDisplay: "Scald of skin (disorder)",
+            displayName: detail === "steam" ? "Steam burn" : "Scald burn",
+          };
+          break;
+        case "contact":
+          primary = {
+            snomedCtCode: "385516009",
+            snomedCtDisplay: "Contact burn of skin (disorder)",
+            displayName: "Contact burn",
+          };
+          break;
+        case "flash":
+          primary = {
+            snomedCtCode: "314534006",
+            snomedCtDisplay: "Thermal burn (disorder)",
+            displayName: "Flash burn",
+          };
+          break;
+        case "flame":
+        default:
+          primary = {
+            snomedCtCode: "314534006",
+            snomedCtDisplay: "Thermal burn (disorder)",
+            displayName: "Flame burn",
+          };
+          break;
+      }
+      break;
+
+    case "chemical":
+      primary = {
+        snomedCtCode: "426284001",
+        snomedCtDisplay: "Chemical burn (disorder)",
+        displayName:
+          detail === "acid"
+            ? "Chemical burn — acid"
+            : detail === "alkali"
+              ? "Chemical burn — alkali"
+              : "Chemical burn",
+      };
+      break;
+
+    case "electrical":
+      primary = {
+        snomedCtCode: "405571006",
+        snomedCtDisplay: "Electrical burn (disorder)",
+        displayName:
+          detail === "high_voltage"
+            ? "Electrical burn — high voltage"
+            : detail === "lightning"
+              ? "Electrical burn — lightning"
+              : "Electrical burn — low voltage",
+      };
+      break;
+
+    case "radiation":
+      primary = {
+        snomedCtCode: "10821000132101",
+        snomedCtDisplay: "Radiation burn of skin (disorder)",
+        displayName: "Radiation burn",
+      };
+      break;
+
+    case "friction":
+      primary = {
+        snomedCtCode: "284196006",
+        snomedCtDisplay: "Burn of skin (disorder)",
+        displayName: "Friction burn",
+      };
+      break;
+
+    case "cold":
+      primary = {
+        snomedCtCode: "370977006",
+        snomedCtDisplay: "Frostbite (disorder)",
+        displayName: "Cold injury / frostbite",
+      };
+      break;
+
+    default:
+      primary = {
+        snomedCtCode: "284196006",
+        snomedCtDisplay: "Burn of skin (disorder)",
+        displayName: "Acute burn",
+      };
+      break;
+  }
+
+  // Add inhalation as secondary diagnosis
+  if (injuryEvent?.inhalationInjury) {
+    primary = {
+      ...primary,
+      secondaryDiagnoses: [
+        ...(primary.secondaryDiagnoses ?? []),
+        {
+          snomedCtCode: "75478009",
+          snomedCtDisplay: "Poisoning by smoke inhalation (disorder)",
+          displayName: "Inhalation injury",
+        },
+      ],
+    };
+  }
+
+  return primary;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ASSESSMENT-DRIVEN PROCEDURE SUGGESTIONS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Generate procedure suggestions dynamically from BurnsAssessment data.
+ * Replaces the old conditionStagingMatch system for acute burns.
+ * Called from DiagnosisGroupEditor when burns assessment data changes.
+ */
+export function getAssessmentDrivenProcedureSuggestions(
+  assessment: BurnsAssessmentData,
+): ProcedureSuggestion[] {
+  const suggestions: ProcedureSuggestion[] = [
+    // Always suggested
+    {
+      procedurePicklistId: "burns_acute_wound_dressing",
+      displayName: "Burns wound dressing",
+      isDefault: true,
+      sortOrder: 1,
+    },
+  ];
+
+  const depth = assessment.tbsa?.predominantDepth;
+  const totalTBSA = assessment.tbsa?.totalTBSA ?? 0;
+  const isCircumferential = assessment.injuryEvent?.circumferentialBurn === true;
+  const hasInhalation = assessment.injuryEvent?.inhalationInjury === true;
+  const mechanism = assessment.injuryEvent?.mechanism;
+
+  // Depth-conditional suggestions
   if (
-    diagnosisId.includes("_contracture_") ||
-    diagnosisId.includes("_scar_") ||
-    diagnosisId.includes("_recon_") ||
-    diagnosisId.includes("_ectropion_") ||
-    diagnosisId.includes("_microstomia") ||
-    diagnosisId.includes("_web_space_") ||
-    diagnosisId.includes("_heterotopic_") ||
-    diagnosisId.includes("_neuropathic_") ||
-    diagnosisId.includes("_nasal_") ||
-    diagnosisId.includes("_ear_")
+    depth === "deep_partial" ||
+    depth === "full_thickness" ||
+    depth === "mixed"
   ) {
-    return "reconstructive";
+    suggestions.push({
+      procedurePicklistId: "burns_acute_tangential_excision",
+      displayName: "Tangential excision (burn wound)",
+      isDefault: false,
+      sortOrder: 2,
+    });
+    suggestions.push({
+      procedurePicklistId: "burns_graft_stsg_meshed",
+      displayName: "STSG — meshed (burns)",
+      isDefault: false,
+      sortOrder: 3,
+    });
   }
-  return "acute";
+
+  if (depth === "full_thickness") {
+    suggestions.push({
+      procedurePicklistId: "burns_acute_fascial_excision",
+      displayName: "Fascial excision (deep burn)",
+      isDefault: false,
+      sortOrder: 4,
+    });
+    suggestions.push({
+      procedurePicklistId: "burns_graft_dermal_substitute",
+      displayName: "Dermal substitute (Integra / Matriderm / BTM)",
+      isDefault: false,
+      sortOrder: 5,
+    });
+  }
+
+  // TBSA-conditional suggestions
+  if (totalTBSA >= 20) {
+    suggestions.push({
+      procedurePicklistId: "burns_graft_xenograft",
+      displayName: "Xenograft / allograft (temporary cover)",
+      isDefault: false,
+      sortOrder: 7,
+    });
+  }
+
+  if (totalTBSA >= 30) {
+    suggestions.push({
+      procedurePicklistId: "burns_graft_meek",
+      displayName: "Meek micrografting",
+      isDefault: false,
+      sortOrder: 6,
+    });
+  }
+
+  if (totalTBSA >= 50) {
+    suggestions.push({
+      procedurePicklistId: "burns_graft_cea",
+      displayName: "Cultured epithelial autograft (CEA)",
+      isDefault: false,
+      sortOrder: 8,
+    });
+  }
+
+  // Special-situation suggestions
+  if (isCircumferential) {
+    suggestions.push({
+      procedurePicklistId: "burns_acute_escharotomy",
+      displayName: "Escharotomy",
+      isDefault: true,
+      sortOrder: 0,
+    });
+  }
+
+  if (hasInhalation) {
+    suggestions.push({
+      procedurePicklistId: "burns_acute_tracheostomy",
+      displayName: "Tracheostomy (burn)",
+      isDefault: false,
+      sortOrder: 9,
+    });
+  }
+
+  // Mechanism-specific
+  if (mechanism === "electrical") {
+    suggestions.push({
+      procedurePicklistId: "burns_acute_fasciotomy",
+      displayName: "Fasciotomy — burns",
+      isDefault: false,
+      sortOrder: 5,
+    });
+  }
+
+  return suggestions.sort((a, b) => (a.sortOrder ?? 99) - (b.sortOrder ?? 99));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -145,13 +391,10 @@ export function getDefaultTBSAData(): TBSAData {
   return {};
 }
 
-/** Returns a default BurnsAssessmentData for the given phase */
-export function getDefaultBurnsAssessment(
-  phase: BurnPhase,
-): BurnsAssessmentData {
+/** Returns a default BurnsAssessmentData for acute burns */
+export function getDefaultBurnsAssessment(): BurnsAssessmentData {
   return {
-    phase,
-    tbsa: phase === "acute" ? getDefaultTBSAData() : undefined,
+    tbsa: getDefaultTBSAData(),
   };
 }
 

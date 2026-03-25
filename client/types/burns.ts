@@ -1,26 +1,30 @@
 /**
  * Burns Module Types
  *
- * Comprehensive burn surgery data capture: acute burn surgery (escharotomy
- * through wound closure), reconstructive burn surgery (contracture release
- * through scar management), and non-operative burn management (dressing
- * changes, scar assessment, pressure garments).
+ * Assessment-derived model for acute burns (mirrors HandTraumaAssessment):
+ * single "Acute burn" diagnosis → BurnsAssessment captures mechanism, TBSA,
+ * depth, regions, injury event → deriveBurnDiagnosis() resolves SNOMED code.
+ *
+ * Reconstructive burn diagnoses (contractures, scars) use standard
+ * diagnosis-first flow — no BurnsAssessment.
  *
  * Three-tier TBSA documentation, procedure-specific operative data,
  * severity scoring, and deep episode integration.
  */
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// BURN PHASE GATE
+// BURN PHASE
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/** Hard phase gate — mutually exclusive per case entry */
-export type BurnPhase = "acute" | "reconstructive" | "non_operative";
+/**
+ * Burn phase — derived from diagnosis ID, not stored on assessment.
+ * Acute = burns_dx_acute; Reconstructive = all other burns_dx_* entries.
+ */
+export type BurnPhase = "acute" | "reconstructive";
 
 export const BURN_PHASE_LABELS: Record<BurnPhase, string> = {
   acute: "Acute",
   reconstructive: "Reconstructive",
-  non_operative: "Non-Operative",
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -345,13 +349,29 @@ export interface BurnSeverityScores {
 // BURNS ASSESSMENT DATA (TOP-LEVEL CONTAINER)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/** Stored on DiagnosisGroup.burnsAssessment */
+/** Stored on DiagnosisGroup.burnsAssessment — acute burns only */
 export interface BurnsAssessmentData {
-  phase: BurnPhase;
   tbsa?: TBSAData;
   injuryEvent?: BurnInjuryEvent;
   severityScores?: BurnSeverityScores;
   outcomes?: BurnOutcomeData;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DERIVED BURN DIAGNOSIS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/** Derived from BurnsAssessment injury event data via deriveBurnDiagnosis() */
+export interface DerivedBurnDiagnosis {
+  snomedCtCode: string;
+  snomedCtDisplay: string;
+  displayName: string;
+  /** Secondary diagnoses (e.g., inhalation injury alongside the primary burn) */
+  secondaryDiagnoses?: Array<{
+    snomedCtCode: string;
+    snomedCtDisplay: string;
+    displayName: string;
+  }>;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

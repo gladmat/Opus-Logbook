@@ -35,7 +35,7 @@ export interface ModuleVisibility {
   craniofacialAssessment: boolean;
   /** Aesthetic assessment module — procedure-driven + specialty-gated */
   aestheticAssessment: boolean;
-  /** Burns assessment module — specialty-gated */
+  /** Burns assessment module — acute burn only (burns_dx_acute) */
   burnsAssessment: boolean;
   /** Peripheral nerve assessment module — diagnosis-metadata driven */
   peripheralNerveAssessment: boolean;
@@ -185,9 +185,11 @@ export function getModuleVisibility(
     ) ||
     !!group.aestheticAssessment;
 
-  // Burns: specialty-gated + existing data
+  // Burns: acute-only — only activates for the single "Acute burn" entry
   const burnsAssessment =
-    group.specialty === "burns" || !!group.burnsAssessment;
+    (group.specialty === "burns" &&
+      group.diagnosisPicklistId === "burns_dx_acute") ||
+    !!group.burnsAssessment;
 
   // Peripheral nerve: diagnosis-metadata driven + existing data
   const peripheralNerveAssessment =

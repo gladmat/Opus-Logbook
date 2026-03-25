@@ -900,23 +900,36 @@ Following established patterns:
 ## Burns Module — Locked Decisions
 
 ### Architecture
-- Hard phase gate: acute / reconstructive / non_operative (mutually exclusive per case entry)
-- BurnsAssessment renders INLINE in DiagnosisGroupEditor (like HandTraumaAssessment)
+- Assessment-first model for acute burns: single "Acute burn" diagnosis entry (`burns_dx_acute`), full assessment inline — mirrors HandTraumaAssessment pattern
+- NO phase gate — phase is implicit from diagnosis ID (`burns_dx_acute` → acute, all others → reconstructive)
+- `BurnPhase` reduced to 2 values: `"acute" | "reconstructive"` (removed `"non_operative"`)
+- `phase` removed from `BurnsAssessmentData` — derived via `getBurnPhaseFromDiagnosis(diagnosisId)` at render/export time
+- `deriveBurnDiagnosis()` maps injury event mechanism/detail → specific SNOMED CT code (thermal 314534006, scald 423858006, contact 385516009, chemical 426284001, electrical 405571006, cold 370977006, radiation 10821000132101, inhalation secondary 75478009)
+- `getAssessmentDrivenProcedureSuggestions()` replaces `conditionStagingMatch` — depth/TBSA/circumferential/inhalation/mechanism-conditional procedure suggestions
+- BurnsAssessment renders INLINE in DiagnosisGroupEditor (like HandTraumaAssessment) — always shows full acute assessment (TBSA, Injury Event, Severity Badges, procedure-specific sections)
 - TBSA uses three-tier progressive disclosure (Quick → Regional → Lund-Browder)
 - Burn-specific procedure details stored as burnProcedureDetails on CaseProcedure
 - Injury event data stored once on episode, not repeated per operation
 - Severity scores (Revised Baux, ABSI) are auto-calculated badges, never manual entry
+- Module visibility narrowed: BurnsAssessment only activates for `burns_dx_acute` (not all burns specialty diagnoses)
+- DiagnosisClinicalFields (laterality) hidden for burns via `!isBurnsModule` guard
+- `hasStaging: false` on acute burn entry prevents generic Depth/TBSA% staging from rendering
+- 19 total diagnoses: 1 acute + 18 reconstructive (4 reconstruction + 9 expanded + 5 scar)
 
 ### Anti-Patterns — DO NOT
+- DO NOT add a phase gate (segmented control/chips) — phase is implicit from diagnosis ID
+- DO NOT add `phase` back to `BurnsAssessmentData` — derive from `diagnosisPicklistId` at point of use
+- DO NOT create multiple acute burn diagnosis entries — single `burns_dx_acute` with assessment-derived specificity
+- DO NOT use `conditionStagingMatch` for burn procedure suggestions — use `getAssessmentDrivenProcedureSuggestions()`
 - DO NOT implement a free-draw body map — use tap-on-region with numeric entry only
 - DO NOT duplicate free flap fields — burn free flap triggers existing free flap module
 - DO NOT duplicate wound assessment — integrate with existing WoundAssessmentSheet if it exists
 - DO NOT create a new episode type — use existing burns_management
 - DO NOT make TBSA Tier 2/3 mandatory — Tier 1 quick entry is always sufficient
 - DO NOT duplicate cross-specialty procedures (STSG, FTSG, debridement) — burns gets own IDs with burn-specific fields
-- DO NOT replace existing burns diagnoses — extend the existing file
 - DO NOT put graft details in a modal — inline CollapsibleFormSection
 - DO NOT duplicate brand components — import from client/components/brand/
+- DO NOT show laterality picker for burns — burn assessment handles body region via TBSA map
 
 ### Component Registry
 - `BurnsAssessment` → `client/components/burns/BurnsAssessment.tsx`
@@ -925,10 +938,14 @@ Following established patterns:
 - `TBSABodyOutline` → `client/components/burns/TBSABodyOutline.tsx`
 - `BurnInjuryEventSection` → `client/components/burns/BurnInjuryEventSection.tsx`
 - `BurnSeverityBadges` → `client/components/burns/BurnSeverityBadges.tsx`
-- Config: `client/lib/burnsConfig.ts`
-- Types: `client/types/burns.ts`
+- `BurnEpisodeTimeline` → `client/components/burns/BurnEpisodeTimeline.tsx`
+- Config: `client/lib/burnsConfig.ts` (`deriveBurnDiagnosis`, `getAssessmentDrivenProcedureSuggestions`, `isAcuteBurnDiagnosis`, `getBurnPhaseFromDiagnosis`)
+- Types: `client/types/burns.ts` (`DerivedBurnDiagnosis`, `BurnsAssessmentData` without phase)
+- Diagnoses: `client/lib/diagnosisPicklists/burnsDiagnoses.ts` (19 entries)
 
 ### Data Flow
+- Assessment IS the diagnosis input: TBSA + injury event → `deriveBurnDiagnosis()` → specific SNOMED code
+- Assessment data drives procedure suggestions: depth/TBSA/mechanism → `getAssessmentDrivenProcedureSuggestions()`
 - Injury event: TreatmentEpisode.burnInjuryEvent (episode-level, captured once)
 - TBSA data: BurnsAssessmentData.tbsa (per-case, may update across operations)
 - Procedure details: CaseProcedure.burnProcedureDetails (per-procedure)
@@ -1442,7 +1459,7 @@ Conditional screen switching based on `isAuthenticated`, `hasSeenWelcome`, `hasS
 | Hand Surgery | `handSurgeryDiagnoses.ts` | 103 | Gustilo-Anderson, Eaton-Littler, Herbert, Lichtman, Kanavel Signs | `hand_wrist` specialty + `caseType` gate |
 | Head & Neck | `headNeckDiagnoses.ts` | 88 | TNM (T/N/M + Overall), House-Brackmann, Le Fort, Pittsburgh Fistula, Whitaker | `head_neck` specialty |
 | Aesthetics | `aestheticsDiagnoses.ts` | 42 | Baker Classification | `aesthetics` specialty or `aes_`/`bc_` procedure prefix |
-| Burns | `burnsDiagnoses.ts` | 41 | Depth, TBSA %, Severity | `burns` specialty |
+| Burns | `burnsDiagnoses.ts` | 19 | Depth, TBSA %, Severity | `burns` specialty (acute: `burns_dx_acute` only) |
 | Cleft/Craniofacial | `cleftCranioDiagnoses.ts` | 38 | Veau Classification | `cleft_cranio` specialty |
 | Breast | `breastDiagnoses.ts` | 37 | — | `breast` specialty |
 | Peripheral Nerve | `peripheralNerveDiagnoses.ts` | 43 (34 native + 9 facial nerve cross-ref) | EMG Grade, Severity | `peripheral_nerve` specialty or diagnosis metadata |
@@ -1452,7 +1469,7 @@ Conditional screen switching based on `isAuthenticated`, `hasSeenWelcome`, `hasS
 | Skin Cancer | `skinCancerDiagnoses.ts` | 11 | Breslow Thickness, Ulceration, TNM (AJCC 8th Ed) | Diagnosis-driven (`hasEnhancedHistology` or SNOMED match) |
 | Body Contouring | `bodyContouringDiagnoses.ts` | (deprecated — re-exports from aesthetics) | — | — |
 
-**Total: 503 structured diagnoses** across 11 active picklist files (body contouring is deprecated/merged into aesthetics).
+**Total: 481 structured diagnoses** across 11 active picklist files (body contouring is deprecated/merged into aesthetics).
 
 **29 staging systems** defined in `server/diagnosisStagingConfig.ts`: Gustilo-Anderson, Breslow Thickness, Ulceration, Severity, EMG Grade, TNM T/N/M Stage, NPUAP Stage, Depth, TBSA %, Baker Classification, Hurley Stage, ISL Stage, Cheng Lymphoedema Grade, MD Anderson ICG Stage, Wagner Grade, Le Fort Classification, House-Brackmann Grade, Kanavel Signs, Eaton-Littler Stage, Herbert Classification, Lichtman Stage, Veau Classification, Pittsburgh Fistula Classification, Whitaker Classification, TNM T/N/M Stage (AJCC 8th Ed), Overall Stage (AJCC 8th Ed).
 
@@ -1542,7 +1559,7 @@ Defined in `client/lib/moduleVisibility.ts`. The `getModuleVisibility()` functio
 | `breast` | `isBreastSpecialty(specialty)` — specialty-gated |
 | `craniofacialAssessment` | `specialty === "cleft_cranio"` — specialty-gated |
 | `aestheticAssessment` | `specialty === "aesthetics"`, or procedure has `aes_`/`bc_` prefix, or existing data |
-| `burnsAssessment` | `specialty === "burns"` or existing data |
+| `burnsAssessment` | `specialty === "burns" && diagnosisPicklistId === "burns_dx_acute"` or existing data |
 | `peripheralNerveAssessment` | `specialty === "peripheral_nerve"` or existing data |
 | `lymphoedemaAssessment` | `specialty === "lymphoedema"` or existing data |
 

@@ -115,7 +115,7 @@ export interface BurnEpisodeCaseSummary {
   caseId: string;
   date: string;
   daysSinceInjury?: number;
-  phase: BurnPhase;
+  phase?: BurnPhase;
   tbsaExcised?: number;
   procedures: Array<{
     name: string;
@@ -234,7 +234,7 @@ export function extractBurnCaseSummary(
     caseId,
     date: procedureDate,
     daysSinceInjury,
-    phase: assessment.phase,
+    phase: "acute",
     tbsaExcised,
     procedures: procedures.map((p) => ({
       name: p.procedureName,
