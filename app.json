@@ -48,7 +48,6 @@
           "backgroundColor": "#141414"
         }
       ],
-      "expo-web-browser",
       "expo-apple-authentication",
       "expo-notifications",
       "expo-local-authentication",
