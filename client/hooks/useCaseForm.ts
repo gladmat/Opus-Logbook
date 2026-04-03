@@ -108,7 +108,11 @@ import {
   encryptPayloadWithCaseKey,
   wrapCaseKeyForRecipient,
 } from "@/lib/e2ee";
-import { deriveEpaAssessments } from "@/lib/epaDerivation";
+import {
+  deriveEpaAssessments,
+  type EpaAssessmentTarget,
+} from "@/lib/epaDerivation";
+import { saveEpaTargets } from "@/lib/assessmentStorage";
 
 // ─── Default Donor Vessels ──────────────────────────────────────────────────
 
@@ -321,7 +325,18 @@ export type CaseFormAction =
       role: TeamMemberOperativeRole;
     }
   | { type: "REMOVE_OPERATIVE_TEAM_MEMBER"; contactId: string }
-  | { type: "CLEAR_OPERATIVE_TEAM" };
+  | { type: "CLEAR_OPERATIVE_TEAM" }
+  | {
+      type: "SET_PROCEDURE_ROLE_OVERRIDE";
+      contactId: string;
+      procedureIndex: number;
+      role: TeamMemberOperativeRole;
+    }
+  | {
+      type: "TOGGLE_MEMBER_PROCEDURE_PRESENCE";
+      contactId: string;
+      procedureIndex: number;
+    };
 
 export function setField<K extends keyof CaseFormState>(
   field: K,
@@ -972,6 +987,55 @@ function caseFormReducer(
       };
     case "CLEAR_OPERATIVE_TEAM":
       return { ...state, operativeTeam: [] };
+    case "SET_PROCEDURE_ROLE_OVERRIDE":
+      return {
+        ...state,
+        operativeTeam: state.operativeTeam.map((m) => {
+          if (m.contactId !== action.contactId) return m;
+          const overrides = { ...(m.procedureRoleOverrides ?? {}) };
+          // If override matches case-level default, remove it
+          if (action.role === m.operativeRole) {
+            delete overrides[action.procedureIndex];
+          } else {
+            overrides[action.procedureIndex] = action.role;
+          }
+          return {
+            ...m,
+            procedureRoleOverrides:
+              Object.keys(overrides).length > 0 ? overrides : undefined,
+          };
+        }),
+      };
+    case "TOGGLE_MEMBER_PROCEDURE_PRESENCE": {
+      return {
+        ...state,
+        operativeTeam: state.operativeTeam.map((m) => {
+          if (m.contactId !== action.contactId) return m;
+          const current = m.presentForProcedures;
+          if (current === null || current === undefined) {
+            // Was present for all — now exclude this procedure
+            // We need the total procedure count, but since we don't have it,
+            // just set to an array without this index (toggle to "not present")
+            return { ...m, presentForProcedures: [] };
+          }
+          if (current.includes(action.procedureIndex)) {
+            // Remove from present list
+            const next = current.filter((i) => i !== action.procedureIndex);
+            return {
+              ...m,
+              presentForProcedures: next.length > 0 ? next : null,
+            };
+          }
+          // Add to present list
+          return {
+            ...m,
+            presentForProcedures: [...current, action.procedureIndex].sort(
+              (a, b) => a - b,
+            ),
+          };
+        }),
+      };
+    }
     default:
       return state;
   }
@@ -2221,6 +2285,33 @@ export function useCaseForm({
               console.warn("Sharing failed:", sharingError);
               // Case saved successfully — sharing will need manual retry
             }
+          }
+        }
+
+        // Derive EPA assessment targets (non-blocking)
+        if (state.operativeTeam.length > 0 && profile?.careerStage) {
+          try {
+            const allProcs = savedCase.diagnosisGroups.flatMap(
+              (g: DiagnosisGroup) => g.procedures,
+            );
+            const epaProcs = allProcs.map((p) => ({
+              procedureName: p.procedureName,
+              snomedCtCode: p.snomedCtCode,
+            }));
+            const targets = deriveEpaAssessments(
+              profile.userId,
+              profile.careerStage,
+              profile.userId,
+              state.operativeTeam,
+              epaProcs,
+            );
+            if (targets.length > 0) {
+              saveEpaTargets(savedCase.id, targets).catch(() => {
+                // Non-critical — EPA storage failure doesn't block save
+              });
+            }
+          } catch {
+            // Non-critical — EPA derivation failure doesn't block save
           }
         }
 

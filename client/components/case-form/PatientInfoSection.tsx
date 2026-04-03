@@ -245,48 +245,56 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
       {/* Row 4: Gender + Ethnicity */}
       <View style={styles.row}>
         <View style={styles.halfField}>
-          <ThemedText
-            style={[styles.fieldLabel, { color: theme.textSecondary }]}
-          >
-            Gender
-          </ThemedText>
-          <View
-            style={[
-              styles.segmentedControl,
-              {
-                borderColor: theme.border,
-                backgroundColor: theme.backgroundDefault,
-              },
-            ]}
-          >
-            {(Object.entries(GENDER_LABELS) as [Gender, string][]).map(
-              ([value, label]) => {
-                const isSelected = gender === value;
-                return (
-                  <Pressable
-                    key={value}
-                    testID={`caseForm.patient.chip-gender-${value}`}
-                    style={[
-                      styles.segmentedButton,
-                      isSelected ? { backgroundColor: theme.link } : undefined,
-                    ]}
-                    onPress={() => {
-                      Haptics.selectionAsync();
-                      dispatch(setField("gender", value));
-                    }}
-                  >
-                    <ThemedText
+          <View style={styles.genderContainer}>
+            <ThemedText
+              style={[styles.genderLabel, { color: theme.textSecondary }]}
+            >
+              Gender
+            </ThemedText>
+            <View
+              style={[
+                styles.segmentedControl,
+                {
+                  borderColor: theme.border,
+                  backgroundColor: theme.backgroundDefault,
+                },
+              ]}
+            >
+              {(Object.entries(GENDER_LABELS) as [Gender, string][]).map(
+                ([value, label]) => {
+                  const isSelected = gender === value;
+                  return (
+                    <Pressable
+                      key={value}
+                      testID={`caseForm.patient.chip-gender-${value}`}
                       style={[
-                        styles.segmentedButtonText,
-                        { color: isSelected ? "#FFFFFF" : theme.textSecondary },
+                        styles.segmentedButton,
+                        isSelected
+                          ? { backgroundColor: theme.link }
+                          : undefined,
                       ]}
+                      onPress={() => {
+                        Haptics.selectionAsync();
+                        dispatch(setField("gender", value));
+                      }}
                     >
-                      {label}
-                    </ThemedText>
-                  </Pressable>
-                );
-              },
-            )}
+                      <ThemedText
+                        style={[
+                          styles.segmentedButtonText,
+                          {
+                            color: isSelected
+                              ? "#FFFFFF"
+                              : theme.textSecondary,
+                          },
+                        ]}
+                      >
+                        {label}
+                      </ThemedText>
+                    </Pressable>
+                  );
+                },
+              )}
+            </View>
           </View>
         </View>
         <View style={styles.halfField}>
@@ -351,6 +359,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
     marginBottom: Spacing.xs,
+  },
+  genderContainer: {
+    marginBottom: Spacing.lg,
+  },
+  genderLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: Spacing.sm,
   },
   segmentedControl: {
     flexDirection: "row",

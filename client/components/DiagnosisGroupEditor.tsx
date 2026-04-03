@@ -83,6 +83,7 @@ import {
   applyProcedureHints,
   type AOProcedureHint,
 } from "@/lib/aoToDiagnosisMapping";
+import { ProcedureTeamFooter } from "@/components/ProcedureTeamFooter";
 import { DetailModuleRow } from "@/components/detail-sheets/DetailModuleRow";
 import { FreeFlapSheet } from "@/components/detail-sheets/FreeFlapSheet";
 import { FlapOutcomeSheet } from "@/components/detail-sheets/FlapOutcomeSheet";
@@ -220,6 +221,8 @@ interface DiagnosisGroupEditorProps {
   scrollPositionRef?: React.MutableRefObject<number>;
   /** Callback to create a new elective hand DiagnosisGroup inheriting laterality from this group. */
   onAddElectiveHandGroup?: () => void;
+  /** Global procedure index offset (sum of procedure counts in preceding groups) */
+  procedureGlobalOffset?: number;
 }
 
 interface HandTraumaDiagnosisResolution {
@@ -247,6 +250,7 @@ function DiagnosisGroupEditorInner({
   scrollViewRef,
   scrollPositionRef,
   onAddElectiveHandGroup,
+  procedureGlobalOffset = 0,
 }: DiagnosisGroupEditorProps) {
   const { theme } = useTheme();
   const navigation =
@@ -3976,6 +3980,9 @@ function DiagnosisGroupEditorInner({
                                 diagnosisClinicalDetails.laterality
                               }
                             />
+                            <ProcedureTeamFooter
+                              procedureIndex={procedureGlobalOffset + idx}
+                            />
                             {proc.picklistEntryId &&
                             procedureHasImplant(proc) ? (
                               <JointImplantSection
@@ -4318,7 +4325,8 @@ function areDiagnosisGroupEditorPropsEqual(
     prev.returnToTheatre === next.returnToTheatre &&
     prev.scrollViewRef === next.scrollViewRef &&
     prev.scrollPositionRef === next.scrollPositionRef &&
-    prev.onAddElectiveHandGroup === next.onAddElectiveHandGroup
+    prev.onAddElectiveHandGroup === next.onAddElectiveHandGroup &&
+    prev.procedureGlobalOffset === next.procedureGlobalOffset
   );
 }
 

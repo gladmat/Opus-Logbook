@@ -27,6 +27,7 @@ import { WoundAssessmentCard } from "@/components/WoundAssessmentCard";
 import { EncryptedImage } from "@/components/EncryptedImage";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, Shadows } from "@/constants/theme";
+import { TEAM_MEMBER_ROLE_LABELS, type TeamMemberOperativeRole } from "@/types/teamContacts";
 import {
   Case,
   TimelineEvent,
@@ -2123,10 +2124,10 @@ export default function CaseDetailScreen() {
                   <ThemedText
                     style={[styles.detailLabel, { color: theme.textSecondary }]}
                   >
-                    {member.displayName}
+                    {member.abbreviatedName ?? member.displayName}
                   </ThemedText>
                   <ThemedText style={[styles.detailValue, { color: theme.text }]}>
-                    {member.operativeRole}
+                    {TEAM_MEMBER_ROLE_LABELS[member.operativeRole as TeamMemberOperativeRole] ?? member.operativeRole}
                   </ThemedText>
                 </View>
               ))}

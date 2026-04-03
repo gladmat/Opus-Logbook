@@ -6,6 +6,7 @@ import type {
   TraineeAssessment,
   RevealedAssessmentPair,
 } from "@/types/sharing";
+import type { EpaAssessmentTarget } from "./epaDerivation";
 
 // ── Storage keys (user-scoped at runtime) ────────────────────────────────────
 
@@ -13,6 +14,7 @@ const ASSESSMENT_KEYS = {
   MINE_PREFIX: "@opus_assessment_mine_",
   REVEALED_PREFIX: "@opus_assessment_revealed_",
   REVEALED_INDEX: "@opus_assessment_revealed_index",
+  EPA_TARGETS_PREFIX: "@opus_epa_targets_",
 } as const;
 
 function myAssessmentKey(sharedCaseId: string): string {
@@ -126,4 +128,33 @@ export async function getAllRevealedPairs(): Promise<
     )
     .map((r) => r.value)
     .filter((v): v is RevealedPairWithContext => v != null);
+}
+
+// ── EPA targets (derived per-case after save) ─────────────────────────────────
+
+function epaTargetsKey(caseId: string): string {
+  return userScopedAsyncKey(
+    `${ASSESSMENT_KEYS.EPA_TARGETS_PREFIX}${caseId}`,
+  );
+}
+
+/** Save derived EPA assessment targets for a case. */
+export async function saveEpaTargets(
+  caseId: string,
+  targets: EpaAssessmentTarget[],
+): Promise<void> {
+  await AsyncStorage.setItem(epaTargetsKey(caseId), JSON.stringify(targets));
+}
+
+/** Load EPA assessment targets for a case. */
+export async function getEpaTargets(
+  caseId: string,
+): Promise<EpaAssessmentTarget[]> {
+  const raw = await AsyncStorage.getItem(epaTargetsKey(caseId));
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw) as EpaAssessmentTarget[];
+  } catch {
+    return [];
+  }
 }

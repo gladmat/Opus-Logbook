@@ -138,13 +138,20 @@ export const DiagnosisProcedureSection = React.memo(
 
     return (
       <>
-        {diagnosisGroups.map((group, idx) => (
+        {diagnosisGroups.map((group, idx) => {
+          // Compute global procedure offset for team footer indexing
+          let procOffset = 0;
+          for (let i = 0; i < idx; i++) {
+            procOffset += diagnosisGroups[i]?.procedures?.length ?? 0;
+          }
+          return (
           <DiagnosisGroupEditor
             key={group.id}
             group={group}
             index={idx}
             isOnly={diagnosisGroups.length === 1}
             totalGroups={diagnosisGroups.length}
+            procedureGlobalOffset={procOffset}
             onChange={(updated) => onGroupChange(idx, updated)}
             onDelete={() => handleDeleteDiagnosisGroup(idx)}
             onMoveUp={() => handleMoveUp(idx)}
@@ -162,7 +169,8 @@ export const DiagnosisProcedureSection = React.memo(
                 : undefined
             }
           />
-        ))}
+          );
+        })}
 
         <InlineEpisodeCreator
           visible={showInlineEpisodeCreator}

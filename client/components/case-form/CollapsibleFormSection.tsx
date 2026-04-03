@@ -65,12 +65,12 @@ export const CollapsibleFormSection = React.memo(
     const handleLayout = useCallback(
       (e: { nativeEvent: { layout: { height: number } } }) => {
         const h = e.nativeEvent.layout.height;
-        if (h > 0) {
+        if (h > 0 && (expandedRef.current || !isMeasured)) {
           contentHeightRef.current = h;
           if (!isMeasured) {
             animatedHeight.value = expandedRef.current ? h : 0;
             setIsMeasured(true);
-          } else if (expandedRef.current) {
+          } else {
             animatedHeight.value = h;
           }
         }
