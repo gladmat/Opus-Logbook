@@ -1,7 +1,7 @@
 /**
  * Orthoplastic Diagnosis Picklist
  *
- * ~14 structured diagnoses covering ~75% of orthoplastic cases.
+ * ~16 structured diagnoses covering ~80% of orthoplastic cases.
  *
  * Orthoplastic is the LOOSEST specialty for procedure suggestions.
  * The diagnosis tells you the problem, but the procedure depends on
@@ -769,6 +769,137 @@ const ORTH_DX_RECONSTRUCTION: DiagnosisPicklistEntry[] = [
       },
     ],
     sortOrder: 5,
+  },
+  {
+    id: "orth_dx_hardware_exposure",
+    displayName: "Post-surgical wound breakdown — exposed hardware / implant",
+    shortName: "Hardware exposure",
+    snomedCtCode: "225553008", // VERIFY via Ontoserver — "Wound dehiscence (disorder)"
+    snomedCtDisplay: "Wound dehiscence (disorder)",
+    specialty: "orthoplastic",
+    subcategory: "Complex Reconstruction",
+    clinicalGroup: "reconstructive",
+    hasStaging: false,
+    searchSynonyms: [
+      "hardware exposure",
+      "plate exposure",
+      "implant exposure",
+      "metalwork exposure",
+      "wound breakdown",
+      "post-ORIF",
+      "exposed plate",
+      "exposed metalwork",
+      "surgical site breakdown",
+      "wound dehiscence orthopaedic",
+      "skin necrosis over plate",
+    ],
+    suggestedProcedures: [
+      {
+        procedurePicklistId: "orth_debride_surgical",
+        displayName: "Surgical debridement",
+        isDefault: true,
+        sortOrder: 1,
+      },
+      {
+        procedurePicklistId: "orth_npwt",
+        displayName: "Negative pressure wound therapy",
+        isDefault: false,
+        sortOrder: 2,
+      },
+      {
+        procedurePicklistId: "orth_ff_alt",
+        displayName: "Free ALT flap",
+        isDefault: false,
+        sortOrder: 3,
+      },
+      {
+        procedurePicklistId: "orth_ff_gracilis",
+        displayName: "Free gracilis flap",
+        isDefault: false,
+        sortOrder: 4,
+      },
+      {
+        procedurePicklistId: "orth_ped_propeller",
+        displayName: "Propeller flap",
+        isDefault: false,
+        sortOrder: 5,
+      },
+      {
+        procedurePicklistId: "orth_ped_reversed_sural",
+        displayName: "Reversed sural flap",
+        isDefault: false,
+        sortOrder: 6,
+      },
+      {
+        procedurePicklistId: "orth_ssg_meshed",
+        displayName: "STSG — meshed",
+        isDefault: false,
+        sortOrder: 7,
+      },
+    ],
+    sortOrder: 6,
+  },
+  {
+    id: "orth_dx_periprosthetic_wound",
+    displayName:
+      "Periprosthetic / peri-implant infection — wound breakdown",
+    shortName: "Periprosthetic wound",
+    snomedCtCode: "713593003", // VERIFY via Ontoserver — "Periprosthetic joint infection (disorder)"
+    snomedCtDisplay: "Periprosthetic joint infection (disorder)",
+    specialty: "orthoplastic",
+    subcategory: "Complex Reconstruction",
+    clinicalGroup: "reconstructive",
+    hasStaging: false,
+    searchSynonyms: [
+      "periprosthetic infection",
+      "PJI",
+      "infected joint replacement",
+      "infected prosthesis",
+      "infected TKR",
+      "infected THR",
+      "prosthesis exposure",
+      "joint replacement wound",
+      "infected arthroplasty",
+    ],
+    suggestedProcedures: [
+      {
+        procedurePicklistId: "orth_debride_surgical",
+        displayName: "Surgical debridement",
+        isDefault: true,
+        sortOrder: 1,
+      },
+      {
+        procedurePicklistId: "orth_npwt",
+        displayName: "Negative pressure wound therapy",
+        isDefault: false,
+        sortOrder: 2,
+      },
+      {
+        procedurePicklistId: "orth_ff_alt",
+        displayName: "Free ALT flap",
+        isDefault: false,
+        sortOrder: 3,
+      },
+      {
+        procedurePicklistId: "orth_ped_gastrocnemius_medial",
+        displayName: "Gastrocnemius flap (knee coverage)",
+        isDefault: false,
+        sortOrder: 4,
+      },
+      {
+        procedurePicklistId: "orth_ff_gracilis",
+        displayName: "Free gracilis flap",
+        isDefault: false,
+        sortOrder: 5,
+      },
+      {
+        procedurePicklistId: "orth_ssg_meshed",
+        displayName: "STSG — meshed",
+        isDefault: false,
+        sortOrder: 6,
+      },
+    ],
+    sortOrder: 7,
   },
 ];
 
