@@ -35,6 +35,8 @@ Key capabilities: multi-specialty case logging, SNOMED CT coded diagnoses and pr
 - **Team Sharing Phases 1–8 COMPLETE** — Career stage internationalisation (88 stages, 6 countries, 6-tier seniority), team contacts CRUD + Settings UI, case form Team section (chip-based operative team tagging, 6-pill SectionNavBar), sharing server infrastructure (E2EE, assessments, push), operativeTeam → share-on-save bridge, EPA derivation (seniority-chain algorithm, 14 tests), seniority-tier-based assessor role detection, background contact discovery (24h throttle), link confirmation + discovery badges, invitation emails (Resend, amber-branded), signup email matching, learning curve dashboard (dot plot charts, teaching aggregate, calibration score)
 - **Facial & Peripheral Nerve Remediation Phases 1–2 COMPLETE** — Category renamed to "Facial & Peripheral Nerve", BP diagnoses collapsed (8→4: obstetric, traumatic, radiation, tumour), compression neuropathy subcategory (10 entries), facial nerve cross-referenced from H&N (9 entries), nerve tumour module (4 entries with nerveTumourModule flag), context-aware nerve picker (bodyRegion filtering), DIAGNOSIS_TO_NERVE auto-select (20 mappings), 4 rendering paths (BP-only, compression-lightweight, nerve-tumour-minimal, standard), laterality inside assessment (Left/Right only), BP aetiology-filtered mechanisms, neuroma affected nerve Section 0, legacy ID aliases for removed BP entries, 22 facial reanimation procedures cross-tagged peripheral_nerve, deriveInjuryPatternLabel for inferred BP pattern badge, 23 tests
 - **Code Audit & Remediation COMPLETE** — Removed 7 unused npm packages, dead `teams`/`teamMembers` schema tables, 6 dead code files, 9 unused seed data exports; fixed patient identifier hashing inconsistency (inbox SHA-256 → HMAC-SHA256 consistent with case storage); deduplicated `ExcisionCompleteness`, disambiguated `LiposuctionArea`/`AmputationLevel` type name collisions; deleted ~45MB Replit session artifacts; deprecated `bodyContouringDiagnoses` stub removed
+- **Per-Procedure Team Roles + EPA Targets COMPLETE** — `ProcedureTeamFooter` below each procedure card with per-procedure role overrides (`teamRoleOverrides`) and presence toggles (`teamMemberPresence`); EPA target derivation on save via `saveEpaTargets()` (non-blocking); `CaseDetailScreen` shows abbreviated names and resolved role labels per procedure; case-form UX polish (gender picker spacing, collapsible section layout measurement, elective-case injury date suppression)
+- **Build Health COMPLETE** — All 1452 tests across 75 files green; `tsc --noEmit` clean; Vitest RN resolution fixed via `react-native-web` alias + `react-dom` + global setup file stubbing `globalThis.expo` and `expo-secure-store`
 - **Phase 5 IN PROGRESS** — Version 2.5.0, EAS config done (dev/preview/production profiles), pending manual regression + TestFlight submission
 
 ## Tech stack
@@ -897,8 +899,9 @@ Following established patterns:
 
 ### Component Registry
 - Config: `client/lib/aestheticsConfig.ts`
-- Products: `client/lib/aestheticProducts.ts` (Phase 4)
+- Products: `client/lib/aestheticProducts.ts`
 - Types: `client/types/aesthetics.ts`
+- Components (`client/components/aesthetics/`): `AestheticAssessment`, `AestheticProcedureFirstFlow`, `ProductPicker`, `PostBariatricContext`, plus 9 inline detail cards (`NeurotoxinDetailsCard`, `FillerDetailsCard`, `BiostimulatorDetailsCard`, `PrpDetailsCard`, `ThreadLiftDetailsCard`, `EnergyDeviceDetailsCard`, `FatGraftingDetailsCard`, `LiposuctionDetailsCard`)
 
 ## Burns Module — Locked Decisions
 
@@ -1040,10 +1043,10 @@ Following established patterns:
 ### Component Registry
 - `LymphaticAssessment` → `client/components/lymphatic/LymphaticAssessment.tsx`
 - `CircumferenceEntry` → `client/components/lymphatic/CircumferenceEntry.tsx`
-- `LVAOperativeDetails` → `client/components/lymphatic/LVAOperativeDetails.tsx` (Phase 4)
-- `VLNTDetails` → `client/components/lymphatic/VLNTDetails.tsx` (Phase 5)
-- `SAPLDetails` → `client/components/lymphatic/SAPLDetails.tsx` (Phase 5)
-- `LymphaticFollowUpEntry` → `client/components/lymphatic/LymphaticFollowUpEntry.tsx` (Phase 6)
+- `LVAOperativeDetails` → `client/components/lymphatic/LVAOperativeDetails.tsx`
+- `VLNTDetails` → `client/components/lymphatic/VLNTDetails.tsx`
+- `SAPLDetails` → `client/components/lymphatic/SAPLDetails.tsx`
+- `LymphaticFollowUpEntry` → `client/components/lymphatic/LymphaticFollowUpEntry.tsx`
 - Config: `client/lib/lymphaticConfig.ts`
 - Types: `client/types/lymphatic.ts`
 - Diagnoses: `client/lib/diagnosisPicklists/lymphoedemaDiagnoses.ts`
@@ -1227,7 +1230,7 @@ Touch targets: minimum 48px (`Spacing.touchTarget`)
 - **Expo slug:** surgical-logbook
 - **EAS Project ID:** 0bc1b91c-c240-4f4e-b030-31d16389cd1e
 - **Expo account:** @gladmat
-- **Version:** 2.5.0, buildNumber 7
+- **Version:** 2.5.0, buildNumber 8
 - **New Architecture:** enabled
 - **React Compiler:** enabled (experimental)
 
@@ -1290,6 +1293,24 @@ Three independent dimensions:
 - **Smart defaults:** `suggestRoleDefaults(profile)` → consultants get `SURGEON + INDEPENDENT`, trainees get `SURGEON + SUP_SCRUBBED`
 - **Export compat:** `toNearestLegacyRole(role, supervision)` maps to legacy code for export/sync.
 
+### Per-procedure team roles & presence
+
+Beyond the case-owner role model above, each `CaseProcedure` carries a **per-procedure team override** so a long session with multiple procedures can record who did what without duplicating the case.
+
+- **`CaseProcedure.teamRoleOverrides: Record<contactId, TeamMemberOperativeRole>`** — overrides the case-level role for specific team contacts on this procedure (e.g. a senior trainee who was SURGEON on procedure 2 but FIRST_ASST on procedure 1)
+- **`CaseProcedure.teamMemberPresence: Record<contactId, boolean>`** — per-procedure presence toggles so a team member tagged on the case but not scrubbed for a given procedure is excluded from that procedure's attribution
+- **`ProcedureTeamFooter`** (`client/components/ProcedureTeamFooter.tsx`) — compact footer rendered under each procedure card inside `DiagnosisProcedureSection`. Shows abbreviated member names, resolved role labels, and a "tap to override" surface. A global procedure offset is computed so the footer numbering matches the visible case-wide procedure order.
+- **Reducer actions** (`useCaseForm`): `SET_PROCEDURE_ROLE_OVERRIDE`, `TOGGLE_MEMBER_PROCEDURE_PRESENCE`
+- **Display:** `CaseDetailScreen` shows abbreviated names and resolved role labels per procedure in read-only mode
+
+### EPA target storage (local)
+
+EPA pairs derived from the seniority chain at save time are also persisted locally so the learning-curve dashboard can track assessment progress without waiting for server assessments.
+
+- **API:** `saveEpaTargets(caseId, targets)` / `getEpaTargets(caseId)` in `client/lib/assessmentStorage.ts`
+- **Derivation:** runs on case save via `deriveEpaPairs()` (seniority-chain algorithm in `client/lib/epaDerivation.ts`)
+- **Failure mode:** non-blocking — EPA derivation errors do not prevent case save
+
 ### Key files
 
 | File                                         | Purpose                                                                                                           |
@@ -1323,7 +1344,7 @@ RACS MALT codes and other training-programme formats are derived at export time 
 
 ## Testing
 
-- **Framework:** Vitest 4.0.18, **1417 tests** across 75 files
+- **Framework:** Vitest 4.0.18, **1452 tests** across 75 files
 - **Client tests:** `client/lib/__tests__/` and `client/components/` — covering hand trauma (diagnosis, mapping, ux), skin cancer (config 89, phase4 11, phase5 18, diagnoses 7), dashboard (selectors 7), hand (infection 42, elective 103), dupuytren (37), joint implant (44), osteotomy (18), media (encryption 7, fileStorage 3, tagHelpers 82, captureProtocols 41, operativeMedia 19, form 4, defaults 4, context 3), inbox (storage 13, assignment 17), capture (smartImportPrefs 10, sharedIngress 2), case (specialty 5, storageCache 4, draftPersistence 1), statistics (helpers 3, stats 7), dates (values 12, normalization 4), export (implant 3, breast), planned case (18), media organiser (15), NHI validation (12), patient identity (11), operative role (68), head & neck integration (4), breast (phase3, phase4, export), FISS calculator (12), craniofacial, aesthetics, burns, peripheral nerve, lymphoedema, team contacts (11), operative team (15), sharing bridge (8), EPA derivation (14), assessment roles + calibration (22), plus media UI coverage
 - **Server tests:** `server/__tests__/` — auth (17), validation (7), diagnosisStagingConfig (3), teamContacts (17), invitations (6)
 - **Run:** `npm run test` (once) or `npm run test:watch` (watch mode)
@@ -1533,6 +1554,7 @@ CaseFormScreen.tsx
 │   │       ├── JointImplantSection     — client/components/joint-implant/JointImplantSection.tsx
 │   │       ├── MultiLesionEditor       — client/components/MultiLesionEditor.tsx
 │   │       ├── ProcedureClinicalDetails — client/components/ProcedureClinicalDetails.tsx
+│   │       ├── ProcedureTeamFooter     — client/components/ProcedureTeamFooter.tsx
 │   │       ├── InfectionOverlayForm    — client/components/InfectionOverlayForm.tsx
 │   │       ├── WoundAssessmentForm     — client/components/WoundAssessmentForm.tsx
 │   │       └── FlapOutcomeSection      — client/components/FlapOutcomeSection.tsx

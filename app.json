@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.drgladysz.opus",
-      "buildNumber": "7",
+      "buildNumber": "8",
       "appleTeamId": "8CQ38RR2W4",
       "usesAppleSignIn": true,
       "infoPlist": {

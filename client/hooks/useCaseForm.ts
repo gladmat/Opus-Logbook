@@ -559,14 +559,13 @@ export function formStateToDraft(
   state: CaseFormState,
   specialty: Specialty,
 ): CaseDraft {
-  const showInjuryDate =
-    state.admissionUrgency === "acute" ||
-    state.diagnosisGroups.some(
-      (g) =>
-        g.specialty === "hand_wrist" ||
-        g.specialty === "orthoplastic" ||
-        g.specialty === "peripheral_nerve",
-    );
+  // Injury date is meaningful only for acute (trauma / emergency) admissions.
+  // Previously this also showed for any hand/orthoplastic/PN case, which
+  // surfaced "Day of Injury" in elective cases (Dupuytren's, CTS, pressure
+  // injury reconstruction). Hand trauma captures its own injury date inside
+  // HandTraumaAssessment, which is why OperativeSection additionally gates on
+  // `!hasHandTraumaGroup`.
+  const showInjuryDate = state.admissionUrgency === "acute";
 
   return {
     id: "draft",
@@ -1534,14 +1533,9 @@ export function useCaseForm({
     return `${Math.floor(mins / 60)}h ${mins % 60}m`;
   }, [state.surgeryStartTime, state.surgeryEndTime]);
 
-  const showInjuryDate =
-    state.admissionUrgency === "acute" ||
-    state.diagnosisGroups.some(
-      (g) =>
-        g.specialty === "hand_wrist" ||
-        g.specialty === "orthoplastic" ||
-        g.specialty === "peripheral_nerve",
-    );
+  // Injury date is meaningful only for acute (trauma / emergency) admissions.
+  // See formStateToDraft() above for the full rationale.
+  const showInjuryDate = state.admissionUrgency === "acute";
 
   // ── Side effects ────────────────────────────────────────────────────────
 
