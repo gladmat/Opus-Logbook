@@ -5,7 +5,7 @@ import { BreastProgressiveAssessment } from "@/components/breast/BreastProgressi
 import { getDiagnosesForSpecialty } from "@/lib/diagnosisPicklists";
 import type { DiagnosisPicklistEntry } from "@/types/diagnosis";
 import type { BreastAssessmentData } from "@/types/breast";
-import type { CaseProcedure } from "@/types/case";
+import type { CaseProcedure, ProcedureTag } from "@/types/case";
 
 (
   globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
@@ -204,9 +204,9 @@ function makeProcedure(picklistId: string): CaseProcedure {
     breast_impl_dti: "Direct-to-implant reconstruction",
   };
 
-  const tags: Record<string, string[]> = {
-    breast_impl_dti: ["implant"],
-  };
+  // Tag map kept for future use; "Implant Details" visibility is driven by
+  // picklistEntryId in BreastProgressiveAssessment, not tags.
+  const tags: Record<string, ProcedureTag[]> = {};
 
   return {
     id: `proc-${picklistId}`,

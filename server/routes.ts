@@ -352,7 +352,7 @@ const INVITATION_RATE_LIMIT = 20;
 const INVITATION_RATE_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 // Periodic cleanup: evict expired entries every 60 seconds
-setInterval(() => {
+const rateLimiterCleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [ip, entry] of authRateLimiter) {
     if (now > entry.resetTime) {
@@ -369,7 +369,8 @@ setInterval(() => {
       invitationRateLimiter.delete(key);
     }
   }
-}, 60_000).unref();
+}, 60_000) as unknown as NodeJS.Timeout;
+rateLimiterCleanupTimer.unref();
 
 function cleanupRateLimiter(): void {
   if (authRateLimiter.size <= AUTH_RATE_LIMITER_MAX_ENTRIES) return;
