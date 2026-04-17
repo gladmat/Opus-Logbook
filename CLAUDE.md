@@ -37,7 +37,7 @@ Key capabilities: multi-specialty case logging, SNOMED CT coded diagnoses and pr
 - **Code Audit & Remediation COMPLETE** — Removed 7 unused npm packages, dead `teams`/`teamMembers` schema tables, 6 dead code files, 9 unused seed data exports; fixed patient identifier hashing inconsistency (inbox SHA-256 → HMAC-SHA256 consistent with case storage); deduplicated `ExcisionCompleteness`, disambiguated `LiposuctionArea`/`AmputationLevel` type name collisions; deleted ~45MB Replit session artifacts; deprecated `bodyContouringDiagnoses` stub removed
 - **Per-Procedure Team Roles + EPA Targets COMPLETE** — `ProcedureTeamFooter` below each procedure card with per-procedure role overrides (`teamRoleOverrides`) and presence toggles (`teamMemberPresence`); EPA target derivation on save via `saveEpaTargets()` (non-blocking); `CaseDetailScreen` shows abbreviated names and resolved role labels per procedure; case-form UX polish (gender picker spacing, collapsible section layout measurement, elective-case injury date suppression)
 - **Build Health COMPLETE** — All 1452 tests across 75 files green; `tsc --noEmit` clean; Vitest RN resolution fixed via `react-native-web` alias + `react-dom` + global setup file stubbing `globalThis.expo` and `expo-secure-store`
-- **Phase 5 IN PROGRESS** — Version 2.5.0, EAS config done (dev/preview/production profiles), pending manual regression + TestFlight submission
+- **Phase 5 SHIPPED TO TESTFLIGHT** — Version 2.5.0, EAS build 1.2.52 from commit `00a3c3a`, production profile with auto-submit, reached TestFlight 2026-04-17
 
 ## Tech stack
 
@@ -1230,9 +1230,40 @@ Touch targets: minimum 48px (`Spacing.touchTarget`)
 - **Expo slug:** surgical-logbook
 - **EAS Project ID:** 0bc1b91c-c240-4f4e-b030-31d16389cd1e
 - **Expo account:** @gladmat
-- **Version:** 2.5.0, buildNumber 8
+- **Version:** 2.5.0, buildNumber 8 (app.json) — EAS assigns remote buildNumber (e.g. 1.2.52) because `eas.json` has `appVersionSource: "remote"` + production `autoIncrement: true`
 - **New Architecture:** enabled
 - **React Compiler:** enabled (experimental)
+
+### EAS / TestFlight operational lessons
+
+Hard-won during the 2026-04-17 shipping session. Read these BEFORE submitting the next TestFlight build.
+
+**Lockfile discipline — never use `--legacy-peer-deps` on this repo.**
+- EAS runs strict `npm ci --include=dev`, which fails the moment a peer dep is in `package.json` but not in `package-lock.json`
+- `--legacy-peer-deps` silently skips peer dep resolution locally, so the mismatch doesn't surface until EAS rejects it
+- `react-native-mmkv@^4.2.0` requires `react-native-nitro-modules` as a peer dep — it must be an explicit direct dependency, not a phantom peer
+- If you must resolve a React/react-dom peer conflict, use `npx expo install <pkg>` (respects SDK compat) or pin versions to match React 19.1 exactly
+
+**Apple agreements expire without warning.**
+- Apple silently invalidates the upload token (403 `FORBIDDEN.REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED`) when any Developer Program, Paid Applications, or Free Applications agreement lapses or gets revised
+- The `links: { see: "/business" }` field in the error points to App Store Connect → **Business** (not the Program License tab) — that's where the "Active / Ready to Sign / Expired" state lives
+- Only the **Account Holder** Apple ID can sign agreements. Admin or App Manager roles will see the Sign button greyed out
+- After signing, propagation to the submit API can take up to **24h** (often minutes, but not always instant)
+
+**`eas submit` against an already-attempted build silently fails with zero logs.**
+- Manual `eas submit --id <buildId>` retries against a build whose previous submission errored will fail in ~30s with no error detail, empty `error` object, empty `logFiles[]`, and empty `workflowJob.errors[]` via GraphQL
+- `--verbose` and `--verbose-fastlane` make no difference in non-interactive mode
+- **Recovery pattern:** trigger a fresh build with `autoSubmit: true`. The auto-submit inside a build job reaches fastlane reliably and produces readable logs (success or failure). This is the canonical "unstick it" move.
+- The dashboard URL (`https://expo.dev/accounts/gladmat/projects/surgical-logbook/submissions/<id>`) renders the raw job logs in a format the GraphQL API doesn't expose — if you can't see the error from the CLI or MCP, check there
+
+**Expo log blob format is proprietary.**
+- `JobRun.logFileUrls` returns storage.googleapis.com URLs containing a binary log container starting with `0b 54 31 00` / `8b 53 31 00` ("T1" / "S1" magic bytes) — NOT gzip, NOT zstd, NOT brotli
+- Don't waste time trying to decode these outside the Expo dashboard; use the dashboard or accept that submission failures need browser-based debugging
+
+**Build numbers are managed remotely.**
+- `eas.json` has `appVersionSource: "remote"` + production `autoIncrement: true`
+- The `buildNumber` in `app.json` is effectively documentation — EAS overwrites it from its own counter at build time (e.g. `1.2.51`, `1.2.52`)
+- Bumping app.json is still good hygiene for diff review, but don't expect it to be authoritative
 
 ### Environment variables
 
