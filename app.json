@@ -17,6 +17,9 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSFaceIDUsageDescription": "Opus uses Face ID to protect your surgical case data."
+      },
+      "entitlements": {
+        "com.apple.developer.default-data-protection": "NSFileProtectionComplete"
       }
     },
     "android": {
@@ -30,10 +33,9 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.drgladysz.opus",
       "versionCode": 1,
-      "blockedPermissions": [
-        "android.permission.RECORD_AUDIO"
-      ],
-      "permissions": []
+      "blockedPermissions": ["android.permission.RECORD_AUDIO"],
+      "permissions": [],
+      "allowBackup": false
     },
     "web": {
       "output": "single",

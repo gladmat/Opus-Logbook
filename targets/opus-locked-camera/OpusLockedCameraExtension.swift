@@ -178,14 +178,29 @@ private final class OpusLockedCameraController: NSObject, ObservableObject, AVCa
             "LockedCameraPending",
             isDirectory: true
         )
+        // Apply `completeUntilFirstUserAuthentication` — the strictest class
+        // compatible with a LockedCameraCapture extension, which by design
+        // runs while the device is locked (so files cannot use
+        // `.complete` / `NSFileProtectionComplete`). This is stricter than
+        // the default `none` class the shared App Group container would
+        // otherwise use, meaning forensic tools cannot read these files
+        // until the device has been unlocked at least once since boot.
         try FileManager.default.createDirectory(
             at: captureDirectory,
             withIntermediateDirectories: true,
-            attributes: nil
+            attributes: [
+                .protectionKey: FileProtectionType.completeUntilFirstUserAuthentication
+            ]
         )
 
         let fileURL = captureDirectory.appendingPathComponent("\(UUID().uuidString).jpg")
-        try data.write(to: fileURL, options: .atomic)
+        // Per-file protection locks the data to at least AFU state. The main
+        // app will ingest + delete these files on next launch; see
+        // `client/lib/sharedCaptureIngress.ts` and the >7-day orphan sweep.
+        try data.write(
+            to: fileURL,
+            options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication]
+        )
         return fileURL
     }
 

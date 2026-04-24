@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { AppState, StyleSheet, View } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 import * as Notifications from "expo-notifications";
+import { OpusMark } from "@/components/brand";
 import {
   NavigationContainer,
   DefaultTheme,
@@ -26,7 +27,10 @@ import { AppLockProvider } from "@/contexts/AppLockContext";
 import { MediaCallbackProvider } from "@/contexts/MediaCallbackContext";
 import { ThemeProvider, useTheme } from "@/hooks/useTheme";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
-import { ingestPendingLockedCameraCaptures } from "@/lib/sharedCaptureIngress";
+import {
+  ingestPendingLockedCameraCaptures,
+  sweepOrphanedLockedCameraFiles,
+} from "@/lib/sharedCaptureIngress";
 
 // ── Push notification foreground handler ─────────────────────────────────────
 Notifications.setNotificationHandler({
@@ -154,6 +158,14 @@ function ThemedNavigationContainer({
 
 export default function App() {
   const [ready, setReady] = useState(false);
+  // When iOS swipes the app up in the App Switcher (or backgrounds it via
+  // Command+H / Home gesture), the OS takes a snapshot of the last-rendered
+  // view and caches it to `~/Library/Caches/Snapshots/<bundle>/`. If the
+  // last-rendered view contained a decrypted patient photo or case detail,
+  // that plaintext snapshot persists on disk until the device is rebooted
+  // and is readable by forensic tools. We block this by swapping the root
+  // view to a branded opaque placeholder whenever the app becomes inactive.
+  const [isAppObscured, setIsAppObscured] = useState(false);
 
   useEffect(() => {
     async function prepare() {
@@ -166,6 +178,10 @@ export default function App() {
         await inboxStorage.initializeInboxStorage();
         void inboxStorage.cleanupOrphanedInboxItems().catch(console.warn);
         void ingestPendingLockedCameraCaptures().catch(console.warn);
+        // Also sweep any extension-produced JPEGs older than 7 days so the
+        // plaintext shared-container window stays bounded even if a user
+        // captures via the locked camera but never opens the app.
+        void sweepOrphanedLockedCameraFiles().catch(console.warn);
       } catch (error) {
         console.warn("[App] Inbox initialization failed:", error);
       }
@@ -177,6 +193,12 @@ export default function App() {
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextState) => {
+      // Draw the privacy overlay BEFORE the OS takes its App-Switcher
+      // snapshot. `inactive` fires as soon as the user starts the swipe
+      // gesture, which is early enough that the snapshot captures the
+      // overlay rather than the last rendered screen.
+      setIsAppObscured(nextState !== "active");
+
       if (nextState === "active") {
         void ingestPendingLockedCameraCaptures().catch(console.warn);
       }
@@ -238,6 +260,15 @@ export default function App() {
                         <RootStackNavigator />
                       </ThemedNavigationContainer>
                       <StatusBarThemed />
+                      {isAppObscured ? (
+                        <View
+                          pointerEvents="none"
+                          accessible={false}
+                          style={styles.privacyOverlay}
+                        >
+                          <OpusMark size={64} color="#E5A00D" />
+                        </View>
+                      ) : null}
                     </View>
                   </KeyboardProvider>
                 </GestureHandlerRootView>
@@ -253,5 +284,18 @@ export default function App() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+  },
+  privacyOverlay: {
+    // Absolute-fill so it covers whatever the navigator last rendered,
+    // including any decrypted patient photo. Backgrounded with the app's
+    // charcoal root colour so it looks intentional in the App Switcher.
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#0C0F14",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
