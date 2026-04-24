@@ -37,6 +37,9 @@ yarn-error.*
 .env
 .env*.local
 
+# Test credentials (contains production test-account passwords — MUST NOT be committed)
+TESTING.local.md
+
 # local Claude worktrees
 .claude/worktrees/
 

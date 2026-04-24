@@ -2,6 +2,29 @@
 
 Generated from the 2026-04-25 audit (5 parallel agents: server security, client crypto/E2EE, privacy/exfiltration, internal logic, supply chain). This plan groups ~80 findings into **6 focused sessions** plus an optional polish pass, sequenced so each session is self-contained, high-quality within a 1M-context window, and can ship independently as its own PR.
 
+## Status: ALL 7 SESSIONS SHIPPED (2026-04-25)
+
+| # | Commit | Session | Tests |
+|---|---|---|---|
+| 1 | `3eeb4ca` | Server auth/authZ + email normalisation | 1484 |
+| 2 | `0fb2c29` | Device crypto (legacy XOR, SecureStore, scrypt PIN) | 1497 |
+| 3 | `90f2af5` | iOS/Android platform privacy | 1497 |
+| 4 | `4ca9508` | State/save-pipeline integrity (clinical attribution) | 1504 |
+| 5 | `3cef7db` | PHI exfiltration + share hygiene | 1507 |
+| 6 | `6795752` | ✨ Share team details for non-Opus + TOFU key pinning | 1514 |
+| 7 | *this commit* | Test-cred hygiene + config cleanup | 1514 |
+
+Deferred to future work (each flagged in its session commit):
+- `helmet@8` migration (hand-rolled headers verified correct; low risk)
+- `jose`-only migration (algorithms pinned on every verify; low risk)
+- PSI contact discovery (design-heavy)
+- iCloud backup exclusion per-file via native module
+- Blinded-assessment cryptographic commit-reveal
+- Safety-number comparison UI for TOFU key rotations
+
+---
+
+
 **Legend:** 🔴 Critical · 🟠 High · 🟡 Medium · 🔵 Low · ✨ New feature request
 
 ---

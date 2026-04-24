@@ -1728,8 +1728,11 @@ grep -roh 'testID="[^"]*"' client/ | sort | uniq -d
 
 - Metro: `EXPO_UNSTABLE_MCP_SERVER=1 npx expo start --dev-client`
 - Simulator booted with dev build
-- Test account 1: `m.gladysz@outlook.com` / `testtest` / PIN: `1111`
-- Test account 2: `mateo.gladysz@outlook.com` / `test2test2`
+- Test account credentials live in `TESTING.local.md` (gitignored). The
+  passwords there are for ephemeral accounts on the Railway staging / prod
+  DB — rotate them on a schedule and never commit them to this repo.
+  If the file doesn't exist on your machine, ask Mateusz to share via a
+  1Password vault or similar secure channel.
 
 #### Workflow 1: Full Visual Audit
 
