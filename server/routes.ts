@@ -15,6 +15,7 @@ import {
   getAllStagingConfigs,
 } from "./diagnosisStagingConfig";
 import { sendPasswordResetEmail, sendInvitationEmail } from "./email";
+import { normalizeEmail, SNOMED_CONCEPT_ID_RE } from "./utils";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { createRemoteJWKSet, jwtVerify } from "jose";
@@ -31,6 +32,49 @@ import {
 import { sendPushNotification } from "./push";
 import { env } from "./env";
 import { z } from "zod";
+
+// ── Shared helpers ───────────────────────────────────────────────────────────
+// `normalizeEmail` and `SNOMED_CONCEPT_ID_RE` are imported from ./utils so
+// they can be unit-tested without pulling in the full Express stack.
+
+/**
+ * Log a server error internally and return a generic 5xx response body that
+ * never leaks `err.message` / stack traces to the caller. Used wherever a
+ * handler needs to respond from inside a catch block rather than throwing
+ * through to the app-level error handler.
+ */
+function respondInternalError(
+  res: Response,
+  context: string,
+  err: unknown,
+  publicMessage = "Internal server error",
+): void {
+  console.error(`${context}:`, err);
+  res.status(500).json({ error: publicMessage });
+}
+
+/**
+ * Authorization check for shared-case assessment endpoints. The caller MUST be
+ * either the owner (sharer) or the recipient of the shared case — an
+ * unrelated authenticated user must not be able to submit or inspect
+ * assessments for a shared case they don't belong to.
+ *
+ * Returns true if party, false otherwise. On false, writes a 403 to `res`.
+ */
+function assertIsPartyOnSharedCase(
+  userId: string,
+  sharedCase: { ownerUserId: string; recipientUserId: string },
+  res: Response,
+): boolean {
+  if (
+    userId !== sharedCase.ownerUserId &&
+    userId !== sharedCase.recipientUserId
+  ) {
+    res.status(403).json({ error: "Access denied" });
+    return false;
+  }
+  return true;
+}
 
 // ── Auth validation schemas ──────────────────────────────────────────────────
 
@@ -51,11 +95,11 @@ const appleAuthSchema = z.object({
   identityToken: z.string().min(1),
   fullName: z
     .object({
-      givenName: z.string().nullish(),
-      familyName: z.string().nullish(),
+      givenName: z.string().max(100).nullish(),
+      familyName: z.string().max(100).nullish(),
     })
     .nullish(),
-  email: z.string().email().nullish(),
+  email: z.string().email().max(255).nullish(),
 });
 
 // Apple JWKS for identity token verification (cached by jose)
@@ -109,9 +153,11 @@ fs.mkdirSync(uploadsDir, { recursive: true });
 
 const avatarStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadsDir),
-  filename: (req: AuthenticatedRequest, _file, cb) => {
-    const ext = ".jpg"; // We'll accept any image but save as original extension
-    const filename = `${req.userId}-${Date.now()}${ext}`;
+  filename: (_req, _file, cb) => {
+    // Random filenames — avatar URLs are served unauthenticated, so predictable
+    // `${userId}-${timestamp}.jpg` names would let anyone who knows a userId
+    // enumerate recent avatars. 32 hex chars = 128 bits of entropy.
+    const filename = `${randomBytes(16).toString("hex")}.jpg`;
     cb(null, filename);
   },
 });
@@ -185,10 +231,7 @@ const teamContactCreateSchema = z.object({
   registrationNumber: z.string().max(50).nullable().optional(),
   registrationJurisdiction: z.string().max(20).nullable().optional(),
   careerStage: z.string().max(50).nullable().optional(),
-  defaultRole: z
-    .enum(["PS", "FA", "SS", "US", "SA"])
-    .nullable()
-    .optional(),
+  defaultRole: z.enum(["PS", "FA", "SS", "US", "SA"]).nullable().optional(),
   notes: z.string().max(500).nullable().optional(),
   facilityIds: z.array(z.string()).optional(),
 });
@@ -528,7 +571,8 @@ export async function registerRoutes(app: Express): Promise<void> {
           });
           return;
         }
-        const { email, password } = parseResult.data;
+        const { password } = parseResult.data;
+        const email = normalizeEmail(parseResult.data.email);
 
         const existingUser = await storage.getUserByEmail(email);
         if (existingUser) {
@@ -562,11 +606,12 @@ export async function registerRoutes(app: Express): Promise<void> {
 
         res.json({ token, user: { id: user.id, email: user.email } });
       } catch (error) {
-        console.error(
-          "Signup error:",
-          error instanceof Error ? error.message : "Unknown error",
+        respondInternalError(
+          res,
+          "Signup error",
+          error,
+          "Failed to create account",
         );
-        res.status(500).json({ error: "Failed to create account" });
       }
     },
   );
@@ -591,7 +636,8 @@ export async function registerRoutes(app: Express): Promise<void> {
           });
           return;
         }
-        const { email, password } = parseResult.data;
+        const { password } = parseResult.data;
+        const email = normalizeEmail(parseResult.data.email);
 
         const user = await storage.getUserByEmail(email);
         if (!user) {
@@ -621,11 +667,7 @@ export async function registerRoutes(app: Express): Promise<void> {
           onboardingComplete: profile?.onboardingComplete ?? false,
         });
       } catch (error) {
-        console.error(
-          "Login error:",
-          error instanceof Error ? error.message : "Unknown error",
-        );
-        res.status(500).json({ error: "Failed to login" });
+        respondInternalError(res, "Login error", error, "Failed to login");
       }
     },
   );
@@ -679,11 +721,12 @@ export async function registerRoutes(app: Express): Promise<void> {
         try {
           existingUser = await storage.getUserByAppleId(appleUserId);
         } catch (lookupErr) {
-          console.error("Apple auth: user lookup by Apple ID failed:", lookupErr);
-          res.status(500).json({
-            error: "Apple Sign In failed",
-            detail: lookupErr instanceof Error ? lookupErr.message : "User lookup failed",
-          });
+          respondInternalError(
+            res,
+            "Apple auth: user lookup by Apple ID failed",
+            lookupErr,
+            "Apple Sign In failed",
+          );
           return;
         }
 
@@ -711,19 +754,21 @@ export async function registerRoutes(app: Express): Promise<void> {
         }
 
         // New user — create account
-        const userEmail =
-          email || tokenEmail || `apple_${appleUserId}@private.opus.local`;
+        const userEmail = normalizeEmail(
+          email || tokenEmail || `apple_${appleUserId}@private.opus.local`,
+        );
 
         // Check if email already exists (user may have signed up with email first)
         let emailUser;
         try {
           emailUser = await storage.getUserByEmail(userEmail);
         } catch (emailErr) {
-          console.error("Apple auth: email lookup failed:", emailErr);
-          res.status(500).json({
-            error: "Apple Sign In failed",
-            detail: emailErr instanceof Error ? emailErr.message : "Email lookup failed",
-          });
+          respondInternalError(
+            res,
+            "Apple auth: email lookup failed",
+            emailErr,
+            "Apple Sign In failed",
+          );
           return;
         }
 
@@ -732,11 +777,12 @@ export async function registerRoutes(app: Express): Promise<void> {
           try {
             await storage.updateUser(emailUser.id, { appleUserId });
           } catch (linkErr) {
-            console.error("Apple auth: account linking failed:", linkErr);
-            res.status(500).json({
-              error: "Apple Sign In failed",
-              detail: linkErr instanceof Error ? linkErr.message : "Account linking failed",
-            });
+            respondInternalError(
+              res,
+              "Apple auth: account linking failed",
+              linkErr,
+              "Apple Sign In failed",
+            );
             return;
           }
           const profile = await storage.getProfile(emailUser.id);
@@ -772,11 +818,12 @@ export async function registerRoutes(app: Express): Promise<void> {
             appleUserId,
           });
         } catch (createErr) {
-          console.error("Apple auth: user creation failed:", createErr);
-          res.status(500).json({
-            error: "Apple Sign In failed",
-            detail: createErr instanceof Error ? createErr.message : "User creation failed",
-          });
+          respondInternalError(
+            res,
+            "Apple auth: user creation failed",
+            createErr,
+            "Apple Sign In failed",
+          );
           return;
         }
 
@@ -798,7 +845,10 @@ export async function registerRoutes(app: Express): Promise<void> {
         } catch (profileErr) {
           // Don't fail auth — user was created, JWT is valid.
           // User can complete profile in onboarding.
-          console.warn("Apple auth: profile creation failed, user can complete in onboarding:", profileErr);
+          console.warn(
+            "Apple auth: profile creation failed, user can complete in onboarding:",
+            profileErr,
+          );
         }
 
         const token = jwt.sign(
@@ -812,14 +862,12 @@ export async function registerRoutes(app: Express): Promise<void> {
           user: { id: user.id, email: user.email },
         });
       } catch (error) {
-        console.error(
-          "Apple auth error:",
-          error instanceof Error ? error.stack : "Unknown error",
+        respondInternalError(
+          res,
+          "Apple auth error",
+          error,
+          "Apple Sign In failed",
         );
-        res.status(500).json({
-          error: "Apple Sign In failed",
-          detail: error instanceof Error ? error.message : "Unknown error",
-        });
       }
     },
   );
@@ -946,7 +994,7 @@ export async function registerRoutes(app: Express): Promise<void> {
           });
           return;
         }
-        const { email } = parseResult.data;
+        const email = normalizeEmail(parseResult.data.email);
 
         const user = await storage.getUserByEmail(email);
 
@@ -1059,34 +1107,75 @@ export async function registerRoutes(app: Express): Promise<void> {
     authenticateToken,
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       try {
-        const { password } = req.body;
-        if (!password || typeof password !== "string") {
-          res.status(400).json({
-            error: "Password is required to confirm account deletion",
-          });
-          return;
-        }
-
         const user = await storage.getUser(req.userId!);
         if (!user) {
           res.status(404).json({ error: "User not found" });
           return;
         }
 
-        const validPassword = await bcrypt.compare(password, user.password);
-        if (!validPassword) {
-          res.status(401).json({ error: "Password is incorrect" });
+        // Users must re-authenticate to delete their account. Email/password
+        // users present the password they know; Apple-only users present a
+        // fresh Apple identity token (they never set a password).
+        const body = (req.body ?? {}) as {
+          password?: unknown;
+          appleIdentityToken?: unknown;
+        };
+
+        const password =
+          typeof body.password === "string" ? body.password : undefined;
+        const appleIdentityToken =
+          typeof body.appleIdentityToken === "string"
+            ? body.appleIdentityToken
+            : undefined;
+
+        if (!password && !appleIdentityToken) {
+          res.status(400).json({
+            error:
+              "Re-authentication required: provide either `password` or `appleIdentityToken`",
+          });
+          return;
+        }
+
+        let authenticated = false;
+
+        if (password) {
+          authenticated = await bcrypt.compare(password, user.password);
+        }
+
+        if (!authenticated && appleIdentityToken) {
+          if (!user.appleUserId) {
+            res
+              .status(401)
+              .json({ error: "This account is not linked to Apple Sign In" });
+            return;
+          }
+          try {
+            const { payload } = await jwtVerify(appleIdentityToken, appleJWKS, {
+              issuer: "https://appleid.apple.com",
+              audience: APPLE_BUNDLE_ID,
+            });
+            if (payload.sub && payload.sub === user.appleUserId) {
+              authenticated = true;
+            }
+          } catch {
+            // Fall through to the 401 below
+          }
+        }
+
+        if (!authenticated) {
+          res.status(401).json({ error: "Re-authentication failed" });
           return;
         }
 
         await storage.deleteUserAccount(req.userId!);
         res.json({ success: true, message: "Account deleted successfully" });
       } catch (error) {
-        console.error(
-          "Account deletion error:",
-          error instanceof Error ? error.message : "Unknown error",
+        respondInternalError(
+          res,
+          "Account deletion error",
+          error,
+          "Failed to delete account",
         );
-        res.status(500).json({ error: "Failed to delete account" });
       }
     },
   );
@@ -1213,6 +1302,9 @@ export async function registerRoutes(app: Express): Promise<void> {
           return;
         }
 
+        const newFilePath = req.file.path;
+        let dbWriteSucceeded = false;
+
         try {
           // Delete old avatar file if it exists
           const existingProfile = await storage.getProfile(req.userId!);
@@ -1227,13 +1319,21 @@ export async function registerRoutes(app: Express): Promise<void> {
           const profile = await storage.updateProfile(req.userId!, {
             profilePictureUrl: pictureUrl,
           });
+          dbWriteSucceeded = true;
           res.json(serializeProfile(profile));
         } catch (error) {
-          console.error(
-            "Profile picture upload error:",
-            error instanceof Error ? error.message : "Unknown error",
+          respondInternalError(
+            res,
+            "Profile picture upload error",
+            error,
+            "Failed to upload profile picture",
           );
-          res.status(500).json({ error: "Failed to upload profile picture" });
+        } finally {
+          // If the DB update failed, the newly saved file is orphaned.
+          // Clean it up so it doesn't accumulate on disk.
+          if (!dbWriteSucceeded && newFilePath && fs.existsSync(newFilePath)) {
+            await fs.promises.unlink(newFilePath).catch(() => {});
+          }
         }
       });
     },
@@ -1743,6 +1843,10 @@ export async function registerRoutes(app: Express): Promise<void> {
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       try {
         const conceptId = req.params.conceptId!;
+        if (!SNOMED_CONCEPT_ID_RE.test(conceptId)) {
+          res.status(400).json({ error: "Invalid concept ID" });
+          return;
+        }
         const details = await getConceptDetails(conceptId);
 
         if (!details) {
@@ -1832,11 +1936,12 @@ export async function registerRoutes(app: Express): Promise<void> {
           return;
         }
 
-        const { caseId, encryptedShareableBlob, recipients } =
-          parseResult.data;
+        const { caseId, encryptedShareableBlob, recipients } = parseResult.data;
         const ownerUserId = req.userId!;
 
         const sharedCases: { id: string; recipientUserId: string }[] = [];
+        const pushQueue: { recipientUserId: string; sharedCaseId: string }[] =
+          [];
 
         for (const recipient of recipients) {
           // Owner cannot share with themselves
@@ -1878,16 +1983,25 @@ export async function registerRoutes(app: Express): Promise<void> {
             recipientUserId: recipient.userId,
           });
 
-          // Fire push notification (non-blocking)
-          sendPushNotification(
-            recipient.userId,
-            "Case Shared",
-            "A colleague has shared a case with you",
-            { type: "case_shared", sharedCaseId: sharedCase.id },
-          ).catch(() => {});
+          pushQueue.push({
+            recipientUserId: recipient.userId,
+            sharedCaseId: sharedCase.id,
+          });
         }
 
+        // Respond first; fire pushes afterwards so response latency stays
+        // decoupled from push-provider latency.
         res.status(201).json({ sharedCases });
+
+        for (const p of pushQueue) {
+          sendPushNotification(
+            p.recipientUserId,
+            "Case Shared",
+            "A colleague has shared a case with you",
+            { type: "case_shared", sharedCaseId: p.sharedCaseId },
+          ).catch((err) => console.warn("Share push failed:", err));
+        }
+        return;
       } catch (error) {
         console.error(
           "Error sharing case:",
@@ -1905,10 +2019,7 @@ export async function registerRoutes(app: Express): Promise<void> {
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       try {
         const status = req.query.status as string | undefined;
-        const limit = Math.min(
-          parseInt(req.query.limit as string) || 50,
-          100,
-        );
+        const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
         const offset = parseInt(req.query.offset as string) || 0;
 
         const cases = await storage.getSharedInbox(req.userId!, {
@@ -2030,8 +2141,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         // Fire push notification to case owner (non-blocking)
         try {
           const recipientProfile = await storage.getProfile(req.userId!);
-          const recipientName =
-            recipientProfile?.fullName || "A team member";
+          const recipientName = recipientProfile?.fullName || "A team member";
           const isVerified = parseResult.data.status === "verified";
           sendPushNotification(
             updated.ownerUserId,
@@ -2210,6 +2320,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
         const { firstName, lastName, ...rest } = parseResult.data;
         const displayName = `${firstName} ${lastName}`;
+        const normalizedEmail = rest.email
+          ? normalizeEmail(rest.email)
+          : rest.email;
 
         const contact = await storage.createTeamContact({
           ownerUserId: req.userId!,
@@ -2217,6 +2330,7 @@ export async function registerRoutes(app: Express): Promise<void> {
           lastName,
           displayName,
           ...rest,
+          email: normalizedEmail ?? null,
           facilityIds: rest.facilityIds ?? [],
         });
         res.json(contact);
@@ -2246,6 +2360,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         }
 
         const data = parseResult.data;
+        if (typeof data.email === "string") {
+          data.email = normalizeEmail(data.email);
+        }
 
         // Auto-update displayName if name fields changed
         if (data.firstName || data.lastName) {
@@ -2324,9 +2441,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         }
 
         // Validate target user exists and is discoverable
-        const targetUser = await storage.getUser(
-          parseResult.data.linkedUserId,
-        );
+        const targetUser = await storage.getUser(parseResult.data.linkedUserId);
         if (!targetUser) {
           res.status(404).json({ error: "Target user not found" });
           return;
@@ -2408,7 +2523,8 @@ export async function registerRoutes(app: Express): Promise<void> {
           return;
         }
 
-        const { contactId, email } = parseResult.data;
+        const { contactId } = parseResult.data;
+        const email = normalizeEmail(parseResult.data.email);
 
         // Verify the contact belongs to this user
         const contact = await storage.getTeamContact(contactId, req.userId!);
@@ -2498,15 +2614,15 @@ export async function registerRoutes(app: Express): Promise<void> {
           return;
         }
 
-        const email = req.query.email as string | undefined;
+        const emailRaw = req.query.email as string | undefined;
         const phone = req.query.phone as string | undefined;
         const registration = req.query.registration as string | undefined;
         const jurisdiction = req.query.jurisdiction as string | undefined;
 
         let user: Awaited<ReturnType<typeof storage.getUser>> | undefined;
 
-        if (email) {
-          user = await storage.getUserByEmail(email);
+        if (emailRaw) {
+          user = await storage.getUserByEmail(normalizeEmail(emailRaw));
         } else if (phone) {
           user = await storage.getUserByPhone(phone);
         } else if (registration && jurisdiction) {
@@ -2560,6 +2676,17 @@ export async function registerRoutes(app: Express): Promise<void> {
     authenticateToken,
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       try {
+        // Discovery is a membership oracle — rate-limit it per user just like
+        // the user-search endpoint. Without this, a single authenticated user
+        // could submit 50 emails per request at whatever cadence the server
+        // accepts and enumerate the full Opus directory.
+        if (!checkUserSearchRateLimit(req.userId!)) {
+          res
+            .status(429)
+            .json({ error: "Too many requests. Please try again later." });
+          return;
+        }
+
         const parseResult = discoverContactsSchema.safeParse(req.body);
         if (!parseResult.success) {
           res.status(400).json({
@@ -2582,7 +2709,7 @@ export async function registerRoutes(app: Express): Promise<void> {
 
           // Priority: email → phone → registration
           if (contact.email) {
-            user = await storage.getUserByEmail(contact.email);
+            user = await storage.getUserByEmail(normalizeEmail(contact.email));
           }
           if (!user && contact.phone) {
             user = await storage.getUserByPhone(contact.phone);
@@ -2637,13 +2764,40 @@ export async function registerRoutes(app: Express): Promise<void> {
           return;
         }
 
-        const { sharedCaseId, assessorRole, encryptedAssessment, keyEnvelopes } =
-          parseResult.data;
+        const {
+          sharedCaseId,
+          assessorRole,
+          encryptedAssessment,
+          keyEnvelopes,
+        } = parseResult.data;
 
         // Verify the shared case exists
         const sharedCase = await storage.getSharedCaseById(sharedCaseId);
         if (!sharedCase) {
           res.status(404).json({ error: "Shared case not found" });
+          return;
+        }
+
+        // Only the owner or recipient of the shared case may submit an
+        // assessment. Without this check, any authenticated user could
+        // enumerate shared-case UUIDs and submit a fake trainee/supervisor
+        // assessment — triggering the auto-reveal and destroying the
+        // blinded-assessment invariant.
+        if (!assertIsPartyOnSharedCase(req.userId!, sharedCase, res)) {
+          return;
+        }
+
+        // Prevent a single party from submitting both roles (which would
+        // unilaterally trigger the reveal). Each party submits at most one
+        // assessment per shared case.
+        const existingForUser = await storage.getCaseAssessments(sharedCaseId);
+        const alreadySubmittedByThisUser = existingForUser.some(
+          (a) => a.assessorUserId === req.userId!,
+        );
+        if (alreadySubmittedByThisUser) {
+          res.status(409).json({
+            error: "You have already submitted an assessment for this case",
+          });
           return;
         }
 
@@ -2664,8 +2818,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         await storage.createAssessmentKeyEnvelopes(envelopeRows);
 
         // Check if both roles have submitted → reveal
-        const allAssessments =
-          await storage.getCaseAssessments(sharedCaseId);
+        const allAssessments = await storage.getCaseAssessments(sharedCaseId);
         const unrevealed = allAssessments.filter((a) => !a.revealedAt);
         let revealed = false;
 
@@ -2708,6 +2861,37 @@ export async function registerRoutes(app: Express): Promise<void> {
     },
   );
 
+  // Get revealed assessment history (registered BEFORE the parameterised
+  // `/api/assessments/:sharedCaseId` route below — Express matches in
+  // registration order, and `/history` would otherwise be swallowed as a
+  // shared-case ID lookup).
+  app.get(
+    "/api/assessments/history",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const role = req.query.role as string | undefined;
+        const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+        const offset = parseInt(req.query.offset as string) || 0;
+
+        const results = await storage.getRevealedAssessments(req.userId!, {
+          role,
+          limit,
+          offset,
+        });
+
+        res.json(results);
+      } catch (error) {
+        respondInternalError(
+          res,
+          "Error fetching assessment history",
+          error,
+          "Failed to fetch assessment history",
+        );
+      }
+    },
+  );
+
   // Get assessment status for a shared case
   app.get(
     "/api/assessments/:sharedCaseId",
@@ -2720,6 +2904,14 @@ export async function registerRoutes(app: Express): Promise<void> {
         const sharedCase = await storage.getSharedCaseById(sharedCaseId);
         if (!sharedCase) {
           res.status(404).json({ error: "Shared case not found" });
+          return;
+        }
+
+        // Only the owner or recipient may read assessment metadata. Without
+        // this check, any authenticated user could enumerate shared-case
+        // UUIDs and learn assessment timings + the other party's device
+        // public keys.
+        if (!assertIsPartyOnSharedCase(req.userId!, sharedCase, res)) {
           return;
         }
 
@@ -2743,7 +2935,10 @@ export async function registerRoutes(app: Express): Promise<void> {
           (a) => a.assessorUserId !== req.userId!,
         );
 
-        let otherEnvelopes: { recipientDeviceId: string; envelopeJson: string }[] = [];
+        let otherEnvelopes: {
+          recipientDeviceId: string;
+          envelopeJson: string;
+        }[] = [];
         if (otherAssessment) {
           const envelopes = await storage.getAssessmentKeyEnvelopes(
             otherAssessment.id,
@@ -2761,7 +2956,8 @@ export async function registerRoutes(app: Express): Promise<void> {
           req.userId === sharedCase.ownerUserId
             ? sharedCase.recipientUserId
             : sharedCase.ownerUserId;
-        let otherPartyPublicKeys: { deviceId: string; publicKey: string }[] = [];
+        let otherPartyPublicKeys: { deviceId: string; publicKey: string }[] =
+          [];
         if (!myAssessment) {
           const deviceKeys = await storage.getUserDeviceKeys(otherUserId);
           otherPartyPublicKeys = deviceKeys.map((dk) => ({
@@ -2788,8 +2984,7 @@ export async function registerRoutes(app: Express): Promise<void> {
                 encryptedAssessment: otherAssessment.revealedAt
                   ? otherAssessment.encryptedAssessment
                   : undefined,
-                keyEnvelopes:
-                  otherAssessment.revealedAt ? otherEnvelopes : [],
+                keyEnvelopes: otherAssessment.revealedAt ? otherEnvelopes : [],
               }
             : null,
           ownerUserId: sharedCase.ownerUserId,
@@ -2802,36 +2997,6 @@ export async function registerRoutes(app: Express): Promise<void> {
           error instanceof Error ? error.message : "Unknown error",
         );
         res.status(500).json({ error: "Failed to fetch assessments" });
-      }
-    },
-  );
-
-  // Get revealed assessment history
-  app.get(
-    "/api/assessments/history",
-    authenticateToken,
-    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-      try {
-        const role = req.query.role as string | undefined;
-        const limit = Math.min(
-          parseInt(req.query.limit as string) || 50,
-          100,
-        );
-        const offset = parseInt(req.query.offset as string) || 0;
-
-        const results = await storage.getRevealedAssessments(req.userId!, {
-          role,
-          limit,
-          offset,
-        });
-
-        res.json(results);
-      } catch (error) {
-        console.error(
-          "Error fetching assessment history:",
-          error instanceof Error ? error.message : "Unknown error",
-        );
-        res.status(500).json({ error: "Failed to fetch assessment history" });
       }
     },
   );
