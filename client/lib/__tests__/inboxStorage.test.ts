@@ -34,6 +34,11 @@ vi.mock("expo-secure-store", () => ({
   setItemAsync: vi.fn(async (key: string, value: string) => {
     secureStore[key] = value;
   }),
+  deleteItemAsync: vi.fn(async (key: string) => {
+    delete secureStore[key];
+  }),
+  WHEN_UNLOCKED: "WHEN_UNLOCKED",
+  WHEN_UNLOCKED_THIS_DEVICE_ONLY: "WHEN_UNLOCKED_THIS_DEVICE_ONLY",
 }));
 
 let uuidCounter = 0;

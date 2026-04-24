@@ -341,7 +341,7 @@ export default function SettingsScreen() {
 
     setIsDeletingAccount(true);
     try {
-      await deleteAccount(deleteAccountPassword);
+      await deleteAccount({ password: deleteAccountPassword });
       setShowDeleteAccountModal(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error: any) {

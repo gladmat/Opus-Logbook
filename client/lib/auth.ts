@@ -1,6 +1,8 @@
-import { Platform } from "react-native";
-import * as SecureStore from "expo-secure-store";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  getSecureItem,
+  setSecureItem,
+  deleteSecureItem,
+} from "./secureStorage";
 import { getApiUrl } from "./query-client";
 import type { SurgicalPreferences } from "@/types/surgicalPreferences";
 import type { ProfessionalRegistrations } from "@shared/professionalRegistrations";
@@ -46,36 +48,22 @@ export interface AuthResponse {
   onboardingComplete?: boolean;
 }
 
-// Use SecureStore for native platforms (encrypted), AsyncStorage fallback for web
+// Auth token stored via secureStorage wrapper (SecureStore with
+// WHEN_UNLOCKED_THIS_DEVICE_ONLY on native, AsyncStorage fallback on web).
 export async function getAuthToken(): Promise<string | null> {
   try {
-    if (Platform.OS === "web") {
-      // Web platform: use AsyncStorage (no SecureStore available)
-      return await AsyncStorage.getItem(`@${AUTH_TOKEN_KEY}`);
-    }
-    // Native platforms: use SecureStore for encrypted storage
-    return await SecureStore.getItemAsync(AUTH_TOKEN_KEY);
+    return await getSecureItem(AUTH_TOKEN_KEY);
   } catch {
     return null;
   }
 }
 
 export async function setAuthToken(token: string): Promise<void> {
-  if (Platform.OS === "web") {
-    // Web platform: use AsyncStorage
-    await AsyncStorage.setItem(`@${AUTH_TOKEN_KEY}`, token);
-  } else {
-    // Native platforms: use SecureStore for encrypted storage
-    await SecureStore.setItemAsync(AUTH_TOKEN_KEY, token);
-  }
+  await setSecureItem(AUTH_TOKEN_KEY, token);
 }
 
 export async function clearAuthToken(): Promise<void> {
-  if (Platform.OS === "web") {
-    await AsyncStorage.removeItem(`@${AUTH_TOKEN_KEY}`);
-  } else {
-    await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
-  }
+  await deleteSecureItem(AUTH_TOKEN_KEY);
 }
 
 // Session-expired event bus — AuthContext subscribes to clear user state
@@ -245,28 +233,56 @@ export async function getCurrentUser(): Promise<AuthResponse | null> {
   }
 }
 
+// Single-flight mutex for refresh. Without this, a batch of parallel 401s
+// (e.g. dashboard fanning out 4+ requests on focus) each fire their own
+// `POST /api/auth/refresh`. If the server rotates the token on refresh, the
+// later refreshes see the old token as stale and return 401, clearing auth
+// mid-session. A single in-flight promise means exactly one refresh happens;
+// all concurrent callers await the same outcome.
+let _inFlightRefresh: Promise<boolean> | null = null;
+
 export async function refreshToken(): Promise<boolean> {
-  try {
-    const token = await getAuthToken();
-    if (!token) return false;
-
-    const res = await authFetch(
-      "/api/auth/refresh",
-      { method: "POST" },
-      { autoRefresh: false },
-    );
-
-    if (!res.ok) return false;
-
-    const data = await res.json();
-    if (data.token) {
-      await setAuthToken(data.token);
-      return true;
-    }
-    return false;
-  } catch {
-    return false;
+  if (_inFlightRefresh) {
+    return _inFlightRefresh;
   }
+
+  _inFlightRefresh = (async () => {
+    try {
+      const token = await getAuthToken();
+      if (!token) return false;
+
+      const res = await authFetch(
+        "/api/auth/refresh",
+        { method: "POST" },
+        { autoRefresh: false },
+      );
+
+      if (!res.ok) return false;
+
+      const data = await res.json();
+      if (data.token) {
+        await setAuthToken(data.token);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  })();
+
+  try {
+    return await _inFlightRefresh;
+  } finally {
+    _inFlightRefresh = null;
+  }
+}
+
+/**
+ * Test-only reset for the refresh mutex. Not exported via index / public API.
+ * Used by unit tests that simulate multiple refresh cycles back-to-back.
+ */
+export function __resetRefreshMutexForTests(): void {
+  _inFlightRefresh = null;
 }
 
 export async function logout(): Promise<void> {
@@ -396,10 +412,12 @@ export async function registerDeviceKey(
   }
 }
 
-export async function deleteAccount(password: string): Promise<void> {
+export async function deleteAccount(
+  credential: { password: string } | { appleIdentityToken: string },
+): Promise<void> {
   const res = await authFetch("/api/auth/account", {
     method: "DELETE",
-    body: JSON.stringify({ password }),
+    body: JSON.stringify(credential),
   });
   if (!res.ok) {
     const error = await res.json();

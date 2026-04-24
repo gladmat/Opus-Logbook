@@ -30,13 +30,19 @@ import {
   subscribeSessionExpired,
 } from "@/lib/auth";
 import { clearAllData, clearUserCaches } from "@/lib/storage";
-import { getOrCreateDeviceIdentity } from "@/lib/e2ee";
+import { getOrCreateDeviceIdentity, deleteDeviceIdentity } from "@/lib/e2ee";
 import { clearAllAppLockData } from "@/lib/appLockStorage";
 import { normalizeUserFacility } from "@/lib/facilities";
+import {
+  getSecureItem,
+  setSecureItem,
+  deleteSecureItem,
+} from "@/lib/secureStorage";
 import {
   decryptData,
   encryptData,
   clearEncryptionKeyCache,
+  deleteUserEncryptionKey,
 } from "@/lib/encryption";
 import { clearDecryptedCache } from "@/components/EncryptedImage";
 import {
@@ -67,7 +73,9 @@ interface AuthContextType {
     email?: string | null,
   ) => Promise<void>;
   logout: () => Promise<void>;
-  deleteAccount: (password: string) => Promise<void>;
+  deleteAccount: (
+    credential: { password: string } | { appleIdentityToken: string },
+  ) => Promise<void>;
   updateProfile: (profile: Partial<UserProfile>) => Promise<void>;
   uploadProfilePicture: (imageUri: string) => Promise<void>;
   deleteProfilePicture: () => Promise<void>;
@@ -83,7 +91,12 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const PROFILE_CACHE_BASE_KEY = "@auth_profile_cache_v1";
-const LAST_ACTIVE_USER_KEY = "@opus_last_active_user_id";
+// Stored in SecureStore (WHEN_UNLOCKED_THIS_DEVICE_ONLY) rather than
+// AsyncStorage. Knowing which Opus user last used this device is a weak
+// correlation signal — keeping it out of plaintext on-disk AsyncStorage
+// means a forensic dump cannot link the device to a user ID without first
+// unlocking the Keychain.
+const LAST_ACTIVE_USER_KEY = "opus_last_active_user_id";
 
 function profileCacheKey(): string {
   return userScopedAsyncKey(PROFILE_CACHE_BASE_KEY);
@@ -133,23 +146,22 @@ async function loadCachedProfile(): Promise<UserProfile | null> {
       return null;
     }
 
+    // The cached profile is always an `enc:v1` envelope written by
+    // `cacheProfile`. Plaintext fallback removed — accepting plaintext would
+    // let an attacker who can write to AsyncStorage (forensic / jailbreak)
+    // inject arbitrary profile data that the app would treat as authentic.
+    // If decryption fails, wipe the corrupt entry and fall back to the
+    // server fetch path.
     try {
       const decrypted = await decryptData(raw);
-      const encryptedProfile = parseCachedProfile(decrypted);
-      if (encryptedProfile) {
-        return encryptedProfile;
-      }
+      const parsed = parseCachedProfile(decrypted);
+      if (parsed) return parsed;
     } catch {
-      // Fall back to legacy plain JSON cache below.
-    }
-
-    const legacyProfile = parseCachedProfile(raw);
-    if (legacyProfile) {
-      void cacheProfile(legacyProfile);
-      return legacyProfile;
+      // Corrupt / legacy / tampered — wipe and fall through.
+      await AsyncStorage.removeItem(profileCacheKey()).catch(() => {});
     }
   } catch {
-    // Ignore cache parse errors and continue with server state.
+    // AsyncStorage read failure — continue with server state.
   }
 
   return null;
@@ -188,7 +200,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Ensure active user is set (may differ from bootstrap if token was stale)
         if (getActiveUserIdOrNull() !== data.user.id) {
           setActiveUserId(data.user.id);
-          await AsyncStorage.setItem(LAST_ACTIVE_USER_KEY, data.user.id);
+          await setSecureItem(LAST_ACTIVE_USER_KEY, data.user.id);
           await migrateUnscopedStorage(data.user.id);
           await initializeInboxStorage();
         }
@@ -221,7 +233,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const token = await getAuthToken();
         if (!token) {
           setActiveUserId(null);
-          await AsyncStorage.removeItem(LAST_ACTIVE_USER_KEY);
+          await deleteSecureItem(LAST_ACTIVE_USER_KEY);
           setUser(null);
           setProfile(null);
           setFacilities([]);
@@ -237,7 +249,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const init = async () => {
       // Bootstrap: restore active user from device-scoped key so we can
       // read user-scoped profile cache and encryption key before server call
-      const lastUserId = await AsyncStorage.getItem(LAST_ACTIVE_USER_KEY);
+      const lastUserId = await getSecureItem(LAST_ACTIVE_USER_KEY);
       if (lastUserId) {
         setActiveUserId(lastUserId);
         const cachedProfile = await loadCachedProfile();
@@ -275,7 +287,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Set active user BEFORE any storage access
     setActiveUserId(data.user.id);
-    await AsyncStorage.setItem(LAST_ACTIVE_USER_KEY, data.user.id);
+    await setSecureItem(LAST_ACTIVE_USER_KEY, data.user.id);
     await migrateUnscopedStorage(data.user.id);
     await initializeInboxStorage();
 
@@ -306,7 +318,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Set active user BEFORE any storage access
     setActiveUserId(data.user.id);
-    await AsyncStorage.setItem(LAST_ACTIVE_USER_KEY, data.user.id);
+    await setSecureItem(LAST_ACTIVE_USER_KEY, data.user.id);
     await initializeInboxStorage();
 
     setUser(data.user);
@@ -335,7 +347,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Set active user BEFORE any storage access
     setActiveUserId(data.user.id);
-    await AsyncStorage.setItem(LAST_ACTIVE_USER_KEY, data.user.id);
+    await setSecureItem(LAST_ACTIVE_USER_KEY, data.user.id);
     await migrateUnscopedStorage(data.user.id);
     await initializeInboxStorage();
 
@@ -369,7 +381,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Tear down user-scoped state (fires onActiveUserChange listeners)
     setActiveUserId(null);
-    await AsyncStorage.removeItem(LAST_ACTIVE_USER_KEY);
+    await deleteSecureItem(LAST_ACTIVE_USER_KEY);
 
     // Clear auth token
     await authLogout();
@@ -382,19 +394,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setFacilities([]);
   };
 
-  const deleteAccount = async (password: string) => {
-    await authDeleteAccount(password);
+  const deleteAccount = async (
+    credential: { password: string } | { appleIdentityToken: string },
+  ) => {
+    await authDeleteAccount(credential);
 
     // Delete all user-scoped data
     await clearAllData();
     await clearAllEpisodes();
     await clearAllAppLockData();
 
+    // Zeroise in-memory key caches
     clearEncryptionKeyCache();
     clearDecryptedCache();
     clearUserCaches();
 
-    await AsyncStorage.removeItem(LAST_ACTIVE_USER_KEY);
+    // Wipe keychain-resident secrets for this user so a device seized after
+    // deletion cannot be used to recover anything the user had typed into
+    // the app. Best-effort — swallow per-key errors so a single failing
+    // delete doesn't leave the rest behind.
+    await deleteUserEncryptionKey().catch(() => {});
+    await deleteDeviceIdentity().catch(() => {});
+
+    await deleteSecureItem(LAST_ACTIVE_USER_KEY);
     setActiveUserId(null);
 
     setUser(null);

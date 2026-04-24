@@ -1,9 +1,8 @@
-import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as SecureStore from "expo-secure-store";
 import { encryptData, decryptData } from "./encryption";
 import type { SharedCaseInboxEntry, SharedCaseData } from "@/types/sharing";
 import { userScopedAsyncKey, userScopedSecureKey } from "./activeUser";
+import { getSecureItem, setSecureItem } from "./secureStorage";
 
 // ── Storage keys (user-scoped at runtime) ────────────────────────────────────
 
@@ -21,23 +20,6 @@ function sharedCaseDataKey(id: string): string {
 }
 function sharedCaseKeyName(id: string): string {
   return userScopedSecureKey(`${SHARING_BASE_KEYS.CASE_KEY_PREFIX}${id}`);
-}
-
-// ── SecureStore helpers (matching e2ee.ts pattern) ───────────────────────────
-
-async function getSecret(key: string): Promise<string | null> {
-  if (Platform.OS === "web") {
-    return AsyncStorage.getItem(key);
-  }
-  return SecureStore.getItemAsync(key);
-}
-
-async function setSecret(key: string, value: string): Promise<void> {
-  if (Platform.OS === "web") {
-    await AsyncStorage.setItem(key, value);
-    return;
-  }
-  await SecureStore.setItemAsync(key, value);
 }
 
 // ── Inbox index (metadata only, no PHI) ──────────────────────────────────────
@@ -88,9 +70,9 @@ export async function saveCaseKey(
   id: string,
   caseKeyHex: string,
 ): Promise<void> {
-  await setSecret(sharedCaseKeyName(id), caseKeyHex);
+  await setSecureItem(sharedCaseKeyName(id), caseKeyHex);
 }
 
 export async function getCaseKey(id: string): Promise<string | null> {
-  return getSecret(sharedCaseKeyName(id));
+  return getSecureItem(sharedCaseKeyName(id));
 }

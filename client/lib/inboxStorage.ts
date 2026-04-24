@@ -1,8 +1,8 @@
 import { Platform } from "react-native";
 import * as Crypto from "expo-crypto";
-import * as SecureStore from "expo-secure-store";
 import { bytesToHex } from "@noble/hashes/utils.js";
 import { createMMKV, type MMKV } from "react-native-mmkv";
+import { getSecureItem, setSecureItem } from "./secureStorage";
 import { v4 as uuidv4 } from "uuid";
 import {
   saveEncryptedMediaFromUri,
@@ -121,13 +121,18 @@ async function getInboxEncryptionKey(): Promise<string | undefined> {
   }
 
   const alias = inboxMmkvKeyAlias();
-  const existing = await SecureStore.getItemAsync(alias);
+  const existing = await getSecureItem(alias);
   if (existing) {
+    // Existing installations may have a 32-char (16-byte) key from an older
+    // build. MMKV accepts keys of any length, so we keep them as-is rather
+    // than rotating — rotation would invalidate every already-stored inbox
+    // item's encryption. New keys are 64 hex chars (32 bytes) for parity
+    // with the rest of the app's 256-bit key material.
     return existing;
   }
 
-  const generated = bytesToHex(await Crypto.getRandomBytesAsync(16));
-  await SecureStore.setItemAsync(alias, generated);
+  const generated = bytesToHex(await Crypto.getRandomBytesAsync(32));
+  await setSecureItem(alias, generated);
   return generated;
 }
 
@@ -160,13 +165,18 @@ function parseState(raw?: string | null): InboxState {
             items.length,
             "items",
           );
-          return { items: items as InboxItem[], version: parsed.version ?? INBOX_STATE_VERSION };
+          return {
+            items: items as InboxItem[],
+            version: parsed.version ?? INBOX_STATE_VERSION,
+          };
         } catch {
           // Backup also corrupted — fall through to empty state
         }
       }
     }
-    console.warn("Inbox state corrupted and no backup available, resetting to empty");
+    console.warn(
+      "Inbox state corrupted and no backup available, resetting to empty",
+    );
     return baseState();
   }
 }

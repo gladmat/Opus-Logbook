@@ -21,7 +21,6 @@ import { isFaceIdUnsupportedInCurrentRuntime } from "@/lib/biometrics";
 import { Spacing, BorderRadius, Typography } from "@/constants/theme";
 
 const PIN_LENGTH = 6;
-const MAX_ATTEMPTS = 5;
 
 export default function LockScreen() {
   const insets = useSafeAreaInsets();
@@ -30,7 +29,10 @@ export default function LockScreen() {
 
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
-  const [attempts, setAttempts] = useState(0);
+  // Seconds remaining on the persisted lockout (if any). While > 0, the
+  // keypad is disabled. Persisted lockout is enforced by appLockStorage, so
+  // killing the app doesn't reset it.
+  const [lockoutSeconds, setLockoutSeconds] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showBiometricButton, setShowBiometricButton] = useState(false);
   const [biometricType, setBiometricType] = useState<string>("Biometrics");
@@ -179,7 +181,7 @@ export default function LockScreen() {
 
   const handlePinEntry = useCallback(
     async (digit: string) => {
-      if (isProcessing || attempts >= MAX_ATTEMPTS) return;
+      if (isProcessing || lockoutSeconds > 0) return;
 
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
@@ -189,18 +191,20 @@ export default function LockScreen() {
 
       if (newPin.length === PIN_LENGTH) {
         setIsProcessing(true);
-        const success = await unlockWithPin(newPin);
+        const outcome = await unlockWithPin(newPin);
 
-        if (success) {
+        if (outcome.ok) {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          setLockoutSeconds(0);
         } else {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           triggerShake();
-          const newAttempts = attempts + 1;
-          setAttempts(newAttempts);
 
-          if (newAttempts >= MAX_ATTEMPTS) {
-            setError("Too many attempts. Please restart the app.");
+          if (outcome.lockoutSecondsRemaining > 0) {
+            setLockoutSeconds(outcome.lockoutSecondsRemaining);
+            setError(
+              `Too many attempts — try again in ${outcome.lockoutSecondsRemaining}s`,
+            );
           } else {
             setError("Incorrect PIN");
             setTimeout(() => setError(""), 2000);
@@ -210,8 +214,26 @@ export default function LockScreen() {
         setIsProcessing(false);
       }
     },
-    [pin, isProcessing, attempts, unlockWithPin, triggerShake],
+    [pin, isProcessing, lockoutSeconds, unlockWithPin, triggerShake],
   );
+
+  // Tick down the lockout timer every second while active so the error
+  // message stays accurate and the keypad re-enables at the right moment.
+  useEffect(() => {
+    if (lockoutSeconds <= 0) return;
+    const id = setInterval(() => {
+      setLockoutSeconds((s) => {
+        const next = s - 1;
+        if (next <= 0) {
+          setError("");
+          return 0;
+        }
+        setError(`Too many attempts — try again in ${next}s`);
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [lockoutSeconds]);
 
   const handleBackspace = useCallback(() => {
     if (pin.length > 0 && !isProcessing) {
@@ -243,7 +265,7 @@ export default function LockScreen() {
     <Pressable
       key={label}
       onPress={onPress}
-      disabled={attempts >= MAX_ATTEMPTS}
+      disabled={lockoutSeconds > 0}
       style={({ pressed }) => [
         styles.key,
         {

@@ -22,11 +22,19 @@ import { clearDecryptedCache } from "@/components/EncryptedImage";
 import { clearEncryptionKeyCache } from "@/lib/encryption";
 import { getActiveUserIdOrNull } from "@/lib/activeUser";
 
+export interface PinUnlockResult {
+  ok: boolean;
+  /** Seconds until the next PIN attempt is allowed. 0 if not locked out. */
+  lockoutSecondsRemaining: number;
+  /** Failed-attempt counter (for optional UI hinting). */
+  attempts: number;
+}
+
 interface AppLockContextType {
   isLocked: boolean;
   isAppLockConfigured: boolean;
   unlockWithBiometrics: () => Promise<boolean>;
-  unlockWithPin: (pin: string) => Promise<boolean>;
+  unlockWithPin: (pin: string) => Promise<PinUnlockResult>;
   refreshLockState: () => Promise<void>;
 }
 
@@ -156,15 +164,21 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const unlockWithPin = useCallback(async (pin: string): Promise<boolean> => {
-    const valid = await verifyPin(pin);
-    if (valid) {
-      backgroundTimestamp.current = null;
-      setIsLocked(false);
-      return true;
-    }
-    return false;
-  }, []);
+  const unlockWithPin = useCallback(
+    async (pin: string): Promise<PinUnlockResult> => {
+      const outcome = await verifyPin(pin);
+      if (outcome.ok) {
+        backgroundTimestamp.current = null;
+        setIsLocked(false);
+      }
+      return {
+        ok: outcome.ok,
+        lockoutSecondsRemaining: outcome.lockoutSecondsRemaining,
+        attempts: outcome.attempts,
+      };
+    },
+    [],
+  );
 
   return (
     <AppLockContext.Provider

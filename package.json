@@ -23,9 +23,9 @@
   },
   "dependencies": {
     "@bacons/apple-targets": "^4.0.6",
-    "@noble/ciphers": "^2.1.1",
-    "@noble/curves": "^2.0.1",
-    "@noble/hashes": "^2.0.1",
+    "@noble/ciphers": "2.1.1",
+    "@noble/curves": "2.0.1",
+    "@noble/hashes": "2.0.1",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-community/datetimepicker": "8.4.4",
     "@react-navigation/bottom-tabs": "^7.4.0",

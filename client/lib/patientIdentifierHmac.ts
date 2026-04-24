@@ -6,7 +6,6 @@
  * iOS Keychain via expo-secure-store — never transmitted anywhere.
  */
 
-import * as SecureStore from "expo-secure-store";
 import { hmac } from "@noble/hashes/hmac.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import {
@@ -16,6 +15,7 @@ import {
   utf8ToBytes,
 } from "@noble/hashes/utils.js";
 import { userScopedSecureKey, onActiveUserChange } from "./activeUser";
+import { getSecureItem, setSecureItem } from "./secureStorage";
 
 export const HMAC_KEY_STORE_KEY = "opus_patient_hmac_key";
 const HMAC_HASH_PREFIX = "hmac:";
@@ -39,16 +39,14 @@ export async function getPatientHmacKey(): Promise<Uint8Array> {
   if (_cachedHmacKey) return _cachedHmacKey;
 
   const scopedKey = userScopedSecureKey(HMAC_KEY_STORE_KEY);
-  const existing = await SecureStore.getItemAsync(scopedKey);
+  const existing = await getSecureItem(scopedKey);
   if (existing) {
     _cachedHmacKey = hexToBytes(existing);
     return _cachedHmacKey;
   }
 
   const newKey = randomBytes(32); // 256-bit random key
-  await SecureStore.setItemAsync(scopedKey, bytesToHex(newKey), {
-    keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-  });
+  await setSecureItem(scopedKey, bytesToHex(newKey));
   _cachedHmacKey = newKey;
   return newKey;
 }

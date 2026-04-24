@@ -157,8 +157,8 @@ export default function SetupAppLockScreen() {
 
       if (setupStep === "enter_current") {
         // Verifying current PIN before change or disable
-        const valid = await verifyPin(newPin);
-        if (valid) {
+        const outcome = await verifyPin(newPin);
+        if (outcome.ok) {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           if (pinAction === "disable") {
             await clearAllAppLockData();
@@ -175,9 +175,15 @@ export default function SetupAppLockScreen() {
         } else {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           triggerShake();
-          setPinError("Incorrect PIN");
+          if (outcome.lockoutSecondsRemaining > 0) {
+            setPinError(
+              `Too many attempts — try again in ${outcome.lockoutSecondsRemaining}s`,
+            );
+          } else {
+            setPinError("Incorrect PIN");
+          }
           setPin("");
-          setTimeout(() => setPinError(""), 2000);
+          setTimeout(() => setPinError(""), 3000);
         }
       } else if (setupStep === "enter_new") {
         setFirstPin(newPin);

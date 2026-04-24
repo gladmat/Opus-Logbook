@@ -3,9 +3,8 @@
  * to user-scoped keys. Idempotent — safe to call on every login.
  */
 
-import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as SecureStore from "expo-secure-store";
+import { getSecureItem, setSecureItem } from "./secureStorage";
 import { STORAGE_BASE_KEYS } from "./storage";
 import { EPISODE_BASE_KEYS } from "./episodeStorage";
 import { SHARING_BASE_KEYS } from "./sharingStorage";
@@ -24,10 +23,7 @@ function scopedSecure(base: string, userId: string): string {
   return `${base}_${userId.replace(/-/g, "")}`;
 }
 
-async function migrateAsyncKey(
-  oldKey: string,
-  userId: string,
-): Promise<void> {
+async function migrateAsyncKey(oldKey: string, userId: string): Promise<void> {
   const newKey = scopedAsync(oldKey, userId);
   const existing = await AsyncStorage.getItem(newKey);
   if (existing !== null) return; // already migrated
@@ -38,25 +34,7 @@ async function migrateAsyncKey(
   }
 }
 
-async function getSecureItem(key: string): Promise<string | null> {
-  if (Platform.OS === "web") {
-    return AsyncStorage.getItem(key);
-  }
-  return SecureStore.getItemAsync(key);
-}
-
-async function setSecureItem(key: string, value: string): Promise<void> {
-  if (Platform.OS === "web") {
-    await AsyncStorage.setItem(key, value);
-    return;
-  }
-  await SecureStore.setItemAsync(key, value);
-}
-
-async function migrateSecureKey(
-  oldKey: string,
-  userId: string,
-): Promise<void> {
+async function migrateSecureKey(oldKey: string, userId: string): Promise<void> {
   const newKey = scopedSecure(oldKey, userId);
   const existing = await getSecureItem(newKey);
   if (existing !== null) return;
@@ -89,7 +67,9 @@ export async function migrateUnscopedStorage(userId: string): Promise<void> {
     await migrateAsyncKey(STORAGE_BASE_KEYS.CASE_SUMMARIES, userId);
 
     // Migrate individual case blobs (enumerate from old index)
-    const oldIndexRaw = await AsyncStorage.getItem(STORAGE_BASE_KEYS.CASE_INDEX);
+    const oldIndexRaw = await AsyncStorage.getItem(
+      STORAGE_BASE_KEYS.CASE_INDEX,
+    );
     if (oldIndexRaw) {
       try {
         const oldIndex = JSON.parse(oldIndexRaw) as { id: string }[];

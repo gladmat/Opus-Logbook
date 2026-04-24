@@ -1,12 +1,14 @@
-import { Platform } from "react-native";
-import * as SecureStore from "expo-secure-store";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Crypto from "expo-crypto";
 import { x25519 } from "@noble/curves/ed25519.js";
 import { hkdf } from "@noble/hashes/hkdf.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { xchacha20poly1305 } from "@noble/ciphers/chacha.js";
 import { bytesToHex, hexToBytes, utf8ToBytes } from "@noble/hashes/utils.js";
+import {
+  getSecureItem,
+  setSecureItem,
+  deleteSecureItem,
+} from "./secureStorage";
 
 function bytesToUtf8(bytes: Uint8Array): string {
   return new TextDecoder().decode(bytes);
@@ -35,36 +37,25 @@ export interface CaseKeyEnvelope {
   createdAt: string;
 }
 
-async function getSecret(key: string): Promise<string | null> {
-  if (Platform.OS === "web") {
-    return AsyncStorage.getItem(key);
-  }
-  return SecureStore.getItemAsync(key);
-}
-
-async function setSecret(key: string, value: string): Promise<void> {
-  if (Platform.OS === "web") {
-    await AsyncStorage.setItem(key, value);
-    return;
-  }
-  await SecureStore.setItemAsync(key, value);
-}
-
 async function getOrCreateDeviceId(): Promise<string> {
-  const existing = await getSecret(DEVICE_ID_KEY);
+  const existing = await getSecureItem(DEVICE_ID_KEY);
   if (existing) return existing;
 
   const id = bytesToHex(await Crypto.getRandomBytesAsync(16));
-  await setSecret(DEVICE_ID_KEY, id);
+  await setSecureItem(DEVICE_ID_KEY, id);
   return id;
 }
 
 async function getOrCreateDevicePrivateKeyHex(): Promise<string> {
-  const existing = await getSecret(DEVICE_PRIVATE_KEY);
+  const existing = await getSecureItem(DEVICE_PRIVATE_KEY);
   if (existing) return existing;
 
-  const priv = bytesToHex(await Crypto.getRandomBytesAsync(KEY_BYTES));
-  await setSecret(DEVICE_PRIVATE_KEY, priv);
+  // Use noble's dedicated keygen which returns a properly clamped X25519
+  // secret (bits 0,1,2 and 255 cleared appropriately). Pre-clamping means
+  // the stored secret round-trips cleanly through any library expecting
+  // canonical-form X25519 keys — important for future device migration.
+  const priv = bytesToHex(x25519.utils.randomSecretKey());
+  await setSecureItem(DEVICE_PRIVATE_KEY, priv);
   return priv;
 }
 
@@ -179,6 +170,16 @@ export async function wrapCaseKeyForRecipient(
     cipher: bytesToHex(ciphertext),
     createdAt: new Date().toISOString(),
   };
+}
+
+/**
+ * Delete the device identity from SecureStore.
+ * Called on account deletion so a seized device cannot reuse the same
+ * public/private keypair to impersonate the deleted account.
+ */
+export async function deleteDeviceIdentity(): Promise<void> {
+  await deleteSecureItem(DEVICE_ID_KEY);
+  await deleteSecureItem(DEVICE_PRIVATE_KEY);
 }
 
 export async function unwrapCaseKeyEnvelope(
