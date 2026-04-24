@@ -2,7 +2,7 @@
   "expo": {
     "name": "Opus",
     "slug": "surgical-logbook",
-    "version": "2.5.0",
+    "version": "2.5.1",
     "orientation": "portrait",
     "icon": "./client/assets/icons/app/opus-icon-1024.png",
     "scheme": "opus",
@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.drgladysz.opus",
-      "buildNumber": "8",
+      "buildNumber": "9",
       "appleTeamId": "8CQ38RR2W4",
       "usesAppleSignIn": true,
       "infoPlist": {

@@ -1930,6 +1930,16 @@ const HAND_OTHER: ProcedurePicklistEntry[] = [
     sortOrder: 3,
   },
   {
+    id: "hand_elective_forearm_tumour_excision",
+    displayName: "Forearm tumour / soft tissue mass excision",
+    snomedCtCode: "48219004",
+    snomedCtDisplay: "Excision of lesion of soft tissue (procedure)",
+    specialties: ["hand_wrist"],
+    subcategory: "Other Hand",
+    tags: ["elective", "oncological"],
+    sortOrder: 4,
+  },
+  {
     id: "hand_other_rheumatoid",
     displayName: "Rheumatoid hand surgery (synovectomy / reconstruction)",
     snomedCtCode: "74278002",

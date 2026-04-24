@@ -23,6 +23,7 @@ import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { EncryptedImage } from "@/components/EncryptedImage";
+import { MediaGalleryViewer } from "@/components/media";
 import { Feather } from "@/components/FeatherIcon";
 import { useTheme } from "@/hooks/useTheme";
 import { useMediaCallback } from "@/contexts/MediaCallbackContext";
@@ -803,34 +804,22 @@ export default function InboxScreen() {
         </View>
       ) : null}
 
-      {/* Full-screen preview modal */}
-      <Modal
+      {/* Full-screen preview with pinch-zoom + swipe between inbox items */}
+      <MediaGalleryViewer
         visible={!!showPreview}
-        animationType="fade"
-        transparent
-        onRequestClose={() => setShowPreview(null)}
-      >
-        <Pressable
-          style={styles.previewOverlay}
-          onPress={() => setShowPreview(null)}
-        >
-          <View style={styles.previewContent}>
-            {showPreview ? (
-              <EncryptedImage
-                uri={showPreview.localUri}
-                style={styles.previewImage}
-                resizeMode="contain"
-              />
-            ) : null}
-          </View>
-          <Pressable
-            onPress={() => setShowPreview(null)}
-            style={[styles.previewClose, { top: insets.top + Spacing.md }]}
-          >
-            <Feather name="x" size={24} color={OVERLAY_TEXT} />
-          </Pressable>
-        </Pressable>
-      </Modal>
+        items={items.map((it) => ({
+          id: it.id,
+          localUri: it.localUri,
+          mimeType: it.mimeType,
+          timestamp: it.capturedAt,
+          createdAt: it.importedAt,
+        }))}
+        initialIndex={Math.max(
+          0,
+          items.findIndex((it) => it.id === showPreview?.id),
+        )}
+        onClose={() => setShowPreview(null)}
+      />
 
       {/* Case picker modal */}
       <CasePickerModal
@@ -1264,33 +1253,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  // Preview modal
-  previewOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.95)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  previewContent: {
-    width: "100%",
-    height: "80%",
-    padding: Spacing.md,
-  },
-  previewImage: {
-    width: "100%",
-    height: "100%",
-    borderRadius: BorderRadius.md,
-  },
-  previewClose: {
-    position: "absolute",
-    right: Spacing.md,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
 
   // Case picker
   pickerContainer: {

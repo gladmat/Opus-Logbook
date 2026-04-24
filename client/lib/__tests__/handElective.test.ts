@@ -301,6 +301,78 @@ describe("New diagnosis metadata", () => {
       expect(dx!.subcategory).toBe("Tumours & Other");
     }
   });
+
+  it("forearm tumour diagnoses exist with verified International SNOMED codes", () => {
+    const expectations: Record<string, { code: string; display: string }> = {
+      hand_dx_forearm_soft_tissue_mass: {
+        code: "126653006",
+        display: "Neoplasm of forearm (disorder)",
+      },
+      hand_dx_lipoma_forearm: {
+        code: "188996003",
+        display: "Lipoma of forearm (disorder)",
+      },
+      hand_dx_schwannoma_upper_limb: {
+        code: "189948006",
+        display: "Schwannoma (disorder)",
+      },
+    };
+
+    for (const [id, expected] of Object.entries(expectations)) {
+      const dx = HAND_SURGERY_DIAGNOSES.find((d) => d.id === id);
+      expect(dx, `diagnosis ${id} should exist`).toBeDefined();
+      expect(dx!.subcategory).toBe("Tumours & Other");
+      expect(dx!.specialty).toBe("hand_wrist");
+      expect(dx!.clinicalGroup).toBe("elective");
+      expect(dx!.snomedCtCode).toBe(expected.code);
+      expect(dx!.snomedCtDisplay).toBe(expected.display);
+    }
+  });
+
+  it("forearm tumour diagnoses default to hand_elective_forearm_tumour_excision", () => {
+    const forearmIds = [
+      "hand_dx_forearm_soft_tissue_mass",
+      "hand_dx_lipoma_forearm",
+      "hand_dx_schwannoma_upper_limb",
+    ];
+    for (const id of forearmIds) {
+      const dx = HAND_SURGERY_DIAGNOSES.find((d) => d.id === id);
+      const defaultProc = dx?.suggestedProcedures?.find((p) => p.isDefault);
+      expect(defaultProc?.procedurePicklistId).toBe(
+        "hand_elective_forearm_tumour_excision",
+      );
+    }
+  });
+
+  it("hand_elective_forearm_tumour_excision procedure exists with correct SNOMED", () => {
+    const proc = PROCEDURE_PICKLIST.find(
+      (p) => p.id === "hand_elective_forearm_tumour_excision",
+    );
+    expect(proc).toBeDefined();
+    expect(proc!.snomedCtCode).toBe("48219004");
+    expect(proc!.snomedCtDisplay).toBe(
+      "Excision of lesion of soft tissue (procedure)",
+    );
+    expect(proc!.specialties).toContain("hand_wrist");
+    expect(proc!.tags).toContain("elective");
+    expect(proc!.tags).toContain("oncological");
+  });
+
+  it("hand_dx_hand_tumour uses the valid International neoplasm-of-hand SNOMED code", () => {
+    const dx = HAND_SURGERY_DIAGNOSES.find((d) => d.id === "hand_dx_hand_tumour");
+    expect(dx).toBeDefined();
+    // Previous code 126670009 did not resolve against SNOMED International;
+    // 126654000 is the canonical "Neoplasm of hand" concept.
+    expect(dx!.snomedCtCode).toBe("126654000");
+  });
+
+  it("hand_dx_hand_tumour search synonyms no longer advertise forearm scope", () => {
+    const dx = HAND_SURGERY_DIAGNOSES.find((d) => d.id === "hand_dx_hand_tumour");
+    const synonyms = (dx?.searchSynonyms ?? []).map((s) => s.toLowerCase());
+    for (const term of synonyms) {
+      expect(term).not.toContain("forearm");
+    }
+  });
 });
 
 // ═══════════════════════════════════════════════════════════

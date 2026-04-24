@@ -92,7 +92,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SkinCancerDetailSummary } from "@/components/skin-cancer/SkinCancerDetailSummary";
 import { HeaderTitleText } from "@/components/HeaderTitleText";
-import { MediaTagBadge } from "@/components/media";
+import { MediaTagBadge, MediaGalleryViewer } from "@/components/media";
+import type { GalleryMediaItem } from "@/components/media";
 import {
   caseNeedsHistology,
   caseCanAddHistology,
@@ -263,6 +264,24 @@ export default function CaseDetailScreen() {
   const [auditICU, setAuditICU] = useState("no");
   const [auditReturnToTheatre, setAuditReturnToTheatre] = useState(false);
   const [auditReturnReason, setAuditReturnReason] = useState("");
+
+  // Media gallery viewer state — opened when any photo thumbnail is tapped
+  const [galleryState, setGalleryState] = useState<{
+    items: GalleryMediaItem[];
+    index: number;
+  } | null>(null);
+
+  const openGallery = useCallback(
+    (items: GalleryMediaItem[], index: number) => {
+      if (items.length === 0) return;
+      setGalleryState({ items, index });
+    },
+    [],
+  );
+
+  const closeGallery = useCallback(() => {
+    setGalleryState(null);
+  }, []);
 
   // Pre-populate audit fields from existing case data
   useEffect(() => {
@@ -1392,13 +1411,21 @@ export default function CaseDetailScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.mediaGalleryContainer}
             >
-              {caseData.operativeMedia.map((media) => (
-                <View
+              {caseData.operativeMedia.map((media, mediaIndex) => (
+                <Pressable
                   key={media.id}
+                  onPress={() =>
+                    openGallery(caseData.operativeMedia ?? [], mediaIndex)
+                  }
                   style={[
                     styles.mediaItem,
                     { backgroundColor: theme.backgroundDefault },
                   ]}
+                  accessibilityRole="imagebutton"
+                  accessibilityLabel={
+                    media.caption ?? "Open photo in full-screen viewer"
+                  }
+                  testID={`caseDetail.operativeMedia.item-${media.id}`}
                 >
                   <EncryptedImage
                     uri={media.localUri}
@@ -1426,7 +1453,7 @@ export default function CaseDetailScreen() {
                       </ThemedText>
                     </View>
                   ) : null}
-                </View>
+                </Pressable>
               ))}
             </ScrollView>
           </>
@@ -2997,19 +3024,34 @@ export default function CaseDetailScreen() {
                         style={styles.mediaThumbnails}
                         contentContainerStyle={styles.mediaThumbnailsContent}
                       >
-                        {event.mediaAttachments?.map((media) => (
-                          <EncryptedImage
+                        {event.mediaAttachments?.map((media, mediaIndex) => (
+                          <Pressable
                             key={media.id}
-                            uri={media.localUri}
-                            style={styles.mediaThumbnail}
-                            resizeMode="cover"
-                            onError={() =>
-                              console.warn(
-                                "Media file missing:",
-                                media.localUri,
+                            onPress={() =>
+                              openGallery(
+                                event.mediaAttachments ?? [],
+                                mediaIndex,
                               )
                             }
-                          />
+                            accessibilityRole="imagebutton"
+                            accessibilityLabel={
+                              media.caption ??
+                              "Open photo in full-screen viewer"
+                            }
+                            testID={`caseDetail.timelineEvent.media-${media.id}`}
+                          >
+                            <EncryptedImage
+                              uri={media.localUri}
+                              style={styles.mediaThumbnail}
+                              resizeMode="cover"
+                              onError={() =>
+                                console.warn(
+                                  "Media file missing:",
+                                  media.localUri,
+                                )
+                              }
+                            />
+                          </Pressable>
                         ))}
                       </ScrollView>
                     ) : null}
@@ -3123,6 +3165,13 @@ export default function CaseDetailScreen() {
           Add Event
         </ThemedText>
       </Pressable>
+
+      <MediaGalleryViewer
+        visible={!!galleryState}
+        items={galleryState?.items ?? []}
+        initialIndex={galleryState?.index ?? 0}
+        onClose={closeGallery}
+      />
     </View>
   );
 }

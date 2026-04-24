@@ -37,7 +37,7 @@ import { toUtcNoonIsoTimestamp } from "@/lib/dateValues";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useMediaCallback } from "@/contexts/MediaCallbackContext";
 import { MediaAttachment } from "@/types/case";
-import { MediaTagPicker } from "@/components/media";
+import { MediaTagPicker, MediaGalleryViewer } from "@/components/media";
 import { MEDIA_TAG_REGISTRY } from "@/types/media";
 import { resolveMediaTag } from "@/lib/mediaTagHelpers";
 import { buildDefaultMediaAttachment } from "@/lib/mediaAttachmentDefaults";
@@ -77,6 +77,7 @@ export default function MediaManagementScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [lastSelectedTag, setLastSelectedTag] = useState<MediaTag | null>(null);
   const [saving, setSaving] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
   const [cameraPermission, requestCameraPermission] =
     ImagePicker.useCameraPermissions();
   const allowCloseRef = useRef(false);
@@ -491,13 +492,19 @@ export default function MediaManagementScreen() {
             style={styles.detailSection}
             contentContainerStyle={styles.detailContent}
           >
-            <View style={styles.previewContainer}>
+            <Pressable
+              onPress={() => setGalleryOpen(true)}
+              style={styles.previewContainer}
+              accessibilityRole="imagebutton"
+              accessibilityLabel="Open photo in full-screen viewer"
+              testID="media.management.btn-openPreview"
+            >
               <EncryptedImage
                 uri={selectedAttachment.localUri}
                 style={styles.previewImage}
                 resizeMode="contain"
               />
-            </View>
+            </Pressable>
 
             <TextInput
               testID="media.management.input-caption"
@@ -644,6 +651,16 @@ export default function MediaManagementScreen() {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
+
+      <MediaGalleryViewer
+        visible={galleryOpen && !!selectedAttachment}
+        items={attachments}
+        initialIndex={Math.max(
+          0,
+          attachments.findIndex((a) => a.id === selectedId),
+        )}
+        onClose={() => setGalleryOpen(false)}
+      />
     </ThemedView>
   );
 }

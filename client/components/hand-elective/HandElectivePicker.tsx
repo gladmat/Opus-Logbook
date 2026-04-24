@@ -48,7 +48,11 @@ const ELECTIVE_SUBCATEGORIES: {
   { key: "Elective Tendon", icon: "link", label: "Elective Tendon" },
   { key: "Post-traumatic Bone", icon: "tool", label: "Post-traumatic Bone" },
   { key: "Rheumatoid Hand", icon: "activity", label: "Rheumatoid Hand" },
-  { key: "Tumours & Other", icon: "target", label: "Tumours & Masses" },
+  {
+    key: "Tumours & Other",
+    icon: "target",
+    label: "Tumours & Soft Tissue Masses",
+  },
   { key: "Congenital", icon: "star", label: "Congenital" },
 ];
 
