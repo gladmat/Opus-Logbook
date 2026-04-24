@@ -223,6 +223,7 @@ function buildCaseSummary(caseData: Case): CaseSummary {
     primaryProcedureName,
     procedureNames,
     operativeMediaCount: caseData.operativeMedia?.length ?? 0,
+    firstOperativeMediaUri: caseData.operativeMedia?.[0]?.localUri,
     canAddHistology: caseCanAddHistology(caseData),
     needsHistology: caseNeedsHistology(caseData),
     infectionStatus: caseData.infectionOverlay?.status,

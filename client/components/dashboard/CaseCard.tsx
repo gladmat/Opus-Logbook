@@ -89,20 +89,20 @@ const CaseThumbnail = React.memo(function CaseThumbnail({
   caseData: CaseCardData;
 }) {
   const { theme } = useTheme();
-  const firstPhoto = !isCaseSummary(caseData)
-    ? caseData.operativeMedia?.[0]
-    : null;
+  const firstPhotoUri = isCaseSummary(caseData)
+    ? caseData.firstOperativeMediaUri
+    : caseData.operativeMedia?.[0]?.localUri;
 
-  if (firstPhoto?.localUri) {
+  if (firstPhotoUri) {
     return (
       <View
         style={[
           thumbStyles.container,
-          { backgroundColor: theme.backgroundElevated },
+          { backgroundColor: theme.specialty[caseData.specialty] + "10" },
         ]}
       >
         <EncryptedImage
-          uri={firstPhoto.localUri}
+          uri={firstPhotoUri}
           style={thumbStyles.image}
           resizeMode="cover"
           thumbnail
@@ -120,7 +120,7 @@ const CaseThumbnail = React.memo(function CaseThumbnail({
     >
       <SpecialtyIcon
         specialty={caseData.specialty}
-        size={20}
+        size={28}
         color={theme.specialty[caseData.specialty]}
       />
     </View>
@@ -381,8 +381,9 @@ export const DashboardCaseCard = React.memo(DashboardCaseCardInner);
 
 const thumbStyles = StyleSheet.create({
   container: {
-    width: 48,
-    height: 48,
+    alignSelf: "stretch",
+    aspectRatio: 1,
+    minWidth: 56,
     borderRadius: 10,
     overflow: "hidden",
     marginRight: Spacing.md,
@@ -391,8 +392,8 @@ const thumbStyles = StyleSheet.create({
     flexShrink: 0,
   },
   image: {
-    width: 48,
-    height: 48,
+    width: "100%",
+    height: "100%",
   },
 });
 
@@ -428,7 +429,7 @@ const styles = StyleSheet.create({
   },
   contentRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "stretch",
   },
   contentText: {
     flex: 1,

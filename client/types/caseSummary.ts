@@ -28,6 +28,8 @@ export interface CaseSummary {
   primaryProcedureName?: string;
   procedureNames: string[];
   operativeMediaCount: number;
+  /** opus-media:{uuid} URI of the first operative photo, for list thumbnails. */
+  firstOperativeMediaUri?: string;
   canAddHistology: boolean;
   needsHistology: boolean;
   infectionStatus?: "active" | "resolved" | "deceased";
