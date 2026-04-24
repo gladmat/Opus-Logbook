@@ -41,6 +41,14 @@ Key capabilities: multi-specialty case logging, SNOMED CT coded diagnoses and pr
 - **Media Gallery Viewer COMPLETE** — `MediaGalleryViewer` (`client/components/media/MediaGalleryViewer.tsx`) is a full-screen modal with horizontal paging (`FlatList pagingEnabled`), pinch-to-zoom (1×–5×) via `react-native-gesture-handler` + `react-native-reanimated` composition, double-tap toggle (1×↔2×), pan when zoomed, tap-to-toggle chrome, share via `expo-sharing` (hits the existing `decryptCache` file URI). Wired into `CaseDetailScreen` (operative media list + per-event timeline media), `MediaManagementScreen` (tap preview to zoom), and `InboxScreen` (replaces the prior fade-only modal, now pages across all inbox items). Pure helpers (`clampIndex`, `formatCounter`, `formatMediaDate`) extracted to `mediaGalleryHelpers.ts` so tests import without pulling native modules. Zero new dependencies.
 - **Forearm Tumour Diagnoses COMPLETE** — Hand Elective "Tumours & Other" subcategory extended with 3 forearm entries so hand surgeons stop mis-coding forearm lipomas/schwannomas as hand tumours. New diagnoses: `hand_dx_forearm_soft_tissue_mass` (SNOMED `126653006` Neoplasm of forearm), `hand_dx_lipoma_forearm` (SNOMED `188996003` Lipoma of forearm), `hand_dx_schwannoma_upper_limb` (SNOMED `189948006` Schwannoma). New procedure: `hand_elective_forearm_tumour_excision` (SNOMED `48219004` Excision of lesion of soft tissue). All codes verified live against CSIRO Ontoserver FHIR API before commit. `hand_dx_hand_tumour` scope tightened (displayName → "Hand tumour — other (hand / wrist)", synonyms scoped to hand/wrist only, invalid SNOMED `126670009` corrected to `126654000` which actually resolves). Subcategory picker label renamed "Tumours & Masses" → "Tumours & Soft Tissue Masses" (key unchanged, no data migration). 6 new tests in `handElective.test.ts`.
 - **JWT Auto-Refresh + Sharing Guardrails COMPLETE** — `refreshToken()` was defined but never called anywhere, so the 7-day JWT silently expired mid-session and every mutation (profile save, case share, team contact create) surfaced the raw server error `Invalid or expired token` with no recovery path. `authFetch` in `client/lib/auth.ts` now wraps every request with a single 401/403 retry: on an auth failure it attempts `refreshToken()`, retries once on success, or clears the token, emits a `sessionExpired` event, and returns a synthetic 401 with the message `Your session has expired. Please log in again.` `login`/`signup`/`appleSignIn`/`refreshToken` opt out with `{ autoRefresh: false }` so stale tokens during login don't trigger spurious session-expired flows. `AuthContext` subscribes to `subscribeSessionExpired()` — clears user/profile/facilities/active-user state and shows a friendly alert; the RootStackNavigator then flips to `AuthScreen` automatically because `isAuthenticated` becomes false. `AuthContext` also fires `void refreshToken()` proactively on every successful boot so active users get a fresh 7-day token each app open and never hit the expiry in the first place. Separately, `useCaseForm.handleSave()` now surfaces the silent team-sharing failure modes: when `operativeTeam.length > 0`, after a successful save it shows a single informational `Alert.alert("Case saved — team features limited", …)` listing (a) tagged members not linked to an Opus account (won't receive the case), (b) the logger missing `careerStage` (no EPA targets generated — points to Edit Profile), and (c) linked members missing `careerStage` (no EPA targets for them specifically). All 1467 tests green; `tsc --noEmit` clean.
+- **Phase 6 / Security Remediation COMPLETE** — Bumps app to 2.6.0. Seven sequenced sessions covering 10 Critical, 22 High, and 26 Medium audit findings; 1467 → 1514 vitest tests, `tsc --noEmit` clean throughout. Plan + per-session status in `.claude/plans/SECURITY_AUDIT_PLAN.md`. Highlights:
+  - **Server auth/authZ** (commit `3eeb4ca`): Fixed two critical assessment-endpoint authorization holes that let any authenticated user submit fake assessments / read assessment metadata for any shared case (broke the blinded-assessment invariant). Reordered `/api/assessments/history` ahead of `/:sharedCaseId` so it stops returning 404. Stripped `detail` field from Apple Sign In 5xx responses (no more raw error leaks). Added `normalizeEmail()` (lowercase + trim) at every server entry point — signup, login, Apple, password reset, user search, discovery, team contacts, invitations — backed by migration `20260425_email_case_insensitive.sql` (pre-flight collision check, backfill, CHECK constraints). `DELETE /api/auth/account` now accepts `{ appleIdentityToken }` so Apple-only users can delete (App Store 5.1.1(v) compliance). Avatar filenames switched from `${userId}-${timestamp}.jpg` to 16 random bytes; upload-failure cleanup unlinks orphans. SNOMED `conceptId` validated `^\d{1,18}$` before URL interpolation. `JWT_SECRET` production blocklist added (rejects `local-dev`, `change-in-production`, etc.). Discovery endpoint rate-limited per user. Push notifications deferred until after `res.json` on `/api/share`.
+  - **On-device crypto hardening** (commit `0fb2c29`): Deleted the legacy XOR fallback + silent-catch in `decryptData` — tampered AsyncStorage records now throw loudly instead of being treated as plaintext. New `client/lib/secureStorage.ts` wrapper applies `WHEN_UNLOCKED_THIS_DEVICE_ONLY` to every SecureStore write (master encryption key, JWT, device X25519 private key, patient HMAC key, inbox MMKV key, app-lock state, last-active-user) so AFU-mode forensic tools can no longer read these out. PIN hash switched from unsalted SHA-256 to scrypt(N=2^15, r=8, p=1) with 16-byte random per-user salt, persistent lockout ladder (5 → 30s, 6 → 1m, 7 → 2m, 8 → 5m, 9 → 15m, 10+ → 1h, all clamped); PIN_VERSION bumped 2→3 forces re-setup. JWT refresh now single-flight (`_inFlightRefresh` mutex) so parallel 401s don't race-overwrite tokens. X25519 keygen uses `x25519.utils.randomSecretKey()` for canonical pre-clamped output. New inbox MMKV keys are 32 bytes (existing 16-byte keys preserved to avoid invalidating stored items). `deleteAccount` zeroises master key + device identity from Keychain. `@noble/ciphers / curves / hashes` pinned exactly (no caret).
+  - **iOS / Android platform privacy** (commit `90f2af5`): `ios.entitlements` sets `com.apple.developer.default-data-protection: NSFileProtectionComplete` so every file the main app writes to Documents is encrypted-at-rest while the device is locked. `android.allowBackup: false` blocks Google-Drive auto-backup of AsyncStorage / MMKV. Locked-camera extension writes JPEGs with `.completeFileProtectionUntilFirstUserAuthentication` (the strictest class compatible with a LockedCameraCapture extension). `App.tsx` now renders an absolute-fill `OpusMark` overlay when `AppState !== "active"` so the iOS App-Switcher snapshot captures the brand instead of a decrypted patient photo. New `sweepOrphanedLockedCameraFiles()` deletes shared-container plaintext JPEGs older than 7 days at app boot.
+  - **State / save-pipeline integrity** (commit `4ca9508`): Fixed the clinical-attribution bug where `operativeTeam[*].procedureRoleOverrides` (numeric procedure indices) silently re-bound to the wrong procedure after a delete/reorder. New `remapTeamProcedureReferences(team, oldIds, newIds)` runs on every `SET_DIAGNOSIS_GROUPS` / `REORDER_DIAGNOSIS_GROUPS` and uses procedure UUID identity to rewrite both override keys and `presentForProcedures` arrays. `handleDiagnosisGroupChange` switched from `SET_FIELD` to `SET_DIAGNOSIS_GROUPS` so per-group procedure edits also fire the remap. New `allocateEpisodeSequence(episodeId)` (atomic read-increment-persist guarded by per-episode mutex; backed by `TreatmentEpisode.nextCaseSequence`) replaces the racey `getCasesByEpisodeId(id).length + 1` pattern in the save pipeline + both episode-link helpers. Date-only `new Date("YYYY-MM-DD")` parsing replaced with `parseIsoDateValue` (local-noon, TZ-safe) in case-form validator, storage sort/filter, episode dashboard, burns helpers; new ESLint `no-restricted-syntax` rule blocks regressions. Save pipeline gained: edit-mode share revocation (diff outbox vs new recipient set, call `revokeSharedCase` for stale shares); inner try/catch around episode-link sync so its failure doesn't show a false "Save failed" alert; `TOGGLE_MEMBER_PROCEDURE_PRESENCE` materialises full index set instead of falling through to `[]`; `ADD_TEAM_MEMBER` dedupes against `operativeTeam.linkedUserId`; episode `updateEpisode` enforces `EPISODE_STATUS_TRANSITIONS`; `buildDuplicateState` deep-clones via `structuredClone`. Discovery service AsyncStorage keys now user-scoped + cleared on logout. `loadCaseIntoFormState` gained `applyDayCaseDefaults` so day-case outcome auto-fill works on LOAD paths.
+  - **PHI exfiltration + share hygiene** (commit `3cef7db`): CSV/FHIR/JSON exports now write to `Paths.cache/opus-exports/`, share via `Sharing.shareAsync(fileUri, mimeType)`, and `delete()` in `finally` regardless of share outcome — replaces `Share.share({message: rawCsv})` which routed PHI strings through every share-sheet target including watchOS previews. PDF export gained the same temp cleanup. Every interactive export gates on a "this contains patient data" confirmation `Alert`. Avatar URLs (`/uploads/avatars/*`) now require a valid JWT — `authenticateToken` exported from routes.ts and mounted in front of the static handler in `app.ts`. New `<AuthenticatedAvatar>` component + `authenticatedImageSource()` in `client/lib/auth.ts` inject the bearer header into RN's image loader. Encrypted media `meta.json` `createdAt` rounded to local midnight so the plaintext meta-file alongside ciphertext doesn't leak sub-minute capture timing. `mediaDecryptCache` got a `pin()`/`unpin()` ref-counting layer skipped by LRU eviction; `useDecryptedImage` pins for the hook lifetime — closes the use-after-evict race during fast scrolls. `AppLockContext` now also calls `clearUserCaches()` on `AppState.background` so `caseSummaryCache` (full names + NHIs in RAM) drains when the app backgrounds.
+  - **✨ Share team for non-Opus members + TOFU key pinning** (commit `6795752`): Receiver-side `SharedCaseDetailScreen` Team card now iterates `operativeTeam` (every participant including non-Opus contacts) with their per-case role; unlinked contacts get a "Not on Opus" sub-label. The blob's `CaseTeamMember` shape carries displayName / abbreviatedName / operativeRole / per-procedure overrides / presence — third-party email and phone are on `TeamContact` and don't enter the blob, so non-consenting contacts' contact details don't travel to recipients. New `client/lib/keyPinningStore.ts` implements TOFU pinning of recipient device public keys: first observation pins; subsequent fetch must match (fail-closed across the recipient's full key set); `acceptKeyRotation()` overwrites a pin after the user confirms out-of-band. Save pipeline runs every `getUserDeviceKeys` response through `verifyAndPinRecipientKeys` and surfaces a named alert if any recipient mismatches. `clearAllPins()` wired into logout + delete-account.
+  - **Polish + config** (commit `84f66b8`): Test-account credentials moved out of CLAUDE.md into gitignored `TESTING.local.md`. `.node-version 2` Finder duplicate deleted. Plan file in `.claude/plans/SECURITY_AUDIT_PLAN.md` records final status of all 7 sessions plus the explicit deferred list (helmet@8 migration, jose-only migration, PSI discovery, per-file iCloud backup exclusion, commit-reveal blinded assessments, Signal-style safety-number UI for TOFU rotations).
 
 ## Tech stack
 
@@ -109,8 +117,10 @@ client/
   hooks/                         # useCaseForm, useCaseDraft, useTheme, useStatistics, useDecryptedImage, etc.
   lib/                           # 80+ files — storage, encryption, export, normalization, selectors, sharing, etc.
     diagnosisPicklists/          # 12 specialty picklists + lazy-loaded index
+    secureStorage.ts             # SecureStore wrapper (WHEN_UNLOCKED_THIS_DEVICE_ONLY default)
     teamContactsApi.ts           # Team contacts + user device keys + invitations API helpers
     sharingApi.ts                # E2EE case sharing API helpers
+    keyPinningStore.ts           # TOFU pinning of recipient device public keys
     assessmentApi.ts             # Blinded assessment API helpers
     assessmentRoles.ts           # Seniority-tier-based assessor role detection
     assessmentStorage.ts         # Encrypted local assessment storage
@@ -118,9 +128,10 @@ client/
     buildShareableBlob.ts        # Case → SharedCaseData extraction
     e2ee.ts                      # X25519 + XChaCha20-Poly1305 crypto
     epaDerivation.ts             # Seniority-chain EPA pair algorithm
-    discoveryService.ts          # Background contact discovery (24h throttle)
+    discoveryService.ts          # Background contact discovery (24h throttle, user-scoped)
     seniorityTier.ts             # 6-tier career seniority model
-    __tests__/                   # 77 test files
+    appLockStorage.ts            # scrypt PIN + persistent lockout ladder
+    __tests__/                   # 85 test files
   types/                         # case, media, inbox, episode, infection, skinCancer, breast, dupuytren, osteotomy,
                                  #   handInfection, wound, jointImplant, operativeRole, teamContacts, sharing, etc.
   constants/                     # theme.ts (design tokens), categories, hospitals, trainingProgrammes
@@ -131,15 +142,16 @@ targets/
   opus-camera-control/           # Inbox widget + Control Center capture control
   opus-locked-camera/            # LockedCameraCapture extension scaffold
 server/
-  app.ts, routes.ts              # Express API (~55 endpoints), security headers, CORS, body parsing
+  app.ts, routes.ts              # Express API (~55 endpoints), security headers, CORS, body parsing, /uploads JWT gate
   storage.ts                     # DatabaseStorage with ownership checks
   snomedApi.ts                   # Ontoserver FHIR integration
   email.ts                       # Resend email service
   diagnosisStagingConfig.ts      # Dynamic staging form definitions
-  __tests__/                     # 3 test files (auth, validation, staging config)
+  utils.ts                       # normalizeEmail, SNOMED_CONCEPT_ID_RE — testable shared helpers
+  __tests__/                     # 8 test files (auth, validation, staging, assessments, env, utils, teamContacts, invitations)
 shared/
-  schema.ts                      # Drizzle ORM table definitions, 8 tables
-migrations/                      # 7 SQL migration files
+  schema.ts                      # Drizzle ORM table definitions, 12 tables
+migrations/                      # 8 SQL migration files (incl. 20260425_email_case_insensitive.sql)
 ```
 
 ## Architecture
@@ -1150,23 +1162,55 @@ Touch targets: minimum 48px (`Spacing.touchTarget`)
 ### Authentication
 
 - bcrypt 10 rounds, minimum 8-character passwords
-- JWT with `tokenVersion` — password change revokes all tokens
-- Rate limiting on auth endpoints
-- Password reset: 1-hour expiry tokens, single-use, hashed in DB
-- Email never leaked on reset (always returns success)
-- Profile updates restricted to prevent mass assignment
+- JWT with `tokenVersion` — password change revokes all tokens; verified on every authenticated request, not just at login
+- JWT refresh in `client/lib/auth.ts` is single-flight (`_inFlightRefresh` mutex) so parallel 401s coalesce into one `POST /api/auth/refresh`
+- Rate limiting on auth endpoints (10/min/IP); user-search + discovery endpoints additionally rate-limited per user
+- Password reset: 1-hour expiry tokens, single-use, SHA-256 hashed in DB
+- Email never leaked on reset (always returns success); all emails normalised to lowercase + trim at every server entry point with backing migration `20260425_email_case_insensitive.sql`
+- Apple Sign In: full identityToken verification via JWKS + audience + issuer; 5xx responses no longer leak `detail` field
+- Apple-only users can delete their account via `{ appleIdentityToken }` (no password set)
+- Account-deletion zeroises master encryption key + device X25519 identity from the iOS Keychain
+- `JWT_SECRET` validator rejects production secrets containing `local-dev`, `change-in-production`, `example`, `placeholder`, `test-secret`, `change-me`
+
+### SecureStore wrapper (client/lib/secureStorage.ts)
+
+Every client-side SecureStore write goes through this wrapper, which applies `WHEN_UNLOCKED_THIS_DEVICE_ONLY`:
+
+- Readable only while the device is currently unlocked (not just AFU — defeats Cellebrite/GrayKey AFU-mode forensic recovery)
+- Not synced to iCloud Keychain (no cloud exfil path)
+- Bound to this device (device-to-device migration requires re-setup)
+
+Used for: master encryption key, JWT, device X25519 private key, patient HMAC key, inbox MMKV key, app-lock state (PIN hash + salt + lockout counter), `LAST_ACTIVE_USER_KEY`. Direct `expo-secure-store` imports outside the wrapper are the exception.
 
 ### Encryption
 
-- **XChaCha20-Poly1305 AEAD** for all local case data
-- Envelope format: `enc:v1:nonce:ciphertext`
-- Key derivation from user passphrase via scrypt
+- **XChaCha20-Poly1305 AEAD** for all local case / summary / episode / draft / shared-blob data
+- Envelope format: `enc:v1:nonce:ciphertext` — anything not starting with that prefix THROWS in `decryptData` (no silent fallback, no legacy XOR path)
+- Master key: per-user random 32 bytes generated by `expo-crypto.getRandomBytesAsync`, stored under `userScopedSecureKey(ENCRYPTION_KEY_ALIAS)` via the wrapper above
+- AEAD tag failure (tampered ciphertext, wrong key, malformed envelope) propagates as a thrown exception — every caller already wraps in try/catch and treats failure as "return empty / null"
 
-### E2EE scaffolding
+### App lock (client/lib/appLockStorage.ts)
 
-- Per-device X25519 key pairs stored securely
-- Public keys registered with server, revocable
-- Case key wrapping infrastructure in place
+- PIN stored as scrypt(N=2^15, r=8, p=1, dkLen=32) with a 16-byte random per-user salt — replaces the v1/v2 unsalted SHA-256 (4-digit PIN was brute-forceable in <1s; scrypt pushes to ~150–300ms per attempt)
+- PIN_VERSION currently `"3"`; `migratePinIfNeeded()` wipes pre-v3 entries on first boot so users re-set
+- Persistent lockout ladder in SecureStore: 5 failures → 30s · 6 → 1m · 7 → 2m · 8 → 5m · 9 → 15m · 10+ → 1h (clamped). Survives process restart.
+- `verifyPin(pin)` returns `{ ok, lockoutSecondsRemaining, attempts }`; `LockScreen` + `SetupAppLockScreen` surface the timer and disable the keypad while the lockout is active. Constant-time hex comparison.
+- Master encryption key + decrypted media cache + `caseSummaryCache` all zeroised on `AppState.background` so a process-memory dump on a backgrounded app doesn't recover the patient list
+
+### E2EE sharing
+
+- Per-device X25519 key pairs (generated via `x25519.utils.randomSecretKey()` for canonical pre-clamped output) stored under `WHEN_UNLOCKED_THIS_DEVICE_ONLY`
+- Public keys registered with server; revocation via `POST /api/keys/revoke`
+- Per-case symmetric key wrapped to each recipient device with X25519 + HKDF-SHA256 + XChaCha20-Poly1305 (`wrapCaseKeyForRecipient` in `client/lib/e2ee.ts`)
+- **TOFU pinning** (`client/lib/keyPinningStore.ts`): on first observation of a `(userId, deviceId, publicKey)` triple, the public key is pinned to encrypted local storage. Every subsequent share runs `verifyAndPinRecipientKeys(userId, received)`:
+  - no existing pin → pin it (TOFU)
+  - existing pin matches → refresh `lastVerifiedAt`, approve
+  - existing pin mismatches → fail-closed (entire recipient's key set rejected, named in a UI alert)
+  Recovery: `acceptKeyRotation(userId, deviceId, newPublicKey)` overwrites a pin after the user verifies the device change out-of-band
+- Pin store is per-user (encrypted via `encryptData`) and cleared on logout / account deletion via `clearAllPins()`
+- Shared blob (`SharedCaseData`, `client/lib/buildShareableBlob.ts`) carries `operativeTeam: CaseTeamMember[]` so non-Opus team members render on the receiver side with a "Not on Opus" pill. Third-party email/phone fields are on `TeamContact`, NOT on `CaseTeamMember`, so non-consenting contacts' contact details are never in the blob.
+- Edit-mode share revocation: `useCaseForm.handleSave` diffs `getSharedOutbox()` against the new shareable-member set and calls `revokeSharedCase` for stale shares so removed team members lose access immediately
+- Server-side authZ on assessment endpoints (Session 1): `assertIsPartyOnSharedCase` rejects callers who are neither owner nor recipient — closes the "any user can submit a fake assessment for any shared case" hole that broke the blinded-assessment invariant
 
 ### Encrypted media (file-based AES-256-GCM)
 
@@ -1181,9 +1225,11 @@ Touch targets: minimum 48px (`Spacing.touchTarget`)
   meta.json    — { version:2, mediaId, wrappedDEK (hex), mimeType, width, height, hasThumb, createdAt }
 ```
 
+`meta.json` sits plaintext alongside the ciphertext (the `wrappedDEK` is unusable without the master key). `createdAt` is rounded to local midnight so a forensic extraction can't reconstruct surgical timing at sub-minute precision; the rest of the metadata is shape data only.
+
 **URI scheme:** `opus-media:{uuid}` — routed by `mediaStorage.ts`.
 
-**Display pipeline:** `EncryptedImage` → `useDecryptedImage` hook → decrypts to temp file in `Paths.cache` → renders via `expo-image` with `file:///` URI. LRU temp-file cache: 80 thumbnails (~2MB), 10 full images (~50MB). Max 2 concurrent decryptions.
+**Display pipeline:** `EncryptedImage` → `useDecryptedImage` hook → decrypts to temp file in `Paths.cache` → renders via `expo-image` with `file:///` URI. LRU temp-file cache: 80 thumbnails (~2MB), 10 full images (~50MB). Max 2 concurrent decryptions. Cache entries are **ref-counted** — `useDecryptedImage` calls `decryptCache.pin(mediaId, variant)` for the hook's lifetime and `unpin()` on cleanup; LRU eviction skips pinned entries. Closes the use-after-evict race where a fast-scrolling gallery could delete entry A's temp file while `expo-image` was still loading it.
 
 **Security lifecycle:**
 
@@ -1206,9 +1252,20 @@ Touch targets: minimum 48px (`Spacing.touchTarget`)
 - Security headers: HSTS (1yr), CSP, X-Frame-Options DENY, strict Referrer-Policy
 - Tiered body parsing limits (auth 1KB, avatar 5MB, default 256KB)
 - Request logging: no bodies logged (privacy)
-- 4xx messages exposed, 5xx details hidden
+- 4xx messages exposed, 5xx details hidden — `respondInternalError(res, context, err, publicMessage)` helper logs server-side and returns generic message
 - IDOR prevention: composite ownership checks (id + userId) on all mutations
 - Zod validation at API boundaries
+- Avatar URLs (`/uploads/avatars/*`) require a valid JWT — `authenticateToken` mounted in front of the static handler in `app.ts`. Random 16-byte filenames; upload-failure cleanup via try/finally
+- `assertIsPartyOnSharedCase(userId, sharedCase, res)` gates both `POST /api/assessments` and `GET /api/assessments/:sharedCaseId` so non-parties can't submit fake assessments or read assessment metadata
+- SNOMED `conceptId` validated against `^\d{1,18}$` before URL interpolation (no query-string injection into Ontoserver)
+
+### iOS / Android platform privacy
+
+- **iOS data protection class:** `app.json` `ios.entitlements` sets `com.apple.developer.default-data-protection: NSFileProtectionComplete` — every file the main app writes to Documents is encrypted-at-rest while the device is locked. Defeats AFU-mode forensic recovery of encrypted case blobs / media ciphertexts
+- **Android backup:** `android.allowBackup: false` blocks Google-Drive auto-backup of AsyncStorage / MMKV (which would otherwise sweep the encrypted case data into Google's iCloud-Keychain-equivalent)
+- **Locked-camera extension** (`targets/opus-locked-camera/OpusLockedCameraExtension.swift`): writes JPEGs with `.completeFileProtectionUntilFirstUserAuthentication` (the strictest class compatible with a LockedCameraCapture extension — `.complete` would block the extension from writing while the device is locked, which is by design when using LockedCameraCapture). `sweepOrphanedLockedCameraFiles()` deletes any pending JPEG older than 7 days at app boot
+- **App-switcher privacy overlay:** `App.tsx` listens to `AppState.change` and renders an absolute-fill `OpusMark` view over the navigator whenever the app is anything other than `active`. iOS takes its App-Switcher snapshot during the `inactive → background` transition, so the snapshot captures the brand mark instead of the last-rendered patient photo / case detail screen
+- **PHI-bearing exports** (`client/lib/export.ts`, `client/lib/exportPdf.ts`): write to `Paths.cache/opus-exports/` and call `Sharing.shareAsync(fileUri, mimeType)` instead of `Share.share({message: rawCsv})` — restricts share targets to apps that handle a document. Temp file deleted in `finally` regardless of share outcome. Every interactive export gates on a "this contains patient data" confirmation `Alert`
 
 ## Deployment
 
@@ -1233,7 +1290,7 @@ Touch targets: minimum 48px (`Spacing.touchTarget`)
 - **Expo slug:** surgical-logbook
 - **EAS Project ID:** 0bc1b91c-c240-4f4e-b030-31d16389cd1e
 - **Expo account:** @gladmat
-- **Version:** 2.5.2, buildNumber 10 (app.json) — EAS assigns remote buildNumber (e.g. 1.2.52) because `eas.json` has `appVersionSource: "remote"` + production `autoIncrement: true`
+- **Version:** 2.6.0, buildNumber 10 (app.json) — EAS assigns remote buildNumber (e.g. 1.2.52) because `eas.json` has `appVersionSource: "remote"` + production `autoIncrement: true`. 2.6.0 is the security-remediation release (Phase 6, Sessions 1–7)
 - **New Architecture:** enabled
 - **React Compiler:** enabled (experimental)
 
@@ -1309,6 +1366,12 @@ Configured in both `tsconfig.json` and `babel.config.js` (module-resolver plugin
 - **Header save ref pattern** — `handleSaveRef.current` always latest closure
 - **Encrypted URIs** — `opus-media:{uuid}` scheme for media references
 - **Draft auto-save** — debounced + AppState background flush
+- **SecureStore writes through `client/lib/secureStorage.ts`** — never call `expo-secure-store` directly. The wrapper applies `WHEN_UNLOCKED_THIS_DEVICE_ONLY` so AFU-mode forensic tools can't read keychain entries
+- **Date-only fields parsed via `parseIsoDateValue` / `parseDateOnlyValue`** from `@/lib/dateValues` — never `new Date("YYYY-MM-DD")`, which parses as UTC-midnight and drifts in negative-UTC zones. ESLint `no-restricted-syntax` rule blocks regressions
+- **Decryption failure throws** — `decryptData` rejects non-`enc:v1:` envelopes and AEAD-tag failures. Every caller already wraps in try/catch; a tampered AsyncStorage record is never silently treated as plaintext
+- **Per-procedure team-role overrides keyed by procedure UUID, not array index** — every `SET_DIAGNOSIS_GROUPS` / `REORDER_DIAGNOSIS_GROUPS` runs `remapTeamProcedureReferences` so deletes/reorders preserve clinical attribution
+- **Episode sequence allocation is atomic** — call `allocateEpisodeSequence(episodeId)` from `episodeStorage.ts`, never `getCasesByEpisodeId(...).length + 1`
+- **Recipient device public keys verified via TOFU** — every `getUserDeviceKeys` response goes through `verifyAndPinRecipientKeys` before wrapping a case key
 
 ## Operative role & supervision model
 
@@ -1378,9 +1441,9 @@ RACS MALT codes and other training-programme formats are derived at export time 
 
 ## Testing
 
-- **Framework:** Vitest 4.0.18, **1452 tests** across 75 files
-- **Client tests:** `client/lib/__tests__/` and `client/components/` — covering hand trauma (diagnosis, mapping, ux), skin cancer (config 89, phase4 11, phase5 18, diagnoses 7), dashboard (selectors 7), hand (infection 42, elective 103), dupuytren (37), joint implant (44), osteotomy (18), media (encryption 7, fileStorage 3, tagHelpers 82, captureProtocols 41, operativeMedia 19, form 4, defaults 4, context 3), inbox (storage 13, assignment 17), capture (smartImportPrefs 10, sharedIngress 2), case (specialty 5, storageCache 4, draftPersistence 1), statistics (helpers 3, stats 7), dates (values 12, normalization 4), export (implant 3, breast), planned case (18), media organiser (15), NHI validation (12), patient identity (11), operative role (68), head & neck integration (4), breast (phase3, phase4, export), FISS calculator (12), craniofacial, aesthetics, burns, peripheral nerve, lymphoedema, team contacts (11), operative team (15), sharing bridge (8), EPA derivation (14), assessment roles + calibration (22), plus media UI coverage
-- **Server tests:** `server/__tests__/` — auth (17), validation (7), diagnosisStagingConfig (3), teamContacts (17), invitations (6)
+- **Framework:** Vitest 4.0.18, **1514 tests** across 85 files (+47 new tests across the Phase 6 security remediation)
+- **Client tests:** `client/lib/__tests__/` and `client/components/` — covering hand trauma (diagnosis, mapping, ux), skin cancer (config 89, phase4 11, phase5 18, diagnoses 7), dashboard (selectors 7), hand (infection 42, elective 103), dupuytren (37), joint implant (44), osteotomy (18), media (encryption 7, fileStorage 3, tagHelpers 82, captureProtocols 41, operativeMedia 19, form 4, defaults 4, context 3, decrypt-cache pinning 3), inbox (storage 13, assignment 17), capture (smartImportPrefs 10, sharedIngress 2), case (specialty 5, storageCache 4, draftPersistence 1, procedure-remap 7), statistics (helpers 3, stats 7), dates (values 12, normalization 4), export (implant 3, breast), planned case (18), media organiser (15), NHI validation (12), patient identity (11), operative role (68), head & neck integration (4), breast (phase3, phase4, export), FISS calculator (12), craniofacial, aesthetics, burns, peripheral nerve, lymphoedema, team contacts (11), operative team (15), sharing bridge (8), EPA derivation (14), assessment roles + calibration (22), encryption AEAD-only (4), scrypt PIN + lockout (7), JWT refresh mutex (2), TOFU key pinning (7), plus media UI coverage
+- **Server tests:** `server/__tests__/` — auth (17), validation (7), diagnosisStagingConfig (3), teamContacts (17), invitations (6), assessments authZ (3), env-blocklist (6), utils (8)
 - **Run:** `npm run test` (once) or `npm run test:watch` (watch mode)
 
 ## Visual Verification (Expo MCP)
