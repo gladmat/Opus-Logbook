@@ -4,7 +4,7 @@ import * as path from "node:path";
 import express from "express";
 import type { Express, NextFunction, Request, Response } from "express";
 import { env } from "./env";
-import { registerRoutes } from "./routes";
+import { registerRoutes, authenticateToken } from "./routes";
 
 const log = console.log;
 
@@ -278,7 +278,21 @@ function configureExpoAndLanding(app: Express) {
     next();
   });
 
-  app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
+  // Avatars are personal data (surgeon headshots) — require a valid JWT on
+  // every GET. Prior version served `/uploads/avatars/*` publicly; even
+  // with random filenames, any leaked URL (screenshot, log, mis-sent
+  // support email) becomes a permanent public handle. The upload path
+  // (`POST /api/profile/picture`) already runs under `authenticateToken`,
+  // so this gate only changes the retrieval side. `authenticateToken` is
+  // async and the signature doesn't match Express's synchronous middleware
+  // callback, so we wrap it in an adapter.
+  app.use(
+    "/uploads",
+    (req: Request, res: Response, next: NextFunction) => {
+      void authenticateToken(req, res, next);
+    },
+    express.static(path.resolve(process.cwd(), "uploads")),
+  );
   app.use("/assets", express.static(path.resolve(process.cwd(), "assets")));
   app.use(express.static(path.resolve(process.cwd(), "static-build")));
 

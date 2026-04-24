@@ -184,6 +184,15 @@ export async function saveMediaV2(
     }
 
     const wrappedDEK = await wrapDek(dek, masterKey);
+    // Round `createdAt` to the local calendar day. The meta.json file is
+    // stored plaintext alongside the ciphertext image, so a forensic
+    // extraction without the master key leaves an attacker able to read
+    // the metadata. The full ISO timestamp + width × height let them
+    // correlate a capture with public OR booking lists / theatre logs at
+    // sub-minute precision. Day-level granularity still lets the app sort
+    // gallery thumbnails chronologically without leaking surgical times.
+    const createdDay = new Date();
+    createdDay.setHours(0, 0, 0, 0);
     const meta: MediaMeta = {
       version: 2,
       mediaId: id,
@@ -200,7 +209,7 @@ export async function saveMediaV2(
       thumbTag: thumb?.tag,
       thumbSize: thumb?.sourceSize,
       thumbCiphertextSize: thumb?.ciphertextSize,
-      createdAt: new Date().toISOString(),
+      createdAt: createdDay.toISOString(),
     };
 
     writeTextFile(paths.meta, JSON.stringify(meta));

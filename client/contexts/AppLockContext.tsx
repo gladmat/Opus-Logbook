@@ -20,6 +20,7 @@ import {
 import { isFaceIdUnsupportedInCurrentRuntime } from "@/lib/biometrics";
 import { clearDecryptedCache } from "@/components/EncryptedImage";
 import { clearEncryptionKeyCache } from "@/lib/encryption";
+import { clearUserCaches } from "@/lib/storage";
 import { getActiveUserIdOrNull } from "@/lib/activeUser";
 
 export interface PinUnlockResult {
@@ -95,6 +96,11 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
         clearDecryptedCache();
         // Clear cached encryption keys from RAM to reduce exposure window
         clearEncryptionKeyCache();
+        // Also clear the in-memory case / summary caches. The summary
+        // cache holds every patient's name + NHI + DOB in RAM for the
+        // session — a process-memory dump attack on a backgrounded app
+        // would otherwise recover the full patient list.
+        clearUserCaches();
       }
 
       if (!isAppLockConfigured) return;

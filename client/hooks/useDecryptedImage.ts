@@ -83,13 +83,26 @@ export function useDecryptedImage(
     const mediaId = opusMediaIdFromUri(mediaUri);
     const variant = thumbnail ? ("thumb" as const) : ("full" as const);
 
+    // Pin the entry for the life of this hook instance. Without this,
+    // fast-scrolling a large gallery can trigger the LRU eviction path
+    // mid-render — the decrypted file gets deleted while expo-image is
+    // still loading it. The pin balances to unpin in the cleanup below
+    // regardless of success, failure, or unmount-mid-decrypt.
+    decryptCache.pin(mediaId, variant);
+    let unpinned = false;
+    const doUnpin = () => {
+      if (unpinned) return;
+      unpinned = true;
+      decryptCache.unpin(mediaId, variant);
+    };
+
     // Check cache first (synchronous)
     const cached = decryptCache.getCached(mediaId, variant);
     if (cached) {
       setUri(cached);
       setLoading(false);
       setError(false);
-      return;
+      return doUnpin;
     }
 
     // Need to decrypt
@@ -116,16 +129,24 @@ export function useDecryptedImage(
       );
     })
       .then((fileUri) => {
-        if (!mountedRef.current) return;
+        if (!mountedRef.current) {
+          doUnpin();
+          return;
+        }
         setUri(fileUri);
         setLoading(false);
       })
       .catch((e) => {
         console.error("useDecryptedImage failed:", e);
-        if (!mountedRef.current) return;
+        if (!mountedRef.current) {
+          doUnpin();
+          return;
+        }
         setError(true);
         setLoading(false);
       });
+
+    return doUnpin;
   }, [mediaUri, thumbnail]);
 
   return { uri, loading, error };

@@ -500,11 +500,11 @@ const JWT_SECRET = env.JWT_SECRET;
 const hashResetToken = (token: string) =>
   createHash("sha256").update(token).digest("hex");
 
-interface AuthenticatedRequest extends Request {
+export interface AuthenticatedRequest extends Request {
   userId?: string;
 }
 
-const authenticateToken = async (
+export const authenticateToken = async (
   req: AuthenticatedRequest,
   res: Response,
   next: Function,

@@ -6,11 +6,11 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
-  Image,
   Platform,
   LayoutAnimation,
   UIManager,
 } from "react-native";
+import { AuthenticatedAvatar } from "@/components/AuthenticatedAvatar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { Feather } from "@/components/FeatherIcon";
@@ -408,7 +408,7 @@ export default function EditProfileScreen() {
               <ActivityIndicator color={theme.link} size="large" />
             </View>
           ) : avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+            <AuthenticatedAvatar url={avatarUrl} size={styles.avatar.width} />
           ) : (
             <View
               style={[styles.avatar, { backgroundColor: theme.link + "15" }]}
@@ -711,41 +711,43 @@ export default function EditProfileScreen() {
               Career Stage
             </ThemedText>
             <View style={styles.optionPills}>
-              {getCareerStagesForCountry(countryOfPractice || null).map((stage) => {
-                const isSelected = careerStage === stage.value;
-                return (
-                  <Pressable
-                    key={stage.value}
-                    style={[
-                      styles.pill,
-                      {
-                        borderColor: theme.border,
-                        backgroundColor: theme.backgroundSecondary,
-                      },
-                      isSelected && {
-                        borderColor: theme.link,
-                        backgroundColor: theme.link + "15",
-                      },
-                    ]}
-                    onPress={() => {
-                      setHasLocalEdits(true);
-                      setCareerStage(stage.value);
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }}
-                    testID={`settings.profile.option-careerStage-${stage.value}`}
-                  >
-                    <ThemedText
+              {getCareerStagesForCountry(countryOfPractice || null).map(
+                (stage) => {
+                  const isSelected = careerStage === stage.value;
+                  return (
+                    <Pressable
+                      key={stage.value}
                       style={[
-                        styles.pillText,
-                        { color: theme.text },
-                        isSelected && { color: theme.link },
+                        styles.pill,
+                        {
+                          borderColor: theme.border,
+                          backgroundColor: theme.backgroundSecondary,
+                        },
+                        isSelected && {
+                          borderColor: theme.link,
+                          backgroundColor: theme.link + "15",
+                        },
                       ]}
+                      onPress={() => {
+                        setHasLocalEdits(true);
+                        setCareerStage(stage.value);
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }}
+                      testID={`settings.profile.option-careerStage-${stage.value}`}
                     >
-                      {stage.label}
-                    </ThemedText>
-                  </Pressable>
-                );
-              })}
+                      <ThemedText
+                        style={[
+                          styles.pillText,
+                          { color: theme.text },
+                          isSelected && { color: theme.link },
+                        ]}
+                      >
+                        {stage.label}
+                      </ThemedText>
+                    </Pressable>
+                  );
+                },
+              )}
             </View>
           </View>
 

@@ -58,6 +58,22 @@ export async function getAuthToken(): Promise<string | null> {
   }
 }
 
+/**
+ * Build an `<Image source={...}>` descriptor that sends the current JWT as
+ * `Authorization: Bearer ...`, so React Native's image loader can fetch
+ * avatars from the server's authenticated `/uploads/avatars/*` path. If
+ * we aren't logged in, returns a plain `{ uri }` and the request will
+ * fail cleanly with 401 (which the server now returns rather than leaking
+ * the bytes publicly).
+ */
+export async function authenticatedImageSource(
+  uri: string,
+): Promise<{ uri: string; headers?: Record<string, string> }> {
+  const token = await getAuthToken();
+  if (!token) return { uri };
+  return { uri, headers: { Authorization: `Bearer ${token}` } };
+}
+
 export async function setAuthToken(token: string): Promise<void> {
   await setSecureItem(AUTH_TOKEN_KEY, token);
 }

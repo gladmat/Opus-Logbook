@@ -9,8 +9,8 @@ import {
   Linking,
   TextInput,
   ActivityIndicator,
-  Image,
 } from "react-native";
+import { AuthenticatedAvatar } from "@/components/AuthenticatedAvatar";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
@@ -497,11 +497,9 @@ export default function SettingsScreen() {
                 ]}
               >
                 {profile?.profilePictureUrl ? (
-                  <Image
-                    source={{
-                      uri: `${getApiUrl()}${profile.profilePictureUrl}`,
-                    }}
-                    style={{ width: 56, height: 56, borderRadius: 28 }}
+                  <AuthenticatedAvatar
+                    url={`${getApiUrl()}${profile.profilePictureUrl}`}
+                    size={56}
                   />
                 ) : (
                   <Feather name="user" size={28} color={theme.link} />
