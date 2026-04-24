@@ -2309,6 +2309,36 @@ export function useCaseForm({
           }
         }
 
+        // Surface silent team-sharing / EPA limitations. Sharing and EPA both
+        // filter the operativeTeam to linked Opus users with careerStage set;
+        // members failing either check are dropped with no visible feedback.
+        if (state.operativeTeam.length > 0) {
+          const issues: string[] = [];
+          const unlinkedCount = state.operativeTeam.filter(
+            (m) => !m.linkedUserId,
+          ).length;
+          const linkedMissingStage = state.operativeTeam.filter(
+            (m) => m.linkedUserId && !m.careerStage,
+          ).length;
+          if (unlinkedCount > 0) {
+            issues.push(
+              `• ${unlinkedCount} tagged member${unlinkedCount === 1 ? " isn't" : "s aren't"} linked to an Opus account yet, so they won't receive this case.`,
+            );
+          }
+          if (!profile?.careerStage) {
+            issues.push(
+              "• Your own career stage isn't set, so no assessment targets will be generated. Set it in Edit Profile.",
+            );
+          } else if (linkedMissingStage > 0) {
+            issues.push(
+              `• ${linkedMissingStage} linked member${linkedMissingStage === 1 ? " is" : "s are"} missing a career stage, so no assessment targets will be generated for them.`,
+            );
+          }
+          if (issues.length > 0) {
+            Alert.alert("Case saved — team features limited", issues.join("\n"));
+          }
+        }
+
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         return true;
       } catch (error) {

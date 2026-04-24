@@ -78,14 +78,46 @@ export async function clearAuthToken(): Promise<void> {
   }
 }
 
+// Session-expired event bus — AuthContext subscribes to clear user state
+// when a JWT can no longer be refreshed.
+type SessionExpiredListener = () => void;
+const sessionExpiredListeners = new Set<SessionExpiredListener>();
+
+export function subscribeSessionExpired(
+  listener: SessionExpiredListener,
+): () => void {
+  sessionExpiredListeners.add(listener);
+  return () => {
+    sessionExpiredListeners.delete(listener);
+  };
+}
+
+function emitSessionExpired(): void {
+  for (const listener of sessionExpiredListeners) {
+    try {
+      listener();
+    } catch (error) {
+      console.warn("sessionExpired listener threw:", error);
+    }
+  }
+}
+
+interface AuthFetchOptions {
+  // Auth endpoints (login/signup/refresh) must opt out so a stale token from
+  // a previous session doesn't trigger a spurious "session expired" flow.
+  autoRefresh?: boolean;
+}
+
 async function authFetch(
   path: string,
   options: RequestInit = {},
+  authOpts: AuthFetchOptions = {},
 ): Promise<Response> {
+  const autoRefresh = authOpts.autoRefresh !== false;
   const baseUrl = getApiUrl();
   const token = await getAuthToken();
 
-  return fetch(new URL(path, baseUrl).href, {
+  const res = await fetch(new URL(path, baseUrl).href, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -93,16 +125,40 @@ async function authFetch(
       ...options.headers,
     },
   });
+
+  if (autoRefresh && token && (res.status === 401 || res.status === 403)) {
+    const refreshed = await refreshToken();
+    if (refreshed) {
+      return authFetch(path, options, { autoRefresh: false });
+    }
+    await clearAuthToken();
+    emitSessionExpired();
+    return new Response(
+      JSON.stringify({
+        error: "Your session has expired. Please log in again.",
+      }),
+      {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  }
+
+  return res;
 }
 
 export async function signup(
   email: string,
   password: string,
 ): Promise<AuthResponse> {
-  const res = await authFetch("/api/auth/signup", {
-    method: "POST",
-    body: JSON.stringify({ email, password }),
-  });
+  const res = await authFetch(
+    "/api/auth/signup",
+    {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    },
+    { autoRefresh: false },
+  );
 
   if (!res.ok) {
     const error = await res.json();
@@ -118,10 +174,14 @@ export async function login(
   email: string,
   password: string,
 ): Promise<AuthResponse> {
-  const res = await authFetch("/api/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ email, password }),
-  });
+  const res = await authFetch(
+    "/api/auth/login",
+    {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    },
+    { autoRefresh: false },
+  );
 
   if (!res.ok) {
     const error = await res.json();
@@ -138,10 +198,14 @@ export async function appleSignIn(
   fullName?: { givenName?: string; familyName?: string } | null,
   email?: string | null,
 ): Promise<AuthResponse> {
-  const res = await authFetch("/api/auth/apple", {
-    method: "POST",
-    body: JSON.stringify({ identityToken, fullName, email }),
-  });
+  const res = await authFetch(
+    "/api/auth/apple",
+    {
+      method: "POST",
+      body: JSON.stringify({ identityToken, fullName, email }),
+    },
+    { autoRefresh: false },
+  );
 
   if (!res.ok) {
     let message = "Apple Sign In failed";
@@ -186,9 +250,11 @@ export async function refreshToken(): Promise<boolean> {
     const token = await getAuthToken();
     if (!token) return false;
 
-    const res = await authFetch("/api/auth/refresh", {
-      method: "POST",
-    });
+    const res = await authFetch(
+      "/api/auth/refresh",
+      { method: "POST" },
+      { autoRefresh: false },
+    );
 
     if (!res.ok) return false;
 

@@ -6,7 +6,7 @@ import React, {
   ReactNode,
   useCallback,
 } from "react";
-import { Platform } from "react-native";
+import { Alert, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   AuthUser,
@@ -26,6 +26,8 @@ import {
   deleteFacility as authDeleteFacility,
   updateFacility as authUpdateFacility,
   registerDeviceKey,
+  refreshToken as authRefreshToken,
+  subscribeSessionExpired,
 } from "@/lib/auth";
 import { clearAllData, clearUserCaches } from "@/lib/storage";
 import { getOrCreateDeviceIdentity } from "@/lib/e2ee";
@@ -206,6 +208,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.warn("Device key registration failed:", error);
         }
 
+        // Proactively roll the JWT forward so active users don't trip the
+        // 7-day expiry mid-session. Cheap — the server re-issues on the same
+        // tokenVersion and the new token is persisted to SecureStore.
+        void authRefreshToken();
+
         // Background discovery: check if unlinked contacts have joined Opus
         void discoverUnlinkedContacts();
       } else {
@@ -244,6 +251,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     init();
   }, [refreshUser]);
+
+  // Session-expired handler — fired by authFetch when a 401/403 can't be
+  // recovered via refresh. Clear state and surface a friendlier alert than
+  // the server's raw "Invalid or expired token" message.
+  useEffect(() => {
+    const unsubscribe = subscribeSessionExpired(() => {
+      setActiveUserId(null);
+      void AsyncStorage.removeItem(LAST_ACTIVE_USER_KEY);
+      setUser(null);
+      setProfile(null);
+      setFacilities([]);
+      Alert.alert(
+        "Session expired",
+        "You've been signed out. Please log in again to continue.",
+      );
+    });
+    return unsubscribe;
+  }, []);
 
   const login = async (email: string, password: string) => {
     const data = await authLogin(email, password);
