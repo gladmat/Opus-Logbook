@@ -103,6 +103,7 @@ import {
 } from "@/lib/breastEpisodeHelpers";
 import { buildShareableBlob } from "@/lib/buildShareableBlob";
 import { shareCase, getSharedOutbox, revokeSharedCase } from "@/lib/sharingApi";
+import { verifyAndPinRecipientKeys } from "@/lib/keyPinningStore";
 import { getUserDeviceKeys } from "@/lib/teamContactsApi";
 import {
   generateCaseKeyHex,
@@ -2462,7 +2463,13 @@ export function useCaseForm({
             publicKeys: { deviceId: string; publicKey: string }[];
           }[] = [...state.teamMembers];
 
-          // Add linked operativeTeam members (fetch their device keys)
+          // Add linked operativeTeam members (fetch their device keys).
+          // Every fetched-from-server public key set goes through TOFU
+          // pinning — on first observation we pin, on subsequent shares
+          // we assert the key matches. If the server swapped a key
+          // (malicious operator, MITM on an older TLS config, etc.) the
+          // mismatch surfaces as a warning and we skip that recipient.
+          const tofuMismatchedRecipients: string[] = [];
           const linkedOpMembers = state.operativeTeam.filter(
             (m) => m.linkedUserId,
           );
@@ -2476,16 +2483,35 @@ export function useCaseForm({
             try {
               const keys = await getUserDeviceKeys(member.linkedUserId!);
               if (keys.length > 0) {
+                const verification = await verifyAndPinRecipientKeys(
+                  member.linkedUserId!,
+                  keys,
+                );
+                if (verification.kind === "mismatch") {
+                  tofuMismatchedRecipients.push(member.displayName);
+                  console.warn(
+                    "[useCaseForm] TOFU mismatch for",
+                    member.displayName,
+                    verification.mismatches,
+                  );
+                  continue;
+                }
                 shareableMembers.push({
                   userId: member.linkedUserId!,
                   displayName: member.displayName,
                   role: member.operativeRole,
-                  publicKeys: keys,
+                  publicKeys: verification.keys,
                 });
               }
             } catch {
               // Skip — user may have no device keys registered
             }
+          }
+          if (tofuMismatchedRecipients.length > 0) {
+            Alert.alert(
+              "Sharing skipped for some recipients",
+              `The stored device key for ${tofuMismatchedRecipients.join(", ")} doesn't match what the server returned. The case was not shared with them. Confirm their device change in person, then retry.`,
+            );
           }
 
           // Edit-mode revocation: if this case was previously shared with

@@ -8,7 +8,11 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { useRoute, useNavigation, useFocusEffect } from "@react-navigation/native";
+import {
+  useRoute,
+  useNavigation,
+  useFocusEffect,
+} from "@react-navigation/native";
 import type { RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import * as Haptics from "expo-haptics";
@@ -22,6 +26,10 @@ import {
   OPERATIVE_ROLE_LABELS,
   type OperativeRole,
 } from "@/types/operativeRole";
+import {
+  TEAM_MEMBER_ROLE_LABELS,
+  type CaseTeamMember,
+} from "@/types/teamContacts";
 import {
   SPECIALTY_LABELS,
   ADMISSION_URGENCY_LABELS,
@@ -53,7 +61,10 @@ import {
 import { ENTRUSTMENT_LABELS, type EntrustmentLevel } from "@/types/sharing";
 
 type RouteProps = RouteProp<RootStackParamList, "SharedCaseDetail">;
-type NavProps = NativeStackNavigationProp<RootStackParamList, "SharedCaseDetail">;
+type NavProps = NativeStackNavigationProp<
+  RootStackParamList,
+  "SharedCaseDetail"
+>;
 
 const ROLE_LABELS: Record<string, string> = {
   surgeon: "Surgeon",
@@ -62,6 +73,65 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 // ── Sub-components ──────────────────────────────────────────────────────────
+
+/**
+ * Renders one row of the Team card. Shows the member's name + their
+ * per-case role, plus a "Not on Opus" pill for contacts the sender has
+ * not linked to an Opus account. The sender's local `team_contacts`
+ * email / phone fields are intentionally NOT in the shared blob — those
+ * are third-party PII that didn't need to travel to recipients.
+ */
+function TeamMemberRow({
+  member,
+  themeColors,
+}: {
+  member: CaseTeamMember;
+  themeColors: {
+    text: string;
+    accent: string;
+    textSecondary: string;
+    border: string;
+  };
+}) {
+  const roleLabel =
+    TEAM_MEMBER_ROLE_LABELS[member.operativeRole] ?? member.operativeRole;
+  const isLinked = !!member.linkedUserId;
+  return (
+    <View style={styles.teamMemberRow}>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <ThemedText
+          style={[styles.teamName, { color: themeColors.text }]}
+          numberOfLines={1}
+        >
+          {member.displayName}
+        </ThemedText>
+        {!isLinked ? (
+          <ThemedText
+            style={{
+              fontSize: 11,
+              color: themeColors.textSecondary,
+              marginTop: 2,
+            }}
+          >
+            Not on Opus
+          </ThemedText>
+        ) : null}
+      </View>
+      <View
+        style={[
+          styles.teamRoleBadge,
+          { backgroundColor: themeColors.accent + "20" },
+        ]}
+      >
+        <ThemedText
+          style={[styles.teamRoleText, { color: themeColors.accent }]}
+        >
+          {roleLabel}
+        </ThemedText>
+      </View>
+    </View>
+  );
+}
 
 function DetailCard({
   title,
@@ -508,32 +578,60 @@ export default function SharedCaseDetailScreen() {
           />
         </DetailCard>
 
-        {/* Team card */}
+        {/* Team card. We prefer the operativeTeam data when present (richer:
+            all team members incl. those not on Opus, with their per-case
+            role + per-procedure overrides). If a sender is still on the
+            v1 blob (teamRoles only — Opus-linked users), fall back to
+            that so older shares don't break. */}
         <DetailCard title="Team" icon="users">
-          {(caseData.teamRoles ?? []).map((member, idx) => (
-            <View key={idx} style={styles.teamMemberRow}>
-              <ThemedText style={[styles.teamName, { color: theme.text }]}>
-                {member.displayName}
-              </ThemedText>
-              <View
-                style={[
-                  styles.teamRoleBadge,
-                  { backgroundColor: theme.accent + "20" },
-                ]}
+          {(() => {
+            const operativeTeam = caseData.operativeTeam ?? [];
+            if (operativeTeam.length > 0) {
+              return operativeTeam.map((member, idx) => (
+                <TeamMemberRow
+                  key={`${member.contactId}-${idx}`}
+                  member={member}
+                  themeColors={{
+                    text: theme.text,
+                    accent: theme.accent,
+                    textSecondary: theme.textSecondary,
+                    border: theme.border,
+                  }}
+                />
+              ));
+            }
+
+            const teamRoles = caseData.teamRoles ?? [];
+            if (teamRoles.length > 0) {
+              return teamRoles.map((member, idx) => (
+                <View key={idx} style={styles.teamMemberRow}>
+                  <ThemedText style={[styles.teamName, { color: theme.text }]}>
+                    {member.displayName}
+                  </ThemedText>
+                  <View
+                    style={[
+                      styles.teamRoleBadge,
+                      { backgroundColor: theme.accent + "20" },
+                    ]}
+                  >
+                    <ThemedText
+                      style={[styles.teamRoleText, { color: theme.accent }]}
+                    >
+                      {ROLE_LABELS[member.role] || member.role}
+                    </ThemedText>
+                  </View>
+                </View>
+              ));
+            }
+
+            return (
+              <ThemedText
+                style={[styles.noData, { color: theme.textTertiary }]}
               >
-                <ThemedText
-                  style={[styles.teamRoleText, { color: theme.accent }]}
-                >
-                  {ROLE_LABELS[member.role] || member.role}
-                </ThemedText>
-              </View>
-            </View>
-          ))}
-          {(caseData.teamRoles ?? []).length === 0 ? (
-            <ThemedText style={[styles.noData, { color: theme.textTertiary }]}>
-              No team data shared
-            </ThemedText>
-          ) : null}
+                No team data shared
+              </ThemedText>
+            );
+          })()}
         </DetailCard>
 
         {/* Verification section */}
@@ -684,124 +782,133 @@ export default function SharedCaseDetailScreen() {
         </View>
 
         {/* Assessment card */}
-        {verificationStatus === "verified" ? (() => {
-          const my = assessmentStatus?.myAssessment;
-          const other = assessmentStatus?.otherAssessment;
-          const isRevealed = !!(my?.revealedAt && (other?.revealedAt || !other));
+        {verificationStatus === "verified"
+          ? (() => {
+              const my = assessmentStatus?.myAssessment;
+              const other = assessmentStatus?.otherAssessment;
+              const isRevealed = !!(
+                my?.revealedAt &&
+                (other?.revealedAt || !other)
+              );
 
-          // Revealed — show summary with "View Results" button
-          if (isRevealed && my) {
-            return (
-              <Pressable
-                onPress={() =>
-                  navigation.navigate("AssessmentReveal", { sharedCaseId })
-                }
-                style={[
-                  styles.assessmentCard,
-                  {
-                    backgroundColor: theme.backgroundElevated,
-                    borderColor: theme.accent,
-                  },
-                  Shadows.card,
-                ]}
-              >
-                <Feather name="check-circle" size={20} color={theme.success} />
-                <View style={styles.assessmentCardText}>
-                  <ThemedText
-                    style={[styles.assessmentTitle, { color: theme.text }]}
-                  >
-                    Assessment Complete
-                  </ThemedText>
-                  <ThemedText
+              // Revealed — show summary with "View Results" button
+              if (isRevealed && my) {
+                return (
+                  <Pressable
+                    onPress={() =>
+                      navigation.navigate("AssessmentReveal", { sharedCaseId })
+                    }
                     style={[
-                      styles.assessmentSubtitle,
-                      { color: theme.textSecondary },
+                      styles.assessmentCard,
+                      {
+                        backgroundColor: theme.backgroundElevated,
+                        borderColor: theme.accent,
+                      },
+                      Shadows.card,
                     ]}
                   >
-                    Tap to view results
-                  </ThemedText>
-                </View>
-                <Feather
-                  name="chevron-right"
-                  size={18}
-                  color={theme.accent}
-                />
-              </Pressable>
-            );
-          }
-
-          // Submitted, waiting for other party
-          if (my && !my.revealedAt) {
-            return (
-              <View
-                style={[
-                  styles.assessmentCard,
-                  {
-                    backgroundColor: theme.backgroundElevated,
-                    borderColor: theme.border,
-                  },
-                  Shadows.card,
-                ]}
-              >
-                <Feather name="clock" size={20} color={theme.accent} />
-                <View style={styles.assessmentCardText}>
-                  <ThemedText
-                    style={[styles.assessmentTitle, { color: theme.text }]}
-                  >
-                    Assessment Submitted
-                  </ThemedText>
-                  <ThemedText
-                    style={[
-                      styles.assessmentSubtitle,
-                      { color: theme.textSecondary },
-                    ]}
-                  >
-                    Waiting for the other party to submit
-                  </ThemedText>
-                </View>
-              </View>
-            );
-          }
-
-          // Not started — show "Begin Assessment" CTA
-          return (
-            <Pressable
-              onPress={() =>
-                navigation.navigate("Assessment", { sharedCaseId })
+                    <Feather
+                      name="check-circle"
+                      size={20}
+                      color={theme.success}
+                    />
+                    <View style={styles.assessmentCardText}>
+                      <ThemedText
+                        style={[styles.assessmentTitle, { color: theme.text }]}
+                      >
+                        Assessment Complete
+                      </ThemedText>
+                      <ThemedText
+                        style={[
+                          styles.assessmentSubtitle,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
+                        Tap to view results
+                      </ThemedText>
+                    </View>
+                    <Feather
+                      name="chevron-right"
+                      size={18}
+                      color={theme.accent}
+                    />
+                  </Pressable>
+                );
               }
-              style={[
-                styles.assessmentCard,
-                {
-                  backgroundColor: theme.backgroundElevated,
-                  borderColor: theme.accent,
-                },
-                Shadows.card,
-              ]}
-            >
-              <Feather name="bar-chart-2" size={20} color={theme.accent} />
-              <View style={styles.assessmentCardText}>
-                <ThemedText
-                  style={[styles.assessmentTitle, { color: theme.text }]}
-                >
-                  Assess Operative Performance
-                </ThemedText>
-                <ThemedText
+
+              // Submitted, waiting for other party
+              if (my && !my.revealedAt) {
+                return (
+                  <View
+                    style={[
+                      styles.assessmentCard,
+                      {
+                        backgroundColor: theme.backgroundElevated,
+                        borderColor: theme.border,
+                      },
+                      Shadows.card,
+                    ]}
+                  >
+                    <Feather name="clock" size={20} color={theme.accent} />
+                    <View style={styles.assessmentCardText}>
+                      <ThemedText
+                        style={[styles.assessmentTitle, { color: theme.text }]}
+                      >
+                        Assessment Submitted
+                      </ThemedText>
+                      <ThemedText
+                        style={[
+                          styles.assessmentSubtitle,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
+                        Waiting for the other party to submit
+                      </ThemedText>
+                    </View>
+                  </View>
+                );
+              }
+
+              // Not started — show "Begin Assessment" CTA
+              return (
+                <Pressable
+                  onPress={() =>
+                    navigation.navigate("Assessment", { sharedCaseId })
+                  }
                   style={[
-                    styles.assessmentSubtitle,
-                    { color: theme.textSecondary },
+                    styles.assessmentCard,
+                    {
+                      backgroundColor: theme.backgroundElevated,
+                      borderColor: theme.accent,
+                    },
+                    Shadows.card,
                   ]}
                 >
-                  Rate entrustment and teaching quality
-                </ThemedText>
-              </View>
-              <Feather
-                name="chevron-right"
-                size={18}
-                color={theme.accent}
-              />
-            </Pressable>
-          );
-        })() : null}
+                  <Feather name="bar-chart-2" size={20} color={theme.accent} />
+                  <View style={styles.assessmentCardText}>
+                    <ThemedText
+                      style={[styles.assessmentTitle, { color: theme.text }]}
+                    >
+                      Assess Operative Performance
+                    </ThemedText>
+                    <ThemedText
+                      style={[
+                        styles.assessmentSubtitle,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
+                      Rate entrustment and teaching quality
+                    </ThemedText>
+                  </View>
+                  <Feather
+                    name="chevron-right"
+                    size={18}
+                    color={theme.accent}
+                  />
+                </Pressable>
+              );
+            })()
+          : null}
       </ScrollView>
     </View>
   );

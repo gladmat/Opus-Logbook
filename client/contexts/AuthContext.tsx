@@ -60,6 +60,7 @@ import {
   discoverUnlinkedContacts,
   clearDiscoveryState,
 } from "@/lib/discoveryService";
+import { clearAllPins } from "@/lib/keyPinningStore";
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -385,6 +386,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Clear user-scoped AsyncStorage caches BEFORE tearing down the active
     // user — the scoped-key helpers throw once the active user is null.
     await clearDiscoveryState().catch(() => {});
+    await clearAllPins().catch(() => {});
 
     // Tear down user-scoped state (fires onActiveUserChange listeners)
     setActiveUserId(null);
@@ -411,6 +413,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await clearAllEpisodes();
     await clearAllAppLockData();
     await clearDiscoveryState().catch(() => {});
+    await clearAllPins().catch(() => {});
 
     // Zeroise in-memory key caches
     clearEncryptionKeyCache();
