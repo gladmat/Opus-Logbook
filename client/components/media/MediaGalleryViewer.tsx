@@ -178,11 +178,12 @@ export function MediaGalleryViewer({
         item={item}
         width={width}
         height={height}
+        panEnabled={zoomed}
         onSingleTap={handleToggleChrome}
         onZoomChange={handleZoomChange}
       />
     ),
-    [width, height, handleToggleChrome, handleZoomChange],
+    [width, height, zoomed, handleToggleChrome, handleZoomChange],
   );
 
   if (items.length === 0) return null;
@@ -316,6 +317,7 @@ interface GalleryPageProps {
   item: GalleryMediaItem;
   width: number;
   height: number;
+  panEnabled: boolean;
   onSingleTap: () => void;
   onZoomChange: (zoomed: boolean) => void;
 }
@@ -324,6 +326,7 @@ function GalleryPage({
   item,
   width,
   height,
+  panEnabled,
   onSingleTap,
   onZoomChange,
 }: GalleryPageProps) {
@@ -371,6 +374,7 @@ function GalleryPage({
     });
 
   const pan = Gesture.Pan()
+    .enabled(panEnabled)
     .onUpdate((e) => {
       if (scale.value <= MIN_SCALE * 1.05) return;
       tx.value = savedTx.value + e.translationX;
