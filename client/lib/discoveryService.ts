@@ -3,9 +3,16 @@
  *
  * Checks whether unlinked team contacts have joined Opus.
  * Runs at most once per 24 hours, non-blocking after auth.
+ *
+ * All cached state is user-scoped: an AsyncStorage key that identifies a
+ * specific Opus user's discovery matches must never be readable by a
+ * different user on the same device. Prior versions used the unscoped keys
+ * `@opus_discovery_last_run` / `@opus_discovery_matches`, which would leak
+ * cached matches + last-run timestamps across logout/login boundaries.
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { userScopedAsyncKey } from "./activeUser";
 import {
   getTeamContacts,
   discoverContacts,
@@ -13,9 +20,16 @@ import {
   type DiscoverMatch,
 } from "./teamContactsApi";
 
-const LAST_RUN_KEY = "@opus_discovery_last_run";
-const MATCHES_KEY = "@opus_discovery_matches";
+const LAST_RUN_BASE_KEY = "@opus_discovery_last_run";
+const MATCHES_BASE_KEY = "@opus_discovery_matches";
 const THROTTLE_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+function lastRunKey(): string {
+  return userScopedAsyncKey(LAST_RUN_BASE_KEY);
+}
+function matchesKey(): string {
+  return userScopedAsyncKey(MATCHES_BASE_KEY);
+}
 
 /**
  * Run background discovery for unlinked contacts.
@@ -24,7 +38,7 @@ const THROTTLE_MS = 24 * 60 * 60 * 1000; // 24 hours
 export async function discoverUnlinkedContacts(): Promise<number> {
   try {
     // Throttle: skip if last run was within 24h
-    const lastRun = await AsyncStorage.getItem(LAST_RUN_KEY);
+    const lastRun = await AsyncStorage.getItem(lastRunKey());
     if (lastRun && Date.now() - Number(lastRun) < THROTTLE_MS) {
       return 0;
     }
@@ -34,13 +48,11 @@ export async function discoverUnlinkedContacts(): Promise<number> {
 
     // Filter to unlinked contacts with at least one identifier
     const unlinked = contacts.filter(
-      (c) =>
-        !c.linkedUserId &&
-        (c.email || c.phone || c.registrationNumber),
+      (c) => !c.linkedUserId && (c.email || c.phone || c.registrationNumber),
     );
 
     if (unlinked.length === 0) {
-      await AsyncStorage.setItem(LAST_RUN_KEY, String(Date.now()));
+      await AsyncStorage.setItem(lastRunKey(), String(Date.now()));
       return 0;
     }
 
@@ -66,8 +78,8 @@ export async function discoverUnlinkedContacts(): Promise<number> {
     }
 
     // Store matches and timestamp
-    await AsyncStorage.setItem(MATCHES_KEY, JSON.stringify(allMatches));
-    await AsyncStorage.setItem(LAST_RUN_KEY, String(Date.now()));
+    await AsyncStorage.setItem(matchesKey(), JSON.stringify(allMatches));
+    await AsyncStorage.setItem(lastRunKey(), String(Date.now()));
 
     return allMatches.length;
   } catch (error) {
@@ -81,7 +93,7 @@ export async function discoverUnlinkedContacts(): Promise<number> {
  */
 export async function getDiscoveryMatches(): Promise<DiscoverMatch[]> {
   try {
-    const raw = await AsyncStorage.getItem(MATCHES_KEY);
+    const raw = await AsyncStorage.getItem(matchesKey());
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -94,12 +106,17 @@ export async function getDiscoveryMatches(): Promise<DiscoverMatch[]> {
 export async function removeDiscoveryMatch(contactId: string): Promise<void> {
   const matches = await getDiscoveryMatches();
   const updated = matches.filter((m) => m.contactId !== contactId);
-  await AsyncStorage.setItem(MATCHES_KEY, JSON.stringify(updated));
+  await AsyncStorage.setItem(matchesKey(), JSON.stringify(updated));
 }
 
 /**
  * Clear all discovery state (used on logout).
+ * Best-effort — failures here should not block logout.
  */
 export async function clearDiscoveryState(): Promise<void> {
-  await AsyncStorage.multiRemove([LAST_RUN_KEY, MATCHES_KEY]);
+  try {
+    await AsyncStorage.multiRemove([lastRunKey(), matchesKey()]);
+  } catch {
+    // Ignore — logout proceeds even if cache clear fails.
+  }
 }

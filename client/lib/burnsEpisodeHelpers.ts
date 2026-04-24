@@ -5,10 +5,15 @@
  * title generation, pending action resolution, and link/create plans.
  */
 
-import type { BurnInjuryEvent, BurnsAssessmentData, BurnPhase } from "../types/burns";
+import type {
+  BurnInjuryEvent,
+  BurnsAssessmentData,
+  BurnPhase,
+} from "../types/burns";
 import { BURN_MECHANISM_LABELS, BURN_PHASE_LABELS } from "../types/burns";
 import type { BurnProcedureDetails } from "../types/burns";
 import { getBurnProcedureCategory } from "./burnsConfig";
+import { parseIsoDateValue } from "./dateValues";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // EPISODE TITLE GENERATION
@@ -101,9 +106,7 @@ export function determineBurnInitialPendingAction(
  * Returns whether episode auto-suggestion should default to ON.
  * ON for TBSA ≥10%, OFF for minor burns.
  */
-export function shouldSuggestEpisode(
-  assessment: BurnsAssessmentData,
-): boolean {
+export function shouldSuggestEpisode(assessment: BurnsAssessmentData): boolean {
   return (assessment.tbsa?.totalTBSA ?? 0) >= 10;
 }
 
@@ -148,7 +151,8 @@ export function computeBurnEpisodeAggregate(
   for (const c of cases) {
     for (const proc of c.procedures) {
       const cat = proc.category ?? "other";
-      totalProceduresByCategory[cat] = (totalProceduresByCategory[cat] ?? 0) + 1;
+      totalProceduresByCategory[cat] =
+        (totalProceduresByCategory[cat] ?? 0) + 1;
       if (cat === "excision" && !firstExcisionDate) {
         firstExcisionDate = c.date;
       }
@@ -168,19 +172,28 @@ export function computeBurnEpisodeAggregate(
 
   let daysToFirstExcision: number | undefined;
   if (injuryDate && firstExcisionDate) {
-    const injury = new Date(injuryDate);
-    const excision = new Date(firstExcisionDate);
-    daysToFirstExcision = Math.round(
-      (excision.getTime() - injury.getTime()) / (1000 * 60 * 60 * 24),
-    );
+    // Both are `YYYY-MM-DD` strings — use parseIsoDateValue (local noon) so
+    // the day-delta isn't off by one for users in non-UTC timezones.
+    const injury = parseIsoDateValue(injuryDate);
+    const excision = parseIsoDateValue(firstExcisionDate);
+    if (injury && excision) {
+      daysToFirstExcision = Math.round(
+        (excision.getTime() - injury.getTime()) / (1000 * 60 * 60 * 24),
+      );
+    }
   }
 
   let totalTreatmentSpanDays: number | undefined;
   if (cases.length >= 2) {
-    const dates = cases.map((c) => new Date(c.date).getTime()).sort();
-    totalTreatmentSpanDays = Math.round(
-      (dates[dates.length - 1]! - dates[0]!) / (1000 * 60 * 60 * 24),
-    );
+    const dates = cases
+      .map((c) => parseIsoDateValue(c.date)?.getTime())
+      .filter((t): t is number => typeof t === "number")
+      .sort((a, b) => a - b);
+    if (dates.length >= 2) {
+      totalTreatmentSpanDays = Math.round(
+        (dates[dates.length - 1]! - dates[0]!) / (1000 * 60 * 60 * 24),
+      );
+    }
   }
 
   return {
@@ -210,11 +223,13 @@ export function extractBurnCaseSummary(
 ): BurnEpisodeCaseSummary {
   let daysSinceInjury: number | undefined;
   if (injuryDate) {
-    const injury = new Date(injuryDate);
-    const procDate = new Date(procedureDate);
-    daysSinceInjury = Math.round(
-      (procDate.getTime() - injury.getTime()) / (1000 * 60 * 60 * 24),
-    );
+    const injury = parseIsoDateValue(injuryDate);
+    const procDate = parseIsoDateValue(procedureDate);
+    if (injury && procDate) {
+      daysSinceInjury = Math.round(
+        (procDate.getTime() - injury.getTime()) / (1000 * 60 * 60 * 24),
+      );
+    }
   }
 
   // Sum TBSA excised across excision procedures

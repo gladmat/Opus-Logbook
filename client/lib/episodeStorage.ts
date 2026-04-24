@@ -1,10 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { TreatmentEpisode } from "@/types/episode";
+import { TreatmentEpisode, EPISODE_STATUS_TRANSITIONS } from "@/types/episode";
 import type { Case } from "@/types/case";
 import { encryptData, decryptData } from "./encryption";
 import { getCasesByEpisodeId, hashPatientIdentifier } from "./storage";
 import { normalizeEpisodeDateOnlyFields } from "./dateFieldNormalization";
 import { userScopedAsyncKey } from "./activeUser";
+import { parseIsoDateValue } from "./dateValues";
 
 export const EPISODE_BASE_KEYS = {
   INDEX: "@opus_episode_index",
@@ -102,12 +103,84 @@ export async function saveEpisode(episode: TreatmentEpisode): Promise<void> {
   }
 }
 
+/**
+ * Atomically allocate the next `episodeSequence` for a case being added to
+ * this episode. Returns the sequence number to stamp on the case, updates
+ * the episode's `nextCaseSequence` counter, and persists.
+ *
+ * Uses a tiny module-level mutex so two save flows that call this within
+ * the same JS turn serialise: the second await blocks on the first's
+ * round-trip to AsyncStorage. Not foolproof against multiple concurrent
+ * app processes (which React Native doesn't have) but eliminates the
+ * real-world "double save creates duplicate sequence numbers" bug.
+ */
+const _episodeSequenceLocks = new Map<string, Promise<void>>();
+
+export async function allocateEpisodeSequence(
+  episodeId: string,
+): Promise<number> {
+  const prior = _episodeSequenceLocks.get(episodeId) ?? Promise.resolve();
+  let release!: () => void;
+  const thisLock = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  _episodeSequenceLocks.set(
+    episodeId,
+    prior.then(() => thisLock),
+  );
+
+  try {
+    await prior;
+    const existing = await getEpisode(episodeId);
+    if (!existing) {
+      return 1;
+    }
+    const current = existing.nextCaseSequence ?? 0;
+    const next = current + 1;
+    const updated: TreatmentEpisode = {
+      ...existing,
+      nextCaseSequence: next,
+      updatedAt: new Date().toISOString(),
+    };
+    await saveEpisode(updated);
+    return next;
+  } finally {
+    release();
+    // Clean up map entry when this is the last waiter.
+    queueMicrotask(() => {
+      if (_episodeSequenceLocks.get(episodeId) === prior.then(() => thisLock)) {
+        // No-op — GC handles the resolved chain; the map entry will be
+        // replaced by the next allocator call.
+      }
+    });
+  }
+}
+
 export async function updateEpisode(
   id: string,
   updates: Partial<TreatmentEpisode>,
 ): Promise<void> {
   const existing = await getEpisode(id);
   if (!existing) return;
+
+  // Enforce the documented state machine on any status transition. Previously
+  // every caller could flip `status` to any value, including illegal
+  // transitions like completed → planned. Reject those (no-op) so a miswired
+  // caller doesn't silently corrupt the episode lifecycle.
+  if (updates.status && updates.status !== existing.status) {
+    const allowed = EPISODE_STATUS_TRANSITIONS[existing.status] ?? [];
+    if (!allowed.includes(updates.status)) {
+      console.warn(
+        `[episodeStorage] Illegal status transition ${existing.status} → ${updates.status} rejected for episode ${id}`,
+      );
+      // Drop only the offending field; allow other updates to proceed so
+      // unrelated metadata writes aren't blocked by the bad status attempt.
+      const { status: _dropped, ...rest } = updates;
+      const updated = { ...existing, ...rest };
+      await saveEpisode(updated);
+      return;
+    }
+  }
 
   const updated = { ...existing, ...updates };
   await saveEpisode(updated);
@@ -209,7 +282,11 @@ export async function getVisibleDashboardEpisodes(): Promise<
       if (!e) return false;
       if (e.status === "completed") {
         if (!e.resolvedDate) return false;
-        const resolvedTime = new Date(e.resolvedDate).getTime();
+        // `resolvedDate` is a `YYYY-MM-DD` string — parseIsoDateValue gives
+        // local noon so a completed-today episode isn't filtered out due to
+        // UTC-midnight drifting into the "future".
+        const resolvedTime = parseIsoDateValue(e.resolvedDate)?.getTime();
+        if (!resolvedTime) return false;
         return now - resolvedTime <= SEVEN_DAYS_MS;
       }
       return true;

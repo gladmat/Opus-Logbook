@@ -56,7 +56,10 @@ import { clearAllEpisodes } from "@/lib/episodeStorage";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import { registerPushTokenOnServer } from "@/lib/sharingApi";
-import { discoverUnlinkedContacts } from "@/lib/discoveryService";
+import {
+  discoverUnlinkedContacts,
+  clearDiscoveryState,
+} from "@/lib/discoveryService";
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -379,6 +382,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearDecryptedCache();
     clearUserCaches();
 
+    // Clear user-scoped AsyncStorage caches BEFORE tearing down the active
+    // user — the scoped-key helpers throw once the active user is null.
+    await clearDiscoveryState().catch(() => {});
+
     // Tear down user-scoped state (fires onActiveUserChange listeners)
     setActiveUserId(null);
     await deleteSecureItem(LAST_ACTIVE_USER_KEY);
@@ -403,6 +410,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await clearAllData();
     await clearAllEpisodes();
     await clearAllAppLockData();
+    await clearDiscoveryState().catch(() => {});
 
     // Zeroise in-memory key caches
     clearEncryptionKeyCache();

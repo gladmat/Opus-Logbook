@@ -19,6 +19,12 @@ export interface SharedCaseInboxEntry {
   caseId: string;
   ownerUserId: string;
   ownerDisplayName: string;
+  /**
+   * Only populated on outbox entries (i.e. cases the current user has
+   * shared with others). On inbox entries this is absent — the recipient
+   * is the current user.
+   */
+  recipientUserId?: string;
   recipientRole: string;
   verificationStatus: "pending" | "verified" | "disputed";
   blobVersion: number;

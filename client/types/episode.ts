@@ -130,6 +130,15 @@ export interface TreatmentEpisode {
   breastReconstructionMeta?: import("./breast").BreastReconstructionMeta;
   /** Burn injury event data (episode-level, captured once on first acute case) */
   burnInjuryEvent?: import("./burns").BurnInjuryEvent;
+  /**
+   * Monotonic counter used by `allocateEpisodeSequence()` to give each case
+   * a unique `episodeSequence` atomically. Previously `episodeSequence` was
+   * derived at save-time via `getCasesByEpisodeId(id).length + 1`, which
+   * produced duplicate sequence numbers when two cases were saved in quick
+   * succession (both reads saw count=N, both assigned N+1). Starts at 0;
+   * bumped once per case added to this episode.
+   */
+  nextCaseSequence?: number;
 }
 
 // ── Episode Prefill Data (for "+ Log Case" workflow) ────────────────────────

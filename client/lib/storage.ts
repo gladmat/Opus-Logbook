@@ -34,6 +34,21 @@ import {
 } from "./caseNormalization";
 import { hashPatientIdentifierHmac } from "./patientIdentifierHmac";
 import { userScopedAsyncKey } from "./activeUser";
+import { parseIsoDateValue } from "./dateValues";
+
+/**
+ * Compare two `YYYY-MM-DD` strings by their local-noon Date value. Used for
+ * sorting the case index / summary list. Previously used `new Date(str)`
+ * which parses as UTC-midnight and drifts by a day in negative-UTC zones,
+ * silently misordering cases across DST and timezone boundaries. Falls
+ * back to a very large/very small sentinel for malformed strings so the
+ * sort remains stable.
+ */
+function dateValueSortMs(dateStr: string | undefined | null): number {
+  if (!dateStr) return 0;
+  const parsed = parseIsoDateValue(dateStr);
+  return parsed ? parsed.getTime() : 0;
+}
 
 // Base key names — scoped per user at runtime via userScopedAsyncKey()
 export const STORAGE_BASE_KEYS = {
@@ -317,7 +332,6 @@ async function saveCaseIndex(index: CaseIndexEntry[]): Promise<void> {
   await AsyncStorage.setItem(caseIndexKey(), JSON.stringify(index));
 }
 
-
 async function saveCaseSummaries(summaries: CaseSummary[]): Promise<void> {
   caseSummaryCache = summaries;
   const encrypted = await encryptData(serializeCaseSummaryStore(summaries));
@@ -503,8 +517,7 @@ export async function saveCase(caseData: Case): Promise<void> {
 
     index.sort(
       (a, b) =>
-        new Date(b.procedureDate).getTime() -
-        new Date(a.procedureDate).getTime(),
+        dateValueSortMs(b.procedureDate) - dateValueSortMs(a.procedureDate),
     );
 
     const cachedCase = cacheCase(updatedCase);
@@ -521,8 +534,8 @@ export async function saveCase(caseData: Case): Promise<void> {
     }
     nextSummaries.sort(
       (left, right) =>
-        new Date(right.procedureDate).getTime() -
-        new Date(left.procedureDate).getTime(),
+        dateValueSortMs(right.procedureDate) -
+        dateValueSortMs(left.procedureDate),
     );
 
     const encryptedSummaries = await encryptData(
@@ -623,7 +636,11 @@ export function getCasesPendingFollowUp(cases: Case[]): Case[] {
 
   return cases.filter((c) => {
     if (c.complicationsReviewed) return false;
-    const procedureDate = new Date(c.procedureDate);
+    // `procedureDate` is `YYYY-MM-DD` — parseIsoDateValue gives local noon
+    // so a case logged today isn't misclassified as 30+ days old by a
+    // timezone-boundary `new Date(str)` call.
+    const procedureDate = parseIsoDateValue(c.procedureDate);
+    if (!procedureDate) return false;
     return procedureDate <= thirtyDaysAgo;
   });
 }
@@ -669,17 +686,19 @@ export async function findCaseByPatientIdAndDate(
   const matches = await findCasesByPatientId(patientId);
   if (matches.length === 0) return null;
 
-  const targetDate = new Date(procedureDate).toDateString();
+  const targetDateObj = parseIsoDateValue(procedureDate);
+  const targetDate = targetDateObj?.toDateString() ?? procedureDate;
   const exactMatch = matches.find((c) => {
-    const caseDate = new Date(c.procedureDate).toDateString();
+    const caseDate = parseIsoDateValue(c.procedureDate)?.toDateString();
     return caseDate === targetDate;
   });
 
   if (exactMatch) return exactMatch;
 
   const withinWeek = matches.filter((c) => {
-    const caseDate = new Date(c.procedureDate);
-    const target = new Date(procedureDate);
+    const caseDate = parseIsoDateValue(c.procedureDate);
+    const target = parseIsoDateValue(procedureDate);
+    if (!caseDate || !target) return false;
     const diffDays =
       Math.abs(caseDate.getTime() - target.getTime()) / (1000 * 60 * 60 * 24);
     return diffDays <= 7;
@@ -724,7 +743,10 @@ export async function deleteCase(id: string): Promise<void> {
         try {
           await deleteMultipleEncryptedMedia(eventMediaUris);
         } catch (mediaErr) {
-          console.warn("Failed to delete some event media (orphaned):", mediaErr);
+          console.warn(
+            "Failed to delete some event media (orphaned):",
+            mediaErr,
+          );
         }
       }
       await deleteTimelineEvent(event.id);
