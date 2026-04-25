@@ -12,6 +12,11 @@
 -- Pre-flight: fails if any case-collisions already exist. If this migration
 -- errors out with a "duplicate key" message, resolve the collision manually
 -- by merging / deleting the offending accounts, then re-run.
+--
+-- Idempotent across schemas: the `team_contacts`-related steps are guarded
+-- by a `to_regclass` existence check so applying this against a stale local
+-- dev DB (which may not yet have run `add_team_sharing_tables.sql`) skips
+-- those steps cleanly instead of aborting the whole transaction.
 
 BEGIN;
 
@@ -38,21 +43,33 @@ UPDATE users
 SET email = lower(email)
 WHERE email <> lower(email);
 
--- Backfill team_contacts.email → lower(email). No unique constraint to worry
--- about; NULL rows skipped by the predicate.
-UPDATE team_contacts
-SET email = lower(email)
-WHERE email IS NOT NULL AND email <> lower(email);
+-- Backfill team_contacts.email → lower(email). Guarded so the migration is
+-- applicable to any DB that has at least the `users` table.
+DO $$
+BEGIN
+  IF to_regclass('public.team_contacts') IS NOT NULL THEN
+    UPDATE team_contacts
+    SET email = lower(email)
+    WHERE email IS NOT NULL AND email <> lower(email);
+  END IF;
+END $$;
 
 -- Defence in depth: reject any future insert/update that stores a mixed-case
 -- email. CHECK (email = lower(email)) passes when email IS NULL, which is
 -- what we want for team_contacts (email column is optional).
+-- Re-running is safe: we drop the constraint first if it already exists.
+ALTER TABLE users
+  DROP CONSTRAINT IF EXISTS users_email_is_lowercase;
 ALTER TABLE users
   ADD CONSTRAINT users_email_is_lowercase
   CHECK (email = lower(email));
 
-ALTER TABLE team_contacts
-  ADD CONSTRAINT team_contacts_email_is_lowercase
-  CHECK (email IS NULL OR email = lower(email));
+DO $$
+BEGIN
+  IF to_regclass('public.team_contacts') IS NOT NULL THEN
+    EXECUTE 'ALTER TABLE team_contacts DROP CONSTRAINT IF EXISTS team_contacts_email_is_lowercase';
+    EXECUTE 'ALTER TABLE team_contacts ADD CONSTRAINT team_contacts_email_is_lowercase CHECK (email IS NULL OR email = lower(email))';
+  END IF;
+END $$;
 
 COMMIT;
