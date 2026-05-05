@@ -1,0 +1,101 @@
+name: Verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel in-flight runs for the same ref so a fast follow-up push
+# does not queue behind a now-stale run.
+concurrency:
+  group: verify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Mirror local .env so server tests do not trigger env.ts validation
+  # exits. Vitest also injects these via vitest.config.ts but this
+  # belt-and-braces matches what EAS does.
+  DATABASE_URL: postgresql://test:test@localhost:5432/testdb
+  JWT_SECRET: ci-test-secret-key-minimum-32-characters-long
+  NODE_ENV: test
+
+jobs:
+  install:
+    name: Install (warm cache)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".node-version"
+          cache: "npm"
+      # Strict install — mirrors EAS. Never use --legacy-peer-deps; if
+      # this fails because of a peer-dep mismatch, fix package.json /
+      # use `npx expo install` instead of bypassing the check.
+      - run: npm ci --include=dev
+
+  typecheck:
+    name: TypeScript
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".node-version"
+          cache: "npm"
+      - run: npm ci --include=dev
+      - run: npm run check:types
+
+  lint:
+    name: ESLint
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".node-version"
+          cache: "npm"
+      - run: npm ci --include=dev
+      - run: npm run lint
+
+  format:
+    name: Prettier
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".node-version"
+          cache: "npm"
+      - run: npm ci --include=dev
+      - run: npm run check:format
+
+  test:
+    name: Vitest
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".node-version"
+          cache: "npm"
+      - run: npm ci --include=dev
+      - run: npm run test
+
+  server-build:
+    name: Server build (esbuild)
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".node-version"
+          cache: "npm"
+      - run: npm ci --include=dev
+      - run: npm run server:build
