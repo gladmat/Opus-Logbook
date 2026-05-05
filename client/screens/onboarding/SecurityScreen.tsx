@@ -1,21 +1,25 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
   Pressable,
   StyleSheet,
-  Animated,
   Switch,
   ActivityIndicator,
   Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Reanimated, { FadeInDown } from "react-native-reanimated";
+import Reanimated, {
+  FadeInDown,
+  useSharedValue,
+  useAnimatedStyle,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import * as LocalAuthentication from "expo-local-authentication";
 import { StepHeader } from "@/components/onboarding/StepHeader";
-import { Feather } from "@/components/FeatherIcon";
-import FeatherIcon from "@/components/FeatherIcon";
+import FeatherIcon, { Feather } from "@/components/FeatherIcon";
 import {
   savePin,
   setAppLockEnabled,
@@ -47,7 +51,10 @@ export function SecurityScreen({ onComplete, onBack }: Props) {
   const [pin, setPin] = useState("");
   const [firstPin, setFirstPin] = useState("");
   const [pinError, setPinError] = useState("");
-  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const shakeOffset = useSharedValue(0);
+  const shakeStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: shakeOffset.value }],
+  }));
 
   // Biometric state
   const [biometricAvailable, setBiometricAvailable] = useState(false);
@@ -95,34 +102,14 @@ export function SecurityScreen({ onComplete, onBack }: Props) {
   }, []);
 
   const triggerShake = useCallback(() => {
-    Animated.sequence([
-      Animated.timing(shakeAnim, {
-        toValue: 10,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: -10,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: 10,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: -10,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: 0,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [shakeAnim]);
+    shakeOffset.value = withSequence(
+      withTiming(10, { duration: 50 }),
+      withTiming(-10, { duration: 50 }),
+      withTiming(10, { duration: 50 }),
+      withTiming(-10, { duration: 50 }),
+      withTiming(0, { duration: 50 }),
+    );
+  }, [shakeOffset]);
 
   const handlePinDigit = useCallback(
     async (digit: string) => {
@@ -218,9 +205,7 @@ export function SecurityScreen({ onComplete, onBack }: Props) {
 
           <Text style={styles.pinPrompt}>{prompt}</Text>
 
-          <Animated.View
-            style={[styles.dotsRow, { transform: [{ translateX: shakeAnim }] }]}
-          >
+          <Reanimated.View style={[styles.dotsRow, shakeStyle]}>
             {Array.from({ length: PIN_LENGTH }).map((_, i) => (
               <View
                 key={i}
@@ -235,7 +220,7 @@ export function SecurityScreen({ onComplete, onBack }: Props) {
                 ]}
               />
             ))}
-          </Animated.View>
+          </Reanimated.View>
 
           <View style={styles.errorContainer}>
             {pinError ? <Text style={styles.errorText}>{pinError}</Text> : null}

@@ -5,10 +5,15 @@ import {
   StyleSheet,
   Pressable,
   Switch,
-  Animated,
   Alert,
   ScrollView,
 } from "react-native";
+import Reanimated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
@@ -63,7 +68,10 @@ export default function SetupAppLockScreen() {
   const [pinAction, setPinAction] = useState<
     "setup" | "change" | "disable" | null
   >(null);
-  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const shakeOffset = useSharedValue(0);
+  const shakeStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: shakeOffset.value }],
+  }));
 
   useEffect(() => {
     const loadState = async () => {
@@ -108,34 +116,14 @@ export default function SetupAppLockScreen() {
   }, []);
 
   const triggerShake = useCallback(() => {
-    Animated.sequence([
-      Animated.timing(shakeAnim, {
-        toValue: 10,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: -10,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: 10,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: -10,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: 0,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [shakeAnim]);
+    shakeOffset.value = withSequence(
+      withTiming(10, { duration: 50 }),
+      withTiming(-10, { duration: 50 }),
+      withTiming(10, { duration: 50 }),
+      withTiming(-10, { duration: 50 }),
+      withTiming(0, { duration: 50 }),
+    );
+  }, [shakeOffset]);
 
   const resetPinFlow = useCallback(() => {
     setSetupStep("idle");
@@ -307,9 +295,7 @@ export default function SetupAppLockScreen() {
             {getPinPrompt()}
           </Text>
 
-          <Animated.View
-            style={[styles.dotsRow, { transform: [{ translateX: shakeAnim }] }]}
-          >
+          <Reanimated.View style={[styles.dotsRow, shakeStyle]}>
             {Array.from({ length: PIN_LENGTH }).map((_, i) => (
               <View
                 key={i}
@@ -323,7 +309,7 @@ export default function SetupAppLockScreen() {
                 ]}
               />
             ))}
-          </Animated.View>
+          </Reanimated.View>
 
           <View style={styles.errorContainer}>
             {pinError ? (

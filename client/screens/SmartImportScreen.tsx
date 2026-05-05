@@ -11,9 +11,13 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
-  Animated,
   InteractionManager,
 } from "react-native";
+import Reanimated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+} from "react-native-reanimated";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import * as ImagePicker from "expo-image-picker";
@@ -83,7 +87,10 @@ export default function SmartImportScreen() {
   const [assetIds, setAssetIds] = useState<string[]>([]);
   const [canDeleteOriginals, setCanDeleteOriginals] = useState(false);
   const [deleteHelpText, setDeleteHelpText] = useState<string | null>(null);
-  const progressAnim = useRef(new Animated.Value(0)).current;
+  const progress01 = useSharedValue(0);
+  const progressFillStyle = useAnimatedStyle(() => ({
+    width: `${progress01.value * 100}%`,
+  }));
   const pickerLaunched = useRef(false);
   const importedInboxIdsRef = useRef<string[]>([]);
   const importedCaseMediaRef = useRef<OperativeMediaItem[]>([]);
@@ -219,11 +226,9 @@ export default function SmartImportScreen() {
                 "smart_import",
                 (completed, total) => {
                   setProgress({ completed, total });
-                  Animated.timing(progressAnim, {
-                    toValue: completed / total,
+                  progress01.value = withTiming(completed / total, {
                     duration: 200,
-                    useNativeDriver: false,
-                  }).start();
+                  });
                 },
               );
 
@@ -258,11 +263,10 @@ export default function SmartImportScreen() {
                   completed: index + 1,
                   total: result.assets.length,
                 });
-                Animated.timing(progressAnim, {
-                  toValue: (index + 1) / result.assets.length,
-                  duration: 200,
-                  useNativeDriver: false,
-                }).start();
+                progress01.value = withTiming(
+                  (index + 1) / result.assets.length,
+                  { duration: 200 },
+                );
               }
 
               importedCaseMediaRef.current = importedMedia;
@@ -294,7 +298,7 @@ export default function SmartImportScreen() {
     });
 
     return () => task.cancel();
-  }, [completeImport, navigation, params, performDelete, progressAnim]);
+  }, [completeImport, navigation, params, performDelete, progress01]);
 
   const handleDelete = useCallback(() => {
     setPhase("deleting");
@@ -341,16 +345,11 @@ export default function SmartImportScreen() {
                 { backgroundColor: theme.backgroundElevated },
               ]}
             >
-              <Animated.View
+              <Reanimated.View
                 style={[
                   styles.progressFill,
-                  {
-                    backgroundColor: theme.link,
-                    width: progressAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: ["0%", "100%"],
-                    }),
-                  },
+                  { backgroundColor: theme.link },
+                  progressFillStyle,
                 ]}
               />
             </View>

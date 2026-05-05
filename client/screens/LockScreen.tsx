@@ -4,11 +4,16 @@ import {
   Text,
   StyleSheet,
   Pressable,
-  Animated,
   AppState,
   BackHandler,
   InteractionManager,
 } from "react-native";
+import Reanimated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
@@ -37,7 +42,10 @@ export default function LockScreen() {
   const [showBiometricButton, setShowBiometricButton] = useState(false);
   const [biometricType, setBiometricType] = useState<string>("Biometrics");
   const [biometricHint, setBiometricHint] = useState<string | null>(null);
-  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const shakeOffset = useSharedValue(0);
+  const shakeStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: shakeOffset.value }],
+  }));
   const autoPromptedRef = useRef(false);
   const promptTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -150,34 +158,14 @@ export default function LockScreen() {
   }, []);
 
   const triggerShake = useCallback(() => {
-    Animated.sequence([
-      Animated.timing(shakeAnim, {
-        toValue: 10,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: -10,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: 10,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: -10,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: 0,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [shakeAnim]);
+    shakeOffset.value = withSequence(
+      withTiming(10, { duration: 50 }),
+      withTiming(-10, { duration: 50 }),
+      withTiming(10, { duration: 50 }),
+      withTiming(-10, { duration: 50 }),
+      withTiming(0, { duration: 50 }),
+    );
+  }, [shakeOffset]);
 
   const handlePinEntry = useCallback(
     async (digit: string) => {
@@ -243,9 +231,7 @@ export default function LockScreen() {
   }, [pin, isProcessing]);
 
   const renderDots = () => (
-    <Animated.View
-      style={[styles.dotsRow, { transform: [{ translateX: shakeAnim }] }]}
-    >
+    <Reanimated.View style={[styles.dotsRow, shakeStyle]}>
       {Array.from({ length: PIN_LENGTH }).map((_, i) => (
         <View
           key={i}
@@ -258,7 +244,7 @@ export default function LockScreen() {
           ]}
         />
       ))}
-    </Animated.View>
+    </Reanimated.View>
   );
 
   const renderKey = (label: string, onPress: () => void) => (
