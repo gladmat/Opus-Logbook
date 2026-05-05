@@ -11,6 +11,8 @@
     "server:build": "node scripts/server-build.js",
     "server:prod": "NODE_ENV=production node server_dist/index.mjs",
     "db:push": "node --env-file=.env ./node_modules/.bin/drizzle-kit push",
+    "db:generate": "node --env-file=.env ./node_modules/.bin/drizzle-kit generate",
+    "db:migrate": "node --env-file=.env ./node_modules/.bin/drizzle-kit migrate",
     "lint": "npx expo lint",
     "lint:fix": "npx expo lint --fix",
     "check:types": "tsc --noEmit",
