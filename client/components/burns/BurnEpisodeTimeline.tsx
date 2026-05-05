@@ -66,7 +66,9 @@ export const BurnEpisodeTimeline = React.memo(function BurnEpisodeTimeline({
         {cases.map((c, idx) => (
           <React.Fragment key={c.caseId}>
             {idx > 0 ? (
-              <View style={[styles.connector, { backgroundColor: theme.border }]} />
+              <View
+                style={[styles.connector, { backgroundColor: theme.border }]}
+              />
             ) : null}
             <CaseTimelineCard caseData={c} theme={theme} />
           </React.Fragment>
@@ -90,10 +92,9 @@ function SummaryRow({
     const items: Array<{ label: string; value: string; icon: string }> = [];
 
     // Procedure counts
-    const totalProcs = Object.values(aggregate.totalProceduresByCategory).reduce(
-      (a, b) => a + b,
-      0,
-    );
+    const totalProcs = Object.values(
+      aggregate.totalProceduresByCategory,
+    ).reduce((a, b) => a + b, 0);
     if (totalProcs > 0) {
       items.push({
         label: "Procedures",
@@ -148,13 +149,14 @@ function SummaryRow({
           key={m.label}
           style={[
             styles.summaryCard,
-            { backgroundColor: theme.backgroundElevated, borderColor: theme.border },
+            {
+              backgroundColor: theme.backgroundElevated,
+              borderColor: theme.border,
+            },
           ]}
         >
           <Feather name={m.icon as any} size={12} color={theme.link} />
-          <ThemedText
-            style={[styles.summaryValue, { color: theme.text }]}
-          >
+          <ThemedText style={[styles.summaryValue, { color: theme.text }]}>
             {m.value}
           </ThemedText>
           <ThemedText
@@ -183,7 +185,10 @@ function CaseTimelineCard({
     <View
       style={[
         styles.caseCard,
-        { backgroundColor: theme.backgroundElevated, borderColor: theme.border },
+        {
+          backgroundColor: theme.backgroundElevated,
+          borderColor: theme.border,
+        },
       ]}
     >
       {/* Date + day count */}
@@ -204,7 +209,10 @@ function CaseTimelineCard({
       <View
         style={[
           styles.phaseBadge,
-          { backgroundColor: theme.link + "15", borderColor: theme.link + "30" },
+          {
+            backgroundColor: theme.link + "15",
+            borderColor: theme.link + "30",
+          },
         ]}
       >
         <ThemedText style={[styles.phaseBadgeText, { color: theme.link }]}>
@@ -217,14 +225,17 @@ function CaseTimelineCard({
         {caseData.procedures.map((proc, idx) => (
           <View
             key={idx}
-            style={[styles.procBadge, { backgroundColor: theme.backgroundRoot }]}
+            style={[
+              styles.procBadge,
+              { backgroundColor: theme.backgroundRoot },
+            ]}
           >
             <ThemedText
               style={[styles.procBadgeText, { color: theme.textSecondary }]}
               numberOfLines={1}
             >
               {proc.category
-                ? CATEGORY_LABELS[proc.category] ?? proc.name
+                ? (CATEGORY_LABELS[proc.category] ?? proc.name)
                 : proc.name}
             </ThemedText>
           </View>

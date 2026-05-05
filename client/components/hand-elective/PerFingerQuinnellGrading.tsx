@@ -41,9 +41,7 @@ export const PerFingerQuinnellGrading = React.memo(
 
     return (
       <View style={styles.container}>
-        <ThemedText
-          style={[styles.label, { color: theme.textSecondary }]}
-        >
+        <ThemedText style={[styles.label, { color: theme.textSecondary }]}>
           QUINNELL GRADING
         </ThemedText>
         <View
@@ -74,18 +72,14 @@ export const PerFingerQuinnellGrading = React.memo(
                     return (
                       <Pressable
                         key={grade.value}
-                        onPress={() =>
-                          handleGradeSelect(fingerId, grade.value)
-                        }
+                        onPress={() => handleGradeSelect(fingerId, grade.value)}
                         style={[
                           styles.gradeChip,
                           {
                             backgroundColor: isSelected
                               ? theme.link
                               : theme.backgroundTertiary,
-                            borderColor: isSelected
-                              ? theme.link
-                              : theme.border,
+                            borderColor: isSelected ? theme.link : theme.border,
                           },
                         ]}
                         accessibilityLabel={`${fingerLabel} Quinnell Grade ${grade.label}: ${grade.description}`}
@@ -94,9 +88,7 @@ export const PerFingerQuinnellGrading = React.memo(
                           style={[
                             styles.gradeText,
                             {
-                              color: isSelected
-                                ? theme.buttonText
-                                : theme.text,
+                              color: isSelected ? theme.buttonText : theme.text,
                             },
                           ]}
                         >

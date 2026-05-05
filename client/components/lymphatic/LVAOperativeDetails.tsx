@@ -62,7 +62,12 @@ const ANAESTHESIA_LABELS: Record<string, string> = {
   local: "Local",
 };
 
-const ROBOTIC_OPTIONS: RoboticAssistance[] = ["none", "symani", "musa", "other"];
+const ROBOTIC_OPTIONS: RoboticAssistance[] = [
+  "none",
+  "symani",
+  "musa",
+  "other",
+];
 const REGIONS: LVAAnastomosisRegion[] = [
   "wrist",
   "forearm",
@@ -75,8 +80,17 @@ const REGIONS: LVAAnastomosisRegion[] = [
   "cervical",
   "other",
 ];
-const NECST_GRADES: NECSTGrade[] = ["normal", "ectasis", "contraction", "sclerosis"];
-const SUTURE_OPTIONS: SutureMaterial[] = ["11-0_nylon", "12-0_nylon", "12-0s_nylon"];
+const NECST_GRADES: NECSTGrade[] = [
+  "normal",
+  "ectasis",
+  "contraction",
+  "sclerosis",
+];
+const SUTURE_OPTIONS: SutureMaterial[] = [
+  "11-0_nylon",
+  "12-0_nylon",
+  "12-0s_nylon",
+];
 const PATENCY_OPTIONS: PatencyConfirmation[] = [
   "icg_transit",
   "milking_test",
@@ -100,7 +114,9 @@ const TECHNIQUE_SHORT_LABELS: Record<LVATechnique, string> = {
   sequential: "Sequential",
   other: "Other",
 };
-const TECHNIQUES: LVATechnique[] = Object.keys(LVA_TECHNIQUE_LABELS) as LVATechnique[];
+const TECHNIQUES: LVATechnique[] = Object.keys(
+  LVA_TECHNIQUE_LABELS,
+) as LVATechnique[];
 
 // ─── Chip helper ────────────────────────────────────────────────────────────
 
@@ -183,7 +199,9 @@ function NECSTChipRow({
             style={[
               styles.chip,
               {
-                backgroundColor: isSelected ? color + "20" : theme.backgroundSecondary,
+                backgroundColor: isSelected
+                  ? color + "20"
+                  : theme.backgroundSecondary,
                 borderColor: isSelected ? color : theme.border,
               },
             ]}
@@ -193,7 +211,10 @@ function NECSTChipRow({
             <ThemedText
               style={[
                 styles.chipText,
-                { color: isSelected ? color : theme.textSecondary, fontSize: 12 },
+                {
+                  color: isSelected ? color : theme.textSecondary,
+                  fontSize: 12,
+                },
               ]}
               numberOfLines={2}
             >
@@ -244,7 +265,9 @@ const AnastomosisCard = React.memo(function AnastomosisCard({
           Anastomosis {index + 1}
         </ThemedText>
         <TouchableOpacity onPress={onRemove} hitSlop={8}>
-          <ThemedText style={{ color: theme.error, fontSize: 13 }}>Remove</ThemedText>
+          <ThemedText style={{ color: theme.error, fontSize: 13 }}>
+            Remove
+          </ThemedText>
         </TouchableOpacity>
       </View>
 
@@ -262,7 +285,10 @@ const AnastomosisCard = React.memo(function AnastomosisCard({
       />
 
       <ThemedText
-        style={[styles.fieldLabel, { color: theme.textSecondary, marginTop: Spacing.sm }]}
+        style={[
+          styles.fieldLabel,
+          { color: theme.textSecondary, marginTop: Spacing.sm },
+        ]}
       >
         Site description
       </ThemedText>
@@ -283,7 +309,10 @@ const AnastomosisCard = React.memo(function AnastomosisCard({
 
       {/* NECST Quality */}
       <ThemedText
-        style={[styles.fieldLabel, { color: theme.textSecondary, marginTop: Spacing.sm }]}
+        style={[
+          styles.fieldLabel,
+          { color: theme.textSecondary, marginTop: Spacing.sm },
+        ]}
       >
         Lymphatic quality (NECST)
       </ThemedText>
@@ -296,7 +325,9 @@ const AnastomosisCard = React.memo(function AnastomosisCard({
       {/* Diameters */}
       <View style={[styles.fieldRow, { marginTop: Spacing.sm }]}>
         <View style={styles.fieldHalf}>
-          <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
             Lymphatic (mm)
           </ThemedText>
           <TextInput
@@ -323,7 +354,9 @@ const AnastomosisCard = React.memo(function AnastomosisCard({
           />
         </View>
         <View style={styles.fieldHalf}>
-          <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
             Venule (mm)
           </ThemedText>
           <TextInput
@@ -353,7 +386,10 @@ const AnastomosisCard = React.memo(function AnastomosisCard({
 
       {/* Technique (scrollable chip row for 13 options) */}
       <ThemedText
-        style={[styles.fieldLabel, { color: theme.textSecondary, marginTop: Spacing.sm }]}
+        style={[
+          styles.fieldLabel,
+          { color: theme.textSecondary, marginTop: Spacing.sm },
+        ]}
       >
         Technique
       </ThemedText>
@@ -400,7 +436,9 @@ const AnastomosisCard = React.memo(function AnastomosisCard({
       {/* Suture */}
       <View style={[styles.fieldRow, { marginTop: Spacing.sm }]}>
         <View style={{ flex: 2 }}>
-          <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
             Suture
           </ThemedText>
           <ChipRow
@@ -413,7 +451,9 @@ const AnastomosisCard = React.memo(function AnastomosisCard({
           />
         </View>
         <View style={{ flex: 1 }}>
-          <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
             Count
           </ThemedText>
           <TextInput
@@ -443,7 +483,10 @@ const AnastomosisCard = React.memo(function AnastomosisCard({
 
       {/* Patency confirmation */}
       <ThemedText
-        style={[styles.fieldLabel, { color: theme.textSecondary, marginTop: Spacing.sm }]}
+        style={[
+          styles.fieldLabel,
+          { color: theme.textSecondary, marginTop: Spacing.sm },
+        ]}
       >
         Patency confirmation
       </ThemedText>
@@ -528,8 +571,11 @@ export const LVAOperativeDetailsComponent = React.memo(
               { backgroundColor: accentColor + "15", borderColor: accentColor },
             ]}
           >
-            <ThemedText style={{ color: accentColor, fontWeight: "600", fontSize: 13 }}>
-              {anastomoses.length} anastomos{anastomoses.length === 1 ? "is" : "es"}
+            <ThemedText
+              style={{ color: accentColor, fontWeight: "600", fontSize: 13 }}
+            >
+              {anastomoses.length} anastomos
+              {anastomoses.length === 1 ? "is" : "es"}
             </ThemedText>
           </View>
         )}
@@ -553,7 +599,9 @@ export const LVAOperativeDetailsComponent = React.memo(
 
         <View style={[styles.fieldRow, { marginTop: Spacing.sm }]}>
           <View style={styles.fieldHalf}>
-            <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.fieldLabel, { color: theme.textSecondary }]}
+            >
               Microscope
             </ThemedText>
             <TextInput
@@ -572,7 +620,9 @@ export const LVAOperativeDetailsComponent = React.memo(
             />
           </View>
           <View style={styles.fieldHalf}>
-            <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.fieldLabel, { color: theme.textSecondary }]}
+            >
               Magnification
             </ThemedText>
             <TextInput
@@ -587,7 +637,9 @@ export const LVAOperativeDetailsComponent = React.memo(
               placeholder="e.g. 12-30x"
               placeholderTextColor={theme.textTertiary}
               value={value.magnificationRange ?? ""}
-              onChangeText={(v) => update({ magnificationRange: v || undefined })}
+              onChangeText={(v) =>
+                update({ magnificationRange: v || undefined })
+              }
             />
           </View>
         </View>
@@ -612,7 +664,9 @@ export const LVAOperativeDetailsComponent = React.memo(
             </View>
           </View>
           <View style={styles.fieldHalf}>
-            <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.fieldLabel, { color: theme.textSecondary }]}
+            >
               Op time (min)
             </ThemedText>
             <TextInput
@@ -678,14 +732,13 @@ export const LVAOperativeDetailsComponent = React.memo(
         ))}
 
         <TouchableOpacity
-          style={[
-            styles.addButton,
-            { borderColor: accentColor },
-          ]}
+          style={[styles.addButton, { borderColor: accentColor }]}
           onPress={addAnastomosis}
           activeOpacity={0.7}
         >
-          <ThemedText style={{ color: accentColor, fontWeight: "600", fontSize: 14 }}>
+          <ThemedText
+            style={{ color: accentColor, fontWeight: "600", fontSize: 14 }}
+          >
             + Add Anastomosis
           </ThemedText>
         </TouchableOpacity>

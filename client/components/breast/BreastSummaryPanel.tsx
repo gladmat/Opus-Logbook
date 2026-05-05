@@ -175,7 +175,10 @@ export function BreastSummaryPanel({
           </ThemedText>
           {!isAccepted ? (
             <ThemedText
-              style={[styles.procedureHeaderHint, { color: theme.textTertiary }]}
+              style={[
+                styles.procedureHeaderHint,
+                { color: theme.textTertiary },
+              ]}
             >
               Tap to include/exclude
             </ThemedText>
@@ -293,9 +296,7 @@ export function BreastSummaryPanel({
             styles.acceptButton,
             {
               backgroundColor:
-                draftProcedureCount > 0
-                  ? theme.link
-                  : theme.backgroundTertiary,
+                draftProcedureCount > 0 ? theme.link : theme.backgroundTertiary,
               opacity: draftProcedureCount > 0 ? 1 : 0.6,
             },
           ]}
@@ -342,12 +343,17 @@ export function BreastSummaryPanel({
             <View style={styles.codingDetailsContainer}>
               <View style={styles.codingRow}>
                 <ThemedText
-                  style={[styles.codingRowLabel, { color: theme.textSecondary }]}
+                  style={[
+                    styles.codingRowLabel,
+                    { color: theme.textSecondary },
+                  ]}
                 >
                   DIAGNOSIS
                 </ThemedText>
                 <View style={styles.codingRowValue}>
-                  <ThemedText style={[styles.codingName, { color: theme.text }]}>
+                  <ThemedText
+                    style={[styles.codingName, { color: theme.text }]}
+                  >
                     {diagnosisName}
                   </ThemedText>
                   {diagnosisCode ? (
@@ -375,7 +381,10 @@ export function BreastSummaryPanel({
 
               <View style={styles.codingRow}>
                 <ThemedText
-                  style={[styles.codingRowLabel, { color: theme.textSecondary }]}
+                  style={[
+                    styles.codingRowLabel,
+                    { color: theme.textSecondary },
+                  ]}
                 >
                   PROCEDURES
                 </ThemedText>

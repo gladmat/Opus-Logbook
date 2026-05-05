@@ -34,7 +34,11 @@ interface SAPLDetailsProps {
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const TECHNIQUE_OPTIONS: SAPLTechnique[] = ["power_assisted", "manual", "other"];
+const TECHNIQUE_OPTIONS: SAPLTechnique[] = [
+  "power_assisted",
+  "manual",
+  "other",
+];
 const COMPRESSION_OPTIONS: CompressionClass[] = ["I", "II", "III"];
 const COMPRESSION_LABELS: Record<CompressionClass, string> = {
   I: "Class I",
@@ -209,7 +213,9 @@ export const SAPLDetailsComponent = React.memo(function SAPLDetailsComponent({
       {/* ── Layer 1: Core fields (always visible) ── */}
       <View style={styles.fieldRow}>
         <View style={styles.fieldHalf}>
-          <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
             Total aspirate (mL)
           </ThemedText>
           <TextInput
@@ -225,9 +231,7 @@ export const SAPLDetailsComponent = React.memo(function SAPLDetailsComponent({
             placeholder="e.g. 1500"
             placeholderTextColor={theme.textTertiary}
             value={
-              value.totalAspirateMl != null
-                ? String(value.totalAspirateMl)
-                : ""
+              value.totalAspirateMl != null ? String(value.totalAspirateMl) : ""
             }
             onChangeText={(v) => {
               const n = parseInt(v, 10);
@@ -236,7 +240,9 @@ export const SAPLDetailsComponent = React.memo(function SAPLDetailsComponent({
           />
         </View>
         <View style={styles.fieldHalf}>
-          <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
             Technique
           </ThemedText>
           <ChipRow
@@ -256,7 +262,9 @@ export const SAPLDetailsComponent = React.memo(function SAPLDetailsComponent({
         style={styles.disclosureLink}
         activeOpacity={0.7}
       >
-        <ThemedText style={{ color: accentColor, fontSize: 13, fontWeight: "500" }}>
+        <ThemedText
+          style={{ color: accentColor, fontSize: 13, fontWeight: "500" }}
+        >
           {showMore ? "Hide details" : "More details"}
         </ThemedText>
       </TouchableOpacity>
@@ -265,7 +273,9 @@ export const SAPLDetailsComponent = React.memo(function SAPLDetailsComponent({
         <View style={{ marginTop: Spacing.xs }}>
           <View style={styles.fieldRow}>
             <View style={styles.fieldHalf}>
-              <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[styles.fieldLabel, { color: theme.textSecondary }]}
+              >
                 Tumescent vol (mL)
               </ThemedText>
               <TextInput
@@ -292,7 +302,9 @@ export const SAPLDetailsComponent = React.memo(function SAPLDetailsComponent({
               />
             </View>
             <View style={styles.fieldHalf}>
-              <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[styles.fieldLabel, { color: theme.textSecondary }]}
+              >
                 Fat % of aspirate
               </ThemedText>
               <TextInput
@@ -399,7 +411,9 @@ export const SAPLDetailsComponent = React.memo(function SAPLDetailsComponent({
 
           <View style={[styles.fieldRow, { marginTop: Spacing.sm }]}>
             <View style={styles.fieldHalf}>
-              <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[styles.fieldLabel, { color: theme.textSecondary }]}
+              >
                 Access incisions
               </ThemedText>
               <TextInput
@@ -426,7 +440,9 @@ export const SAPLDetailsComponent = React.memo(function SAPLDetailsComponent({
               />
             </View>
             <View style={styles.fieldHalf}>
-              <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[styles.fieldLabel, { color: theme.textSecondary }]}
+              >
                 Cannula size (mm)
               </ThemedText>
               <TextInput
@@ -442,9 +458,7 @@ export const SAPLDetailsComponent = React.memo(function SAPLDetailsComponent({
                 placeholder="3.0"
                 placeholderTextColor={theme.textTertiary}
                 value={
-                  value.cannulaSizeMm != null
-                    ? String(value.cannulaSizeMm)
-                    : ""
+                  value.cannulaSizeMm != null ? String(value.cannulaSizeMm) : ""
                 }
                 onChangeText={(v) => {
                   const n = parseFloat(v);
@@ -462,14 +476,18 @@ export const SAPLDetailsComponent = React.memo(function SAPLDetailsComponent({
         style={styles.disclosureLink}
         activeOpacity={0.7}
       >
-        <ThemedText style={{ color: accentColor, fontSize: 13, fontWeight: "500" }}>
+        <ThemedText
+          style={{ color: accentColor, fontSize: 13, fontWeight: "500" }}
+        >
           {showZones ? "Hide zones & garment" : "Zones & garment"}
         </ThemedText>
       </TouchableOpacity>
 
       {showZones && (
         <View style={{ marginTop: Spacing.xs }}>
-          <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
             Areas / zones treated
           </ThemedText>
           <MultiChipRow
@@ -500,7 +518,9 @@ export const SAPLDetailsComponent = React.memo(function SAPLDetailsComponent({
 
           {value.garmentAppliedIntraop && (
             <>
-              <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[styles.fieldLabel, { color: theme.textSecondary }]}
+              >
                 Garment class
               </ThemedText>
               <ChipRow
@@ -516,7 +536,9 @@ export const SAPLDetailsComponent = React.memo(function SAPLDetailsComponent({
 
           <View style={[styles.fieldRow, { marginTop: Spacing.sm }]}>
             <View style={styles.fieldHalf}>
-              <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[styles.fieldLabel, { color: theme.textSecondary }]}
+              >
                 Est. blood loss (mL)
               </ThemedText>
               <TextInput

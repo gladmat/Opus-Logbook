@@ -90,7 +90,9 @@ export function MediaGalleryViewer({
   const insets = useSafeAreaInsets();
   const [dims, setDims] = useState(() => Dimensions.get("window"));
   const { width, height } = dims;
-  const [index, setIndex] = useState(() => clampIndex(initialIndex, items.length));
+  const [index, setIndex] = useState(() =>
+    clampIndex(initialIndex, items.length),
+  );
   const [chromeVisible, setChromeVisible] = useState(true);
   const [zoomed, setZoomed] = useState(false);
 
@@ -189,9 +191,7 @@ export function MediaGalleryViewer({
   if (items.length === 0) return null;
 
   const counter = formatCounter(index, items.length);
-  const captionDate = formatMediaDate(
-    current?.timestamp ?? current?.createdAt,
-  );
+  const captionDate = formatMediaDate(current?.timestamp ?? current?.createdAt);
 
   return (
     <Modal
@@ -227,10 +227,7 @@ export function MediaGalleryViewer({
           {chromeVisible ? (
             <>
               <View
-                style={[
-                  styles.header,
-                  { paddingTop: insets.top + Spacing.sm },
-                ]}
+                style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}
                 pointerEvents="box-none"
               >
                 <Pressable
@@ -261,15 +258,11 @@ export function MediaGalleryViewer({
                   accessibilityLabel="Share"
                   accessibilityRole="button"
                 >
-                  <Feather
-                    name="share"
-                    size={22}
-                    color={CHROME_TEXT}
-                  />
+                  <Feather name="share" size={22} color={CHROME_TEXT} />
                 </Pressable>
               </View>
 
-              {(current?.caption || current?.tag || captionDate) ? (
+              {current?.caption || current?.tag || captionDate ? (
                 <View
                   style={[
                     styles.footer,
@@ -434,15 +427,15 @@ function GalleryPage({
   }));
 
   return (
-    <View style={{ width, height, justifyContent: "center", alignItems: "center" }}>
+    <View
+      style={{ width, height, justifyContent: "center", alignItems: "center" }}
+    >
       {loading ? (
         <ActivityIndicator size="large" color={CHROME_TEXT} />
       ) : failed || !sourceUri ? (
         <View style={styles.errorBox}>
           <Feather name="image" size={48} color="#555" />
-          <ThemedText style={styles.errorText}>
-            Image unavailable
-          </ThemedText>
+          <ThemedText style={styles.errorText}>Image unavailable</ThemedText>
         </View>
       ) : (
         <GestureDetector gesture={composed}>

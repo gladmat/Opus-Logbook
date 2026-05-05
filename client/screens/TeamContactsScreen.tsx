@@ -81,9 +81,7 @@ export default function TeamContactsScreen() {
       } catch (error) {
         Alert.alert(
           "Link Failed",
-          error instanceof Error
-            ? error.message
-            : "Failed to link contact.",
+          error instanceof Error ? error.message : "Failed to link contact.",
         );
       }
     },
@@ -147,10 +145,7 @@ export default function TeamContactsScreen() {
   if (loading) {
     return (
       <View
-        style={[
-          styles.centered,
-          { backgroundColor: theme.backgroundRoot },
-        ]}
+        style={[styles.centered, { backgroundColor: theme.backgroundRoot }]}
       >
         <ActivityIndicator size="large" color={theme.link} />
       </View>
@@ -183,14 +178,8 @@ export default function TeamContactsScreen() {
 
       {contacts.length === 0 ? (
         <View style={styles.emptyState}>
-          <Feather
-            name="users"
-            size={48}
-            color={theme.textTertiary}
-          />
-          <ThemedText
-            style={[styles.emptyTitle, { color: theme.text }]}
-          >
+          <Feather name="users" size={48} color={theme.textTertiary} />
+          <ThemedText style={[styles.emptyTitle, { color: theme.text }]}>
             No team members yet
           </ThemedText>
           <ThemedText
@@ -242,7 +231,9 @@ export default function TeamContactsScreen() {
             >
               <View style={styles.contactInfo}>
                 <View style={styles.nameRow}>
-                  <ThemedText style={[styles.contactName, { color: theme.text }]}>
+                  <ThemedText
+                    style={[styles.contactName, { color: theme.text }]}
+                  >
                     {item.displayName}
                   </ThemedText>
                   {item.linkedUserId && (
@@ -268,10 +259,7 @@ export default function TeamContactsScreen() {
               {/* Discovery "Link" button for matched unlinked contacts */}
               {!item.linkedUserId && matchByContactId.has(item.id) && (
                 <Pressable
-                  style={[
-                    styles.linkButton,
-                    { backgroundColor: theme.link },
-                  ]}
+                  style={[styles.linkButton, { backgroundColor: theme.link }]}
                   onPress={(e) => {
                     e.stopPropagation?.();
                     const match = matchByContactId.get(item.id)!;
@@ -280,10 +268,7 @@ export default function TeamContactsScreen() {
                   testID={`teamContacts.btn-link-${item.id}`}
                 >
                   <ThemedText
-                    style={[
-                      styles.linkButtonText,
-                      { color: theme.buttonText },
-                    ]}
+                    style={[styles.linkButtonText, { color: theme.buttonText }]}
                   >
                     Link
                   </ThemedText>
@@ -302,11 +287,9 @@ export default function TeamContactsScreen() {
                   <ThemedText
                     style={[styles.roleBadgeText, { color: theme.link }]}
                   >
-                    {
-                      TEAM_MEMBER_ROLE_SHORT[
-                        item.defaultRole as TeamMemberOperativeRole
-                      ] ?? item.defaultRole
-                    }
+                    {TEAM_MEMBER_ROLE_SHORT[
+                      item.defaultRole as TeamMemberOperativeRole
+                    ] ?? item.defaultRole}
                   </ThemedText>
                 </View>
               )}

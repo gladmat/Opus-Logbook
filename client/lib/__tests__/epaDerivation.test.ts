@@ -1,8 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  deriveEpaAssessments,
-  type EpaProcedureInput,
-} from "../epaDerivation";
+import { deriveEpaAssessments, type EpaProcedureInput } from "../epaDerivation";
 import type { CaseTeamMember } from "@/types/teamContacts";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

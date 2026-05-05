@@ -418,8 +418,7 @@ export const insertAssessmentKeyEnvelopeSchema = createInsertSchema(
   createdAt: true,
 });
 
-export type AssessmentKeyEnvelope =
-  typeof assessmentKeyEnvelopes.$inferSelect;
+export type AssessmentKeyEnvelope = typeof assessmentKeyEnvelopes.$inferSelect;
 export type InsertAssessmentKeyEnvelope = z.infer<
   typeof insertAssessmentKeyEnvelopeSchema
 >;

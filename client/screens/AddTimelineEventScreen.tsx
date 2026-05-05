@@ -704,7 +704,11 @@ export default function AddTimelineEventScreen() {
 
       {eventType ? (
         <View style={styles.buttonContainer}>
-          <Button onPress={handleSave} disabled={saving} testID="timelineEvent.btn-save">
+          <Button
+            onPress={handleSave}
+            disabled={saving}
+            testID="timelineEvent.btn-save"
+          >
             {saving
               ? "Saving..."
               : isEditMode

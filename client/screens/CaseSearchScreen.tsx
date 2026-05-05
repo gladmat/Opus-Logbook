@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from "react";
 import {
   View,
   TextInput,
@@ -83,7 +89,10 @@ export default function CaseSearchScreen() {
   const keyExtractor = useCallback((item: CaseSummary) => item.id, []);
 
   return (
-    <View testID="screen-caseSearch" style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+    <View
+      testID="screen-caseSearch"
+      style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
+    >
       <View
         style={[
           styles.searchBar,
@@ -110,7 +119,11 @@ export default function CaseSearchScreen() {
         />
         {query.length > 0 ? (
           <Pressable
-            onPress={() => { setQuery(""); setDebouncedQuery(""); if (debounceRef.current) clearTimeout(debounceRef.current); }}
+            onPress={() => {
+              setQuery("");
+              setDebouncedQuery("");
+              if (debounceRef.current) clearTimeout(debounceRef.current);
+            }}
             accessibilityRole="button"
             accessibilityLabel="Clear search"
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

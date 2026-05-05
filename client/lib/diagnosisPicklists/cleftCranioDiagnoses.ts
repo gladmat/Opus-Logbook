@@ -378,11 +378,7 @@ const CC_DX_CLEFT_LIP_PALATE: DiagnosisPicklistEntry[] = [
     subcategory: "Cleft Lip & Palate",
     clinicalGroup: "congenital",
     hasStaging: true,
-    searchSynonyms: [
-      "incomplete UCLP",
-      "partial unilateral CLP",
-      "UCLP",
-    ],
+    searchSynonyms: ["incomplete UCLP", "partial unilateral CLP", "UCLP"],
     suggestedProcedures: [
       {
         procedurePicklistId: "cc_lip_repair_unilateral",
@@ -472,11 +468,7 @@ const CC_DX_CLEFT_LIP_PALATE: DiagnosisPicklistEntry[] = [
     subcategory: "Cleft Lip & Palate",
     clinicalGroup: "congenital",
     hasStaging: true,
-    searchSynonyms: [
-      "incomplete BCLP",
-      "partial bilateral CLP",
-      "BCLP",
-    ],
+    searchSynonyms: ["incomplete BCLP", "partial bilateral CLP", "BCLP"],
     suggestedProcedures: [
       {
         procedurePicklistId: "cc_lip_repair_bilateral",
@@ -1058,11 +1050,7 @@ const CC_DX_SYNDROMIC: DiagnosisPicklistEntry[] = [
     subcategory: "Syndromic Craniosynostosis",
     clinicalGroup: "congenital",
     hasStaging: false,
-    searchSynonyms: [
-      "apert",
-      "acrocephalosyndactyly type I",
-      "FGFR2",
-    ],
+    searchSynonyms: ["apert", "acrocephalosyndactyly type I", "FGFR2"],
     suggestedProcedures: [
       {
         procedurePicklistId: "cc_fronto_orbital_advancement",
@@ -1113,11 +1101,7 @@ const CC_DX_SYNDROMIC: DiagnosisPicklistEntry[] = [
     subcategory: "Syndromic Craniosynostosis",
     clinicalGroup: "congenital",
     hasStaging: false,
-    searchSynonyms: [
-      "crouzon",
-      "craniofacial dysostosis",
-      "FGFR2",
-    ],
+    searchSynonyms: ["crouzon", "craniofacial dysostosis", "FGFR2"],
     suggestedProcedures: [
       {
         procedurePicklistId: "cc_fronto_orbital_advancement",
@@ -1263,11 +1247,7 @@ const CC_DX_SYNDROMIC: DiagnosisPicklistEntry[] = [
     subcategory: "Syndromic Craniosynostosis",
     clinicalGroup: "congenital",
     hasStaging: false,
-    searchSynonyms: [
-      "carpenter",
-      "acrocephalopolysyndactyly type II",
-      "RAB23",
-    ],
+    searchSynonyms: ["carpenter", "acrocephalopolysyndactyly type II", "RAB23"],
     suggestedProcedures: [
       {
         procedurePicklistId: "cc_fronto_orbital_advancement",
@@ -1582,9 +1562,7 @@ export function getCleftCranioSubcategories(): string[] {
 export function getCleftCranioDiagnosesForSubcategory(
   subcategory: string,
 ): DiagnosisPicklistEntry[] {
-  return CLEFT_CRANIO_DIAGNOSES.filter(
-    (dx) => dx.subcategory === subcategory,
-  );
+  return CLEFT_CRANIO_DIAGNOSES.filter((dx) => dx.subcategory === subcategory);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

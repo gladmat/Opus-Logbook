@@ -57,12 +57,12 @@ const RECONSTRUCTION_OPTIONS = Object.entries(RECONSTRUCTION_TYPE_LABELS).map(
   }),
 );
 
-const AMPUTATION_OPTIONS = Object.entries(INFECTION_AMPUTATION_LEVEL_LABELS).map(
-  ([value, label]) => ({
-    value,
-    label,
-  }),
-);
+const AMPUTATION_OPTIONS = Object.entries(
+  INFECTION_AMPUTATION_LEVEL_LABELS,
+).map(([value, label]) => ({
+  value,
+  label,
+}));
 
 export function InfectionEpisodeCard({
   episode,
@@ -274,7 +274,8 @@ export function InfectionEpisodeCard({
                 ]}
                 onSelect={(v) =>
                   updateEpisode({
-                    amputationLevel: (v as InfectionAmputationLevel) || undefined,
+                    amputationLevel:
+                      (v as InfectionAmputationLevel) || undefined,
                   })
                 }
               />

@@ -97,12 +97,7 @@ export interface DistractionDetails {
 }
 
 export interface CraniofacialImplantDetails {
-  material:
-    | "PEEK"
-    | "titanium"
-    | "polyethylene"
-    | "hydroxyapatite"
-    | "other";
+  material: "PEEK" | "titanium" | "polyethylene" | "hydroxyapatite" | "other";
   patientSpecific: boolean;
   manufacturer?: string;
 }
@@ -292,8 +287,7 @@ export function getCraniofacialSections(subcategory: CraniofacialSubcategory): {
     showFistula: subcategory === "Secondary Cleft Deformity", // Narrowed to SC03 in UI
     showSpeechOutcome:
       isCleft || subcategory === "Velopharyngeal Insufficiency",
-    showDentalOutcome:
-      isCleft || subcategory === "Alveolar & Maxillary",
+    showDentalOutcome: isCleft || subcategory === "Alveolar & Maxillary",
     showHearingOutcome: isCleft,
     showFeedingOutcome: isCleft,
   };

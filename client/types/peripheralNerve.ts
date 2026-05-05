@@ -161,10 +161,8 @@ export const NERVE_LABELS: Record<NerveIdentifier, string> = {
   palmar_cutaneous_median: "Palmar cutaneous branch of median nerve",
   digital_proper: "Proper digital nerve",
   digital_common: "Common digital nerve",
-  medial_antebrachial_cutaneous:
-    "Medial antebrachial cutaneous nerve (MABC)",
-  lateral_antebrachial_cutaneous:
-    "Lateral antebrachial cutaneous nerve (LABC)",
+  medial_antebrachial_cutaneous: "Medial antebrachial cutaneous nerve (MABC)",
+  lateral_antebrachial_cutaneous: "Lateral antebrachial cutaneous nerve (LABC)",
   suprascapular: "Suprascapular nerve",
   long_thoracic: "Long thoracic nerve",
   thoracodorsal: "Thoracodorsal nerve",
@@ -223,7 +221,13 @@ export const NERVE_GROUP_LABELS: Record<NerveGroup, string> = {
 };
 
 export const NERVE_GROUPS: Record<NerveGroup, NerveIdentifier[]> = {
-  upper_extremity: ["median", "ulnar", "radial", "musculocutaneous", "axillary"],
+  upper_extremity: [
+    "median",
+    "ulnar",
+    "radial",
+    "musculocutaneous",
+    "axillary",
+  ],
   upper_extremity_branches: [
     "anterior_interosseous",
     "posterior_interosseous",
@@ -301,11 +305,7 @@ export interface NerveGraftDetails {
   numberOfCables?: number;
   graftDiameterMm?: number;
   allograftProduct?: "avance" | "other";
-  allograftDiameterCategory?:
-    | "1_2mm"
-    | "2_3mm"
-    | "3_4mm"
-    | "4_5mm";
+  allograftDiameterCategory?: "1_2mm" | "2_3mm" | "3_4mm" | "4_5mm";
   lotNumber?: string;
 }
 
@@ -440,12 +440,7 @@ export interface ElectrodiagnosticSummary {
   reinnervationPresent?: boolean;
   fibrillationPotentials?: boolean;
   paraspinalDenervation?: boolean;
-  overallSeverity?:
-    | "normal"
-    | "mild"
-    | "moderate"
-    | "severe"
-    | "complete";
+  overallSeverity?: "normal" | "mild" | "moderate" | "severe" | "complete";
   keyFindings?: string;
 }
 
@@ -683,11 +678,7 @@ export interface NeuromaAssessmentData {
   prostheticHoursPerDay?: number;
   phantomLimbPainNRS?: number;
   residualLimbPainNRS?: number;
-  neuromaPositionInStump?:
-    | "anterior"
-    | "posterior"
-    | "medial"
-    | "lateral";
+  neuromaPositionInStump?: "anterior" | "posterior" | "medial" | "lateral";
   proximityToWeightBearing?: boolean;
 
   // Traumatic-specific

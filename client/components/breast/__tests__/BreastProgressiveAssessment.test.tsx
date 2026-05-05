@@ -151,11 +151,13 @@ vi.mock("@/components/breast/ImplantDetailsCard", () => ({
 }));
 
 vi.mock("@/components/breast/LipofillingCard", () => ({
-  LipofillingCard: (props: any) => React.createElement("LipofillingCard", props),
+  LipofillingCard: (props: any) =>
+    React.createElement("LipofillingCard", props),
 }));
 
 vi.mock("@/components/breast/LiposuctionCard", () => ({
-  LiposuctionCard: (props: any) => React.createElement("LiposuctionCard", props),
+  LiposuctionCard: (props: any) =>
+    React.createElement("LiposuctionCard", props),
 }));
 
 vi.mock("@/components/breast/NippleDetailsCard", () => ({
@@ -171,7 +173,9 @@ vi.mock("@/components/breast/BreastSummaryPanel", () => ({
 function getNodeText(node: TestRenderer.ReactTestInstance): string {
   return node.children
     .map((child) =>
-      typeof child === "string" ? child : getNodeText(child as TestRenderer.ReactTestInstance),
+      typeof child === "string"
+        ? child
+        : getNodeText(child as TestRenderer.ReactTestInstance),
     )
     .join("");
 }
@@ -246,7 +250,8 @@ function Harness({
   const [selectedDiagnosis, setSelectedDiagnosis] =
     useState<DiagnosisPicklistEntry | null>(
       initialDiagnosisId
-        ? diagnoses.find((diagnosis) => diagnosis.id === initialDiagnosisId) ?? null
+        ? (diagnoses.find((diagnosis) => diagnosis.id === initialDiagnosisId) ??
+            null)
         : null,
     );
   const [primaryDiagnosis, setPrimaryDiagnosis] = useState<{
@@ -260,7 +265,9 @@ function Harness({
         }
       : null,
   );
-  const [stagingValues, setStagingValues] = useState<Record<string, string>>({});
+  const [stagingValues, setStagingValues] = useState<Record<string, string>>(
+    {},
+  );
   const [procedures, setProcedures] = useState(initialProcedures);
 
   const diagnosisStaging = selectedDiagnosis?.hasStaging
@@ -305,7 +312,9 @@ function Harness({
         setStagingValues((current) => ({ ...current, [systemName]: value }))
       }
       committedProcedures={procedures}
-      hasAcceptedMapping={procedures.some((procedure) => procedure.procedureName.trim())}
+      hasAcceptedMapping={procedures.some((procedure) =>
+        procedure.procedureName.trim(),
+      )}
       onCommittedProceduresChange={setProcedures}
       createProcedureFromPicklistId={makeProcedure}
     />

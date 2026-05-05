@@ -21,13 +21,7 @@ import {
   type TeamMemberOperativeRole,
 } from "@/types/teamContacts";
 
-const ROLE_OPTIONS: TeamMemberOperativeRole[] = [
-  "PS",
-  "FA",
-  "SS",
-  "US",
-  "SA",
-];
+const ROLE_OPTIONS: TeamMemberOperativeRole[] = ["PS", "FA", "SS", "US", "SA"];
 
 interface ProcedureTeamFooterProps {
   procedureIndex: number;
@@ -135,15 +129,13 @@ export const ProcedureTeamFooter = React.memo(function ProcedureTeamFooter({
               member.presentForProcedures === undefined ||
               member.presentForProcedures.includes(procedureIndex);
             const currentRole = resolveRole(member);
-            const hasOverride = member.procedureRoleOverrides?.[procedureIndex] != null;
+            const hasOverride =
+              member.procedureRoleOverrides?.[procedureIndex] != null;
 
             return (
               <View
                 key={member.contactId}
-                style={[
-                  styles.memberRow,
-                  { borderBottomColor: theme.border },
-                ]}
+                style={[styles.memberRow, { borderBottomColor: theme.border }]}
               >
                 <View style={styles.memberNameRow}>
                   <Pressable

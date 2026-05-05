@@ -14,7 +14,10 @@
  */
 
 import { getSeniorityTier, type SeniorityTier } from "./seniorityTier";
-import type { CaseTeamMember, TeamMemberOperativeRole } from "@/types/teamContacts";
+import type {
+  CaseTeamMember,
+  TeamMemberOperativeRole,
+} from "@/types/teamContacts";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -76,16 +79,14 @@ export function deriveEpaAssessments(
     const presentMembers = teamMembers
       .filter(
         (tm) =>
-          !tm.presentForProcedures ||
-          tm.presentForProcedures.includes(procIdx),
+          !tm.presentForProcedures || tm.presentForProcedures.includes(procIdx),
       )
       .map((tm) => ({
         contactId: tm.contactId,
         displayName: tm.displayName,
         linkedUserId: tm.linkedUserId,
         careerStage: tm.careerStage,
-        operativeRole:
-          tm.procedureRoleOverrides?.[procIdx] ?? tm.operativeRole,
+        operativeRole: tm.procedureRoleOverrides?.[procIdx] ?? tm.operativeRole,
       }));
 
     // Build tiered participants: must have both linkedUserId AND careerStage

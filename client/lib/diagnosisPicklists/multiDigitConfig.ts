@@ -48,8 +48,7 @@ export const MULTI_DIGIT_RESOLUTIONS: Record<
     overrides: {
       I: {
         diagnosisSnomedCode: "202855006",
-        diagnosisSnomedDisplay:
-          "Stenosing tenosynovitis of thumb (disorder)",
+        diagnosisSnomedDisplay: "Stenosing tenosynovitis of thumb (disorder)",
         procedurePicklistId: "hand_comp_trigger_thumb",
         procedureDisplayName: "Trigger thumb release",
       },

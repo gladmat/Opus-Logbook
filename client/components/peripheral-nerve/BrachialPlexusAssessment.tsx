@@ -98,10 +98,7 @@ const TRAUMATIC_MECHANISMS: BPMechanism[] = [
   "other",
 ];
 
-const OBSTETRIC_MECHANISMS: BPMechanism[] = [
-  "obstetric",
-  "other",
-];
+const OBSTETRIC_MECHANISMS: BPMechanism[] = ["obstetric", "other"];
 
 const ALL_MECHANISMS: BPMechanism[] = [
   "motorcycle",

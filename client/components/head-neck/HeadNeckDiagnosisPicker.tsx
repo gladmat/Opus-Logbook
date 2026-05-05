@@ -243,9 +243,7 @@ export function HeadNeckDiagnosisPicker({
                   style={[
                     styles.diagnosisChipText,
                     {
-                      color: isSelected
-                        ? theme.buttonText
-                        : theme.text,
+                      color: isSelected ? theme.buttonText : theme.text,
                       fontWeight: isSelected ? "600" : "400",
                     },
                   ]}
@@ -254,11 +252,7 @@ export function HeadNeckDiagnosisPicker({
                   {dx.shortName ?? dx.displayName}
                 </ThemedText>
                 {isSelected ? (
-                  <Feather
-                    name="check"
-                    size={14}
-                    color={theme.buttonText}
-                  />
+                  <Feather name="check" size={14} color={theme.buttonText} />
                 ) : null}
               </Pressable>
             );

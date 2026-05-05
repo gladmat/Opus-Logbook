@@ -567,10 +567,12 @@ function buildCondition(
     if (ca.cleftClassification) {
       const cleft = ca.cleftClassification;
       if (cleft.lahshal) {
-        const chars = (
-          c: "complete" | "incomplete" | "none",
-          l: string,
-        ) => (c === "complete" ? l.toUpperCase() : c === "incomplete" ? l.toLowerCase() : ".");
+        const chars = (c: "complete" | "incomplete" | "none", l: string) =>
+          c === "complete"
+            ? l.toUpperCase()
+            : c === "incomplete"
+              ? l.toLowerCase()
+              : ".";
         cfExt.push({
           url: "lahshal",
           valueString: [
@@ -602,7 +604,9 @@ function buildCondition(
     if (od.ageAtSurgery) {
       cfExt.push({
         url: "ageAtSurgeryMonths",
-        valueString: String(od.ageAtSurgery.years * 12 + od.ageAtSurgery.months),
+        valueString: String(
+          od.ageAtSurgery.years * 12 + od.ageAtSurgery.months,
+        ),
       });
     }
     if (od.namedTechnique) {
@@ -769,9 +773,7 @@ function buildCondition(
       }
 
       if (bpExt.length > 0) {
-        pnExt.push(
-          ...(bpExt as { url: string; valueString: string }[]),
-        );
+        pnExt.push(...(bpExt as { url: string; valueString: string }[]));
         // Also add as nested sub-extension for structured consumers
         condition.extension = [
           ...(condition.extension ?? []),
@@ -1041,7 +1043,11 @@ function buildProcedure(
 
   // Corrective osteotomy details extension
   if (proc.osteotomyDetails?.bone) {
-    const osteoExts: { url: string; valueString?: string; valueBoolean?: boolean }[] = [];
+    const osteoExts: {
+      url: string;
+      valueString?: string;
+      valueBoolean?: boolean;
+    }[] = [];
     const ost = proc.osteotomyDetails;
     if (ost.bone) {
       osteoExts.push({ url: "bone", valueString: ost.bone });
@@ -1114,7 +1120,11 @@ function buildProcedure(
   }
 
   // Per-digit bodySite for multi-digit procedures (e.g., trigger finger release per digit)
-  if (proc.digitId && DIGIT_BODY_STRUCTURE_SNOMED[proc.digitId] && !procedure.bodySite) {
+  if (
+    proc.digitId &&
+    DIGIT_BODY_STRUCTURE_SNOMED[proc.digitId] &&
+    !procedure.bodySite
+  ) {
     const digitSnomed = DIGIT_BODY_STRUCTURE_SNOMED[proc.digitId];
     const bodySiteEntry: Record<string, unknown> = {
       coding: [
@@ -1128,7 +1138,9 @@ function buildProcedure(
     };
     // Add laterality qualifier if available
     if (laterality && LATERALITY_SNOMED[laterality]) {
-      (bodySiteEntry.coding as FhirCoding[]).push(LATERALITY_SNOMED[laterality]);
+      (bodySiteEntry.coding as FhirCoding[]).push(
+        LATERALITY_SNOMED[laterality],
+      );
     }
     procedure.bodySite = [bodySiteEntry];
   }

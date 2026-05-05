@@ -18,7 +18,10 @@ import { ThemedText } from "@/components/ThemedText";
 import { Feather } from "@/components/FeatherIcon";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
-import type { BurnProcedureDetails, DermalSubstituteProduct } from "@/types/burns";
+import type {
+  BurnProcedureDetails,
+  DermalSubstituteProduct,
+} from "@/types/burns";
 import { DERMAL_SUBSTITUTE_LABELS } from "@/types/burns";
 import { getDefaultIntervalDays } from "@/lib/burnsConfig";
 
@@ -76,7 +79,10 @@ export const DermalSubstituteSection = React.memo(
       <View
         style={[
           styles.container,
-          { backgroundColor: theme.backgroundElevated, borderColor: theme.border },
+          {
+            backgroundColor: theme.backgroundElevated,
+            borderColor: theme.border,
+          },
         ]}
       >
         <View style={styles.headerRow}>
@@ -88,7 +94,9 @@ export const DermalSubstituteSection = React.memo(
 
         {/* Product picker */}
         <View style={styles.fieldGroup}>
-          <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
             Product
           </ThemedText>
           <View style={styles.chipRow}>
@@ -134,7 +142,9 @@ export const DermalSubstituteSection = React.memo(
 
         {/* Area */}
         <View style={styles.fieldRow}>
-          <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
             Area (cm²)
           </ThemedText>
           <StepperInline
@@ -149,7 +159,9 @@ export const DermalSubstituteSection = React.memo(
 
         {/* Simultaneous STSG */}
         <View style={styles.fieldRow}>
-          <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
             Simultaneous STSG
           </ThemedText>
           <Switch
@@ -163,7 +175,9 @@ export const DermalSubstituteSection = React.memo(
         {!showMore ? (
           <TouchableOpacity
             onPress={() => {
-              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              LayoutAnimation.configureNext(
+                LayoutAnimation.Presets.easeInEaseOut,
+              );
               setShowMore(true);
             }}
             style={styles.moreLink}
@@ -210,7 +224,9 @@ export const DermalSubstituteSection = React.memo(
                       <TouchableOpacity
                         key={key}
                         onPress={() => {
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          Haptics.impactAsync(
+                            Haptics.ImpactFeedbackStyle.Light,
+                          );
                           update({ sealFormation: selected ? undefined : key });
                         }}
                         style={[

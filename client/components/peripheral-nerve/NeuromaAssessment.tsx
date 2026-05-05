@@ -141,7 +141,9 @@ export const NeuromaAssessment = React.memo(function NeuromaAssessment({
   const handleNerveSelect = useCallback(
     (nerve: NerveIdentifier) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      update({ affectedNerve: data.affectedNerve === nerve ? undefined : nerve });
+      update({
+        affectedNerve: data.affectedNerve === nerve ? undefined : nerve,
+      });
     },
     [data.affectedNerve, update],
   );
@@ -173,10 +175,7 @@ export const NeuromaAssessment = React.memo(function NeuromaAssessment({
         {NEUROMA_NERVE_GROUPS.map((group) => (
           <View key={group}>
             <ThemedText
-              style={[
-                styles.groupLabel,
-                { color: theme.textSecondary },
-              ]}
+              style={[styles.groupLabel, { color: theme.textSecondary }]}
             >
               {NERVE_GROUP_LABELS[group]}
             </ThemedText>

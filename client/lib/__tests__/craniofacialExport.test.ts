@@ -211,7 +211,10 @@ describe("Craniofacial FHIR export", () => {
     );
     expect(cfExt).toBeDefined();
 
-    const extensions = cfExt.extension as { url: string; valueString: string }[];
+    const extensions = cfExt.extension as {
+      url: string;
+      valueString: string;
+    }[];
     const lahshal = extensions.find((e) => e.url === "lahshal");
     expect(lahshal?.valueString).toBe("..HSAL");
 
@@ -236,7 +239,10 @@ describe("Craniofacial FHIR export", () => {
     const cfExt = condition?.extension?.find(
       (e: any) => e.url === "opus:craniofacialAssessment",
     );
-    const extensions = cfExt.extension as { url: string; valueString: string }[];
+    const extensions = cfExt.extension as {
+      url: string;
+      valueString: string;
+    }[];
 
     const vpc = extensions.find((e) => e.url === "speechVpcRating");
     expect(vpc?.valueString).toBe("0");
@@ -259,7 +265,10 @@ describe("Craniofacial FHIR export", () => {
     const cfExt = condition?.extension?.find(
       (e: any) => e.url === "opus:craniofacialAssessment",
     );
-    const extensions = cfExt.extension as { url: string; valueString: string }[];
+    const extensions = cfExt.extension as {
+      url: string;
+      valueString: string;
+    }[];
 
     const sutures = extensions.find((e) => e.url === "suturesInvolved");
     expect(sutures?.valueString).toBe("sagittal");

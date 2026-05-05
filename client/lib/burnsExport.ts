@@ -20,7 +20,12 @@ import {
   BURN_COMPLICATION_LABELS,
   DERMAL_SUBSTITUTE_LABELS,
 } from "../types/burns";
-import { getBurnProcedureCategory, getBurnPhaseFromDiagnosis, calculateVSSTotal, calculatePOSASTotal } from "./burnsConfig";
+import {
+  getBurnProcedureCategory,
+  getBurnPhaseFromDiagnosis,
+  calculateVSSTotal,
+  calculatePOSASTotal,
+} from "./burnsConfig";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CSV EXPORT
@@ -115,13 +120,17 @@ export function extractBurnsCsvFields(
 
   // Assessment-level fields
   empty.burn_phase = BURN_PHASE_LABELS[derivedPhase];
-  empty.burn_tbsa_total = ba.tbsa?.totalTBSA != null ? String(ba.tbsa.totalTBSA) : "";
-  empty.burn_tbsa_partial = ba.tbsa?.partialThicknessTBSA != null
-    ? String(ba.tbsa.partialThicknessTBSA) : "";
-  empty.burn_tbsa_full = ba.tbsa?.fullThicknessTBSA != null
-    ? String(ba.tbsa.fullThicknessTBSA) : "";
+  empty.burn_tbsa_total =
+    ba.tbsa?.totalTBSA != null ? String(ba.tbsa.totalTBSA) : "";
+  empty.burn_tbsa_partial =
+    ba.tbsa?.partialThicknessTBSA != null
+      ? String(ba.tbsa.partialThicknessTBSA)
+      : "";
+  empty.burn_tbsa_full =
+    ba.tbsa?.fullThicknessTBSA != null ? String(ba.tbsa.fullThicknessTBSA) : "";
   empty.burn_mechanism = ba.injuryEvent?.mechanism
-    ? BURN_MECHANISM_LABELS[ba.injuryEvent.mechanism] : "";
+    ? BURN_MECHANISM_LABELS[ba.injuryEvent.mechanism]
+    : "";
   empty.burn_inhalation = ba.injuryEvent?.inhalationInjury ? "Yes" : "";
 
   // Procedure-level fields — aggregate from all procedures
@@ -139,11 +148,16 @@ export function extractBurnsCsvFields(
     const d = proc.burnProcedureDetails;
     if (!d) continue;
 
-    if (d.excision?.tbsaExcised != null) excisionTBSAs.push(d.excision.tbsaExcised);
-    if (d.grafting?.graftType) graftTypes.push(GRAFT_TYPE_LABELS[d.grafting.graftType]);
-    if (d.grafting?.donorSite) graftDonors.push(GRAFT_DONOR_LABELS[d.grafting.donorSite]);
-    if (d.grafting?.meshRatio) meshRatios.push(MESH_RATIO_LABELS[d.grafting.meshRatio]);
-    if (d.grafting?.graftTakePercentage != null) graftTakes.push(d.grafting.graftTakePercentage);
+    if (d.excision?.tbsaExcised != null)
+      excisionTBSAs.push(d.excision.tbsaExcised);
+    if (d.grafting?.graftType)
+      graftTypes.push(GRAFT_TYPE_LABELS[d.grafting.graftType]);
+    if (d.grafting?.donorSite)
+      graftDonors.push(GRAFT_DONOR_LABELS[d.grafting.donorSite]);
+    if (d.grafting?.meshRatio)
+      meshRatios.push(MESH_RATIO_LABELS[d.grafting.meshRatio]);
+    if (d.grafting?.graftTakePercentage != null)
+      graftTakes.push(d.grafting.graftTakePercentage);
     if (d.contractureRelease?.joint)
       joints.push(CONTRACTURE_JOINT_LABELS[d.contractureRelease.joint]);
     if (d.contractureRelease?.romPreOpDegrees != null)
@@ -151,30 +165,41 @@ export function extractBurnsCsvFields(
     if (d.contractureRelease?.romPostOpDegrees != null)
       romPosts.push(d.contractureRelease.romPostOpDegrees);
     if (d.dermalSubstitute?.product) {
-      dermalSubs.push(DERMAL_SUBSTITUTE_LABELS[d.dermalSubstitute.product] ?? d.dermalSubstitute.product);
+      dermalSubs.push(
+        DERMAL_SUBSTITUTE_LABELS[d.dermalSubstitute.product] ??
+          d.dermalSubstitute.product,
+      );
     }
   }
 
-  empty.burn_excision_tbsa = excisionTBSAs.length > 0
-    ? excisionTBSAs.reduce((a, b) => a + b, 0).toString() : "";
+  empty.burn_excision_tbsa =
+    excisionTBSAs.length > 0
+      ? excisionTBSAs.reduce((a, b) => a + b, 0).toString()
+      : "";
   empty.burn_graft_type = graftTypes.join("; ");
   empty.burn_graft_donor = graftDonors.join("; ");
   empty.burn_mesh_ratio = meshRatios.join("; ");
-  empty.burn_graft_take_pct = graftTakes.length > 0
-    ? graftTakes.map(String).join("; ") : "";
+  empty.burn_graft_take_pct =
+    graftTakes.length > 0 ? graftTakes.map(String).join("; ") : "";
   empty.burn_contracture_joint = joints.join("; ");
-  empty.burn_rom_pre = romPres.length > 0 ? romPres.map((r) => `${r}°`).join("; ") : "";
-  empty.burn_rom_post = romPosts.length > 0 ? romPosts.map((r) => `${r}°`).join("; ") : "";
+  empty.burn_rom_pre =
+    romPres.length > 0 ? romPres.map((r) => `${r}°`).join("; ") : "";
+  empty.burn_rom_post =
+    romPosts.length > 0 ? romPosts.map((r) => `${r}°`).join("; ") : "";
   empty.burn_dermal_sub_product = dermalSubs.join("; ");
 
   // Outcome fields
   const outcomes = ba.outcomes;
   if (outcomes) {
     if (outcomes.vancouverScarScale) {
-      empty.burn_vss_total = String(calculateVSSTotal(outcomes.vancouverScarScale));
+      empty.burn_vss_total = String(
+        calculateVSSTotal(outcomes.vancouverScarScale),
+      );
     }
     if (outcomes.posasObserver) {
-      empty.burn_posas_total = String(calculatePOSASTotal(outcomes.posasObserver));
+      empty.burn_posas_total = String(
+        calculatePOSASTotal(outcomes.posasObserver),
+      );
     }
     if (outcomes.complications && outcomes.complications.length > 0) {
       empty.burn_complications = outcomes.complications
@@ -202,7 +227,12 @@ export function extractBurnsCsvFields(
 export function buildBurnsFhirExtension(
   ba: BurnsAssessmentData,
   diagnosisPicklistId?: string,
-): Array<{ url: string; valueString?: string; valueDecimal?: number; valueBoolean?: boolean }> {
+): Array<{
+  url: string;
+  valueString?: string;
+  valueDecimal?: number;
+  valueBoolean?: boolean;
+}> {
   const extensions: Array<{
     url: string;
     valueString?: string;
@@ -219,16 +249,28 @@ export function buildBurnsFhirExtension(
     extensions.push({ url: "tbsaTotal", valueDecimal: ba.tbsa.totalTBSA });
   }
   if (ba.tbsa?.partialThicknessTBSA != null) {
-    extensions.push({ url: "tbsaPartial", valueDecimal: ba.tbsa.partialThicknessTBSA });
+    extensions.push({
+      url: "tbsaPartial",
+      valueDecimal: ba.tbsa.partialThicknessTBSA,
+    });
   }
   if (ba.tbsa?.fullThicknessTBSA != null) {
-    extensions.push({ url: "tbsaFull", valueDecimal: ba.tbsa.fullThicknessTBSA });
+    extensions.push({
+      url: "tbsaFull",
+      valueDecimal: ba.tbsa.fullThicknessTBSA,
+    });
   }
   if (ba.injuryEvent?.mechanism) {
-    extensions.push({ url: "mechanism", valueString: ba.injuryEvent.mechanism });
+    extensions.push({
+      url: "mechanism",
+      valueString: ba.injuryEvent.mechanism,
+    });
   }
   if (ba.injuryEvent?.inhalationInjury != null) {
-    extensions.push({ url: "inhalationInjury", valueBoolean: ba.injuryEvent.inhalationInjury });
+    extensions.push({
+      url: "inhalationInjury",
+      valueBoolean: ba.injuryEvent.inhalationInjury,
+    });
   }
 
   return extensions;
@@ -240,33 +282,58 @@ export function buildBurnsFhirExtension(
 export function buildBurnProcedureFhirExtension(
   details: BurnProcedureDetails,
 ): Array<{ url: string; valueString?: string; valueDecimal?: number }> {
-  const ext: Array<{ url: string; valueString?: string; valueDecimal?: number }> = [];
+  const ext: Array<{
+    url: string;
+    valueString?: string;
+    valueDecimal?: number;
+  }> = [];
 
   if (details.excision) {
     if (details.excision.tbsaExcised != null)
-      ext.push({ url: "excisionTbsa", valueDecimal: details.excision.tbsaExcised });
+      ext.push({
+        url: "excisionTbsa",
+        valueDecimal: details.excision.tbsaExcised,
+      });
     if (details.excision.excisionDepth)
-      ext.push({ url: "excisionDepth", valueString: details.excision.excisionDepth });
+      ext.push({
+        url: "excisionDepth",
+        valueString: details.excision.excisionDepth,
+      });
   }
 
   if (details.grafting) {
     if (details.grafting.graftType)
       ext.push({ url: "graftType", valueString: details.grafting.graftType });
     if (details.grafting.donorSite)
-      ext.push({ url: "graftDonorSite", valueString: details.grafting.donorSite });
+      ext.push({
+        url: "graftDonorSite",
+        valueString: details.grafting.donorSite,
+      });
     if (details.grafting.meshRatio)
       ext.push({ url: "meshRatio", valueString: details.grafting.meshRatio });
     if (details.grafting.graftTakePercentage != null)
-      ext.push({ url: "graftTake", valueDecimal: details.grafting.graftTakePercentage });
+      ext.push({
+        url: "graftTake",
+        valueDecimal: details.grafting.graftTakePercentage,
+      });
   }
 
   if (details.contractureRelease) {
     if (details.contractureRelease.joint)
-      ext.push({ url: "contractureJoint", valueString: details.contractureRelease.joint });
+      ext.push({
+        url: "contractureJoint",
+        valueString: details.contractureRelease.joint,
+      });
     if (details.contractureRelease.romPreOpDegrees != null)
-      ext.push({ url: "romPreOp", valueDecimal: details.contractureRelease.romPreOpDegrees });
+      ext.push({
+        url: "romPreOp",
+        valueDecimal: details.contractureRelease.romPreOpDegrees,
+      });
     if (details.contractureRelease.romPostOpDegrees != null)
-      ext.push({ url: "romPostOp", valueDecimal: details.contractureRelease.romPostOpDegrees });
+      ext.push({
+        url: "romPostOp",
+        valueDecimal: details.contractureRelease.romPostOpDegrees,
+      });
   }
 
   return ext;

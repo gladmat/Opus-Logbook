@@ -1012,7 +1012,8 @@ const HAND_DX_SOFT_TISSUE: DiagnosisPicklistEntry[] = [
     displayName: "Compartment syndrome of hand",
     shortName: "Hand compartment syndrome",
     snomedCtCode: "212382003",
-    snomedCtDisplay: "Compartment syndrome of hand due to traumatic injury (disorder)",
+    snomedCtDisplay:
+      "Compartment syndrome of hand due to traumatic injury (disorder)",
     specialty: "hand_wrist",
     subcategory: "Soft Tissue Injuries",
     clinicalGroup: "trauma",
@@ -1953,8 +1954,7 @@ const HAND_DX_DISLOCATIONS: DiagnosisPicklistEntry[] = [
     displayName: "Trans-scaphoid perilunate fracture-dislocation",
     shortName: "Trans-scaphoid perilunate",
     snomedCtCode: "281513007",
-    snomedCtDisplay:
-      "Transscaphoid-perilunate fracture dislocation (disorder)",
+    snomedCtDisplay: "Transscaphoid-perilunate fracture dislocation (disorder)",
     specialty: "hand_wrist",
     subcategory: "Dislocations",
     clinicalGroup: "trauma",

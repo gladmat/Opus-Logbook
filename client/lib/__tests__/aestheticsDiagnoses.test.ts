@@ -41,9 +41,12 @@ describe("Aesthetics diagnosis picklist — Phase 2 consolidation", () => {
   it("all entries have an intent field set", () => {
     for (const dx of AESTHETICS_DIAGNOSES) {
       expect(dx.intent).toBeDefined();
-      expect(
-        ["cosmetic", "post_bariatric_mwl", "functional_reconstructive", "combined"],
-      ).toContain(dx.intent);
+      expect([
+        "cosmetic",
+        "post_bariatric_mwl",
+        "functional_reconstructive",
+        "combined",
+      ]).toContain(dx.intent);
     }
   });
 
@@ -86,7 +89,13 @@ describe("Subcategories", () => {
 
 describe("Body contouring backward compatibility", () => {
   it("body contouring subcategories absorbed into aesthetics", () => {
-    const bcSubcategories = ["Abdomen", "Upper Body", "Lower Body", "Post-Bariatric", "Lipodystrophy"];
+    const bcSubcategories = [
+      "Abdomen",
+      "Upper Body",
+      "Lower Body",
+      "Post-Bariatric",
+      "Lipodystrophy",
+    ];
     const bcDiagnoses = AESTHETICS_DIAGNOSES.filter((dx) =>
       bcSubcategories.includes(dx.subcategory),
     );

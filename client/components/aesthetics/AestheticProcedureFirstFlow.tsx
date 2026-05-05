@@ -25,7 +25,12 @@ import type {
   AestheticAssessment as AestheticAssessmentData,
   AestheticIntent,
 } from "@/types/aesthetics";
-import type { CaseProcedure, Specialty, Laterality, DiagnosisClinicalDetails } from "@/types/case";
+import type {
+  CaseProcedure,
+  Specialty,
+  Laterality,
+  DiagnosisClinicalDetails,
+} from "@/types/case";
 import type { DiagnosisPicklistEntry } from "@/lib/diagnosisPicklists/index";
 import type { ProcedurePicklistEntry } from "@/lib/procedurePicklist";
 import { Spacing, BorderRadius } from "@/constants/theme";
@@ -39,7 +44,9 @@ interface AestheticProcedureFirstFlowProps {
   onDiagnosisClinicalDetailsChange: (details: DiagnosisClinicalDetails) => void;
   onDiagnosisInferred: (entry: DiagnosisPicklistEntry) => void;
   groupSpecialty: Specialty;
-  buildProcedureFromPicklistId: (picklistId: string) => CaseProcedure | undefined;
+  buildProcedureFromPicklistId: (
+    picklistId: string,
+  ) => CaseProcedure | undefined;
 }
 
 const LATERALITY_OPTIONS: Array<{ value: Laterality; label: string }> = [
@@ -106,10 +113,12 @@ export const AestheticProcedureFirstFlow = React.memo(
 
     // Whether to show laterality
     const showLaterality = useMemo(
-      () => procedures.some((p) => {
-        if (!p.picklistEntryId || !isAestheticProcedure(p.picklistEntryId)) return false;
-        return getAestheticProcedureConfig(p.picklistEntryId).showLaterality;
-      }),
+      () =>
+        procedures.some((p) => {
+          if (!p.picklistEntryId || !isAestheticProcedure(p.picklistEntryId))
+            return false;
+          return getAestheticProcedureConfig(p.picklistEntryId).showLaterality;
+        }),
       [procedures],
     );
 
@@ -124,15 +133,22 @@ export const AestheticProcedureFirstFlow = React.memo(
 
     // ACGME derivations
     const acgmeCategory = useMemo(
-      () => (primaryProcedureId ? getAcgmeCategory(primaryProcedureId) : undefined),
+      () =>
+        primaryProcedureId ? getAcgmeCategory(primaryProcedureId) : undefined,
       [primaryProcedureId],
     );
     const acgmeSubcategory = useMemo(
-      () => (primaryProcedureId ? getAcgmeSubcategory(primaryProcedureId) : undefined),
+      () =>
+        primaryProcedureId
+          ? getAcgmeSubcategory(primaryProcedureId)
+          : undefined,
       [primaryProcedureId],
     );
     const interventionType = useMemo(
-      () => (primaryProcedureId ? getInterventionType(primaryProcedureId) : undefined),
+      () =>
+        primaryProcedureId
+          ? getInterventionType(primaryProcedureId)
+          : undefined,
       [primaryProcedureId],
     );
 
@@ -218,13 +234,10 @@ export const AestheticProcedureFirstFlow = React.memo(
       [procedures, onProceduresChange],
     );
 
-    const handleIntentChange = useCallback(
-      (intent: AestheticIntent) => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        setCurrentIntent(intent);
-      },
-      [],
-    );
+    const handleIntentChange = useCallback((intent: AestheticIntent) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setCurrentIntent(intent);
+    }, []);
 
     const handleLateralityChange = useCallback(
       (laterality: Laterality) => {
@@ -273,47 +286,51 @@ export const AestheticProcedureFirstFlow = React.memo(
         )}
 
         {/* SECTION 2: Intent prompt — only if procedure needs it */}
-        {primaryProcedureId && config?.needsIntentPrompt && config.intentOptions && (
-          <View>
-            <ThemedText
-              type="h4"
-              style={[styles.sectionLabel, { color: theme.text }]}
-            >
-              Clinical Intent
-            </ThemedText>
-            <View style={styles.chipRow}>
-              {config.intentOptions.map((opt) => {
-                const isSelected = currentIntent === opt.value;
-                const chipColor = INTENT_COLORS[opt.value];
-                return (
-                  <Pressable
-                    key={opt.value}
-                    testID={`caseForm.aesthetics.chip-intent-${opt.value}`}
-                    style={[
-                      styles.chip,
-                      {
-                        backgroundColor: isSelected
-                          ? chipColor + "1A"
-                          : theme.backgroundSecondary,
-                        borderColor: isSelected ? chipColor : theme.border,
-                      },
-                    ]}
-                    onPress={() => handleIntentChange(opt.value)}
-                  >
-                    <ThemedText
+        {primaryProcedureId &&
+          config?.needsIntentPrompt &&
+          config.intentOptions && (
+            <View>
+              <ThemedText
+                type="h4"
+                style={[styles.sectionLabel, { color: theme.text }]}
+              >
+                Clinical Intent
+              </ThemedText>
+              <View style={styles.chipRow}>
+                {config.intentOptions.map((opt) => {
+                  const isSelected = currentIntent === opt.value;
+                  const chipColor = INTENT_COLORS[opt.value];
+                  return (
+                    <Pressable
+                      key={opt.value}
+                      testID={`caseForm.aesthetics.chip-intent-${opt.value}`}
                       style={[
-                        styles.chipText,
-                        { color: isSelected ? chipColor : theme.textSecondary },
+                        styles.chip,
+                        {
+                          backgroundColor: isSelected
+                            ? chipColor + "1A"
+                            : theme.backgroundSecondary,
+                          borderColor: isSelected ? chipColor : theme.border,
+                        },
                       ]}
+                      onPress={() => handleIntentChange(opt.value)}
                     >
-                      {opt.label}
-                    </ThemedText>
-                  </Pressable>
-                );
-              })}
+                      <ThemedText
+                        style={[
+                          styles.chipText,
+                          {
+                            color: isSelected ? chipColor : theme.textSecondary,
+                          },
+                        ]}
+                      >
+                        {opt.label}
+                      </ThemedText>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
-          </View>
-        )}
+          )}
 
         {/* SECTION 3: Detail card — expands based on procedure type */}
         {primaryProcedureId && detailCard != null && (

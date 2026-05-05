@@ -134,9 +134,7 @@ function TeamSectionInner() {
       >
         <View style={styles.emptyState}>
           <Feather name="map-pin" size={24} color={theme.textTertiary} />
-          <ThemedText
-            style={[styles.emptyText, { color: theme.textTertiary }]}
-          >
+          <ThemedText style={[styles.emptyText, { color: theme.textTertiary }]}>
             Select a facility in Patient Details to see your operative team.
           </ThemedText>
         </View>
@@ -155,9 +153,7 @@ function TeamSectionInner() {
       >
         <View style={styles.emptyState}>
           <Feather name="users" size={24} color={theme.textTertiary} />
-          <ThemedText
-            style={[styles.emptyText, { color: theme.textTertiary }]}
-          >
+          <ThemedText style={[styles.emptyText, { color: theme.textTertiary }]}>
             No team members at {facilityName}.
           </ThemedText>
           <Pressable
@@ -185,9 +181,7 @@ function TeamSectionInner() {
       <View style={styles.chipContainer}>
         {contacts.map((contact) => {
           const isSelected = selectedIds.has(contact.id);
-          const member = operativeTeam.find(
-            (m) => m.contactId === contact.id,
-          );
+          const member = operativeTeam.find((m) => m.contactId === contact.id);
           const isRoleExpanded = expandedRoleId === contact.id;
 
           return (
@@ -255,9 +249,7 @@ function TeamSectionInner() {
                             backgroundColor: isActive
                               ? theme.link
                               : theme.backgroundElevated,
-                            borderColor: isActive
-                              ? theme.link
-                              : theme.border,
+                            borderColor: isActive ? theme.link : theme.border,
                           },
                         ]}
                         onPress={() => handleRoleSelect(contact.id, role)}
@@ -267,9 +259,7 @@ function TeamSectionInner() {
                           style={[
                             styles.rolePickerText,
                             {
-                              color: isActive
-                                ? theme.buttonText
-                                : theme.text,
+                              color: isActive ? theme.buttonText : theme.text,
                             },
                           ]}
                         >
@@ -299,11 +289,7 @@ function TeamSectionInner() {
             onPress={() => navigation.navigate("AddEditTeamContact")}
             testID="caseForm.team.btn-addContact"
           >
-            <Feather
-              name="plus"
-              size={16}
-              color={theme.textTertiary}
-            />
+            <Feather name="plus" size={16} color={theme.textTertiary} />
           </Pressable>
         </View>
       </View>

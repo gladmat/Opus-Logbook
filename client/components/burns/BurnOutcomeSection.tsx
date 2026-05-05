@@ -44,7 +44,10 @@ interface BurnOutcomeSectionProps {
     name: string;
     graftTakePercentage?: number;
   }>;
-  onGraftTakeChange?: (procedureId: string, percentage: number | undefined) => void;
+  onGraftTakeChange?: (
+    procedureId: string,
+    percentage: number | undefined,
+  ) => void;
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -261,7 +264,9 @@ export const BurnOutcomeSection = React.memo(function BurnOutcomeSection({
         <ExpandLink
           label="Hospital metrics"
           onPress={() => {
-            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            LayoutAnimation.configureNext(
+              LayoutAnimation.Presets.easeInEaseOut,
+            );
             setShowHospitalMetrics(true);
           }}
           theme={theme}
@@ -309,7 +314,9 @@ export const BurnOutcomeSection = React.memo(function BurnOutcomeSection({
         <ExpandLink
           label="Scar assessment (VSS / POSAS)"
           onPress={() => {
-            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            LayoutAnimation.configureNext(
+              LayoutAnimation.Presets.easeInEaseOut,
+            );
             setShowScarAssessment(true);
           }}
           theme={theme}
@@ -323,9 +330,7 @@ export const BurnOutcomeSection = React.memo(function BurnOutcomeSection({
           </ThemedText>
           <VancouverScarScaleInput
             value={value.vancouverScarScale ?? {}}
-            onChange={(vss) =>
-              update({ vancouverScarScale: vss as VSSData })
-            }
+            onChange={(vss) => update({ vancouverScarScale: vss as VSSData })}
           />
 
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
@@ -337,9 +342,7 @@ export const BurnOutcomeSection = React.memo(function BurnOutcomeSection({
           </ThemedText>
           <POSASObserverInput
             value={value.posasObserver ?? {}}
-            onChange={(posas) =>
-              update({ posasObserver: posas as POSASData })
-            }
+            onChange={(posas) => update({ posasObserver: posas as POSASData })}
           />
         </View>
       )}
@@ -349,7 +352,9 @@ export const BurnOutcomeSection = React.memo(function BurnOutcomeSection({
         <ExpandLink
           label="Functional outcomes"
           onPress={() => {
-            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            LayoutAnimation.configureNext(
+              LayoutAnimation.Presets.easeInEaseOut,
+            );
             setShowFunctional(true);
           }}
           theme={theme}
@@ -367,7 +372,9 @@ export const BurnOutcomeSection = React.memo(function BurnOutcomeSection({
             >
               Return to work
             </ThemedText>
-            <ThemedText style={[styles.fieldHint, { color: theme.textTertiary }]}>
+            <ThemedText
+              style={[styles.fieldHint, { color: theme.textTertiary }]}
+            >
               {value.returnToWorkDate ?? "Not set"}
             </ThemedText>
           </View>
@@ -377,7 +384,9 @@ export const BurnOutcomeSection = React.memo(function BurnOutcomeSection({
             >
               Return to school
             </ThemedText>
-            <ThemedText style={[styles.fieldHint, { color: theme.textTertiary }]}>
+            <ThemedText
+              style={[styles.fieldHint, { color: theme.textTertiary }]}
+            >
               {value.returnToSchoolDate ?? "Not set"}
             </ThemedText>
           </View>

@@ -76,7 +76,9 @@ vi.mock("@/components/ThemedText", () => ({
 function getNodeText(node: TestRenderer.ReactTestInstance): string {
   return node.children
     .map((child) =>
-      typeof child === "string" ? child : getNodeText(child as TestRenderer.ReactTestInstance),
+      typeof child === "string"
+        ? child
+        : getNodeText(child as TestRenderer.ReactTestInstance),
     )
     .join("");
 }

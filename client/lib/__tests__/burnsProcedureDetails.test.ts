@@ -36,7 +36,9 @@ describe("getBurnProcedureCategory", () => {
   });
 
   it("returns 'grafting' for STSG meshed", () => {
-    expect(getBurnProcedureCategory("burns_graft_stsg_meshed")).toBe("grafting");
+    expect(getBurnProcedureCategory("burns_graft_stsg_meshed")).toBe(
+      "grafting",
+    );
   });
 
   it("returns 'grafting' for FTSG", () => {

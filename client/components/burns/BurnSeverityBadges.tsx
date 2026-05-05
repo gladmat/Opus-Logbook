@@ -45,7 +45,13 @@ export const BurnSeverityBadges = React.memo(function BurnSeverityBadges({
   const baux = calculateRevisedBaux(age, tbsa, inhalation ?? false);
   const absi =
     sex != null
-      ? calculateABSI(age, sex, tbsa, inhalation ?? false, fullThickness ?? false)
+      ? calculateABSI(
+          age,
+          sex,
+          tbsa,
+          inhalation ?? false,
+          fullThickness ?? false,
+        )
       : undefined;
 
   const severityColor = (severity: "low" | "moderate" | "high") => {
@@ -72,9 +78,7 @@ export const BurnSeverityBadges = React.memo(function BurnSeverityBadges({
           },
         ]}
       >
-        <ThemedText
-          style={[styles.badgeLabel, { color: theme.textSecondary }]}
-        >
+        <ThemedText style={[styles.badgeLabel, { color: theme.textSecondary }]}>
           rBaux
         </ThemedText>
         <ThemedText
@@ -89,8 +93,7 @@ export const BurnSeverityBadges = React.memo(function BurnSeverityBadges({
           style={[
             styles.badge,
             {
-              backgroundColor:
-                severityColor(getAbsiSeverity(absi)) + "20",
+              backgroundColor: severityColor(getAbsiSeverity(absi)) + "20",
               borderColor: severityColor(getAbsiSeverity(absi)),
             },
           ]}

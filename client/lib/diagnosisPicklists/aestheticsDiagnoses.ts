@@ -1240,7 +1240,8 @@ const AES_DX_POST_BARIATRIC: DiagnosisPicklistEntry[] = [
     displayName: "Post-bariatric body contour deformity — trunk",
     shortName: "Post-bariatric trunk",
     snomedCtCode: "860877004",
-    snomedCtDisplay: "Generalised excess and redundant skin following bariatric surgery (disorder)",
+    snomedCtDisplay:
+      "Generalised excess and redundant skin following bariatric surgery (disorder)",
     specialty: "aesthetics",
     subcategory: "Post-Bariatric",
     clinicalGroup: "elective",
@@ -1303,7 +1304,8 @@ const AES_DX_POST_BARIATRIC: DiagnosisPicklistEntry[] = [
     displayName: "Post-bariatric thigh excess",
     shortName: "Post-bariatric thighs",
     snomedCtCode: "860877004",
-    snomedCtDisplay: "Generalised excess and redundant skin following bariatric surgery (disorder)",
+    snomedCtDisplay:
+      "Generalised excess and redundant skin following bariatric surgery (disorder)",
     specialty: "aesthetics",
     subcategory: "Post-Bariatric",
     clinicalGroup: "elective",

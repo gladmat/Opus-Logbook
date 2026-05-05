@@ -327,15 +327,13 @@ export type PatencyConfirmation =
   | "blue_dye"
   | "none";
 
-export const PATENCY_CONFIRMATION_LABELS: Record<
-  PatencyConfirmation,
-  string
-> = {
-  icg_transit: "ICG transit",
-  milking_test: "Milking test",
-  blue_dye: "Blue dye",
-  none: "None",
-};
+export const PATENCY_CONFIRMATION_LABELS: Record<PatencyConfirmation, string> =
+  {
+    icg_transit: "ICG transit",
+    milking_test: "Milking test",
+    blue_dye: "Blue dye",
+    none: "None",
+  };
 
 export interface LVAAnastomosis {
   id: string; // UUID
@@ -425,15 +423,13 @@ export type ReverseMapTechnique =
   | "blue_dye"
   | "other";
 
-export const REVERSE_MAP_TECHNIQUE_LABELS: Record<
-  ReverseMapTechnique,
-  string
-> = {
-  tc99m_icg: "Tc-99m + ICG",
-  icg_only: "ICG only",
-  blue_dye: "Blue dye",
-  other: "Other",
-};
+export const REVERSE_MAP_TECHNIQUE_LABELS: Record<ReverseMapTechnique, string> =
+  {
+    tc99m_icg: "Tc-99m + ICG",
+    icg_only: "ICG only",
+    blue_dye: "Blue dye",
+    other: "Other",
+  };
 
 export interface VLNTSpecificDetails {
   donorSite?: VLNTDonorSite;

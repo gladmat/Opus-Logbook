@@ -140,7 +140,10 @@ const CompactProcedureRow = React.memo(function CompactProcedureRow({
               {tags.slice(0, 3).map((tag) => (
                 <View
                   key={tag}
-                  style={[styles.tagPill, { backgroundColor: theme.link + "18" }]}
+                  style={[
+                    styles.tagPill,
+                    { backgroundColor: theme.link + "18" },
+                  ]}
                 >
                   <ThemedText
                     type="small"

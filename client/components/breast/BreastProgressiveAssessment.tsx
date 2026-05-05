@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { View, Pressable, LayoutAnimation, StyleSheet } from "react-native";
 import { v4 as uuidv4 } from "uuid";
 import * as Haptics from "expo-haptics";
@@ -14,7 +20,10 @@ import { SectionWrapper } from "@/components/shared/SectionWrapper";
 import { useTheme } from "@/hooks/useTheme";
 import { useFavouritesRecents } from "@/hooks/useFavouritesRecents";
 import { BorderRadius, Spacing } from "@/constants/theme";
-import { evaluateSuggestions, getDiagnosesForSpecialty } from "@/lib/diagnosisPicklists";
+import {
+  evaluateSuggestions,
+  getDiagnosesForSpecialty,
+} from "@/lib/diagnosisPicklists";
 import {
   getBreastAssessmentSummary,
   getBreastAssessmentSummaryParts,
@@ -72,7 +81,9 @@ interface BreastProgressiveAssessmentProps {
   committedProcedures: CaseProcedure[];
   hasAcceptedMapping: boolean;
   onCommittedProceduresChange: (procedures: CaseProcedure[]) => void;
-  createProcedureFromPicklistId: (picklistId: string) => CaseProcedure | undefined;
+  createProcedureFromPicklistId: (
+    picklistId: string,
+  ) => CaseProcedure | undefined;
   histologyPending?: boolean;
   onHistologyPendingChange?: (pending: boolean) => void;
   showHistologyToggle?: boolean;
@@ -106,7 +117,9 @@ function cloneProcedures(procedures: CaseProcedure[]): CaseProcedure[] {
   return JSON.parse(JSON.stringify(procedures)) as CaseProcedure[];
 }
 
-function normalizeDraftProcedures(procedures: CaseProcedure[]): CaseProcedure[] {
+function normalizeDraftProcedures(
+  procedures: CaseProcedure[],
+): CaseProcedure[] {
   return procedures.map((procedure, index) => ({
     ...procedure,
     sequenceOrder: index + 1,
@@ -146,7 +159,8 @@ function expandBilateralFreeFlaps(
     const details = proc.clinicalDetails as FreeFlapDetails | undefined;
     if (
       details?.flapSpecificDetails?.diepFlapConfiguration === "stacked" ||
-      details?.flapSpecificDetails?.diepFlapConfiguration === "conjoined_double_pedicle" ||
+      details?.flapSpecificDetails?.diepFlapConfiguration ===
+        "conjoined_double_pedicle" ||
       details?.flapSpecificDetails?.diepFlapConfiguration === "bipedicled"
     ) {
       result.push(proc);
@@ -161,9 +175,7 @@ function expandBilateralFreeFlaps(
         ...proc,
         id: side === activeSides[0] ? proc.id : uuidv4(),
         laterality: side as "left" | "right",
-        clinicalDetails: details
-          ? { ...details, harvestSide }
-          : undefined,
+        clinicalDetails: details ? { ...details, harvestSide } : undefined,
       });
     }
   }
@@ -201,7 +213,10 @@ function getBreastSectionSummaryText(
   assessment: BreastAssessmentData,
   summaryBuilder: (value: any) => string,
   activeSides: BreastLaterality[],
-  options?: { valueKey?: keyof BreastSideAssessment; includeEmptySides?: boolean },
+  options?: {
+    valueKey?: keyof BreastSideAssessment;
+    includeEmptySides?: boolean;
+  },
 ): string {
   const includeEmptySides = options?.includeEmptySides ?? true;
   const valueKey = options?.valueKey;
@@ -226,7 +241,9 @@ function findProcedureIndexByPicklistId(
   procedures: CaseProcedure[],
   picklistId: string,
 ): number {
-  return procedures.findIndex((procedure) => procedure.picklistEntryId === picklistId);
+  return procedures.findIndex(
+    (procedure) => procedure.picklistEntryId === picklistId,
+  );
 }
 
 export function BreastProgressiveAssessment({
@@ -262,9 +279,12 @@ export function BreastProgressiveAssessment({
     () => getBreastAssessmentActiveSides(assessment.laterality),
     [assessment.laterality],
   );
-  const diagnosisLabel = selectedDiagnosis?.displayName ?? primaryDiagnosis?.term ?? "";
-  const diagnosisCode = selectedDiagnosis?.snomedCtCode ?? primaryDiagnosis?.conceptId;
-  const diagnosisKey = selectedDiagnosis?.id ?? primaryDiagnosis?.conceptId ?? "";
+  const diagnosisLabel =
+    selectedDiagnosis?.displayName ?? primaryDiagnosis?.term ?? "";
+  const diagnosisCode =
+    selectedDiagnosis?.snomedCtCode ?? primaryDiagnosis?.conceptId;
+  const diagnosisKey =
+    selectedDiagnosis?.id ?? primaryDiagnosis?.conceptId ?? "";
   const allBreastDiagnoses = useMemo(
     () => getDiagnosesForSpecialty("breast"),
     [],
@@ -287,12 +307,12 @@ export function BreastProgressiveAssessment({
   const [activeCustomProcedureId, setActiveCustomProcedureId] = useState<
     string | null
   >(null);
-  const [pickerSelectionId, setPickerSelectionId] = useState<string | undefined>(
-    undefined,
-  );
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(
-    {},
-  );
+  const [pickerSelectionId, setPickerSelectionId] = useState<
+    string | undefined
+  >(undefined);
+  const [collapsedSections, setCollapsedSections] = useState<
+    Record<string, boolean>
+  >({});
 
   const prevAssessmentCompleteRef = useRef(false);
   const prevDiagnosisKeyRef = useRef(diagnosisKey);
@@ -344,7 +364,9 @@ export function BreastProgressiveAssessment({
   const suggestedProcedures = useMemo(
     () =>
       evaluatedSuggestions
-        .filter((suggestion) => suggestion.isActive || !suggestion.isConditional)
+        .filter(
+          (suggestion) => suggestion.isActive || !suggestion.isConditional,
+        )
         .map((suggestion) => ({
           id: suggestion.procedurePicklistId,
           name: suggestion.displayName,
@@ -398,7 +420,9 @@ export function BreastProgressiveAssessment({
   }, [committedProcedures, hasAcceptedMapping]);
 
   const selectedSuggestedProcedureIds = useMemo(() => {
-    const suggestedIds = new Set(suggestedProcedures.map((procedure) => procedure.id));
+    const suggestedIds = new Set(
+      suggestedProcedures.map((procedure) => procedure.id),
+    );
     return new Set(
       draftProcedures
         .map((procedure) => procedure.picklistEntryId)
@@ -442,7 +466,8 @@ export function BreastProgressiveAssessment({
           "breast_rev_implant_removal",
         ].includes(picklistId),
       ),
-      showBreastFlapDetails: tagSet.has("free_flap") || tagSet.has("microsurgery"),
+      showBreastFlapDetails:
+        tagSet.has("free_flap") || tagSet.has("microsurgery"),
       showPedicledFlapDetails:
         tagSet.has("pedicled_flap") &&
         !(tagSet.has("free_flap") || tagSet.has("microsurgery")),
@@ -497,7 +522,8 @@ export function BreastProgressiveAssessment({
 
   const handleCopy = useCallback(
     (fromSide: BreastLaterality) => {
-      const otherSide: BreastLaterality = fromSide === "left" ? "right" : "left";
+      const otherSide: BreastLaterality =
+        fromSide === "left" ? "right" : "left";
       const source = assessment.sides[fromSide];
       if (!source || !isBreastSideEmpty(assessment.sides[otherSide])) return;
 
@@ -547,13 +573,17 @@ export function BreastProgressiveAssessment({
 
   const filteredFavourites = useMemo(
     () =>
-      favouriteDiagnoses.filter((diagnosis) => visibleDiagnosisIds.has(diagnosis.id)),
+      favouriteDiagnoses.filter((diagnosis) =>
+        visibleDiagnosisIds.has(diagnosis.id),
+      ),
     [favouriteDiagnoses, visibleDiagnosisIds],
   );
 
   const filteredRecents = useMemo(
     () =>
-      recentDiagnoses.filter((diagnosis) => visibleDiagnosisIds.has(diagnosis.id)),
+      recentDiagnoses.filter((diagnosis) =>
+        visibleDiagnosisIds.has(diagnosis.id),
+      ),
     [recentDiagnoses, visibleDiagnosisIds],
   );
 
@@ -605,7 +635,11 @@ export function BreastProgressiveAssessment({
         return [...next, procedure];
       });
     },
-    [activeCustomProcedureId, createProcedureFromPicklistId, updateDraftProcedures],
+    [
+      activeCustomProcedureId,
+      createProcedureFromPicklistId,
+      updateDraftProcedures,
+    ],
   );
 
   const handleAddPicklistProcedure = useCallback(
@@ -638,7 +672,9 @@ export function BreastProgressiveAssessment({
   const moveDraftProcedure = useCallback(
     (procedureId: string, direction: -1 | 1) => {
       updateDraftProcedures((current) => {
-        const index = current.findIndex((procedure) => procedure.id === procedureId);
+        const index = current.findIndex(
+          (procedure) => procedure.id === procedureId,
+        );
         const swapIndex = index + direction;
         if (index < 0 || swapIndex < 0 || swapIndex >= current.length) {
           return current;
@@ -693,7 +729,12 @@ export function BreastProgressiveAssessment({
 
     setShowFullProcedurePicker(false);
     setActiveCustomProcedureId(null);
-  }, [draftProcedures, assessment.laterality, activeSides, onCommittedProceduresChange]);
+  }, [
+    draftProcedures,
+    assessment.laterality,
+    activeSides,
+    onCommittedProceduresChange,
+  ]);
 
   const handleEditMapping = useCallback(() => {
     // Collapse bilateral pairs back to single draft entries for editing
@@ -777,11 +818,9 @@ export function BreastProgressiveAssessment({
       });
     }
 
-    const showInlineFreeFlap = committedModuleFlags.showBreastFlapDetails && !suppressFreeFlap;
-    if (
-      showInlineFreeFlap ||
-      committedModuleFlags.showPedicledFlapDetails
-    ) {
+    const showInlineFreeFlap =
+      committedModuleFlags.showBreastFlapDetails && !suppressFreeFlap;
+    if (showInlineFreeFlap || committedModuleFlags.showPedicledFlapDetails) {
       sections.push({
         key: "flap",
         title: "Flap Details",
@@ -798,7 +837,8 @@ export function BreastProgressiveAssessment({
               renderSideGroup(
                 "flap",
                 <View style={styles.moduleStack}>
-                  {committedModuleFlags.showBreastFlapDetails && !suppressFreeFlap ? (
+                  {committedModuleFlags.showBreastFlapDetails &&
+                  !suppressFreeFlap ? (
                     <BreastFlapCard
                       value={assessment.sides[side]?.flapDetails ?? {}}
                       onChange={(flapDetails) =>
@@ -843,7 +883,10 @@ export function BreastProgressiveAssessment({
         key: "lipofilling",
         title: "Lipofilling Details",
         icon: "droplet",
-        subtitle: [getLiposuctionSummary(assessment.liposuction), getLipofillingSummary(assessment.lipofilling)]
+        subtitle: [
+          getLiposuctionSummary(assessment.liposuction),
+          getLipofillingSummary(assessment.lipofilling),
+        ]
           .filter(Boolean)
           .join(" · "),
         render: () => (
@@ -968,15 +1011,19 @@ export function BreastProgressiveAssessment({
           setSectionCollapsed("assessment", collapsed);
         }}
         subtitle={
-          isAssessmentComplete ? getBreastAssessmentSummary(assessment) : undefined
+          isAssessmentComplete
+            ? getBreastAssessmentSummary(assessment)
+            : undefined
         }
       >
         <View style={styles.chipRow}>
-          {([
-            { key: "left", label: "Left" },
-            { key: "right", label: "Right" },
-            { key: "bilateral", label: "Bilateral" },
-          ] as const).map(({ key, label }) => {
+          {(
+            [
+              { key: "left", label: "Left" },
+              { key: "right", label: "Right" },
+              { key: "bilateral", label: "Bilateral" },
+            ] as const
+          ).map(({ key, label }) => {
             const selected = assessment.laterality === key;
             return (
               <Pressable
@@ -1011,7 +1058,8 @@ export function BreastProgressiveAssessment({
           const sideData = assessment.sides[side];
           if (!sideData) return null;
 
-          const otherSide: BreastLaterality = side === "left" ? "right" : "left";
+          const otherSide: BreastLaterality =
+            side === "left" ? "right" : "left";
           const showCopyButton =
             assessment.laterality === "bilateral" &&
             isBreastSideEmpty(assessment.sides[otherSide]);
@@ -1052,81 +1100,90 @@ export function BreastProgressiveAssessment({
               recents={filteredRecents}
               favouriteIds={favouriteDiagnosisIds}
               onSelect={(id) => {
-                const diagnosis = allBreastDiagnoses.find((entry) => entry.id === id);
+                const diagnosis = allBreastDiagnoses.find(
+                  (entry) => entry.id === id,
+                );
                 if (diagnosis) handlePicklistDiagnosisSelect(diagnosis);
               }}
               onToggleFavourite={(id) => toggleFavourite("diagnosis", id)}
             />
           ) : null}
 
-          {visibleDiagnosisBuckets.prioritizedSubcategories.map((subcategory) => {
-            const diagnoses = allBreastDiagnoses.filter(
-              (entry) => entry.subcategory === subcategory,
-            );
-            if (diagnoses.length === 0) return null;
+          {visibleDiagnosisBuckets.prioritizedSubcategories.map(
+            (subcategory) => {
+              const diagnoses = allBreastDiagnoses.filter(
+                (entry) => entry.subcategory === subcategory,
+              );
+              if (diagnoses.length === 0) return null;
 
-            return (
-              <View key={subcategory} style={styles.categorySection}>
-                <ThemedText
-                  style={[styles.categoryLabel, { color: theme.textSecondary }]}
-                >
-                  {CATEGORY_LABELS[subcategory] ?? subcategory.toUpperCase()}
-                </ThemedText>
-                <View style={styles.diagnosisChipGrid}>
-                  {diagnoses.map((diagnosis) => {
-                    const selected = selectedDiagnosis?.id === diagnosis.id;
-                    const isFav = isFavourite("diagnosis", diagnosis.id);
-                    return (
-                      <Pressable
-                        key={diagnosis.id}
-                        style={[
-                          styles.diagnosisChip,
-                          {
-                            backgroundColor: selected
-                              ? theme.link
-                              : theme.backgroundDefault,
-                            borderColor: selected ? theme.link : theme.border,
-                          },
-                        ]}
-                        onPress={() => handlePicklistDiagnosisSelect(diagnosis)}
-                        onLongPress={() => {
-                          Haptics.selectionAsync();
-                          toggleFavourite("diagnosis", diagnosis.id);
-                        }}
-                      >
-                        {isFav ? (
-                          <Feather
-                            name="star"
-                            size={11}
-                            color={selected ? theme.buttonText : theme.link}
-                          />
-                        ) : null}
-                        <ThemedText
-                          numberOfLines={1}
+              return (
+                <View key={subcategory} style={styles.categorySection}>
+                  <ThemedText
+                    style={[
+                      styles.categoryLabel,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
+                    {CATEGORY_LABELS[subcategory] ?? subcategory.toUpperCase()}
+                  </ThemedText>
+                  <View style={styles.diagnosisChipGrid}>
+                    {diagnoses.map((diagnosis) => {
+                      const selected = selectedDiagnosis?.id === diagnosis.id;
+                      const isFav = isFavourite("diagnosis", diagnosis.id);
+                      return (
+                        <Pressable
+                          key={diagnosis.id}
                           style={[
-                            styles.diagnosisChipText,
+                            styles.diagnosisChip,
                             {
-                              color: selected ? theme.buttonText : theme.text,
-                              fontWeight: selected ? "600" : "400",
+                              backgroundColor: selected
+                                ? theme.link
+                                : theme.backgroundDefault,
+                              borderColor: selected ? theme.link : theme.border,
                             },
                           ]}
+                          onPress={() =>
+                            handlePicklistDiagnosisSelect(diagnosis)
+                          }
+                          onLongPress={() => {
+                            Haptics.selectionAsync();
+                            toggleFavourite("diagnosis", diagnosis.id);
+                          }}
                         >
-                          {diagnosis.shortName ?? diagnosis.displayName}
-                        </ThemedText>
-                        {selected ? (
-                          <Feather
-                            name="check"
-                            size={13}
-                            color={theme.buttonText}
-                          />
-                        ) : null}
-                      </Pressable>
-                    );
-                  })}
+                          {isFav ? (
+                            <Feather
+                              name="star"
+                              size={11}
+                              color={selected ? theme.buttonText : theme.link}
+                            />
+                          ) : null}
+                          <ThemedText
+                            numberOfLines={1}
+                            style={[
+                              styles.diagnosisChipText,
+                              {
+                                color: selected ? theme.buttonText : theme.text,
+                                fontWeight: selected ? "600" : "400",
+                              },
+                            ]}
+                          >
+                            {diagnosis.shortName ?? diagnosis.displayName}
+                          </ThemedText>
+                          {selected ? (
+                            <Feather
+                              name="check"
+                              size={13}
+                              color={theme.buttonText}
+                            />
+                          ) : null}
+                        </Pressable>
+                      );
+                    })}
+                  </View>
                 </View>
-              </View>
-            );
-          })}
+              );
+            },
+          )}
 
           {visibleDiagnosisBuckets.overflowSubcategories.length > 0 ? (
             <>
@@ -1142,9 +1199,7 @@ export function BreastProgressiveAssessment({
                   size={14}
                   color={theme.link}
                 />
-                <ThemedText
-                  style={[styles.showAllText, { color: theme.link }]}
-                >
+                <ThemedText style={[styles.showAllText, { color: theme.link }]}>
                   {showAllDiagnoses
                     ? "Hide additional breast diagnoses"
                     : "Show all breast diagnoses"}
@@ -1152,91 +1207,100 @@ export function BreastProgressiveAssessment({
               </Pressable>
 
               {showAllDiagnoses
-                ? visibleDiagnosisBuckets.overflowSubcategories.map((subcategory) => {
-                    const diagnoses = allBreastDiagnoses.filter(
-                      (entry) => entry.subcategory === subcategory,
-                    );
-                    if (diagnoses.length === 0) return null;
+                ? visibleDiagnosisBuckets.overflowSubcategories.map(
+                    (subcategory) => {
+                      const diagnoses = allBreastDiagnoses.filter(
+                        (entry) => entry.subcategory === subcategory,
+                      );
+                      if (diagnoses.length === 0) return null;
 
-                    return (
-                      <View key={subcategory} style={styles.categorySection}>
-                        <ThemedText
-                          style={[
-                            styles.categoryLabel,
-                            { color: theme.textSecondary },
-                          ]}
-                        >
-                          {CATEGORY_LABELS[subcategory] ?? subcategory.toUpperCase()}
-                        </ThemedText>
-                        <View style={styles.diagnosisChipGrid}>
-                          {diagnoses.map((diagnosis) => {
-                            const selected = selectedDiagnosis?.id === diagnosis.id;
-                            const isFav = isFavourite("diagnosis", diagnosis.id);
-                            return (
-                              <Pressable
-                                key={diagnosis.id}
-                                style={[
-                                  styles.diagnosisChip,
-                                  {
-                                    backgroundColor: selected
-                                      ? theme.link
-                                      : theme.backgroundDefault,
-                                    borderColor: selected
-                                      ? theme.link
-                                      : theme.border,
-                                  },
-                                ]}
-                                onPress={() =>
-                                  handlePicklistDiagnosisSelect(diagnosis)
-                                }
-                                onLongPress={() => {
-                                  Haptics.selectionAsync();
-                                  toggleFavourite("diagnosis", diagnosis.id);
-                                }}
-                              >
-                                {isFav ? (
-                                  <Feather
-                                    name="star"
-                                    size={11}
-                                    color={
-                                      selected ? theme.buttonText : theme.link
-                                    }
-                                  />
-                                ) : null}
-                                <ThemedText
-                                  numberOfLines={1}
+                      return (
+                        <View key={subcategory} style={styles.categorySection}>
+                          <ThemedText
+                            style={[
+                              styles.categoryLabel,
+                              { color: theme.textSecondary },
+                            ]}
+                          >
+                            {CATEGORY_LABELS[subcategory] ??
+                              subcategory.toUpperCase()}
+                          </ThemedText>
+                          <View style={styles.diagnosisChipGrid}>
+                            {diagnoses.map((diagnosis) => {
+                              const selected =
+                                selectedDiagnosis?.id === diagnosis.id;
+                              const isFav = isFavourite(
+                                "diagnosis",
+                                diagnosis.id,
+                              );
+                              return (
+                                <Pressable
+                                  key={diagnosis.id}
                                   style={[
-                                    styles.diagnosisChipText,
+                                    styles.diagnosisChip,
                                     {
-                                      color: selected
-                                        ? theme.buttonText
-                                        : theme.text,
-                                      fontWeight: selected ? "600" : "400",
+                                      backgroundColor: selected
+                                        ? theme.link
+                                        : theme.backgroundDefault,
+                                      borderColor: selected
+                                        ? theme.link
+                                        : theme.border,
                                     },
                                   ]}
+                                  onPress={() =>
+                                    handlePicklistDiagnosisSelect(diagnosis)
+                                  }
+                                  onLongPress={() => {
+                                    Haptics.selectionAsync();
+                                    toggleFavourite("diagnosis", diagnosis.id);
+                                  }}
                                 >
-                                  {diagnosis.shortName ?? diagnosis.displayName}
-                                </ThemedText>
-                                {selected ? (
-                                  <Feather
-                                    name="check"
-                                    size={13}
-                                    color={theme.buttonText}
-                                  />
-                                ) : null}
-                              </Pressable>
-                            );
-                          })}
+                                  {isFav ? (
+                                    <Feather
+                                      name="star"
+                                      size={11}
+                                      color={
+                                        selected ? theme.buttonText : theme.link
+                                      }
+                                    />
+                                  ) : null}
+                                  <ThemedText
+                                    numberOfLines={1}
+                                    style={[
+                                      styles.diagnosisChipText,
+                                      {
+                                        color: selected
+                                          ? theme.buttonText
+                                          : theme.text,
+                                        fontWeight: selected ? "600" : "400",
+                                      },
+                                    ]}
+                                  >
+                                    {diagnosis.shortName ??
+                                      diagnosis.displayName}
+                                  </ThemedText>
+                                  {selected ? (
+                                    <Feather
+                                      name="check"
+                                      size={13}
+                                      color={theme.buttonText}
+                                    />
+                                  ) : null}
+                                </Pressable>
+                              );
+                            })}
+                          </View>
                         </View>
-                      </View>
-                    );
-                  })
+                      );
+                    },
+                  )
                 : null}
             </>
           ) : null}
 
           {/* Selected diagnosis full-name detail row */}
-          {selectedDiagnosis?.shortName && selectedDiagnosis.shortName !== selectedDiagnosis.displayName ? (
+          {selectedDiagnosis?.shortName &&
+          selectedDiagnosis.shortName !== selectedDiagnosis.displayName ? (
             <View
               style={[
                 styles.selectedDiagnosisDetail,
@@ -1326,7 +1390,9 @@ export function BreastProgressiveAssessment({
           icon="file-text"
           collapsible
           isCollapsed={isSectionCollapsed("summary")}
-          onCollapsedChange={(collapsed) => setSectionCollapsed("summary", collapsed)}
+          onCollapsedChange={(collapsed) =>
+            setSectionCollapsed("summary", collapsed)
+          }
           subtitle={
             accepted
               ? `${diagnosisLabel} · ${committedProcedures.length} procedure${committedProcedures.length === 1 ? "" : "s"}`
@@ -1343,7 +1409,9 @@ export function BreastProgressiveAssessment({
             draftProcedureCount={draftProcedureCount}
             isAccepted={accepted}
             onToggleSuggestedProcedure={handleToggleSuggestedProcedure}
-            onBrowseFullPicker={() => setShowFullProcedurePicker((value) => !value)}
+            onBrowseFullPicker={() =>
+              setShowFullProcedurePicker((value) => !value)
+            }
             onAccept={handleAcceptMapping}
             onEditMapping={accepted ? handleEditMapping : undefined}
           />
@@ -1420,7 +1488,9 @@ export function BreastProgressiveAssessment({
 
               <CompactProcedureList
                 procedures={getNamedProcedures(draftProcedures)}
-                onRemove={(procedure) => handleRemoveDraftProcedure(procedure.id)}
+                onRemove={(procedure) =>
+                  handleRemoveDraftProcedure(procedure.id)
+                }
                 onMoveUp={(procedureId) => moveDraftProcedure(procedureId, -1)}
                 onMoveDown={(procedureId) => moveDraftProcedure(procedureId, 1)}
                 hideSnomedCodes
@@ -1436,8 +1506,12 @@ export function BreastProgressiveAssessment({
                     )}
                     isOnlyProcedure={draftProcedures.length === 1}
                     onUpdate={handleUpdateDraftProcedure}
-                    onDelete={() => handleRemoveDraftProcedure(draftCustomProcedure.id)}
-                    onMoveUp={() => moveDraftProcedure(draftCustomProcedure.id, -1)}
+                    onDelete={() =>
+                      handleRemoveDraftProcedure(draftCustomProcedure.id)
+                    }
+                    onMoveUp={() =>
+                      moveDraftProcedure(draftCustomProcedure.id, -1)
+                    }
                     onMoveDown={() =>
                       moveDraftProcedure(draftCustomProcedure.id, 1)
                     }
@@ -1449,7 +1523,8 @@ export function BreastProgressiveAssessment({
                     canMoveDown={
                       draftProcedures.findIndex(
                         (procedure) => procedure.id === draftCustomProcedure.id,
-                      ) < draftProcedures.length - 1
+                      ) <
+                      draftProcedures.length - 1
                     }
                     diagnosisId={selectedDiagnosis?.id}
                     clinicalGroup={selectedDiagnosis?.clinicalGroup}
@@ -1465,7 +1540,10 @@ export function BreastProgressiveAssessment({
                       color={theme.textSecondary}
                     />
                     <ThemedText
-                      style={[styles.showAllText, { color: theme.textSecondary }]}
+                      style={[
+                        styles.showAllText,
+                        { color: theme.textSecondary },
+                      ]}
                     >
                       Collapse custom procedure editor
                     </ThemedText>

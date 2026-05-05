@@ -338,7 +338,14 @@ function getCaseOsteotomyExportFields(c: Case) {
     ),
   );
   if (osteotomyProcedures.length === 0) {
-    return { bone: "", deformity: "", technique: "", graft: "", fixation: "", threeDPlanning: "" };
+    return {
+      bone: "",
+      deformity: "",
+      technique: "",
+      graft: "",
+      fixation: "",
+      threeDPlanning: "",
+    };
   }
   const first = osteotomyProcedures[0]!.osteotomyDetails!;
   return {
@@ -350,9 +357,7 @@ function getCaseOsteotomyExportFields(c: Case) {
       ? OSTEOTOMY_TECHNIQUE_LABELS[first.osteotomyTechnique]
       : "",
     graft: first.graftType ? OSTEOTOMY_GRAFT_LABELS[first.graftType] : "",
-    fixation: first.fixation
-      ? OSTEOTOMY_FIXATION_LABELS[first.fixation]
-      : "",
+    fixation: first.fixation ? OSTEOTOMY_FIXATION_LABELS[first.fixation] : "",
     threeDPlanning: first.threeDPlanning ? "Yes" : "",
   };
 }
@@ -517,9 +522,7 @@ function extractCraniofacialCsvFields(
     cleft?.veauClass ?? "",
     cleft?.associatedSyndrome ?? "",
     od.pathwayStage ?? "",
-    od.ageAtSurgery
-      ? od.ageAtSurgery.years * 12 + od.ageAtSurgery.months
-      : "",
+    od.ageAtSurgery ? od.ageAtSurgery.years * 12 + od.ageAtSurgery.months : "",
     od.namedTechnique ?? "",
     od.boneGraftDonor ?? "",
     od.estimatedBloodLossMl ?? "",
@@ -532,9 +535,9 @@ function extractCraniofacialCsvFields(
     out?.speech?.vpcRating != null ? String(out.speech.vpcRating) : "",
     out?.dental?.goslonScore != null ? String(out.dental.goslonScore) : "",
     out?.hearing?.grommetsInserted
-      ? (out.hearing.grommetSets != null
-          ? `Yes (${out.hearing.grommetSets})`
-          : "Yes")
+      ? out.hearing.grommetSets != null
+        ? `Yes (${out.hearing.grommetSets})`
+        : "Yes"
       : "",
     out?.feeding?.method ?? "",
     out?.complications
@@ -655,7 +658,9 @@ function caseToRow(c: Case, options: CsvExportOptions): string {
   ];
   const secondaryProcedures = allSecondaryProcs
     .map((p) => {
-      const lat = p.laterality ? ` (${p.laterality === "left" ? "Left" : "Right"})` : "";
+      const lat = p.laterality
+        ? ` (${p.laterality === "left" ? "Left" : "Right"})`
+        : "";
       return p.procedureName ? `${p.procedureName}${lat}` : "";
     })
     .filter(Boolean)
@@ -785,8 +790,7 @@ function caseToRow(c: Case, options: CsvExportOptions): string {
     primaryGroup?.affectedDigits?.length
       ? formatAffectedDigits(primaryGroup.affectedDigits)
       : (primaryGroup?.affectedFingers?.join("; ") ?? ""),
-    primaryGroup?.triggerFingerGrading &&
-    primaryGroup?.affectedFingers?.length
+    primaryGroup?.triggerFingerGrading && primaryGroup?.affectedFingers?.length
       ? formatTriggerFingerGrading(
           primaryGroup.triggerFingerGrading,
           primaryGroup.affectedFingers,
@@ -804,17 +808,13 @@ function caseToRow(c: Case, options: CsvExportOptions): string {
         )
       : "",
     primaryGroup?.dupuytrenAssessment?.isRevision ? "Yes" : "",
-    primaryGroup?.dupuytrenAssessment?.firstWebSpace?.isAffected
-      ? "Yes"
-      : "",
+    primaryGroup?.dupuytrenAssessment?.firstWebSpace?.isAffected ? "Yes" : "",
     primaryGroup?.dupuytrenAssessment?.diathesis
       ? String(
           calculateDiathesisScore(primaryGroup.dupuytrenAssessment.diathesis),
         )
       : "",
-    primaryGroup?.dupuytrenAssessment?.palmInvolvement?.hasNodule
-      ? "Yes"
-      : "",
+    primaryGroup?.dupuytrenAssessment?.palmInvolvement?.hasNodule ? "Yes" : "",
     primaryGroup?.dupuytrenAssessment?.palmInvolvement?.hasCord ? "Yes" : "",
     implantFields.system,
     implantFields.size,

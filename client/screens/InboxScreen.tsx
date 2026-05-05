@@ -1253,7 +1253,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-
   // Case picker
   pickerContainer: {
     flex: 1,

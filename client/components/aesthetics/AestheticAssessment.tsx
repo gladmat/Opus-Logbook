@@ -63,21 +63,18 @@ type DetailCardType =
   | "none";
 
 function getDetailCardType(procedureId: string): DetailCardType {
-  if (
-    procedureId.includes("_botox_") ||
-    procedureId.includes("_inj_botox")
-  ) {
+  if (procedureId.includes("_botox_") || procedureId.includes("_inj_botox")) {
     return "neurotoxin";
   }
-  if (
-    procedureId.includes("_filler_") ||
-    procedureId.includes("_inj_filler")
-  ) {
+  if (procedureId.includes("_filler_") || procedureId.includes("_inj_filler")) {
     return "filler";
   }
   if (procedureId.includes("_biostim_")) return "biostimulator";
   if (procedureId.includes("_prp")) return "prp";
-  if (procedureId.includes("_thread_") || procedureId.startsWith("aes_thread_")) {
+  if (
+    procedureId.includes("_thread_") ||
+    procedureId.startsWith("aes_thread_")
+  ) {
     return "thread";
   }
   if (procedureId.includes("_fat_transfer")) return "fat_grafting";
@@ -226,7 +223,7 @@ export const AestheticAssessment = React.memo(function AestheticAssessment({
 
   const intentColor = INTENT_COLORS[derivedIntent];
   const acgmeLabel = derivedAcgmeCategory
-    ? ACGME_LABELS[derivedAcgmeCategory] ?? derivedAcgmeCategory
+    ? (ACGME_LABELS[derivedAcgmeCategory] ?? derivedAcgmeCategory)
     : undefined;
 
   return (
@@ -332,20 +329,22 @@ export const AestheticAssessment = React.memo(function AestheticAssessment({
         />
       )}
 
-      {!hideBadges && detailCardType === "none" && primaryAestheticProcedureId && (
-        <View
-          style={[
-            styles.noDetailCard,
-            { backgroundColor: theme.backgroundSecondary },
-          ]}
-        >
-          <ThemedText
-            style={[styles.noDetailText, { color: theme.textTertiary }]}
+      {!hideBadges &&
+        detailCardType === "none" &&
+        primaryAestheticProcedureId && (
+          <View
+            style={[
+              styles.noDetailCard,
+              { backgroundColor: theme.backgroundSecondary },
+            ]}
           >
-            Surgical procedure — standard operative fields apply
-          </ThemedText>
-        </View>
-      )}
+            <ThemedText
+              style={[styles.noDetailText, { color: theme.textTertiary }]}
+            >
+              Surgical procedure — standard operative fields apply
+            </ThemedText>
+          </View>
+        )}
     </View>
   );
 });

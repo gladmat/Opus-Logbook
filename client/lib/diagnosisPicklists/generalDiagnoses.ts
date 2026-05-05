@@ -215,8 +215,7 @@ const GEN_DX_INFECTIONS: DiagnosisPicklistEntry[] = [
 const GEN_DX_TRUNK_RECONSTRUCTION: DiagnosisPicklistEntry[] = [
   {
     id: "gen_dx_abwall_hernia",
-    displayName:
-      "Abdominal wall defect — complex incisional / ventral hernia",
+    displayName: "Abdominal wall defect — complex incisional / ventral hernia",
     shortName: "Complex hernia",
     snomedCtCode: "236037000",
     snomedCtDisplay: "Incisional hernia (disorder)",
@@ -1929,7 +1928,8 @@ const GEN_DX_CONGENITAL: DiagnosisPicklistEntry[] = [
     displayName: "Giant congenital melanocytic naevus (GCMN)",
     shortName: "GCMN",
     snomedCtCode: "1260467009",
-    snomedCtDisplay: "Large congenital pigmented melanocytic naevus of skin (disorder)",
+    snomedCtDisplay:
+      "Large congenital pigmented melanocytic naevus of skin (disorder)",
     specialty: "general",
     subcategory: "Congenital Conditions",
     clinicalGroup: "congenital",
@@ -1953,7 +1953,8 @@ const GEN_DX_CONGENITAL: DiagnosisPicklistEntry[] = [
   },
   {
     id: "gen_dx_poland_nonbreast",
-    displayName: "Poland syndrome — non-breast manifestations (chest wall / hand)",
+    displayName:
+      "Poland syndrome — non-breast manifestations (chest wall / hand)",
     shortName: "Poland non-breast",
     snomedCtCode: "38371006",
     snomedCtDisplay: "Poland anomaly (disorder)",

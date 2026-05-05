@@ -7,7 +7,13 @@ import React, {
 } from "react";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Alert, View, StyleSheet, Pressable, LayoutAnimation } from "react-native";
+import {
+  Alert,
+  View,
+  StyleSheet,
+  Pressable,
+  LayoutAnimation,
+} from "react-native";
 import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
 import { v4 as uuidv4 } from "uuid";
@@ -124,13 +130,19 @@ import {
 import { BreastProgressiveAssessment } from "@/components/breast/BreastProgressiveAssessment";
 import { ReconstructionEpisodeCard } from "@/components/breast/ReconstructionEpisodeCard";
 import { CompactProcedureList } from "@/components/CompactProcedureList";
-import type { BreastAssessmentData, BreastFlapExtensionData } from "@/types/breast";
+import type {
+  BreastAssessmentData,
+  BreastFlapExtensionData,
+} from "@/types/breast";
 import { extractBreastFlapExtension } from "@/types/breast";
 import { normalizeBreastAssessment } from "@/lib/breastState";
 import type { BreastFlapContext } from "@/components/ProcedureClinicalDetails";
 import { JointImplantSection } from "@/components/joint-implant/JointImplantSection";
 import { CorrectiveOsteotomyDetails } from "@/components/hand-elective/CorrectiveOsteotomyDetails";
-import { OSTEOTOMY_PROCEDURE_IDS, createEmptyOsteotomyData } from "@/types/osteotomy";
+import {
+  OSTEOTOMY_PROCEDURE_IDS,
+  createEmptyOsteotomyData,
+} from "@/types/osteotomy";
 import { CraniofacialAssessment } from "@/components/craniofacial/CraniofacialAssessment";
 import { isCraniofacialDiagnosis } from "@/lib/craniofacialConfig";
 import type { CraniofacialAssessmentData } from "@/types/craniofacial";
@@ -452,10 +464,7 @@ function DiagnosisGroupEditorInner({
         }
 
         // Bridge affectedDigits → affectedFingers for legacy data
-        if (
-          group.affectedDigits?.length &&
-          !group.affectedFingers?.length
-        ) {
+        if (group.affectedDigits?.length && !group.affectedFingers?.length) {
           setAffectedFingers(bridgeDigitsToFingers(group.affectedDigits));
         }
       }
@@ -1174,8 +1183,7 @@ function DiagnosisGroupEditorInner({
     groupSpecialty === "aesthetics" ||
     procedures.some(
       (p) =>
-        p.picklistEntryId != null &&
-        isAestheticProcedure(p.picklistEntryId),
+        p.picklistEntryId != null && isAestheticProcedure(p.picklistEntryId),
     ) ||
     !!group.aestheticAssessment;
   // Procedure-first flow: only when specialty IS aesthetics (not just aes_ procedures in another specialty)
@@ -1185,9 +1193,7 @@ function DiagnosisGroupEditorInner({
     | CraniofacialAssessmentData
     | undefined => {
     if (!isCraniofacialModule) return undefined;
-    return (
-      group.craniofacialAssessment ?? { operativeDetails: {} }
-    );
+    return group.craniofacialAssessment ?? { operativeDetails: {} };
   }, [isCraniofacialModule, group.craniofacialAssessment]);
 
   const normalizedAestheticAssessment = useMemo(():
@@ -1314,7 +1320,11 @@ function DiagnosisGroupEditorInner({
             selectedDiagnosis?.displayName ?? primaryDiagnosis?.term,
           )
         : "",
-    [normalizedBreastAssessment, primaryDiagnosis?.term, selectedDiagnosis?.displayName],
+    [
+      normalizedBreastAssessment,
+      primaryDiagnosis?.term,
+      selectedDiagnosis?.displayName,
+    ],
   );
   useEffect(() => {
     let cancelled = false;
@@ -1338,75 +1348,79 @@ function DiagnosisGroupEditorInner({
     };
   }, [linkedBreastEpisodeId]);
 
-  const handleCreateBreastEpisode = useCallback(async (overrides?: BreastEpisodeOverrides) => {
-    if (!normalizedBreastAssessment) return;
+  const handleCreateBreastEpisode = useCallback(
+    async (overrides?: BreastEpisodeOverrides) => {
+      if (!normalizedBreastAssessment) return;
 
-    const caseFormState = getCaseFormState();
-    const caseFormSpecialty = getSpecialty();
-    const patientIdentifier = caseFormState.patientIdentifier.trim();
-    if (!patientIdentifier) {
-      Alert.alert(
-        "Patient identifier required",
-        "Enter a patient identifier before starting a reconstruction episode.",
-      );
-      return;
-    }
-
-    try {
-      const existingEpisodes =
-        await findEpisodesByPatientIdentifier(patientIdentifier);
-      const plan = buildBreastEpisodeCreatePlan(
-        {
-          diagnosisGroups: (caseFormState.diagnosisGroups ?? []).map((entry) =>
-            entry.id === group.id
-              ? {
-                  ...group,
-                  breastAssessment: normalizedBreastAssessment,
-                }
-              : entry,
-          ),
-          patientIdentifier,
-          procedureDate: caseFormState.procedureDate,
-          ownerId: user?.id ?? profile?.userId ?? "",
-          specialty: caseFormSpecialty,
-          episodeId: caseFormState.episodeId || undefined,
-        } as Case,
-        existingEpisodes,
-        new Date().toISOString(),
-        uuidv4(),
-        overrides,
-      );
-
-      if (!plan) return;
-
-      if (plan.episodeToCreate) {
-        await saveEpisode(plan.episodeToCreate);
+      const caseFormState = getCaseFormState();
+      const caseFormSpecialty = getSpecialty();
+      const patientIdentifier = caseFormState.patientIdentifier.trim();
+      if (!patientIdentifier) {
+        Alert.alert(
+          "Patient identifier required",
+          "Enter a patient identifier before starting a reconstruction episode.",
+        );
+        return;
       }
 
-      const linkedCases = await getCasesByEpisodeId(plan.linkedEpisodeId);
-      const nextSequence = linkedCases.length + 1;
+      try {
+        const existingEpisodes =
+          await findEpisodesByPatientIdentifier(patientIdentifier);
+        const plan = buildBreastEpisodeCreatePlan(
+          {
+            diagnosisGroups: (caseFormState.diagnosisGroups ?? []).map(
+              (entry) =>
+                entry.id === group.id
+                  ? {
+                      ...group,
+                      breastAssessment: normalizedBreastAssessment,
+                    }
+                  : entry,
+            ),
+            patientIdentifier,
+            procedureDate: caseFormState.procedureDate,
+            ownerId: user?.id ?? profile?.userId ?? "",
+            specialty: caseFormSpecialty,
+            episodeId: caseFormState.episodeId || undefined,
+          } as Case,
+          existingEpisodes,
+          new Date().toISOString(),
+          uuidv4(),
+          overrides,
+        );
 
-      onChange(applyBreastEpisodeLinkToGroup(group, plan.linkedEpisodeId));
-      caseFormDispatch(setField("episodeId", plan.linkedEpisodeId));
-      caseFormDispatch(setField("episodeSequence", nextSequence));
-      setLinkedBreastEpisodeTitle(plan.linkedEpisodeTitle);
-    } catch (error) {
-      console.error("Failed to create breast reconstruction episode:", error);
-      Alert.alert(
-        "Episode unavailable",
-        "Unable to start the reconstruction episode right now.",
-      );
-    }
-  }, [
-    caseFormDispatch,
-    getCaseFormState,
-    getSpecialty,
-    group,
-    normalizedBreastAssessment,
-    onChange,
-    profile?.userId,
-    user?.id,
-  ]);
+        if (!plan) return;
+
+        if (plan.episodeToCreate) {
+          await saveEpisode(plan.episodeToCreate);
+        }
+
+        const linkedCases = await getCasesByEpisodeId(plan.linkedEpisodeId);
+        const nextSequence = linkedCases.length + 1;
+
+        onChange(applyBreastEpisodeLinkToGroup(group, plan.linkedEpisodeId));
+        caseFormDispatch(setField("episodeId", plan.linkedEpisodeId));
+        caseFormDispatch(setField("episodeSequence", nextSequence));
+        setLinkedBreastEpisodeTitle(plan.linkedEpisodeTitle);
+      } catch (error) {
+        console.error("Failed to create breast reconstruction episode:", error);
+        Alert.alert(
+          "Episode unavailable",
+          "Unable to start the reconstruction episode right now.",
+        );
+      }
+    },
+    [
+      caseFormDispatch,
+      getCaseFormState,
+      getSpecialty,
+      group,
+      normalizedBreastAssessment,
+      onChange,
+      profile?.userId,
+      user?.id,
+    ],
+  );
 
   const handleUnlinkBreastEpisode = useCallback(() => {
     if (!linkedBreastEpisodeId) return;
@@ -2034,9 +2048,7 @@ function DiagnosisGroupEditorInner({
     }
 
     const usedIds = new Set(
-      newProcedures
-        .map((p) => p.picklistEntryId)
-        .filter(Boolean) as string[],
+      newProcedures.map((p) => p.picklistEntryId).filter(Boolean) as string[],
     );
     setSelectedSuggestionIds(usedIds);
     setProcedures(
@@ -2212,10 +2224,12 @@ function DiagnosisGroupEditorInner({
 
       // Copy protocol/setup fields, NOT intraop measurements
       const copiedDetails: FreeFlapDetails = {
-        ...(targetProcedure.clinicalDetails as FreeFlapDetails | undefined) || {
+        ...((targetProcedure.clinicalDetails as
+          | FreeFlapDetails
+          | undefined) || {
           harvestSide: targetSide,
           anastomoses: [],
-        },
+        }),
         harvestSide: targetSide,
         // Copy these fields from source
         flapSpecificDetails: sourceDetails.flapSpecificDetails
@@ -2727,8 +2741,7 @@ function DiagnosisGroupEditorInner({
             </ThemedText>
             <View style={styles.handLateralityButtons}>
               {(["left", "right"] as const).map((side) => {
-                const isSelected =
-                  diagnosisClinicalDetails.laterality === side;
+                const isSelected = diagnosisClinicalDetails.laterality === side;
                 return (
                   <Pressable
                     key={side}
@@ -2754,9 +2767,7 @@ function DiagnosisGroupEditorInner({
                       style={[
                         styles.handLateralityButtonText,
                         {
-                          color: isSelected
-                            ? theme.buttonText
-                            : theme.text,
+                          color: isSelected ? theme.buttonText : theme.text,
                         },
                       ]}
                     >
@@ -2851,10 +2862,7 @@ function DiagnosisGroupEditorInner({
                   <Feather name="plus-circle" size={16} color={theme.link} />
                   <View>
                     <ThemedText
-                      style={[
-                        styles.addElectiveRowText,
-                        { color: theme.link },
-                      ]}
+                      style={[styles.addElectiveRowText, { color: theme.link }]}
                     >
                       Add elective procedure
                     </ThemedText>
@@ -2945,10 +2953,7 @@ function DiagnosisGroupEditorInner({
                 <Feather name="plus-circle" size={16} color={theme.link} />
                 <View>
                   <ThemedText
-                    style={[
-                      styles.addElectiveRowText,
-                      { color: theme.link },
-                    ]}
+                    style={[styles.addElectiveRowText, { color: theme.link }]}
                   >
                     Add elective procedure
                   </ThemedText>
@@ -3005,12 +3010,14 @@ function DiagnosisGroupEditorInner({
           <AestheticProcedureFirstFlow
             procedures={procedures}
             onProceduresChange={(procs) =>
-              setProcedures(procs.map((p, i) => ({ ...p, sequenceOrder: i + 1 })))
+              setProcedures(
+                procs.map((p, i) => ({ ...p, sequenceOrder: i + 1 })),
+              )
             }
             aestheticAssessment={normalizedAestheticAssessment!}
-            onAssessmentChange={(aestheticAssessment: AestheticAssessmentData) =>
-              onChange({ ...group, aestheticAssessment })
-            }
+            onAssessmentChange={(
+              aestheticAssessment: AestheticAssessmentData,
+            ) => onChange({ ...group, aestheticAssessment })}
             diagnosisClinicalDetails={diagnosisClinicalDetails}
             onDiagnosisClinicalDetailsChange={setDiagnosisClinicalDetails}
             onDiagnosisInferred={handleAestheticDiagnosisInferred}
@@ -3083,7 +3090,9 @@ function DiagnosisGroupEditorInner({
                     dupuytrenAssessment={dupuytrenAssessment}
                     onDupuytrenAssessmentChange={setDupuytrenAssessment}
                     selectedSuggestionIds={selectedSuggestionIds}
-                    onToggleProcedureSuggestion={handleToggleProcedureSuggestion}
+                    onToggleProcedureSuggestion={
+                      handleToggleProcedureSuggestion
+                    }
                     onShowAllProcedures={() => setShowAllProcedures(true)}
                   />
 
@@ -3116,8 +3125,7 @@ function DiagnosisGroupEditorInner({
                     )}
                 </>
               ) : isDiagnosisPickerCollapsed &&
-              (selectedDiagnosis ||
-                primaryDiagnosis) ? (
+                (selectedDiagnosis || primaryDiagnosis) ? (
                 <SelectedDiagnosisCard
                   diagnosis={
                     selectedDiagnosis ??
@@ -3262,7 +3270,9 @@ function DiagnosisGroupEditorInner({
               />
             ) : null}
 
-            {!isElectiveHand && diagnosisStaging && diagnosisStaging.stagingSystems.length > 0 ? (
+            {!isElectiveHand &&
+            diagnosisStaging &&
+            diagnosisStaging.stagingSystems.length > 0 ? (
               <View style={styles.stagingContainer}>
                 <ThemedText
                   style={[styles.stagingTitle, { color: theme.textSecondary }]}
@@ -3410,7 +3420,9 @@ function DiagnosisGroupEditorInner({
             ) : null}
 
             {/* Aesthetic assessment module (diagnosis-first path — skipped in procedure-first flow) */}
-            {isAestheticModule && !isAestheticProcedureFirst && normalizedAestheticAssessment ? (
+            {isAestheticModule &&
+            !isAestheticProcedureFirst &&
+            normalizedAestheticAssessment ? (
               <AestheticAssessmentComponent
                 assessment={normalizedAestheticAssessment}
                 onAssessmentChange={(
@@ -3425,9 +3437,9 @@ function DiagnosisGroupEditorInner({
             {isBurnsModule && normalizedBurnsAssessment ? (
               <BurnsAssessment
                 assessment={normalizedBurnsAssessment}
-                onAssessmentChange={(
-                  burnsAssessment: BurnsAssessmentData,
-                ) => onChange({ ...group, burnsAssessment })}
+                onAssessmentChange={(burnsAssessment: BurnsAssessmentData) =>
+                  onChange({ ...group, burnsAssessment })
+                }
                 diagnosisId={selectedDiagnosis?.id}
                 procedures={group.procedures}
                 onProcedureDetailsChange={(procedureId, details) => {
@@ -3441,8 +3453,7 @@ function DiagnosisGroupEditorInner({
               />
             ) : null}
 
-            {isPeripheralNerveModule &&
-            normalizedPeripheralNerveAssessment ? (
+            {isPeripheralNerveModule && normalizedPeripheralNerveAssessment ? (
               <PeripheralNerveAssessment
                 assessment={normalizedPeripheralNerveAssessment}
                 onAssessmentChange={(
@@ -3480,16 +3491,20 @@ function DiagnosisGroupEditorInner({
                 procedures={group.procedures}
                 onProcedureDetailsChange={(procedureId, field, details) => {
                   const updatedProcedures = group.procedures.map((p) =>
-                    p.id === procedureId
-                      ? { ...p, [field]: details }
-                      : p,
+                    p.id === procedureId ? { ...p, [field]: details } : p,
                   );
                   onChange({ ...group, procedures: updatedProcedures });
                 }}
               />
             ) : null}
 
-            {primaryDiagnosis && !isSkinCancerModule && !isElectiveHand && !isCraniofacialModule && !isAestheticProcedureFirst && !isPeripheralNerveModule && !isBurnsModule ? (
+            {primaryDiagnosis &&
+            !isSkinCancerModule &&
+            !isElectiveHand &&
+            !isCraniofacialModule &&
+            !isAestheticProcedureFirst &&
+            !isPeripheralNerveModule &&
+            !isBurnsModule ? (
               <DiagnosisClinicalFields
                 diagnosis={{
                   snomedCtCode: primaryDiagnosis.conceptId,
@@ -3546,11 +3561,19 @@ function DiagnosisGroupEditorInner({
           </View>
         ) : null}
 
-        {hasSelectedHandCaseType && !isAcuteHandFlow && (!isElectiveHand || showAllProcedures) && !isBreastModule && !isAestheticProcedureFirst ? (
+        {hasSelectedHandCaseType &&
+        !isAcuteHandFlow &&
+        (!isElectiveHand || showAllProcedures) &&
+        !isBreastModule &&
+        !isAestheticProcedureFirst ? (
           <SectionHeader title="Procedures Performed" />
         ) : null}
 
-        {hasSelectedHandCaseType && !isAcuteHandFlow && (!isElectiveHand || showAllProcedures) && !isBreastModule && !isAestheticProcedureFirst ? (
+        {hasSelectedHandCaseType &&
+        !isAcuteHandFlow &&
+        (!isElectiveHand || showAllProcedures) &&
+        !isBreastModule &&
+        !isAestheticProcedureFirst ? (
           <ThemedText
             style={[styles.sectionDescription, { color: theme.textSecondary }]}
           >
@@ -3864,8 +3887,14 @@ function DiagnosisGroupEditorInner({
                         <CompactProcedureList
                           procedures={procedures}
                           onRemove={(proc) => {
-                            if (proc.picklistEntryId && selectedSuggestionIds.has(proc.picklistEntryId)) {
-                              handleToggleProcedureSuggestion(proc.picklistEntryId, false);
+                            if (
+                              proc.picklistEntryId &&
+                              selectedSuggestionIds.has(proc.picklistEntryId)
+                            ) {
+                              handleToggleProcedureSuggestion(
+                                proc.picklistEntryId,
+                                false,
+                              );
                             } else {
                               removeProcedure(proc.id);
                             }
@@ -3882,10 +3911,16 @@ function DiagnosisGroupEditorInner({
                               isOnlyProcedure={false}
                               onUpdate={updateProcedure}
                               onDelete={() => {
-                                removeProcedure(procedures[procedures.length - 1]!.id);
+                                removeProcedure(
+                                  procedures[procedures.length - 1]!.id,
+                                );
                                 setShowCustomProcedureEntry(false);
                               }}
-                              onMoveUp={() => moveProcedureUp(procedures[procedures.length - 1]!.id)}
+                              onMoveUp={() =>
+                                moveProcedureUp(
+                                  procedures[procedures.length - 1]!.id,
+                                )
+                              }
                               onMoveDown={() => {}}
                               canMoveUp={procedures.length > 1}
                               canMoveDown={false}
@@ -3922,11 +3957,7 @@ function DiagnosisGroupEditorInner({
                               setShowCustomProcedureEntry(true);
                             }}
                           >
-                            <Feather
-                              name="plus"
-                              size={16}
-                              color={theme.link}
-                            />
+                            <Feather name="plus" size={16} color={theme.link} />
                             <ThemedText
                               style={[
                                 styles.showAllProceduresText,
@@ -4001,9 +4032,9 @@ function DiagnosisGroupEditorInner({
                               />
                             ) : null}
                             {proc.picklistEntryId &&
-                            (OSTEOTOMY_PROCEDURE_IDS as readonly string[]).includes(
-                              proc.picklistEntryId,
-                            ) ? (
+                            (
+                              OSTEOTOMY_PROCEDURE_IDS as readonly string[]
+                            ).includes(proc.picklistEntryId) ? (
                               <CorrectiveOsteotomyDetails
                                 procedureId={proc.picklistEntryId}
                                 value={
@@ -4261,9 +4292,14 @@ function DiagnosisGroupEditorInner({
             procedureType={activeFlapSheetProcedure.procedureName}
             picklistEntryId={activeFlapSheetProcedure.picklistEntryId}
             priorRadiotherapy={priorRadiotherapy}
-            breastContext={activeFlapSheetProcedure ? getBreastFlapContext(activeFlapSheetProcedure) : undefined}
+            breastContext={
+              activeFlapSheetProcedure
+                ? getBreastFlapContext(activeFlapSheetProcedure)
+                : undefined
+            }
             onCopyToOtherSide={
-              activeFlapSheetProcedure.laterality && freeFlapProcedures.length > 1
+              activeFlapSheetProcedure.laterality &&
+              freeFlapProcedures.length > 1
                 ? handleCopyFlapToOtherSide
                 : undefined
             }

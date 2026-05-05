@@ -85,9 +85,7 @@ export const DigitMultiSelect = React.memo(function DigitMultiSelect({
           styles.confirmButton,
           {
             backgroundColor:
-              selectedDigits.length > 0
-                ? theme.link
-                : theme.backgroundTertiary,
+              selectedDigits.length > 0 ? theme.link : theme.backgroundTertiary,
             opacity: selectedDigits.length > 0 ? 1 : 0.5,
           },
         ]}

@@ -79,7 +79,10 @@ export const CircumferenceEntry = React.memo(function CircumferenceEntry({
 
       const updated = { ...data, [side]: arr };
       // Auto-calculate excess volume
-      if (updated.affectedLimb.length >= 2 && updated.contralateralLimb.length >= 2) {
+      if (
+        updated.affectedLimb.length >= 2 &&
+        updated.contralateralLimb.length >= 2
+      ) {
         const excess = calculateExcessVolume(
           updated.affectedLimb,
           updated.contralateralLimb,
@@ -126,15 +129,16 @@ export const CircumferenceEntry = React.memo(function CircumferenceEntry({
                   data.method === m
                     ? theme.accent + "20"
                     : theme.backgroundSecondary,
-                borderColor:
-                  data.method === m ? theme.accent : theme.border,
+                borderColor: data.method === m ? theme.accent : theme.border,
               },
             ]}
           >
             <ThemedText
               style={[
                 styles.methodLabel,
-                { color: data.method === m ? theme.accent : theme.textSecondary },
+                {
+                  color: data.method === m ? theme.accent : theme.textSecondary,
+                },
               ]}
               onPress={() => handleMethodChange(m)}
             >
@@ -149,10 +153,14 @@ export const CircumferenceEntry = React.memo(function CircumferenceEntry({
         <ThemedText style={[styles.headerLabel, { flex: 1.2 }]}>
           Point
         </ThemedText>
-        <ThemedText style={[styles.headerLabel, { flex: 1, textAlign: "center" }]}>
+        <ThemedText
+          style={[styles.headerLabel, { flex: 1, textAlign: "center" }]}
+        >
           Affected (cm)
         </ThemedText>
-        <ThemedText style={[styles.headerLabel, { flex: 1, textAlign: "center" }]}>
+        <ThemedText
+          style={[styles.headerLabel, { flex: 1, textAlign: "center" }]}
+        >
           Contralateral (cm)
         </ThemedText>
       </View>
@@ -185,11 +193,7 @@ export const CircumferenceEntry = React.memo(function CircumferenceEntry({
               point.distanceFromReference,
             )}
             onChangeText={(v) =>
-              updateMeasurement(
-                "affectedLimb",
-                point.distanceFromReference,
-                v,
-              )
+              updateMeasurement("affectedLimb", point.distanceFromReference, v)
             }
           />
           <TextInput
@@ -228,7 +232,8 @@ export const CircumferenceEntry = React.memo(function CircumferenceEntry({
           ]}
         >
           <ThemedText style={[styles.resultText, { color: theme.accent }]}>
-            Excess volume: {excessResult.volumeMl} mL ({excessResult.volumePercent}%)
+            Excess volume: {excessResult.volumeMl} mL (
+            {excessResult.volumePercent}%)
           </ThemedText>
         </View>
       )}

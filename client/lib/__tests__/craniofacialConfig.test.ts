@@ -245,7 +245,9 @@ describe("getOutcomeSectionVisibility", () => {
   });
 
   it("does not show speech for Non-Syndromic Craniosynostosis", () => {
-    const result = getOutcomeSectionVisibility("Non-Syndromic Craniosynostosis");
+    const result = getOutcomeSectionVisibility(
+      "Non-Syndromic Craniosynostosis",
+    );
     expect(result.showSpeech).toBe(false);
   });
 
@@ -277,10 +279,7 @@ describe("getOutcomeSectionVisibility", () => {
   });
 
   it("shows genetic testing when associatedSyndrome is truthy", () => {
-    const result = getOutcomeSectionVisibility(
-      "Cleft Lip",
-      "22q11.2 deletion",
-    );
+    const result = getOutcomeSectionVisibility("Cleft Lip", "22q11.2 deletion");
     expect(result.showGeneticTesting).toBe(true);
   });
 
@@ -359,9 +358,7 @@ describe("craniofacial data integrity", () => {
     for (const dx of CLEFT_CRANIO_DIAGNOSES) {
       for (const sp of dx.suggestedProcedures ?? []) {
         if (!procedureIds.has(sp.procedurePicklistId)) {
-          broken.push(
-            `${dx.id} → ${sp.procedurePicklistId}`,
-          );
+          broken.push(`${dx.id} → ${sp.procedurePicklistId}`);
         }
       }
     }

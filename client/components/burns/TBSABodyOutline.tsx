@@ -70,7 +70,12 @@ export const TBSABodyOutline = React.memo(function TBSABodyOutline({
   const stroke = theme.textTertiary;
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundRoot, borderColor: theme.border }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: theme.backgroundRoot, borderColor: theme.border },
+      ]}
+    >
       {/* TBSA total badge */}
       <View style={styles.totalRow}>
         <ThemedText style={[styles.totalLabel, { color: theme.textSecondary }]}>
@@ -147,19 +152,25 @@ export const TBSABodyOutline = React.memo(function TBSABodyOutline({
       <View style={styles.legend}>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: "#FFB3BA" }]} />
-          <ThemedText style={[styles.legendText, { color: theme.textTertiary }]}>
+          <ThemedText
+            style={[styles.legendText, { color: theme.textTertiary }]}
+          >
             Sup. Partial
           </ThemedText>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: "#FF6B6B" }]} />
-          <ThemedText style={[styles.legendText, { color: theme.textTertiary }]}>
+          <ThemedText
+            style={[styles.legendText, { color: theme.textTertiary }]}
+          >
             Deep Partial
           </ThemedText>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: "#CC0000" }]} />
-          <ThemedText style={[styles.legendText, { color: theme.textTertiary }]}>
+          <ThemedText
+            style={[styles.legendText, { color: theme.textTertiary }]}
+          >
             Full Thickness
           </ThemedText>
         </View>

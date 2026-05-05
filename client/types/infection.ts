@@ -242,7 +242,10 @@ export type InfectionAmputationLevel =
   | "above_knee"
   | "other";
 
-export const INFECTION_AMPUTATION_LEVEL_LABELS: Record<InfectionAmputationLevel, string> = {
+export const INFECTION_AMPUTATION_LEVEL_LABELS: Record<
+  InfectionAmputationLevel,
+  string
+> = {
   digit: "Digit",
   ray: "Ray",
   partial_hand: "Partial Hand",

@@ -90,7 +90,6 @@ interface FreeFlapClinicalFieldsProps {
   breastContext?: BreastFlapContext;
 }
 
-
 /** Default IMA/IMV vessel names for breast auto-fill */
 const BREAST_DEFAULT_IMA = "Internal mammary artery (IMA)";
 const BREAST_DEFAULT_IMV = "Internal mammary vein (IMV)";
@@ -112,8 +111,9 @@ export function FreeFlapClinicalFields({
 
   const anastomoses = clinicalDetails.anastomoses || [];
   // Auto-set recipient site for breast context
-  const recipientSiteRegion =
-    breastContext ? "breast_chest" as const : clinicalDetails.recipientSiteRegion;
+  const recipientSiteRegion = breastContext
+    ? ("breast_chest" as const)
+    : clinicalDetails.recipientSiteRegion;
   const recipientVesselQuality =
     getLegacyRecipientVesselQuality(clinicalDetails);
   const veinGraftUsed = clinicalDetails.veinGraftUsed;
@@ -452,7 +452,8 @@ export function FreeFlapClinicalFields({
           >
             <Feather name="check-circle" size={16} color={theme.link} />
             <ThemedText style={[styles.lockedFlapText, { color: theme.link }]}>
-              Breast / Chest Wall ({breastContext.side === "left" ? "Left" : "Right"})
+              Breast / Chest Wall (
+              {breastContext.side === "left" ? "Left" : "Right"})
             </ThemedText>
           </View>
         </View>
@@ -464,7 +465,10 @@ export function FreeFlapClinicalFields({
         />
       )}
 
-      <ThemedText style={[styles.subsectionTitle, { color: theme.text }]} testID="caseForm.freeFlap.section-anastomosis">
+      <ThemedText
+        style={[styles.subsectionTitle, { color: theme.text }]}
+        testID="caseForm.freeFlap.section-anastomosis"
+      >
         Anastomoses
       </ThemedText>
       <ThemedText

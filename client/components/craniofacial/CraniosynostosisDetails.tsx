@@ -48,7 +48,11 @@ const SUTURE_OPTIONS: { value: CranialSuture; label: string }[] = [
   { value: "left_lambdoid", label: "L Lambdoid" },
 ];
 
-const WHITAKER_OPTIONS: { value: WhitakerCategory; label: string; desc: string }[] = [
+const WHITAKER_OPTIONS: {
+  value: WhitakerCategory;
+  label: string;
+  desc: string;
+}[] = [
   { value: "I", label: "I", desc: "No revision" },
   { value: "II", label: "II", desc: "Minor refinement" },
   { value: "III", label: "III", desc: "Major osteotomy" },
@@ -120,7 +124,9 @@ export function CraniosynostosisDetails({
     (
       updates: Partial<
         NonNullable<
-          NonNullable<CraniosynostosisDetailsType["icpAssessment"]>["preOperative"]
+          NonNullable<
+            CraniosynostosisDetailsType["icpAssessment"]
+          >["preOperative"]
         >
       >,
     ) => {
@@ -140,7 +146,9 @@ export function CraniosynostosisDetails({
 
   const updateHelmet = useCallback(
     (
-      updates: Partial<NonNullable<CraniosynostosisDetailsType["helmetTherapy"]>>,
+      updates: Partial<
+        NonNullable<CraniosynostosisDetailsType["helmetTherapy"]>
+      >,
     ) => {
       update({
         helmetTherapy: {
@@ -229,9 +237,7 @@ export function CraniosynostosisDetails({
         style={styles.subSectionHeader}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          LayoutAnimation.configureNext(
-            LayoutAnimation.Presets.easeInEaseOut,
-          );
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
           setIcpExpanded(!icpExpanded);
         }}
       >
@@ -311,9 +317,7 @@ export function CraniosynostosisDetails({
                     <Pressable
                       key={opt.value}
                       onPress={() => {
-                        Haptics.impactAsync(
-                          Haptics.ImpactFeedbackStyle.Light,
-                        );
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                         updateIcp({ method: opt.value });
                       }}
                       style={[
@@ -354,9 +358,7 @@ export function CraniosynostosisDetails({
                     <Pressable
                       key={opt.value}
                       onPress={() => {
-                        Haptics.impactAsync(
-                          Haptics.ImpactFeedbackStyle.Light,
-                        );
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                         updateIcp({ papilledema: opt.value });
                       }}
                       style={[
@@ -386,9 +388,7 @@ export function CraniosynostosisDetails({
 
               {/* Copper beating */}
               <View style={styles.switchRow}>
-                <ThemedText
-                  style={[styles.switchLabel, { color: theme.text }]}
-                >
+                <ThemedText style={[styles.switchLabel, { color: theme.text }]}>
                   Copper beating on skull XR
                 </ThemedText>
                 <Switch
@@ -398,9 +398,7 @@ export function CraniosynostosisDetails({
                     updateIcp({ copperBeating: v });
                   }}
                   trackColor={{ false: theme.border, true: theme.link }}
-                  thumbColor={
-                    Platform.OS === "android" ? "#fff" : undefined
-                  }
+                  thumbColor={Platform.OS === "android" ? "#fff" : undefined}
                 />
               </View>
             </>
@@ -448,7 +446,9 @@ export function CraniosynostosisDetails({
                     <ThemedText
                       style={{
                         fontSize: 10,
-                        color: sel ? theme.buttonText + "CC" : theme.textTertiary,
+                        color: sel
+                          ? theme.buttonText + "CC"
+                          : theme.textTertiary,
                       }}
                     >
                       {opt.desc}
@@ -520,15 +520,12 @@ export function CraniosynostosisDetails({
               </ThemedText>
               <View style={styles.chipGrid}>
                 {COMPLIANCE_OPTIONS.map((opt) => {
-                  const sel =
-                    details.helmetTherapy?.compliance === opt.value;
+                  const sel = details.helmetTherapy?.compliance === opt.value;
                   return (
                     <Pressable
                       key={opt.value}
                       onPress={() => {
-                        Haptics.impactAsync(
-                          Haptics.ImpactFeedbackStyle.Light,
-                        );
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                         updateHelmet({ compliance: opt.value });
                       }}
                       style={[

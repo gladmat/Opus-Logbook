@@ -75,7 +75,8 @@ export const DiagnosisProcedureSection = React.memo(
     const primaryGroup = diagnosisGroups[0];
     const hasDiagnosis = !!primaryGroup?.diagnosis;
     const isBreastCase = primaryGroup?.specialty === "breast";
-    const showInlineEpisodeCreator = hasDiagnosis && !episodeId && !saving && !isBreastCase;
+    const showInlineEpisodeCreator =
+      hasDiagnosis && !episodeId && !saving && !isBreastCase;
 
     // Determine which group index is the first to trigger infection visibility
     const firstInfectionGroupIndex = useMemo(() => {
@@ -145,30 +146,30 @@ export const DiagnosisProcedureSection = React.memo(
             procOffset += diagnosisGroups[i]?.procedures?.length ?? 0;
           }
           return (
-          <DiagnosisGroupEditor
-            key={group.id}
-            group={group}
-            index={idx}
-            isOnly={diagnosisGroups.length === 1}
-            totalGroups={diagnosisGroups.length}
-            procedureGlobalOffset={procOffset}
-            onChange={(updated) => onGroupChange(idx, updated)}
-            onDelete={() => handleDeleteDiagnosisGroup(idx)}
-            onMoveUp={() => handleMoveUp(idx)}
-            onMoveDown={() => handleMoveDown(idx)}
-            infectionOverlay={infectionOverlay}
-            onInfectionChange={handleInfectionChange}
-            isFirstInfectionGroup={idx === firstInfectionGroupIndex}
-            episodeType={episodeType}
-            returnToTheatre={returnToTheatre}
-            scrollViewRef={scrollViewRef}
-            scrollPositionRef={scrollPositionRef}
-            onAddElectiveHandGroup={
-              group.specialty === "hand_wrist"
-                ? () => handleAddElectiveHandGroup(idx)
-                : undefined
-            }
-          />
+            <DiagnosisGroupEditor
+              key={group.id}
+              group={group}
+              index={idx}
+              isOnly={diagnosisGroups.length === 1}
+              totalGroups={diagnosisGroups.length}
+              procedureGlobalOffset={procOffset}
+              onChange={(updated) => onGroupChange(idx, updated)}
+              onDelete={() => handleDeleteDiagnosisGroup(idx)}
+              onMoveUp={() => handleMoveUp(idx)}
+              onMoveDown={() => handleMoveDown(idx)}
+              infectionOverlay={infectionOverlay}
+              onInfectionChange={handleInfectionChange}
+              isFirstInfectionGroup={idx === firstInfectionGroupIndex}
+              episodeType={episodeType}
+              returnToTheatre={returnToTheatre}
+              scrollViewRef={scrollViewRef}
+              scrollPositionRef={scrollPositionRef}
+              onAddElectiveHandGroup={
+                group.specialty === "hand_wrist"
+                  ? () => handleAddElectiveHandGroup(idx)
+                  : undefined
+              }
+            />
           );
         })}
 

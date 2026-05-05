@@ -111,16 +111,14 @@ export type OsteotomyGraftDonorSite =
   | "local"
   | "other";
 
-export const GRAFT_DONOR_SITE_LABELS: Record<
-  OsteotomyGraftDonorSite,
-  string
-> = {
-  iliac_crest: "Iliac crest",
-  distal_radius: "Distal radius",
-  olecranon: "Olecranon",
-  local: "Local",
-  other: "Other",
-};
+export const GRAFT_DONOR_SITE_LABELS: Record<OsteotomyGraftDonorSite, string> =
+  {
+    iliac_crest: "Iliac crest",
+    distal_radius: "Distal radius",
+    olecranon: "Olecranon",
+    local: "Local",
+    other: "Other",
+  };
 
 // ── Fixation ──────────────────────────────────────────────────────────────────
 

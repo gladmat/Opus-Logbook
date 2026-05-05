@@ -162,7 +162,10 @@ export default function PersonalisationScreen() {
           >
             {selectedCount} categories selected
           </ThemedText>
-          <Pressable onPress={handleSelectAll} testID="settings.personalisation.btn-selectAll">
+          <Pressable
+            onPress={handleSelectAll}
+            testID="settings.personalisation.btn-selectAll"
+          >
             <ThemedText style={[styles.heroLink, { color: theme.link }]}>
               Select all
             </ThemedText>

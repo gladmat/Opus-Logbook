@@ -674,11 +674,7 @@ const PN_DX_LOWER_EXTREMITY: DiagnosisPicklistEntry[] = [
     clinicalGroup: "trauma",
     hasStaging: false,
     peripheralNerveModule: true,
-    searchSynonyms: [
-      "sciatic nerve",
-      "sciatic injury",
-      "hip nerve injury",
-    ],
+    searchSynonyms: ["sciatic nerve", "sciatic injury", "hip nerve injury"],
     suggestedProcedures: [
       {
         procedurePicklistId: "pn_neurolysis_external",
@@ -706,11 +702,7 @@ const PN_DX_LOWER_EXTREMITY: DiagnosisPicklistEntry[] = [
     clinicalGroup: "trauma",
     hasStaging: false,
     peripheralNerveModule: true,
-    searchSynonyms: [
-      "femoral nerve",
-      "quad weakness",
-      "femoral nerve palsy",
-    ],
+    searchSynonyms: ["femoral nerve", "quad weakness", "femoral nerve palsy"],
     suggestedProcedures: [
       {
         procedurePicklistId: "pn_nerve_repair_epineurial",
@@ -732,11 +724,7 @@ const PN_DX_LOWER_EXTREMITY: DiagnosisPicklistEntry[] = [
     clinicalGroup: "elective",
     hasStaging: false,
     peripheralNerveModule: true,
-    searchSynonyms: [
-      "obturator nerve",
-      "obturator neuropathy",
-      "groin nerve",
-    ],
+    searchSynonyms: ["obturator nerve", "obturator neuropathy", "groin nerve"],
     suggestedProcedures: [
       {
         procedurePicklistId: "pn_neurolysis_external",
@@ -758,11 +746,7 @@ const PN_DX_LOWER_EXTREMITY: DiagnosisPicklistEntry[] = [
     clinicalGroup: "elective",
     hasStaging: false,
     peripheralNerveModule: true,
-    searchSynonyms: [
-      "pudendal nerve",
-      "pudendal neuralgia",
-      "Alcock canal",
-    ],
+    searchSynonyms: ["pudendal nerve", "pudendal neuralgia", "Alcock canal"],
     suggestedProcedures: [
       {
         procedurePicklistId: "pn_neurolysis_external",
@@ -953,11 +937,7 @@ const PN_DX_NEUROMA: DiagnosisPicklistEntry[] = [
     clinicalGroup: "elective",
     hasStaging: false,
     peripheralNerveModule: true,
-    searchSynonyms: [
-      "nerve scar",
-      "painful scar",
-      "perineural fibrosis",
-    ],
+    searchSynonyms: ["nerve scar", "painful scar", "perineural fibrosis"],
     suggestedProcedures: [
       {
         procedurePicklistId: "pn_neurolysis_external",
@@ -1015,11 +995,7 @@ const PN_DX_TUMOUR: DiagnosisPicklistEntry[] = [
     hasStaging: false,
     peripheralNerveModule: true,
     nerveTumourModule: true,
-    searchSynonyms: [
-      "neurofibroma",
-      "solitary neurofibroma",
-      "nerve tumour",
-    ],
+    searchSynonyms: ["neurofibroma", "solitary neurofibroma", "nerve tumour"],
     suggestedProcedures: [
       {
         procedurePicklistId: "pn_tumour_excision",
@@ -1042,11 +1018,7 @@ const PN_DX_TUMOUR: DiagnosisPicklistEntry[] = [
     hasStaging: false,
     peripheralNerveModule: true,
     nerveTumourModule: true,
-    searchSynonyms: [
-      "plexiform neurofibroma",
-      "plexiform NF",
-      "NF1 plexiform",
-    ],
+    searchSynonyms: ["plexiform neurofibroma", "plexiform NF", "NF1 plexiform"],
     suggestedProcedures: [
       {
         procedurePicklistId: "pn_tumour_excision",
@@ -1062,8 +1034,7 @@ const PN_DX_TUMOUR: DiagnosisPicklistEntry[] = [
     displayName: "Malignant peripheral nerve sheath tumour (MPNST)",
     shortName: "MPNST",
     snomedCtCode: "404037002",
-    snomedCtDisplay:
-      "Malignant peripheral nerve sheath tumour (disorder)",
+    snomedCtDisplay: "Malignant peripheral nerve sheath tumour (disorder)",
     specialty: "peripheral_nerve",
     subcategory: "Nerve Tumours",
     clinicalGroup: "oncological",

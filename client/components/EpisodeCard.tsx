@@ -106,12 +106,11 @@ export function EpisodeCard({
 
       {/* Pending action pills */}
       {(() => {
-        const actions =
-          episode.pendingActions?.length
-            ? episode.pendingActions
-            : episode.pendingAction
-              ? [episode.pendingAction]
-              : [];
+        const actions = episode.pendingActions?.length
+          ? episode.pendingActions
+          : episode.pendingAction
+            ? [episode.pendingAction]
+            : [];
         return actions.length > 0 ? (
           <View style={styles.pendingRow}>
             {actions.map((action) => (

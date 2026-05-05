@@ -86,8 +86,7 @@ export function updateRayJointDeficit(
 ): DupuytrenRayAssessment {
   const mcp = joint === "mcp" ? value : ray.mcpExtensionDeficit;
   const pip = joint === "pip" ? value : ray.pipExtensionDeficit;
-  const dip =
-    joint === "dip" ? value : (ray.dipExtensionDeficit ?? undefined);
+  const dip = joint === "dip" ? value : (ray.dipExtensionDeficit ?? undefined);
   return buildRayAssessment(ray.fingerId, mcp, pip, dip);
 }
 
@@ -125,9 +124,7 @@ export function calculateDupuytrenSummary(
 /**
  * Calculate diathesis score (count of positive features, 0–4).
  */
-export function calculateDiathesisScore(
-  diathesis: DupuytrenDiathesis,
-): number {
+export function calculateDiathesisScore(diathesis: DupuytrenDiathesis): number {
   let score = 0;
   if (diathesis.familyHistory) score++;
   if (diathesis.bilateralDisease) score++;
@@ -157,7 +154,10 @@ export function generateDupuytrenSummaryText(
     parts.push("1st web");
   }
 
-  if (assessment.palmInvolvement?.hasNodule || assessment.palmInvolvement?.hasCord) {
+  if (
+    assessment.palmInvolvement?.hasNodule ||
+    assessment.palmInvolvement?.hasCord
+  ) {
     const palmParts: string[] = [];
     if (assessment.palmInvolvement.hasNodule) palmParts.push("nodule");
     if (assessment.palmInvolvement.hasCord) palmParts.push("cord");

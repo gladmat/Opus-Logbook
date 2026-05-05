@@ -492,7 +492,10 @@ export default function NeedsAttentionListScreen() {
   );
 
   return (
-    <View testID="screen-needsAttention" style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+    <View
+      testID="screen-needsAttention"
+      style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
+    >
       {/* Search bar */}
       <View
         style={[

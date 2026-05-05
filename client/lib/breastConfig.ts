@@ -84,11 +84,12 @@ const BREAST_SUBCATEGORY_ORDER = [
   "Congenital & Other",
 ] as const;
 
-const CONTEXT_PRIORITY_SUBCATEGORIES: Record<BreastClinicalContext, string[]> = {
-  reconstructive: ["Oncological", "Reconstruction"],
-  aesthetic: ["Aesthetic / Functional", "Implant Complications"],
-  gender_affirming: ["Gender-Affirming"],
-};
+const CONTEXT_PRIORITY_SUBCATEGORIES: Record<BreastClinicalContext, string[]> =
+  {
+    reconstructive: ["Oncological", "Reconstruction"],
+    aesthetic: ["Aesthetic / Functional", "Implant Complications"],
+    gender_affirming: ["Gender-Affirming"],
+  };
 
 function getActiveBreastSides(
   laterality: BreastAssessmentData["laterality"],
@@ -99,8 +100,11 @@ function getActiveBreastSides(
 
 function getTimingShortLabel(timing: string | undefined): string {
   if (!timing) return "";
-  return BREAST_RECON_TIMING_LABELS[timing as keyof typeof BREAST_RECON_TIMING_LABELS]
-    ?.split(" (")[0] ?? timing;
+  return (
+    BREAST_RECON_TIMING_LABELS[
+      timing as keyof typeof BREAST_RECON_TIMING_LABELS
+    ]?.split(" (")[0] ?? timing
+  );
 }
 
 function uniqInOrder<T>(values: T[]): T[] {
@@ -602,7 +606,9 @@ export function getChestMascSummary(
   return parts.join(", ");
 }
 
-export function getNippleSummary(data: BreastSideAssessment["nippleDetails"]): string {
+export function getNippleSummary(
+  data: BreastSideAssessment["nippleDetails"],
+): string {
   if (!data) return "";
   const parts: string[] = [];
   if (data.technique) {

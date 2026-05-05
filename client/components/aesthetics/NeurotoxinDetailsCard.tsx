@@ -61,383 +61,375 @@ const DEFAULT_DETAILS: NeurotoxinDetails = {
   sites: [],
 };
 
-export const NeurotoxinDetailsCard = React.memo(
-  function NeurotoxinDetailsCard({
-    details,
-    onChange,
-  }: NeurotoxinDetailsCardProps) {
-    const { theme } = useTheme();
-    const d = details ?? DEFAULT_DETAILS;
+export const NeurotoxinDetailsCard = React.memo(function NeurotoxinDetailsCard({
+  details,
+  onChange,
+}: NeurotoxinDetailsCardProps) {
+  const { theme } = useTheme();
+  const d = details ?? DEFAULT_DETAILS;
 
-    const selectedSiteIds = useMemo(
-      () => new Set(d.sites.map((s) => s.site)),
-      [d.sites],
-    );
+  const selectedSiteIds = useMemo(
+    () => new Set(d.sites.map((s) => s.site)),
+    [d.sites],
+  );
 
-    const update = useCallback(
-      (partial: Partial<NeurotoxinDetails>) => {
-        onChange({ ...d, ...partial });
-      },
-      [d, onChange],
-    );
+  const update = useCallback(
+    (partial: Partial<NeurotoxinDetails>) => {
+      onChange({ ...d, ...partial });
+    },
+    [d, onChange],
+  );
 
-    const handleProductSelect = useCallback(
-      (product: AestheticProduct) => {
-        update({ productId: product.id || "" });
-      },
-      [update],
-    );
+  const handleProductSelect = useCallback(
+    (product: AestheticProduct) => {
+      update({ productId: product.id || "" });
+    },
+    [update],
+  );
 
-    const handleUnitsChange = useCallback(
-      (delta: number) => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        const next = Math.max(0, Math.min(500, d.totalUnits + delta));
-        update({ totalUnits: next });
-      },
-      [d.totalUnits, update],
-    );
+  const handleUnitsChange = useCallback(
+    (delta: number) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      const next = Math.max(0, Math.min(500, d.totalUnits + delta));
+      update({ totalUnits: next });
+    },
+    [d.totalUnits, update],
+  );
 
-    const handleSiteToggle = useCallback(
-      (siteId: NeurotoxinSiteId) => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        if (selectedSiteIds.has(siteId)) {
-          update({ sites: d.sites.filter((s) => s.site !== siteId) });
-        } else {
-          update({
-            sites: [
-              ...d.sites,
-              { site: siteId, unitsPerSite: 0, side: "bilateral" },
-            ],
-          });
-        }
-      },
-      [d.sites, selectedSiteIds, update],
-    );
-
-    const handleSiteFieldChange = useCallback(
-      (
-        siteId: NeurotoxinSiteId,
-        field: keyof NeurotoxinInjectionSite,
-        value: unknown,
-      ) => {
+  const handleSiteToggle = useCallback(
+    (siteId: NeurotoxinSiteId) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      if (selectedSiteIds.has(siteId)) {
+        update({ sites: d.sites.filter((s) => s.site !== siteId) });
+      } else {
         update({
-          sites: d.sites.map((s) =>
-            s.site === siteId ? { ...s, [field]: value } : s,
-          ),
+          sites: [
+            ...d.sites,
+            { site: siteId, unitsPerSite: 0, side: "bilateral" },
+          ],
         });
+      }
+    },
+    [d.sites, selectedSiteIds, update],
+  );
+
+  const handleSiteFieldChange = useCallback(
+    (
+      siteId: NeurotoxinSiteId,
+      field: keyof NeurotoxinInjectionSite,
+      value: unknown,
+    ) => {
+      update({
+        sites: d.sites.map((s) =>
+          s.site === siteId ? { ...s, [field]: value } : s,
+        ),
+      });
+    },
+    [d.sites, update],
+  );
+
+  const chipStyle = useCallback(
+    (selected: boolean) => [
+      styles.chip,
+      {
+        backgroundColor: selected ? theme.link : theme.backgroundElevated,
+        borderColor: selected ? theme.link : theme.border,
       },
-      [d.sites, update],
-    );
+    ],
+    [theme],
+  );
 
-    const chipStyle = useCallback(
-      (selected: boolean) => [
-        styles.chip,
-        {
-          backgroundColor: selected ? theme.link : theme.backgroundElevated,
-          borderColor: selected ? theme.link : theme.border,
-        },
-      ],
-      [theme],
-    );
+  const chipTextStyle = useCallback(
+    (selected: boolean) => [
+      styles.chipText,
+      { color: selected ? theme.buttonText : theme.text },
+    ],
+    [theme],
+  );
 
-    const chipTextStyle = useCallback(
-      (selected: boolean) => [
-        styles.chipText,
-        { color: selected ? theme.buttonText : theme.text },
-      ],
-      [theme],
-    );
+  return (
+    <View style={styles.container}>
+      {/* Product picker */}
+      <View style={styles.section}>
+        <ThemedText
+          style={[styles.sectionLabel, { color: theme.textSecondary }]}
+        >
+          Product
+        </ThemedText>
+        <ProductPicker
+          category="neurotoxin"
+          selectedProductId={d.productId || undefined}
+          onSelect={handleProductSelect}
+        />
+      </View>
 
-    return (
-      <View style={styles.container}>
-        {/* Product picker */}
-        <View style={styles.section}>
-          <ThemedText
-            style={[styles.sectionLabel, { color: theme.textSecondary }]}
+      {/* Total units with stepper */}
+      <View style={styles.section}>
+        <ThemedText
+          style={[styles.sectionLabel, { color: theme.textSecondary }]}
+        >
+          Total units
+        </ThemedText>
+        <View style={styles.stepperRow}>
+          <Pressable
+            onPress={() => handleUnitsChange(-10)}
+            style={[styles.stepperBtn, { borderColor: theme.border }]}
           >
-            Product
-          </ThemedText>
-          <ProductPicker
-            category="neurotoxin"
-            selectedProductId={d.productId || undefined}
-            onSelect={handleProductSelect}
-          />
-        </View>
-
-        {/* Total units with stepper */}
-        <View style={styles.section}>
-          <ThemedText
-            style={[styles.sectionLabel, { color: theme.textSecondary }]}
+            <ThemedText style={{ color: theme.text }}>−10</ThemedText>
+          </Pressable>
+          <Pressable
+            onPress={() => handleUnitsChange(-5)}
+            style={[styles.stepperBtn, { borderColor: theme.border }]}
           >
-            Total units
-          </ThemedText>
-          <View style={styles.stepperRow}>
-            <Pressable
-              onPress={() => handleUnitsChange(-10)}
-              style={[styles.stepperBtn, { borderColor: theme.border }]}
-            >
-              <ThemedText style={{ color: theme.text }}>−10</ThemedText>
-            </Pressable>
-            <Pressable
-              onPress={() => handleUnitsChange(-5)}
-              style={[styles.stepperBtn, { borderColor: theme.border }]}
-            >
-              <ThemedText style={{ color: theme.text }}>−5</ThemedText>
-            </Pressable>
-            <View
-              style={[
-                styles.unitsDisplay,
-                {
-                  backgroundColor: theme.backgroundSecondary,
-                  borderColor: theme.border,
-                },
-              ]}
-            >
-              <ThemedText
-                style={[styles.unitsValue, { color: theme.text }]}
-              >
-                {d.totalUnits}
-              </ThemedText>
-              <ThemedText
-                style={[styles.unitsSuffix, { color: theme.textTertiary }]}
-              >
-                units
-              </ThemedText>
-            </View>
-            <Pressable
-              onPress={() => handleUnitsChange(5)}
-              style={[styles.stepperBtn, { borderColor: theme.border }]}
-            >
-              <ThemedText style={{ color: theme.text }}>+5</ThemedText>
-            </Pressable>
-            <Pressable
-              onPress={() => handleUnitsChange(10)}
-              style={[styles.stepperBtn, { borderColor: theme.border }]}
-            >
-              <ThemedText style={{ color: theme.text }}>+10</ThemedText>
-            </Pressable>
-          </View>
-        </View>
-
-        {/* Dilution */}
-        <View style={styles.section}>
-          <ThemedText
-            style={[styles.sectionLabel, { color: theme.textSecondary }]}
-          >
-            Dilution (mL)
-          </ThemedText>
-          <View style={styles.chipRow}>
-            {DILUTION_OPTIONS.map((ml) => {
-              const selected = d.dilutionMl === ml;
-              return (
-                <Pressable
-                  key={ml}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    update({ dilutionMl: selected ? undefined : ml });
-                  }}
-                  style={chipStyle(selected)}
-                >
-                  <ThemedText style={chipTextStyle(selected)}>
-                    {ml}
-                  </ThemedText>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* Needle gauge */}
-        <View style={styles.section}>
-          <ThemedText
-            style={[styles.sectionLabel, { color: theme.textSecondary }]}
-          >
-            Needle gauge
-          </ThemedText>
-          <View style={styles.chipRow}>
-            {NEEDLE_GAUGE_OPTIONS.map((g) => {
-              const selected = d.needleGauge === g;
-              return (
-                <Pressable
-                  key={g}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    update({ needleGauge: selected ? undefined : g });
-                  }}
-                  style={chipStyle(selected)}
-                >
-                  <ThemedText style={chipTextStyle(selected)}>
-                    {g}
-                  </ThemedText>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* Injection sites */}
-        <View style={styles.section}>
-          <ThemedText
-            style={[styles.sectionLabel, { color: theme.textSecondary }]}
-          >
-            Injection sites
-          </ThemedText>
-          <View style={styles.chipRow}>
-            {ALL_SITE_IDS.map((siteId) => {
-              const selected = selectedSiteIds.has(siteId);
-              return (
-                <Pressable
-                  key={siteId}
-                  onPress={() => handleSiteToggle(siteId)}
-                  style={chipStyle(selected)}
-                >
-                  <ThemedText style={chipTextStyle(selected)}>
-                    {SITE_LABELS[siteId]}
-                  </ThemedText>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          {/* Per-site details */}
-          {d.sites.map((site) => (
-            <View
-              key={site.site}
-              style={[
-                styles.siteDetail,
-                { backgroundColor: theme.backgroundSecondary },
-              ]}
-            >
-              <View style={styles.siteDetailHeader}>
-                <ThemedText style={[styles.siteDetailLabel, { color: theme.text }]}>
-                  {SITE_LABELS[site.site]}
-                </ThemedText>
-                <Pressable
-                  onPress={() => handleSiteToggle(site.site)}
-                  hitSlop={8}
-                >
-                  <Feather name="x" size={14} color={theme.textSecondary} />
-                </Pressable>
-              </View>
-              {/* Units per site */}
-              <View style={styles.siteFieldRow}>
-                <ThemedText
-                  style={[styles.siteFieldLabel, { color: theme.textSecondary }]}
-                >
-                  Units
-                </ThemedText>
-                <View style={styles.miniStepperRow}>
-                  <Pressable
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      handleSiteFieldChange(
-                        site.site,
-                        "unitsPerSite",
-                        Math.max(0, site.unitsPerSite - 5),
-                      );
-                    }}
-                    style={[styles.miniStepperBtn, { borderColor: theme.border }]}
-                  >
-                    <ThemedText style={{ color: theme.text, fontSize: 12 }}>
-                      −5
-                    </ThemedText>
-                  </Pressable>
-                  <ThemedText
-                    style={[styles.miniStepperValue, { color: theme.text }]}
-                  >
-                    {site.unitsPerSite}
-                  </ThemedText>
-                  <Pressable
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      handleSiteFieldChange(
-                        site.site,
-                        "unitsPerSite",
-                        site.unitsPerSite + 5,
-                      );
-                    }}
-                    style={[styles.miniStepperBtn, { borderColor: theme.border }]}
-                  >
-                    <ThemedText style={{ color: theme.text, fontSize: 12 }}>
-                      +5
-                    </ThemedText>
-                  </Pressable>
-                </View>
-              </View>
-              {/* Side selector */}
-              <View style={styles.siteFieldRow}>
-                <ThemedText
-                  style={[styles.siteFieldLabel, { color: theme.textSecondary }]}
-                >
-                  Side
-                </ThemedText>
-                <View style={styles.miniChipRow}>
-                  {SIDE_OPTIONS.map((opt) => {
-                    const selected = site.side === opt.value;
-                    return (
-                      <Pressable
-                        key={opt.value}
-                        onPress={() => {
-                          Haptics.impactAsync(
-                            Haptics.ImpactFeedbackStyle.Light,
-                          );
-                          handleSiteFieldChange(site.site, "side", opt.value);
-                        }}
-                        style={[
-                          styles.miniChip,
-                          {
-                            backgroundColor: selected
-                              ? theme.link
-                              : theme.backgroundElevated,
-                            borderColor: selected ? theme.link : theme.border,
-                          },
-                        ]}
-                      >
-                        <ThemedText
-                          style={{
-                            fontSize: 11,
-                            fontWeight: "500",
-                            color: selected ? theme.buttonText : theme.text,
-                          }}
-                        >
-                          {opt.label}
-                        </ThemedText>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </View>
-            </View>
-          ))}
-        </View>
-
-        {/* Lot number */}
-        <View style={styles.section}>
-          <ThemedText
-            style={[styles.sectionLabel, { color: theme.textSecondary }]}
-          >
-            Lot number (optional)
-          </ThemedText>
-          <TextInput
+            <ThemedText style={{ color: theme.text }}>−5</ThemedText>
+          </Pressable>
+          <View
             style={[
-              styles.textInput,
+              styles.unitsDisplay,
               {
                 backgroundColor: theme.backgroundSecondary,
-                color: theme.text,
                 borderColor: theme.border,
               },
             ]}
-            placeholder="Enter lot number"
-            placeholderTextColor={theme.textTertiary}
-            value={d.lotNumber ?? ""}
-            onChangeText={(text) => update({ lotNumber: text || undefined })}
-          />
+          >
+            <ThemedText style={[styles.unitsValue, { color: theme.text }]}>
+              {d.totalUnits}
+            </ThemedText>
+            <ThemedText
+              style={[styles.unitsSuffix, { color: theme.textTertiary }]}
+            >
+              units
+            </ThemedText>
+          </View>
+          <Pressable
+            onPress={() => handleUnitsChange(5)}
+            style={[styles.stepperBtn, { borderColor: theme.border }]}
+          >
+            <ThemedText style={{ color: theme.text }}>+5</ThemedText>
+          </Pressable>
+          <Pressable
+            onPress={() => handleUnitsChange(10)}
+            style={[styles.stepperBtn, { borderColor: theme.border }]}
+          >
+            <ThemedText style={{ color: theme.text }}>+10</ThemedText>
+          </Pressable>
         </View>
       </View>
-    );
-  },
-);
+
+      {/* Dilution */}
+      <View style={styles.section}>
+        <ThemedText
+          style={[styles.sectionLabel, { color: theme.textSecondary }]}
+        >
+          Dilution (mL)
+        </ThemedText>
+        <View style={styles.chipRow}>
+          {DILUTION_OPTIONS.map((ml) => {
+            const selected = d.dilutionMl === ml;
+            return (
+              <Pressable
+                key={ml}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  update({ dilutionMl: selected ? undefined : ml });
+                }}
+                style={chipStyle(selected)}
+              >
+                <ThemedText style={chipTextStyle(selected)}>{ml}</ThemedText>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* Needle gauge */}
+      <View style={styles.section}>
+        <ThemedText
+          style={[styles.sectionLabel, { color: theme.textSecondary }]}
+        >
+          Needle gauge
+        </ThemedText>
+        <View style={styles.chipRow}>
+          {NEEDLE_GAUGE_OPTIONS.map((g) => {
+            const selected = d.needleGauge === g;
+            return (
+              <Pressable
+                key={g}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  update({ needleGauge: selected ? undefined : g });
+                }}
+                style={chipStyle(selected)}
+              >
+                <ThemedText style={chipTextStyle(selected)}>{g}</ThemedText>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* Injection sites */}
+      <View style={styles.section}>
+        <ThemedText
+          style={[styles.sectionLabel, { color: theme.textSecondary }]}
+        >
+          Injection sites
+        </ThemedText>
+        <View style={styles.chipRow}>
+          {ALL_SITE_IDS.map((siteId) => {
+            const selected = selectedSiteIds.has(siteId);
+            return (
+              <Pressable
+                key={siteId}
+                onPress={() => handleSiteToggle(siteId)}
+                style={chipStyle(selected)}
+              >
+                <ThemedText style={chipTextStyle(selected)}>
+                  {SITE_LABELS[siteId]}
+                </ThemedText>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {/* Per-site details */}
+        {d.sites.map((site) => (
+          <View
+            key={site.site}
+            style={[
+              styles.siteDetail,
+              { backgroundColor: theme.backgroundSecondary },
+            ]}
+          >
+            <View style={styles.siteDetailHeader}>
+              <ThemedText
+                style={[styles.siteDetailLabel, { color: theme.text }]}
+              >
+                {SITE_LABELS[site.site]}
+              </ThemedText>
+              <Pressable
+                onPress={() => handleSiteToggle(site.site)}
+                hitSlop={8}
+              >
+                <Feather name="x" size={14} color={theme.textSecondary} />
+              </Pressable>
+            </View>
+            {/* Units per site */}
+            <View style={styles.siteFieldRow}>
+              <ThemedText
+                style={[styles.siteFieldLabel, { color: theme.textSecondary }]}
+              >
+                Units
+              </ThemedText>
+              <View style={styles.miniStepperRow}>
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    handleSiteFieldChange(
+                      site.site,
+                      "unitsPerSite",
+                      Math.max(0, site.unitsPerSite - 5),
+                    );
+                  }}
+                  style={[styles.miniStepperBtn, { borderColor: theme.border }]}
+                >
+                  <ThemedText style={{ color: theme.text, fontSize: 12 }}>
+                    −5
+                  </ThemedText>
+                </Pressable>
+                <ThemedText
+                  style={[styles.miniStepperValue, { color: theme.text }]}
+                >
+                  {site.unitsPerSite}
+                </ThemedText>
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    handleSiteFieldChange(
+                      site.site,
+                      "unitsPerSite",
+                      site.unitsPerSite + 5,
+                    );
+                  }}
+                  style={[styles.miniStepperBtn, { borderColor: theme.border }]}
+                >
+                  <ThemedText style={{ color: theme.text, fontSize: 12 }}>
+                    +5
+                  </ThemedText>
+                </Pressable>
+              </View>
+            </View>
+            {/* Side selector */}
+            <View style={styles.siteFieldRow}>
+              <ThemedText
+                style={[styles.siteFieldLabel, { color: theme.textSecondary }]}
+              >
+                Side
+              </ThemedText>
+              <View style={styles.miniChipRow}>
+                {SIDE_OPTIONS.map((opt) => {
+                  const selected = site.side === opt.value;
+                  return (
+                    <Pressable
+                      key={opt.value}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        handleSiteFieldChange(site.site, "side", opt.value);
+                      }}
+                      style={[
+                        styles.miniChip,
+                        {
+                          backgroundColor: selected
+                            ? theme.link
+                            : theme.backgroundElevated,
+                          borderColor: selected ? theme.link : theme.border,
+                        },
+                      ]}
+                    >
+                      <ThemedText
+                        style={{
+                          fontSize: 11,
+                          fontWeight: "500",
+                          color: selected ? theme.buttonText : theme.text,
+                        }}
+                      >
+                        {opt.label}
+                      </ThemedText>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+        ))}
+      </View>
+
+      {/* Lot number */}
+      <View style={styles.section}>
+        <ThemedText
+          style={[styles.sectionLabel, { color: theme.textSecondary }]}
+        >
+          Lot number (optional)
+        </ThemedText>
+        <TextInput
+          style={[
+            styles.textInput,
+            {
+              backgroundColor: theme.backgroundSecondary,
+              color: theme.text,
+              borderColor: theme.border,
+            },
+          ]}
+          placeholder="Enter lot number"
+          placeholderTextColor={theme.textTertiary}
+          value={d.lotNumber ?? ""}
+          onChangeText={(text) => update({ lotNumber: text || undefined })}
+        />
+      </View>
+    </View>
+  );
+});
 
 const styles = StyleSheet.create({
   container: {

@@ -35,10 +35,7 @@ import {
   toUtcNoonIsoTimestamp,
 } from "@/lib/dateValues";
 import { MediaTagPicker } from "@/components/media";
-import {
-  resolveMediaTag,
-  suggestDefaultMediaTag,
-} from "@/lib/mediaTagHelpers";
+import { resolveMediaTag, suggestDefaultMediaTag } from "@/lib/mediaTagHelpers";
 import type { MediaTag } from "@/types/media";
 import {
   buildOperativeMediaItemRecord,

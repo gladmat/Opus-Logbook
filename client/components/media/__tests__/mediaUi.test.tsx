@@ -113,7 +113,9 @@ describe("media UI", () => {
     expect(
       getChipNodes(tree!, "caseForm.media.chip-tag-flap_harvest").length,
     ).toBeGreaterThan(0);
-    expect(getChipNodes(tree!, "caseForm.media.chip-tag-followup_3m")).toHaveLength(0);
+    expect(
+      getChipNodes(tree!, "caseForm.media.chip-tag-followup_3m"),
+    ).toHaveLength(0);
 
     act(() => {
       tree!.update(
@@ -128,7 +130,9 @@ describe("media UI", () => {
     expect(
       getChipNodes(tree!, "caseForm.media.chip-tag-followup_3m").length,
     ).toBeGreaterThan(0);
-    expect(getChipNodes(tree!, "caseForm.media.chip-tag-flap_harvest")).toHaveLength(0);
+    expect(
+      getChipNodes(tree!, "caseForm.media.chip-tag-flap_harvest"),
+    ).toHaveLength(0);
   });
 
   it("renders the resolved case-detail badge label for specific media tags", () => {

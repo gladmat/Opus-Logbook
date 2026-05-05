@@ -528,19 +528,24 @@ export function buildEpisodeCaseFormParams(
     patientIdentifier: episodeWithCases.episode.patientIdentifier,
     facility: lastCase?.facility,
     specialty: episodeWithCases.episode.specialty,
-    diagnosisGroups: lastCase && !isCaseSummaryLike(lastCase)
-      ? lastCase.diagnosisGroups
-      : undefined,
-    encounterClass: lastCase?.encounterClass as EpisodePrefillData["encounterClass"],
-    reconstructionTiming: lastCase && !isCaseSummaryLike(lastCase)
-      ? lastCase.reconstructionTiming
-      : undefined,
-    priorRadiotherapy: lastCase && !isCaseSummaryLike(lastCase)
-      ? lastCase.priorRadiotherapy
-      : undefined,
-    priorChemotherapy: lastCase && !isCaseSummaryLike(lastCase)
-      ? lastCase.priorChemotherapy
-      : undefined,
+    diagnosisGroups:
+      lastCase && !isCaseSummaryLike(lastCase)
+        ? lastCase.diagnosisGroups
+        : undefined,
+    encounterClass:
+      lastCase?.encounterClass as EpisodePrefillData["encounterClass"],
+    reconstructionTiming:
+      lastCase && !isCaseSummaryLike(lastCase)
+        ? lastCase.reconstructionTiming
+        : undefined,
+    priorRadiotherapy:
+      lastCase && !isCaseSummaryLike(lastCase)
+        ? lastCase.priorRadiotherapy
+        : undefined,
+    priorChemotherapy:
+      lastCase && !isCaseSummaryLike(lastCase)
+        ? lastCase.priorChemotherapy
+        : undefined,
     episodeSequence: linkedCases.length + 1,
   };
 

@@ -26,10 +26,7 @@ export const FingerSelectionChips = React.memo(function FingerSelectionChips({
 
   // Auto-select for single-option configs (e.g., trigger thumb)
   useEffect(() => {
-    if (
-      config.fingerOptions.length === 1 &&
-      selectedFingers.length === 0
-    ) {
+    if (config.fingerOptions.length === 1 && selectedFingers.length === 0) {
       const first = config.fingerOptions[0];
       if (first) onChange([first.id]);
     }
@@ -44,17 +41,13 @@ export const FingerSelectionChips = React.memo(function FingerSelectionChips({
         onChange([...selectedFingers, fingerId]);
       }
     } else {
-      onChange(
-        selectedFingers.includes(fingerId) ? [] : [fingerId],
-      );
+      onChange(selectedFingers.includes(fingerId) ? [] : [fingerId]);
     }
   };
 
   return (
     <View style={styles.container}>
-      <ThemedText
-        style={[styles.label, { color: theme.textSecondary }]}
-      >
+      <ThemedText style={[styles.label, { color: theme.textSecondary }]}>
         {config.label}
       </ThemedText>
       <View style={styles.chipRow}>

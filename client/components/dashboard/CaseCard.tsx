@@ -163,7 +163,7 @@ function DashboardCaseCardInner({
   // Resolve operative role
   const resolvedRole: OperativeRole | undefined = isCaseSummary(caseData)
     ? caseData.operativeRole
-    : caseData.defaultOperativeRole ?? undefined;
+    : (caseData.defaultOperativeRole ?? undefined);
   const showRoleBadge = resolvedRole != null && resolvedRole !== "SURGEON";
 
   const caseTitle = isCaseSummary(caseData)

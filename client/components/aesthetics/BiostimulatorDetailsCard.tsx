@@ -28,13 +28,25 @@ const TECHNIQUE_OPTIONS: { value: FillerTechnique; label: string }[] = [
 ];
 
 const SITE_OPTIONS = [
-  "Temple", "Cheek", "Jawline", "Nasolabial", "Hand dorsum",
-  "Décolletage", "Arm", "Thigh", "Buttock", "Other",
+  "Temple",
+  "Cheek",
+  "Jawline",
+  "Nasolabial",
+  "Hand dorsum",
+  "Décolletage",
+  "Arm",
+  "Thigh",
+  "Buttock",
+  "Other",
 ];
 
 /** Product-specific reconstitution presets */
 const RECONSTITUTION_PRESETS: Record<string, string[]> = {
-  biostim_sculptra: ["5mL sterile water + 2mL lido", "7mL sterile water", "8mL sterile water"],
+  biostim_sculptra: [
+    "5mL sterile water + 2mL lido",
+    "7mL sterile water",
+    "8mL sterile water",
+  ],
   biostim_profhilo: ["2mL pre-filled (no reconstitution)"],
   biostim_sunekos: ["Per protocol"],
   biostim_lanluma: ["16mL sterile water"],
@@ -64,7 +76,7 @@ export const BiostimulatorDetailsCard = React.memo(
     );
 
     const reconPresets = d.productId
-      ? RECONSTITUTION_PRESETS[d.productId] ?? []
+      ? (RECONSTITUTION_PRESETS[d.productId] ?? [])
       : [];
 
     const selectedSites = new Set(d.sites);
@@ -85,19 +97,25 @@ export const BiostimulatorDetailsCard = React.memo(
     return (
       <View style={styles.container}>
         <View style={styles.section}>
-          <ThemedText style={[styles.sectionLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.sectionLabel, { color: theme.textSecondary }]}
+          >
             Product
           </ThemedText>
           <ProductPicker
             category="biostimulator"
             selectedProductId={d.productId || undefined}
-            onSelect={(p: AestheticProduct) => update({ productId: p.id || "" })}
+            onSelect={(p: AestheticProduct) =>
+              update({ productId: p.id || "" })
+            }
           />
         </View>
 
         {/* Vials */}
         <View style={styles.section}>
-          <ThemedText style={[styles.sectionLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.sectionLabel, { color: theme.textSecondary }]}
+          >
             Number of vials
           </ThemedText>
           <View style={styles.stepperRow}>
@@ -110,8 +128,18 @@ export const BiostimulatorDetailsCard = React.memo(
             >
               <Feather name="minus" size={16} color={theme.text} />
             </Pressable>
-            <View style={[styles.stepperDisplay, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
-              <ThemedText style={[styles.stepperValue, { color: theme.text }]}>{d.numberOfVials}</ThemedText>
+            <View
+              style={[
+                styles.stepperDisplay,
+                {
+                  backgroundColor: theme.backgroundSecondary,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <ThemedText style={[styles.stepperValue, { color: theme.text }]}>
+                {d.numberOfVials}
+              </ThemedText>
             </View>
             <Pressable
               onPress={() => {
@@ -128,7 +156,9 @@ export const BiostimulatorDetailsCard = React.memo(
         {/* Reconstitution protocol */}
         {reconPresets.length > 0 && (
           <View style={styles.section}>
-            <ThemedText style={[styles.sectionLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.sectionLabel, { color: theme.textSecondary }]}
+            >
               Reconstitution protocol
             </ThemedText>
             <View style={styles.chipRow}>
@@ -139,11 +169,15 @@ export const BiostimulatorDetailsCard = React.memo(
                     key={preset}
                     onPress={() => {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      update({ reconstitutionProtocol: selected ? undefined : preset });
+                      update({
+                        reconstitutionProtocol: selected ? undefined : preset,
+                      });
                     }}
                     style={chipStyle(selected)}
                   >
-                    <ThemedText style={chipTextStyle(selected)}>{preset}</ThemedText>
+                    <ThemedText style={chipTextStyle(selected)}>
+                      {preset}
+                    </ThemedText>
                   </Pressable>
                 );
               })}
@@ -153,7 +187,9 @@ export const BiostimulatorDetailsCard = React.memo(
 
         {/* Sites */}
         <View style={styles.section}>
-          <ThemedText style={[styles.sectionLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.sectionLabel, { color: theme.textSecondary }]}
+          >
             Injection sites
           </ThemedText>
           <View style={styles.chipRow}>
@@ -171,7 +207,9 @@ export const BiostimulatorDetailsCard = React.memo(
                   }}
                   style={chipStyle(selected)}
                 >
-                  <ThemedText style={chipTextStyle(selected)}>{site}</ThemedText>
+                  <ThemedText style={chipTextStyle(selected)}>
+                    {site}
+                  </ThemedText>
                 </Pressable>
               );
             })}
@@ -180,7 +218,9 @@ export const BiostimulatorDetailsCard = React.memo(
 
         {/* Technique */}
         <View style={styles.section}>
-          <ThemedText style={[styles.sectionLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.sectionLabel, { color: theme.textSecondary }]}
+          >
             Technique
           </ThemedText>
           <View style={styles.chipRow}>
@@ -195,7 +235,9 @@ export const BiostimulatorDetailsCard = React.memo(
                   }}
                   style={chipStyle(selected)}
                 >
-                  <ThemedText style={chipTextStyle(selected)}>{t.label}</ThemedText>
+                  <ThemedText style={chipTextStyle(selected)}>
+                    {t.label}
+                  </ThemedText>
                 </Pressable>
               );
             })}
@@ -204,17 +246,24 @@ export const BiostimulatorDetailsCard = React.memo(
 
         {/* Session tracker */}
         <View style={styles.section}>
-          <ThemedText style={[styles.sectionLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.sectionLabel, { color: theme.textSecondary }]}
+          >
             Session in series
           </ThemedText>
           <View style={styles.sessionRow}>
-            <ThemedText style={{ color: theme.textSecondary, fontSize: 14 }}>Session</ThemedText>
+            <ThemedText style={{ color: theme.textSecondary, fontSize: 14 }}>
+              Session
+            </ThemedText>
             <View style={styles.stepperRow}>
               <Pressable
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   update({
-                    sessionNumberInSeries: Math.max(1, (d.sessionNumberInSeries ?? 1) - 1),
+                    sessionNumberInSeries: Math.max(
+                      1,
+                      (d.sessionNumberInSeries ?? 1) - 1,
+                    ),
                   });
                 }}
                 style={[styles.miniStepperBtn, { borderColor: theme.border }]}
@@ -236,13 +285,18 @@ export const BiostimulatorDetailsCard = React.memo(
                 <Feather name="plus" size={14} color={theme.text} />
               </Pressable>
             </View>
-            <ThemedText style={{ color: theme.textSecondary, fontSize: 14 }}>of</ThemedText>
+            <ThemedText style={{ color: theme.textSecondary, fontSize: 14 }}>
+              of
+            </ThemedText>
             <View style={styles.stepperRow}>
               <Pressable
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   update({
-                    totalSessionsPlanned: Math.max(1, (d.totalSessionsPlanned ?? 3) - 1),
+                    totalSessionsPlanned: Math.max(
+                      1,
+                      (d.totalSessionsPlanned ?? 3) - 1,
+                    ),
                   });
                 }}
                 style={[styles.miniStepperBtn, { borderColor: theme.border }]}
@@ -274,15 +328,54 @@ export const BiostimulatorDetailsCard = React.memo(
 const styles = StyleSheet.create({
   container: { gap: Spacing.lg },
   section: { gap: Spacing.xs },
-  sectionLabel: { fontSize: 12, fontWeight: "500", textTransform: "uppercase", letterSpacing: 0.5 },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: "500",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.xs },
-  chip: { borderWidth: 1, borderRadius: BorderRadius.sm, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, minHeight: 36, justifyContent: "center" },
+  chip: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    minHeight: 36,
+    justifyContent: "center",
+  },
   chipText: { fontSize: 13, fontWeight: "500" },
   stepperRow: { flexDirection: "row", alignItems: "center", gap: Spacing.sm },
-  stepperBtn: { borderWidth: 1, borderRadius: BorderRadius.sm, width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  stepperDisplay: { borderWidth: 1, borderRadius: BorderRadius.sm, paddingHorizontal: Spacing.lg, height: 44, justifyContent: "center", alignItems: "center", minWidth: 60 },
+  stepperBtn: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.sm,
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stepperDisplay: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.sm,
+    paddingHorizontal: Spacing.lg,
+    height: 44,
+    justifyContent: "center",
+    alignItems: "center",
+    minWidth: 60,
+  },
   stepperValue: { fontSize: 18, fontWeight: "700" },
-  miniStepperBtn: { borderWidth: 1, borderRadius: BorderRadius.xs, width: 32, height: 32, alignItems: "center", justifyContent: "center" },
+  miniStepperBtn: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.xs,
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   sessionRow: { flexDirection: "row", alignItems: "center", gap: Spacing.sm },
-  sessionNum: { fontSize: 16, fontWeight: "700", minWidth: 24, textAlign: "center" },
+  sessionNum: {
+    fontSize: 16,
+    fontWeight: "700",
+    minWidth: 24,
+    textAlign: "center",
+  },
 });

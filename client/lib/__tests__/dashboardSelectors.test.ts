@@ -403,11 +403,7 @@ describe("dashboard selectors", () => {
         pendingAction: "awaiting_mdt",
       });
 
-      const items = buildAttentionItems(
-        [],
-        [{ episode, cases: [] }],
-        null,
-      );
+      const items = buildAttentionItems([], [{ episode, cases: [] }], null);
 
       expect(items).toHaveLength(1);
       expect(items[0]!.type).toBe("episode");

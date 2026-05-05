@@ -190,7 +190,8 @@ export function getAssessmentDrivenProcedureSuggestions(
 
   const depth = assessment.tbsa?.predominantDepth;
   const totalTBSA = assessment.tbsa?.totalTBSA ?? 0;
-  const isCircumferential = assessment.injuryEvent?.circumferentialBurn === true;
+  const isCircumferential =
+    assessment.injuryEvent?.circumferentialBurn === true;
   const hasInhalation = assessment.injuryEvent?.inhalationInjury === true;
   const mechanism = assessment.injuryEvent?.mechanism;
 
@@ -416,16 +417,12 @@ export function isBurnExcisionProcedure(procedureId: string): boolean {
 }
 
 /** Returns true if a procedure ID is a dermal substitute procedure */
-export function isBurnDermalSubstituteProcedure(
-  procedureId: string,
-): boolean {
+export function isBurnDermalSubstituteProcedure(procedureId: string): boolean {
   return procedureId.startsWith("burns_sub_");
 }
 
 /** Returns true if a procedure ID is a temporary coverage procedure */
-export function isBurnTemporaryCoverageProcedure(
-  procedureId: string,
-): boolean {
+export function isBurnTemporaryCoverageProcedure(procedureId: string): boolean {
   return procedureId.startsWith("burns_temp_");
 }
 
@@ -476,22 +473,19 @@ export function getBurnProcedureCategory(
   if (isBurnGraftProcedure(procedureId)) return "grafting";
   if (isBurnDermalSubstituteProcedure(procedureId)) return "dermalSubstitute";
   if (isBurnTemporaryCoverageProcedure(procedureId)) return "temporaryCoverage";
-  if (isBurnContractureReleaseProcedure(procedureId)) return "contractureRelease";
+  if (isBurnContractureReleaseProcedure(procedureId))
+    return "contractureRelease";
   if (isBurnLaserProcedure(procedureId)) return "laser";
   return null;
 }
 
 /** Returns true if mesh ratio is relevant for this graft type */
-export function graftTypeShowsMeshRatio(
-  graftType?: string,
-): boolean {
+export function graftTypeShowsMeshRatio(graftType?: string): boolean {
   return graftType === "stsg_meshed" || graftType === "meek";
 }
 
 /** Returns default interval to autograft (days) for a dermal substitute product */
-export function getDefaultIntervalDays(
-  product?: string,
-): number | undefined {
+export function getDefaultIntervalDays(product?: string): number | undefined {
   switch (product) {
     case "integra_bilayer":
       return 21;

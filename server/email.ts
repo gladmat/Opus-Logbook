@@ -199,8 +199,7 @@ export async function sendInvitationEmail(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const client = getResendClient();
-    const appStoreUrl =
-      "https://apps.apple.com/app/opus-logbook/id6759992788";
+    const appStoreUrl = "https://apps.apple.com/app/opus-logbook/id6759992788";
 
     const { error } = await client.emails.send({
       from: `${APP_NAME} <${FROM_EMAIL}>`,

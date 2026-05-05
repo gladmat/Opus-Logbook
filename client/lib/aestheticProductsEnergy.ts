@@ -52,9 +52,36 @@ export interface EnergyDeviceProduct extends AestheticProduct {
 // ═══════════════════════════════════════════
 
 const ABLATIVE_LASERS: EnergyDeviceProduct[] = [
-  { id: "energy_ultrapulse", category: "energy_device", subcategory: "ablative_laser", manufacturer: "Lumenis", brandFamily: "UltraPulse", productName: "UltraPulse (CO2 10,600nm)", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "au_nz", "global"] },
-  { id: "energy_smartxide_dot", category: "energy_device", subcategory: "ablative_laser", manufacturer: "DEKA", brandFamily: "SmartXide", productName: "SmartXide DOT (CO2 10,600nm)", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "global"] },
-  { id: "energy_contour_trl", category: "energy_device", subcategory: "ablative_laser", manufacturer: "Sciton", brandFamily: "Contour TRL", productName: "Contour TRL (Er:YAG 2,940nm)", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "global"] },
+  {
+    id: "energy_ultrapulse",
+    category: "energy_device",
+    subcategory: "ablative_laser",
+    manufacturer: "Lumenis",
+    brandFamily: "UltraPulse",
+    productName: "UltraPulse (CO2 10,600nm)",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "au_nz", "global"],
+  },
+  {
+    id: "energy_smartxide_dot",
+    category: "energy_device",
+    subcategory: "ablative_laser",
+    manufacturer: "DEKA",
+    brandFamily: "SmartXide",
+    productName: "SmartXide DOT (CO2 10,600nm)",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "global"],
+  },
+  {
+    id: "energy_contour_trl",
+    category: "energy_device",
+    subcategory: "ablative_laser",
+    manufacturer: "Sciton",
+    brandFamily: "Contour TRL",
+    productName: "Contour TRL (Er:YAG 2,940nm)",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "global"],
+  },
 ];
 
 // ═══════════════════════════════════════════
@@ -62,10 +89,46 @@ const ABLATIVE_LASERS: EnergyDeviceProduct[] = [
 // ═══════════════════════════════════════════
 
 const FRACTIONAL_NONABLATIVE: EnergyDeviceProduct[] = [
-  { id: "energy_fraxel_dual", category: "energy_device", subcategory: "fractional_nonablative", manufacturer: "Solta Medical (Bausch)", brandFamily: "Fraxel", productName: "Fraxel Dual (1550/1927nm)", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "global"] },
-  { id: "energy_clear_brilliant", category: "energy_device", subcategory: "fractional_nonablative", manufacturer: "Solta Medical (Bausch)", brandFamily: "Clear + Brilliant", productName: "Clear + Brilliant (1440/1927nm)", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "global"] },
-  { id: "energy_halo", category: "energy_device", subcategory: "fractional_nonablative", manufacturer: "Sciton", brandFamily: "HALO", productName: "HALO (1470 + 2940nm hybrid)", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "global"] },
-  { id: "energy_moxi", category: "energy_device", subcategory: "fractional_nonablative", manufacturer: "Sciton", brandFamily: "MOXI", productName: "MOXI (1927nm)", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "global"] },
+  {
+    id: "energy_fraxel_dual",
+    category: "energy_device",
+    subcategory: "fractional_nonablative",
+    manufacturer: "Solta Medical (Bausch)",
+    brandFamily: "Fraxel",
+    productName: "Fraxel Dual (1550/1927nm)",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "global"],
+  },
+  {
+    id: "energy_clear_brilliant",
+    category: "energy_device",
+    subcategory: "fractional_nonablative",
+    manufacturer: "Solta Medical (Bausch)",
+    brandFamily: "Clear + Brilliant",
+    productName: "Clear + Brilliant (1440/1927nm)",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "global"],
+  },
+  {
+    id: "energy_halo",
+    category: "energy_device",
+    subcategory: "fractional_nonablative",
+    manufacturer: "Sciton",
+    brandFamily: "HALO",
+    productName: "HALO (1470 + 2940nm hybrid)",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "global"],
+  },
+  {
+    id: "energy_moxi",
+    category: "energy_device",
+    subcategory: "fractional_nonablative",
+    manufacturer: "Sciton",
+    brandFamily: "MOXI",
+    productName: "MOXI (1927nm)",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "global"],
+  },
 ];
 
 // ═══════════════════════════════════════════
@@ -73,8 +136,26 @@ const FRACTIONAL_NONABLATIVE: EnergyDeviceProduct[] = [
 // ═══════════════════════════════════════════
 
 const VASCULAR_LASERS: EnergyDeviceProduct[] = [
-  { id: "energy_vbeam_prima", category: "energy_device", subcategory: "vascular_laser", manufacturer: "Candela", brandFamily: "Vbeam", productName: "Vbeam Prima (PDL 595nm)", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "au_nz", "global"] },
-  { id: "energy_excel_v_plus", category: "energy_device", subcategory: "vascular_laser", manufacturer: "Cutera", brandFamily: "excel V+", productName: "excel V+ (532/1064nm)", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "global"] },
+  {
+    id: "energy_vbeam_prima",
+    category: "energy_device",
+    subcategory: "vascular_laser",
+    manufacturer: "Candela",
+    brandFamily: "Vbeam",
+    productName: "Vbeam Prima (PDL 595nm)",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "au_nz", "global"],
+  },
+  {
+    id: "energy_excel_v_plus",
+    category: "energy_device",
+    subcategory: "vascular_laser",
+    manufacturer: "Cutera",
+    brandFamily: "excel V+",
+    productName: "excel V+ (532/1064nm)",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "global"],
+  },
 ];
 
 // ═══════════════════════════════════════════
@@ -82,10 +163,46 @@ const VASCULAR_LASERS: EnergyDeviceProduct[] = [
 // ═══════════════════════════════════════════
 
 const PIGMENT_LASERS: EnergyDeviceProduct[] = [
-  { id: "energy_picosure_pro", category: "energy_device", subcategory: "pigment_laser", manufacturer: "Cynosure", brandFamily: "PicoSure", productName: "PicoSure Pro (755nm)", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "au_nz", "global"] },
-  { id: "energy_picoway", category: "energy_device", subcategory: "pigment_laser", manufacturer: "Candela", brandFamily: "PicoWay", productName: "PicoWay (532/785/1064nm)", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "global"] },
-  { id: "energy_enlighten", category: "energy_device", subcategory: "pigment_laser", manufacturer: "Cutera", brandFamily: "enlighten", productName: "enlighten III (532/670/1064nm)", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "global"] },
-  { id: "energy_discovery_pico", category: "energy_device", subcategory: "pigment_laser", manufacturer: "Quanta System", brandFamily: "Discovery Pico", productName: "Discovery Pico Plus (532/694/1064nm)", regulatoryStatus: "ce_marked", availableRegions: ["eu", "au_nz", "asia"] },
+  {
+    id: "energy_picosure_pro",
+    category: "energy_device",
+    subcategory: "pigment_laser",
+    manufacturer: "Cynosure",
+    brandFamily: "PicoSure",
+    productName: "PicoSure Pro (755nm)",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "au_nz", "global"],
+  },
+  {
+    id: "energy_picoway",
+    category: "energy_device",
+    subcategory: "pigment_laser",
+    manufacturer: "Candela",
+    brandFamily: "PicoWay",
+    productName: "PicoWay (532/785/1064nm)",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "global"],
+  },
+  {
+    id: "energy_enlighten",
+    category: "energy_device",
+    subcategory: "pigment_laser",
+    manufacturer: "Cutera",
+    brandFamily: "enlighten",
+    productName: "enlighten III (532/670/1064nm)",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "global"],
+  },
+  {
+    id: "energy_discovery_pico",
+    category: "energy_device",
+    subcategory: "pigment_laser",
+    manufacturer: "Quanta System",
+    brandFamily: "Discovery Pico",
+    productName: "Discovery Pico Plus (532/694/1064nm)",
+    regulatoryStatus: "ce_marked",
+    availableRegions: ["eu", "au_nz", "asia"],
+  },
 ];
 
 // ═══════════════════════════════════════════
@@ -93,10 +210,46 @@ const PIGMENT_LASERS: EnergyDeviceProduct[] = [
 // ═══════════════════════════════════════════
 
 const HAIR_REMOVAL_LASERS: EnergyDeviceProduct[] = [
-  { id: "energy_gentlemax_pro_plus", category: "energy_device", subcategory: "hair_removal_laser", manufacturer: "Candela", brandFamily: "GentleMax Pro", productName: "GentleMax Pro Plus (755/1064nm)", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "au_nz", "global"] },
-  { id: "energy_splendorx", category: "energy_device", subcategory: "hair_removal_laser", manufacturer: "Lumenis", brandFamily: "Splendor X", productName: "Splendor X (755/1064nm)", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "global"] },
-  { id: "energy_vectus", category: "energy_device", subcategory: "hair_removal_laser", manufacturer: "Cynosure", brandFamily: "Vectus", productName: "Vectus (810nm diode)", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "global"] },
-  { id: "energy_soprano_titanium", category: "energy_device", subcategory: "hair_removal_laser", manufacturer: "Alma Lasers", brandFamily: "Soprano", productName: "Soprano Titanium (755/810/1064nm)", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "au_nz", "global"] },
+  {
+    id: "energy_gentlemax_pro_plus",
+    category: "energy_device",
+    subcategory: "hair_removal_laser",
+    manufacturer: "Candela",
+    brandFamily: "GentleMax Pro",
+    productName: "GentleMax Pro Plus (755/1064nm)",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "au_nz", "global"],
+  },
+  {
+    id: "energy_splendorx",
+    category: "energy_device",
+    subcategory: "hair_removal_laser",
+    manufacturer: "Lumenis",
+    brandFamily: "Splendor X",
+    productName: "Splendor X (755/1064nm)",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "global"],
+  },
+  {
+    id: "energy_vectus",
+    category: "energy_device",
+    subcategory: "hair_removal_laser",
+    manufacturer: "Cynosure",
+    brandFamily: "Vectus",
+    productName: "Vectus (810nm diode)",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "global"],
+  },
+  {
+    id: "energy_soprano_titanium",
+    category: "energy_device",
+    subcategory: "hair_removal_laser",
+    manufacturer: "Alma Lasers",
+    brandFamily: "Soprano",
+    productName: "Soprano Titanium (755/810/1064nm)",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "au_nz", "global"],
+  },
 ];
 
 // ═══════════════════════════════════════════
@@ -104,12 +257,66 @@ const HAIR_REMOVAL_LASERS: EnergyDeviceProduct[] = [
 // ═══════════════════════════════════════════
 
 const RF_MICRONEEDLING: EnergyDeviceProduct[] = [
-  { id: "energy_morpheus8", category: "energy_device", subcategory: "rf_microneedling", manufacturer: "InMode", brandFamily: "Morpheus8", productName: "Morpheus8", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "au_nz", "global"] },
-  { id: "energy_potenza", category: "energy_device", subcategory: "rf_microneedling", manufacturer: "Cynosure", brandFamily: "Potenza", productName: "Potenza", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "global"] },
-  { id: "energy_genius", category: "energy_device", subcategory: "rf_microneedling", manufacturer: "Lutronic", brandFamily: "Genius", productName: "Genius", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "asia", "global"] },
-  { id: "energy_vivace_ultra", category: "energy_device", subcategory: "rf_microneedling", manufacturer: "Aesthetics Biomedical", brandFamily: "Vivace", productName: "Vivace Ultra", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu"] },
-  { id: "energy_secret_rf", category: "energy_device", subcategory: "rf_microneedling", manufacturer: "Cutera", brandFamily: "Secret RF", productName: "Secret RF", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "global"] },
-  { id: "energy_sylfirm_x", category: "energy_device", subcategory: "rf_microneedling", manufacturer: "Sillfirm (Viol)", brandFamily: "Sylfirm X", productName: "Sylfirm X", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "asia", "global"] },
+  {
+    id: "energy_morpheus8",
+    category: "energy_device",
+    subcategory: "rf_microneedling",
+    manufacturer: "InMode",
+    brandFamily: "Morpheus8",
+    productName: "Morpheus8",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "au_nz", "global"],
+  },
+  {
+    id: "energy_potenza",
+    category: "energy_device",
+    subcategory: "rf_microneedling",
+    manufacturer: "Cynosure",
+    brandFamily: "Potenza",
+    productName: "Potenza",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "global"],
+  },
+  {
+    id: "energy_genius",
+    category: "energy_device",
+    subcategory: "rf_microneedling",
+    manufacturer: "Lutronic",
+    brandFamily: "Genius",
+    productName: "Genius",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "asia", "global"],
+  },
+  {
+    id: "energy_vivace_ultra",
+    category: "energy_device",
+    subcategory: "rf_microneedling",
+    manufacturer: "Aesthetics Biomedical",
+    brandFamily: "Vivace",
+    productName: "Vivace Ultra",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu"],
+  },
+  {
+    id: "energy_secret_rf",
+    category: "energy_device",
+    subcategory: "rf_microneedling",
+    manufacturer: "Cutera",
+    brandFamily: "Secret RF",
+    productName: "Secret RF",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "global"],
+  },
+  {
+    id: "energy_sylfirm_x",
+    category: "energy_device",
+    subcategory: "rf_microneedling",
+    manufacturer: "Sillfirm (Viol)",
+    brandFamily: "Sylfirm X",
+    productName: "Sylfirm X",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "asia", "global"],
+  },
 ];
 
 // ═══════════════════════════════════════════
@@ -117,8 +324,26 @@ const RF_MICRONEEDLING: EnergyDeviceProduct[] = [
 // ═══════════════════════════════════════════
 
 const MONOPOLAR_RF: EnergyDeviceProduct[] = [
-  { id: "energy_thermage_flx", category: "energy_device", subcategory: "monopolar_rf", manufacturer: "Solta Medical (Bausch)", brandFamily: "Thermage", productName: "Thermage FLX (6.78 MHz)", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "au_nz", "global"] },
-  { id: "energy_exilis_ultra_360", category: "energy_device", subcategory: "monopolar_rf", manufacturer: "BTL", brandFamily: "Exilis", productName: "Exilis Ultra 360", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "global"] },
+  {
+    id: "energy_thermage_flx",
+    category: "energy_device",
+    subcategory: "monopolar_rf",
+    manufacturer: "Solta Medical (Bausch)",
+    brandFamily: "Thermage",
+    productName: "Thermage FLX (6.78 MHz)",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "au_nz", "global"],
+  },
+  {
+    id: "energy_exilis_ultra_360",
+    category: "energy_device",
+    subcategory: "monopolar_rf",
+    manufacturer: "BTL",
+    brandFamily: "Exilis",
+    productName: "Exilis Ultra 360",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "global"],
+  },
 ];
 
 // ═══════════════════════════════════════════
@@ -126,9 +351,36 @@ const MONOPOLAR_RF: EnergyDeviceProduct[] = [
 // ═══════════════════════════════════════════
 
 const HIFU_DEVICES: EnergyDeviceProduct[] = [
-  { id: "energy_ultherapy", category: "energy_device", subcategory: "hifu", manufacturer: "Merz Aesthetics", brandFamily: "Ultherapy", productName: "Ultherapy", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "au_nz", "global"] },
-  { id: "energy_ultraformer_iii", category: "energy_device", subcategory: "hifu", manufacturer: "Classys", brandFamily: "Ultraformer", productName: "Ultraformer III", regulatoryStatus: "ce_marked", availableRegions: ["eu", "au_nz", "asia", "global"] },
-  { id: "energy_doublo_gold", category: "energy_device", subcategory: "hifu", manufacturer: "Hironic", brandFamily: "Doublo", productName: "Doublo Gold", regulatoryStatus: "ce_marked", availableRegions: ["eu", "asia"] },
+  {
+    id: "energy_ultherapy",
+    category: "energy_device",
+    subcategory: "hifu",
+    manufacturer: "Merz Aesthetics",
+    brandFamily: "Ultherapy",
+    productName: "Ultherapy",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "au_nz", "global"],
+  },
+  {
+    id: "energy_ultraformer_iii",
+    category: "energy_device",
+    subcategory: "hifu",
+    manufacturer: "Classys",
+    brandFamily: "Ultraformer",
+    productName: "Ultraformer III",
+    regulatoryStatus: "ce_marked",
+    availableRegions: ["eu", "au_nz", "asia", "global"],
+  },
+  {
+    id: "energy_doublo_gold",
+    category: "energy_device",
+    subcategory: "hifu",
+    manufacturer: "Hironic",
+    brandFamily: "Doublo",
+    productName: "Doublo Gold",
+    regulatoryStatus: "ce_marked",
+    availableRegions: ["eu", "asia"],
+  },
 ];
 
 // ═══════════════════════════════════════════
@@ -136,8 +388,26 @@ const HIFU_DEVICES: EnergyDeviceProduct[] = [
 // ═══════════════════════════════════════════
 
 const IPL_DEVICES: EnergyDeviceProduct[] = [
-  { id: "energy_bbl_hero", category: "energy_device", subcategory: "ipl", manufacturer: "Sciton", brandFamily: "BBL", productName: "BBL HERO", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "global"] },
-  { id: "energy_stellar_m22", category: "energy_device", subcategory: "ipl", manufacturer: "Lumenis", brandFamily: "Stellar M22", productName: "Stellar M22", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "global"] },
+  {
+    id: "energy_bbl_hero",
+    category: "energy_device",
+    subcategory: "ipl",
+    manufacturer: "Sciton",
+    brandFamily: "BBL",
+    productName: "BBL HERO",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "global"],
+  },
+  {
+    id: "energy_stellar_m22",
+    category: "energy_device",
+    subcategory: "ipl",
+    manufacturer: "Lumenis",
+    brandFamily: "Stellar M22",
+    productName: "Stellar M22",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "global"],
+  },
 ];
 
 // ═══════════════════════════════════════════
@@ -145,7 +415,16 @@ const IPL_DEVICES: EnergyDeviceProduct[] = [
 // ═══════════════════════════════════════════
 
 const CRYOLIPOLYSIS_DEVICES: EnergyDeviceProduct[] = [
-  { id: "energy_coolsculpting_elite", category: "energy_device", subcategory: "cryolipolysis", manufacturer: "Allergan (AbbVie)", brandFamily: "CoolSculpting", productName: "CoolSculpting Elite", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "au_nz", "global"] },
+  {
+    id: "energy_coolsculpting_elite",
+    category: "energy_device",
+    subcategory: "cryolipolysis",
+    manufacturer: "Allergan (AbbVie)",
+    brandFamily: "CoolSculpting",
+    productName: "CoolSculpting Elite",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "au_nz", "global"],
+  },
 ];
 
 // ═══════════════════════════════════════════
@@ -153,8 +432,26 @@ const CRYOLIPOLYSIS_DEVICES: EnergyDeviceProduct[] = [
 // ═══════════════════════════════════════════
 
 const PLASMA_DEVICES: EnergyDeviceProduct[] = [
-  { id: "energy_renuvion_j_plasma", category: "energy_device", subcategory: "plasma", manufacturer: "Apyx Medical", brandFamily: "Renuvion", productName: "Renuvion / J-Plasma", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "global"] },
-  { id: "energy_neogen_psr", category: "energy_device", subcategory: "plasma", manufacturer: "Energist", brandFamily: "NeoGen", productName: "NeoGen PSR (nitrogen plasma)", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "au_nz", "global"] },
+  {
+    id: "energy_renuvion_j_plasma",
+    category: "energy_device",
+    subcategory: "plasma",
+    manufacturer: "Apyx Medical",
+    brandFamily: "Renuvion",
+    productName: "Renuvion / J-Plasma",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "global"],
+  },
+  {
+    id: "energy_neogen_psr",
+    category: "energy_device",
+    subcategory: "plasma",
+    manufacturer: "Energist",
+    brandFamily: "NeoGen",
+    productName: "NeoGen PSR (nitrogen plasma)",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "au_nz", "global"],
+  },
 ];
 
 // ═══════════════════════════════════════════
@@ -162,7 +459,16 @@ const PLASMA_DEVICES: EnergyDeviceProduct[] = [
 // ═══════════════════════════════════════════
 
 const BODY_CONTOURING_EMS: EnergyDeviceProduct[] = [
-  { id: "energy_emsculpt_neo", category: "energy_device", subcategory: "body_contouring_ems", manufacturer: "BTL", brandFamily: "Emsculpt", productName: "Emsculpt NEO (HIFEM + RF)", regulatoryStatus: "fda_approved", availableRegions: ["us", "eu", "au_nz", "global"] },
+  {
+    id: "energy_emsculpt_neo",
+    category: "energy_device",
+    subcategory: "body_contouring_ems",
+    manufacturer: "BTL",
+    brandFamily: "Emsculpt",
+    productName: "Emsculpt NEO (HIFEM + RF)",
+    regulatoryStatus: "fda_approved",
+    availableRegions: ["us", "eu", "au_nz", "global"],
+  },
 ];
 
 // ═══════════════════════════════════════════
@@ -263,7 +569,11 @@ export const ENERGY_DEVICE_SPECS: Record<string, EnergyDeviceSpec> = {
     wavelengthsNm: [532, 785, 1064],
     defaultSpotSizeMm: 5,
     defaultPulseWidth: "300-450ps",
-    availableHandpieces: ["Resolve (fractional)", "Zoom", "Fusion (dual wavelength)"],
+    availableHandpieces: [
+      "Resolve (fractional)",
+      "Zoom",
+      "Fusion (dual wavelength)",
+    ],
   },
   energy_enlighten: {
     deviceId: "energy_enlighten",
@@ -315,14 +625,22 @@ export const ENERGY_DEVICE_SPECS: Record<string, EnergyDeviceSpec> = {
     defaultNeedleDepthMm: 3,
     defaultPinCount: 24,
     defaultRfMode: "bipolar fractional",
-    availableHandpieces: ["24-pin standard", "40-pin body", "Prime (resurfacing)"],
+    availableHandpieces: [
+      "24-pin standard",
+      "40-pin body",
+      "Prime (resurfacing)",
+    ],
   },
   energy_potenza: {
     deviceId: "energy_potenza",
     defaultNeedleDepthMm: 2.5,
     defaultPinCount: 25,
     defaultRfMode: "monopolar + bipolar",
-    availableHandpieces: ["1MHz monopolar", "2MHz bipolar", "Fusion (drug delivery)"],
+    availableHandpieces: [
+      "1MHz monopolar",
+      "2MHz bipolar",
+      "Fusion (drug delivery)",
+    ],
   },
   energy_genius: {
     deviceId: "energy_genius",
@@ -353,7 +671,11 @@ export const ENERGY_DEVICE_SPECS: Record<string, EnergyDeviceSpec> = {
   energy_thermage_flx: {
     deviceId: "energy_thermage_flx",
     defaultRfMode: "monopolar capacitive 6.78MHz",
-    availableHandpieces: ["Total Tip 3.0 (face)", "Total Tip 4.0 (body)", "Total Tip Eye"],
+    availableHandpieces: [
+      "Total Tip 3.0 (face)",
+      "Total Tip 4.0 (body)",
+      "Total Tip Eye",
+    ],
   },
   energy_exilis_ultra_360: {
     deviceId: "energy_exilis_ultra_360",
@@ -365,7 +687,11 @@ export const ENERGY_DEVICE_SPECS: Record<string, EnergyDeviceSpec> = {
     deviceId: "energy_ultherapy",
     transducerDepths: [1.5, 3.0, 4.5],
     defaultEnergyPerLineJ: 1.2,
-    availableHandpieces: ["DS 7-4.5 (4.5mm SMAS)", "DS 7-3.0 (3.0mm)", "DS 10-1.5 (1.5mm dermis)"],
+    availableHandpieces: [
+      "DS 7-4.5 (4.5mm SMAS)",
+      "DS 7-3.0 (3.0mm)",
+      "DS 10-1.5 (1.5mm dermis)",
+    ],
   },
   energy_ultraformer_iii: {
     deviceId: "energy_ultraformer_iii",
@@ -395,13 +721,22 @@ export const ENERGY_DEVICE_SPECS: Record<string, EnergyDeviceSpec> = {
   // --- Cryolipolysis ---
   energy_coolsculpting_elite: {
     deviceId: "energy_coolsculpting_elite",
-    availableHandpieces: ["CoolAdvantage", "CoolAdvantage Plus", "CoolAdvantage Petite", "CoolMini", "CoolSmooth Pro"],
+    availableHandpieces: [
+      "CoolAdvantage",
+      "CoolAdvantage Plus",
+      "CoolAdvantage Petite",
+      "CoolMini",
+      "CoolSmooth Pro",
+    ],
   },
   // --- Plasma ---
   energy_renuvion_j_plasma: {
     deviceId: "energy_renuvion_j_plasma",
     defaultRfMode: "helium plasma + RF",
-    availableHandpieces: ["Subcutaneous (skin tightening)", "Open (resurfacing)"],
+    availableHandpieces: [
+      "Subcutaneous (skin tightening)",
+      "Open (resurfacing)",
+    ],
   },
   energy_neogen_psr: {
     deviceId: "energy_neogen_psr",
@@ -412,7 +747,11 @@ export const ENERGY_DEVICE_SPECS: Record<string, EnergyDeviceSpec> = {
   energy_emsculpt_neo: {
     deviceId: "energy_emsculpt_neo",
     defaultRfMode: "HIFEM + synchronized RF",
-    availableHandpieces: ["Large (abdomen/buttocks)", "Small (arms/calves)", "Edge (obliques)"],
+    availableHandpieces: [
+      "Large (abdomen/buttocks)",
+      "Small (arms/calves)",
+      "Edge (obliques)",
+    ],
   },
 };
 

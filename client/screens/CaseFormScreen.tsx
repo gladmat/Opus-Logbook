@@ -622,175 +622,190 @@ export default function CaseFormScreen() {
       onFieldBlur={onFieldBlur}
     >
       <View testID="screen-caseForm" style={styles.container}>
-      {!reviewMode ? (
-        <View
-          style={[
-            styles.navBarContainer,
+        {!reviewMode ? (
+          <View
+            style={[
+              styles.navBarContainer,
+              {
+                top: 0,
+                backgroundColor: theme.backgroundRoot,
+              },
+            ]}
+          >
+            <SectionNavBar
+              activeSection={activeSection}
+              completionMap={completionMap}
+              onSectionPress={handleSectionPress}
+            />
+          </View>
+        ) : null}
+
+        <KeyboardAwareScrollViewCompat
+          ref={scrollViewRef}
+          style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
+          contentContainerStyle={[
+            styles.content,
             {
-              top: 0,
-              backgroundColor: theme.backgroundRoot,
+              paddingTop: reviewMode ? Spacing.lg : NAV_BAR_HEIGHT + Spacing.lg,
+              paddingBottom: insets.bottom + Spacing["3xl"],
             },
           ]}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
         >
-          <SectionNavBar
-            activeSection={activeSection}
-            completionMap={completionMap}
-            onSectionPress={handleSectionPress}
-          />
-        </View>
-      ) : null}
-
-      <KeyboardAwareScrollViewCompat
-        ref={scrollViewRef}
-        style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
-        contentContainerStyle={[
-          styles.content,
-          {
-            paddingTop: reviewMode ? Spacing.lg : NAV_BAR_HEIGHT + Spacing.lg,
-            paddingBottom: insets.bottom + Spacing["3xl"],
-          },
-        ]}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-      >
-        {reviewMode ? (
-          <CaseSummaryView
-            onEdit={handleEditFromSummary}
-            onConfirmSave={onSave}
-            onBackToEdit={handleBackToEdit}
-            saving={form.state.saving}
-          />
-        ) : (
-          <>
-            {showDuplicateBanner ? (
-              <View
-                style={[
-                  styles.duplicateBanner,
-                  {
-                    backgroundColor: theme.info + "10",
-                    borderColor: theme.info + "40",
-                  },
-                ]}
-              >
-                <View style={styles.duplicateBannerContent}>
-                  <Feather name="copy" size={16} color={theme.info} />
-                  <ThemedText
-                    style={[styles.duplicateBannerText, { color: theme.info }]}
-                  >
-                    {skinCancerFollowUpPrefill
-                      ? "Skin cancer follow-up pre-filled from the current case. Verify the carried-forward histology and planned next-step procedure."
-                      : `Duplicated from case ${
-                          duplicateFrom?.procedureDate
-                            ? new Date(
-                                duplicateFrom.procedureDate,
-                              ).toLocaleDateString()
-                            : ""
-                        }. Verify all fields.`}
-                  </ThemedText>
-                </View>
-                <Pressable
-                  onPress={() => setShowDuplicateBanner(false)}
-                  hitSlop={8}
-                  style={styles.duplicateBannerClose}
+          {reviewMode ? (
+            <CaseSummaryView
+              onEdit={handleEditFromSummary}
+              onConfirmSave={onSave}
+              onBackToEdit={handleBackToEdit}
+              saving={form.state.saving}
+            />
+          ) : (
+            <>
+              {showDuplicateBanner ? (
+                <View
+                  style={[
+                    styles.duplicateBanner,
+                    {
+                      backgroundColor: theme.info + "10",
+                      borderColor: theme.info + "40",
+                    },
+                  ]}
                 >
-                  <Feather name="x" size={16} color={theme.info} />
-                </Pressable>
-              </View>
-            ) : null}
-
-            <SectionWrapper sectionId="patient" onLayout={handleSectionLayout}>
-              <PatientInfoSection />
-              {!form.isEditMode ? (
-                <EpisodeLinkBanner
-                  patientIdentifier={form.state.patientIdentifier}
-                  currentEpisodeId={form.state.episodeId}
-                  onLinkEpisode={handleLinkEpisode}
-                />
-              ) : null}
-            </SectionWrapper>
-
-            <SectionWrapper sectionId="team" onLayout={handleSectionLayout}>
-              <TeamSection />
-            </SectionWrapper>
-
-            <SectionWrapper sectionId="case" onLayout={handleSectionLayout}>
-              <CaseSection
-                scrollViewRef={scrollViewRef}
-                scrollPositionRef={scrollPositionRef}
-              />
-            </SectionWrapper>
-
-            <SectionWrapper
-              sectionId="operative"
-              onLayout={handleSectionLayout}
-            >
-              <OperativeSection />
-            </SectionWrapper>
-
-            <SectionWrapper sectionId="media" onLayout={handleSectionLayout}>
-              <SectionHeader
-                title="Operative Media"
-                subtitle="Photos, X-rays, and imaging"
-              />
-              <OperativeMediaSection
-                media={form.state.operativeMedia}
-                onMediaChange={(media) =>
-                  form.dispatch(setField("operativeMedia", media))
-                }
-                maxItems={15}
-                mediaContext={mediaContext}
-              />
-            </SectionWrapper>
-
-            <SectionWrapper sectionId="outcomes" onLayout={handleSectionLayout}>
-              <OutcomesSection
-                infectionOverlay={form.state.infectionOverlay ?? undefined}
-                onInfectionChange={(v) =>
-                  form.dispatch(setField("infectionOverlay", v))
-                }
-                infectionCollapsed={form.state.infectionCollapsed}
-                onInfectionToggle={() =>
-                  form.dispatch(
-                    setField(
-                      "infectionCollapsed",
-                      !form.state.infectionCollapsed,
-                    ),
-                  )
-                }
-              />
-            </SectionWrapper>
-
-            <View style={styles.buttonContainer}>
-              <Button onPress={handleReviewPress} disabled={form.state.saving}>
-                Review Case
-              </Button>
-            </View>
-
-            {validationErrors.length > 0 ? (
-              <View
-                style={[
-                  styles.validationErrors,
-                  {
-                    backgroundColor: theme.error + "10",
-                    borderColor: theme.error + "40",
-                  },
-                ]}
-              >
-                {validationErrors.map((err, i) => (
-                  <ThemedText
-                    key={i}
-                    style={[styles.validationErrorText, { color: theme.error }]}
+                  <View style={styles.duplicateBannerContent}>
+                    <Feather name="copy" size={16} color={theme.info} />
+                    <ThemedText
+                      style={[
+                        styles.duplicateBannerText,
+                        { color: theme.info },
+                      ]}
+                    >
+                      {skinCancerFollowUpPrefill
+                        ? "Skin cancer follow-up pre-filled from the current case. Verify the carried-forward histology and planned next-step procedure."
+                        : `Duplicated from case ${
+                            duplicateFrom?.procedureDate
+                              ? new Date(
+                                  duplicateFrom.procedureDate,
+                                ).toLocaleDateString()
+                              : ""
+                          }. Verify all fields.`}
+                    </ThemedText>
+                  </View>
+                  <Pressable
+                    onPress={() => setShowDuplicateBanner(false)}
+                    hitSlop={8}
+                    style={styles.duplicateBannerClose}
                   >
-                    {err.message}
-                  </ThemedText>
-                ))}
-              </View>
-            ) : null}
-          </>
-        )}
-      </KeyboardAwareScrollViewCompat>
+                    <Feather name="x" size={16} color={theme.info} />
+                  </Pressable>
+                </View>
+              ) : null}
 
-      {!reviewMode ? <KeyboardToolbar /> : null}
+              <SectionWrapper
+                sectionId="patient"
+                onLayout={handleSectionLayout}
+              >
+                <PatientInfoSection />
+                {!form.isEditMode ? (
+                  <EpisodeLinkBanner
+                    patientIdentifier={form.state.patientIdentifier}
+                    currentEpisodeId={form.state.episodeId}
+                    onLinkEpisode={handleLinkEpisode}
+                  />
+                ) : null}
+              </SectionWrapper>
+
+              <SectionWrapper sectionId="team" onLayout={handleSectionLayout}>
+                <TeamSection />
+              </SectionWrapper>
+
+              <SectionWrapper sectionId="case" onLayout={handleSectionLayout}>
+                <CaseSection
+                  scrollViewRef={scrollViewRef}
+                  scrollPositionRef={scrollPositionRef}
+                />
+              </SectionWrapper>
+
+              <SectionWrapper
+                sectionId="operative"
+                onLayout={handleSectionLayout}
+              >
+                <OperativeSection />
+              </SectionWrapper>
+
+              <SectionWrapper sectionId="media" onLayout={handleSectionLayout}>
+                <SectionHeader
+                  title="Operative Media"
+                  subtitle="Photos, X-rays, and imaging"
+                />
+                <OperativeMediaSection
+                  media={form.state.operativeMedia}
+                  onMediaChange={(media) =>
+                    form.dispatch(setField("operativeMedia", media))
+                  }
+                  maxItems={15}
+                  mediaContext={mediaContext}
+                />
+              </SectionWrapper>
+
+              <SectionWrapper
+                sectionId="outcomes"
+                onLayout={handleSectionLayout}
+              >
+                <OutcomesSection
+                  infectionOverlay={form.state.infectionOverlay ?? undefined}
+                  onInfectionChange={(v) =>
+                    form.dispatch(setField("infectionOverlay", v))
+                  }
+                  infectionCollapsed={form.state.infectionCollapsed}
+                  onInfectionToggle={() =>
+                    form.dispatch(
+                      setField(
+                        "infectionCollapsed",
+                        !form.state.infectionCollapsed,
+                      ),
+                    )
+                  }
+                />
+              </SectionWrapper>
+
+              <View style={styles.buttonContainer}>
+                <Button
+                  onPress={handleReviewPress}
+                  disabled={form.state.saving}
+                >
+                  Review Case
+                </Button>
+              </View>
+
+              {validationErrors.length > 0 ? (
+                <View
+                  style={[
+                    styles.validationErrors,
+                    {
+                      backgroundColor: theme.error + "10",
+                      borderColor: theme.error + "40",
+                    },
+                  ]}
+                >
+                  {validationErrors.map((err, i) => (
+                    <ThemedText
+                      key={i}
+                      style={[
+                        styles.validationErrorText,
+                        { color: theme.error },
+                      ]}
+                    >
+                      {err.message}
+                    </ThemedText>
+                  ))}
+                </View>
+              ) : null}
+            </>
+          )}
+        </KeyboardAwareScrollViewCompat>
+
+        {!reviewMode ? <KeyboardToolbar /> : null}
       </View>
     </CaseFormProvider>
   );

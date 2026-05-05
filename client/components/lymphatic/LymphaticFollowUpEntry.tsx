@@ -6,12 +6,7 @@
  */
 
 import React, { useCallback, useState } from "react";
-import {
-  View,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-} from "react-native";
+import { View, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { SectionWrapper } from "@/components/shared/SectionWrapper";
 import { useTheme } from "@/hooks/useTheme";
@@ -240,7 +235,9 @@ export const LymphaticFollowUpEntry = React.memo(
         {/* L-Dex re-measurement */}
         <View style={[styles.fieldRow, { marginTop: Spacing.md }]}>
           <View style={styles.fieldHalf}>
-            <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.fieldLabel, { color: theme.textSecondary }]}
+            >
               Current L-Dex
             </ThemedText>
             <TextInput
@@ -263,7 +260,9 @@ export const LymphaticFollowUpEntry = React.memo(
             />
           </View>
           <View style={styles.fieldHalf}>
-            <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.fieldLabel, { color: theme.textSecondary }]}
+            >
               Cellulitis episodes
             </ThemedText>
             <TextInput
@@ -308,7 +307,9 @@ export const LymphaticFollowUpEntry = React.memo(
 
         {showICG && (
           <View style={{ marginTop: Spacing.xs }}>
-            <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.fieldLabel, { color: theme.textSecondary }]}
+            >
               ICG stage
             </ThemedText>
             <ChipRow
@@ -360,16 +361,24 @@ export const LymphaticFollowUpEntry = React.memo(
         <View
           style={[
             styles.lymqolCard,
-            { backgroundColor: theme.backgroundSecondary, borderColor: theme.border },
+            {
+              backgroundColor: theme.backgroundSecondary,
+              borderColor: theme.border,
+            },
           ]}
         >
           <ThemedText style={[styles.lymqolTitle, { color: theme.text }]}>
             LYMQOL ({lymqol?.version === "arm" ? "Arm" : "Leg"})
           </ThemedText>
           <ThemedText
-            style={{ color: theme.textTertiary, fontSize: 11, marginBottom: Spacing.sm }}
+            style={{
+              color: theme.textTertiary,
+              fontSize: 11,
+              marginBottom: Spacing.sm,
+            }}
           >
-            Domain scores 1-4 (higher = worse). Overall QoL 0-10 (higher = better).
+            Domain scores 1-4 (higher = worse). Overall QoL 0-10 (higher =
+            better).
           </ThemedText>
 
           {/* Version toggle */}
@@ -385,7 +394,9 @@ export const LymphaticFollowUpEntry = React.memo(
           {/* Domain scores */}
           <View style={[styles.fieldRow, { marginTop: Spacing.sm }]}>
             <View style={styles.fieldHalf}>
-              <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[styles.fieldLabel, { color: theme.textSecondary }]}
+              >
                 Function (1-4)
               </ThemedText>
               <TextInput
@@ -401,9 +412,7 @@ export const LymphaticFollowUpEntry = React.memo(
                 placeholder="1.0"
                 placeholderTextColor={theme.textTertiary}
                 value={
-                  lymqol?.functionDomain
-                    ? String(lymqol.functionDomain)
-                    : ""
+                  lymqol?.functionDomain ? String(lymqol.functionDomain) : ""
                 }
                 onChangeText={(v) => {
                   const n = parseFloat(v);
@@ -412,7 +421,9 @@ export const LymphaticFollowUpEntry = React.memo(
               />
             </View>
             <View style={styles.fieldHalf}>
-              <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[styles.fieldLabel, { color: theme.textSecondary }]}
+              >
                 Appearance (1-4)
               </ThemedText>
               <TextInput
@@ -442,7 +453,9 @@ export const LymphaticFollowUpEntry = React.memo(
 
           <View style={[styles.fieldRow, { marginTop: Spacing.xs }]}>
             <View style={styles.fieldHalf}>
-              <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[styles.fieldLabel, { color: theme.textSecondary }]}
+              >
                 Symptoms (1-4)
               </ThemedText>
               <TextInput
@@ -458,9 +471,7 @@ export const LymphaticFollowUpEntry = React.memo(
                 placeholder="1.0"
                 placeholderTextColor={theme.textTertiary}
                 value={
-                  lymqol?.symptomsDomain
-                    ? String(lymqol.symptomsDomain)
-                    : ""
+                  lymqol?.symptomsDomain ? String(lymqol.symptomsDomain) : ""
                 }
                 onChangeText={(v) => {
                   const n = parseFloat(v);
@@ -469,7 +480,9 @@ export const LymphaticFollowUpEntry = React.memo(
               />
             </View>
             <View style={styles.fieldHalf}>
-              <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[styles.fieldLabel, { color: theme.textSecondary }]}
+              >
                 Mood (1-4)
               </ThemedText>
               <TextInput
@@ -484,9 +497,7 @@ export const LymphaticFollowUpEntry = React.memo(
                 keyboardType="decimal-pad"
                 placeholder="1.0"
                 placeholderTextColor={theme.textTertiary}
-                value={
-                  lymqol?.moodDomain ? String(lymqol.moodDomain) : ""
-                }
+                value={lymqol?.moodDomain ? String(lymqol.moodDomain) : ""}
                 onChangeText={(v) => {
                   const n = parseFloat(v);
                   updateLymqol({ moodDomain: isNaN(n) ? 0 : n });
@@ -496,7 +507,9 @@ export const LymphaticFollowUpEntry = React.memo(
           </View>
 
           <View style={{ marginTop: Spacing.xs }}>
-            <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.fieldLabel, { color: theme.textSecondary }]}
+            >
               Overall QoL (0-10)
             </ThemedText>
             <TextInput
@@ -512,9 +525,7 @@ export const LymphaticFollowUpEntry = React.memo(
               keyboardType="decimal-pad"
               placeholder="7"
               placeholderTextColor={theme.textTertiary}
-              value={
-                lymqol?.overallQoL ? String(lymqol.overallQoL) : ""
-              }
+              value={lymqol?.overallQoL ? String(lymqol.overallQoL) : ""}
               onChangeText={(v) => {
                 const n = parseFloat(v);
                 updateLymqol({ overallQoL: isNaN(n) ? 0 : n });

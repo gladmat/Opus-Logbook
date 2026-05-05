@@ -9,10 +9,7 @@
 
 import type { InboxItem } from "@/types/inbox";
 import type { MediaTag } from "@/types/media";
-import type {
-  OperativeMediaItem,
-  Case,
-} from "@/types/case";
+import type { OperativeMediaItem, Case } from "@/types/case";
 import { ALL_PROTOCOLS, type CaptureStep } from "@/data/mediaCaptureProtocols";
 import { suggestTemporalTag } from "@/lib/mediaTagHelpers";
 import { hashPatientIdentifierHmac } from "@/lib/patientIdentifierHmac";

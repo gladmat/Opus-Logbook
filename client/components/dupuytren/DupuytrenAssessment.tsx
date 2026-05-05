@@ -69,7 +69,12 @@ const PATTERN_LABELS: Record<
 
 function tubianaBarColor(
   stage: TubianaStage,
-  theme: { success: string; warning: string; error: string; textTertiary: string },
+  theme: {
+    success: string;
+    warning: string;
+    error: string;
+    textTertiary: string;
+  },
 ): string {
   switch (stage) {
     case "N":
@@ -280,7 +285,13 @@ function DegreeStepper({
 
 // ── Tubiana Stage Badge ──────────────────────────────────────────────────────
 
-function TubianaBadge({ stage, total }: { stage: TubianaStage; total: number }) {
+function TubianaBadge({
+  stage,
+  total,
+}: {
+  stage: TubianaStage;
+  total: number;
+}) {
   const { theme } = useTheme();
   const isZero = stage === "N";
   return (
@@ -321,9 +332,10 @@ function RayCard({
   const [showDip, setShowDip] = useState(!!ray.dipExtensionDeficit);
 
   const barColor = tubianaBarColor(ray.tubianaStage, theme);
-  const barWidth = ray.totalExtensionDeficit > 0
-    ? Math.min(1, ray.totalExtensionDeficit / 180)
-    : 0;
+  const barWidth =
+    ray.totalExtensionDeficit > 0
+      ? Math.min(1, ray.totalExtensionDeficit / 180)
+      : 0;
 
   return (
     <View
@@ -375,9 +387,7 @@ function RayCard({
           size={16}
           color={showDip ? theme.link : theme.textTertiary}
         />
-        <ThemedText
-          style={{ fontSize: 12, color: theme.textTertiary }}
-        >
+        <ThemedText style={{ fontSize: 12, color: theme.textTertiary }}>
           DIP involved (rare)
         </ThemedText>
       </Pressable>
@@ -413,11 +423,7 @@ function RayCard({
 
 // ── Summary Card ─────────────────────────────────────────────────────────────
 
-function SummaryCard({
-  assessment,
-}: {
-  assessment: DupuytrenAssessmentType;
-}) {
+function SummaryCard({ assessment }: { assessment: DupuytrenAssessmentType }) {
   const { theme } = useTheme();
 
   if (assessment.rays.length === 0) return null;
@@ -434,9 +440,7 @@ function SummaryCard({
         { backgroundColor: theme.backgroundTertiary },
       ]}
     >
-      <ThemedText
-        style={[styles.summaryTitle, { color: theme.textSecondary }]}
-      >
+      <ThemedText style={[styles.summaryTitle, { color: theme.textSecondary }]}>
         ASSESSMENT SUMMARY
       </ThemedText>
       <ThemedText style={{ fontSize: 14, color: theme.text }}>
@@ -506,9 +510,7 @@ function YearPicker({
 
   return (
     <View style={{ gap: Spacing.xs }}>
-      <ThemedText
-        style={[styles.fieldLabel, { color: theme.textSecondary }]}
-      >
+      <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
         Approximate year
       </ThemedText>
       <ScrollView
@@ -550,9 +552,7 @@ function YearPicker({
       </ScrollView>
       {!showEarlier ? (
         <Pressable onPress={() => setShowEarlier(true)}>
-          <ThemedText
-            style={{ fontSize: 12, color: theme.link }}
-          >
+          <ThemedText style={{ fontSize: 12, color: theme.link }}>
             Show earlier years
           </ThemedText>
         </Pressable>
@@ -571,7 +571,10 @@ export const DupuytrenAssessment = React.memo(function DupuytrenAssessment({
 }: DupuytrenAssessmentProps) {
   const { theme } = useTheme();
   const [showPreviousTreatment, setShowPreviousTreatment] = useState(
-    !!(value?.previousTreatment?.procedureType || value?.previousTreatment?.approximateDate),
+    !!(
+      value?.previousTreatment?.procedureType ||
+      value?.previousTreatment?.approximateDate
+    ),
   );
   const [showDiathesis, setShowDiathesis] = useState(
     !!(
@@ -612,7 +615,8 @@ export const DupuytrenAssessment = React.memo(function DupuytrenAssessment({
     } else {
       const newRay = buildRayAssessment(fingerId, 0, 0);
       const newRays = [...assessment.rays, newRay].sort(
-        (a, b) => FINGER_ORDER.indexOf(a.fingerId) - FINGER_ORDER.indexOf(b.fingerId),
+        (a, b) =>
+          FINGER_ORDER.indexOf(a.fingerId) - FINGER_ORDER.indexOf(b.fingerId),
       );
       emitChange({ ...assessment, rays: newRays });
     }
@@ -693,9 +697,7 @@ export const DupuytrenAssessment = React.memo(function DupuytrenAssessment({
         >
           AFFECTED FINGERS
         </ThemedText>
-        <ThemedText
-          style={[styles.sectionHint, { color: theme.textTertiary }]}
-        >
+        <ThemedText style={[styles.sectionHint, { color: theme.textTertiary }]}>
           Tap to add rays
         </ThemedText>
         <View style={styles.chipRow}>
@@ -745,12 +747,14 @@ export const DupuytrenAssessment = React.memo(function DupuytrenAssessment({
       <SummaryCard assessment={assessment} />
 
       {/* First web space toggle */}
-      <Pressable onPress={toggleWebSpace} style={styles.toggleRow} testID="caseForm.dupuytren.toggle-firstWebSpace">
+      <Pressable
+        onPress={toggleWebSpace}
+        style={styles.toggleRow}
+        testID="caseForm.dupuytren.toggle-firstWebSpace"
+      >
         <Feather
           name={
-            assessment.firstWebSpace?.isAffected
-              ? "check-square"
-              : "square"
+            assessment.firstWebSpace?.isAffected ? "check-square" : "square"
           }
           size={18}
           color={
@@ -807,9 +811,7 @@ export const DupuytrenAssessment = React.memo(function DupuytrenAssessment({
           <Pressable onPress={togglePalmCord} style={styles.toggleRow}>
             <Feather
               name={
-                assessment.palmInvolvement?.hasCord
-                  ? "check-square"
-                  : "square"
+                assessment.palmInvolvement?.hasCord ? "check-square" : "square"
               }
               size={18}
               color={
@@ -845,10 +847,7 @@ export const DupuytrenAssessment = React.memo(function DupuytrenAssessment({
             style={styles.collapsibleHeader}
           >
             <ThemedText
-              style={[
-                styles.collapsibleTitle,
-                { color: theme.textSecondary },
-              ]}
+              style={[styles.collapsibleTitle, { color: theme.textSecondary }]}
             >
               Previous treatment
             </ThemedText>
@@ -878,9 +877,7 @@ export const DupuytrenAssessment = React.memo(function DupuytrenAssessment({
                     <Pressable
                       key={key}
                       onPress={() => {
-                        Haptics.impactAsync(
-                          Haptics.ImpactFeedbackStyle.Light,
-                        );
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                         updatePreviousTreatment({
                           ...assessment.previousTreatment,
                           procedureType: isSelected ? undefined : key,
@@ -892,9 +889,7 @@ export const DupuytrenAssessment = React.memo(function DupuytrenAssessment({
                           backgroundColor: isSelected
                             ? `${theme.link}18`
                             : theme.backgroundTertiary,
-                          borderColor: isSelected
-                            ? theme.link
-                            : theme.border,
+                          borderColor: isSelected ? theme.link : theme.border,
                         },
                       ]}
                     >
@@ -939,10 +934,7 @@ export const DupuytrenAssessment = React.memo(function DupuytrenAssessment({
         >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <ThemedText
-              style={[
-                styles.collapsibleTitle,
-                { color: theme.textSecondary },
-              ]}
+              style={[styles.collapsibleTitle, { color: theme.textSecondary }]}
             >
               Diathesis features
             </ThemedText>
@@ -977,19 +969,19 @@ export const DupuytrenAssessment = React.memo(function DupuytrenAssessment({
               [
                 ["familyHistory", "Family history"],
                 ["bilateralDisease", "Bilateral disease"],
-                ["ectopicLesions", "Ectopic lesions (Garrod / Peyronie / Ledderhose)"],
+                [
+                  "ectopicLesions",
+                  "Ectopic lesions (Garrod / Peyronie / Ledderhose)",
+                ],
                 ["onsetBeforeAge50", "Onset before age 50"],
               ] as const
             ).map(([key, label]) => {
-              const isChecked =
-                !!(assessment.diathesis as any)?.[key];
+              const isChecked = !!(assessment.diathesis as any)?.[key];
               return (
                 <Pressable
                   key={key}
                   onPress={() => {
-                    Haptics.impactAsync(
-                      Haptics.ImpactFeedbackStyle.Light,
-                    );
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     updateDiathesis({
                       ...(assessment.diathesis ?? {}),
                       [key]: !isChecked,

@@ -4,7 +4,11 @@ import type {
   BreastReconstructionMeta,
   BreastReconPrimaryType,
 } from "@/types/breast";
-import type { TreatmentEpisode, EpisodeType, PendingAction } from "@/types/episode";
+import type {
+  TreatmentEpisode,
+  EpisodeType,
+  PendingAction,
+} from "@/types/episode";
 import { normalizeBreastAssessment } from "@/lib/breastState";
 
 // ── Override type for surgeon-editable episode fields ────────────────────────
@@ -269,9 +273,7 @@ export function buildBreastEpisodeCreatePlan(
 
   const autoPendingAction: PendingAction | undefined =
     target.assessment.lipofilling ||
-    Object.values(target.assessment.sides).some(
-      (side) => side?.nippleDetails,
-    )
+    Object.values(target.assessment.sides).some((side) => side?.nippleDetails)
       ? "staged_procedure_planned"
       : "awaiting_reconstruction";
 
@@ -361,8 +363,7 @@ export function suggestNextBreastPendingAction(
       s?.implantDetails?.deviceType === "expander_implant",
   );
   const hasDefinitiveImplant = sides.some(
-    (s) =>
-      s?.implantDetails?.deviceType === "permanent_implant",
+    (s) => s?.implantDetails?.deviceType === "permanent_implant",
   );
   const hasFlap = sides.some((s) => !!s?.flapDetails);
 

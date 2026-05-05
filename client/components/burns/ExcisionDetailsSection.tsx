@@ -64,14 +64,16 @@ export const ExcisionDetailsSection = React.memo(
 
     // Constrain excised TBSA to total
     const maxTBSA = tbsaData?.totalTBSA ?? 100;
-    const availableRegions: TBSARegion[] =
-      tbsaData?.regionsAffected ?? [];
+    const availableRegions: TBSARegion[] = tbsaData?.regionsAffected ?? [];
 
     return (
       <View
         style={[
           styles.container,
-          { backgroundColor: theme.backgroundElevated, borderColor: theme.border },
+          {
+            backgroundColor: theme.backgroundElevated,
+            borderColor: theme.border,
+          },
         ]}
       >
         <View style={styles.headerRow}>
@@ -83,7 +85,9 @@ export const ExcisionDetailsSection = React.memo(
 
         {/* TBSA excised this operation */}
         <View style={styles.fieldRow}>
-          <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
             TBSA excised
           </ThemedText>
           <StepperControl
@@ -100,7 +104,9 @@ export const ExcisionDetailsSection = React.memo(
         {/* Regions excised */}
         {availableRegions.length > 0 ? (
           <View style={styles.fieldGroup}>
-            <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.fieldLabel, { color: theme.textSecondary }]}
+            >
               Regions excised
             </ThemedText>
             <View style={styles.chipRow}>
@@ -145,7 +151,9 @@ export const ExcisionDetailsSection = React.memo(
 
         {/* Excision depth */}
         <View style={styles.fieldGroup}>
-          <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
             Excision depth
           </ThemedText>
           <View style={styles.chipRow}>
@@ -186,7 +194,9 @@ export const ExcisionDetailsSection = React.memo(
         {!showMore ? (
           <TouchableOpacity
             onPress={() => {
-              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              LayoutAnimation.configureNext(
+                LayoutAnimation.Presets.easeInEaseOut,
+              );
               setShowMore(true);
             }}
             style={styles.moreLink}
@@ -200,12 +210,16 @@ export const ExcisionDetailsSection = React.memo(
           <View style={styles.expandedSection}>
             {/* Blood loss */}
             <View style={styles.fieldRow}>
-              <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[styles.fieldLabel, { color: theme.textSecondary }]}
+              >
                 Est. blood loss
               </ThemedText>
               <StepperControl
                 value={value.estimatedBloodLossMl ?? 0}
-                onChange={(v) => update({ estimatedBloodLossMl: v || undefined })}
+                onChange={(v) =>
+                  update({ estimatedBloodLossMl: v || undefined })
+                }
                 min={0}
                 max={10000}
                 step={50}
@@ -216,7 +230,9 @@ export const ExcisionDetailsSection = React.memo(
 
             {/* Tourniquet */}
             <View style={styles.fieldRow}>
-              <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+              <ThemedText
+                style={[styles.fieldLabel, { color: theme.textSecondary }]}
+              >
                 Tourniquet used
               </ThemedText>
               <Switch
@@ -239,7 +255,9 @@ export const ExcisionDetailsSection = React.memo(
                 </ThemedText>
                 <StepperControl
                   value={value.tourniquetTimeMin ?? 0}
-                  onChange={(v) => update({ tourniquetTimeMin: v || undefined })}
+                  onChange={(v) =>
+                    update({ tourniquetTimeMin: v || undefined })
+                  }
                   min={0}
                   max={300}
                   step={5}

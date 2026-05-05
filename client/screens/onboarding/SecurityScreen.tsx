@@ -168,14 +168,11 @@ export function SecurityScreen({ onComplete, onBack }: Props) {
     }
   }, [pin]);
 
-  const handleToggleBiometric = useCallback(
-    async (value: boolean) => {
-      await setBiometricPreference(value);
-      setBiometricEnabled(value);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    },
-    [],
-  );
+  const handleToggleBiometric = useCallback(async (value: boolean) => {
+    await setBiometricPreference(value);
+    setBiometricEnabled(value);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, []);
 
   const handleComplete = async () => {
     setIsSubmitting(true);
@@ -204,7 +201,10 @@ export function SecurityScreen({ onComplete, onBack }: Props) {
   if (step === "enter_new" || step === "confirm_new") {
     return (
       <View style={[styles.root, { paddingBottom: insets.bottom + 20 }]}>
-        <StepHeader currentStep={5} onBack={step === "enter_new" ? onBack : undefined} />
+        <StepHeader
+          currentStep={5}
+          onBack={step === "enter_new" ? onBack : undefined}
+        />
 
         <View style={styles.pinContent}>
           {step === "enter_new" ? (
@@ -238,9 +238,7 @@ export function SecurityScreen({ onComplete, onBack }: Props) {
           </Animated.View>
 
           <View style={styles.errorContainer}>
-            {pinError ? (
-              <Text style={styles.errorText}>{pinError}</Text>
-            ) : null}
+            {pinError ? <Text style={styles.errorText}>{pinError}</Text> : null}
           </View>
 
           <View style={styles.keypad}>
@@ -292,7 +290,11 @@ export function SecurityScreen({ onComplete, onBack }: Props) {
       <View style={styles.doneContent}>
         <Reanimated.View entering={FadeInDown.duration(400)}>
           <View style={styles.successIcon}>
-            <FeatherIcon name="check-circle" size={48} color={palette.amber[600]} />
+            <FeatherIcon
+              name="check-circle"
+              size={48}
+              color={palette.amber[600]}
+            />
           </View>
 
           <Text style={styles.headline}>PIN set</Text>
@@ -314,9 +316,7 @@ export function SecurityScreen({ onComplete, onBack }: Props) {
                 size={22}
                 color="#AEAEB2"
               />
-              <Text style={styles.biometricLabel}>
-                Enable {biometricLabel}
-              </Text>
+              <Text style={styles.biometricLabel}>Enable {biometricLabel}</Text>
             </View>
             <Switch
               value={biometricEnabled}

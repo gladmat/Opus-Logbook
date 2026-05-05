@@ -57,7 +57,10 @@ export const LaserSection = React.memo(function LaserSection({
     <View
       style={[
         styles.container,
-        { backgroundColor: theme.backgroundElevated, borderColor: theme.border },
+        {
+          backgroundColor: theme.backgroundElevated,
+          borderColor: theme.border,
+        },
       ]}
     >
       <View style={styles.headerRow}>
@@ -116,7 +119,10 @@ export const LaserSection = React.memo(function LaserSection({
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               update({
-                treatmentAreaCm2: Math.max(0, (value.treatmentAreaCm2 ?? 0) - 10),
+                treatmentAreaCm2: Math.max(
+                  0,
+                  (value.treatmentAreaCm2 ?? 0) - 10,
+                ),
               });
             }}
             style={[styles.stepperBtn, { borderColor: theme.border }]}
@@ -213,7 +219,9 @@ export const LaserSection = React.memo(function LaserSection({
       {!showMore ? (
         <TouchableOpacity
           onPress={() => {
-            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            LayoutAnimation.configureNext(
+              LayoutAnimation.Presets.easeInEaseOut,
+            );
             setShowMore(true);
           }}
           style={styles.moreLink}
@@ -225,7 +233,9 @@ export const LaserSection = React.memo(function LaserSection({
         </TouchableOpacity>
       ) : (
         <View style={styles.expandedSection}>
-          <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
             Settings (device-specific)
           </ThemedText>
           <TextInput

@@ -841,8 +841,7 @@ const ORTH_DX_RECONSTRUCTION: DiagnosisPicklistEntry[] = [
   },
   {
     id: "orth_dx_periprosthetic_wound",
-    displayName:
-      "Periprosthetic / peri-implant infection — wound breakdown",
+    displayName: "Periprosthetic / peri-implant infection — wound breakdown",
     shortName: "Periprosthetic wound",
     snomedCtCode: "713593003", // VERIFY via Ontoserver — "Periprosthetic joint infection (disorder)"
     snomedCtDisplay: "Periprosthetic joint infection (disorder)",

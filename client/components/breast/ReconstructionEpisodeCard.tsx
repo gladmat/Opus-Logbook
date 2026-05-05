@@ -37,13 +37,25 @@ interface Props {
 }
 
 /** Breast-specific "what's next" options shown as tappable chips */
-const BREAST_NEXT_STEPS: { value: PendingAction; label: string; icon: string }[] = [
+const BREAST_NEXT_STEPS: {
+  value: PendingAction;
+  label: string;
+  icon: string;
+}[] = [
   { value: "awaiting_reconstruction", label: "Awaiting recon", icon: "clock" },
   { value: "expansion_in_progress", label: "Expansion", icon: "trending-up" },
-  { value: "awaiting_expander_exchange", label: "Awaiting exchange", icon: "refresh-cw" },
+  {
+    value: "awaiting_expander_exchange",
+    label: "Awaiting exchange",
+    icon: "refresh-cw",
+  },
   { value: "awaiting_fat_grafting", label: "Fat grafting", icon: "droplet" },
   { value: "awaiting_nipple_recon", label: "Nipple recon", icon: "target" },
-  { value: "awaiting_symmetrisation", label: "Symmetrisation", icon: "columns" },
+  {
+    value: "awaiting_symmetrisation",
+    label: "Symmetrisation",
+    icon: "columns",
+  },
   { value: "awaiting_tattoo", label: "Tattoo", icon: "edit-3" },
 ];
 
@@ -111,7 +123,8 @@ export const ReconstructionEpisodeCard = React.memo(
           title: title.trim(),
           episodeType: "staged_reconstruction",
           onsetDate,
-          pendingActions: pendingActions.length > 0 ? pendingActions : undefined,
+          pendingActions:
+            pendingActions.length > 0 ? pendingActions : undefined,
           pendingAction: pendingActions[0] || undefined,
         });
       } finally {
@@ -234,7 +247,7 @@ export const ReconstructionEpisodeCard = React.memo(
                     marginBottom: 6,
                   }}
                 >
-                  What's next?
+                  What&apos;s next?
                 </ThemedText>
                 <View style={styles.chipGrid}>
                   {BREAST_NEXT_STEPS.map((step) => {
@@ -256,18 +269,14 @@ export const ReconstructionEpisodeCard = React.memo(
                             backgroundColor: isSelected
                               ? theme.link + "18"
                               : theme.backgroundElevated,
-                            borderColor: isSelected
-                              ? theme.link
-                              : theme.border,
+                            borderColor: isSelected ? theme.link : theme.border,
                           },
                         ]}
                       >
                         <Feather
                           name={step.icon as any}
                           size={13}
-                          color={
-                            isSelected ? theme.link : theme.textSecondary
-                          }
+                          color={isSelected ? theme.link : theme.textSecondary}
                         />
                         <ThemedText
                           type="small"
@@ -285,10 +294,7 @@ export const ReconstructionEpisodeCard = React.memo(
                 </View>
               </View>
 
-              <Button
-                onPress={handleCreate}
-                disabled={saving || !title.trim()}
-              >
+              <Button onPress={handleCreate} disabled={saving || !title.trim()}>
                 {saving ? "Creating..." : "Create Pathway"}
               </Button>
             </View>

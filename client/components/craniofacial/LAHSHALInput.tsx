@@ -197,13 +197,10 @@ export function LAHSHALInput({ value, onChange }: LAHSHALInputProps) {
       {/* Legend */}
       <View style={styles.legend}>
         <View style={styles.legendItem}>
-          <View
-            style={[
-              styles.legendDot,
-              { backgroundColor: theme.link },
-            ]}
-          />
-          <ThemedText style={[styles.legendText, { color: theme.textTertiary }]}>
+          <View style={[styles.legendDot, { backgroundColor: theme.link }]} />
+          <ThemedText
+            style={[styles.legendText, { color: theme.textTertiary }]}
+          >
             Complete
           </ThemedText>
         </View>
@@ -218,7 +215,9 @@ export function LAHSHALInput({ value, onChange }: LAHSHALInputProps) {
               },
             ]}
           />
-          <ThemedText style={[styles.legendText, { color: theme.textTertiary }]}>
+          <ThemedText
+            style={[styles.legendText, { color: theme.textTertiary }]}
+          >
             Incomplete
           </ThemedText>
         </View>
@@ -229,7 +228,9 @@ export function LAHSHALInput({ value, onChange }: LAHSHALInputProps) {
               { backgroundColor: theme.backgroundTertiary },
             ]}
           />
-          <ThemedText style={[styles.legendText, { color: theme.textTertiary }]}>
+          <ThemedText
+            style={[styles.legendText, { color: theme.textTertiary }]}
+          >
             None
           </ThemedText>
         </View>
@@ -238,10 +239,7 @@ export function LAHSHALInput({ value, onChange }: LAHSHALInputProps) {
       {/* Notation badge */}
       {hasAny ? (
         <View
-          style={[
-            styles.notationBadge,
-            { backgroundColor: theme.link + "15" },
-          ]}
+          style={[styles.notationBadge, { backgroundColor: theme.link + "15" }]}
         >
           <ThemedText
             style={[styles.notationLabel, { color: theme.textSecondary }]}

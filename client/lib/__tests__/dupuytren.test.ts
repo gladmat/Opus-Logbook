@@ -146,9 +146,7 @@ describe("calculateDupuytrenSummary", () => {
       rays: [buildRayAssessment("ring", 45, 45)],
       isRevision: false,
     };
-    expect(calculateDupuytrenSummary(assessment).dominantPattern).toBe(
-      "mixed",
-    );
+    expect(calculateDupuytrenSummary(assessment).dominantPattern).toBe("mixed");
   });
 
   it("returns zero score for no rays", () => {

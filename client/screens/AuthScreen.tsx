@@ -364,7 +364,10 @@ export default function AuthScreen() {
               ? "Don't have an account?"
               : "Already have an account?"}
           </Text>
-          <Pressable onPress={toggleMode} testID="onboarding.auth.btn-toggleMode">
+          <Pressable
+            onPress={toggleMode}
+            testID="onboarding.auth.btn-toggleMode"
+          >
             <Text style={[styles.footerLink, { color: colors.link }]}>
               {mode === "login" ? "Sign Up" : "Sign In"}
             </Text>
@@ -393,7 +396,10 @@ export default function AuthScreen() {
               <Text style={[styles.modalTitle, { color: colors.text }]}>
                 Reset Password
               </Text>
-              <Pressable onPress={() => setShowForgotPasswordModal(false)} testID="onboarding.auth.btn-closeResetModal">
+              <Pressable
+                onPress={() => setShowForgotPasswordModal(false)}
+                testID="onboarding.auth.btn-closeResetModal"
+              >
                 <Feather name="x" size={24} color={colors.textSecondary} />
               </Pressable>
             </View>

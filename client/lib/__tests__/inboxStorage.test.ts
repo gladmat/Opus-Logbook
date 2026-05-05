@@ -60,8 +60,8 @@ vi.mock("../mediaStorage", () => ({
 
 // Mock HMAC module — return deterministic hash without Keychain access
 vi.mock("@/lib/patientIdentifierHmac", () => ({
-  hashPatientIdentifierHmac: vi.fn(async (id: string) =>
-    `hmac:${id.toUpperCase().trim()}`,
+  hashPatientIdentifierHmac: vi.fn(
+    async (id: string) => `hmac:${id.toUpperCase().trim()}`,
   ),
 }));
 

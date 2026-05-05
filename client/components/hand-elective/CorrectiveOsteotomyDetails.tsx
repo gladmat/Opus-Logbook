@@ -321,9 +321,7 @@ export const CorrectiveOsteotomyDetails = React.memo(
     );
 
     const renderLabel = (text: string) => (
-      <ThemedText
-        style={[styles.fieldLabel, { color: theme.textSecondary }]}
-      >
+      <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
         {text}
       </ThemedText>
     );
@@ -379,10 +377,8 @@ export const CorrectiveOsteotomyDetails = React.memo(
             {renderLabel("SITE")}
             <View style={styles.chipRow}>
               {siteOptions.map((s) =>
-                renderChip(
-                  siteLabels[s] ?? s,
-                  value.boneSite === s,
-                  () => setBoneSite(s),
+                renderChip(siteLabels[s] ?? s, value.boneSite === s, () =>
+                  setBoneSite(s),
                 ),
               )}
             </View>

@@ -72,4 +72,3 @@ describe("getPatientDisplayName", () => {
     expect(getPatientDisplayName({})).toBeUndefined();
   });
 });
-

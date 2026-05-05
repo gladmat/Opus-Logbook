@@ -85,7 +85,11 @@ export function FreeFlapSheet({
     <DetailModuleSheet
       visible={visible}
       title="Flap Details"
-      subtitle={breastContext ? `Breast free flap (${breastContext.side})` : "Free flap documentation"}
+      subtitle={
+        breastContext
+          ? `Breast free flap (${breastContext.side})`
+          : "Free flap documentation"
+      }
       onSave={handleSave}
       onCancel={onClose}
     >

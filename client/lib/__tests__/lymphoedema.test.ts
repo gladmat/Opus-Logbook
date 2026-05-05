@@ -100,8 +100,7 @@ describe("Lymphoedema diagnosis picklist", () => {
     expect(groups.primary).toBe(6);
     expect(groups.lipedema).toBe(2);
     // malformation + chylous combined or separate depends on implementation
-    const malformChylous =
-      (groups.malformation ?? 0) + (groups.chylous ?? 0);
+    const malformChylous = (groups.malformation ?? 0) + (groups.chylous ?? 0);
     expect(malformChylous).toBe(4);
     expect(groups.experimental).toBe(2);
   });
@@ -129,8 +128,7 @@ describe("Lymphoedema diagnosis picklist", () => {
 
 describe("Lymphoedema procedure picklist", () => {
   const lymphProcs = PROCEDURE_PICKLIST.filter(
-    (p) =>
-      typeof p.id === "string" && p.id.startsWith("lymph_"),
+    (p) => typeof p.id === "string" && p.id.startsWith("lymph_"),
   );
 
   it("has at least 25 lymphoedema procedures", () => {
@@ -196,8 +194,12 @@ describe("getLymphaticProcedureCategory", () => {
     expect(getLymphaticProcedureCategory("lymph_vlnt_submental")).toBe("vlnt");
     expect(getLymphaticProcedureCategory("lymph_vlnt_inguinal")).toBe("vlnt");
     expect(getLymphaticProcedureCategory("lymph_vlnt_other")).toBe("vlnt");
-    expect(getLymphaticProcedureCategory("lymph_combined_lva_vlnt")).toBe("vlnt");
-    expect(getLymphaticProcedureCategory("lymph_simultaneous_breast_vlnt")).toBe("vlnt");
+    expect(getLymphaticProcedureCategory("lymph_combined_lva_vlnt")).toBe(
+      "vlnt",
+    );
+    expect(
+      getLymphaticProcedureCategory("lymph_simultaneous_breast_vlnt"),
+    ).toBe("vlnt");
   });
 
   it("routes sapl correctly", () => {
@@ -205,13 +207,17 @@ describe("getLymphaticProcedureCategory", () => {
   });
 
   it("routes lipedema liposuction correctly", () => {
-    expect(getLymphaticProcedureCategory("lymph_lipo_lipedema")).toBe("lipo_lipedema");
+    expect(getLymphaticProcedureCategory("lymph_lipo_lipedema")).toBe(
+      "lipo_lipedema",
+    );
   });
 
   it("returns null for debulking/malformation procedures without specific routing", () => {
     expect(getLymphaticProcedureCategory("lymph_charles")).toBeNull();
     expect(getLymphaticProcedureCategory("lymph_malf_excision")).toBeNull();
-    expect(getLymphaticProcedureCategory("lymph_thoracic_duct_ligation")).toBeNull();
+    expect(
+      getLymphaticProcedureCategory("lymph_thoracic_duct_ligation"),
+    ).toBeNull();
   });
 });
 

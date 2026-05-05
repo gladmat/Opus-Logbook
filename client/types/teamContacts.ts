@@ -10,16 +10,14 @@
 
 export type TeamMemberOperativeRole = "PS" | "FA" | "SS" | "US" | "SA";
 
-export const TEAM_MEMBER_ROLE_LABELS: Record<
-  TeamMemberOperativeRole,
-  string
-> = {
-  PS: "Primary Surgeon",
-  FA: "First Assistant",
-  SS: "Scrubbed Supervisor",
-  US: "Unscrubbed Supervisor",
-  SA: "Surgical Assistant",
-};
+export const TEAM_MEMBER_ROLE_LABELS: Record<TeamMemberOperativeRole, string> =
+  {
+    PS: "Primary Surgeon",
+    FA: "First Assistant",
+    SS: "Scrubbed Supervisor",
+    US: "Unscrubbed Supervisor",
+    SA: "Surgical Assistant",
+  };
 
 export const TEAM_MEMBER_ROLE_SHORT: Record<TeamMemberOperativeRole, string> = {
   PS: "PS",

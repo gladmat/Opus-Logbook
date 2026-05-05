@@ -133,9 +133,7 @@ export async function getAllRevealedPairs(): Promise<
 // ── EPA targets (derived per-case after save) ─────────────────────────────────
 
 function epaTargetsKey(caseId: string): string {
-  return userScopedAsyncKey(
-    `${ASSESSMENT_KEYS.EPA_TARGETS_PREFIX}${caseId}`,
-  );
+  return userScopedAsyncKey(`${ASSESSMENT_KEYS.EPA_TARGETS_PREFIX}${caseId}`);
 }
 
 /** Save derived EPA assessment targets for a case. */

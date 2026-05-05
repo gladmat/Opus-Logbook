@@ -166,7 +166,10 @@ export default function EpisodeDetailScreen() {
       : 0;
 
   return (
-    <View testID="screen-episodeDetail" style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+    <View
+      testID="screen-episodeDetail"
+      style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
+    >
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
@@ -229,12 +232,11 @@ export default function EpisodeDetailScreen() {
           </View>
 
           {(() => {
-            const actions =
-              episode.pendingActions?.length
-                ? episode.pendingActions
-                : episode.pendingAction
-                  ? [episode.pendingAction]
-                  : [];
+            const actions = episode.pendingActions?.length
+              ? episode.pendingActions
+              : episode.pendingAction
+                ? [episode.pendingAction]
+                : [];
             return actions.length > 0 ? (
               <View style={styles.pendingRow}>
                 {actions.map((action) => (

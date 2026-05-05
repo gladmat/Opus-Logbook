@@ -91,7 +91,10 @@ function StepperField({
           onPress={decrement}
           style={[
             styles.stepperBtn,
-            { backgroundColor: theme.backgroundRoot, borderColor: theme.border },
+            {
+              backgroundColor: theme.backgroundRoot,
+              borderColor: theme.border,
+            },
           ]}
           disabled={current <= min}
         >
@@ -104,7 +107,10 @@ function StepperField({
         <View
           style={[
             styles.stepperValue,
-            { backgroundColor: theme.backgroundRoot, borderColor: theme.border },
+            {
+              backgroundColor: theme.backgroundRoot,
+              borderColor: theme.border,
+            },
           ]}
         >
           <ThemedText style={[styles.stepperValueText, { color: theme.text }]}>
@@ -116,7 +122,10 @@ function StepperField({
           onPress={increment}
           style={[
             styles.stepperBtn,
-            { backgroundColor: theme.backgroundRoot, borderColor: theme.border },
+            {
+              backgroundColor: theme.backgroundRoot,
+              borderColor: theme.border,
+            },
           ]}
           disabled={current >= max}
         >
@@ -278,7 +287,9 @@ export const TBSAQuickEntry = React.memo(function TBSAQuickEntry({
           style={styles.disclosureLink}
         >
           <Feather name="plus-circle" size={14} color={theme.link} />
-          <ThemedText style={[styles.disclosureLinkText, { color: theme.link }]}>
+          <ThemedText
+            style={[styles.disclosureLinkText, { color: theme.link }]}
+          >
             Add regional detail
           </ThemedText>
         </TouchableOpacity>

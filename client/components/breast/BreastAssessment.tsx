@@ -202,7 +202,9 @@ export const BreastAssessment = React.memo(function BreastAssessment({
 
   const isBilateral = assessment.laterality === "bilateral";
 
-  const sideRenderMode = hideContextSelector ? "modules_only" as const : "full" as const;
+  const sideRenderMode = hideContextSelector
+    ? ("modules_only" as const)
+    : ("full" as const);
 
   return (
     <View style={styles.container}>
@@ -275,7 +277,8 @@ export const BreastAssessment = React.memo(function BreastAssessment({
         // Show copy button only in bilateral mode when the OTHER side is empty/default
         const otherSide: BreastLaterality = side === "left" ? "right" : "left";
         const otherData = assessment.sides[otherSide];
-        const showCopy = !hideContextSelector && isBilateral && isBreastSideEmpty(otherData);
+        const showCopy =
+          !hideContextSelector && isBilateral && isBreastSideEmpty(otherData);
 
         return (
           <BreastSideCard

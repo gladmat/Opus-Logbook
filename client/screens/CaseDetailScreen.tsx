@@ -27,7 +27,10 @@ import { WoundAssessmentCard } from "@/components/WoundAssessmentCard";
 import { EncryptedImage } from "@/components/EncryptedImage";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, Shadows } from "@/constants/theme";
-import { TEAM_MEMBER_ROLE_LABELS, type TeamMemberOperativeRole } from "@/types/teamContacts";
+import {
+  TEAM_MEMBER_ROLE_LABELS,
+  type TeamMemberOperativeRole,
+} from "@/types/teamContacts";
 import {
   Case,
   TimelineEvent,
@@ -663,7 +666,10 @@ export default function CaseDetailScreen() {
     caseData.discussedAtMDM;
 
   return (
-    <View testID="screen-caseDetail" style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+    <View
+      testID="screen-caseDetail"
+      style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
+    >
       <ScrollView
         contentContainerStyle={[
           styles.content,
@@ -1315,11 +1321,15 @@ export default function CaseDetailScreen() {
                           {proc.lvaOperativeDetails.anaesthesiaType ? (
                             <DetailRow
                               label="Anaesthesia"
-                              value={proc.lvaOperativeDetails.anaesthesiaType.replace(/_/g, " ")}
+                              value={proc.lvaOperativeDetails.anaesthesiaType.replace(
+                                /_/g,
+                                " ",
+                              )}
                             />
                           ) : null}
                           {proc.lvaOperativeDetails.roboticAssistance &&
-                          proc.lvaOperativeDetails.roboticAssistance !== "none" ? (
+                          proc.lvaOperativeDetails.roboticAssistance !==
+                            "none" ? (
                             <DetailRow
                               label="Robotic Assistance"
                               value={proc.lvaOperativeDetails.roboticAssistance}
@@ -1328,7 +1338,9 @@ export default function CaseDetailScreen() {
                           {proc.lvaOperativeDetails.operativeTimeMinutes ? (
                             <DetailRow
                               label="Op Time"
-                              value={proc.lvaOperativeDetails.operativeTimeMinutes}
+                              value={
+                                proc.lvaOperativeDetails.operativeTimeMinutes
+                              }
                               unit="min"
                             />
                           ) : null}
@@ -1344,7 +1356,10 @@ export default function CaseDetailScreen() {
                         >
                           <DetailRow
                             label="VLNT Donor"
-                            value={proc.vlntDetails.donorSite.replace(/_/g, " ")}
+                            value={proc.vlntDetails.donorSite.replace(
+                              /_/g,
+                              " ",
+                            )}
                           />
                           {proc.vlntDetails.nodeCount ? (
                             <DetailRow
@@ -1376,7 +1391,10 @@ export default function CaseDetailScreen() {
                           {proc.saplDetails.technique ? (
                             <DetailRow
                               label="Technique"
-                              value={proc.saplDetails.technique.replace(/_/g, " ")}
+                              value={proc.saplDetails.technique.replace(
+                                /_/g,
+                                " ",
+                              )}
                             />
                           ) : null}
                         </View>
@@ -1638,14 +1656,12 @@ export default function CaseDetailScreen() {
                             ) ||
                             group.affectedFingers
                               .map(
-                                (f) =>
-                                  f.charAt(0).toUpperCase() + f.slice(1),
+                                (f) => f.charAt(0).toUpperCase() + f.slice(1),
                               )
                               .join(", ")
                           : group.affectedFingers
                               .map(
-                                (f) =>
-                                  f.charAt(0).toUpperCase() + f.slice(1),
+                                (f) => f.charAt(0).toUpperCase() + f.slice(1),
                               )
                               .join(", ")}
                       </ThemedText>
@@ -1686,8 +1702,7 @@ export default function CaseDetailScreen() {
                           → Tubiana {ray.tubianaStage}
                         </ThemedText>
                       ))}
-                      {group.dupuytrenAssessment.firstWebSpace
-                        ?.isAffected ? (
+                      {group.dupuytrenAssessment.firstWebSpace?.isAffected ? (
                         <ThemedText
                           style={[
                             styles.snomedCode,
@@ -2153,8 +2168,12 @@ export default function CaseDetailScreen() {
                   >
                     {member.abbreviatedName ?? member.displayName}
                   </ThemedText>
-                  <ThemedText style={[styles.detailValue, { color: theme.text }]}>
-                    {TEAM_MEMBER_ROLE_LABELS[member.operativeRole as TeamMemberOperativeRole] ?? member.operativeRole}
+                  <ThemedText
+                    style={[styles.detailValue, { color: theme.text }]}
+                  >
+                    {TEAM_MEMBER_ROLE_LABELS[
+                      member.operativeRole as TeamMemberOperativeRole
+                    ] ?? member.operativeRole}
                   </ThemedText>
                 </View>
               ))}

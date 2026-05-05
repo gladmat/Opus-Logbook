@@ -20,7 +20,10 @@ import {
   formatRoleDisplay,
   resolveSupervisionLevel,
 } from "@/types/operativeRole";
-import { getOsteotomySummary, OSTEOTOMY_PROCEDURE_IDS } from "@/types/osteotomy";
+import {
+  getOsteotomySummary,
+  OSTEOTOMY_PROCEDURE_IDS,
+} from "@/types/osteotomy";
 import {
   getImplantSummary as getBreastImplantSummary,
   getFlapSummary as getBreastFlapSummary,
@@ -111,7 +114,9 @@ function getCraniofacialSummary(caseData: Case): string {
     const cleft = ca.cleftClassification;
     if (cleft.veauClass) parts.push(`Veau ${cleft.veauClass}`);
     if (cleft.laterality)
-      parts.push(cleft.laterality.charAt(0).toUpperCase() + cleft.laterality.slice(1));
+      parts.push(
+        cleft.laterality.charAt(0).toUpperCase() + cleft.laterality.slice(1),
+      );
   }
 
   if (ca.craniosynostosisDetails) {
@@ -124,16 +129,25 @@ function getCraniofacialSummary(caseData: Case): string {
 
   if (ca.omensClassification) {
     const o = ca.omensClassification;
-    parts.push(`OMENS: O${o.orbit}M-${o.mandible}E${o.ear}N${o.nerve}S${o.softTissue}`);
+    parts.push(
+      `OMENS: O${o.orbit}M-${o.mandible}E${o.ear}N${o.nerve}S${o.softTissue}`,
+    );
   }
 
   const od = ca.operativeDetails;
   if (od.namedTechnique) parts.push(od.namedTechnique);
-  if (od.boneGraftDonor) parts.push(`Graft: ${od.boneGraftDonor.replace(/_/g, " ")}`);
+  if (od.boneGraftDonor)
+    parts.push(`Graft: ${od.boneGraftDonor.replace(/_/g, " ")}`);
 
   if (ca.outcomes?.speech?.vpcRating != null) {
-    const vpcLabels: Record<number, string> = { 0: "competent", 1: "borderline", 2: "incompetent" };
-    parts.push(`VPC: ${vpcLabels[ca.outcomes.speech.vpcRating] ?? ca.outcomes.speech.vpcRating}`);
+    const vpcLabels: Record<number, string> = {
+      0: "competent",
+      1: "borderline",
+      2: "incompetent",
+    };
+    parts.push(
+      `VPC: ${vpcLabels[ca.outcomes.speech.vpcRating] ?? ca.outcomes.speech.vpcRating}`,
+    );
   }
   if (ca.outcomes?.dental?.goslonScore) {
     parts.push(`GOSLON: ${ca.outcomes.dental.goslonScore}/5`);
@@ -154,18 +168,22 @@ function getPeripheralNerveSummary(caseData: Case): string {
   if (pn.nerveInjured) parts.push(NERVE_LABELS[pn.nerveInjured]);
   if (pn.sunderlandGrade) parts.push(`Sunderland ${pn.sunderlandGrade}`);
   if (pn.mechanism) parts.push(PN_MECHANISM_LABELS[pn.mechanism]);
-  if (pn.repairTechnique) parts.push(REPAIR_TECHNIQUE_LABELS[pn.repairTechnique]);
+  if (pn.repairTechnique)
+    parts.push(REPAIR_TECHNIQUE_LABELS[pn.repairTechnique]);
 
   if (pn.brachialPlexus) {
     const bp = pn.brachialPlexus;
-    if (bp.injuryPattern) parts.push(`BP: ${BP_PATTERN_LABELS[bp.injuryPattern]}`);
+    if (bp.injuryPattern)
+      parts.push(`BP: ${BP_PATTERN_LABELS[bp.injuryPattern]}`);
     if (bp.approach) parts.push(BP_APPROACH_LABELS[bp.approach]);
   }
 
   if (pn.neuroma) {
     const neuroma = pn.neuroma;
-    if (neuroma.aetiology) parts.push(NEUROMA_AETIOLOGY_LABELS[neuroma.aetiology]);
-    if (neuroma.technique) parts.push(NEUROMA_TECHNIQUE_LABELS[neuroma.technique]);
+    if (neuroma.aetiology)
+      parts.push(NEUROMA_AETIOLOGY_LABELS[neuroma.aetiology]);
+    if (neuroma.technique)
+      parts.push(NEUROMA_TECHNIQUE_LABELS[neuroma.technique]);
   }
 
   return parts.join(", ");
@@ -305,9 +323,14 @@ export function buildPdfHtml(cases: Case[], options: PdfExportOptions): string {
     if (primaryGroup?.dupuytrenAssessment?.rays?.length) {
       const da = primaryGroup.dupuytrenAssessment;
       const parts = [`Dupuytren: ${generateDupuytrenSummaryText(da)}`];
-      if (da.totalHandScore != null) parts.push(`score ${da.totalHandScore}/20`);
+      if (da.totalHandScore != null)
+        parts.push(`score ${da.totalHandScore}/20`);
       if (da.dominantPattern) {
-        const patternMap = { mcp_predominant: "MCP", pip_predominant: "PIP", mixed: "Mixed" };
+        const patternMap = {
+          mcp_predominant: "MCP",
+          pip_predominant: "PIP",
+          mixed: "Mixed",
+        };
         parts.push(patternMap[da.dominantPattern]);
       }
       if (da.diathesis && calculateDiathesisScore(da.diathesis) > 0) {
@@ -326,7 +349,9 @@ export function buildPdfHtml(cases: Case[], options: PdfExportOptions): string {
       .find(
         (p) =>
           p.picklistEntryId &&
-          (OSTEOTOMY_PROCEDURE_IDS as readonly string[]).includes(p.picklistEntryId) &&
+          (OSTEOTOMY_PROCEDURE_IDS as readonly string[]).includes(
+            p.picklistEntryId,
+          ) &&
           p.osteotomyDetails?.bone,
       );
     const osteotomySummary = osteotomyProc?.osteotomyDetails
@@ -384,7 +409,17 @@ export function buildPdfHtml(cases: Case[], options: PdfExportOptions): string {
       escapeHtml(primary?.diagnosis?.displayName || ""),
       escapeHtml(primaryProc?.procedureName || ""),
       escapeHtml(
-        [implantSummary, headNeckFlapSummary, dupuytrenSummary, osteotomySummary, craniofacialSummary, peripheralNerveSummary, lymphaticSummary].filter(Boolean).join("; "),
+        [
+          implantSummary,
+          headNeckFlapSummary,
+          dupuytrenSummary,
+          osteotomySummary,
+          craniofacialSummary,
+          peripheralNerveSummary,
+          lymphaticSummary,
+        ]
+          .filter(Boolean)
+          .join("; "),
       ),
       escapeHtml(complications),
       escapeHtml(c.outcome || ""),

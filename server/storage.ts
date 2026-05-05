@@ -99,9 +99,7 @@ export interface IStorage {
   getSharedInbox(
     userId: string,
     opts: { status?: string; limit: number; offset: number },
-  ): Promise<
-    (SharedCase & { ownerDisplayName: string | null })[]
-  >;
+  ): Promise<(SharedCase & { ownerDisplayName: string | null })[]>;
   getSharedOutbox(
     userId: string,
   ): Promise<(SharedCase & { recipientDisplayName: string | null })[]>;
@@ -657,10 +655,7 @@ export class DatabaseStorage implements IStorage {
   async createCaseAssessment(
     data: InsertCaseAssessment,
   ): Promise<CaseAssessment> {
-    const [created] = await db
-      .insert(caseAssessments)
-      .values(data)
-      .returning();
+    const [created] = await db.insert(caseAssessments).values(data).returning();
     return created!;
   }
 
@@ -814,10 +809,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPushTokensForUser(userId: string): Promise<PushToken[]> {
-    return db
-      .select()
-      .from(pushTokens)
-      .where(eq(pushTokens.userId, userId));
+    return db.select().from(pushTokens).where(eq(pushTokens.userId, userId));
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -845,10 +837,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTeamContact(data: InsertTeamContact): Promise<TeamContactRow> {
-    const [created] = await db
-      .insert(teamContacts)
-      .values(data)
-      .returning();
+    const [created] = await db.insert(teamContacts).values(data).returning();
     return created!;
   }
 

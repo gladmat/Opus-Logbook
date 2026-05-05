@@ -139,7 +139,9 @@ export function OMENSInput({ value, onChange }: OMENSInputProps) {
       if (key === "mandible") {
         update({ mandible: val as MandibleGrade });
       } else {
-        update({ [key]: Number(val) as NumericGrade } as Partial<OMENSClassification>);
+        update({
+          [key]: Number(val) as NumericGrade,
+        } as Partial<OMENSClassification>);
       }
     },
     [update],
@@ -191,10 +193,7 @@ export function OMENSInput({ value, onChange }: OMENSInputProps) {
                 </ThemedText>
                 {desc ? (
                   <ThemedText
-                    style={[
-                      styles.domainDesc,
-                      { color: theme.textTertiary },
-                    ]}
+                    style={[styles.domainDesc, { color: theme.textTertiary }]}
                   >
                     {desc}
                   </ThemedText>
@@ -251,9 +250,7 @@ export function OMENSInput({ value, onChange }: OMENSInputProps) {
               style={[
                 styles.chip,
                 {
-                  backgroundColor: sel
-                    ? theme.link
-                    : theme.backgroundTertiary,
+                  backgroundColor: sel ? theme.link : theme.backgroundTertiary,
                   borderColor: sel ? theme.link : theme.border,
                 },
               ]}
@@ -276,9 +273,7 @@ export function OMENSInput({ value, onChange }: OMENSInputProps) {
         style={styles.subSectionHeader}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          LayoutAnimation.configureNext(
-            LayoutAnimation.Presets.easeInEaseOut,
-          );
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
           setExtrasExpanded(!extrasExpanded);
         }}
       >
@@ -310,9 +305,7 @@ export function OMENSInput({ value, onChange }: OMENSInputProps) {
                 {item.label}
               </ThemedText>
               <Switch
-                value={
-                  (extras?.[item.key] as boolean | undefined) ?? false
-                }
+                value={(extras?.[item.key] as boolean | undefined) ?? false}
                 onValueChange={(v) => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   updateExtras({ [item.key]: v });
@@ -334,19 +327,14 @@ export function OMENSInput({ value, onChange }: OMENSInputProps) {
             placeholder="Other anomalies"
             placeholderTextColor={theme.textTertiary}
             value={extras?.other ?? ""}
-            onChangeText={(text) =>
-              updateExtras({ other: text || undefined })
-            }
+            onChangeText={(text) => updateExtras({ other: text || undefined })}
           />
         </View>
       ) : null}
 
       {/* OMENS string badge */}
       <View
-        style={[
-          styles.notationBadge,
-          { backgroundColor: theme.link + "15" },
-        ]}
+        style={[styles.notationBadge, { backgroundColor: theme.link + "15" }]}
       >
         <ThemedText
           style={[styles.notationLabel, { color: theme.textSecondary }]}

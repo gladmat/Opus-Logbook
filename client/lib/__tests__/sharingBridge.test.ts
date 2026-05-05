@@ -70,9 +70,7 @@ const LINKED_MEMBER_2: CaseTeamMember = {
   presentForProcedures: null,
 };
 
-const MOCK_KEYS = [
-  { deviceId: "dev-1", publicKey: "pk-1" },
-];
+const MOCK_KEYS = [{ deviceId: "dev-1", publicKey: "pk-1" }];
 
 const mockGetKeys = (userId: string) => {
   if (userId === "user-linked-1" || userId === "user-linked-3") {
@@ -137,11 +135,7 @@ describe("operativeTeam → share-on-save bridge", () => {
 
   it("skips linked member with no device keys", () => {
     const noKeysGetKeys = () => [] as { deviceId: string; publicKey: string }[];
-    const result = buildShareableMembers(
-      [],
-      [LINKED_MEMBER],
-      noKeysGetKeys,
-    );
+    const result = buildShareableMembers([], [LINKED_MEMBER], noKeysGetKeys);
     expect(result).toHaveLength(0);
   });
 

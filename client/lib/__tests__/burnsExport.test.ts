@@ -11,7 +11,10 @@ import {
   getBurnsPdfSummary,
 } from "../burnsExport";
 import type { DiagnosisGroup } from "../../types/case";
-import type { BurnsAssessmentData, BurnProcedureDetails } from "../../types/burns";
+import type {
+  BurnsAssessmentData,
+  BurnProcedureDetails,
+} from "../../types/burns";
 
 // ─── Test helpers ───────────────────────────────────────────────────────────
 
@@ -180,7 +183,10 @@ describe("buildBurnProcedureFhirExtension", () => {
     };
     const ext = buildBurnProcedureFhirExtension(details);
     expect(ext).toContainEqual({ url: "excisionTbsa", valueDecimal: 8 });
-    expect(ext).toContainEqual({ url: "excisionDepth", valueString: "viable_dermis" });
+    expect(ext).toContainEqual({
+      url: "excisionDepth",
+      valueString: "viable_dermis",
+    });
   });
 
   it("builds extensions for graft procedure", () => {
@@ -193,8 +199,14 @@ describe("buildBurnProcedureFhirExtension", () => {
       },
     };
     const ext = buildBurnProcedureFhirExtension(details);
-    expect(ext).toContainEqual({ url: "graftType", valueString: "stsg_meshed" });
-    expect(ext).toContainEqual({ url: "graftDonorSite", valueString: "thigh_anterior" });
+    expect(ext).toContainEqual({
+      url: "graftType",
+      valueString: "stsg_meshed",
+    });
+    expect(ext).toContainEqual({
+      url: "graftDonorSite",
+      valueString: "thigh_anterior",
+    });
     expect(ext).toContainEqual({ url: "meshRatio", valueString: "1:1.5" });
     expect(ext).toContainEqual({ url: "graftTake", valueDecimal: 90 });
   });
@@ -208,7 +220,10 @@ describe("buildBurnProcedureFhirExtension", () => {
       },
     };
     const ext = buildBurnProcedureFhirExtension(details);
-    expect(ext).toContainEqual({ url: "contractureJoint", valueString: "neck" });
+    expect(ext).toContainEqual({
+      url: "contractureJoint",
+      valueString: "neck",
+    });
     expect(ext).toContainEqual({ url: "romPreOp", valueDecimal: 20 });
     expect(ext).toContainEqual({ url: "romPostOp", valueDecimal: 80 });
   });

@@ -37,9 +37,7 @@ describe("moduleVisibility — aestheticAssessment", () => {
   it("returns true when any procedure has aes_ prefix", () => {
     const group = {
       ...baseGroup,
-      procedures: [
-        { picklistEntryId: "aes_inj_botox_upper_face", tags: [] },
-      ],
+      procedures: [{ picklistEntryId: "aes_inj_botox_upper_face", tags: [] }],
     } as unknown as DiagnosisGroup;
     const vis = getModuleVisibility(group);
     expect(vis.aestheticAssessment).toBe(true);
@@ -107,9 +105,7 @@ describe("getInterventionType", () => {
     expect(getInterventionType("aes_inj_biostim_sculptra")).toBe(
       "non_surgical_injectable",
     );
-    expect(getInterventionType("aes_inj_prp")).toBe(
-      "non_surgical_injectable",
-    );
+    expect(getInterventionType("aes_inj_prp")).toBe("non_surgical_injectable");
   });
 
   it("classifies energy procedures", () => {
@@ -119,12 +115,8 @@ describe("getInterventionType", () => {
     expect(getInterventionType("aes_skin_laser_ablative")).toBe(
       "non_surgical_energy",
     );
-    expect(getInterventionType("aes_energy_hifu")).toBe(
-      "non_surgical_energy",
-    );
-    expect(getInterventionType("aes_energy_ipl")).toBe(
-      "non_surgical_energy",
-    );
+    expect(getInterventionType("aes_energy_hifu")).toBe("non_surgical_energy");
+    expect(getInterventionType("aes_energy_ipl")).toBe("non_surgical_energy");
     expect(getInterventionType("aes_energy_cryolipolysis")).toBe(
       "non_surgical_energy",
     );
@@ -153,27 +145,27 @@ describe("getInterventionType", () => {
 
 describe("getAestheticIntentFromDiagnosis", () => {
   it("returns post_bariatric_mwl for post-bariatric diagnoses", () => {
-    expect(
-      getAestheticIntentFromDiagnosis("aes_dx_post_bariatric_body"),
-    ).toBe("post_bariatric_mwl");
-    expect(
-      getAestheticIntentFromDiagnosis("aes_dx_post_bariatric_arm"),
-    ).toBe("post_bariatric_mwl");
+    expect(getAestheticIntentFromDiagnosis("aes_dx_post_bariatric_body")).toBe(
+      "post_bariatric_mwl",
+    );
+    expect(getAestheticIntentFromDiagnosis("aes_dx_post_bariatric_arm")).toBe(
+      "post_bariatric_mwl",
+    );
   });
 
   it("returns functional_reconstructive for functional diagnoses", () => {
     expect(getAestheticIntentFromDiagnosis("aes_dx_panniculitis")).toBe(
       "functional_reconstructive",
     );
-    expect(
-      getAestheticIntentFromDiagnosis("aes_dx_nasal_functional"),
-    ).toBe("functional_reconstructive");
+    expect(getAestheticIntentFromDiagnosis("aes_dx_nasal_functional")).toBe(
+      "functional_reconstructive",
+    );
   });
 
   it("defaults to cosmetic for unrecognised diagnoses", () => {
-    expect(
-      getAestheticIntentFromDiagnosis("aes_dx_facelift_ageing"),
-    ).toBe("cosmetic");
+    expect(getAestheticIntentFromDiagnosis("aes_dx_facelift_ageing")).toBe(
+      "cosmetic",
+    );
     expect(getAestheticIntentFromDiagnosis("unknown_id")).toBe("cosmetic");
   });
 });
@@ -189,9 +181,7 @@ describe("getAcgmeCategory", () => {
   });
 
   it("classifies body procedures as trunk_extremity_aesthetic", () => {
-    expect(getAcgmeCategory("bc_abdo_full")).toBe(
-      "trunk_extremity_aesthetic",
-    );
+    expect(getAcgmeCategory("bc_abdo_full")).toBe("trunk_extremity_aesthetic");
     expect(getAcgmeCategory("bc_upper_brachioplasty")).toBe(
       "trunk_extremity_aesthetic",
     );
@@ -284,9 +274,9 @@ describe("energy device catalogue", () => {
   it("getEnergyDevicesBySubcategory filters correctly", () => {
     const rfDevices = getEnergyDevicesBySubcategory("rf_microneedling");
     expect(rfDevices.length).toBeGreaterThan(0);
-    expect(
-      rfDevices.every((d) => d.subcategory === "rf_microneedling"),
-    ).toBe(true);
+    expect(rfDevices.every((d) => d.subcategory === "rf_microneedling")).toBe(
+      true,
+    );
   });
 });
 
@@ -306,9 +296,9 @@ describe("post-bariatric intent detection", () => {
   });
 
   it("does not return post_bariatric_mwl for cosmetic diagnoses", () => {
-    expect(
-      getAestheticIntentFromDiagnosis("aes_dx_facelift_ageing"),
-    ).not.toBe("post_bariatric_mwl");
+    expect(getAestheticIntentFromDiagnosis("aes_dx_facelift_ageing")).not.toBe(
+      "post_bariatric_mwl",
+    );
   });
 });
 
@@ -320,9 +310,7 @@ describe("procedure-to-card-type mapping via getInterventionType", () => {
   });
 
   it("PRP → non_surgical_injectable", () => {
-    expect(getInterventionType("aes_inj_prp")).toBe(
-      "non_surgical_injectable",
-    );
+    expect(getInterventionType("aes_inj_prp")).toBe("non_surgical_injectable");
   });
 
   it("thread lift → non_surgical_skin_treatment", () => {

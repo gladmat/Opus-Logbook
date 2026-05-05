@@ -22,7 +22,10 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import type { BurnProcedureDetails, BurnContractureJoint } from "@/types/burns";
 import { CONTRACTURE_JOINT_LABELS } from "@/types/burns";
-import { calculateROMImprovement, getROMImprovementSeverity } from "@/lib/burnsConfig";
+import {
+  calculateROMImprovement,
+  getROMImprovementSeverity,
+} from "@/lib/burnsConfig";
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -79,7 +82,8 @@ export const ContractureReleaseSection = React.memo(
   }: ContractureReleaseSectionProps) {
     const { theme } = useTheme();
     const [showMore, setShowMore] = useState(
-      () => !!value.releaseDepth || !!value.coverageMethod || !!value.defectSizeCm2,
+      () =>
+        !!value.releaseDepth || !!value.coverageMethod || !!value.defectSizeCm2,
     );
 
     const update = useCallback(
@@ -88,7 +92,8 @@ export const ContractureReleaseSection = React.memo(
     );
 
     const improvement = useMemo(
-      () => calculateROMImprovement(value.romPreOpDegrees, value.romPostOpDegrees),
+      () =>
+        calculateROMImprovement(value.romPreOpDegrees, value.romPostOpDegrees),
       [value.romPreOpDegrees, value.romPostOpDegrees],
     );
     const severity = getROMImprovementSeverity(improvement);
@@ -110,7 +115,10 @@ export const ContractureReleaseSection = React.memo(
       <View
         style={[
           styles.container,
-          { backgroundColor: theme.backgroundElevated, borderColor: theme.border },
+          {
+            backgroundColor: theme.backgroundElevated,
+            borderColor: theme.border,
+          },
         ]}
       >
         <View style={styles.headerRow}>
@@ -122,7 +130,9 @@ export const ContractureReleaseSection = React.memo(
 
         {/* Joint picker */}
         <View style={styles.fieldGroup}>
-          <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
             Joint
           </ThemedText>
           <View style={styles.chipRow}>
@@ -195,7 +205,10 @@ export const ContractureReleaseSection = React.memo(
           <View
             style={[
               styles.improvementBadge,
-              { backgroundColor: improvementColor + "15", borderColor: improvementColor + "40" },
+              {
+                backgroundColor: improvementColor + "15",
+                borderColor: improvementColor + "40",
+              },
             ]}
           >
             <Feather
@@ -216,7 +229,9 @@ export const ContractureReleaseSection = React.memo(
         {!showMore ? (
           <TouchableOpacity
             onPress={() => {
-              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              LayoutAnimation.configureNext(
+                LayoutAnimation.Presets.easeInEaseOut,
+              );
               setShowMore(true);
             }}
             style={styles.moreLink}
@@ -258,7 +273,9 @@ export const ContractureReleaseSection = React.memo(
                       <ThemedText
                         style={[
                           styles.chipText,
-                          { color: selected ? theme.link : theme.textSecondary },
+                          {
+                            color: selected ? theme.link : theme.textSecondary,
+                          },
                         ]}
                       >
                         {label}
@@ -281,14 +298,19 @@ export const ContractureReleaseSection = React.memo(
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     update({
-                      defectSizeCm2: Math.max(0, (value.defectSizeCm2 ?? 0) - 1),
+                      defectSizeCm2: Math.max(
+                        0,
+                        (value.defectSizeCm2 ?? 0) - 1,
+                      ),
                     });
                   }}
                   style={[styles.stepperBtn, { borderColor: theme.border }]}
                 >
                   <Feather name="minus" size={16} color={theme.text} />
                 </TouchableOpacity>
-                <ThemedText style={[styles.stepperValue, { color: theme.text }]}>
+                <ThemedText
+                  style={[styles.stepperValue, { color: theme.text }]}
+                >
                   {value.defectSizeCm2 ?? 0}
                 </ThemedText>
                 <TouchableOpacity
@@ -335,7 +357,9 @@ export const ContractureReleaseSection = React.memo(
                       <ThemedText
                         style={[
                           styles.chipText,
-                          { color: selected ? theme.link : theme.textSecondary },
+                          {
+                            color: selected ? theme.link : theme.textSecondary,
+                          },
                         ]}
                       >
                         {label}
@@ -361,7 +385,11 @@ interface DegreeStepperFieldProps {
   theme: any;
 }
 
-function DegreeStepperField({ value, onChange, theme }: DegreeStepperFieldProps) {
+function DegreeStepperField({
+  value,
+  onChange,
+  theme,
+}: DegreeStepperFieldProps) {
   const v = value ?? 0;
   return (
     <View style={styles.stepper}>

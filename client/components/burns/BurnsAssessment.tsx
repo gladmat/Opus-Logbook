@@ -9,11 +9,7 @@
  */
 
 import React, { useCallback, useMemo, useState } from "react";
-import {
-  View,
-  StyleSheet,
-  LayoutAnimation,
-} from "react-native";
+import { View, StyleSheet, LayoutAnimation } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { Feather } from "@/components/FeatherIcon";
 import { SectionWrapper } from "@/components/shared/SectionWrapper";
@@ -106,7 +102,10 @@ export const BurnsAssessment = React.memo(function BurnsAssessment({
   // ── Render ──────────────────────────────────────────────────────────────
 
   return (
-    <View style={[styles.outerContainer, { borderColor: theme.link }]} testID="caseForm.burns.assessment">
+    <View
+      style={[styles.outerContainer, { borderColor: theme.link }]}
+      testID="caseForm.burns.assessment"
+    >
       {/* Module header */}
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
@@ -153,10 +152,7 @@ export const BurnsAssessment = React.memo(function BurnsAssessment({
             >
               Regional Breakdown
             </ThemedText>
-            <TBSARegionalBreakdown
-              data={tbsaData}
-              onChange={updateTBSA}
-            />
+            <TBSARegionalBreakdown data={tbsaData} onChange={updateTBSA} />
           </View>
         ) : null}
       </SectionWrapper>

@@ -422,13 +422,7 @@ export const GRAFT_DONOR_LABELS: Record<GraftDonorSite, string> = {
   other: "Other",
 };
 
-export type MeshRatio =
-  | "1:1"
-  | "1:1.5"
-  | "1:3"
-  | "1:4"
-  | "1:6"
-  | "unmeshed";
+export type MeshRatio = "1:1" | "1:1.5" | "1:3" | "1:4" | "1:6" | "unmeshed";
 
 export const MESH_RATIO_LABELS: Record<MeshRatio, string> = {
   "1:1": "1:1",

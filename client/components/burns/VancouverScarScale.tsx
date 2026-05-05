@@ -80,7 +80,10 @@ const DIMENSIONS: DimensionConfig[] = [
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export const VancouverScarScaleInput = React.memo(
-  function VancouverScarScaleInput({ value, onChange }: VancouverScarScaleProps) {
+  function VancouverScarScaleInput({
+    value,
+    onChange,
+  }: VancouverScarScaleProps) {
     const { theme } = useTheme();
 
     const total = useMemo(() => {
@@ -128,9 +131,7 @@ export const VancouverScarScaleInput = React.memo(
               },
             ]}
           >
-            <ThemedText
-              style={[styles.totalText, { color: severityColor }]}
-            >
+            <ThemedText style={[styles.totalText, { color: severityColor }]}>
               VSS: {total}/13
             </ThemedText>
           </View>
@@ -173,9 +174,7 @@ export const VancouverScarScaleInput = React.memo(
                       style={[
                         styles.optionLabel,
                         {
-                          color: selected
-                            ? theme.link
-                            : theme.textSecondary,
+                          color: selected ? theme.link : theme.textSecondary,
                         },
                       ]}
                       numberOfLines={1}

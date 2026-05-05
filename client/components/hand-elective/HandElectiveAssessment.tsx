@@ -28,7 +28,12 @@ import { ProcedureSuggestions } from "@/components/ProcedureSuggestions";
 import { FingerSelectionChips } from "./FingerSelectionChips";
 import { DigitMultiSelect } from "./DigitMultiSelect";
 import { PerFingerQuinnellGrading } from "./PerFingerQuinnellGrading";
-import { getFingerConfigForDiagnosis, hasPerFingerQuinnell, formatTriggerFingerGrading, FINGER_OPTIONS } from "@/lib/handElectiveFieldConfig";
+import {
+  getFingerConfigForDiagnosis,
+  hasPerFingerQuinnell,
+  formatTriggerFingerGrading,
+  FINGER_OPTIONS,
+} from "@/lib/handElectiveFieldConfig";
 import { DIGIT_LABELS } from "@/lib/diagnosisPicklists/multiDigitConfig";
 import { generateDupuytrenSummaryText } from "@/lib/dupuytrenHelpers";
 import { DupuytrenAssessment as DupuytrenAssessmentUI } from "@/components/dupuytren/DupuytrenAssessment";
@@ -49,9 +54,7 @@ interface HandElectiveAssessmentProps {
   /** Called when a diagnosis is selected from the picklist */
   onDiagnosisSelect: (dx: DiagnosisPicklistEntry) => void;
   /** Called when a SNOMED fallback diagnosis is selected */
-  onSnomedSelect: (
-    concept: { conceptId: string; term: string } | null,
-  ) => void;
+  onSnomedSelect: (concept: { conceptId: string; term: string } | null) => void;
   /** Called when diagnosis is cleared */
   onDiagnosisClear: () => void;
   /** Staging config fetched from server (null if none) */
@@ -139,23 +142,21 @@ export function HandElectiveAssessment({
     [collapsedSections],
   );
 
-  const setSectionCollapsed = useCallback(
-    (key: string, collapsed: boolean) => {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      setCollapsedSections((prev) => ({ ...prev, [key]: collapsed }));
-    },
-    [],
-  );
+  const setSectionCollapsed = useCallback((key: string, collapsed: boolean) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setCollapsedSections((prev) => ({ ...prev, [key]: collapsed }));
+  }, []);
 
   // ── Derived state ──────────────────────────────────────────
 
   const hasDiagnosis = !!(selectedDiagnosis || primaryDiagnosis);
-  const hasStaging =
-    (diagnosisStaging?.stagingSystems?.length ?? 0) > 0;
+  const hasStaging = (diagnosisStaging?.stagingSystems?.length ?? 0) > 0;
   const hasDupuytren = selectedDiagnosis?.hasDupuytrenAssessment === true;
   const fingerConfig = getFingerConfigForDiagnosis(selectedDiagnosis?.id);
   const isPendingMultiDigit = !!pendingMultiDigitDiagnosis;
-  const showQuinnell = hasPerFingerQuinnell(selectedDiagnosis?.id) && (affectedFingers?.length ?? 0) > 0;
+  const showQuinnell =
+    hasPerFingerQuinnell(selectedDiagnosis?.id) &&
+    (affectedFingers?.length ?? 0) > 0;
   const showClassificationSection = hasDiagnosis && !isPendingMultiDigit;
 
   // Auto-progression: collapse diagnosis, expand next section
@@ -210,16 +211,19 @@ export function HandElectiveAssessment({
     );
   }
   if (affectedDigits && affectedDigits.length > 0) {
-    const digitLabels = affectedDigits
-      .map((d) => DIGIT_LABELS[d])
-      .join(", ");
+    const digitLabels = affectedDigits.map((d) => DIGIT_LABELS[d]).join(", ");
     stagingSummaryParts.push(digitLabels);
   } else if (affectedFingers && affectedFingers.length > 0) {
     if (triggerFingerGrading && Object.keys(triggerFingerGrading).length > 0) {
-      const gradingText = formatTriggerFingerGrading(triggerFingerGrading, affectedFingers);
+      const gradingText = formatTriggerFingerGrading(
+        triggerFingerGrading,
+        affectedFingers,
+      );
       if (gradingText) stagingSummaryParts.push(gradingText);
       // Show ungraded fingers too
-      const ungradedFingers = affectedFingers.filter((f) => !triggerFingerGrading[f]);
+      const ungradedFingers = affectedFingers.filter(
+        (f) => !triggerFingerGrading[f],
+      );
       if (ungradedFingers.length > 0) {
         const labels = ungradedFingers
           .map((id) => FINGER_OPTIONS.find((f) => f.id === id)?.label ?? id)
@@ -233,7 +237,11 @@ export function HandElectiveAssessment({
       stagingSummaryParts.push(fingerLabels);
     }
   }
-  if (hasDupuytren && dupuytrenAssessment && dupuytrenAssessment.rays.length > 0) {
+  if (
+    hasDupuytren &&
+    dupuytrenAssessment &&
+    dupuytrenAssessment.rays.length > 0
+  ) {
     stagingSummaryParts.push(generateDupuytrenSummaryText(dupuytrenAssessment));
   }
   if (hasStaging) {
@@ -321,14 +329,14 @@ export function HandElectiveAssessment({
 
           {/* Per-finger selection (legacy, non-multi-digit diagnoses) */}
           {fingerConfig &&
-            !selectedDiagnosis?.hasDigitMultiSelect &&
-            onAffectedFingersChange ? (
-              <FingerSelectionChips
-                config={fingerConfig}
-                selectedFingers={affectedFingers ?? []}
-                onChange={onAffectedFingersChange}
-              />
-            ) : null}
+          !selectedDiagnosis?.hasDigitMultiSelect &&
+          onAffectedFingersChange ? (
+            <FingerSelectionChips
+              config={fingerConfig}
+              selectedFingers={affectedFingers ?? []}
+              onChange={onAffectedFingersChange}
+            />
+          ) : null}
 
           {/* Per-finger Quinnell grading */}
           {showQuinnell && onTriggerFingerGradingChange ? (

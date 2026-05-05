@@ -131,7 +131,13 @@ function subcategoryToDeviceCategory(
 }
 
 /** Determine which parameter group to show */
-type ParamGroup = "laser" | "rf_microneedling" | "hifu" | "cryolipolysis" | "ipl" | "none";
+type ParamGroup =
+  | "laser"
+  | "rf_microneedling"
+  | "hifu"
+  | "cryolipolysis"
+  | "ipl"
+  | "none";
 
 function getParamGroup(sub: EnergyDeviceSubcategory): ParamGroup {
   switch (sub) {
@@ -359,7 +365,11 @@ export const EnergyDeviceDetailsCard = React.memo(
               Laser parameters
             </ThemedText>
             {d.wavelengthNm != null && (
-              <ParamRow label="Wavelength" value={`${d.wavelengthNm} nm`} theme={theme} />
+              <ParamRow
+                label="Wavelength"
+                value={`${d.wavelengthNm} nm`}
+                theme={theme}
+              />
             )}
             <NumericField
               label="Fluence (J/cm²)"
@@ -393,40 +403,49 @@ export const EnergyDeviceDetailsCard = React.memo(
               theme={theme}
             />
             {/* Handpiece picker from spec */}
-            {d.deviceModel && getEnergyDeviceSpec(
-              filteredDevices.find((fd) => fd.productName === d.deviceModel)?.id ?? "",
-            )?.availableHandpieces && (
-              <View style={styles.subSection}>
-                <ThemedText
-                  style={[styles.sectionLabel, { color: theme.textSecondary }]}
-                >
-                  Handpiece
-                </ThemedText>
-                <View style={styles.chipRow}>
-                  {(getEnergyDeviceSpec(
-                    filteredDevices.find((fd) => fd.productName === d.deviceModel)?.id ?? "",
-                  )?.availableHandpieces ?? []).map((hp) => {
-                    const selected = d.handpiece === hp;
-                    return (
-                      <Pressable
-                        key={hp}
-                        onPress={() => {
-                          Haptics.impactAsync(
-                            Haptics.ImpactFeedbackStyle.Light,
-                          );
-                          update({ handpiece: selected ? undefined : hp });
-                        }}
-                        style={chipStyle(selected)}
-                      >
-                        <ThemedText style={chipTextStyle(selected)}>
-                          {hp}
-                        </ThemedText>
-                      </Pressable>
-                    );
-                  })}
+            {d.deviceModel &&
+              getEnergyDeviceSpec(
+                filteredDevices.find((fd) => fd.productName === d.deviceModel)
+                  ?.id ?? "",
+              )?.availableHandpieces && (
+                <View style={styles.subSection}>
+                  <ThemedText
+                    style={[
+                      styles.sectionLabel,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
+                    Handpiece
+                  </ThemedText>
+                  <View style={styles.chipRow}>
+                    {(
+                      getEnergyDeviceSpec(
+                        filteredDevices.find(
+                          (fd) => fd.productName === d.deviceModel,
+                        )?.id ?? "",
+                      )?.availableHandpieces ?? []
+                    ).map((hp) => {
+                      const selected = d.handpiece === hp;
+                      return (
+                        <Pressable
+                          key={hp}
+                          onPress={() => {
+                            Haptics.impactAsync(
+                              Haptics.ImpactFeedbackStyle.Light,
+                            );
+                            update({ handpiece: selected ? undefined : hp });
+                          }}
+                          style={chipStyle(selected)}
+                        >
+                          <ThemedText style={chipTextStyle(selected)}>
+                            {hp}
+                          </ThemedText>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
                 </View>
-              </View>
-            )}
+              )}
           </View>
         )}
 
@@ -455,7 +474,11 @@ export const EnergyDeviceDetailsCard = React.memo(
               integer
             />
             {d.pinCount != null && (
-              <ParamRow label="Pin count" value={`${d.pinCount}`} theme={theme} />
+              <ParamRow
+                label="Pin count"
+                value={`${d.pinCount}`}
+                theme={theme}
+              />
             )}
             <View style={styles.subSection}>
               <ThemedText
@@ -517,7 +540,9 @@ export const EnergyDeviceDetailsCard = React.memo(
                       key={depth}
                       onPress={() => {
                         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        update({ transducerDepthMm: selected ? undefined : depth });
+                        update({
+                          transducerDepthMm: selected ? undefined : depth,
+                        });
                       }}
                       style={chipStyle(selected)}
                     >

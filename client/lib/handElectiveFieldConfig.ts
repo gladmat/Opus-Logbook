@@ -45,7 +45,11 @@ export function getFingerConfigForDiagnosis(
  * Quinnell grading options for trigger finger severity.
  * Used inline per-finger rather than via server staging config.
  */
-export const QUINNELL_GRADES: { value: string; label: string; description: string }[] = [
+export const QUINNELL_GRADES: {
+  value: string;
+  label: string;
+  description: string;
+}[] = [
   { value: "0", label: "0", description: "Normal movement" },
   { value: "1", label: "I", description: "Uneven movement" },
   { value: "2", label: "II", description: "Actively correctable" },

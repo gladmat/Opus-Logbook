@@ -198,10 +198,7 @@ export const LymphaticAssessment = React.memo(function LymphaticAssessment({
     (patch: Partial<BioimpedanceData>) => {
       const updated = { ...bio, ...patch };
       // Auto-calculate change
-      if (
-        updated.baselineLDex != null &&
-        updated.currentLDex != null
-      ) {
+      if (updated.baselineLDex != null && updated.currentLDex != null) {
         updated.changeFromBaseline =
           Math.round((updated.currentLDex - updated.baselineLDex) * 10) / 10;
       }
@@ -242,12 +239,13 @@ export const LymphaticAssessment = React.memo(function LymphaticAssessment({
       testID="caseForm.lymphatic.assessment"
       style={[
         styles.container,
-        { borderColor: theme.accent, backgroundColor: theme.backgroundElevated },
+        {
+          borderColor: theme.accent,
+          backgroundColor: theme.backgroundElevated,
+        },
       ]}
     >
-      <ThemedText style={styles.moduleTitle}>
-        Lymphoedema Assessment
-      </ThemedText>
+      <ThemedText style={styles.moduleTitle}>Lymphoedema Assessment</ThemedText>
 
       {/* ────── Section 1: Affected Region & Side ────── */}
       <SectionWrapper title="1. Affected Region & Side" icon="map-pin">
@@ -264,7 +262,10 @@ export const LymphaticAssessment = React.memo(function LymphaticAssessment({
         />
 
         <ThemedText
-          style={[styles.label, { color: theme.textSecondary, marginTop: Spacing.md }]}
+          style={[
+            styles.label,
+            { color: theme.textSecondary, marginTop: Spacing.md },
+          ]}
         >
           Side
         </ThemedText>
@@ -295,7 +296,10 @@ export const LymphaticAssessment = React.memo(function LymphaticAssessment({
         />
 
         <ThemedText
-          style={[styles.label, { color: theme.textSecondary, marginTop: Spacing.md }]}
+          style={[
+            styles.label,
+            { color: theme.textSecondary, marginTop: Spacing.md },
+          ]}
         >
           Severity
         </ThemedText>
@@ -329,7 +333,10 @@ export const LymphaticAssessment = React.memo(function LymphaticAssessment({
         />
 
         <ThemedText
-          style={[styles.label, { color: theme.textSecondary, marginTop: Spacing.md }]}
+          style={[
+            styles.label,
+            { color: theme.textSecondary, marginTop: Spacing.md },
+          ]}
         >
           Overall pattern
         </ThemedText>
@@ -475,8 +482,7 @@ export const LymphaticAssessment = React.memo(function LymphaticAssessment({
           >
             <ThemedText
               style={{
-                color:
-                  bio.changeFromBaseline > 10 ? theme.error : theme.accent,
+                color: bio.changeFromBaseline > 10 ? theme.error : theme.accent,
                 fontWeight: "600",
               }}
             >
@@ -563,9 +569,7 @@ export const LymphaticAssessment = React.memo(function LymphaticAssessment({
               false: theme.backgroundSecondary,
               true: theme.accent + "60",
             }}
-            thumbColor={
-              history?.priorCDT ? theme.accent : theme.textTertiary
-            }
+            thumbColor={history?.priorCDT ? theme.accent : theme.textTertiary}
           />
         </View>
 
@@ -588,9 +592,7 @@ export const LymphaticAssessment = React.memo(function LymphaticAssessment({
                 ]}
                 keyboardType="number-pad"
                 value={
-                  history?.cdtCourses != null
-                    ? String(history.cdtCourses)
-                    : ""
+                  history?.cdtCourses != null ? String(history.cdtCourses) : ""
                 }
                 onChangeText={(v) => {
                   const n = parseInt(v, 10);
@@ -721,9 +723,7 @@ export const LymphaticAssessment = React.memo(function LymphaticAssessment({
               true: theme.accent + "60",
             }}
             thumbColor={
-              history?.priorLymphaticSurgery
-                ? theme.accent
-                : theme.textTertiary
+              history?.priorLymphaticSurgery ? theme.accent : theme.textTertiary
             }
           />
         </View>
@@ -744,11 +744,7 @@ export const LymphaticAssessment = React.memo(function LymphaticAssessment({
                   key={proc.id}
                   value={details}
                   onChange={(d) =>
-                    onProcedureDetailsChange(
-                      proc.id,
-                      "lvaOperativeDetails",
-                      d,
-                    )
+                    onProcedureDetailsChange(proc.id, "lvaOperativeDetails", d)
                   }
                   procedureName={proc.procedureName}
                 />

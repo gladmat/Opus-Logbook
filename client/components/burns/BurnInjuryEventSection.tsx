@@ -257,7 +257,10 @@ export const BurnInjuryEventSection = React.memo(
         {event.mechanism === "electrical" ? (
           <View style={[styles.mechanismDetail, { borderColor: theme.border }]}>
             <ThemedText
-              style={[styles.mechanismDetailTitle, { color: theme.textSecondary }]}
+              style={[
+                styles.mechanismDetailTitle,
+                { color: theme.textSecondary },
+              ]}
             >
               Electrical Details
             </ThemedText>
@@ -276,7 +279,10 @@ export const BurnInjuryEventSection = React.memo(
         {event.mechanism === "chemical" ? (
           <View style={[styles.mechanismDetail, { borderColor: theme.border }]}>
             <ThemedText
-              style={[styles.mechanismDetailTitle, { color: theme.textSecondary }]}
+              style={[
+                styles.mechanismDetailTitle,
+                { color: theme.textSecondary },
+              ]}
             >
               Chemical Details
             </ThemedText>

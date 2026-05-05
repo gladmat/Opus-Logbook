@@ -33,7 +33,10 @@ import type {
   MeshRatio,
   GraftFixation,
 } from "@/types/burns";
-import { graftTypeShowsMeshRatio, inferGraftTypeFromProcedure } from "@/lib/burnsConfig";
+import {
+  graftTypeShowsMeshRatio,
+  inferGraftTypeFromProcedure,
+} from "@/lib/burnsConfig";
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -104,7 +107,10 @@ export const GraftDetailsSection = React.memo(function GraftDetailsSection({
 }: GraftDetailsSectionProps) {
   const { theme } = useTheme();
   const [showMore, setShowMore] = useState(
-    () => !!value.graftThickness || !!value.fixationMethod || !!value.recipientAreaCm2,
+    () =>
+      !!value.graftThickness ||
+      !!value.fixationMethod ||
+      !!value.recipientAreaCm2,
   );
   const [showFollowUp, setShowFollowUp] = useState(
     () => !!value.graftTakePercentage || !!isFollowUp,
@@ -118,7 +124,8 @@ export const GraftDetailsSection = React.memo(function GraftDetailsSection({
   // Auto-infer graft type from procedure ID if not already set
   const effectiveGraftType = useMemo(() => {
     if (value.graftType) return value.graftType;
-    if (procedureId) return inferGraftTypeFromProcedure(procedureId) as GraftType | undefined;
+    if (procedureId)
+      return inferGraftTypeFromProcedure(procedureId) as GraftType | undefined;
     return undefined;
   }, [value.graftType, procedureId]);
 
@@ -128,7 +135,10 @@ export const GraftDetailsSection = React.memo(function GraftDetailsSection({
     <View
       style={[
         styles.container,
-        { backgroundColor: theme.backgroundElevated, borderColor: theme.border },
+        {
+          backgroundColor: theme.backgroundElevated,
+          borderColor: theme.border,
+        },
       ]}
     >
       <View style={styles.headerRow}>
@@ -224,7 +234,9 @@ export const GraftDetailsSection = React.memo(function GraftDetailsSection({
       {/* Mesh ratio — large chips, only for STSG meshed / Meek */}
       {showMesh ? (
         <View style={styles.fieldGroup}>
-          <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
             Mesh ratio
           </ThemedText>
           <View style={styles.chipRow}>
@@ -266,7 +278,9 @@ export const GraftDetailsSection = React.memo(function GraftDetailsSection({
       {!showMore ? (
         <TouchableOpacity
           onPress={() => {
-            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            LayoutAnimation.configureNext(
+              LayoutAnimation.Presets.easeInEaseOut,
+            );
             setShowMore(true);
           }}
           style={styles.moreLink}
@@ -383,7 +397,9 @@ export const GraftDetailsSection = React.memo(function GraftDetailsSection({
       {!showFollowUp ? (
         <TouchableOpacity
           onPress={() => {
-            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            LayoutAnimation.configureNext(
+              LayoutAnimation.Presets.easeInEaseOut,
+            );
             setShowFollowUp(true);
           }}
           style={styles.moreLink}
@@ -395,12 +411,7 @@ export const GraftDetailsSection = React.memo(function GraftDetailsSection({
         </TouchableOpacity>
       ) : (
         <View style={styles.expandedSection}>
-          <View
-            style={[
-              styles.divider,
-              { backgroundColor: theme.border },
-            ]}
-          />
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
           <View style={styles.fieldRow}>
             <ThemedText
               style={[styles.fieldLabel, { color: theme.textSecondary }]}

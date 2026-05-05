@@ -516,8 +516,7 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
           {
             value: "3",
             label: "Stage 3 — Few patent, extensive backflow",
-            description:
-              "Few patent lymphatics with extensive dermal backflow",
+            description: "Few patent lymphatics with extensive dermal backflow",
           },
           {
             value: "4",
@@ -929,8 +928,7 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
           {
             value: "V",
             label: "Type V — Junction primary/secondary palate",
-            description:
-              "Fistula at junction of primary and secondary palate",
+            description: "Fistula at junction of primary and secondary palate",
           },
           {
             value: "VI",

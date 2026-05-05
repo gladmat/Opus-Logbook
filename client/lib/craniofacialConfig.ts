@@ -138,7 +138,8 @@ export function getExpectedAgeWindow(procedureId: string): AgeWindow | null {
     return {
       minMonths: 180, // 15 years
       maxMonths: 300, // 25 years
-      label: "Orthognathic surgery: typically after skeletal maturity (16–20 years)",
+      label:
+        "Orthognathic surgery: typically after skeletal maturity (16–20 years)",
       severity: "amber",
     };
   }
@@ -167,7 +168,12 @@ export function getExpectedAgeWindow(procedureId: string): AgeWindow | null {
 export function computeAgeAtSurgery(
   dobIso: string,
   surgeryDateIso: string,
-): { years: number; months: number; weeks?: number; totalMonths: number } | null {
+): {
+  years: number;
+  months: number;
+  weeks?: number;
+  totalMonths: number;
+} | null {
   const dob = parseDateOnlyValue(dobIso);
   const surgery = parseDateOnlyValue(surgeryDateIso);
 
@@ -307,7 +313,12 @@ function hasLahshalData(lahshal?: LAHSHALClassification): boolean {
 export function calculateCraniofacialCompleteness(
   assessment: CraniofacialAssessmentData,
   subcategory: CraniofacialSubcategory | undefined,
-): { percentage: number; filled: number; total: number; missingSections: string[] } {
+): {
+  percentage: number;
+  filled: number;
+  total: number;
+  missingSections: string[];
+} {
   const missing: string[] = [];
   let total = 0;
   let filled = 0;
@@ -393,8 +404,7 @@ export function getOutcomeSectionVisibility(
     showHearing: sections.showHearingOutcome,
     showFeeding: sections.showFeedingOutcome,
     showGeneticTesting:
-      subcategory === "Syndromic Craniosynostosis" ||
-      !!associatedSyndrome,
+      subcategory === "Syndromic Craniosynostosis" || !!associatedSyndrome,
   };
 }
 

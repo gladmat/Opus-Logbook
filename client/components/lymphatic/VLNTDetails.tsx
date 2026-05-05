@@ -180,10 +180,15 @@ export const VLNTDetailsComponent = React.memo(function VLNTDetailsComponent({
         <View
           style={[
             styles.infoBadge,
-            { backgroundColor: theme.info + "10", borderColor: theme.info + "40" },
+            {
+              backgroundColor: theme.info + "10",
+              borderColor: theme.info + "40",
+            },
           ]}
         >
-          <ThemedText style={{ color: theme.info, fontSize: 12, fontWeight: "500" }}>
+          <ThemedText
+            style={{ color: theme.info, fontSize: 12, fontWeight: "500" }}
+          >
             Pedicle: {pedicleInfo.artery} / {pedicleInfo.vein}
           </ThemedText>
         </View>
@@ -192,7 +197,9 @@ export const VLNTDetailsComponent = React.memo(function VLNTDetailsComponent({
       {/* Node count + recipient site */}
       <View style={[styles.fieldRow, { marginTop: Spacing.sm }]}>
         <View style={{ flex: 1 }}>
-          <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
             Node count
           </ThemedText>
           <TextInput
@@ -215,7 +222,9 @@ export const VLNTDetailsComponent = React.memo(function VLNTDetailsComponent({
           />
         </View>
         <View style={{ flex: 2 }}>
-          <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
             Recipient site
           </ThemedText>
           <ChipRow
@@ -249,7 +258,9 @@ export const VLNTDetailsComponent = React.memo(function VLNTDetailsComponent({
 
       {value.reverseLymphaticMapping && (
         <>
-          <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
             Technique
           </ThemedText>
           <ChipRow
@@ -266,7 +277,9 @@ export const VLNTDetailsComponent = React.memo(function VLNTDetailsComponent({
       {/* Additional fields */}
       <View style={[styles.fieldRow, { marginTop: Spacing.sm }]}>
         <View style={styles.fieldHalf}>
-          <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
             Flap dimensions
           </ThemedText>
           <TextInput
@@ -287,7 +300,9 @@ export const VLNTDetailsComponent = React.memo(function VLNTDetailsComponent({
           />
         </View>
         <View style={styles.fieldHalf}>
-          <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
             Inset technique
           </ThemedText>
           <TextInput

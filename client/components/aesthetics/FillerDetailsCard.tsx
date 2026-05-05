@@ -31,7 +31,10 @@ const VOLUME_OPTIONS = [0.5, 0.55, 0.8, 1.0, 1.2, 1.5] as const;
 const NEEDLE_GAUGES = ["27G", "29G", "30G", "31G", "32G", "33G"];
 const CANNULA_GAUGES = ["22G×50mm", "25G×38mm", "25G×50mm", "27G×40mm"];
 
-const SITE_GROUPS: { label: string; sites: { id: FillerSiteId; label: string }[] }[] = [
+const SITE_GROUPS: {
+  label: string;
+  sites: { id: FillerSiteId; label: string }[];
+}[] = [
   {
     label: "Periorbital",
     sites: [
@@ -213,7 +216,8 @@ export const FillerDetailsCard = React.memo(function FillerDetailsCard({
     [theme],
   );
 
-  const gaugeOptions = d.injectionTool === "cannula" ? CANNULA_GAUGES : NEEDLE_GAUGES;
+  const gaugeOptions =
+    d.injectionTool === "cannula" ? CANNULA_GAUGES : NEEDLE_GAUGES;
 
   return (
     <View style={styles.container}>

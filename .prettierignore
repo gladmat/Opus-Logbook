@@ -1,0 +1,27 @@
+node_modules/
+dist/
+build/
+server_dist/
+.expo/
+ios/Pods/
+ios/build/
+android/build/
+android/app/build/
+.next/
+coverage/
+.claude/
+attached_assets/
+uploads/
+static-build/
+*.lock
+package-lock.json
+
+# Vendor / generated
+*.min.js
+*.min.css
+expo-env.d.ts
+
+# Markdown — keep author voice intact (the audit plan, CLAUDE.md, READMEs)
+CLAUDE.md
+TESTING.local.md
+*.md

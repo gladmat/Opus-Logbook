@@ -123,14 +123,7 @@ export type NeurotoxinSiteId =
   | "palmar_hyperhidrosis"
   | "other";
 
-export type NeedleGauge =
-  | "25G"
-  | "27G"
-  | "29G"
-  | "30G"
-  | "31G"
-  | "32G"
-  | "33G";
+export type NeedleGauge = "25G" | "27G" | "29G" | "30G" | "31G" | "32G" | "33G";
 
 // ═══════════════════════════════════════════
 // DERMAL FILLER LOGGING

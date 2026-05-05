@@ -193,8 +193,7 @@ export function getModuleVisibility(
 
   // Peripheral nerve: diagnosis-metadata driven + existing data
   const peripheralNerveAssessment =
-    group.specialty === "peripheral_nerve" ||
-    !!group.peripheralNerveAssessment;
+    group.specialty === "peripheral_nerve" || !!group.peripheralNerveAssessment;
 
   // Lymphoedema: diagnosis-metadata driven + specialty + existing data
   const lymphoedemaAssessment =

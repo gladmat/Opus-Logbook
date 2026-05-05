@@ -85,7 +85,11 @@ const PATHWAY_STAGES: {
   { value: "definitive", label: "Definitive" },
 ];
 
-const VEAU_OPTIONS: { value: VeauClassification; label: string; desc: string }[] = [
+const VEAU_OPTIONS: {
+  value: VeauClassification;
+  label: string;
+  desc: string;
+}[] = [
   { value: "I", label: "I", desc: "Soft palate only" },
   { value: "II", label: "II", desc: "Soft + hard palate" },
   { value: "III", label: "III", desc: "Unilateral complete" },
@@ -403,9 +407,7 @@ export function CraniofacialAssessment({
           ]}
         >
           <Feather
-            name={
-              completion.percentage === 100 ? "check-circle" : "circle"
-            }
+            name={completion.percentage === 100 ? "check-circle" : "circle"}
             size={14}
             color={
               completion.percentage === 100
@@ -660,9 +662,7 @@ export function CraniofacialAssessment({
                   Genetic Testing
                 </ThemedText>
                 <Feather
-                  name={
-                    geneticTestingExpanded ? "chevron-up" : "chevron-down"
-                  }
+                  name={geneticTestingExpanded ? "chevron-up" : "chevron-down"}
                   size={16}
                   color={theme.textSecondary}
                 />
@@ -681,9 +681,7 @@ export function CraniofacialAssessment({
                           ?.tested ?? false
                       }
                       onValueChange={(v) => {
-                        Haptics.impactAsync(
-                          Haptics.ImpactFeedbackStyle.Light,
-                        );
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                         updateGeneticTesting({
                           tested: v,
                           gene: v
@@ -761,9 +759,7 @@ export function CraniofacialAssessment({
                                   backgroundColor: sel
                                     ? theme.link
                                     : theme.backgroundTertiary,
-                                  borderColor: sel
-                                    ? theme.link
-                                    : theme.border,
+                                  borderColor: sel ? theme.link : theme.border,
                                 },
                               ]}
                             >
@@ -771,9 +767,7 @@ export function CraniofacialAssessment({
                                 style={[
                                   styles.chipText,
                                   {
-                                    color: sel
-                                      ? theme.buttonText
-                                      : theme.text,
+                                    color: sel ? theme.buttonText : theme.text,
                                   },
                                 ]}
                               >
@@ -888,10 +882,7 @@ export function CraniofacialAssessment({
         {/* Age at surgery */}
         {computedAge ? (
           <View
-            style={[
-              styles.ageBadge,
-              { backgroundColor: theme.link + "15" },
-            ]}
+            style={[styles.ageBadge, { backgroundColor: theme.link + "15" }]}
           >
             <Feather name="calendar" size={14} color={theme.link} />
             <ThemedText style={[styles.ageText, { color: theme.text }]}>
@@ -902,9 +893,7 @@ export function CraniofacialAssessment({
             </ThemedText>
           </View>
         ) : (
-          <ThemedText
-            style={[styles.hintText, { color: theme.textTertiary }]}
-          >
+          <ThemedText style={[styles.hintText, { color: theme.textTertiary }]}>
             Add date of birth and procedure date for auto-computed age
           </ThemedText>
         )}
@@ -938,9 +927,7 @@ export function CraniofacialAssessment({
                 styles.warningText,
                 {
                   color:
-                    ageWarning.severity === "red"
-                      ? theme.error
-                      : theme.warning,
+                    ageWarning.severity === "red" ? theme.error : theme.warning,
                 },
               ]}
             >
@@ -977,9 +964,7 @@ export function CraniofacialAssessment({
         </View>
 
         {/* Pathway stage */}
-        <ThemedText
-          style={[styles.fieldLabel, { color: theme.textSecondary }]}
-        >
+        <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
           Pathway stage
         </ThemedText>
         <View style={styles.chipGrid}>
@@ -1328,9 +1313,7 @@ export function CraniofacialAssessment({
                 Secondary speech surgery needed
               </ThemedText>
               <Switch
-                value={
-                  outcomes?.speech?.secondarySpeechSurgeryNeeded ?? false
-                }
+                value={outcomes?.speech?.secondarySpeechSurgeryNeeded ?? false}
                 onValueChange={(v) => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   updateSpeech({ secondarySpeechSurgeryNeeded: v });
@@ -1529,9 +1512,7 @@ export function CraniofacialAssessment({
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   updateHearing({
                     grommetsInserted: v,
-                    grommetSets: v
-                      ? outcomes?.hearing?.grommetSets
-                      : undefined,
+                    grommetSets: v ? outcomes?.hearing?.grommetSets : undefined,
                   });
                 }}
                 trackColor={{ false: theme.border, true: theme.link }}
@@ -1687,9 +1668,7 @@ export function CraniofacialAssessment({
         {/* ── Complications ──────────────────────────────────────────────── */}
         <View style={styles.outcomeSubHeader}>
           <StatusDot filled={complicationsFilled} theme={theme} />
-          <ThemedText
-            style={[styles.outcomeSubTitle, { color: theme.text }]}
-          >
+          <ThemedText style={[styles.outcomeSubTitle, { color: theme.text }]}>
             Complications
           </ThemedText>
         </View>

@@ -159,10 +159,7 @@ export function EmailSignupScreen({
       );
       setResetEmail("");
     } catch (err: any) {
-      Alert.alert(
-        "Error",
-        err.message || "Failed to request password reset",
-      );
+      Alert.alert("Error", err.message || "Failed to request password reset");
     } finally {
       setIsRequestingReset(false);
     }
@@ -322,8 +319,8 @@ export function EmailSignupScreen({
               </Pressable>
             </View>
             <Text style={styles.modalDescription}>
-              Enter your email address and we'll send you instructions to reset
-              your password.
+              Enter your email address and we&apos;ll send you instructions to
+              reset your password.
             </Text>
 
             <View style={styles.modalInputContainer}>

@@ -341,7 +341,9 @@ export function CaseSummaryView({
             {group.affectedDigits && group.affectedDigits.length > 0 && (
               <SummaryRow
                 label="Affected digits"
-                value={group.affectedDigits.map((d) => DIGIT_LABELS[d]).join(", ")}
+                value={group.affectedDigits
+                  .map((d) => DIGIT_LABELS[d])
+                  .join(", ")}
               />
             )}
             {group.isMultiLesion &&

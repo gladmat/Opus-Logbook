@@ -50,8 +50,22 @@ export function getLymphaticProcedureCategory(
   picklistEntryId?: string,
 ): LymphaticProcedureCategory {
   if (!picklistEntryId) return null;
-  if (picklistEntryId.startsWith("lymph_lva_") || picklistEntryId === "lymph_lympha" || picklistEntryId === "lymph_elva" || picklistEntryId === "lymph_dc_lva" || picklistEntryId === "lymph_robotic_lva" || picklistEntryId === "lymph_revision_lva" || picklistEntryId === "lymph_lla") return "lva";
-  if (picklistEntryId.startsWith("lymph_vlnt_") || picklistEntryId === "lymph_combined_lva_vlnt" || picklistEntryId === "lymph_simultaneous_breast_vlnt") return "vlnt";
+  if (
+    picklistEntryId.startsWith("lymph_lva_") ||
+    picklistEntryId === "lymph_lympha" ||
+    picklistEntryId === "lymph_elva" ||
+    picklistEntryId === "lymph_dc_lva" ||
+    picklistEntryId === "lymph_robotic_lva" ||
+    picklistEntryId === "lymph_revision_lva" ||
+    picklistEntryId === "lymph_lla"
+  )
+    return "lva";
+  if (
+    picklistEntryId.startsWith("lymph_vlnt_") ||
+    picklistEntryId === "lymph_combined_lva_vlnt" ||
+    picklistEntryId === "lymph_simultaneous_breast_vlnt"
+  )
+    return "vlnt";
   if (picklistEntryId === "lymph_sapl") return "sapl";
   if (picklistEntryId === "lymph_lipo_lipedema") return "lipo_lipedema";
   return null;

@@ -60,14 +60,20 @@ describe("buildBurnEpisodeTitle", () => {
 
 describe("determineBurnInitialPendingAction", () => {
   it("returns npwt_in_progress when NPWT procedure present", () => {
-    const assessment: BurnsAssessmentData = { phase: "acute", tbsa: { totalTBSA: 20 } };
+    const assessment: BurnsAssessmentData = {
+      phase: "acute",
+      tbsa: { totalTBSA: 20 },
+    };
     expect(
       determineBurnInitialPendingAction(assessment, ["burns_acute_npwt"]),
     ).toBe("npwt_in_progress");
   });
 
   it("returns awaiting_grafting when excision without graft", () => {
-    const assessment: BurnsAssessmentData = { phase: "acute", tbsa: { totalTBSA: 15 } };
+    const assessment: BurnsAssessmentData = {
+      phase: "acute",
+      tbsa: { totalTBSA: 15 },
+    };
     expect(
       determineBurnInitialPendingAction(assessment, [
         "burns_acute_tangential_excision",
@@ -76,7 +82,10 @@ describe("determineBurnInitialPendingAction", () => {
   });
 
   it("returns staged_procedure_planned for major burn >20%", () => {
-    const assessment: BurnsAssessmentData = { phase: "acute", tbsa: { totalTBSA: 30 } };
+    const assessment: BurnsAssessmentData = {
+      phase: "acute",
+      tbsa: { totalTBSA: 30 },
+    };
     expect(
       determineBurnInitialPendingAction(assessment, [
         "burns_acute_tangential_excision",
@@ -86,7 +95,10 @@ describe("determineBurnInitialPendingAction", () => {
   });
 
   it("returns wound_healing for grafted smaller burns", () => {
-    const assessment: BurnsAssessmentData = { phase: "acute", tbsa: { totalTBSA: 10 } };
+    const assessment: BurnsAssessmentData = {
+      phase: "acute",
+      tbsa: { totalTBSA: 10 },
+    };
     expect(
       determineBurnInitialPendingAction(assessment, [
         "burns_graft_stsg_meshed",
@@ -95,7 +107,10 @@ describe("determineBurnInitialPendingAction", () => {
   });
 
   it("returns null when no procedures", () => {
-    const assessment: BurnsAssessmentData = { phase: "acute", tbsa: { totalTBSA: 5 } };
+    const assessment: BurnsAssessmentData = {
+      phase: "acute",
+      tbsa: { totalTBSA: 5 },
+    };
     expect(determineBurnInitialPendingAction(assessment, [])).toBeNull();
   });
 });

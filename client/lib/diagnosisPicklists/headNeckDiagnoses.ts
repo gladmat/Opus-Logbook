@@ -988,7 +988,8 @@ const HN_DX_FACIAL_FRACTURES: DiagnosisPicklistEntry[] = [
     displayName: "Panfacial fracture",
     shortName: "Panfacial #",
     snomedCtCode: "207881000",
-    snomedCtDisplay: "Multiple fractures involving skull and facial bones (disorder)",
+    snomedCtDisplay:
+      "Multiple fractures involving skull and facial bones (disorder)",
     specialty: "head_neck",
     subcategory: "Facial Fractures",
     clinicalGroup: "trauma",

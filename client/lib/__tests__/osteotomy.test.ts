@@ -149,9 +149,7 @@ describe("getOsteotomySummary", () => {
       fixation: "plate_screws",
       threeDPlanning: false,
     };
-    expect(getOsteotomySummary(data)).toBe(
-      "Ulna, shortening, oblique, plate",
-    );
+    expect(getOsteotomySummary(data)).toBe("Ulna, shortening, oblique, plate");
   });
 
   it("handles bone-only (partial fill)", () => {

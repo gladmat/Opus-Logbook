@@ -1062,7 +1062,8 @@ export function HandTraumaAssessment({
     if (specialCount > 0) counts.special = specialCount;
 
     const amputationCount =
-      (value.digitAmputations?.length ?? 0) || (value.digitAmputations?.[0]?.level ? 1 : 0);
+      (value.digitAmputations?.length ?? 0) ||
+      (value.digitAmputations?.[0]?.level ? 1 : 0);
     if (amputationCount > 0) counts.amputation = amputationCount;
 
     return counts;

@@ -25,7 +25,6 @@ export const CASE_STATUS_LABELS: Record<CaseStatus, string> = {
   planned: "Planned",
 };
 
-
 // Procedure categories by specialty (high-level classification)
 export type HandSurgeryCategory =
   | "trauma"
@@ -2159,7 +2158,6 @@ export const PROCEDURE_TAG_LABELS: Record<ProcedureTag, string> = {
   debulking: "Debulking",
   experimental: "Experimental",
 };
-
 
 export const INDICATION_LABELS: Record<Indication, string> = {
   trauma: "Trauma",

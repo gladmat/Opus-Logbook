@@ -184,9 +184,7 @@ describe("deriveBurnDiagnosis", () => {
     });
     expect(result.snomedCtCode).toBe("314534006");
     expect(result.secondaryDiagnoses).toHaveLength(1);
-    expect(result.secondaryDiagnoses![0].displayName).toBe(
-      "Inhalation injury",
-    );
+    expect(result.secondaryDiagnoses![0].displayName).toBe("Inhalation injury");
     expect(result.secondaryDiagnoses![0].snomedCtCode).toBe("75478009");
   });
 
@@ -220,8 +218,7 @@ describe("getAssessmentDrivenProcedureSuggestions", () => {
     const suggestions = getAssessmentDrivenProcedureSuggestions(assessment);
     expect(
       suggestions.find(
-        (s) =>
-          s.procedurePicklistId === "burns_acute_tangential_excision",
+        (s) => s.procedurePicklistId === "burns_acute_tangential_excision",
       ),
     ).toBeDefined();
     expect(
@@ -254,9 +251,7 @@ describe("getAssessmentDrivenProcedureSuggestions", () => {
     };
     const suggestions = getAssessmentDrivenProcedureSuggestions(assessment);
     expect(
-      suggestions.find(
-        (s) => s.procedurePicklistId === "burns_graft_meek",
-      ),
+      suggestions.find((s) => s.procedurePicklistId === "burns_graft_meek"),
     ).toBeDefined();
   });
 
@@ -266,9 +261,7 @@ describe("getAssessmentDrivenProcedureSuggestions", () => {
     };
     const suggestions = getAssessmentDrivenProcedureSuggestions(assessment);
     expect(
-      suggestions.find(
-        (s) => s.procedurePicklistId === "burns_graft_cea",
-      ),
+      suggestions.find((s) => s.procedurePicklistId === "burns_graft_cea"),
     ).toBeDefined();
   });
 
@@ -469,10 +462,7 @@ describe("Lund-Browder age adjustments", () => {
 
 describe("Label records completeness", () => {
   it("BURN_PHASE_LABELS has all phases", () => {
-    expect(Object.keys(BURN_PHASE_LABELS)).toEqual([
-      "acute",
-      "reconstructive",
-    ]);
+    expect(Object.keys(BURN_PHASE_LABELS)).toEqual(["acute", "reconstructive"]);
   });
 
   it("BURN_DEPTH_LABELS has all depths", () => {
@@ -525,9 +515,9 @@ describe("Procedure detection helpers", () => {
     expect(
       isBurnContractureReleaseProcedure("burns_recon_contracture_graft"),
     ).toBe(true);
-    expect(isBurnContractureReleaseProcedure("burns_recon_zplasty_single")).toBe(
-      false,
-    );
+    expect(
+      isBurnContractureReleaseProcedure("burns_recon_zplasty_single"),
+    ).toBe(false);
   });
 
   it("isBurnLaserProcedure detects laser procedures", () => {

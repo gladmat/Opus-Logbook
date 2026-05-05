@@ -37,8 +37,7 @@ export default function AddEditTeamContactScreen() {
   const { theme } = useTheme();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const route =
-    useRoute<RouteProp<RootStackParamList, "AddEditTeamContact">>();
+  const route = useRoute<RouteProp<RootStackParamList, "AddEditTeamContact">>();
   const contactId = route.params?.contactId;
   const isEdit = !!contactId;
 
@@ -81,9 +80,7 @@ export default function AddEditTeamContactScreen() {
           (contact.defaultRole as TeamMemberOperativeRole) ?? null,
         );
         setNotes(contact.notes ?? "");
-        setSelectedFacilityIds(
-          (contact.facilityIds as string[]) ?? [],
-        );
+        setSelectedFacilityIds((contact.facilityIds as string[]) ?? []);
         setLinkedUserId(contact.linkedUserId ?? null);
         setInvitationSentAt(contact.invitationSentAt ?? null);
       } catch {
@@ -181,10 +178,7 @@ export default function AddEditTeamContactScreen() {
   if (loading) {
     return (
       <View
-        style={[
-          styles.centered,
-          { backgroundColor: theme.backgroundRoot },
-        ]}
+        style={[styles.centered, { backgroundColor: theme.backgroundRoot }]}
       >
         <ActivityIndicator size="large" color={theme.link} />
       </View>
@@ -317,9 +311,7 @@ export default function AddEditTeamContactScreen() {
                   style={[
                     styles.roleChipLabel,
                     {
-                      color: isSelected
-                        ? theme.link
-                        : theme.textSecondary,
+                      color: isSelected ? theme.link : theme.textSecondary,
                     },
                   ]}
                   numberOfLines={1}
@@ -373,9 +365,7 @@ export default function AddEditTeamContactScreen() {
         {/* Facilities */}
         {facilities.length > 0 && (
           <>
-            <ThemedText
-              style={[styles.label, { color: theme.textSecondary }]}
-            >
+            <ThemedText style={[styles.label, { color: theme.textSecondary }]}>
               Facilities
             </ThemedText>
             <View style={styles.facilityList}>
@@ -510,7 +500,9 @@ export default function AddEditTeamContactScreen() {
             testID="teamContact.btn-invite"
           >
             <Feather name="send" size={16} color={theme.link} />
-            <ThemedText style={[styles.inviteButtonText, { color: theme.link }]}>
+            <ThemedText
+              style={[styles.inviteButtonText, { color: theme.link }]}
+            >
               {invitationSentAt ? "Invitation Sent" : "Invite to Opus"}
             </ThemedText>
           </Pressable>

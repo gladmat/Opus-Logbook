@@ -179,7 +179,11 @@ export const BreastSideCard = React.memo(function BreastSideCard({
           <ThemedText type="h4">{sideLabel}</ThemedText>
         </View>
         {showContext && showCopyButton && onCopy && (
-          <Pressable testID="caseForm.breast.btn-copyToOtherSide" onPress={onCopy} style={styles.copyButton}>
+          <Pressable
+            testID="caseForm.breast.btn-copyToOtherSide"
+            onPress={onCopy}
+            style={styles.copyButton}
+          >
             <Feather name="copy" size={14} color={theme.link} />
             <ThemedText
               type="small"
@@ -255,21 +259,14 @@ export const BreastSideCard = React.memo(function BreastSideCard({
           {visibility.showReconstructiveFields && (
             <View style={styles.timingSection}>
               <View style={styles.timingLabelRow}>
-                <ThemedText
-                  type="small"
-                  style={{ color: theme.textSecondary }}
-                >
+                <ThemedText type="small" style={{ color: theme.textSecondary }}>
                   Reconstruction Timing
                 </ThemedText>
                 <Pressable
                   onPress={() => setShowTimingInfo((v) => !v)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Feather
-                    name="info"
-                    size={16}
-                    color={theme.textTertiary}
-                  />
+                  <Feather name="info" size={16} color={theme.textTertiary} />
                 </Pressable>
               </View>
               {showTimingInfo && (
@@ -282,19 +279,53 @@ export const BreastSideCard = React.memo(function BreastSideCard({
                     },
                   ]}
                 >
-                  <ThemedText type="small" style={{ color: theme.textSecondary, fontSize: 13, lineHeight: 18 }}>
-                    <ThemedText type="small" style={{ fontWeight: "600", color: theme.textSecondary, fontSize: 13 }}>
+                  <ThemedText
+                    type="small"
+                    style={{
+                      color: theme.textSecondary,
+                      fontSize: 13,
+                      lineHeight: 18,
+                    }}
+                  >
+                    <ThemedText
+                      type="small"
+                      style={{
+                        fontWeight: "600",
+                        color: theme.textSecondary,
+                        fontSize: 13,
+                      }}
+                    >
                       Immediate
                     </ThemedText>
-                    {" \u2014 Reconstruction at the same operation as the mastectomy\n\n"}
-                    <ThemedText type="small" style={{ fontWeight: "600", color: theme.textSecondary, fontSize: 13 }}>
+                    {
+                      " \u2014 Reconstruction at the same operation as the mastectomy\n\n"
+                    }
+                    <ThemedText
+                      type="small"
+                      style={{
+                        fontWeight: "600",
+                        color: theme.textSecondary,
+                        fontSize: 13,
+                      }}
+                    >
                       Delayed-Immediate
                     </ThemedText>
-                    {" \u2014 Expander or spacer placed at mastectomy; definitive reconstruction at a later operation\n\n"}
-                    <ThemedText type="small" style={{ fontWeight: "600", color: theme.textSecondary, fontSize: 13 }}>
+                    {
+                      " \u2014 Expander or spacer placed at mastectomy; definitive reconstruction at a later operation\n\n"
+                    }
+                    <ThemedText
+                      type="small"
+                      style={{
+                        fontWeight: "600",
+                        color: theme.textSecondary,
+                        fontSize: 13,
+                      }}
+                    >
                       Delayed
                     </ThemedText>
-                    {" \u2014 Reconstruction as a separate operation, weeks to years after mastectomy"}
+                    {
+                      " \u2014 Reconstruction as a separate operation, weeks to years after mastectomy"
+                    }
                   </ThemedText>
                 </View>
               )}
@@ -379,7 +410,9 @@ export const BreastSideCard = React.memo(function BreastSideCard({
           {visibility.showNippleDetails && (
             <NippleDetailsCard
               value={value.nippleDetails ?? {}}
-              onChange={(nippleDetails) => onChange({ ...value, nippleDetails })}
+              onChange={(nippleDetails) =>
+                onChange({ ...value, nippleDetails })
+              }
             />
           )}
         </>

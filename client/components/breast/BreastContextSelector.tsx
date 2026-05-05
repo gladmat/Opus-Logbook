@@ -60,156 +60,152 @@ const EMPTY_MODULE_FLAGS: BreastModuleFlags = {
 // Component
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const BreastContextSelector = React.memo(
-  function BreastContextSelector({
-    value,
-    onChange,
-    defaultClinicalContext,
-    isTransmasculine,
-  }: Props) {
-    const { theme } = useTheme();
-    const assessment = useMemo(
-      () => normalizeBreastAssessment(value, defaultClinicalContext),
-      [defaultClinicalContext, value],
-    );
+export const BreastContextSelector = React.memo(function BreastContextSelector({
+  value,
+  onChange,
+  defaultClinicalContext,
+  isTransmasculine,
+}: Props) {
+  const { theme } = useTheme();
+  const assessment = useMemo(
+    () => normalizeBreastAssessment(value, defaultClinicalContext),
+    [defaultClinicalContext, value],
+  );
 
-    // ── Laterality ──────────────────────────────────────────────────────────
+  // ── Laterality ──────────────────────────────────────────────────────────
 
-    const handleLateralityChange = useCallback(
-      (option: LateralityOption) => {
-        if (option === assessment.laterality) return;
+  const handleLateralityChange = useCallback(
+    (option: LateralityOption) => {
+      if (option === assessment.laterality) return;
 
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 
-        onChange(
-          normalizeBreastAssessment(
-            { ...assessment, laterality: option },
-            defaultClinicalContext,
-          ),
-        );
-      },
-      [assessment, defaultClinicalContext, onChange],
-    );
+      onChange(
+        normalizeBreastAssessment(
+          { ...assessment, laterality: option },
+          defaultClinicalContext,
+        ),
+      );
+    },
+    [assessment, defaultClinicalContext, onChange],
+  );
 
-    // ── Per-side change ─────────────────────────────────────────────────────
+  // ── Per-side change ─────────────────────────────────────────────────────
 
-    const handleSideChange = useCallback(
-      (side: BreastLaterality, sideData: BreastSideAssessment) => {
-        onChange(
-          normalizeBreastAssessment(
-            {
-              ...assessment,
-              sides: { ...assessment.sides, [side]: sideData },
+  const handleSideChange = useCallback(
+    (side: BreastLaterality, sideData: BreastSideAssessment) => {
+      onChange(
+        normalizeBreastAssessment(
+          {
+            ...assessment,
+            sides: { ...assessment.sides, [side]: sideData },
+          },
+          defaultClinicalContext,
+        ),
+      );
+    },
+    [assessment, defaultClinicalContext, onChange],
+  );
+
+  // ── Copy to other side ──────────────────────────────────────────────────
+
+  const handleCopy = useCallback(
+    (fromSide: BreastLaterality) => {
+      const toSide: BreastLaterality = fromSide === "left" ? "right" : "left";
+      const source = assessment.sides[fromSide];
+      if (!source) return;
+      if (!isBreastSideEmpty(assessment.sides[toSide])) return;
+
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+
+      onChange(
+        normalizeBreastAssessment(
+          {
+            ...assessment,
+            sides: {
+              ...assessment.sides,
+              [toSide]: copyBreastSide(source, toSide),
             },
-            defaultClinicalContext,
-          ),
-        );
-      },
-      [assessment, defaultClinicalContext, onChange],
-    );
+          },
+          defaultClinicalContext,
+        ),
+      );
+    },
+    [assessment, defaultClinicalContext, onChange],
+  );
 
-    // ── Copy to other side ──────────────────────────────────────────────────
+  // ── Render ──────────────────────────────────────────────────────────────
 
-    const handleCopy = useCallback(
-      (fromSide: BreastLaterality) => {
-        const toSide: BreastLaterality =
-          fromSide === "left" ? "right" : "left";
-        const source = assessment.sides[fromSide];
-        if (!source) return;
-        if (!isBreastSideEmpty(assessment.sides[toSide])) return;
+  const activeSides = getBreastAssessmentActiveSides(assessment.laterality);
+  const isBilateral = assessment.laterality === "bilateral";
 
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+  return (
+    <View style={styles.container}>
+      {/* Section header */}
+      <ThemedText type="h4" style={{ marginBottom: Spacing.sm }}>
+        Breast Assessment
+      </ThemedText>
 
-        onChange(
-          normalizeBreastAssessment(
-            {
-              ...assessment,
-              sides: {
-                ...assessment.sides,
-                [toSide]: copyBreastSide(source, toSide),
-              },
-            },
-            defaultClinicalContext,
-          ),
-        );
-      },
-      [assessment, defaultClinicalContext, onChange],
-    );
-
-    // ── Render ──────────────────────────────────────────────────────────────
-
-    const activeSides = getBreastAssessmentActiveSides(assessment.laterality);
-    const isBilateral = assessment.laterality === "bilateral";
-
-    return (
-      <View style={styles.container}>
-        {/* Section header */}
-        <ThemedText type="h4" style={{ marginBottom: Spacing.sm }}>
-          Breast Assessment
-        </ThemedText>
-
-        {/* Laterality chips */}
-        <View style={styles.chipRow}>
-          {LATERALITY_OPTIONS.map(({ key, label }) => {
-            const selected = assessment.laterality === key;
-            return (
-              <Pressable
-                key={key}
-                onPress={() => handleLateralityChange(key)}
-                style={[
-                  styles.chip,
-                  {
-                    backgroundColor: selected
-                      ? theme.link
-                      : theme.backgroundSecondary,
-                    borderColor: selected ? theme.link : theme.border,
-                  },
-                ]}
-              >
-                <ThemedText
-                  type="small"
-                  style={{
-                    color: selected ? theme.buttonText : theme.text,
-                    fontWeight: selected ? "600" : "400",
-                  }}
-                >
-                  {label}
-                </ThemedText>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        {/* Per-side context cards (context_only mode) */}
-        {activeSides.map((side) => {
-          const sideData = assessment.sides[side];
-          if (!sideData) return null;
-
-          const otherSide: BreastLaterality =
-            side === "left" ? "right" : "left";
-          const otherData = assessment.sides[otherSide];
-          const showCopy = isBilateral && isBreastSideEmpty(otherData);
-
+      {/* Laterality chips */}
+      <View style={styles.chipRow}>
+        {LATERALITY_OPTIONS.map(({ key, label }) => {
+          const selected = assessment.laterality === key;
           return (
-            <BreastSideCard
-              key={side}
-              side={side}
-              value={sideData}
-              onChange={(updated) => handleSideChange(side, updated)}
-              moduleFlags={EMPTY_MODULE_FLAGS}
-              showCopyButton={showCopy}
-              onCopy={() => handleCopy(side)}
-              isTransmasculine={isTransmasculine}
-              renderMode="context_only"
-            />
+            <Pressable
+              key={key}
+              onPress={() => handleLateralityChange(key)}
+              style={[
+                styles.chip,
+                {
+                  backgroundColor: selected
+                    ? theme.link
+                    : theme.backgroundSecondary,
+                  borderColor: selected ? theme.link : theme.border,
+                },
+              ]}
+            >
+              <ThemedText
+                type="small"
+                style={{
+                  color: selected ? theme.buttonText : theme.text,
+                  fontWeight: selected ? "600" : "400",
+                }}
+              >
+                {label}
+              </ThemedText>
+            </Pressable>
           );
         })}
       </View>
-    );
-  },
-);
+
+      {/* Per-side context cards (context_only mode) */}
+      {activeSides.map((side) => {
+        const sideData = assessment.sides[side];
+        if (!sideData) return null;
+
+        const otherSide: BreastLaterality = side === "left" ? "right" : "left";
+        const otherData = assessment.sides[otherSide];
+        const showCopy = isBilateral && isBreastSideEmpty(otherData);
+
+        return (
+          <BreastSideCard
+            key={side}
+            side={side}
+            value={sideData}
+            onChange={(updated) => handleSideChange(side, updated)}
+            moduleFlags={EMPTY_MODULE_FLAGS}
+            showCopyButton={showCopy}
+            onCopy={() => handleCopy(side)}
+            isTransmasculine={isTransmasculine}
+            renderMode="context_only"
+          />
+        );
+      })}
+    </View>
+  );
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Styles

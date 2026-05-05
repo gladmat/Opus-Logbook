@@ -38,7 +38,10 @@ import {
 } from "@/types/peripheralNerve";
 import type { NerveGroup } from "@/types/peripheralNerve";
 import type { BodyRegion } from "@/lib/peripheralNerveConfig";
-import { DIAGNOSIS_TO_NERVE, deriveInjuryPatternLabel } from "@/lib/peripheralNerveConfig";
+import {
+  DIAGNOSIS_TO_NERVE,
+  deriveInjuryPatternLabel,
+} from "@/lib/peripheralNerveConfig";
 import { NerveInjuryClassification } from "./NerveInjuryClassification";
 import { ElectrodiagnosticSummaryComponent } from "./ElectrodiagnosticSummary";
 import { NerveGraftDetailsComponent } from "./NerveGraftDetailsComponent";
@@ -174,7 +177,12 @@ export const PeripheralNerveAssessment = React.memo(
     );
 
     // Derive BP aetiology from diagnosis ID
-    const bpAetiology = useMemo((): "obstetric" | "traumatic" | "radiation" | "tumour" | undefined => {
+    const bpAetiology = useMemo(():
+      | "obstetric"
+      | "traumatic"
+      | "radiation"
+      | "tumour"
+      | undefined => {
       if (!diagnosisId) return undefined;
       if (diagnosisId.includes("obstetric")) return "obstetric";
       if (diagnosisId.includes("traumatic")) return "traumatic";
@@ -185,7 +193,8 @@ export const PeripheralNerveAssessment = React.memo(
 
     // Derive BP injury pattern label for inferred pattern badge
     const inferredPatternLabel = useMemo(() => {
-      if (!isBrachialPlexus || !assessment.brachialPlexus?.roots) return undefined;
+      if (!isBrachialPlexus || !assessment.brachialPlexus?.roots)
+        return undefined;
       return deriveInjuryPatternLabel(assessment.brachialPlexus.roots);
     }, [isBrachialPlexus, assessment.brachialPlexus?.roots]);
 

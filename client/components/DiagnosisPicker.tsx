@@ -188,39 +188,39 @@ export function DiagnosisPicker({
       ) : null}
 
       <View style={styles.subcatGrid}>
-          {subcategories.map((subcat) => {
-            const isActive = subcat === activeSubcategory;
-            return (
-              <Pressable
-                key={subcat}
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setActiveSubcategory(subcat);
-                }}
+        {subcategories.map((subcat) => {
+          const isActive = subcat === activeSubcategory;
+          return (
+            <Pressable
+              key={subcat}
+              onPress={() => {
+                Haptics.selectionAsync();
+                setActiveSubcategory(subcat);
+              }}
+              style={[
+                styles.subcatChip,
+                {
+                  backgroundColor: isActive
+                    ? theme.link
+                    : theme.backgroundDefault,
+                  borderColor: isActive ? theme.link : theme.border,
+                },
+              ]}
+              testID={`caseForm.diagnosis.chip-subcat-${subcat}`}
+            >
+              <ThemedText
                 style={[
-                  styles.subcatChip,
+                  styles.subcatChipText,
                   {
-                    backgroundColor: isActive
-                      ? theme.link
-                      : theme.backgroundDefault,
-                    borderColor: isActive ? theme.link : theme.border,
+                    color: isActive ? theme.buttonText : theme.textSecondary,
                   },
                 ]}
-                testID={`caseForm.diagnosis.chip-subcat-${subcat}`}
               >
-                <ThemedText
-                  style={[
-                    styles.subcatChipText,
-                    {
-                      color: isActive ? theme.buttonText : theme.textSecondary,
-                    },
-                  ]}
-                >
-                  {subcat}
-                </ThemedText>
-              </Pressable>
-            );
-          })}
+                {subcat}
+              </ThemedText>
+            </Pressable>
+          );
+        })}
       </View>
 
       {/* Section label for active subcategory */}
@@ -233,64 +233,60 @@ export function DiagnosisPicker({
       ) : null}
 
       <View style={styles.diagnosisChipGrid}>
-        {diagnosesInSubcat.length > 0 ? (
-          diagnosesInSubcat.map((dx) => {
-            const isSelected = dx.id === selectedDiagnosisId;
-            const isFav = isFavourite("diagnosis", dx.id);
-            return (
-              <Pressable
-                key={dx.id}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  onSelect(dx);
-                }}
-                onLongPress={() => {
-                  Haptics.selectionAsync();
-                  toggleFavourite("diagnosis", dx.id);
-                }}
-                style={[
-                  styles.diagnosisChip,
-                  {
-                    backgroundColor: isSelected
-                      ? theme.link
-                      : theme.backgroundSecondary,
-                    borderColor: isSelected
-                      ? theme.link
-                      : theme.border + "80",
-                  },
-                ]}
-                testID={`caseForm.diagnosis.chip-${dx.id}`}
-              >
-                {isFav ? (
-                  <Feather
-                    name="star"
-                    size={12}
-                    color={isSelected ? theme.buttonText : theme.link}
-                  />
-                ) : null}
-                <ThemedText
+        {diagnosesInSubcat.length > 0
+          ? diagnosesInSubcat.map((dx) => {
+              const isSelected = dx.id === selectedDiagnosisId;
+              const isFav = isFavourite("diagnosis", dx.id);
+              return (
+                <Pressable
+                  key={dx.id}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    onSelect(dx);
+                  }}
+                  onLongPress={() => {
+                    Haptics.selectionAsync();
+                    toggleFavourite("diagnosis", dx.id);
+                  }}
                   style={[
-                    styles.diagnosisChipText,
+                    styles.diagnosisChip,
                     {
-                      color: isSelected ? theme.buttonText : theme.text,
-                      fontWeight: isSelected ? "600" : "400",
+                      backgroundColor: isSelected
+                        ? theme.link
+                        : theme.backgroundSecondary,
+                      borderColor: isSelected
+                        ? theme.link
+                        : theme.border + "80",
                     },
                   ]}
-                  numberOfLines={1}
+                  testID={`caseForm.diagnosis.chip-${dx.id}`}
                 >
-                  {dx.shortName ?? dx.displayName}
-                </ThemedText>
-                {isSelected ? (
-                  <Feather
-                    name="check"
-                    size={14}
-                    color={theme.buttonText}
-                  />
-                ) : null}
-              </Pressable>
-            );
-          })
-        ) : null}
+                  {isFav ? (
+                    <Feather
+                      name="star"
+                      size={12}
+                      color={isSelected ? theme.buttonText : theme.link}
+                    />
+                  ) : null}
+                  <ThemedText
+                    style={[
+                      styles.diagnosisChipText,
+                      {
+                        color: isSelected ? theme.buttonText : theme.text,
+                        fontWeight: isSelected ? "600" : "400",
+                      },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {dx.shortName ?? dx.displayName}
+                  </ThemedText>
+                  {isSelected ? (
+                    <Feather name="check" size={14} color={theme.buttonText} />
+                  ) : null}
+                </Pressable>
+              );
+            })
+          : null}
       </View>
 
       {/* Full name detail for selected diagnosis (chips show shortName) */}

@@ -19,7 +19,9 @@ describe("AESTHETIC_PROCEDURE_CONFIG completeness", () => {
   );
 
   it("should have at least 80 mapped procedures", () => {
-    expect(Object.keys(AESTHETIC_PROCEDURE_CONFIG).length).toBeGreaterThanOrEqual(80);
+    expect(
+      Object.keys(AESTHETIC_PROCEDURE_CONFIG).length,
+    ).toBeGreaterThanOrEqual(80);
   });
 
   it("every aes_/bc_ procedure in the picklist should have a config entry", () => {
@@ -83,7 +85,10 @@ describe("auto-inference validity", () => {
 
 describe("intent-dependent inference", () => {
   it("rhinoplasty open: cosmetic and functional produce different diagnoses", () => {
-    const cosmetic = resolveAutoInferredDiagnosisId("aes_rhino_open", "cosmetic");
+    const cosmetic = resolveAutoInferredDiagnosisId(
+      "aes_rhino_open",
+      "cosmetic",
+    );
     const functional = resolveAutoInferredDiagnosisId(
       "aes_rhino_open",
       "functional_reconstructive",
@@ -140,8 +145,8 @@ describe("intent-dependent inference", () => {
 
 describe("detail card consistency", () => {
   it("neurotoxin procedures have detailCard = neurotoxin", () => {
-    const botoxIds = Object.entries(AESTHETIC_PROCEDURE_CONFIG).filter(
-      ([id]) => id.includes("botox"),
+    const botoxIds = Object.entries(AESTHETIC_PROCEDURE_CONFIG).filter(([id]) =>
+      id.includes("botox"),
     );
     for (const [id, config] of botoxIds) {
       expect(config.detailCard).toBe("neurotoxin");

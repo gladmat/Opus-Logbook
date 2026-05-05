@@ -122,8 +122,7 @@ export const BreastFlapExtensionSection = React.memo(
 
     const isDiep =
       flapType === "diep" || flapType === "ms_tram" || flapType === "tram";
-    const isLdFlap =
-      flapType === "latissimus_dorsi" || flapType === "tdap";
+    const isLdFlap = flapType === "latissimus_dorsi" || flapType === "tdap";
 
     const update = useCallback(
       (patch: Partial<BreastFlapExtensionData>) => {
@@ -224,9 +223,7 @@ export const BreastFlapExtensionSection = React.memo(
             <BreastNumericField
               label="Calibre"
               value={perf.calibreMm}
-              onValueChange={(v) =>
-                updatePerforator(perf.id, { calibreMm: v })
-              }
+              onValueChange={(v) => updatePerforator(perf.id, { calibreMm: v })}
               unit="mm"
             />
 

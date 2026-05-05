@@ -65,9 +65,7 @@ describe("Strict elective scoping", () => {
   });
 
   it("does not include reconstructive hand diagnoses in elective search scope", () => {
-    const reconstructiveIds = [
-      "hand_dx_scaphoid_nonunion",
-    ];
+    const reconstructiveIds = ["hand_dx_scaphoid_nonunion"];
     const electiveIds = new Set(allElective.map((d) => d.id));
     for (const id of reconstructiveIds) {
       expect(electiveIds.has(id)).toBe(false);
@@ -359,7 +357,9 @@ describe("New diagnosis metadata", () => {
   });
 
   it("hand_dx_hand_tumour uses the valid International neoplasm-of-hand SNOMED code", () => {
-    const dx = HAND_SURGERY_DIAGNOSES.find((d) => d.id === "hand_dx_hand_tumour");
+    const dx = HAND_SURGERY_DIAGNOSES.find(
+      (d) => d.id === "hand_dx_hand_tumour",
+    );
     expect(dx).toBeDefined();
     // Previous code 126670009 did not resolve against SNOMED International;
     // 126654000 is the canonical "Neoplasm of hand" concept.
@@ -367,7 +367,9 @@ describe("New diagnosis metadata", () => {
   });
 
   it("hand_dx_hand_tumour search synonyms no longer advertise forearm scope", () => {
-    const dx = HAND_SURGERY_DIAGNOSES.find((d) => d.id === "hand_dx_hand_tumour");
+    const dx = HAND_SURGERY_DIAGNOSES.find(
+      (d) => d.id === "hand_dx_hand_tumour",
+    );
     const synonyms = (dx?.searchSynonyms ?? []).map((s) => s.toLowerCase());
     for (const term of synonyms) {
       expect(term).not.toContain("forearm");
@@ -594,26 +596,23 @@ describe("Per-finger Quinnell grading", () => {
   });
 
   it("formatTriggerFingerGrading formats single finger", () => {
-    const result = formatTriggerFingerGrading(
-      { index: "2" },
-      ["index"],
-    );
+    const result = formatTriggerFingerGrading({ index: "2" }, ["index"]);
     expect(result).toBe("Index Grade II");
   });
 
   it("formatTriggerFingerGrading formats multiple fingers", () => {
-    const result = formatTriggerFingerGrading(
-      { index: "2", ring: "3" },
-      ["index", "ring"],
-    );
+    const result = formatTriggerFingerGrading({ index: "2", ring: "3" }, [
+      "index",
+      "ring",
+    ]);
     expect(result).toBe("Index Grade II, Ring Grade III");
   });
 
   it("formatTriggerFingerGrading skips ungraded fingers", () => {
-    const result = formatTriggerFingerGrading(
-      { index: "1" },
-      ["index", "middle"],
-    );
+    const result = formatTriggerFingerGrading({ index: "1" }, [
+      "index",
+      "middle",
+    ]);
     expect(result).toBe("Index Grade I");
   });
 

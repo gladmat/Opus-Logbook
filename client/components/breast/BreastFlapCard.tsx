@@ -266,7 +266,11 @@ export const BreastFlapCard = React.memo(function BreastFlapCard({
           ))}
 
           {(value.perforators ?? []).length < MAX_PERFORATORS ? (
-            <Pressable testID="caseForm.breast.flap.btn-addPerforator" onPress={addPerforator} style={styles.addButton}>
+            <Pressable
+              testID="caseForm.breast.flap.btn-addPerforator"
+              onPress={addPerforator}
+              style={styles.addButton}
+            >
               <Feather name="plus" size={14} color={theme.link} />
               <ThemedText
                 type="small"
