@@ -1,0 +1,22 @@
+# Dashboard smoke test
+# Verifies the app launches, the user lands on Dashboard, and the FAB opens.
+# Run: maestro test .maestro/dashboard-smoke.yaml
+appId: com.drgladysz.opus
+---
+- launchApp:
+    clearState: false
+- assertVisible:
+    id: "main.tab-dashboard"
+- assertVisible:
+    id: "screen-dashboard"
+- tapOn:
+    id: "dashboard.fab.btn-main"
+    optional: true
+- assertVisible:
+    id: "dashboard.fab.btn-logCase"
+- tapOn:
+    id: "main.tab-statistics"
+- assertVisible:
+    id: "main.tab-settings"
+- tapOn:
+    id: "main.tab-dashboard"

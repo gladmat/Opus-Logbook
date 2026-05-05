@@ -1,0 +1,60 @@
+# Case form happy path
+# Logs a basic hand surgery case end-to-end.
+# Pre-conditions:
+#   - User is logged in (use TESTING.local.md credentials before running)
+#   - At least one facility configured
+#
+# Run: maestro test .maestro/case-form-happy.yaml
+appId: com.drgladysz.opus
+---
+- launchApp:
+    clearState: false
+- assertVisible:
+    id: "screen-dashboard"
+
+# Open Add Case via FAB speed dial
+- tapOn:
+    id: "dashboard.fab.btn-main"
+- tapOn:
+    id: "dashboard.fab.btn-logCase"
+- assertVisible:
+    id: "screen-caseForm"
+
+# Verify all six section pills are present
+- assertVisible:
+    id: "caseForm.nav.pill-patient"
+- assertVisible:
+    id: "caseForm.nav.pill-team"
+- assertVisible:
+    id: "caseForm.nav.pill-case"
+- assertVisible:
+    id: "caseForm.nav.pill-operative"
+- assertVisible:
+    id: "caseForm.nav.pill-media"
+- assertVisible:
+    id: "caseForm.nav.pill-outcomes"
+
+# Patient section: enter identifier
+- tapOn:
+    id: "caseForm.nav.pill-patient"
+- assertVisible:
+    id: "section-patient"
+- tapOn:
+    id: "input-nhi"
+    optional: true
+- inputText: "TST0001"
+
+# Discard the test case rather than saving — we're just smoke-testing
+# the form mounts and accepts input. The save path needs richer fixture
+# data and is the territory of `case-form-save-end-to-end.yaml` (TODO).
+- tapOn:
+    id: "caseForm.btn-actions"
+    optional: true
+- back
+
+# Confirm discard
+- tapOn:
+    text: "Discard"
+    optional: true
+- assertVisible:
+    id: "screen-dashboard"

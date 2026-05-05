@@ -1,0 +1,22 @@
+# App Lock PIN unlock
+# Verifies the lock screen mounts when the app is locked, and PIN entry
+# (the test PIN must be configured beforehand) unlocks it.
+#
+# Run: maestro test .maestro/applock-pin.yaml -e TEST_PIN=123456
+appId: com.drgladysz.opus
+---
+- launchApp:
+    clearState: false
+# If lock isn't configured, test ends here.
+- runFlow:
+    when:
+      visible:
+        id: "screen-lock"
+    commands:
+      - tapOn:
+          id: "screen-lock"
+          optional: true
+      # Type the 6-digit PIN. The TEST_PIN env var must be configured.
+      - inputText: ${TEST_PIN}
+      - assertNotVisible:
+          id: "screen-lock"
