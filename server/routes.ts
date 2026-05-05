@@ -17,8 +17,8 @@ import {
 import { sendPasswordResetEmail, sendInvitationEmail } from "./email";
 import { normalizeEmail, SNOMED_CONCEPT_ID_RE } from "./utils";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import { createRemoteJWKSet, jwtVerify } from "jose";
+import { signAppJwt, verifyAppJwt } from "./jwt";
 import {
   insertProfileSchema,
   insertUserFacilitySchema,
@@ -496,9 +496,6 @@ function checkInvitationRateLimit(userId: string): boolean {
   return true;
 }
 
-// JWT_SECRET is validated by env.ts at startup (minimum 32 characters)
-const JWT_SECRET = env.JWT_SECRET;
-
 // Hash password reset tokens before storing in database
 const hashResetToken = (token: string) =>
   createHash("sha256").update(token).digest("hex");
@@ -520,21 +517,24 @@ export const authenticateToken = async (
     return;
   }
 
+  const verified = await verifyAppJwt(token);
+  if (!verified.ok) {
+    res.status(403).json({ error: "Invalid or expired token" });
+    return;
+  }
+
   try {
-    const decoded = jwt.verify(token, JWT_SECRET, {
-      algorithms: ["HS256"],
-    }) as { userId: string; tokenVersion?: number };
-    const user = await storage.getUser(decoded.userId);
+    const user = await storage.getUser(verified.payload.userId);
     if (!user) {
       res.status(401).json({ error: "Authentication required" });
       return;
     }
     const currentTokenVersion = user.tokenVersion ?? 0;
-    if ((decoded.tokenVersion ?? 0) !== currentTokenVersion) {
+    if (verified.payload.tokenVersion !== currentTokenVersion) {
       res.status(401).json({ error: "Token has been revoked" });
       return;
     }
-    req.userId = decoded.userId;
+    req.userId = verified.payload.userId;
     next();
   } catch {
     res.status(403).json({ error: "Invalid or expired token" });
@@ -594,11 +594,10 @@ export async function registerRoutes(app: Express): Promise<void> {
           onboardingComplete: false,
         });
 
-        const token = jwt.sign(
-          { userId: user.id, tokenVersion: user.tokenVersion ?? 0 },
-          JWT_SECRET,
-          { algorithm: "HS256", expiresIn: "7d" },
-        );
+        const token = await signAppJwt({
+          userId: user.id,
+          tokenVersion: user.tokenVersion ?? 0,
+        });
 
         // Match new user's email against pending team_contacts invitations
         void storage
@@ -656,11 +655,10 @@ export async function registerRoutes(app: Express): Promise<void> {
 
         const profile = await storage.getProfile(user.id);
         const facilities = await storage.getUserFacilities(user.id);
-        const token = jwt.sign(
-          { userId: user.id, tokenVersion: user.tokenVersion ?? 0 },
-          JWT_SECRET,
-          { algorithm: "HS256", expiresIn: "7d" },
-        );
+        const token = await signAppJwt({
+          userId: user.id,
+          tokenVersion: user.tokenVersion ?? 0,
+        });
 
         res.json({
           token,
@@ -740,14 +738,10 @@ export async function registerRoutes(app: Express): Promise<void> {
           // Returning user — issue token
           const profile = await storage.getProfile(existingUser.id);
           const facilities = await storage.getUserFacilities(existingUser.id);
-          const token = jwt.sign(
-            {
-              userId: existingUser.id,
-              tokenVersion: existingUser.tokenVersion ?? 0,
-            },
-            JWT_SECRET,
-            { algorithm: "HS256", expiresIn: "7d" },
-          );
+          const token = await signAppJwt({
+            userId: existingUser.id,
+            tokenVersion: existingUser.tokenVersion ?? 0,
+          });
 
           res.json({
             token,
@@ -793,14 +787,10 @@ export async function registerRoutes(app: Express): Promise<void> {
           }
           const profile = await storage.getProfile(emailUser.id);
           const facilities = await storage.getUserFacilities(emailUser.id);
-          const token = jwt.sign(
-            {
-              userId: emailUser.id,
-              tokenVersion: emailUser.tokenVersion ?? 0,
-            },
-            JWT_SECRET,
-            { algorithm: "HS256", expiresIn: "7d" },
-          );
+          const token = await signAppJwt({
+            userId: emailUser.id,
+            tokenVersion: emailUser.tokenVersion ?? 0,
+          });
 
           res.json({
             token,
@@ -857,11 +847,10 @@ export async function registerRoutes(app: Express): Promise<void> {
           );
         }
 
-        const token = jwt.sign(
-          { userId: user.id, tokenVersion: user.tokenVersion ?? 0 },
-          JWT_SECRET,
-          { algorithm: "HS256", expiresIn: "7d" },
-        );
+        const token = await signAppJwt({
+          userId: user.id,
+          tokenVersion: user.tokenVersion ?? 0,
+        });
 
         res.json({
           token,
@@ -919,11 +908,10 @@ export async function registerRoutes(app: Express): Promise<void> {
           return;
         }
 
-        const token = jwt.sign(
-          { userId: user.id, tokenVersion: user.tokenVersion ?? 0 },
-          JWT_SECRET,
-          { algorithm: "HS256", expiresIn: "7d" },
-        );
+        const token = await signAppJwt({
+          userId: user.id,
+          tokenVersion: user.tokenVersion ?? 0,
+        });
 
         res.json({ token });
       } catch (error) {
