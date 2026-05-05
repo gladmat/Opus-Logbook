@@ -9,6 +9,12 @@ interface HorizontalBarChartProps {
   rowHeight?: number;
   showValues?: boolean;
   maxBars?: number;
+  /**
+   * Accessibility label describing the chart's intent (e.g.
+   * "Top 10 procedures by volume"). Composed with the data into a
+   * screen-reader summary at render time.
+   */
+  accessibilityLabelPrefix?: string;
 }
 
 export const HorizontalBarChart = React.memo(function HorizontalBarChart({
@@ -16,6 +22,7 @@ export const HorizontalBarChart = React.memo(function HorizontalBarChart({
   rowHeight = 32,
   showValues = true,
   maxBars = 8,
+  accessibilityLabelPrefix = "Horizontal bar chart",
 }: HorizontalBarChartProps) {
   const { theme } = useTheme();
 
@@ -23,8 +30,17 @@ export const HorizontalBarChart = React.memo(function HorizontalBarChart({
   const maxValue = Math.max(...visibleData.map((d) => d.value), 1);
   const remaining = data.length - maxBars;
 
+  const accessibilityLabel = `${accessibilityLabelPrefix}: ${visibleData
+    .map((d) => `${d.label} ${d.value}`)
+    .join(", ")}${remaining > 0 ? `, plus ${remaining} more` : ""}`;
+
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel={accessibilityLabel}
+    >
       {visibleData.map((item) => {
         const widthPct = (item.value / maxValue) * 100;
         const barColor = item.color ?? theme.accent;

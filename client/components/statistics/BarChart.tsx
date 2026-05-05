@@ -18,6 +18,14 @@ interface BarChartProps {
   barColor?: string;
   highlightLast?: boolean;
   animateOnMount?: boolean;
+  /**
+   * Accessibility label describing what the chart represents (e.g.
+   * "Cases per month, last 12 months"). The label is composed with the
+   * underlying data into a screen-reader-friendly summary at render
+   * time, so callers should focus on the chart's *intent* rather than
+   * the data.
+   */
+  accessibilityLabelPrefix?: string;
 }
 
 function AnimatedBar({
@@ -82,6 +90,7 @@ export const BarChart = React.memo(function BarChart({
   barColor,
   highlightLast = false,
   animateOnMount = true,
+  accessibilityLabelPrefix = "Bar chart",
 }: BarChartProps) {
   const { theme } = useTheme();
   const { width: screenWidth } = useWindowDimensions();
@@ -104,8 +113,20 @@ export const BarChart = React.memo(function BarChart({
   // For <=6 bars, show full label
   const useShortLabels = data.length > 6;
 
+  // Compose a screen-reader summary from the data so VoiceOver users get
+  // a useful description instead of "image" or silence on a pure-SVG
+  // chart. Format: "<prefix>: Jan 4, Feb 7, Mar 12, …"
+  const accessibilityLabel = `${accessibilityLabelPrefix}: ${data
+    .map((d) => `${d.label} ${d.value}`)
+    .join(", ")}`;
+
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel={accessibilityLabel}
+    >
       <Svg width={chartWidth} height={height}>
         {/* Baseline */}
         <Line

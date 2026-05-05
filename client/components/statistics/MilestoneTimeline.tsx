@@ -40,9 +40,15 @@ export const MilestoneTimeline = React.memo(function MilestoneTimeline({
   return (
     <View style={styles.container}>
       {visible.map((m, i) => (
-        <View key={`${m.label}-${m.date}`} style={styles.row}>
+        <View
+          key={`${m.label}-${m.date}`}
+          style={styles.row}
+          accessible
+          accessibilityRole="text"
+          accessibilityLabel={`Milestone ${i + 1} of ${visible.length}: ${m.label} on ${formatMilestoneDate(m.date)}`}
+        >
           {/* Timeline line + dot */}
-          <View style={styles.timeline}>
+          <View style={styles.timeline} accessible={false}>
             {i > 0 && (
               <View
                 style={[styles.lineTop, { backgroundColor: theme.border }]}
