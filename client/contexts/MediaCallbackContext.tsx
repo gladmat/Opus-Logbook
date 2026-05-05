@@ -2,6 +2,12 @@ import React, { createContext, useContext, useCallback, useRef } from "react";
 import { MediaAttachment } from "@/types/case";
 
 type MediaCallback = (attachments: MediaAttachment[]) => void;
+// `any[]` is necessary here for variance: the registry must accept callbacks
+// of arbitrary narrower signatures (e.g. `(updatedMedia: OperativeMediaItem[])`),
+// and `unknown[]` would reject those because the registered callback wouldn't
+// be guaranteed to accept all possible args. Consumers are responsible for
+// passing matching arg shapes via `executeGenericCallback`.
+
 type GenericCallback = (...args: any[]) => void;
 
 interface MediaCallbackContextType {
@@ -9,6 +15,7 @@ interface MediaCallbackContextType {
   executeCallback: (callbackId: string, attachments: MediaAttachment[]) => void;
   clearCallback: (callbackId: string) => void;
   registerGenericCallback: (callback: GenericCallback) => string;
+
   executeGenericCallback: (callbackId: string, ...args: any[]) => boolean;
 }
 

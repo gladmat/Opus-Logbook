@@ -41,6 +41,8 @@ import {
   INDICATION_LABELS,
   ANASTOMOSIS_LABELS,
   FreeFlapDetails,
+  HandSurgeryDetails,
+  BodyContouringDetails,
   GENDER_LABELS,
   ADMISSION_URGENCY_LABELS,
   UNPLANNED_READMISSION_LABELS,
@@ -1117,19 +1119,21 @@ export default function CaseDetailScreen() {
                               <DetailRow
                                 label="Injury Mechanism"
                                 value={
-                                  (proc.clinicalDetails as any).injuryMechanism
+                                  (proc.clinicalDetails as HandSurgeryDetails)
+                                    .injuryMechanism
                                 }
                               />
                               <DetailRow
                                 label="Fixation Material"
                                 value={(
-                                  proc.clinicalDetails as any
+                                  proc.clinicalDetails as HandSurgeryDetails
                                 ).fixationMaterial?.replace(/_/g, " ")}
                               />
                               <DetailRow
                                 label="Fracture Site"
                                 value={
-                                  (proc.clinicalDetails as any).fractureSite
+                                  (proc.clinicalDetails as HandSurgeryDetails)
+                                    .fractureSite
                                 }
                               />
                             </>
@@ -1141,15 +1145,18 @@ export default function CaseDetailScreen() {
                               <DetailRow
                                 label="Resection Weight"
                                 value={
-                                  (proc.clinicalDetails as any)
-                                    .resectionWeightGrams
+                                  (
+                                    proc.clinicalDetails as BodyContouringDetails
+                                  ).resectionWeightGrams
                                 }
                                 unit="g"
                               />
                               <DetailRow
                                 label="Drain Output"
                                 value={
-                                  (proc.clinicalDetails as any).drainOutputMl
+                                  (
+                                    proc.clinicalDetails as BodyContouringDetails
+                                  ).drainOutputMl
                                 }
                                 unit="ml"
                               />

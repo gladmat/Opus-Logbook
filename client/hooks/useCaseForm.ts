@@ -76,8 +76,8 @@ import { suggestRoleDefaults, isConsultantLevel } from "@/lib/roleDefaults";
 import type {
   CaseTeamMember,
   TeamMemberOperativeRole,
+  TeamContact,
 } from "@/types/teamContacts";
-import type { TeamContact } from "@/types/teamContacts";
 import { abbreviateName } from "@/types/teamContacts";
 import { getSeniorityTier } from "@/lib/seniorityTier";
 import {
@@ -690,12 +690,10 @@ export function draftToFormState(
   result.smoker = draft.smoker ?? "";
   result.diabetes = draft.diabetes ?? null;
   result.role = draft.teamMembers?.[0]?.role ?? "PS";
-  result.responsibleConsultantName =
-    (draft as any).responsibleConsultantName ?? "";
-  result.responsibleConsultantUserId =
-    (draft as any).responsibleConsultantUserId ?? "";
-  result.defaultOperativeRole = (draft as any).defaultOperativeRole ?? "";
-  result.defaultSupervisionLevel = (draft as any).defaultSupervisionLevel ?? "";
+  result.responsibleConsultantName = draft.responsibleConsultantName ?? "";
+  result.responsibleConsultantUserId = draft.responsibleConsultantUserId ?? "";
+  result.defaultOperativeRole = draft.defaultOperativeRole ?? "";
+  result.defaultSupervisionLevel = draft.defaultSupervisionLevel ?? "";
   result.surgeryStartTime = draft.surgeryTiming?.startTime ?? "";
   result.surgeryEndTime = draft.surgeryTiming?.endTime ?? "";
   result.clinicalDetails =
@@ -740,7 +738,7 @@ export function draftToFormState(
   result.episodeId = draft.episodeId ?? "";
   result.episodeSequence = draft.episodeSequence ?? 0;
   result.encounterClass = (draft.encounterClass as EncounterClass) ?? "";
-  result.operativeTeam = (draft as any).operativeTeam ?? [];
+  result.operativeTeam = draft.operativeTeam ?? [];
 
   return result;
 }
@@ -1454,8 +1452,8 @@ export function buildDuplicateState(
 
   // Deep clone anastomoses with new IDs
   const clonedAnastomoses: AnastomosisEntry[] =
-    (source.clinicalDetails as any)?.anastomoses?.map(
-      (a: AnastomosisEntry) => ({ ...a, id: uuidv4() }),
+    (source.clinicalDetails as FreeFlapDetails | undefined)?.anastomoses?.map(
+      (a) => ({ ...a, id: uuidv4() }),
     ) ?? [];
 
   const defaults = getDefaultFormState(specialty, primaryFacility);
@@ -1477,8 +1475,8 @@ export function buildDuplicateState(
     anaestheticType: (source.anaestheticType as AnaestheticType) || "",
     antibioticProphylaxis: source.prophylaxis?.antibiotics ?? false,
     dvtProphylaxis: source.prophylaxis?.dvtPrevention ?? false,
-    recipientSiteRegion:
-      (source.clinicalDetails as any)?.recipientSiteRegion ?? undefined,
+    recipientSiteRegion: (source.clinicalDetails as FreeFlapDetails | undefined)
+      ?.recipientSiteRegion,
     anastomoses: clonedAnastomoses,
 
     // ── Patient identity (carried forward — same patient) ───

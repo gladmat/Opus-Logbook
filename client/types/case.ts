@@ -1584,6 +1584,10 @@ export interface HandSurgeryDetails {
   fractures?: FractureEntry[];
   dominantHand?: "left" | "right" | "ambidextrous";
   affectedHand?: "left" | "right";
+  /** Legacy free-text fixation material (e.g. "K-wires", "compression plate"). */
+  fixationMaterial?: string;
+  /** Legacy free-text fracture site (e.g. "Distal radius", "Scaphoid waist"). */
+  fractureSite?: string;
 }
 
 export interface BodyContouringDetails {
