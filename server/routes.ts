@@ -19,6 +19,7 @@ import { normalizeEmail, SNOMED_CONCEPT_ID_RE } from "./utils";
 import bcrypt from "bcryptjs";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { signAppJwt, verifyAppJwt } from "./jwt";
+import { userSearchRateLimiter, invitationRateLimiter } from "./rateLimit";
 import {
   insertProfileSchema,
   insertUserFacilitySchema,
@@ -378,123 +379,9 @@ function serializeProfile(profile: Profile | undefined | null) {
   };
 }
 
-const authRateLimiter = new Map<string, { count: number; resetTime: number }>();
-const AUTH_RATE_LIMIT = 10;
-const AUTH_RATE_WINDOW_MS = 60 * 1000;
-const AUTH_RATE_LIMITER_MAX_ENTRIES = 5000;
-
-const userSearchRateLimiter = new Map<
-  string,
-  { count: number; resetTime: number }
->();
-const USER_SEARCH_RATE_LIMIT = 10;
-const USER_SEARCH_RATE_WINDOW_MS = 60 * 1000;
-
-const invitationRateLimiter = new Map<
-  string,
-  { count: number; resetTime: number }
->();
-const INVITATION_RATE_LIMIT = 20;
-const INVITATION_RATE_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
-
-// Periodic cleanup: evict expired entries every 60 seconds
-const rateLimiterCleanupTimer = setInterval(() => {
-  const now = Date.now();
-  for (const [ip, entry] of authRateLimiter) {
-    if (now > entry.resetTime) {
-      authRateLimiter.delete(ip);
-    }
-  }
-  for (const [key, entry] of userSearchRateLimiter) {
-    if (now > entry.resetTime) {
-      userSearchRateLimiter.delete(key);
-    }
-  }
-  for (const [key, entry] of invitationRateLimiter) {
-    if (now > entry.resetTime) {
-      invitationRateLimiter.delete(key);
-    }
-  }
-}, 60_000) as unknown as NodeJS.Timeout;
-rateLimiterCleanupTimer.unref();
-
-function cleanupRateLimiter(): void {
-  if (authRateLimiter.size <= AUTH_RATE_LIMITER_MAX_ENTRIES) return;
-  // Hard cap exceeded — evict oldest expired entries, then LRU if still over
-  const now = Date.now();
-  for (const [ip, entry] of authRateLimiter) {
-    if (now > entry.resetTime) {
-      authRateLimiter.delete(ip);
-    }
-  }
-  // If still over cap after expiry eviction, drop oldest entries
-  if (authRateLimiter.size > AUTH_RATE_LIMITER_MAX_ENTRIES) {
-    const excess = authRateLimiter.size - AUTH_RATE_LIMITER_MAX_ENTRIES;
-    const keys = authRateLimiter.keys();
-    for (let i = 0; i < excess; i++) {
-      const next = keys.next();
-      if (!next.done) authRateLimiter.delete(next.value);
-    }
-  }
-}
-
-function checkAuthRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const entry = authRateLimiter.get(ip);
-
-  if (!entry || now > entry.resetTime) {
-    authRateLimiter.set(ip, { count: 1, resetTime: now + AUTH_RATE_WINDOW_MS });
-    cleanupRateLimiter();
-    return true;
-  }
-
-  if (entry.count >= AUTH_RATE_LIMIT) {
-    return false;
-  }
-
-  entry.count++;
-  return true;
-}
-
-function checkUserSearchRateLimit(userId: string): boolean {
-  const now = Date.now();
-  const entry = userSearchRateLimiter.get(userId);
-
-  if (!entry || now > entry.resetTime) {
-    userSearchRateLimiter.set(userId, {
-      count: 1,
-      resetTime: now + USER_SEARCH_RATE_WINDOW_MS,
-    });
-    return true;
-  }
-
-  if (entry.count >= USER_SEARCH_RATE_LIMIT) {
-    return false;
-  }
-
-  entry.count++;
-  return true;
-}
-
-function checkInvitationRateLimit(userId: string): boolean {
-  const now = Date.now();
-  const entry = invitationRateLimiter.get(userId);
-
-  if (!entry || now > entry.resetTime) {
-    invitationRateLimiter.set(userId, {
-      count: 1,
-      resetTime: now + INVITATION_RATE_WINDOW_MS,
-    });
-    return true;
-  }
-
-  if (entry.count >= INVITATION_RATE_LIMIT) {
-    return false;
-  }
-
-  entry.count++;
-  return true;
-}
+// Rate limiters live in `./rateLimit.ts` as express-rate-limit middleware
+// instances. The auth limiter is mounted on `/api/auth` in setupApp; the
+// user-search and invitation limiters are mounted per-route below.
 
 // Hash password reset tokens before storing in database
 const hashResetToken = (token: string) =>
@@ -558,14 +445,6 @@ export async function registerRoutes(app: Express): Promise<void> {
     "/api/auth/signup",
     async (req: Request, res: Response): Promise<void> => {
       try {
-        const clientIp = req.ip || req.socket.remoteAddress || "unknown";
-        if (!checkAuthRateLimit(clientIp)) {
-          res
-            .status(429)
-            .json({ error: "Too many requests. Please try again later." });
-          return;
-        }
-
         const parseResult = signupSchema.safeParse(req.body);
         if (!parseResult.success) {
           res.status(400).json({
@@ -622,14 +501,6 @@ export async function registerRoutes(app: Express): Promise<void> {
     "/api/auth/login",
     async (req: Request, res: Response): Promise<void> => {
       try {
-        const clientIp = req.ip || req.socket.remoteAddress || "unknown";
-        if (!checkAuthRateLimit(clientIp)) {
-          res
-            .status(429)
-            .json({ error: "Too many requests. Please try again later." });
-          return;
-        }
-
         const parseResult = loginSchema.safeParse(req.body);
         if (!parseResult.success) {
           res.status(400).json({
@@ -677,14 +548,6 @@ export async function registerRoutes(app: Express): Promise<void> {
     "/api/auth/apple",
     async (req: Request, res: Response): Promise<void> => {
       try {
-        const clientIp = req.ip || req.socket.remoteAddress || "unknown";
-        if (!checkAuthRateLimit(clientIp)) {
-          res
-            .status(429)
-            .json({ error: "Too many requests. Please try again later." });
-          return;
-        }
-
         const parseResult = appleAuthSchema.safeParse(req.body);
         if (!parseResult.success) {
           res.status(400).json({
@@ -972,14 +835,6 @@ export async function registerRoutes(app: Express): Promise<void> {
     "/api/auth/request-password-reset",
     async (req: Request, res: Response): Promise<void> => {
       try {
-        const clientIp = req.ip || req.socket.remoteAddress || "unknown";
-        if (!checkAuthRateLimit(clientIp)) {
-          res
-            .status(429)
-            .json({ error: "Too many requests. Please try again later." });
-          return;
-        }
-
         const parseResult = requestPasswordResetSchema.safeParse(req.body);
         if (!parseResult.success) {
           res.status(400).json({
@@ -2502,15 +2357,9 @@ export async function registerRoutes(app: Express): Promise<void> {
   app.post(
     "/api/invitations",
     authenticateToken,
+    invitationRateLimiter,
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       try {
-        if (!checkInvitationRateLimit(req.userId!)) {
-          res
-            .status(429)
-            .json({ error: "Too many invitations. Please try again later." });
-          return;
-        }
-
         const parseResult = invitationSchema.safeParse(req.body);
         if (!parseResult.success) {
           res.status(400).json({
@@ -2602,15 +2451,9 @@ export async function registerRoutes(app: Express): Promise<void> {
   app.get(
     "/api/users/search",
     authenticateToken,
+    userSearchRateLimiter,
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       try {
-        if (!checkUserSearchRateLimit(req.userId!)) {
-          res
-            .status(429)
-            .json({ error: "Too many requests. Please try again later." });
-          return;
-        }
-
         const emailRaw = req.query.email as string | undefined;
         const phone = req.query.phone as string | undefined;
         const registration = req.query.registration as string | undefined;
@@ -2671,19 +2514,13 @@ export async function registerRoutes(app: Express): Promise<void> {
   app.post(
     "/api/users/discover",
     authenticateToken,
+    // Discovery is a membership oracle — share the per-user rate limit
+    // with /api/users/search so a single authenticated user can't submit
+    // 50 emails per request at full cadence and enumerate the full Opus
+    // directory.
+    userSearchRateLimiter,
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       try {
-        // Discovery is a membership oracle — rate-limit it per user just like
-        // the user-search endpoint. Without this, a single authenticated user
-        // could submit 50 emails per request at whatever cadence the server
-        // accepts and enumerate the full Opus directory.
-        if (!checkUserSearchRateLimit(req.userId!)) {
-          res
-            .status(429)
-            .json({ error: "Too many requests. Please try again later." });
-          return;
-        }
-
         const parseResult = discoverContactsSchema.safeParse(req.body);
         if (!parseResult.success) {
           res.status(400).json({

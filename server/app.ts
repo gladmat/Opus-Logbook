@@ -3,8 +3,10 @@ import * as os from "node:os";
 import * as path from "node:path";
 import express from "express";
 import type { Express, NextFunction, Request, Response } from "express";
+import helmet from "helmet";
 import { env } from "./env";
 import { registerRoutes, authenticateToken } from "./routes";
+import { authRateLimiter } from "./rateLimit";
 import { Sentry } from "./sentry";
 import { logger } from "./logger";
 
@@ -68,7 +70,10 @@ function setupBodyParsing(app: Express) {
     limit: "5mb",
   });
 
-  app.use("/api/auth", authJsonParser, authUrlencodedParser);
+  // Auth endpoints get the per-IP rate limiter mounted before the body
+  // parser so a flood of requests doesn't trigger expensive JSON parsing
+  // before being rejected.
+  app.use("/api/auth", authRateLimiter, authJsonParser, authUrlencodedParser);
   app.use("/api/profile/picture", bulkJsonParser, bulkUrlencodedParser);
   app.use("/api/seed-snomed-ref", bulkJsonParser, bulkUrlencodedParser);
   app.use("/api", apiJsonParser, apiUrlencodedParser);
@@ -309,21 +314,41 @@ function configureExpoAndLanding(app: Express) {
 }
 
 function setupSecurityHeaders(app: Express) {
+  // Helmet 8 — battle-tested security headers (HSTS, CSP, X-Frame-Options,
+  // X-Content-Type-Options, Referrer-Policy, etc). Replaces ~15 lines of
+  // hand-rolled `res.setHeader` calls.
+  //
+  // CSP allows 'unsafe-inline' for scripts because the landing page
+  // template inlines a small bootstrap (kept for the hosted /privacy etc
+  // pages). https://unpkg.com is a legacy allowance for the same surface.
+  // Tighten when the landing page templates move to a CSP-friendly bundle.
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", "data:"],
+          fontSrc: ["'self'"],
+          connectSrc: ["'self'"],
+          frameAncestors: ["'none'"],
+        },
+      },
+      strictTransportSecurity: {
+        maxAge: 31_536_000, // 1 year
+        includeSubDomains: true,
+        preload: true,
+      },
+      referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+      crossOriginResourcePolicy: { policy: "same-site" },
+      // Already set by hand previously; helmet's default is the right thing.
+      frameguard: { action: "deny" },
+      // Permissions-Policy is set explicitly because helmet's default is
+      // empty.
+    }),
+  );
   app.use((_req: Request, res: Response, next: NextFunction) => {
-    res.setHeader("X-Content-Type-Options", "nosniff");
-    res.setHeader("X-Frame-Options", "DENY");
-    res.setHeader(
-      "Strict-Transport-Security",
-      "max-age=31536000; includeSubDomains; preload",
-    );
-    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-    res.setHeader("X-XSS-Protection", "0");
-    res.setHeader("X-Permitted-Cross-Domain-Policies", "none");
-    res.setHeader("X-Download-Options", "noopen");
-    res.setHeader(
-      "Content-Security-Policy",
-      "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'",
-    );
     res.setHeader(
       "Permissions-Policy",
       "camera=(), microphone=(), geolocation=()",
