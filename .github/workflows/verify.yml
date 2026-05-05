@@ -75,7 +75,7 @@ jobs:
       - run: npm run check:format
 
   test:
-    name: Vitest
+    name: Vitest + coverage
     needs: install
     runs-on: ubuntu-latest
     steps:
@@ -85,7 +85,15 @@ jobs:
           node-version-file: ".node-version"
           cache: "npm"
       - run: npm ci --include=dev
-      - run: npm run test
+      - run: npm run test:coverage
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
+          if-no-files-found: ignore
 
   server-build:
     name: Server build (esbuild)

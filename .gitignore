@@ -51,6 +51,9 @@ attached_assets/
 # typescript
 *.tsbuildinfo
 
+# vitest coverage reports
+coverage/
+
 app-example
 
 # server build output
