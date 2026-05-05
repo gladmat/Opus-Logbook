@@ -31,7 +31,10 @@ import {
 } from "@shared/professionalRegistrations";
 import { sendPushNotification } from "./push";
 import { env } from "./env";
+import { logger } from "./logger";
 import { z } from "zod";
+
+const log = logger.child({ module: "routes" });
 
 // ── Shared helpers ───────────────────────────────────────────────────────────
 // `normalizeEmail` and `SNOMED_CONCEPT_ID_RE` are imported from ./utils so
@@ -49,7 +52,7 @@ function respondInternalError(
   err: unknown,
   publicMessage = "Internal server error",
 ): void {
-  console.error(`${context}:`, err);
+  log.error({ err }, context);
   res.status(500).json({ error: publicMessage });
 }
 
@@ -601,7 +604,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         void storage
           .matchInvitationsByEmail(email)
           .catch((e: unknown) =>
-            console.warn("Invitation matching failed:", e),
+            log.warn({ err: e }, "invitation matching failed"),
           );
 
         res.json({ token, user: { id: user.id, email: user.email } });
@@ -706,11 +709,14 @@ export async function registerRoutes(app: Express): Promise<void> {
           tokenEmail =
             typeof payload.email === "string" ? payload.email : undefined;
         } catch (verifyError) {
-          console.error(
-            "Apple token verification failed:",
-            verifyError instanceof Error
-              ? verifyError.message
-              : "Unknown error",
+          log.error(
+            {
+              err:
+                verifyError instanceof Error
+                  ? verifyError.message
+                  : "Unknown error",
+            },
+            "apple token verification failed",
           );
           res.status(401).json({ error: "Invalid Apple identity token" });
           return;
@@ -845,9 +851,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         } catch (profileErr) {
           // Don't fail auth — user was created, JWT is valid.
           // User can complete profile in onboarding.
-          console.warn(
-            "Apple auth: profile creation failed, user can complete in onboarding:",
-            profileErr,
+          log.warn(
+            { err: profileErr },
+            "apple auth: profile creation failed, user can complete in onboarding",
           );
         }
 
@@ -893,9 +899,9 @@ export async function registerRoutes(app: Express): Promise<void> {
           onboardingComplete: profile?.onboardingComplete ?? false,
         });
       } catch (error) {
-        console.error(
-          "Auth check error:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "auth check error",
         );
         res.status(500).json({ error: "Failed to check authentication" });
       }
@@ -921,9 +927,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
         res.json({ token });
       } catch (error) {
-        console.error(
-          "Token refresh error:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "token refresh error",
         );
         res.status(500).json({ error: "Failed to refresh token" });
       }
@@ -965,9 +971,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
         res.json({ success: true, message: "Password changed successfully" });
       } catch (error) {
-        console.error(
-          "Change password error:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "change password error",
         );
         res.status(500).json({ error: "Failed to change password" });
       }
@@ -1021,9 +1027,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         const emailResult = await sendPasswordResetEmail(email, token);
 
         if (!emailResult.success) {
-          console.error(
-            "Failed to send password reset email:",
-            emailResult.error,
+          log.error(
+            { err: emailResult.error },
+            "failed to send password reset email",
           );
         }
 
@@ -1032,9 +1038,9 @@ export async function registerRoutes(app: Express): Promise<void> {
           message: "If an account exists, reset instructions will be sent",
         });
       } catch (error) {
-        console.error(
-          "Password reset request error:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "password reset request error",
         );
         res
           .status(500)
@@ -1088,9 +1094,9 @@ export async function registerRoutes(app: Express): Promise<void> {
           message: "Password has been reset successfully",
         });
       } catch (error) {
-        console.error(
-          "Password reset error:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "password reset error",
         );
         res.status(500).json({ error: "Failed to reset password" });
       }
@@ -1193,9 +1199,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         const profile = await storage.getProfile(req.userId!);
         res.json(serializeProfile(profile));
       } catch (error) {
-        console.error(
-          "Profile fetch error:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "profile fetch error",
         );
         res.status(500).json({ error: "Failed to fetch profile" });
       }
@@ -1271,9 +1277,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         const profile = await storage.updateProfile(req.userId!, profileData);
         res.json(serializeProfile(profile));
       } catch (error) {
-        console.error(
-          "Profile update error:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "profile update error",
         );
         res.status(500).json({ error: "Failed to update profile" });
       }
@@ -1356,9 +1362,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         });
         res.json(serializeProfile(profile));
       } catch (error) {
-        console.error(
-          "Profile picture delete error:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "profile picture delete error",
         );
         res.status(500).json({ error: "Failed to delete profile picture" });
       }
@@ -1378,9 +1384,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         const facilities = await storage.getUserFacilities(req.userId!);
         res.json(facilities);
       } catch (error) {
-        console.error(
-          "Facilities fetch error:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "facilities fetch error",
         );
         res.status(500).json({ error: "Failed to fetch facilities" });
       }
@@ -1409,9 +1415,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         });
         res.json(facility);
       } catch (error) {
-        console.error(
-          "Facility create error:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "facility create error",
         );
         res.status(500).json({ error: "Failed to create facility" });
       }
@@ -1449,9 +1455,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         }
         res.json(updated);
       } catch (error) {
-        console.error(
-          "Facility update error:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "facility update error",
         );
         res.status(500).json({ error: "Failed to update facility" });
       }
@@ -1474,9 +1480,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         }
         res.json({ success: true });
       } catch (error) {
-        console.error(
-          "Facility delete error:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "facility delete error",
         );
         res.status(500).json({ error: "Failed to delete facility" });
       }
@@ -1512,9 +1518,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
         res.json({ success: true, keyId: key.id });
       } catch (error) {
-        console.error(
-          "Device key upsert error:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "device key upsert error",
         );
         res.status(500).json({ error: "Failed to register device key" });
       }
@@ -1531,9 +1537,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         const keys = await storage.getUserDeviceKeys(req.userId!);
         res.json(keys);
       } catch (error) {
-        console.error(
-          "Device key fetch error:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "device key fetch error",
         );
         res.status(500).json({ error: "Failed to fetch device keys" });
       }
@@ -1562,9 +1568,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         );
         res.json({ success: true });
       } catch (error) {
-        console.error(
-          "Device key revoke error:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "device key revoke error",
         );
         res.status(500).json({ error: "Failed to revoke device key" });
       }
@@ -1589,9 +1595,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         );
         res.json(refs);
       } catch (error) {
-        console.error(
-          "Error fetching SNOMED refs:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error fetching snomed refs",
         );
         res.status(500).json({ error: "Failed to fetch reference data" });
       }
@@ -1614,9 +1620,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
         res.json(refs);
       } catch (error) {
-        console.error(
-          "Error fetching vessels:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error fetching vessels",
         );
         res.status(500).json({ error: "Failed to fetch vessels" });
       }
@@ -1631,9 +1637,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         const refs = await storage.getSnomedRefs("anatomical_region");
         res.json(refs);
       } catch (error) {
-        console.error(
-          "Error fetching regions:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error fetching regions",
         );
         res.status(500).json({ error: "Failed to fetch regions" });
       }
@@ -1648,9 +1654,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         const refs = await storage.getSnomedRefs("flap");
         res.json(refs);
       } catch (error) {
-        console.error(
-          "Error fetching flap types:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error fetching flap types",
         );
         res.status(500).json({ error: "Failed to fetch flap types" });
       }
@@ -1666,9 +1672,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         const refs = await storage.getSnomedRefs("donor_vessel", flapType);
         res.json(refs);
       } catch (error) {
-        console.error(
-          "Error fetching donor vessels:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error fetching donor vessels",
         );
         res.status(500).json({ error: "Failed to fetch donor vessels" });
       }
@@ -1683,9 +1689,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         const refs = await storage.getSnomedRefs("composition");
         res.json(refs);
       } catch (error) {
-        console.error(
-          "Error fetching compositions:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error fetching compositions",
         );
         res.status(500).json({ error: "Failed to fetch compositions" });
       }
@@ -1700,9 +1706,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         const refs = await storage.getSnomedRefs("coupling_method");
         res.json(refs);
       } catch (error) {
-        console.error(
-          "Error fetching coupling methods:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error fetching coupling methods",
         );
         res.status(500).json({ error: "Failed to fetch coupling methods" });
       }
@@ -1717,9 +1723,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         const refs = await storage.getSnomedRefs("anastomosis_config");
         res.json(refs);
       } catch (error) {
-        console.error(
-          "Error fetching anastomosis configs:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error fetching anastomosis configs",
         );
         res.status(500).json({ error: "Failed to fetch anastomosis configs" });
       }
@@ -1762,9 +1768,9 @@ export async function registerRoutes(app: Express): Promise<void> {
             count: created.length,
           });
         } catch (error) {
-          console.error(
-            "Error seeding SNOMED refs:",
-            error instanceof Error ? error.message : "Unknown error",
+          log.error(
+            { err: error instanceof Error ? error.message : "Unknown error" },
+            "error seeding snomed refs",
           );
           res.status(500).json({ error: "Failed to seed reference data" });
         }
@@ -1797,9 +1803,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
         res.json(results);
       } catch (error) {
-        console.error(
-          "Error searching SNOMED procedures:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error searching snomed procedures",
         );
         res.status(500).json({ error: "Failed to search procedures" });
       }
@@ -1826,9 +1832,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
         res.json(results);
       } catch (error) {
-        console.error(
-          "Error searching SNOMED diagnoses:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error searching snomed diagnoses",
         );
         res.status(500).json({ error: "Failed to search diagnoses" });
       }
@@ -1856,9 +1862,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
         res.json(details);
       } catch (error) {
-        console.error(
-          "Error fetching concept details:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error fetching concept details",
         );
         res.status(500).json({ error: "Failed to fetch concept details" });
       }
@@ -1884,9 +1890,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
         res.json(staging || { stagingSystems: [] });
       } catch (error) {
-        console.error(
-          "Error fetching staging config:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error fetching staging config",
         );
         res
           .status(500)
@@ -1905,9 +1911,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         const configs = getAllStagingConfigs();
         res.json(configs);
       } catch (error) {
-        console.error(
-          "Error fetching all staging configs:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error fetching all staging configs",
         );
         res
           .status(500)
@@ -1999,13 +2005,13 @@ export async function registerRoutes(app: Express): Promise<void> {
             "Case Shared",
             "A colleague has shared a case with you",
             { type: "case_shared", sharedCaseId: p.sharedCaseId },
-          ).catch((err) => console.warn("Share push failed:", err));
+          ).catch((err) => log.warn("Share push failed:", err));
         }
         return;
       } catch (error) {
-        console.error(
-          "Error sharing case:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error sharing case",
         );
         res.status(500).json({ error: "Failed to share case" });
       }
@@ -2034,9 +2040,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         );
         res.json(result);
       } catch (error) {
-        console.error(
-          "Error fetching shared inbox:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error fetching shared inbox",
         );
         res.status(500).json({ error: "Failed to fetch shared inbox" });
       }
@@ -2077,9 +2083,9 @@ export async function registerRoutes(app: Express): Promise<void> {
           verificationStatus: sharedCase.verificationStatus,
         });
       } catch (error) {
-        console.error(
-          "Error fetching shared case:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error fetching shared case",
         );
         res.status(500).json({ error: "Failed to fetch shared case" });
       }
@@ -2100,9 +2106,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         );
         res.json(result);
       } catch (error) {
-        console.error(
-          "Error fetching shared outbox:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error fetching shared outbox",
         );
         res.status(500).json({ error: "Failed to fetch shared outbox" });
       }
@@ -2152,12 +2158,12 @@ export async function registerRoutes(app: Express): Promise<void> {
             { type: "verification", sharedCaseId: req.params.id! },
           ).catch(() => {});
         } catch (pushErr) {
-          console.warn("Push notification failed after verify:", pushErr);
+          log.warn({ err: pushErr }, "push notification failed after verify");
         }
       } catch (error) {
-        console.error(
-          "Error verifying shared case:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error verifying shared case",
         );
         res.status(500).json({ error: "Failed to verify shared case" });
       }
@@ -2182,9 +2188,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
         res.json({ success: true });
       } catch (error) {
-        console.error(
-          "Error revoking shared case:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error revoking shared case",
         );
         res.status(500).json({ error: "Failed to revoke shared case" });
       }
@@ -2233,12 +2239,15 @@ export async function registerRoutes(app: Express): Promise<void> {
             { type: "shared_case_update", sharedCaseId: req.params.id! },
           ).catch(() => {});
         } catch (pushErr) {
-          console.warn("Push notification failed after blob update:", pushErr);
+          log.warn(
+            { err: pushErr },
+            "push notification failed after blob update",
+          );
         }
       } catch (error) {
-        console.error(
-          "Error updating shared case blob:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error updating shared case blob",
         );
         res.status(500).json({ error: "Failed to update shared case" });
       }
@@ -2269,9 +2278,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         }
         res.json(contacts);
       } catch (error) {
-        console.error(
-          "Error listing team contacts:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error listing team contacts",
         );
         res.status(500).json({ error: "Failed to list team contacts" });
       }
@@ -2294,9 +2303,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         }
         res.json(contact);
       } catch (error) {
-        console.error(
-          "Error getting team contact:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error getting team contact",
         );
         res.status(500).json({ error: "Failed to get team contact" });
       }
@@ -2335,9 +2344,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         });
         res.json(contact);
       } catch (error) {
-        console.error(
-          "Error creating team contact:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error creating team contact",
         );
         res.status(500).json({ error: "Failed to create team contact" });
       }
@@ -2391,9 +2400,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         }
         res.json(updated);
       } catch (error) {
-        console.error(
-          "Error updating team contact:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error updating team contact",
         );
         res.status(500).json({ error: "Failed to update team contact" });
       }
@@ -2416,9 +2425,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         }
         res.json({ success: true });
       } catch (error) {
-        console.error(
-          "Error deleting team contact:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error deleting team contact",
         );
         res.status(500).json({ error: "Failed to delete team contact" });
       }
@@ -2463,9 +2472,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         }
         res.json(updated);
       } catch (error) {
-        console.error(
-          "Error linking team contact:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error linking team contact",
         );
         res.status(500).json({ error: "Failed to link team contact" });
       }
@@ -2488,9 +2497,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         }
         res.json(updated);
       } catch (error) {
-        console.error(
-          "Error unlinking team contact:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error unlinking team contact",
         );
         res.status(500).json({ error: "Failed to unlink team contact" });
       }
@@ -2546,14 +2555,14 @@ export async function registerRoutes(app: Express): Promise<void> {
             "A colleague";
           await sendInvitationEmail(email, senderName);
         } catch (emailError) {
-          console.warn("Invitation email failed:", emailError);
+          log.warn({ err: emailError }, "invitation email failed");
         }
 
         res.json({ success: true, invitedAt: invitedAt.toISOString() });
       } catch (error) {
-        console.error(
-          "Error sending invitation:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error sending invitation",
         );
         res.status(500).json({ error: "Failed to send invitation" });
       }
@@ -2592,9 +2601,9 @@ export async function registerRoutes(app: Express): Promise<void> {
           })),
         });
       } catch (error) {
-        console.error(
-          "Error getting user keys:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error getting user keys",
         );
         res.status(500).json({ error: "Failed to get user keys" });
       }
@@ -2661,9 +2670,9 @@ export async function registerRoutes(app: Express): Promise<void> {
           })),
         });
       } catch (error) {
-        console.error(
-          "Error searching users:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error searching users",
         );
         res.status(500).json({ error: "Failed to search users" });
       }
@@ -2735,9 +2744,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
         res.json({ matches });
       } catch (error) {
-        console.error(
-          "Error discovering contacts:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error discovering contacts",
         );
         res.status(500).json({ error: "Failed to discover contacts" });
       }
@@ -2852,9 +2861,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
         res.status(201).json({ id: assessment.id, revealed });
       } catch (error) {
-        console.error(
-          "Error submitting assessment:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error submitting assessment",
         );
         res.status(500).json({ error: "Failed to submit assessment" });
       }
@@ -2992,9 +3001,9 @@ export async function registerRoutes(app: Express): Promise<void> {
           otherPartyPublicKeys,
         });
       } catch (error) {
-        console.error(
-          "Error fetching assessments:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error fetching assessments",
         );
         res.status(500).json({ error: "Failed to fetch assessments" });
       }
@@ -3030,9 +3039,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
         res.status(201).json(token);
       } catch (error) {
-        console.error(
-          "Error registering push token:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error registering push token",
         );
         res.status(500).json({ error: "Failed to register push token" });
       }
@@ -3057,9 +3066,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
         res.json({ success: true });
       } catch (error) {
-        console.error(
-          "Error removing push token:",
-          error instanceof Error ? error.message : "Unknown error",
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error removing push token",
         );
         res.status(500).json({ error: "Failed to remove push token" });
       }

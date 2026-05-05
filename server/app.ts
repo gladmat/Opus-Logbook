@@ -6,8 +6,9 @@ import type { Express, NextFunction, Request, Response } from "express";
 import { env } from "./env";
 import { registerRoutes, authenticateToken } from "./routes";
 import { Sentry } from "./sentry";
+import { logger } from "./logger";
 
-const log = console.log;
+const log = logger.child({ module: "app" });
 
 export interface SetupAppOptions {
   serveFrontend?: boolean;
@@ -84,7 +85,15 @@ function setupRequestLogging(app: Express) {
       if (!reqPath.startsWith("/api")) return;
 
       const duration = Date.now() - start;
-      log(`${req.method} ${reqPath} ${res.statusCode} in ${duration}ms`);
+      log.info(
+        {
+          method: req.method,
+          path: reqPath,
+          status: res.statusCode,
+          durationMs: duration,
+        },
+        "request",
+      );
     });
 
     next();
@@ -195,8 +204,7 @@ function serveLandingPage({
   const baseUrl = `${protocol}://${host}`;
   const expoDeepLink = getExpoDeepLink({ protocol, host });
 
-  log(`baseUrl`, baseUrl);
-  log(`expoDeepLink`, expoDeepLink);
+  log.debug({ baseUrl, expoDeepLink }, "serving landing page");
 
   const html = landingPageTemplate
     .replace(/BASE_URL_PLACEHOLDER/g, baseUrl)
@@ -235,7 +243,7 @@ function configureExpoAndLanding(app: Express) {
   const landingPageTemplate = fs.readFileSync(templatePath, "utf-8");
   const appName = getAppName();
 
-  log("Serving static Expo files with dynamic manifest routing");
+  log.info("serving static Expo files with dynamic manifest routing");
 
   app.get("/privacy", (_req: Request, res: Response) => {
     serveLegalPage("privacy-policy.html", res);
@@ -297,7 +305,7 @@ function configureExpoAndLanding(app: Express) {
   app.use("/assets", express.static(path.resolve(process.cwd(), "assets")));
   app.use(express.static(path.resolve(process.cwd(), "static-build")));
 
-  log("Expo routing: Checking expo-platform header on / and /manifest");
+  log.info("Expo routing enabled (expo-platform header on / and /manifest)");
 }
 
 function setupSecurityHeaders(app: Express) {
@@ -335,7 +343,7 @@ function setupErrorHandler(app: Express) {
     const message =
       status < 500 ? error.message || "Request error" : "Internal Server Error";
     if (status >= 500) {
-      console.error("Server error:", err);
+      log.error({ err }, "server error");
     }
     res.status(status).json({ message });
   });

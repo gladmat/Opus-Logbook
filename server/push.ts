@@ -1,7 +1,9 @@
 import Expo, { type ExpoPushMessage } from "expo-server-sdk";
 import { storage } from "./storage";
+import { logger } from "./logger";
 
 const expo = new Expo();
+const log = logger.child({ module: "push" });
 
 /**
  * Send push notifications to all registered devices for a user.
@@ -22,8 +24,9 @@ export async function sendPushNotification(
 
     for (const token of tokens) {
       if (!Expo.isExpoPushToken(token.expoPushToken)) {
-        console.warn(
-          `Invalid Expo push token for user ${userId}, device ${token.deviceId}`,
+        log.warn(
+          { userId, deviceId: token.deviceId },
+          "invalid Expo push token",
         );
         invalidDeviceIds.push(token.deviceId);
         continue;
@@ -41,7 +44,10 @@ export async function sendPushNotification(
     // Clean up invalid tokens
     for (const deviceId of invalidDeviceIds) {
       await storage.deletePushToken(userId, deviceId).catch((err) => {
-        console.error(`Failed to delete invalid push token: ${err}`);
+        log.error(
+          { err, userId, deviceId },
+          "failed to delete invalid push token",
+        );
       });
     }
 
@@ -53,17 +59,17 @@ export async function sendPushNotification(
         const receipts = await expo.sendPushNotificationsAsync(chunk);
         for (const receipt of receipts) {
           if (receipt.status === "error") {
-            console.error(
-              `Push notification error: ${receipt.message}`,
-              receipt.details,
+            log.error(
+              { details: receipt.details, message: receipt.message },
+              "push notification error",
             );
           }
         }
       } catch (err) {
-        console.error("Failed to send push notification chunk:", err);
+        log.error({ err }, "failed to send push notification chunk");
       }
     }
   } catch (err) {
-    console.error("Failed to send push notifications:", err);
+    log.error({ err, userId }, "failed to send push notifications");
   }
 }

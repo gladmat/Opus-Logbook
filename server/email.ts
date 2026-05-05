@@ -1,5 +1,7 @@
 import { Resend } from "resend";
+import { logger } from "./logger";
 
+const log = logger.child({ module: "email" });
 const FROM_EMAIL = "noreply@drgladysz.com";
 const APP_NAME = "Opus";
 
@@ -99,17 +101,17 @@ If you didn't request this password reset, you can safely ignore this email. You
     });
 
     if (error) {
-      console.error(
-        "Resend error:",
-        error instanceof Error ? error.message : "Unknown error",
+      log.error(
+        { error: error instanceof Error ? error.message : "Unknown error" },
+        "Resend error",
       );
       return { success: false, error: error.message };
     }
 
-    console.log("Password reset email sent successfully");
+    log.info("password reset email sent");
     return { success: true };
   } catch (error) {
-    console.error("Failed to send password reset email:", error);
+    log.error({ err: error }, "failed to send password reset email");
     const message =
       error instanceof Error ? error.message : "Failed to send email";
     return { success: false, error: message };
@@ -176,17 +178,17 @@ If you have any questions, feel free to reach out to us.
     });
 
     if (error) {
-      console.error(
-        "Resend error:",
-        error instanceof Error ? error.message : "Unknown error",
+      log.error(
+        { error: error instanceof Error ? error.message : "Unknown error" },
+        "Resend error",
       );
       return { success: false, error: error.message };
     }
 
-    console.log("Welcome email sent successfully");
+    log.info("welcome email sent");
     return { success: true };
   } catch (error) {
-    console.error("Failed to send welcome email:", error);
+    log.error({ err: error }, "failed to send welcome email");
     const message =
       error instanceof Error ? error.message : "Failed to send email";
     return { success: false, error: message };
@@ -260,17 +262,17 @@ All patient data is end-to-end encrypted — even the ${APP_NAME} server cannot 
     });
 
     if (error) {
-      console.error(
-        "Resend error:",
-        error instanceof Error ? error.message : "Unknown error",
+      log.error(
+        { error: error instanceof Error ? error.message : "Unknown error" },
+        "Resend error",
       );
       return { success: false, error: error.message };
     }
 
-    console.log("Invitation email sent successfully");
+    log.info("invitation email sent");
     return { success: true };
   } catch (error) {
-    console.error("Failed to send invitation email:", error);
+    log.error({ err: error }, "failed to send invitation email");
     const message =
       error instanceof Error ? error.message : "Failed to send email";
     return { success: false, error: message };

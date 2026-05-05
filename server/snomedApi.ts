@@ -7,6 +7,9 @@
  * API Documentation: https://r4.ontoserver.csiro.au/fhir
  */
 
+import { logger } from "./logger";
+
+const log = logger.child({ module: "snomed" });
 const ONTOSERVER_BASE_URL = "https://r4.ontoserver.csiro.au/fhir";
 const FETCH_TIMEOUT_MS = 8000;
 const SEARCH_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -207,7 +210,10 @@ export async function searchProcedures(
     });
 
     if (!response.ok) {
-      console.error("SNOMED API error:", response.status);
+      log.error(
+        { status: response.status, op: "procedures" },
+        "Ontoserver error",
+      );
       return [];
     }
 
@@ -221,11 +227,11 @@ export async function searchProcedures(
     );
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      console.error("SNOMED procedure search timed out");
+      log.error("SNOMED procedure search timed out");
     } else {
-      console.error(
-        "Error searching SNOMED procedures:",
-        error instanceof Error ? error.message : "Unknown error",
+      log.error(
+        { err: error instanceof Error ? error.message : "Unknown error" },
+        "error searching SNOMED procedures",
       );
     }
     return [];
@@ -268,7 +274,10 @@ export async function searchDiagnoses(
     });
 
     if (!response.ok) {
-      console.error("SNOMED API error:", response.status);
+      log.error(
+        { status: response.status, op: "diagnoses" },
+        "Ontoserver error",
+      );
       return [];
     }
 
@@ -282,11 +291,11 @@ export async function searchDiagnoses(
     );
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      console.error("SNOMED diagnosis search timed out");
+      log.error("SNOMED diagnosis search timed out");
     } else {
-      console.error(
-        "Error searching SNOMED diagnoses:",
-        error instanceof Error ? error.message : "Unknown error",
+      log.error(
+        { err: error instanceof Error ? error.message : "Unknown error" },
+        "error searching SNOMED diagnoses",
       );
     }
     return [];
@@ -317,7 +326,10 @@ export async function getConceptDetails(
     });
 
     if (!response.ok) {
-      console.error("SNOMED API error:", response.status);
+      log.error(
+        { status: response.status, op: "concept-detail" },
+        "Ontoserver error",
+      );
       return null;
     }
 
@@ -375,9 +387,9 @@ export async function getConceptDetails(
       CONCEPT_CACHE_TTL_MS,
     );
   } catch (error) {
-    console.error(
-      "Error fetching SNOMED concept details:",
-      error instanceof Error ? error.message : "Unknown error",
+    log.error(
+      { err: error instanceof Error ? error.message : "Unknown error" },
+      "error fetching SNOMED concept details",
     );
     return setCachedValue(
       conceptDetailCache,
@@ -414,9 +426,9 @@ export async function validateCode(conceptId: string): Promise<boolean> {
     const resultParam = data.parameter?.find((p) => p.name === "result");
     return resultParam?.valueBoolean === true;
   } catch (error) {
-    console.error(
-      "Error validating SNOMED code:",
-      error instanceof Error ? error.message : "Unknown error",
+    log.error(
+      { err: error instanceof Error ? error.message : "Unknown error" },
+      "error validating SNOMED code",
     );
     return false;
   }
