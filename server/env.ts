@@ -40,6 +40,7 @@ export const envSchema = z
     ENABLE_SEED: z.string().optional(),
     SEED_TOKEN: z.string().optional(),
     EXPO_ACCESS_TOKEN: z.string().optional(),
+    SENTRY_DSN: z.string().url().optional(),
   })
   .superRefine((parsed, ctx) => {
     if (parsed.NODE_ENV === "production") {

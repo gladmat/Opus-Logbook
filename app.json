@@ -33,7 +33,9 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.drgladysz.opus",
       "versionCode": 1,
-      "blockedPermissions": ["android.permission.RECORD_AUDIO"],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
       "permissions": [],
       "allowBackup": false
     },
@@ -77,7 +79,8 @@
           "microphonePermission": false,
           "recordAudioAndroid": false
         }
-      ]
+      ],
+      "@sentry/react-native"
     ],
     "experiments": {
       "reactCompiler": true

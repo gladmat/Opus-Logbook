@@ -1,3 +1,7 @@
+// IMPORTANT: Sentry must initialize before `node:http` is imported anywhere
+// else so v10 httpIntegration can wrap incoming requests. Keep this as the
+// first import.
+import "./sentry";
 import { createServer } from "node:http";
 import { setupApp } from "./app";
 import { env } from "./env";

@@ -5,6 +5,7 @@ import express from "express";
 import type { Express, NextFunction, Request, Response } from "express";
 import { env } from "./env";
 import { registerRoutes, authenticateToken } from "./routes";
+import { Sentry } from "./sentry";
 
 const log = console.log;
 
@@ -353,6 +354,11 @@ export async function setupApp(
     configureExpoAndLanding(app);
   }
   await registerRoutes(app);
+  // Sentry's Express error handler must run BEFORE our final
+  // setupErrorHandler so it can capture exceptions before they're
+  // converted into the generic JSON response. When SENTRY_DSN is unset,
+  // this is a passthrough.
+  Sentry.setupExpressErrorHandler(app);
   setupErrorHandler(app);
   return app;
 }

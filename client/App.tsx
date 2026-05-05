@@ -26,6 +26,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { AppLockProvider } from "@/contexts/AppLockContext";
 import { MediaCallbackProvider } from "@/contexts/MediaCallbackContext";
 import { ThemeProvider, useTheme } from "@/hooks/useTheme";
+import { initClientSentry, captureClientException } from "@/lib/sentry";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
 import {
   ingestPendingLockedCameraCaptures,
@@ -72,6 +73,12 @@ function handleNotificationNavigation(data: Record<string, unknown>) {
 
 // Keep native splash visible while we load assets
 SplashScreen.preventAutoHideAsync();
+
+// Initialize crash reporting before any other module-level work so that
+// even render errors during the first commit are captured. Init is a
+// no-op when EXPO_PUBLIC_SENTRY_DSN is unset, so the app works fine
+// for contributors without a Sentry account.
+initClientSentry();
 
 function StatusBarThemed() {
   const { isDark } = useTheme();
@@ -247,7 +254,11 @@ export default function App() {
   if (!ready) return null;
 
   return (
-    <ErrorBoundary>
+    <ErrorBoundary
+      onError={(error, stackTrace) =>
+        captureClientException(error, { componentStack: stackTrace })
+      }
+    >
       <ThemeProvider>
         <AuthProvider>
           <AppLockProvider>
