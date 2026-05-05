@@ -27,6 +27,7 @@ import { AppLockProvider } from "@/contexts/AppLockContext";
 import { MediaCallbackProvider } from "@/contexts/MediaCallbackContext";
 import { ThemeProvider, useTheme } from "@/hooks/useTheme";
 import { initClientSentry, captureClientException } from "@/lib/sentry";
+import { initAnalytics, track } from "@/lib/analytics";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
 import {
   ingestPendingLockedCameraCaptures,
@@ -79,6 +80,12 @@ SplashScreen.preventAutoHideAsync();
 // no-op when EXPO_PUBLIC_SENTRY_DSN is unset, so the app works fine
 // for contributors without a Sentry account.
 initClientSentry();
+
+// Analytics init is async (PostHog persists distinct_id via async
+// storage on first run). We don't await — events captured before init
+// resolves are queued by PostHog itself and flushed once init settles.
+// No-op when EXPO_PUBLIC_POSTHOG_KEY is unset.
+void initAnalytics().then(() => track("app_opened"));
 
 function StatusBarThemed() {
   const { isDark } = useTheme();
