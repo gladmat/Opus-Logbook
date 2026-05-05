@@ -283,7 +283,11 @@ export const OperativeSection = React.memo(function OperativeSection() {
                   <ThemedText
                     style={[
                       styles.segmentedButtonText,
-                      { color: isSelected ? "#FFFFFF" : theme.textSecondary },
+                      {
+                        color: isSelected
+                          ? theme.buttonText
+                          : theme.textSecondary,
+                      },
                     ]}
                   >
                     {label}
@@ -327,7 +331,11 @@ export const OperativeSection = React.memo(function OperativeSection() {
                     <ThemedText
                       style={[
                         styles.segmentedButtonText,
-                        { color: isSelected ? "#FFFFFF" : theme.textSecondary },
+                        {
+                          color: isSelected
+                            ? theme.buttonText
+                            : theme.textSecondary,
+                        },
                       ]}
                     >
                       {label}
@@ -547,7 +555,11 @@ export const OperativeSection = React.memo(function OperativeSection() {
                 <ThemedText
                   style={[
                     styles.segmentedButtonText,
-                    { color: isSelected ? "#FFFFFF" : theme.textSecondary },
+                    {
+                      color: isSelected
+                        ? theme.buttonText
+                        : theme.textSecondary,
+                    },
                   ]}
                 >
                   {label}
@@ -596,7 +608,9 @@ export const OperativeSection = React.memo(function OperativeSection() {
               <ThemedText
                 style={[
                   styles.segmentedButtonText,
-                  { color: isSelected ? "#FFFFFF" : theme.textSecondary },
+                  {
+                    color: isSelected ? theme.buttonText : theme.textSecondary,
+                  },
                 ]}
               >
                 {label}

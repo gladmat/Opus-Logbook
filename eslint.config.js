@@ -39,12 +39,39 @@ module.exports = defineConfig([
     ],
     rules: {
       "no-restricted-syntax": [
-        "warn",
+        "error",
         {
           selector:
             "NewExpression[callee.name='Date'][arguments.length=1][arguments.0.type='Literal'][arguments.0.value=/^\\d{4}-\\d{2}-\\d{2}$/]",
           message:
             "Don't `new Date('YYYY-MM-DD')` — parses as UTC midnight and drifts in non-UTC timezones. Use `parseIsoDateValue` / `parseDateOnlyValue` from `@/lib/dateValues`.",
+        },
+      ],
+    },
+  },
+  {
+    // Block direct `expo-secure-store` imports anywhere except the wrapper
+    // module itself. The wrapper applies `WHEN_UNLOCKED_THIS_DEVICE_ONLY` to
+    // every write so the keychain entries are unreadable to AFU-mode
+    // forensic tools (Cellebrite, GrayKey). Bypassing the wrapper silently
+    // weakens that protection.
+    files: ["client/**/*.{ts,tsx}"],
+    ignores: [
+      "client/lib/secureStorage.ts",
+      "**/__tests__/**",
+      "**/*.test.{ts,tsx}",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "expo-secure-store",
+              message:
+                "Import from `@/lib/secureStorage` instead — it applies WHEN_UNLOCKED_THIS_DEVICE_ONLY by default. Direct imports defeat the AFU-mode forensic protections.",
+            },
+          ],
         },
       ],
     },

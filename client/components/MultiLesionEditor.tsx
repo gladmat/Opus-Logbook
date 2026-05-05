@@ -644,10 +644,10 @@ function LesionRow({
                     const isSelected = lesion.marginStatus === opt.value;
                     const statusColor =
                       opt.value === "clear"
-                        ? "#059669"
+                        ? theme.success
                         : opt.value === "involved"
-                          ? "#DC2626"
-                          : "#6B7280";
+                          ? theme.error
+                          : theme.textTertiary;
                     return (
                       <Pressable
                         key={opt.value ?? "none"}
@@ -902,7 +902,7 @@ export function MultiLesionEditor({
         </View>
         {confirmedCount > 0 && (
           <View style={styles.statItem}>
-            <ThemedText style={[styles.statNumber, { color: "#059669" }]}>
+            <ThemedText style={[styles.statNumber, { color: theme.success }]}>
               {confirmedCount}
             </ThemedText>
             <ThemedText
@@ -914,7 +914,7 @@ export function MultiLesionEditor({
         )}
         {involvedCount > 0 && (
           <View style={styles.statItem}>
-            <ThemedText style={[styles.statNumber, { color: "#DC2626" }]}>
+            <ThemedText style={[styles.statNumber, { color: theme.error }]}>
               {involvedCount}
             </ThemedText>
             <ThemedText

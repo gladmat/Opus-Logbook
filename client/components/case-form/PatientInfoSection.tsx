@@ -282,7 +282,9 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
                         style={[
                           styles.segmentedButtonText,
                           {
-                            color: isSelected ? "#FFFFFF" : theme.textSecondary,
+                            color: isSelected
+                              ? theme.buttonText
+                              : theme.textSecondary,
                           },
                         ]}
                       >

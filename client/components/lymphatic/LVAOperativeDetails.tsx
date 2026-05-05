@@ -172,12 +172,25 @@ function ChipRow<T extends string>({
 
 // ─── NECST colour chip ──────────────────────────────────────────────────────
 
-const NECST_COLORS: Record<NECSTGrade, string> = {
-  normal: "#2EA043",
-  ectasis: "#E5A00D",
-  contraction: "#D29922",
-  sclerosis: "#F85149",
-};
+// NECST grades map to semantic theme tokens — `normal` = success, `ectasis` =
+// link/amber accent (a vessel just out of normal range), `contraction` =
+// warning, `sclerosis` = error. Resolved at render time so light/dark themes
+// pick the right palette without duplicating the lookup table.
+function getNecstColor(
+  grade: NECSTGrade,
+  theme: ReturnType<typeof useTheme>["theme"],
+): string {
+  switch (grade) {
+    case "normal":
+      return theme.success;
+    case "ectasis":
+      return theme.link;
+    case "contraction":
+      return theme.warning;
+    case "sclerosis":
+      return theme.error;
+  }
+}
 
 function NECSTChipRow({
   selected,
@@ -186,13 +199,13 @@ function NECSTChipRow({
 }: {
   selected?: NECSTGrade;
   onSelect: (v: NECSTGrade) => void;
-  theme: any;
+  theme: ReturnType<typeof useTheme>["theme"];
 }) {
   return (
     <View style={styles.chipRow}>
       {NECST_GRADES.map((grade) => {
         const isSelected = selected === grade;
-        const color = NECST_COLORS[grade];
+        const color = getNecstColor(grade, theme);
         return (
           <TouchableOpacity
             key={grade}

@@ -60,6 +60,6 @@ const styles = StyleSheet.create({
     backgroundColor: palette.amber[600],
   },
   inactive: {
-    backgroundColor: "#2C2C2E",
+    backgroundColor: palette.charcoal[800],
   },
 });
