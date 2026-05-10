@@ -48,7 +48,7 @@ Key capabilities: multi-specialty case logging, SNOMED CT coded diagnoses and pr
   - **State / save-pipeline integrity** (commit `4ca9508`): Fixed the clinical-attribution bug where `operativeTeam[*].procedureRoleOverrides` (numeric procedure indices) silently re-bound to the wrong procedure after a delete/reorder. New `remapTeamProcedureReferences(team, oldIds, newIds)` runs on every `SET_DIAGNOSIS_GROUPS` / `REORDER_DIAGNOSIS_GROUPS` and uses procedure UUID identity to rewrite both override keys and `presentForProcedures` arrays. `handleDiagnosisGroupChange` switched from `SET_FIELD` to `SET_DIAGNOSIS_GROUPS` so per-group procedure edits also fire the remap. New `allocateEpisodeSequence(episodeId)` (atomic read-increment-persist guarded by per-episode mutex; backed by `TreatmentEpisode.nextCaseSequence`) replaces the racey `getCasesByEpisodeId(id).length + 1` pattern in the save pipeline + both episode-link helpers. Date-only `new Date("YYYY-MM-DD")` parsing replaced with `parseIsoDateValue` (local-noon, TZ-safe) in case-form validator, storage sort/filter, episode dashboard, burns helpers; new ESLint `no-restricted-syntax` rule blocks regressions. Save pipeline gained: edit-mode share revocation (diff outbox vs new recipient set, call `revokeSharedCase` for stale shares); inner try/catch around episode-link sync so its failure doesn't show a false "Save failed" alert; `TOGGLE_MEMBER_PROCEDURE_PRESENCE` materialises full index set instead of falling through to `[]`; `ADD_TEAM_MEMBER` dedupes against `operativeTeam.linkedUserId`; episode `updateEpisode` enforces `EPISODE_STATUS_TRANSITIONS`; `buildDuplicateState` deep-clones via `structuredClone`. Discovery service AsyncStorage keys now user-scoped + cleared on logout. `loadCaseIntoFormState` gained `applyDayCaseDefaults` so day-case outcome auto-fill works on LOAD paths.
   - **PHI exfiltration + share hygiene** (commit `3cef7db`): CSV/FHIR/JSON exports now write to `Paths.cache/opus-exports/`, share via `Sharing.shareAsync(fileUri, mimeType)`, and `delete()` in `finally` regardless of share outcome — replaces `Share.share({message: rawCsv})` which routed PHI strings through every share-sheet target including watchOS previews. PDF export gained the same temp cleanup. Every interactive export gates on a "this contains patient data" confirmation `Alert`. Avatar URLs (`/uploads/avatars/*`) now require a valid JWT — `authenticateToken` exported from routes.ts and mounted in front of the static handler in `app.ts`. New `<AuthenticatedAvatar>` component + `authenticatedImageSource()` in `client/lib/auth.ts` inject the bearer header into RN's image loader. Encrypted media `meta.json` `createdAt` rounded to local midnight so the plaintext meta-file alongside ciphertext doesn't leak sub-minute capture timing. `mediaDecryptCache` got a `pin()`/`unpin()` ref-counting layer skipped by LRU eviction; `useDecryptedImage` pins for the hook lifetime — closes the use-after-evict race during fast scrolls. `AppLockContext` now also calls `clearUserCaches()` on `AppState.background` so `caseSummaryCache` (full names + NHIs in RAM) drains when the app backgrounds.
   - **✨ Share team for non-Opus members + TOFU key pinning** (commit `6795752`): Receiver-side `SharedCaseDetailScreen` Team card now iterates `operativeTeam` (every participant including non-Opus contacts) with their per-case role; unlinked contacts get a "Not on Opus" sub-label. The blob's `CaseTeamMember` shape carries displayName / abbreviatedName / operativeRole / per-procedure overrides / presence — third-party email and phone are on `TeamContact` and don't enter the blob, so non-consenting contacts' contact details don't travel to recipients. New `client/lib/keyPinningStore.ts` implements TOFU pinning of recipient device public keys: first observation pins; subsequent fetch must match (fail-closed across the recipient's full key set); `acceptKeyRotation()` overwrites a pin after the user confirms out-of-band. Save pipeline runs every `getUserDeviceKeys` response through `verifyAndPinRecipientKeys` and surfaces a named alert if any recipient mismatches. `clearAllPins()` wired into logout + delete-account.
-  - **Polish + config** (commit `84f66b8`): Test-account credentials moved out of CLAUDE.md into gitignored `TESTING.local.md`. `.node-version 2` Finder duplicate deleted. Plan file in `.claude/plans/SECURITY_AUDIT_PLAN.md` records final status of all 7 sessions plus the explicit deferred list (helmet@8 migration, jose-only migration, PSI discovery, per-file iCloud backup exclusion, commit-reveal blinded assessments, Signal-style safety-number UI for TOFU rotations).
+  - **Polish + config** (commit `84f66b8`): Test-account credentials moved out of CLAUDE.md into gitignored `TESTING.local.md`. `.node-version 2` Finder duplicate deleted. Plan file in `.claude/plans/SECURITY_AUDIT_PLAN.md` records final status of all 7 sessions. Originally-deferred items have since shipped: helmet@8 migration (commit `944b580` — replaces hand-rolled security headers + rate limiting with `helmet` + `express-rate-limit`); jose-only JWT (commit `d8abbed` — `jsonwebtoken` removed). Still deferred: PSI discovery, per-file iCloud backup exclusion, commit-reveal blinded assessments, Signal-style safety-number UI for TOFU rotations.
 
 ## Tech stack
 
@@ -75,21 +75,35 @@ npm run dev:mobile     # Watch-mode API + Expo Go on LAN for device testing
 npm run server:dev     # Express API server (port from .env, default 5001)
 npm run expo:dev       # Expo only (LAN host, port 8083)
 npm run db:push        # Push Drizzle schema to PostgreSQL
+npm run db:generate    # Generate SQL migration from schema diff (drizzle-kit generate)
+npm run db:migrate     # Apply pending SQL migrations (drizzle-kit migrate)
 npm run server:build   # Production server build → server_dist/
 npm run server:prod    # Run production server
 npm run lint           # ESLint
+npm run lint:fix       # ESLint with --fix
 npm run check:types    # TypeScript type-check (tsc --noEmit)
+npm run check:format   # Prettier --check (CI gate; matches `format` output)
 npm run format         # Prettier
 npm run test           # Vitest (run once)
 npm run test:watch     # Vitest (watch mode)
+npm run test:coverage  # Vitest with v8 coverage (CI gate; thresholds in vitest.config.ts)
+npm run ios            # expo run:ios (native dev build, not Expo Go)
+npm run android        # expo run:android
 ```
 
 ## Local development
 
 1. PostgreSQL running locally (Homebrew `postgresql@16`)
-2. `.env` in project root: `DATABASE_URL`, `JWT_SECRET` (min 32 chars), `PORT` (use 5001 — port 5000 conflicts with macOS AirPlay), `NODE_ENV`
+2. Copy `.env.example` → `.env` and fill in real values. Required: `DATABASE_URL`, `JWT_SECRET` (min 32 chars), `PORT` (use 5001 — port 5000 conflicts with macOS AirPlay), `NODE_ENV`. `server/env.ts` validates at boot and exits non-zero on bad/missing values.
 3. `npm install` then `npm run db:push`
 4. `npm run dev:mobile` for device testing (default workflow)
+
+See `CONTRIBUTING.md` at repo root for the full contributor checklist.
+
+## Quality gates
+
+- **Pre-commit hook:** `.husky/pre-commit` runs `lint-staged`, which Prettier-formats and `eslint --fix`-es staged files. To bypass for an emergency, use `git commit --no-verify` (don't make a habit of it).
+- **CI:** `.github/workflows/verify.yml` runs on every push/PR to `main` — five parallel jobs: install, typecheck (`check:types`), lint (`lint`), format (`check:format`), test (`test:coverage`). All must pass to merge. CI uses `npm ci --include=dev` (strict), never `--legacy-peer-deps` — see EAS / TestFlight operational lessons.
 
 ## Project structure
 
@@ -1274,7 +1288,7 @@ Used for: master encryption key, JWT, device X25519 private key, patient HMAC ke
 - **URL:** https://api-server-production-4dd7.up.railway.app
 - **Services:** `api-server` (Express) + `Postgres` (PostgreSQL)
 - **Deploy:** `railway up` from project root
-- **Build:** Nixpacks, Node 20, `npm run server:build` → CJS bundle → `node server_dist/index.js`
+- **Build:** Nixpacks, Node 20, `npm run server:build` → ESM bundle → `node server_dist/index.mjs` (jose + expo-server-sdk are bundled in; all other deps stay external)
 - **Config:** `railway.toml`
 - **Healthcheck:** `GET /api/health` (300s timeout)
 - **Schema push:** Use public DATABASE_URL with `npx drizzle-kit push`
@@ -1372,6 +1386,12 @@ Configured in both `tsconfig.json` and `babel.config.js` (module-resolver plugin
 - **Per-procedure team-role overrides keyed by procedure UUID, not array index** — every `SET_DIAGNOSIS_GROUPS` / `REORDER_DIAGNOSIS_GROUPS` runs `remapTeamProcedureReferences` so deletes/reorders preserve clinical attribution
 - **Episode sequence allocation is atomic** — call `allocateEpisodeSequence(episodeId)` from `episodeStorage.ts`, never `getCasesByEpisodeId(...).length + 1`
 - **Recipient device public keys verified via TOFU** — every `getUserDeviceKeys` response goes through `verifyAndPinRecipientKeys` before wrapping a case key
+
+## Observability
+
+- **Crash reporting:** Sentry on both client (`client/lib/sentry.ts`, init in `client/App.tsx` before any other module) and server (`server/sentry.ts`, imported as the very first line of `server/index.ts` so `httpIntegration` can wrap `node:http`). No-DSN-no-op pattern: contributors without a DSN see init succeed silently.
+- **Product analytics:** PostHog on client (`client/lib/analytics.ts`). Same no-DSN-no-op pattern — events queued during async init are flushed once the SDK settles. No PHI in event properties.
+- **Server logging:** `server/logger.ts` exports a pino logger (pretty in dev, JSON in prod). All `console.*` calls in `server/` were replaced in commit `68e43cd` — don't reintroduce them.
 
 ## Operative role & supervision model
 
@@ -1863,6 +1883,11 @@ Directory: `.maestro/` at project root
 File naming: `{flow-name}.yaml`
 App ID: `com.drgladysz.opus`
 Selectors: Always use `id:` (testID), never `text:` (text changes break tests)
+
+Existing flows:
+- `applock-pin.yaml` — PIN setup + lock/unlock cycle
+- `case-form-happy.yaml` — happy-path case entry through all 6 sections
+- `dashboard-smoke.yaml` — boot, tab navigation, Needs Attention render
 
 ```yaml
 # Template
