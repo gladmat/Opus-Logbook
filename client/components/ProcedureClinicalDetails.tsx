@@ -358,7 +358,7 @@ export function FreeFlapClinicalFields({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { borderTopColor: theme.border }]}>
       {flapIsLocked && clinicalDetails.flapType ? (
         <View style={styles.lockedFlapSection}>
           <View style={styles.labelRow}>
@@ -910,8 +910,9 @@ export function HandTraumaClinicalFields({
   clinicalDetails,
   onUpdate,
 }: HandTraumaClinicalFieldsProps) {
+  const { theme } = useTheme();
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { borderTopColor: theme.border }]}>
       <FormField
         label="Injury Mechanism"
         value={String(clinicalDetails.injuryMechanism || "")}
@@ -953,8 +954,9 @@ export function BodyContouringClinicalFields({
   clinicalDetails,
   onUpdate,
 }: BodyContouringClinicalFieldsProps) {
+  const { theme } = useTheme();
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { borderTopColor: theme.border }]}>
       <FormField
         label="Resection Weight"
         value={
@@ -1237,7 +1239,7 @@ export function SlnbClinicalFields({
   ];
 
   return (
-    <View style={slnbStyles.container}>
+    <View style={[slnbStyles.container, { borderTopColor: theme.border }]}>
       {/* Technique section */}
       <ThemedText
         style={[slnbStyles.sectionLabel, { color: theme.textSecondary }]}
@@ -1418,7 +1420,9 @@ const slnbStyles = StyleSheet.create({
     marginTop: Spacing.md,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.05)",
+    // borderTopColor supplied inline at render site so it adapts to the
+    // active theme (audit P2.2). The previous rgba(0,0,0,0.05) was
+    // invisible in dark mode.
   },
   sectionLabel: {
     fontSize: 13,
@@ -1723,7 +1727,8 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.05)",
+    // borderTopColor supplied inline at render site so it adapts to the
+    // active theme (audit P2.2).
   },
   subsectionTitle: {
     fontSize: 14,

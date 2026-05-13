@@ -10,6 +10,8 @@ import Animated, {
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
+import { useScrollPreserve } from "@/hooks/useScrollPreserve";
+import { useReduceMotion } from "@/hooks/useReduceMotion";
 
 interface CollapsibleFormSectionProps {
   title: string;
@@ -32,6 +34,8 @@ export const CollapsibleFormSection = React.memo(
     testID,
   }: CollapsibleFormSectionProps) {
     const { theme } = useTheme();
+    const { snapshot, restore } = useScrollPreserve();
+    const reduceMotion = useReduceMotion();
     const [expanded, setExpanded] = useState(defaultExpanded);
     const [isMeasured, setIsMeasured] = useState(defaultExpanded);
     const expandedRef = useRef(defaultExpanded);
@@ -39,6 +43,11 @@ export const CollapsibleFormSection = React.memo(
     const animatedHeight = useSharedValue(defaultExpanded ? -1 : 0);
 
     const toggle = useCallback(() => {
+      // Collapsing a section above the viewport changes content height above
+      // the user's scroll position, which the parent ScrollView doesn't
+      // compensate for. Snapshot Y first, restore once layout settles so the
+      // visible content stays put.
+      snapshot();
       const nextExpanded = !expandedRef.current;
       expandedRef.current = nextExpanded;
       setExpanded(nextExpanded);
@@ -47,10 +56,12 @@ export const CollapsibleFormSection = React.memo(
       if (isMeasured) {
         animatedHeight.value = withTiming(
           nextExpanded ? contentHeightRef.current : 0,
-          { duration: 250 },
+          // Honour the OS-level Reduce Motion setting per Apple HIG.
+          { duration: reduceMotion ? 0 : 250 },
         );
       }
-    }, [animatedHeight, isMeasured]);
+      restore();
+    }, [animatedHeight, isMeasured, snapshot, restore, reduceMotion]);
 
     const contentStyle = useAnimatedStyle(() => {
       if (animatedHeight.value === -1) {

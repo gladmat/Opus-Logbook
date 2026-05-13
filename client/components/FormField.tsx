@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   View,
   TextInput,
@@ -10,6 +10,13 @@ import {
   TouchableOpacity,
   InteractionManager,
 } from "react-native";
+import Animated, {
+  Easing,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
@@ -24,6 +31,8 @@ import {
   sanitizeDateBounds,
   toIsoDateValue,
 } from "@/lib/dateValues";
+import { useFormScrollContext } from "@/contexts/FormScrollContext";
+import { useReduceMotion } from "@/hooks/useReduceMotion";
 
 interface FormFieldProps {
   label: string;
@@ -366,6 +375,23 @@ const styles = StyleSheet.create({
   dateButtonText: {
     fontSize: 16,
   },
+  inlinePickerWrapper: {
+    marginTop: Spacing.sm,
+    borderWidth: 1,
+    borderRadius: BorderRadius.md,
+  },
+  inlinePickerActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    gap: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderTopWidth: 1,
+  },
+  inlinePickerActionText: {
+    fontSize: 16,
+  },
 });
 
 // Compact modal-based picker field
@@ -579,6 +605,10 @@ interface DatePickerFieldProps {
   testID?: string;
 }
 
+const INLINE_PICKER_HEIGHT = 380;
+const INLINE_ACTIONS_HEIGHT = 56;
+const INLINE_TOTAL_HEIGHT = INLINE_PICKER_HEIGHT + INLINE_ACTIONS_HEIGHT;
+
 export function DatePickerField({
   label,
   value,
@@ -593,7 +623,12 @@ export function DatePickerField({
   testID,
 }: DatePickerFieldProps) {
   const { theme, isDark } = useTheme();
+  const reduceMotion = useReduceMotion();
   const [showPicker, setShowPicker] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const expandHeight = useSharedValue(0);
+  const fieldRef = useRef<View>(null);
+  const scrollContext = useFormScrollContext();
   const { minimumDate: safeMinimumDate, maximumDate: safeMaximumDate } =
     sanitizeDateBounds(minimumDate, maximumDate);
 
@@ -648,14 +683,50 @@ export function DatePickerField({
     [onChange, safeMaximumDate, safeMinimumDate],
   );
 
-  const openDatePicker = useCallback(() => {
-    setDraftDate(dateValue);
-    setShowPicker(true);
-  }, [dateValue]);
+  const handleUnmount = useCallback(() => {
+    setIsMounted(false);
+  }, []);
 
   const closeDatePicker = useCallback(() => {
     setShowPicker(false);
-  }, []);
+    if (Platform.OS === "ios") {
+      expandHeight.value = withTiming(
+        0,
+        { duration: reduceMotion ? 0 : 200, easing: Easing.out(Easing.cubic) },
+        (finished) => {
+          if (finished) {
+            runOnJS(handleUnmount)();
+          }
+        },
+      );
+    }
+  }, [expandHeight, handleUnmount, reduceMotion]);
+
+  const openDatePicker = useCallback(() => {
+    setDraftDate(dateValue);
+    setShowPicker(true);
+    if (Platform.OS === "ios") {
+      setIsMounted(true);
+      expandHeight.value = withTiming(INLINE_TOTAL_HEIGHT, {
+        duration: reduceMotion ? 0 : 240,
+        easing: Easing.out(Easing.cubic),
+      });
+    }
+  }, [dateValue, expandHeight, reduceMotion]);
+
+  // When the inline picker opens, ask the surrounding scroll context to keep
+  // both the field and the expanded picker visible.
+  useEffect(() => {
+    if (!showPicker || Platform.OS !== "ios" || !scrollContext) return;
+    const handle = requestAnimationFrame(() => {
+      fieldRef.current?.measureInWindow((_x, y, _w, h) => {
+        scrollContext.ensureVisible(y, h + INLINE_TOTAL_HEIGHT, {
+          extraPadding: 32,
+        });
+      });
+    });
+    return () => cancelAnimationFrame(handle);
+  }, [showPicker, scrollContext]);
 
   const handleDatePickerDone = useCallback(() => {
     const isoDate = toIsoDateValue(
@@ -665,8 +736,17 @@ export function DatePickerField({
     requestAnimationFrame(() => onChange(isoDate));
   }, [closeDatePicker, draftDate, onChange, safeMaximumDate, safeMinimumDate]);
 
+  const handleDatePickerCancel = useCallback(() => {
+    closeDatePicker();
+  }, [closeDatePicker]);
+
+  const animatedPickerStyle = useAnimatedStyle(() => ({
+    height: expandHeight.value,
+    overflow: "hidden" as const,
+  }));
+
   return (
-    <View style={styles.container}>
+    <View ref={fieldRef} style={styles.container}>
       <View style={styles.labelRow}>
         <ThemedText style={[styles.label, { color: theme.textSecondary }]}>
           {label}
@@ -688,16 +768,23 @@ export function DatePickerField({
               backgroundColor: disabled
                 ? theme.backgroundDefault
                 : theme.backgroundRoot,
-              borderColor: error ? theme.error : theme.border,
+              borderColor: error
+                ? theme.error
+                : showPicker
+                  ? theme.link
+                  : theme.border,
               opacity: disabled ? 0.6 : 1,
             },
           ]}
-          onPress={() => !disabled && openDatePicker()}
+          onPress={() =>
+            !disabled &&
+            (showPicker ? handleDatePickerCancel() : openDatePicker())
+          }
           disabled={disabled}
           accessibilityRole="button"
           accessibilityLabel={`${label}: ${hasDisplayValue ? displayValue : "not set"}`}
           accessibilityHint="Double tap to select date"
-          accessibilityState={{ disabled }}
+          accessibilityState={{ disabled, expanded: showPicker }}
         >
           {hasDisplayValue ? (
             <ThemedText style={[styles.dateButtonText, { color: theme.text }]}>
@@ -710,7 +797,11 @@ export function DatePickerField({
               {placeholder}
             </ThemedText>
           )}
-          <Feather name="calendar" size={20} color={theme.textSecondary} />
+          <Feather
+            name={showPicker ? "chevron-up" : "calendar"}
+            size={20}
+            color={theme.textSecondary}
+          />
         </Pressable>
         {clearable && hasStoredValue && !disabled ? (
           <Pressable
@@ -732,68 +823,78 @@ export function DatePickerField({
         </ThemedText>
       ) : null}
 
-      {showPicker ? (
-        Platform.OS === "ios" ? (
-          <Modal
-            visible={showPicker}
-            transparent
-            animationType="slide"
-            onRequestClose={closeDatePicker}
-          >
-            <Pressable style={styles.modalOverlay} onPress={closeDatePicker}>
-              <Pressable
-                style={[
-                  styles.modalContent,
-                  { backgroundColor: theme.backgroundElevated },
-                ]}
-                onPress={(e) => e.stopPropagation()}
-              >
-                <View
-                  style={[
-                    styles.modalHeader,
-                    { borderBottomColor: theme.border },
-                  ]}
-                >
-                  <ThemedText
-                    style={[styles.modalTitle, { color: theme.text }]}
-                  >
-                    {label}
-                  </ThemedText>
-                  <TouchableOpacity
-                    style={styles.modalDoneButton}
-                    onPress={handleDatePickerDone}
-                  >
-                    <ThemedText
-                      style={[styles.modalDoneText, { color: theme.link }]}
-                    >
-                      Done
-                    </ThemedText>
-                  </TouchableOpacity>
-                </View>
-                <DateTimePicker
-                  value={draftDate}
-                  mode="date"
-                  display="spinner"
-                  onChange={handleDateChange}
-                  minimumDate={safeMinimumDate}
-                  maximumDate={safeMaximumDate}
-                  textColor={theme.text}
-                  themeVariant={isDark ? "dark" : "light"}
-                  style={{ height: 200 }}
-                />
-              </Pressable>
-            </Pressable>
-          </Modal>
-        ) : (
+      {Platform.OS === "ios" && isMounted ? (
+        <Animated.View
+          style={[
+            animatedPickerStyle,
+            styles.inlinePickerWrapper,
+            {
+              backgroundColor: theme.backgroundElevated,
+              borderColor: theme.border,
+            },
+          ]}
+          pointerEvents={showPicker ? "auto" : "none"}
+        >
           <DateTimePicker
-            value={dateValue}
+            value={draftDate}
             mode="date"
-            display="default"
+            display="inline"
             onChange={handleDateChange}
             minimumDate={safeMinimumDate}
             maximumDate={safeMaximumDate}
+            themeVariant={isDark ? "dark" : "light"}
+            accentColor={theme.link}
+            style={{ height: INLINE_PICKER_HEIGHT }}
           />
-        )
+          <View
+            style={[
+              styles.inlinePickerActions,
+              { borderTopColor: theme.border },
+            ]}
+          >
+            <TouchableOpacity
+              onPress={handleDatePickerCancel}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel date selection"
+            >
+              <ThemedText
+                style={[
+                  styles.inlinePickerActionText,
+                  { color: theme.textSecondary },
+                ]}
+              >
+                Cancel
+              </ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleDatePickerDone}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Confirm date selection"
+            >
+              <ThemedText
+                style={[
+                  styles.inlinePickerActionText,
+                  { color: theme.link, fontWeight: "600" },
+                ]}
+              >
+                Done
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      ) : null}
+
+      {Platform.OS === "android" && showPicker ? (
+        <DateTimePicker
+          value={dateValue}
+          mode="date"
+          display="default"
+          onChange={handleDateChange}
+          minimumDate={safeMinimumDate}
+          maximumDate={safeMaximumDate}
+        />
       ) : null}
     </View>
   );

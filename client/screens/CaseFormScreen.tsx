@@ -40,6 +40,7 @@ import {
 import type { ValidationError } from "@/hooks/useCaseForm";
 import { useCaseDraft } from "@/hooks/useCaseDraft";
 import { CaseFormProvider } from "@/contexts/CaseFormContext";
+import { FormScrollProvider } from "@/contexts/FormScrollContext";
 import { PatientInfoSection } from "@/components/case-form/PatientInfoSection";
 import { TeamSection } from "@/components/case-form/TeamSection";
 import { CaseSection } from "@/components/case-form/CaseSection";
@@ -52,6 +53,7 @@ import {
 } from "@/components/case-form/SectionNavBar";
 import type { CompletionMap } from "@/components/case-form/SectionNavBar";
 import { CaseSummaryView } from "@/components/case-form/CaseSummaryView";
+import { PlanModeBanner } from "@/components/case-form/PlanModeBanner";
 import { EpisodeLinkBanner } from "@/components/EpisodeLinkBanner";
 
 import { resolveFacilityName } from "@/lib/facilities";
@@ -83,15 +85,19 @@ const SPECIALTY_HEADER_LABELS: Partial<Record<string, string>> = {
 
 // ── SectionWrapper ────────────────────────────────────────────────────────
 
-function SectionWrapper({
-  sectionId,
-  onLayout,
-  children,
-}: {
-  sectionId: string;
-  onLayout: (sectionId: string, y: number) => void;
-  children: React.ReactNode;
-}) {
+interface SectionWrapperRef {
+  measure: (callback: (y: number) => void) => void;
+}
+
+const SectionWrapper = React.forwardRef<
+  SectionWrapperRef,
+  {
+    sectionId: string;
+    onLayout: (sectionId: string, y: number) => void;
+    children: React.ReactNode;
+  }
+>(function SectionWrapper({ sectionId, onLayout, children }, ref) {
+  const viewRef = useRef<View>(null);
   const handleLayout = useCallback(
     (e: LayoutChangeEvent) => {
       onLayout(sectionId, e.nativeEvent.layout.y);
@@ -99,8 +105,47 @@ function SectionWrapper({
     [sectionId, onLayout],
   );
 
-  return <View onLayout={handleLayout}>{children}</View>;
-}
+  React.useImperativeHandle(
+    ref,
+    () => ({
+      // Live-measure the section's Y within its parent ScrollView. Used by
+      // scroll-to-section paths to avoid relying on the cached Y, which can
+      // go stale after sibling collapses (audit B1.6).
+      measure: (cb) => {
+        const node = viewRef.current;
+        if (!node) {
+          cb(0);
+          return;
+        }
+        // Cast to satisfy TS; RN's View ref does have measure().
+        const measurable = node as unknown as {
+          measure: (
+            fn: (
+              x: number,
+              y: number,
+              width: number,
+              height: number,
+              pageX: number,
+              pageY: number,
+            ) => void,
+          ) => void;
+        };
+        try {
+          measurable.measure((_x, y) => cb(y));
+        } catch {
+          cb(0);
+        }
+      },
+    }),
+    [],
+  );
+
+  return (
+    <View ref={viewRef} onLayout={handleLayout}>
+      {children}
+    </View>
+  );
+});
 
 // ── CaseFormScreen ────────────────────────────────────────────────────────
 
@@ -114,7 +159,20 @@ export default function CaseFormScreen() {
   const scrollViewRef = useRef<any>(null);
   const scrollPositionRef = useRef(0);
   const sectionLayoutsRef = useRef<Record<string, number>>({});
+  // Live refs to each SectionWrapper, used to re-measure on demand when the
+  // cached Y might be stale after a sibling collapse (audit B1.6).
+  const sectionWrapperRefs = useRef<Record<string, SectionWrapperRef | null>>(
+    {},
+  );
   const formOpenedAtRef = useRef(new Date().toISOString());
+  // Snapshot of scroll position taken when entering reviewMode, restored on exit.
+  const preReviewScrollRef = useRef(0);
+  // Used by the dev-only jump detector — last scroll sample {y, t}.
+  const lastScrollSampleRef = useRef({ y: 0, t: 0 });
+  // Last touched testID, captured on the root scroll view's onTouchStart. Used
+  // by the dev-only jump detector to attribute a jump to the element that was
+  // pressed immediately before it.
+  const lastTouchedTestIdRef = useRef<string | null>(null);
 
   const [activeSection, setActiveSection] = useState("patient");
   const [reviewMode, setReviewMode] = useState(false);
@@ -290,6 +348,58 @@ export default function CaseFormScreen() {
     sectionLayoutsRef.current[sectionId] = y;
   }, []);
 
+  const registerSectionRef = useCallback(
+    (sectionId: string) => (ref: SectionWrapperRef | null) => {
+      sectionWrapperRefs.current[sectionId] = ref;
+    },
+    [],
+  );
+
+  /**
+   * Scroll-to-section helper that prefers a live `measure()` over the
+   * cached Y. The cache stays accurate in most cases via `onLayout`, but a
+   * mid-form collapse of a `CollapsibleFormSection` can shift sibling Y
+   * values before the cache catches up (audit B1.6). Live measurement
+   * removes that race entirely.
+   */
+  const scrollToSection = useCallback(
+    (sectionId: string, opts: { offset?: number; animated?: boolean } = {}) => {
+      const offset = opts.offset ?? NAV_BAR_HEIGHT + 10;
+      const animated = opts.animated ?? true;
+      const wrapper = sectionWrapperRefs.current[sectionId];
+      const fallback = () => {
+        const cachedY = sectionLayoutsRef.current[sectionId];
+        if (cachedY !== undefined && scrollViewRef.current) {
+          scrollViewRef.current.scrollTo({
+            y: Math.max(0, cachedY - offset),
+            animated,
+          });
+        }
+      };
+      if (!wrapper) {
+        fallback();
+        return;
+      }
+      wrapper.measure((liveY) => {
+        // `measure` returns Y relative to the section's parent. Translate
+        // back to scroll offset by adding the current scroll position
+        // (where the section's parent currently sits within the scroll
+        // view's content).
+        const currentOffset = scrollPositionRef.current ?? 0;
+        const targetY = currentOffset + liveY - offset;
+        if (scrollViewRef.current) {
+          scrollViewRef.current.scrollTo({
+            y: Math.max(0, targetY),
+            animated,
+          });
+        }
+        // Refresh the cache while we have a fresh measurement.
+        sectionLayoutsRef.current[sectionId] = currentOffset + liveY;
+      });
+    },
+    [],
+  );
+
   // ── Save orchestration ────────────────────────────────────────────────
 
   const handleSaveRef = useRef(form.handleSave);
@@ -413,41 +523,46 @@ export default function CaseFormScreen() {
       setFieldErrors(newErrors);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
 
-      // Scroll to first error section
+      // Scroll to first error section (live-measured to handle the case
+      // where a sibling section just collapsed — audit B1.6).
       const firstErrorSection = errors[0]?.sectionId;
       if (firstErrorSection) {
-        const y = sectionLayoutsRef.current[firstErrorSection];
-        if (y !== undefined && scrollViewRef.current) {
-          scrollViewRef.current.scrollTo({
-            y: Math.max(0, y - 20),
-            animated: true,
-          });
-        }
+        scrollToSection(firstErrorSection, { offset: 20, animated: true });
       }
       return;
     }
     setValidationErrors([]);
+    preReviewScrollRef.current = scrollPositionRef.current;
     setReviewMode(true);
   }, [form.state]);
 
-  const handleEditFromSummary = useCallback((sectionId: string) => {
-    setReviewMode(false);
-    // Wait for form to mount and onLayout to fire
-    requestAnimationFrame(() => {
+  const handleEditFromSummary = useCallback(
+    (sectionId: string) => {
+      setReviewMode(false);
+      // Wait for form to mount and onLayout to fire, then live-measure
+      // (audit B1.6 — cache may not yet have refreshed after re-mount).
       requestAnimationFrame(() => {
-        const y = sectionLayoutsRef.current[sectionId];
-        if (y !== undefined && scrollViewRef.current) {
-          scrollViewRef.current.scrollTo({
-            y: Math.max(0, y - 20),
-            animated: true,
-          });
-        }
+        requestAnimationFrame(() => {
+          scrollToSection(sectionId, { offset: 20, animated: false });
+        });
       });
-    });
-  }, []);
+    },
+    [scrollToSection],
+  );
 
   const handleBackToEdit = useCallback(() => {
+    const restoreY = preReviewScrollRef.current;
     setReviewMode(false);
+    // Restore where we were when entering review — without this the form
+    // re-mounts at scroll 0 on exit.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        scrollViewRef.current?.scrollTo({
+          y: Math.max(0, restoreY),
+          animated: false,
+        });
+      });
+    });
   }, []);
 
   const isCompletingPlanned =
@@ -492,53 +607,55 @@ export default function CaseFormScreen() {
                 color={theme.textSecondary}
               />
             </Pressable>
-            <Pressable
-              onPress={() =>
-                handleSaveRef
-                  .current(formOpenedAtRef.current)
-                  .then((success) => {
-                    if (success) {
-                      for (const group of diagnosisGroupsRef.current) {
-                        if (group.diagnosisPicklistId) {
-                          recordUsageRef.current(
-                            "diagnosis",
-                            group.diagnosisPicklistId,
-                          );
-                        }
-                        for (const proc of group.procedures) {
-                          if (proc.picklistEntryId) {
+            {/* Header Save is edit-mode only. New cases and planned cases
+                save via Review → Confirm so they get the validation pass
+                (audit B2.5 / P2.4 — single save model for new cases). */}
+            {form.isEditMode ? (
+              <Pressable
+                onPress={() =>
+                  handleSaveRef
+                    .current(formOpenedAtRef.current)
+                    .then((success) => {
+                      if (success) {
+                        for (const group of diagnosisGroupsRef.current) {
+                          if (group.diagnosisPicklistId) {
                             recordUsageRef.current(
-                              "procedure",
-                              proc.picklistEntryId,
+                              "diagnosis",
+                              group.diagnosisPicklistId,
                             );
                           }
+                          for (const proc of group.procedures) {
+                            if (proc.picklistEntryId) {
+                              recordUsageRef.current(
+                                "procedure",
+                                proc.picklistEntryId,
+                              );
+                            }
+                          }
                         }
+                        if (!isEditModeRef.current)
+                          void clearDraftRef.current();
+                        navigation.goBack();
                       }
-                      if (!isEditModeRef.current) void clearDraftRef.current();
-                      navigation.goBack();
-                    }
-                  })
-              }
-              disabled={form.state.saving}
-              hitSlop={8}
-              style={styles.headerSaveButton}
-              accessibilityRole="button"
-              accessibilityLabel="Save case"
-              testID="caseForm.header.btn-save"
-            >
-              <ThemedText
-                style={{
-                  color: form.state.saving ? theme.textTertiary : theme.link,
-                  fontWeight: "600",
-                }}
+                    })
+                }
+                disabled={form.state.saving}
+                hitSlop={8}
+                style={styles.headerSaveButton}
+                accessibilityRole="button"
+                accessibilityLabel="Save case"
+                testID="caseForm.header.btn-save"
               >
-                {form.state.saving
-                  ? "Saving..."
-                  : form.state.isPlanMode
-                    ? "Save Plan"
-                    : "Save"}
-              </ThemedText>
-            </Pressable>
+                <ThemedText
+                  style={{
+                    color: form.state.saving ? theme.textTertiary : theme.link,
+                    fontWeight: "600",
+                  }}
+                >
+                  {form.state.saving ? "Saving..." : "Save"}
+                </ThemedText>
+              </Pressable>
+            ) : null}
           </View>
         ),
     });
@@ -559,21 +676,38 @@ export default function CaseFormScreen() {
 
   // ── Section nav press ─────────────────────────────────────────────────
 
-  const handleSectionPress = useCallback((sectionId: string) => {
-    setActiveSection(sectionId);
-    const y = sectionLayoutsRef.current[sectionId];
-    if (y !== undefined && scrollViewRef.current) {
-      scrollViewRef.current.scrollTo({
-        y: Math.max(0, y - NAV_BAR_HEIGHT - 10),
+  const handleSectionPress = useCallback(
+    (sectionId: string) => {
+      setActiveSection(sectionId);
+      scrollToSection(sectionId, {
+        offset: NAV_BAR_HEIGHT + 10,
         animated: true,
       });
-    }
-  }, []);
+    },
+    [scrollToSection],
+  );
 
   // ── Scroll tracking ───────────────────────────────────────────────────
 
   const handleScroll = useCallback((event: any) => {
     const y = event.nativeEvent.contentOffset.y;
+    const t = Date.now();
+
+    // Dev-only jump detector: an abrupt upward delta in a tiny time window is
+    // almost certainly an unintentional scroll reset, not a user gesture.
+    // Threshold tuned for "obvious" jumps; smooth flicks stay below.
+    if (__DEV__) {
+      const prev = lastScrollSampleRef.current;
+      const dt = t - prev.t;
+      const dy = y - prev.y;
+      if (dt > 0 && dt < 200 && dy < -250) {
+        console.warn(
+          `[opus:scroll-jump] Δy=${dy.toFixed(0)}px in ${dt}ms (${prev.y.toFixed(0)} → ${y.toFixed(0)}); lastTouched=${lastTouchedTestIdRef.current ?? "<unknown>"}`,
+        );
+      }
+    }
+    lastScrollSampleRef.current = { y, t };
+
     scrollPositionRef.current = y;
 
     // Find active section based on scroll position
@@ -585,7 +719,41 @@ export default function CaseFormScreen() {
         currentSection = section.id;
       }
     }
-    setActiveSection(currentSection);
+    // Functional update so React bails out via Object.is when section
+    // hasn't actually changed — prevents per-frame re-renders during scroll.
+    setActiveSection((prev) =>
+      prev === currentSection ? prev : currentSection,
+    );
+  }, []);
+
+  // Capture the last-touched testID so the jump detector can attribute a
+  // scroll-to-top to the element that was just tapped.
+  const handleTouchStart = useCallback((event: any) => {
+    if (!__DEV__) return;
+    try {
+      // Walk up the event target's parent chain looking for a testID prop.
+      // React Native exposes the actual native tag rather than the testID,
+      // so we read it off the event's _targetInst fiber when available.
+      const target =
+        event?._targetInst ?? event?.nativeEvent?._targetInst ?? event?.target;
+      let node: any = target;
+      let depth = 0;
+      while (node && depth < 12) {
+        const testID =
+          node.memoizedProps?.testID ??
+          node.stateNode?.props?.testID ??
+          node.props?.testID;
+        if (typeof testID === "string" && testID.length > 0) {
+          lastTouchedTestIdRef.current = testID;
+          return;
+        }
+        node = node.return ?? node._owner ?? null;
+        depth += 1;
+      }
+      lastTouchedTestIdRef.current = null;
+    } catch {
+      lastTouchedTestIdRef.current = null;
+    }
   }, []);
 
   // ── Render ────────────────────────────────────────────────────────────
@@ -622,6 +790,13 @@ export default function CaseFormScreen() {
       onFieldBlur={onFieldBlur}
     >
       <View testID="screen-caseForm" style={styles.container}>
+        {!reviewMode && form.state.isPlanMode ? (
+          <PlanModeBanner
+            onTogglePlanMode={() =>
+              form.dispatch(setField("isPlanMode", false))
+            }
+          />
+        ) : null}
         {!reviewMode ? (
           <View
             style={[
@@ -651,158 +826,163 @@ export default function CaseFormScreen() {
             },
           ]}
           onScroll={handleScroll}
+          onTouchStart={__DEV__ ? handleTouchStart : undefined}
           scrollEventThrottle={16}
         >
-          {reviewMode ? (
-            <CaseSummaryView
-              onEdit={handleEditFromSummary}
-              onConfirmSave={onSave}
-              onBackToEdit={handleBackToEdit}
-              saving={form.state.saving}
-            />
-          ) : (
-            <>
-              {showDuplicateBanner ? (
-                <View
-                  style={[
-                    styles.duplicateBanner,
-                    {
-                      backgroundColor: theme.info + "10",
-                      borderColor: theme.info + "40",
-                    },
-                  ]}
-                >
-                  <View style={styles.duplicateBannerContent}>
-                    <Feather name="copy" size={16} color={theme.info} />
-                    <ThemedText
-                      style={[
-                        styles.duplicateBannerText,
-                        { color: theme.info },
-                      ]}
-                    >
-                      {skinCancerFollowUpPrefill
-                        ? "Skin cancer follow-up pre-filled from the current case. Verify the carried-forward histology and planned next-step procedure."
-                        : `Duplicated from case ${
-                            duplicateFrom?.procedureDate
-                              ? new Date(
-                                  duplicateFrom.procedureDate,
-                                ).toLocaleDateString()
-                              : ""
-                          }. Verify all fields.`}
-                    </ThemedText>
-                  </View>
-                  <Pressable
-                    onPress={() => setShowDuplicateBanner(false)}
-                    hitSlop={8}
-                    style={styles.duplicateBannerClose}
+          <FormScrollProvider
+            scrollViewRef={scrollViewRef}
+            scrollOffsetRef={scrollPositionRef}
+          >
+            {reviewMode ? (
+              <CaseSummaryView
+                onEdit={handleEditFromSummary}
+                onConfirmSave={onSave}
+                onBackToEdit={handleBackToEdit}
+                saving={form.state.saving}
+              />
+            ) : (
+              <>
+                {showDuplicateBanner ? (
+                  <View
+                    style={[
+                      styles.duplicateBanner,
+                      {
+                        backgroundColor: theme.info + "10",
+                        borderColor: theme.info + "40",
+                      },
+                    ]}
                   >
-                    <Feather name="x" size={16} color={theme.info} />
-                  </Pressable>
-                </View>
-              ) : null}
-
-              <SectionWrapper
-                sectionId="patient"
-                onLayout={handleSectionLayout}
-              >
-                <PatientInfoSection />
-                {!form.isEditMode ? (
-                  <EpisodeLinkBanner
-                    patientIdentifier={form.state.patientIdentifier}
-                    currentEpisodeId={form.state.episodeId}
-                    onLinkEpisode={handleLinkEpisode}
-                  />
-                ) : null}
-              </SectionWrapper>
-
-              <SectionWrapper sectionId="team" onLayout={handleSectionLayout}>
-                <TeamSection />
-              </SectionWrapper>
-
-              <SectionWrapper sectionId="case" onLayout={handleSectionLayout}>
-                <CaseSection
-                  scrollViewRef={scrollViewRef}
-                  scrollPositionRef={scrollPositionRef}
-                />
-              </SectionWrapper>
-
-              <SectionWrapper
-                sectionId="operative"
-                onLayout={handleSectionLayout}
-              >
-                <OperativeSection />
-              </SectionWrapper>
-
-              <SectionWrapper sectionId="media" onLayout={handleSectionLayout}>
-                <SectionHeader
-                  title="Operative Media"
-                  subtitle="Photos, X-rays, and imaging"
-                />
-                <OperativeMediaSection
-                  media={form.state.operativeMedia}
-                  onMediaChange={(media) =>
-                    form.dispatch(setField("operativeMedia", media))
-                  }
-                  maxItems={15}
-                  mediaContext={mediaContext}
-                />
-              </SectionWrapper>
-
-              <SectionWrapper
-                sectionId="outcomes"
-                onLayout={handleSectionLayout}
-              >
-                <OutcomesSection
-                  infectionOverlay={form.state.infectionOverlay ?? undefined}
-                  onInfectionChange={(v) =>
-                    form.dispatch(setField("infectionOverlay", v))
-                  }
-                  infectionCollapsed={form.state.infectionCollapsed}
-                  onInfectionToggle={() =>
-                    form.dispatch(
-                      setField(
-                        "infectionCollapsed",
-                        !form.state.infectionCollapsed,
-                      ),
-                    )
-                  }
-                />
-              </SectionWrapper>
-
-              <View style={styles.buttonContainer}>
-                <Button
-                  onPress={handleReviewPress}
-                  disabled={form.state.saving}
-                >
-                  Review Case
-                </Button>
-              </View>
-
-              {validationErrors.length > 0 ? (
-                <View
-                  style={[
-                    styles.validationErrors,
-                    {
-                      backgroundColor: theme.error + "10",
-                      borderColor: theme.error + "40",
-                    },
-                  ]}
-                >
-                  {validationErrors.map((err, i) => (
-                    <ThemedText
-                      key={i}
-                      style={[
-                        styles.validationErrorText,
-                        { color: theme.error },
-                      ]}
+                    <View style={styles.duplicateBannerContent}>
+                      <Feather name="copy" size={16} color={theme.info} />
+                      <ThemedText
+                        style={[
+                          styles.duplicateBannerText,
+                          { color: theme.info },
+                        ]}
+                      >
+                        {skinCancerFollowUpPrefill
+                          ? "Skin cancer follow-up pre-filled from the current case. Verify the carried-forward histology and planned next-step procedure."
+                          : `Duplicated from case ${
+                              duplicateFrom?.procedureDate
+                                ? new Date(
+                                    duplicateFrom.procedureDate,
+                                  ).toLocaleDateString()
+                                : ""
+                            }. Verify all fields.`}
+                      </ThemedText>
+                    </View>
+                    <Pressable
+                      onPress={() => setShowDuplicateBanner(false)}
+                      hitSlop={8}
+                      style={styles.duplicateBannerClose}
                     >
-                      {err.message}
-                    </ThemedText>
-                  ))}
+                      <Feather name="x" size={16} color={theme.info} />
+                    </Pressable>
+                  </View>
+                ) : null}
+
+                <SectionWrapper
+                  ref={registerSectionRef("patient")}
+                  sectionId="patient"
+                  onLayout={handleSectionLayout}
+                >
+                  <PatientInfoSection />
+                  {!form.isEditMode ? (
+                    <EpisodeLinkBanner
+                      patientIdentifier={form.state.patientIdentifier}
+                      currentEpisodeId={form.state.episodeId}
+                      onLinkEpisode={handleLinkEpisode}
+                    />
+                  ) : null}
+                </SectionWrapper>
+
+                <SectionWrapper
+                  ref={registerSectionRef("team")}
+                  sectionId="team"
+                  onLayout={handleSectionLayout}
+                >
+                  <TeamSection />
+                </SectionWrapper>
+
+                <SectionWrapper
+                  ref={registerSectionRef("case")}
+                  sectionId="case"
+                  onLayout={handleSectionLayout}
+                >
+                  <CaseSection
+                    scrollViewRef={scrollViewRef}
+                    scrollPositionRef={scrollPositionRef}
+                  />
+                </SectionWrapper>
+
+                <SectionWrapper
+                  ref={registerSectionRef("operative")}
+                  sectionId="operative"
+                  onLayout={handleSectionLayout}
+                >
+                  <OperativeSection />
+                </SectionWrapper>
+
+                <SectionWrapper
+                  ref={registerSectionRef("media")}
+                  sectionId="media"
+                  onLayout={handleSectionLayout}
+                >
+                  <SectionHeader
+                    title="Operative Media"
+                    subtitle="Photos, X-rays, and imaging"
+                  />
+                  <OperativeMediaSection
+                    media={form.state.operativeMedia}
+                    onMediaChange={(media) =>
+                      form.dispatch(setField("operativeMedia", media))
+                    }
+                    maxItems={15}
+                    mediaContext={mediaContext}
+                  />
+                </SectionWrapper>
+
+                <SectionWrapper
+                  ref={registerSectionRef("outcomes")}
+                  sectionId="outcomes"
+                  onLayout={handleSectionLayout}
+                >
+                  <OutcomesSection
+                    infectionOverlay={form.state.infectionOverlay ?? undefined}
+                    onInfectionChange={(v) =>
+                      form.dispatch(setField("infectionOverlay", v))
+                    }
+                    infectionCollapsed={form.state.infectionCollapsed}
+                    onInfectionToggle={() =>
+                      form.dispatch(
+                        setField(
+                          "infectionCollapsed",
+                          !form.state.infectionCollapsed,
+                        ),
+                      )
+                    }
+                  />
+                </SectionWrapper>
+
+                <View style={styles.buttonContainer}>
+                  <Button
+                    onPress={handleReviewPress}
+                    disabled={form.state.saving}
+                  >
+                    {validationErrors.length > 0
+                      ? `Review Case · Fix ${validationErrors.length} issue${
+                          validationErrors.length === 1 ? "" : "s"
+                        }`
+                      : "Review Case"}
+                  </Button>
                 </View>
-              ) : null}
-            </>
-          )}
+                {/* Bottom validation banner removed (audit P2.6) — inline
+                    field errors plus the scroll-to-first-error in
+                    handleReviewPress give an actionable, non-duplicated
+                    signal. The button label itself counts unfixed issues. */}
+              </>
+            )}
+          </FormScrollProvider>
         </KeyboardAwareScrollViewCompat>
 
         {!reviewMode ? <KeyboardToolbar /> : null}

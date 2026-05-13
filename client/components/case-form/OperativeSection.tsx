@@ -149,30 +149,61 @@ export const OperativeSection = React.memo(function OperativeSection() {
 
   const isConsultant = isConsultantLevel(profile?.careerStage);
 
-  const filledCount = useMemo(() => {
+  // Per-sub-section completion counts (audit P3.9 / B3.15 fix — the
+  // previous single outer count was misleading once 6 of dozens of fields
+  // were filled).
+  const admissionTimingFilled = useMemo(() => {
+    let count = 0;
+    if (admissionUrgency) count++;
+    if (stayType) count++;
+    if (admissionDate) count++;
+    if (surgeryStartTime) count++;
+    if (surgeryEndTime) count++;
+    return count;
+  }, [
+    admissionUrgency,
+    stayType,
+    admissionDate,
+    surgeryStartTime,
+    surgeryEndTime,
+  ]);
+
+  const roleAnaesthesiaFilled = useMemo(() => {
     let count = 0;
     if (defaultOperativeRole) count++;
     if (responsibleConsultantName) count++;
-    if (admissionUrgency) count++;
-    if (stayType) count++;
     if (anaestheticType) count++;
-    if (surgeryStartTime) count++;
     return count;
-  }, [
-    defaultOperativeRole,
-    responsibleConsultantName,
-    admissionUrgency,
-    stayType,
-    anaestheticType,
-    surgeryStartTime,
-  ]);
+  }, [defaultOperativeRole, responsibleConsultantName, anaestheticType]);
+
+  const surgicalFactorsFilled = useMemo(() => {
+    let count = 0;
+    if (woundInfectionRisk) count++;
+    if (antibioticProphylaxis) count++;
+    if (dvtProphylaxis) count++;
+    return count;
+  }, [woundInfectionRisk, antibioticProphylaxis, dvtProphylaxis]);
+
+  const patientFactorsFilled = useMemo(() => {
+    let count = 0;
+    if (asaScore) count++;
+    if (smoker) count++;
+    if (heightCm && weightKg) count++;
+    if (selectedComorbidities.length > 0) count++;
+    return count;
+  }, [asaScore, smoker, heightCm, weightKg, selectedComorbidities.length]);
 
   return (
     <CollapsibleFormSection
       title="Operative Details"
       subtitle="Role, admission, timing, and patient factors"
-      filledCount={filledCount}
-      totalCount={6}
+      filledCount={
+        admissionTimingFilled +
+        roleAnaesthesiaFilled +
+        surgicalFactorsFilled +
+        patientFactorsFilled
+      }
+      totalCount={15}
     >
       {/* ── Your Role & Supervision ──────────────────────────────────────── */}
 
@@ -730,7 +761,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
         onRequestClose={() => setShowAsaInfo(false)}
       >
         <Pressable
-          style={styles.modalOverlay}
+          style={[styles.modalOverlay, { backgroundColor: theme.scrim }]}
           onPress={() => setShowAsaInfo(false)}
         >
           <Pressable
@@ -924,7 +955,8 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    // backgroundColor supplied inline at render site via theme.scrim
+    // (audit P2.3 — no hardcoded rgba in styles).
     justifyContent: "center",
     paddingHorizontal: Spacing.lg,
   },

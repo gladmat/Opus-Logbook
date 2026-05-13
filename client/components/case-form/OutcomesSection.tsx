@@ -82,7 +82,8 @@ export const OutcomesSection = React.memo(function OutcomesSection({
       filledCount={filledCount}
       totalCount={1}
     >
-      <SectionHeader title="Outcomes" />
+      {/* Duplicate <SectionHeader title="Outcomes" /> removed (audit P3.8 —
+          the outer CollapsibleFormSection already shows the title). */}
 
       {/* ── Tier 1: Always visible ─────────────────────────────────── */}
 
@@ -146,6 +147,9 @@ export const OutcomesSection = React.memo(function OutcomesSection({
           Haptics.selectionAsync();
           setIsAuditExpanded((v) => !v);
         }}
+        accessibilityRole="button"
+        accessibilityLabel={`30-day audit, ${hasAuditData ? "has entries" : "empty"}`}
+        accessibilityState={{ expanded: isAuditExpanded }}
         testID="caseForm.outcomes.section-30dayAudit"
       >
         <Feather
@@ -158,8 +162,20 @@ export const OutcomesSection = React.memo(function OutcomesSection({
         >
           30-Day Audit
         </ThemedText>
+        {/* Status pairs colour + text (CLAUDE.md Medical UX Rule 1 — never
+            use colour alone). The previous bare warning-coloured dot
+            communicated state by hue only. */}
         {hasAuditData ? (
-          <View style={[styles.auditDot, { backgroundColor: theme.warning }]} />
+          <View style={styles.auditBadge}>
+            <View
+              style={[styles.auditDot, { backgroundColor: theme.warning }]}
+            />
+            <ThemedText
+              style={[styles.auditBadgeText, { color: theme.warning }]}
+            >
+              Has entries
+            </ThemedText>
+          </View>
         ) : null}
       </Pressable>
 
@@ -324,5 +340,15 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
+  },
+  auditBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginLeft: "auto",
+  },
+  auditBadgeText: {
+    fontSize: 12,
+    fontWeight: "600",
   },
 });

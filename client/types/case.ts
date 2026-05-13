@@ -649,7 +649,8 @@ export type MFCBoneSource =
 export type MFCTissueComposition =
   | "bone_only"
   | "osteocutaneous"
-  | "osteoperiosteal";
+  | "osteoperiosteal"
+  | "periosteum_only";
 export type MFCFixation = "screws" | "plate_and_screws" | "wires";
 
 export type ScapularSkinPaddle =

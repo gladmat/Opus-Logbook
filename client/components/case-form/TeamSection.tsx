@@ -19,8 +19,8 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import { getTeamContacts } from "@/lib/teamContactsApi";
 import {
   abbreviateName,
-  TEAM_MEMBER_ROLE_SHORT,
   TEAM_MEMBER_ROLE_LABELS,
+  TEAM_MEMBER_ROLE_SHORT,
   type TeamMemberOperativeRole,
   type TeamContact,
 } from "@/types/teamContacts";
@@ -198,6 +198,9 @@ function TeamSectionInner() {
                 ]}
                 onPress={() => handleToggle(contact)}
                 testID={`caseForm.team.chip-${contact.id}`}
+                accessibilityRole="checkbox"
+                accessibilityLabel={`${contact.firstName} ${contact.lastName}`}
+                accessibilityState={{ checked: isSelected }}
               >
                 <ThemedText
                   style={[
@@ -223,6 +226,9 @@ function TeamSectionInner() {
                   ]}
                   onPress={() => handleRoleTap(contact.id)}
                   testID={`caseForm.team.badge-role-${contact.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${abbreviateName(contact.firstName, contact.lastName)} role: ${TEAM_MEMBER_ROLE_SHORT[member.operativeRole]}. Tap to change.`}
+                  accessibilityState={{ expanded: isRoleExpanded }}
                 >
                   <ThemedText
                     style={[
@@ -235,39 +241,59 @@ function TeamSectionInner() {
                 </Pressable>
               )}
 
-              {/* Inline role picker */}
+              {/* Inline role picker + legend (P2.5 — abbreviations are
+                  jargon for trainees, so spell out the active one) */}
               {isSelected && isRoleExpanded && (
-                <View style={styles.rolePickerRow}>
-                  {ALL_ROLES.map((role) => {
-                    const isActive = member?.operativeRole === role;
-                    return (
-                      <Pressable
-                        key={role}
-                        style={[
-                          styles.rolePickerChip,
-                          {
-                            backgroundColor: isActive
-                              ? theme.link
-                              : theme.backgroundElevated,
-                            borderColor: isActive ? theme.link : theme.border,
-                          },
-                        ]}
-                        onPress={() => handleRoleSelect(contact.id, role)}
-                        testID={`caseForm.team.rolePick-${contact.id}-${role}`}
-                      >
-                        <ThemedText
+                <View style={styles.rolePickerContainer}>
+                  <View
+                    style={styles.rolePickerRow}
+                    accessibilityRole="radiogroup"
+                    accessibilityLabel={`Role for ${contact.firstName} ${contact.lastName}`}
+                  >
+                    {ALL_ROLES.map((role) => {
+                      const isActive = member?.operativeRole === role;
+                      return (
+                        <Pressable
+                          key={role}
                           style={[
-                            styles.rolePickerText,
+                            styles.rolePickerChip,
                             {
-                              color: isActive ? theme.buttonText : theme.text,
+                              backgroundColor: isActive
+                                ? theme.link
+                                : theme.backgroundElevated,
+                              borderColor: isActive ? theme.link : theme.border,
                             },
                           ]}
+                          onPress={() => handleRoleSelect(contact.id, role)}
+                          testID={`caseForm.team.rolePick-${contact.id}-${role}`}
+                          accessibilityRole="radio"
+                          accessibilityLabel={`${role} — ${TEAM_MEMBER_ROLE_LABELS[role]}`}
+                          accessibilityState={{ selected: isActive }}
                         >
-                          {role}
-                        </ThemedText>
-                      </Pressable>
-                    );
-                  })}
+                          <ThemedText
+                            style={[
+                              styles.rolePickerText,
+                              {
+                                color: isActive ? theme.buttonText : theme.text,
+                              },
+                            ]}
+                          >
+                            {role}
+                          </ThemedText>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                  {member ? (
+                    <ThemedText
+                      style={[
+                        styles.roleLegendText,
+                        { color: theme.textTertiary },
+                      ]}
+                    >
+                      {TEAM_MEMBER_ROLE_LABELS[member.operativeRole]}
+                    </ThemedText>
+                  ) : null}
                 </View>
               )}
             </View>
@@ -354,21 +380,33 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 0.5,
   },
+  rolePickerContainer: {
+    marginTop: 4,
+    gap: 6,
+  },
   rolePickerRow: {
     flexDirection: "row",
     gap: 4,
-    marginTop: 4,
+  },
+  roleLegendText: {
+    fontSize: 11,
+    fontStyle: "italic",
   },
   rolePickerChip: {
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.xs,
+    // Was 6×4 padding / minWidth 30 (~28pt tall, ~30pt wide). Bumped to
+    // meet the 44pt HIG minimum on a clinical attribution field where
+    // accuracy matters more than chip density (audit P2.7).
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: BorderRadius.full,
     borderWidth: 1,
-    minWidth: 30,
+    minWidth: 44,
+    minHeight: 44,
     alignItems: "center",
+    justifyContent: "center",
   },
   rolePickerText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "600",
   },
 });

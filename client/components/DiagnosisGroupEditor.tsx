@@ -615,6 +615,46 @@ function DiagnosisGroupEditorInner({
         handCaseType === "elective" && dupuytrenAssessment
           ? dupuytrenAssessment
           : undefined,
+      // Orphan-blob prevention (audit B1.2). The `...persistedGroup` spread
+      // above carries every previous-specialty assessment forward. Without
+      // these explicit clears, switching specialty leaves dead blobs that
+      // the module-visibility flags would re-activate on next edit.
+      //
+      // Checks inlined here (rather than reading the module-flag memos)
+      // because those memos are declared further down the file. The
+      // conditions match the flag definitions exactly.
+      breastAssessment: isBreastSpecialty(groupSpecialty)
+        ? persistedGroup.breastAssessment
+        : undefined,
+      craniofacialAssessment: isCraniofacialDiagnosis(groupSpecialty)
+        ? persistedGroup.craniofacialAssessment
+        : undefined,
+      aestheticAssessment:
+        groupSpecialty === "aesthetics" ||
+        procedures.some(
+          (p) =>
+            p.picklistEntryId != null &&
+            isAestheticProcedure(p.picklistEntryId),
+        )
+          ? persistedGroup.aestheticAssessment
+          : undefined,
+      burnsAssessment:
+        groupSpecialty === "burns" &&
+        (selectedDiagnosis?.id === "burns_dx_acute" ||
+          !!persistedGroup.burnsAssessment)
+          ? persistedGroup.burnsAssessment
+          : undefined,
+      peripheralNerveAssessment:
+        isPeripheralNerveDiagnosis(selectedDiagnosis ?? undefined) ||
+        (groupSpecialty === "peripheral_nerve" &&
+          !!persistedGroup.peripheralNerveAssessment)
+          ? persistedGroup.peripheralNerveAssessment
+          : undefined,
+      lymphoedemaAssessment:
+        isLymphoedemaeDiagnosis(selectedDiagnosis ?? undefined) ||
+        groupSpecialty === "lymphoedema"
+          ? persistedGroup.lymphoedemaAssessment
+          : undefined,
     };
   }, [
     groupSpecialty,
@@ -1179,13 +1219,17 @@ function DiagnosisGroupEditorInner({
   const isBreastModule = isBreastSpecialty(groupSpecialty);
   const isHeadNeck = groupSpecialty === "head_neck";
   const isCraniofacialModule = isCraniofacialDiagnosis(groupSpecialty);
+  // Aesthetic module is activated by specialty, by an aesthetic-prefixed
+  // procedure, OR by an existing assessment blob — but only when the
+  // current specialty actually supports aesthetics. Without the specialty
+  // gate, an orphaned `aestheticAssessment` from a previous specialty
+  // would re-activate the module after a switch. See audit B1.2 / B1.3.
   const isAestheticModule =
     groupSpecialty === "aesthetics" ||
     procedures.some(
       (p) =>
         p.picklistEntryId != null && isAestheticProcedure(p.picklistEntryId),
-    ) ||
-    !!group.aestheticAssessment;
+    );
   // Procedure-first flow: only when specialty IS aesthetics (not just aes_ procedures in another specialty)
   const isAestheticProcedureFirst = groupSpecialty === "aesthetics";
 
@@ -1208,11 +1252,14 @@ function DiagnosisGroupEditorInner({
     );
   }, [isAestheticModule, group.aestheticAssessment]);
 
+  // Specialty-gated to prevent an orphan `burnsAssessment` (from a previous
+  // specialty selection) re-activating the module after a switch (audit
+  // B1.2 / B1.3). Edit-mode load is still covered because the case carries
+  // its specialty alongside the blob.
   const isBurnsModule = useMemo(
     () =>
-      (groupSpecialty === "burns" &&
-        selectedDiagnosis?.id === "burns_dx_acute") ||
-      !!group.burnsAssessment,
+      groupSpecialty === "burns" &&
+      (selectedDiagnosis?.id === "burns_dx_acute" || !!group.burnsAssessment),
     [groupSpecialty, selectedDiagnosis?.id, group.burnsAssessment],
   );
 
@@ -1224,12 +1271,17 @@ function DiagnosisGroupEditorInner({
     return getDefaultBurnsAssessment();
   }, [isBurnsModule, group.burnsAssessment]);
 
-  // Peripheral nerve: diagnosis-metadata driven + existing data
+  // Peripheral nerve: diagnosis-metadata driven + existing data, gated on
+  // specialty so an orphan blob from a different specialty can't re-
+  // activate the module. Other specialties' diagnoses don't carry the
+  // peripheral_nerve metadata so the diagnosis check covers cross-spec
+  // legitimate uses.
   const isPeripheralNerveModule = useMemo(
     () =>
       isPeripheralNerveDiagnosis(selectedDiagnosis ?? undefined) ||
-      !!group.peripheralNerveAssessment,
-    [selectedDiagnosis, group.peripheralNerveAssessment],
+      (groupSpecialty === "peripheral_nerve" &&
+        !!group.peripheralNerveAssessment),
+    [selectedDiagnosis, groupSpecialty, group.peripheralNerveAssessment],
   );
 
   const normalizedPeripheralNerveAssessment = useMemo(() => {
@@ -1265,13 +1317,14 @@ function DiagnosisGroupEditorInner({
     [selectedDiagnosis],
   );
 
-  // Lymphoedema: diagnosis-metadata driven + specialty + existing data
+  // Lymphoedema: diagnosis-metadata driven + specialty. The previous
+  // `|| !!group.lymphoedemaAssessment` fallback re-activated the module on
+  // orphan blobs; removing it closes that path (audit B1.2 / B1.3).
   const isLymphoedemaModule = useMemo(
     () =>
       isLymphoedemaeDiagnosis(selectedDiagnosis ?? undefined) ||
-      groupSpecialty === "lymphoedema" ||
-      !!group.lymphoedemaAssessment,
-    [selectedDiagnosis, groupSpecialty, group.lymphoedemaAssessment],
+      groupSpecialty === "lymphoedema",
+    [selectedDiagnosis, groupSpecialty],
   );
 
   const normalizedLymphaticAssessment = useMemo(() => {
@@ -1821,11 +1874,38 @@ function DiagnosisGroupEditorInner({
   };
 
   const removeProcedure = (id: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setProcedures((prev) => {
-      const filtered = prev.filter((p) => p.id !== id);
-      return filtered.map((p, idx) => ({ ...p, sequenceOrder: idx + 1 }));
-    });
+    const target = procedures.find((p) => p.id === id);
+    // `freeFlapDetails` is stored under `clinicalDetails` for free-flap
+    // procedures, so the `clinicalDetails != null` check covers it.
+    const hasSubstantiveContent =
+      !!target &&
+      (target.procedureName.trim().length > 0 ||
+        target.picklistEntryId != null ||
+        target.clinicalDetails != null ||
+        target.implantDetails != null);
+    const performDelete = () => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setProcedures((prev) => {
+        const filtered = prev.filter((p) => p.id !== id);
+        return filtered.map((p, idx) => ({ ...p, sequenceOrder: idx + 1 }));
+      });
+    };
+    if (!hasSubstantiveContent) {
+      performDelete();
+      return;
+    }
+    // Per CLAUDE.md Medical UX Rule 3: confirm destructive actions when
+    // clinical data would be lost.
+    Alert.alert(
+      "Delete procedure?",
+      target?.procedureName.trim()
+        ? `Remove "${target.procedureName.trim()}" and all its clinical details? This can't be undone.`
+        : "This procedure has clinical details that will be lost. Continue?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", style: "destructive", onPress: performDelete },
+      ],
+    );
   };
 
   const moveProcedureUp = (id: string) => {
@@ -2603,8 +2683,14 @@ function DiagnosisGroupEditorInner({
                 {index + 1}
               </ThemedText>
             </View>
-            <ThemedText style={[styles.groupTitle, { color: theme.text }]}>
-              Diagnosis Group {index + 1}
+            <ThemedText
+              style={[styles.groupTitle, { color: theme.text }]}
+              numberOfLines={1}
+            >
+              {/* Use the coded diagnosis once selected — ordinal "Diagnosis
+                  Group N" wastes prime real-estate where the actual
+                  diagnosis is far more informative (audit P3.5). */}
+              {currentGroupTitle || `Diagnosis Group ${index + 1}`}
             </ThemedText>
             {index === 0 ? (
               <View
@@ -2637,11 +2723,52 @@ function DiagnosisGroupEditorInner({
             {index > 0 ? (
               <Pressable
                 onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  onDelete();
+                  // Count what would be lost. An empty new group is dropped
+                  // silently; a group with diagnosis/procedures/assessments
+                  // requires explicit confirmation (CLAUDE.md Medical UX
+                  // Rule 3).
+                  const hasContent =
+                    !!selectedDiagnosis ||
+                    !!primaryDiagnosis ||
+                    procedures.some((p) => p.procedureName.trim().length > 0) ||
+                    fractures.length > 0 ||
+                    !!skinCancerAssessment ||
+                    !!handInfectionDetails ||
+                    !!dupuytrenAssessment ||
+                    !!group.breastAssessment ||
+                    !!group.craniofacialAssessment ||
+                    !!group.aestheticAssessment ||
+                    !!group.burnsAssessment ||
+                    !!group.peripheralNerveAssessment ||
+                    !!group.lymphoedemaAssessment;
+                  if (!hasContent) {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    onDelete();
+                    return;
+                  }
+                  const title = currentGroupTitle || "this diagnosis group";
+                  Alert.alert(
+                    "Delete diagnosis group?",
+                    `Remove ${title} and all its procedures and assessment data? This can't be undone.`,
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Delete",
+                        style: "destructive",
+                        onPress: () => {
+                          Haptics.impactAsync(
+                            Haptics.ImpactFeedbackStyle.Heavy,
+                          );
+                          onDelete();
+                        },
+                      },
+                    ],
+                  );
                 }}
                 hitSlop={8}
                 testID={`caseForm.diagnosis.btn-deleteGroup-${index}`}
+                accessibilityRole="button"
+                accessibilityLabel={`Delete diagnosis group ${index + 1}`}
               >
                 <Feather name="trash-2" size={18} color={theme.error} />
               </Pressable>
@@ -3367,7 +3494,9 @@ function DiagnosisGroupEditorInner({
                         <ThemedText
                           style={[
                             styles.clinicalSuspicionButtonText,
-                            { color: isSelected ? "#FFF" : theme.text },
+                            {
+                              color: isSelected ? theme.buttonText : theme.text,
+                            },
                           ]}
                         >
                           {label}

@@ -61,6 +61,18 @@ export const Colors = {
     info: "#0969DA",
     border: "#D0D7DE",
     cardShadow: "rgba(12,15,20,0.1)",
+    // Modal/sheet scrim overlay — used behind modals to dim the form. Set
+    // here rather than hardcoded "rgba(0,0,0,0.5)" so callsites don't
+    // depend on raw values (audit P2.3).
+    scrim: "rgba(12,15,20,0.45)",
+    // Tinted "surface" variants of semantic colors for banners/badges.
+    // Pre-baked alpha rather than the `theme.color + "NN"` string-concat
+    // pattern, which is brittle if a token ever switches to rgb() / oklch().
+    accentSurface: "rgba(180,126,0,0.12)",
+    warningSurface: "rgba(154,103,0,0.12)",
+    errorSurface: "rgba(207,34,46,0.12)",
+    successSurface: "rgba(26,127,55,0.12)",
+    infoSurface: "rgba(9,105,218,0.12)",
     rolePrimary: "#B47E00",
     roleSupervising: "#8250DF",
     roleAssistant: "#1A7F37",
@@ -103,6 +115,13 @@ export const Colors = {
     info: "#58A6FF",
     border: "#2D333B",
     cardShadow: "rgba(0,0,0,0.35)",
+    // See light theme above for the rationale on these tokens.
+    scrim: "rgba(0,0,0,0.55)",
+    accentSurface: "rgba(229,160,13,0.14)",
+    warningSurface: "rgba(210,153,34,0.14)",
+    errorSurface: "rgba(248,81,73,0.14)",
+    successSurface: "rgba(46,160,67,0.14)",
+    infoSurface: "rgba(88,166,255,0.14)",
     rolePrimary: "#E5A00D",
     roleSupervising: "#D8B4FE",
     roleAssistant: "#86EFAC",

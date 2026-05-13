@@ -1421,9 +1421,19 @@ export const FLAP_FIELD_CONFIG: Partial<
       label: "Tissue Composition",
       type: "select",
       options: [
-        { value: "bone_only", label: "Bone only (corticoperiosteal)" },
-        { value: "osteocutaneous", label: "Osteocutaneous" },
-        { value: "osteoperiosteal", label: "Osteoperiosteal" },
+        {
+          value: "osteoperiosteal",
+          label: "Bone + periosteum (corticoperiosteal)",
+        },
+        {
+          value: "periosteum_only",
+          label: "Periosteum only (periosteal sleeve)",
+        },
+        {
+          value: "osteocutaneous",
+          label: "Osteocutaneous (chimeric with skin island)",
+        },
+        { value: "bone_only", label: "Corticocancellous bone only" },
       ],
     },
     {

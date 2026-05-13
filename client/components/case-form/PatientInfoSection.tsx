@@ -18,7 +18,7 @@ import {
   useCaseFormValidation,
 } from "@/contexts/CaseFormContext";
 import { setField } from "@/hooks/useCaseForm";
-import { Spacing } from "@/constants/theme";
+import { Spacing, BorderRadius } from "@/constants/theme";
 import {
   Gender,
   GENDER_LABELS,
@@ -70,11 +70,11 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
               borderColor: isPlanMode ? theme.info : theme.border,
             },
           ]}
-          accessibilityRole="button"
-          accessibilityLabel={
-            isPlanMode ? "Plan mode active" : "Switch to plan mode"
-          }
-          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+          accessibilityRole="switch"
+          accessibilityLabel="Planning mode"
+          accessibilityHint="Switch between logging a performed case and planning a future case"
+          accessibilityState={{ checked: isPlanMode }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           testID="caseForm.patient.toggle-planMode"
         >
           <Feather
@@ -259,6 +259,8 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
                   backgroundColor: theme.backgroundDefault,
                 },
               ]}
+              accessibilityRole="radiogroup"
+              accessibilityLabel="Gender"
             >
               {(Object.entries(GENDER_LABELS) as [Gender, string][]).map(
                 ([value, label]) => {
@@ -277,6 +279,9 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
                         Haptics.selectionAsync();
                         dispatch(setField("gender", value));
                       }}
+                      accessibilityRole="radio"
+                      accessibilityLabel={label}
+                      accessibilityState={{ selected: isSelected }}
                     >
                       <ThemedText
                         style={[
@@ -322,8 +327,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: 8,
+    // Tap-target sweep: was paddingVertical 4 (~22pt total) — bumped so
+    // the chip clears the 44pt HIG minimum (audit P2.7).
+    paddingVertical: 10,
+    minHeight: 44,
+    borderRadius: BorderRadius.sm,
     borderWidth: 1,
   },
   planToggleText: {
@@ -370,13 +378,15 @@ const styles = StyleSheet.create({
   },
   segmentedControl: {
     flexDirection: "row",
-    borderRadius: 8,
+    borderRadius: BorderRadius.sm,
     borderWidth: 1,
     overflow: "hidden",
   },
   segmentedButton: {
     flex: 1,
-    paddingVertical: 10,
+    // Was 10pt vertical (~36pt total) — bumped to meet 44pt HIG minimum.
+    paddingVertical: 14,
+    minHeight: 44,
     alignItems: "center",
     justifyContent: "center",
   },
