@@ -13,7 +13,10 @@ appId: com.drgladysz.opus
     id: "dashboard.fab.btn-main"
     optional: true
 - assertVisible:
-    id: "dashboard.fab.btn-logCase"
+    id: "dashboard.fab.btn-log"
+- tapOn:
+    id: "dashboard.fab.backdrop"
+    optional: true
 - tapOn:
     id: "main.tab-statistics"
 - assertVisible:

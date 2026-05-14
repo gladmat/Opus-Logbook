@@ -12,11 +12,16 @@ appId: com.drgladysz.opus
 - assertVisible:
     id: "screen-dashboard"
 
-# Open Add Case via FAB speed dial
+# Open Add Case via FAB speed dial. "Log a Case" opens the specialty
+# picker (AddCaseScreen); choosing a specialty card opens the case form.
 - tapOn:
     id: "dashboard.fab.btn-main"
 - tapOn:
-    id: "dashboard.fab.btn-logCase"
+    id: "dashboard.fab.btn-log"
+- assertVisible:
+    id: "screen-addCase"
+- tapOn:
+    id: "addCase.card-hand_wrist"
 - assertVisible:
     id: "screen-caseForm"
 
@@ -47,14 +52,22 @@ appId: com.drgladysz.opus
 # Discard the test case rather than saving — we're just smoke-testing
 # the form mounts and accepts input. The save path needs richer fixture
 # data and is the territory of `case-form-save-end-to-end.yaml` (TODO).
+#
+# Exit: dismiss the keyboard first (a raw `back` is absorbed by the
+# keyboard and does nothing), then back out. The case form sits one
+# level below AddCaseScreen, so two backs are needed; a discard
+# confirmation may appear in between.
+# NOTE: the discard-dialog button label was not confirmable this session
+# ("Discard" is a best guess) — verify and tighten if it doesn't dismiss.
 - tapOn:
-    id: "caseForm.header.btn-overflow"
+    text: "Done"
     optional: true
 - back
 
-# Confirm discard
+# Confirm discard, then back out of AddCaseScreen to the dashboard
 - tapOn:
     text: "Discard"
     optional: true
+- back
 - assertVisible:
     id: "screen-dashboard"
