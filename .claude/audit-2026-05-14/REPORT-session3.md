@@ -58,7 +58,9 @@ forced new working patterns. The proven session-3 method:
 | `74d766c` | Cluster 1 — 11 specialty assessment modules captured + report |
 | `1e892fb` | Clusters 4 / 2 / 7 — Settings sub-screens, iPhone SE 3 pass, onboarding (pre-auth) |
 | `eb6600c` | Cluster 5 — `screen-*` root testID on all conditional branches of OpusCamera / SmartImport (Code fix 2) |
-| _(this report + capture/seeded/light screenshots)_ | committed progressively through session end |
+| `54e8157` | Add dev-only `opus://debug/seed` deep link for audit fixture data (6 cases + 1 episode) |
+| `955850a` | **Fix RoleBadge full-width render + 30-day countdown TZ drift** (Code fixes 3/4); extend audit seed 6 → 22 cases (Code fix 5) |
+| _(this report + Cluster-6 seeded screenshots)_ | committed progressively through session end |
 
 ---
 
@@ -97,6 +99,54 @@ any Maestro regression flow) can't assert the screen in every state. Added the t
 all four branches; since the branches are mutually exclusive only one renders at a time,
 so no duplicate-testID collision. Rendering is unchanged (testID is an invisible prop) —
 `tsc --noEmit` clean.
+
+### 3. RoleBadge stretched to full width inside column layouts (Wrong)
+
+**File:** `client/components/RoleBadge.tsx`. **Fixed in:** `955850a`.
+
+`RoleBadge`'s base `badge` style had no `alignSelf`. Inside a column-direction
+parent — `CaseDetailScreen`'s "Surgical Team" `memberInfo` View — the default
+`alignItems: "stretch"` made the badge stretch to the full card width, so the
+"● PS" role chip rendered as a wide, empty-looking pill (a near-`TextInput`
+lookalike) on **every** CaseDetail screen — see the pre-fix `s3-data-31` /
+`-41` / `-51`. Added `alignSelf: "flex-start"` to the base style so the chip
+sizes to its content. The four other call sites (`CaseDetailScreen` hero
+badges, per-procedure role, `CaseCard`) are all row-layout where the badge
+already sized to content on the main axis; `alignSelf` only changes their
+cross-axis (vertical) alignment from stretch→top, which removes a latent
+vertical-stretch on multi-line procedure rows — an improvement, not a
+regression. Verified on-device post-fix (`s3-data-31`): compact chip.
+
+### 4. CaseDetail 30-day complication-review countdown drifted by a day (Wrong)
+
+**File:** `client/screens/CaseDetailScreen.tsx`. **Fixed in:** `955850a`.
+
+`daysSinceProcedure` was `Math.floor((Date.now() - new Date(caseData.procedureDate).getTime()) / DAY)`.
+`new Date("YYYY-MM-DD")` parses as **UTC midnight**, so subtracting a wall-clock
+`Date.now()` drifts the result by a day in any non-UTC zone — exactly the
+date-handling anti-pattern CLAUDE.md documents (the ESLint `no-restricted-syntax`
+rule only catches the *string-literal* form, not `new Date(variable)`). On the
+NZ sim the "30-Day Complication Review" card read **one day high**: the POD-2
+breast case showed "Review available in 29 days" (should be 28), the 20-day-old
+ortho case showed "11 days" (should be 10). The same `daysSinceProcedure` also
+gates `isPending30DayReview` (`>= 30`), so the RACS-MALT audit prompt fired a
+day late. Replaced with a timezone-stable local-midnight calendar-day diff via
+`parseIsoDateValue`. Verified on-device post-fix: breast → "28 days"
+(`s3-data-32`), ortho → "10 days" (`s3-data-52`).
+
+### 5. Audit seed extended 6 → 22 cases (audit infrastructure)
+
+**File:** `client/lib/devSeed.ts`. **Committed in:** `955850a`.
+
+The Statistics tab hides its analytics view behind a 20-case threshold
+(`StatisticsScreen` `EMPTY_THRESHOLD = 20`) — a deliberate product gate, **not
+a bug**. Session 3's 6-case `opus://debug/seed` fixture therefore could never
+reach populated Statistics; the original `s3-data-70..74` "statistics-populated"
+shots were all the `EmptyStatistics` progress state (mislabeled). Extended the
+`__DEV__`-gated seeder with 16 filler cases (varied specialty / operative role /
+facility / month spread over ~6 months) so the fixture set clears the gate and
+the charts, deltas, milestone timeline, facility + role breakdowns render
+non-trivially. Tree-shakes from production. Re-captured `s3-data-70..75`.
 
 ---
 
@@ -151,6 +201,22 @@ Audit & Remediation pass removed several dead-code files; this one looks like it
 through. Decision needed: delete `PlanCaseScreen.tsx` + the route, or (less likely) it
 was meant to stay reachable and lost its entry point in a refactor.
 
+### 🟡 Dead route — `EpisodeList` screen is registered but unreachable
+
+**Severity: Wrong (dead code / lost feature). Reported, not fixed — same
+delete-or-wire-up call as `PlanCase`.** `EpisodeListScreen`
+(`client/screens/EpisodeListScreen.tsx` — full SectionList implementation,
+`screen-episodeList` testID, `episodes.input-search`) is registered as the
+`EpisodeList` route in `RootStackNavigator.tsx:791`. **Nothing in the codebase
+calls `navigation.navigate("EpisodeList")`** — an exhaustive grep across
+`client/` + `server/` + `shared/` finds only the route definition, the
+param-list type, the import, and two doc comments that merely *name*
+"EpisodeList/Detail" as audit scope. `EpisodeDetail` **is** reachable (dashboard
+attention carousel, NeedsAttentionList) and was captured this session; the
+list-level screen is orphaned. This is the **second** dead route found
+(`PlanCase` is the first) — both look like entry points lost in a refactor. A
+dedicated pass should decide delete-vs-rewire for both together.
+
 ### 🟢 Possible perf — `HeadNeckDiagnosisPicker` is unusually `kAXErrorInvalidUIElement`-prone
 
 **Severity: low / needs-investigation. Reported only.** Every Maestro hierarchy query
@@ -177,6 +243,26 @@ deep automation of the aesthetics module and is an a11y gap for screen-reader us
 Recommend a dedicated pass adding `caseForm.procedure.row-${entry.id}` + button role +
 label.
 
+### 🟢 Testability — dashboard `AttentionCard` + the 4 onboarding screens have no `testID`s
+
+**Severity: low (testability/a11y gap). Reported, not fixed — backlog, not a
+one-line fix.** Two more testID-less surfaces surfaced while driving the
+seeded-data and onboarding clusters:
+
+- **`client/components/dashboard/AttentionCard.tsx`** — the card component
+  itself has zero `testID`s on any of its `Pressable`s (the card body, the
+  Histology / + Event / Discharge / View-episode quick actions). The
+  `NeedsAttentionCarousel` wrapper does expose `dashboard.attention.card-${index}`
+  per item, but a horizontally-scrolled carousel only makes index 0 hittable —
+  capturing `EpisodeDetail` from the dashboard needed a coordinate fallback.
+- **`CategoriesScreen` / `TrainingScreen` / `HospitalScreen` / `PrivacyScreen`**
+  (the four post-auth onboarding steps) — `grep` finds **no `testID` anywhere**
+  in any of them, despite CLAUDE.md's screen map citing `onboarding.*` testIDs.
+  Onboarding had to be driven entirely by visible-text taps.
+
+Both are part of the broader testID/a11y backlog; recommend folding into the
+same dedicated pass as `ProcedureSubcategoryPicker`.
+
 ### Inconsistent / Unpolished — catalogued for Mateusz's design pass
 
 - **Nav-pill labels ellipsis-truncate ("Oper…" / "Outc…")** — confirmed reproduces on
@@ -190,6 +276,22 @@ label.
 - **AddCase specialty-card content vertical distribution is inconsistent** — within an
   equal-height row, one card bunches icon/label/count at the top while its sibling
   spreads them out (e.g. Skin Cancer vs Orthoplastic). Centre or top-align consistently.
+- **Episode cards show the raw patient identifier where case cards show a name** — the
+  Needs-Attention / NeedsAttentionList episode card titles with `patientIdentifier`
+  (`"AUDIT-SKIN-02"`) while the sibling inpatient card titles with the patient's name
+  (`"Priya Anand"`). The episode could resolve the linked case's name; the raw code
+  reads as unfinished next to the named card. (`s3-data-20`, `s3-data-60`.)
+- **EpisodeDetail "Change Status" amber fill reads as a selection** — the episode status
+  badge says `Active`, but in the "Change Status" row the first action ("On Hold")
+  renders amber-filled while "Completed" / "Cancelled" are outlined. The amber fill is
+  button-hierarchy styling, but next to an `Active` badge it can be misread as "current
+  status = On Hold". Consider an explicit current-status indicator or uniform button
+  styling. (`s3-data-60`.)
+- **Statistics horizontal-bar labels truncate** — "Orthoplastic & Li…" in Practice
+  Profile, "Auckland City Ho…" in Where You Operate. This is `HorizontalBarChart`'s
+  documented `ellipsizeMode="tail"` behaviour, so it is *correct by spec* — flagged only
+  so the design pass can decide whether the longer specialty/facility names deserve a
+  wider label column or a two-line wrap. (`s3-data-70`, `s3-data-72`.)
 
 ---
 
@@ -295,6 +397,43 @@ and each capture surface driven and screenshotted on iPhone 17 / dark.
 **Headline:** all four *reachable* capture screens render cleanly and on-brand. The
 only capture-cluster issues are non-visual: the `screen-*` testID gap (fixed inline) and
 the dead `PlanCase` route (reported — needs a delete-or-wire-up decision).
+
+## Seeded-data run (Cluster 6)
+
+The brief's highest-value cluster: the data-dependent surfaces (CaseDetail,
+AddTimelineEvent, AddHistology, EpisodeDetail, NeedsAttentionList, populated
+Dashboard + Statistics) need real cases on-device. Session 3 built the
+`__DEV__`-gated `opus://debug/seed` deep link (commit `54e8157`) to seed a
+varied fixture set without hand-driving the kAXError-prone case form six times.
+This cluster ran the seed, captured every data surface, and **caught two real
+bugs** that only manifest with data present (RoleBadge full-width, 30-day
+countdown TZ drift — both fixed inline, see Code fixes #3/#4). The seed was
+extended 6 → 22 cases mid-cluster so populated Statistics could clear its gate
+(Code fix #5).
+
+| Screen | Shots | Assessment |
+|---|---|---|
+| Dashboard (populated) | `s3-data-01..03` | ✅ Clean. Filter chips with counts, Needs Attention carousel (inpatient + episode), Practice Pulse (This Month/Week/Completion with deltas + sparkline), Recent Cases with specialty-tinted thumbnails + role badges + "+ Event". |
+| Dashboard (Breast-filtered) | `s3-data-04` | ✅ Clean. All 3 zones recalculate for the specialty per the locked spec — Needs Attention shows only the breast inpatient, Practice Pulse re-derives, the list header becomes "Breast Cases". |
+| NeedsAttentionList | `s3-data-20..21` | ✅ Clean. INPATIENTS + ACTIVE EPISODES sections, search field, per-card quick actions. |
+| CaseDetail — breast (inpatient, DIEP) | `s3-data-30..34` | ✅ Clean after fix. Hero badges, Procedures Performed (SNOMED rows), Demographics, Admission, Diagnoses, **Surgical Team** (RoleBadge fix verified — compact chip), Responsible Consultant, Operative Factors, 30-Day Review (**TZ fix verified — "28 days"**), Timeline empty state, Delete Case; actions menu (Edit / Duplicate). |
+| CaseDetail — skin (episode-linked, awaiting histology) | `s3-data-40..41` | ✅ Clean. Amber "Histology pending" banner + "Add Histology Results" CTA card — good use of warning-surface tokens. |
+| AddHistology | `s3-data-42..43` | ✅ Clean. Context card, Pathology Category chips, Histology Report textarea, Margin Status chips, optional SNOMED + Histological Diagnosis inputs, header Save. |
+| CaseDetail — ortho (multi-procedure) | `s3-data-50..52` | ✅ Clean. Two numbered procedure cards render correctly; 30-Day Review **TZ fix verified — "10 days"**. |
+| AddTimelineEvent | `s3-data-53..54` | ✅ Clean. Modal; Entry Type 7-card grid (Note / Photo / X-ray / PROM / Complication / Follow-up / Wound Assessment). No Cancel button — but its sibling modal `CaseSearch` is the same, so the swipe-to-dismiss pattern is *consistent*, not a per-screen defect. |
+| EpisodeDetail | `s3-data-60..62` | ✅ Clean. Status badge, specialty chip, patient/onset/pending-action, 3 stat cards (Cases / Procedures / Span), Change Status row, Case Timeline, "+ Log Case" CTA. |
+| Statistics (populated, 22 cases) | `s3-data-70..75` | ✅ Clean — the 22-case seed cleared the 20-case gate. Practice/Training pill bar, hero stats (22 / 5 months / 6 specialties), Practice Profile horizontal bars (specialty-tinted), Monthly Activity bar chart (~6-month spread, highlightLast), Milestone timeline, per-specialty Deep-Dive cards, Where You Operate (2 facilities), Your Role (4 roles, role-tinted), Your Top 10, Data Completeness 100%. |
+| EpisodeList | _(not captured — dead route)_ | `EpisodeListScreen` is fully implemented + registered but **unreachable** — nothing calls `navigate("EpisodeList")`. See Findings → "Dead route — EpisodeList". |
+
+**Headline:** every reachable data surface renders cleanly. The cluster's two
+substantive findings are the **RoleBadge full-width** and **30-day countdown TZ
+drift** bugs — both objective, both fixed + verified on-device this session.
+`EpisodeList` is a second dead route (reported). Session 3's original
+`s3-data-*` capture had four duplicate-screenshot pairs (`03≈04`, `20≈21`,
+`32≈33`, `53≈54`) — `32≈33` / `53≈54` are just "screen too short to scroll
+further" (harmless), but `03≈04` meant the **filtered dashboard was never
+actually captured** (the flow's chip-tap was `optional:true` against stale
+text); that is now genuinely captured (`s3-data-04`).
 
 ## Coverage & gaps
 
