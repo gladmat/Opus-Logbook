@@ -14,8 +14,11 @@ function bytesToUtf8(bytes: Uint8Array): string {
   return new TextDecoder().decode(bytes);
 }
 
-const DEVICE_ID_KEY = "@surgical_logbook_device_id";
-const DEVICE_PRIVATE_KEY = "@surgical_logbook_device_private_key";
+// SecureStore keys must be alphanumeric + ".", "-", "_" only — no "@".
+// The "@"-prefix is the AsyncStorage convention and is rejected by
+// expo-secure-store, which silently broke device-identity persistence.
+const DEVICE_ID_KEY = "surgical_logbook_device_id";
+const DEVICE_PRIVATE_KEY = "surgical_logbook_device_private_key";
 const NONCE_BYTES = 24;
 const KEY_BYTES = 32;
 const CASE_KEY_CONTEXT = "surgical-logbook-case-key";
