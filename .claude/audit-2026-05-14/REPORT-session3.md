@@ -108,6 +108,25 @@ exact-match branch resolves correctly before the keyword fallback can mis-fire. 
 **not** affected — their names don't contain a TNM keyword, so they fall through to the
 "lymphoedema" keyword and get ISL correctly.
 
+### 🟡 Dead route — `PlanCase` screen is registered but unreachable
+
+**Severity: Wrong (dead code / lost feature). Reported, not fixed — needs a judgment
+call on whether to wire it up or delete it.** `PlanCaseScreen` is a fully-implemented
+screen (`client/screens/PlanCaseScreen.tsx` — save logic, camera integration,
+`testID="screen-planCase"`) and is registered as the `PlanCase` route in
+`RootStackNavigator.tsx:893`. **Nothing in the codebase ever calls
+`navigation.navigate("PlanCase")`** — an exhaustive case-insensitive grep across
+`client/` + `server/` finds only the route definition + the screen's own file. The
+route is dead.
+
+Most likely explanation: "plan mode" was folded into the regular case form (there's a
+`caseForm.patient.toggle-planMode` toggle + `caseForm.planModeBanner` + the
+`PlanModeBanner` component from Phase 7), which **superseded** the standalone
+`PlanCaseScreen` — but the orphaned screen + route were never removed. The 2.6.0 Code
+Audit & Remediation pass removed several dead-code files; this one looks like it slipped
+through. Decision needed: delete `PlanCaseScreen.tsx` + the route, or (less likely) it
+was meant to stay reachable and lost its entry point in a refactor.
+
 ### 🟢 Possible perf — `HeadNeckDiagnosisPicker` is unusually `kAXErrorInvalidUIElement`-prone
 
 **Severity: low / needs-investigation. Reported only.** Every Maestro hierarchy query
@@ -178,6 +197,63 @@ locked designs, no Broken/Wrong layout issues *in the module chrome itself*. The
 substantive finding from this cluster is the **lymphoedema TNM-staging bug** (a
 data-correctness issue, not a layout one). This is a strong result for the densest
 custom UI in the app.
+
+## Settings sub-screens (Cluster 4) — all clean
+
+All 6 audited Settings sub-screens render cleanly on iPhone 17 / dark — on-brand, theme
+tokens, good empty states, no Broken/Wrong/Uncomfortable issues. The 6 flows passed
+first-try with no kAXError retries (Settings is a calmer surface than the case form).
+
+| Screen | Shots | Assessment |
+|---|---|---|
+| Edit Profile | `s3-settings-editprofile-01..02` | ✅ Avatar + "Add Photo", Personal Details (name, DOB, Sex segmented), Professional Details. Clean. |
+| My Hospitals (ManageFacilities) | `s3-settings-facilities-01..02` | ✅ "Add from curated list", country chip, SELECTED list with PRIMARY badge + "Make primary" + delete ×. Clean. |
+| Surgical Preferences | `s3-settings-surgprefs-01..02` | ✅ Microsurgery → Anticoagulation Protocol radio cards with sub-detail bullets. Clean, well-structured. |
+| My Operative Team (TeamContacts) | `s3-settings-teamcontacts-01..02` | ✅ "No team members yet" empty state (icon + copy) + FAB. Clean. |
+| App Lock (SetupAppLock) | `s3-settings-applock-01..02` | ✅ "Set Up PIN" row, lock icon, 6-digit-PIN copy, chevron. Clean. |
+| Shared Cases (SharedInbox) | `s3-settings-sharedcases-01..02` | ✅ "No shared cases yet" empty state. Clean. |
+
+## iPhone SE 3 / 375 pt pass (Cluster 2)
+
+Created a fresh `iPhone SE (3rd generation)` simulator
+(`87C2B2A6-7E6A-446E-BA2F-789B5DB9E74F`, iOS 26.4) and installed the **existing**
+`Debug-iphonesimulator` `Opus.app` on it — sim builds are not device-specific, so **no
+rebuild was needed** (this resolves session 2's "SE-3 needs its own native build"
+concern). The SE 3 booted in **light appearance**, so this pass doubles as light-theme
+coverage (Cluster 8).
+
+| SE 3 screen | Shot | Assessment |
+|---|---|---|
+| Dashboard (empty) | `s3-se3-01-dashboard` | ✅ Clean at 375 pt / light. Logo lockup, All(0) chip, inbox/search, empty state, FAB, tab bar — all fit. |
+| FAB speed dial | `s3-se3-02-fab` | ✅ |
+| Add Case grid | `s3-se3-03-addcase` | ✅ 2-col specialty grid fits at 375 pt. |
+| Case form — Patient | `s3-se3-04-caseform-patient` | ✅ Patient section fits; procedure date auto-fills today, facility auto-fills primary (Waikato). |
+| Case form — Case | `s3-se3-05-caseform-case` | ✅ |
+
+**SectionNavBar at 375 pt — the session-2 finding, re-checked here first as instructed:**
+At 375 pt the nav bar renders **`Patient · Team · Case · Op · Media · Outc`** — i.e.
+Phase 7's short-label breakpoint **does** engage at ≤375 pt (good — "Operative"→"Op",
+"Outcomes"→"Outc"). So the nav-pill defect is **specifically the 376–402 pt band**: there
+the full labels are used but don't fit, so they ellipsis-truncate to "Oper…"/"Outc…"
+(ugly). The fix is to widen the short-label breakpoint to cover iPhone 17 width too —
+**this confirms and localises the session-2 finding.** One thing to eyeball on a real
+SE 3: the last pill ("Outc") sits flush against the right screen edge in
+`s3-se3-04` — verify it isn't a hair clipped.
+
+## Onboarding flow (Cluster 7) — pre-auth captured on the fresh SE 3 install
+
+The fresh SE 3 install starts at the onboarding entry, so it doubled as the Cluster 7
+capture (375 pt / light): `s3-onboard-01-welcome-se3` (Welcome — "Your life's work,
+documented." + Get Started) → `s3-onboard-02..05` (FeaturePager — "Log any case in
+under 60 seconds", registry-superset slide w/ ISCP/FEBOPRAS/BSSH/RACS/NMBRA chips, etc.)
+→ `s3-onboard-06/07` (last FeaturePager slide + sign-in). All render cleanly.
+
+**Gap:** the *post-auth* onboarding steps (Categories → Training → Hospital → Privacy)
+were **not** reachable — `onboardingComplete` is read from the server `profile`
+(`AuthContext.tsx:540`), and the audit test account has it `true`, so a deep-link login
+jumps straight past them to the dashboard. Capturing those four needs a *fresh,
+not-yet-onboarded* server account (creating one hits the EmailSignup Strong-Password
+issue from session 1). Left for a future session.
 
 ## Coverage & gaps
 
