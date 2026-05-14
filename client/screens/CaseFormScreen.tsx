@@ -995,6 +995,7 @@ export default function CaseFormScreen() {
                   <Button
                     onPress={handleReviewPress}
                     disabled={form.state.saving}
+                    testID="caseForm.btn-review"
                   >
                     {validationErrors.length > 0
                       ? `Review Case · Fix ${validationErrors.length} issue${

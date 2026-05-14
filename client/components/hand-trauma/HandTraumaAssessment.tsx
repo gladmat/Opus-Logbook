@@ -1153,6 +1153,12 @@ export function HandTraumaAssessment({
                           selectedLaterality === side ? undefined : side,
                       })
                     }
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      side === "left" ? "Left hand" : "Right hand"
+                    }
+                    accessibilityState={{ selected: isSelected }}
+                    testID={`caseForm.hand.chip-laterality-${side}`}
                   >
                     <ThemedText
                       style={[
