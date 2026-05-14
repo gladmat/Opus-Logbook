@@ -15,7 +15,7 @@ import { saveCase } from "@/lib/storage";
 import { saveEpisode } from "@/lib/episodeStorage";
 import { getActiveUserIdOrNull } from "@/lib/activeUser";
 import { toIsoDateValue } from "@/lib/dateValues";
-import type { Case, DiagnosisGroup, TeamMember } from "@/types/case";
+import type { Case, DiagnosisGroup, Specialty, TeamMember } from "@/types/case";
 import type { TreatmentEpisode } from "@/types/episode";
 
 function dateOnly(daysAgo: number): string {
@@ -362,6 +362,99 @@ export async function seedAuditCases(): Promise<{
       updatedAt: ts(35),
     },
   ];
+
+  // ── Filler cases — bulk volume so the Statistics tab clears its gate ──────
+  // The six detailed cases above exercise the data-dependent surfaces
+  // (inpatient attention card, episode link, multi-procedure detail). The
+  // Statistics tab additionally hides its analytics view behind a 20-case
+  // threshold (StatisticsScreen EMPTY_THRESHOLD), so this block tops the
+  // fixture set past that line with varied specialty / role / facility /
+  // month so the charts, deltas and milestone timeline are non-trivial.
+  const fillerArchetypes: {
+    specialty: Specialty;
+    group: DiagnosisGroup;
+    procedureType: string;
+  }[] = [
+    {
+      specialty: "hand_wrist",
+      group: handGroup,
+      procedureType: "Distal radius ORIF (volar plate)",
+    },
+    {
+      specialty: "skin_cancer",
+      group: skinGroup,
+      procedureType: "Skin lesion excision (diagnostic)",
+    },
+    {
+      specialty: "breast",
+      group: breastGroup,
+      procedureType: "DIEP flap breast reconstruction",
+    },
+    {
+      specialty: "burns",
+      group: burnsGroup,
+      procedureType: "Split-thickness skin graft (STSG) — meshed",
+    },
+    {
+      specialty: "orthoplastic",
+      group: orthoGroup,
+      procedureType: "Surgical debridement",
+    },
+    {
+      specialty: "general",
+      group: generalGroup,
+      procedureType: "NSTI debridement (serial / radical)",
+    },
+  ];
+  const fillerFacilities = ["Waikato Hospital", "Auckland City Hospital"];
+  const fillerRoles = [
+    "SURGEON",
+    "SURGEON",
+    "FIRST_ASST",
+    "SECOND_ASST",
+    "SUPERVISOR",
+  ] as const;
+
+  function cloneGroup(src: DiagnosisGroup, key: string): DiagnosisGroup {
+    return {
+      ...src,
+      id: `seed-dg-${key}`,
+      procedures: src.procedures.map((p, i) => ({
+        ...p,
+        id: `seed-pr-${key}-${i}`,
+      })),
+    };
+  }
+
+  for (let i = 0; i < 16; i++) {
+    const archetype = fillerArchetypes[i % fillerArchetypes.length]!;
+    const role = fillerRoles[i % fillerRoles.length]!;
+    const daysAgo = 12 + i * 9; // spreads ~12..147 days back → ~6-month span
+    const key = `fill-${String(i + 1).padStart(2, "0")}`;
+    cases.push({
+      id: `seed-case-${key}`,
+      patientIdentifier: `AUDIT-FILL-${String(i + 1).padStart(2, "0")}`,
+      procedureDate: dateOnly(daysAgo),
+      facility: fillerFacilities[i % fillerFacilities.length]!,
+      specialty: archetype.specialty,
+      procedureType: archetype.procedureType,
+      diagnosisGroups: [cloneGroup(archetype.group, key)],
+      defaultOperativeRole: role,
+      defaultSupervisionLevel:
+        role === "SURGEON" ? "INDEPENDENT" : "NOT_APPLICABLE",
+      admissionUrgency: i % 2 === 0 ? "elective" : "acute",
+      stayType: "day_case",
+      anaestheticType: "general",
+      outcome: "discharged_home",
+      dischargeDate: dateOnly(daysAgo),
+      caseStatus: "discharged",
+      clinicalDetails: {},
+      teamMembers: youTeam(key, daysAgo),
+      ownerId,
+      createdAt: ts(daysAgo),
+      updatedAt: ts(daysAgo),
+    });
+  }
 
   const episode: TreatmentEpisode = {
     id: CANCER_EPISODE_ID,

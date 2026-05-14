@@ -70,6 +70,7 @@ import {
   VEIN_GRAFT_SOURCE_LABELS,
 } from "@/types/case";
 import { getCasePrimaryTitle } from "@/lib/caseDiagnosisSummary";
+import { parseIsoDateValue } from "@/lib/dateValues";
 import {
   generateHandInfectionSummary,
   HAND_ANTIBIOTIC_LABELS,
@@ -570,12 +571,27 @@ export default function CaseDetailScreen() {
     }
   };
 
-  const daysSinceProcedure = caseData
-    ? Math.floor(
-        (Date.now() - new Date(caseData.procedureDate).getTime()) /
-          (1000 * 60 * 60 * 24),
-      )
-    : 0;
+  // Calendar-day diff between the procedure date and today. Both operands are
+  // normalised to local midnight so the count is timezone-stable — a raw
+  // `new Date("YYYY-MM-DD")` parses as UTC midnight and drifts the count by a
+  // day in any non-UTC zone (CLAUDE.md date-handling invariant).
+  const daysSinceProcedure = (() => {
+    if (!caseData) return 0;
+    const proc = parseIsoDateValue(caseData.procedureDate);
+    if (!proc) return 0;
+    const now = new Date();
+    const todayMidnight = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    ).getTime();
+    const procMidnight = new Date(
+      proc.getFullYear(),
+      proc.getMonth(),
+      proc.getDate(),
+    ).getTime();
+    return Math.round((todayMidnight - procMidnight) / (1000 * 60 * 60 * 24));
+  })();
 
   const isPending30DayReview =
     caseData && daysSinceProcedure >= 30 && !caseData.complicationsReviewed;

@@ -70,6 +70,7 @@ const styles = StyleSheet.create({
   badge: {
     flexDirection: "row",
     alignItems: "center",
+    alignSelf: "flex-start",
     borderRadius: BorderRadius.full,
   },
   badgeSmall: {
