@@ -1,49 +1,45 @@
-# Audit: log in as test account 1.
+# Audit: sign in via the dev-only opus://debug/login deep link.
+#
+# Bypasses EmailSignupScreen entirely. iOS's "Use Strong Password?" sheet
+# intercepts the password TextInput during scripted sign-in — only the first
+# keystroke reaches React state, so every form login returns 401.
+# DevDeepLinkHandler (rendered in App.tsx behind `__DEV__`) listens for the
+# deep link and calls AuthContext login() directly. Real users keep the
+# normal form.
+#
+# stopApp first: opening the URL against a STOPPED app is a cold launch — the
+# URL arrives via Linking.getInitialURL(). Depending on launch timing iOS may
+# still raise its "Open in <app>?" confirmation, so tap through it if shown.
 appId: com.drgladysz.opus
 ---
-- launchApp:
-    clearState: false
+- stopApp
+- openLink: "opus://debug/login"
+- waitForAnimationToEnd
 
-# May be on the signup landing — tap "I already have an account" if visible.
-- tapOn:
-    text: "I already have an account"
-    optional: true
+# Tap through iOS's "Open in <app>?" confirmation if it appears.
+- runFlow:
+    when:
+      visible:
+        text: "Open"
+    commands:
+      - tapOn:
+          text: "Open"
 
-# May be on welcome — tap Sign in if visible.
-- tapOn:
-    id: "welcome.btn-signIn"
-    optional: true
-
-# Wait for sign-in form to settle. The textContentType fix in EmailSignupScreen
-# uses key={isSignup ? "password-new" : "password-existing"} so the password
-# TextInput must remount in signin mode before we type into it.
-- extendedWaitUntil:
-    visible:
-      id: "onboarding.emailSignup.input-email"
-    timeout: 15000
-
-# Type credentials. The key={...} ensures iOS won't replay the Strong-Password
-# sheet that intercepted typing under the old textContentType="password" path.
-- tapOn:
-    id: "onboarding.emailSignup.input-email"
-- inputText: "m.gladysz@outlook.com"
-- tapOn:
-    id: "onboarding.emailSignup.input-password"
-- inputText: "testtest"
-
-- tapOn:
-    id: "onboarding.emailSignup.btn-submit"
-
+# App-lock may or may not be configured. If the lock overlay shows, key in
+# the test PIN (1111).
 - runFlow:
     when:
       visible:
         id: "screen-lock"
     commands:
-      - inputText: "1111"
+      - tapOn: "1"
+      - tapOn: "1"
+      - tapOn: "1"
+      - tapOn: "1"
 
 - extendedWaitUntil:
     visible:
       id: "screen-dashboard"
-    timeout: 45000
+    timeout: 60000
 
-- takeScreenshot: dashboard-after-login
+- takeScreenshot: /tmp/opus-audit/login-dashboard

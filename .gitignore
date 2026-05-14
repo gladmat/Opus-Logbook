@@ -43,6 +43,9 @@ TESTING.local.md
 # local Claude worktrees
 .claude/worktrees/
 
+# local Claude MCP config (may contain API tokens — MUST NOT be committed)
+.claude/mcp.json
+
 # Replit / AI session artifacts
 .local/
 attached_assets/

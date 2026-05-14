@@ -22,6 +22,7 @@ import { StatusBar } from "expo-status-bar";
 
 import RootStackNavigator from "@/navigation/RootStackNavigator";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { DevDeepLinkHandler } from "@/components/DevDeepLinkHandler";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AppLockProvider } from "@/contexts/AppLockContext";
 import { MediaCallbackProvider } from "@/contexts/MediaCallbackContext";
@@ -277,6 +278,7 @@ export default function App() {
                       <ThemedNavigationContainer>
                         <RootStackNavigator />
                       </ThemedNavigationContainer>
+                      {__DEV__ ? <DevDeepLinkHandler /> : null}
                       <StatusBarThemed />
                       {isAppObscured ? (
                         <View
