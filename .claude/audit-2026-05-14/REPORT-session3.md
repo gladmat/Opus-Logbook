@@ -54,7 +54,11 @@ forced new working patterns. The proven session-3 method:
 
 | Commit | Summary |
 |---|---|
-| _(pending)_ | Add testID + a11y to HandTraumaAssessment incident laterality buttons |
+| `814cdaa` | Add testID + a11y to HandTraumaAssessment incident laterality buttons + `caseForm.btn-review` (Code fix 1) |
+| `74d766c` | Cluster 1 — 11 specialty assessment modules captured + report |
+| `1e892fb` | Clusters 4 / 2 / 7 — Settings sub-screens, iPhone SE 3 pass, onboarding (pre-auth) |
+| `eb6600c` | Cluster 5 — `screen-*` root testID on all conditional branches of OpusCamera / SmartImport (Code fix 2) |
+| _(this report + capture/seeded/light screenshots)_ | committed progressively through session end |
 
 ---
 
@@ -73,6 +77,26 @@ selector in `DiagnosisGroupEditor.tsx:2891` already uses
 (trauma vs acute/elective gate — confirmed by the in-code comment at
 `DiagnosisGroupEditor.tsx:2859`), so the trauma buttons now use the same testID
 convention plus `accessibilityRole="button"` / `accessibilityLabel` / `accessibilityState`.
+
+### 2. Capture screens — `screen-*` root testID missing on conditional branches (Wrong)
+
+**Files:** `client/screens/OpusCameraScreen.tsx`, `client/screens/SmartImportScreen.tsx`.
+**Fixed in:** `eb6600c`.
+
+`OpusCameraScreen` carried `testID="screen-opusCamera"` **only on the viewfinder
+branch**. Its three conditional early returns — `!permission` (loading spinner),
+`!permission.granted` (camera-access-required screen), `!showViewfinder` (template
+picker) — had no `screen-*` testID at all. `SmartImportScreen` had the same shape:
+`testID="screen-smartImport"` was only on the post-pick branch, not on the
+`phase === "picking"` host view (lines 318–320, the blank `<ThemedView>` shown while the
+iOS system picker loads on top).
+
+This is the **identical defect class session 2 fixed on `StatisticsScreen`** — a screen
+whose `screen-*` landmark exists in some render states but not others, so the audit (and
+any Maestro regression flow) can't assert the screen in every state. Added the testID to
+all four branches; since the branches are mutually exclusive only one renders at a time,
+so no duplicate-testID collision. Rendering is unchanged (testID is an invisible prop) —
+`tsc --noEmit` clean.
 
 ---
 
@@ -254,6 +278,23 @@ were **not** reachable — `onboardingComplete` is read from the server `profile
 jumps straight past them to the dashboard. Capturing those four needs a *fresh,
 not-yet-onboarded* server account (creating one hits the EmailSignup Strong-Password
 issue from session 1). Left for a future session.
+
+## Capture screens (Cluster 5)
+
+Camera permission was granted (`xcrun simctl privacy booted grant camera com.drgladysz.opus`)
+and each capture surface driven and screenshotted on iPhone 17 / dark.
+
+| Screen | Shot | Assessment |
+|---|---|---|
+| Opus Camera — Quick Snap | `s3-capture-01-opuscamera` | ✅ Clean. Full-bleed black viewfinder, "Quick Snap" + "0 photos" header, white shutter ring, Done button, flash + camera-flip controls bottom-right. On-brand minimal camera chrome. |
+| Guided Capture | `s3-capture-03-guidedcapture` | ✅ Clean. Cancel / "Guided Capture" header, required Patient Identifier field, Capture Template list (Free Flap 11 steps / Skin Cancer Excision 7 / Aesthetic Rhinoplasty/Face/Breast/Body Contouring / Hand Surgery Functional 12) with per-template step counts. Theme tokens correct. |
+| Photo Inbox | `s3-capture-05-inbox` | ✅ Clean. "Photo Inbox is Empty" empty state — inbox icon, two-line copy, amber **Opus Camera** primary + neutral **Camera Roll** secondary CTA pair. Matches the empty-state spec. |
+| Smart Import | `s3-capture-06-smartimport` | ✅ Correct-by-design. Renders as a **blank host view** under the "Import Photos" nav header — this is the intentional `phase === "picking"` state (`SmartImportScreen.tsx:318`): the screen mounts, then `InteractionManager.runAfterInteractions` + 100 ms launches the iOS system photo picker *on top*. Cancelling the picker calls `navigation.goBack()`. The blank frame is the host, not a defect. (The `phase === "picking"` branch's missing root testID **was** a defect — fixed, see Code fix 2.) |
+| Plan Case | _(not captured — dead route)_ | `PlanCaseScreen` is fully implemented + registered as the `PlanCase` route, but **nothing in the codebase calls `navigation.navigate("PlanCase")`** — see Findings → "Dead route". Unreachable through the UI, so not screenshottable through normal navigation. |
+
+**Headline:** all four *reachable* capture screens render cleanly and on-brand. The
+only capture-cluster issues are non-visual: the `screen-*` testID gap (fixed inline) and
+the dead `PlanCase` route (reported — needs a delete-or-wire-up decision).
 
 ## Coverage & gaps
 
