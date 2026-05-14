@@ -203,6 +203,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
         defaultExpanded
         filledCount={admissionTimingFilled}
         totalCount={5}
+        collapsibleId="operative.admissionTiming"
       >
         <View style={styles.row}>
           <View style={styles.halfField}>
@@ -407,6 +408,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
         defaultExpanded
         filledCount={roleAnaesthesiaFilled}
         totalCount={3}
+        collapsibleId="operative.roleAnaesthesia"
       >
         {isConsultant ? (
           <View style={styles.consultantRow}>
@@ -491,6 +493,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
         defaultExpanded
         filledCount={surgicalFactorsFilled}
         totalCount={3}
+        collapsibleId="operative.surgicalFactors"
       >
         <SelectField
           label="Wound Infection Risk"
@@ -565,6 +568,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
         defaultExpanded={false}
         filledCount={patientFactorsFilled}
         totalCount={4}
+        collapsibleId="operative.patientFactors"
       >
         <View style={styles.labelRow}>
           <ThemedText

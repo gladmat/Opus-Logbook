@@ -40,7 +40,10 @@ import {
 import type { ValidationError } from "@/hooks/useCaseForm";
 import { useCaseDraft } from "@/hooks/useCaseDraft";
 import { CaseFormProvider } from "@/contexts/CaseFormContext";
-import { FormScrollProvider } from "@/contexts/FormScrollContext";
+import {
+  FormScrollProvider,
+  type FormScrollContextValue,
+} from "@/contexts/FormScrollContext";
 import { PatientInfoSection } from "@/components/case-form/PatientInfoSection";
 import { TeamSection } from "@/components/case-form/TeamSection";
 import { CaseSection } from "@/components/case-form/CaseSection";
@@ -158,6 +161,10 @@ export default function CaseFormScreen() {
 
   const scrollViewRef = useRef<any>(null);
   const scrollPositionRef = useRef(0);
+  // Imperative handle to FormScrollProvider's context value. Populated on
+  // provider mount; lets `handleEditFromSummary` reach the field-level
+  // deep-link API even though CaseFormScreen sits OUTSIDE the provider.
+  const formScrollControlsRef = useRef<FormScrollContextValue | null>(null);
   const sectionLayoutsRef = useRef<Record<string, number>>({});
   // Live refs to each SectionWrapper, used to re-measure on demand when the
   // cached Y might be stale after a sibling collapse (audit B1.6).
@@ -537,12 +544,31 @@ export default function CaseFormScreen() {
   }, [form.state]);
 
   const handleEditFromSummary = useCallback(
-    (sectionId: string) => {
+    (sectionId: string, fieldId?: string) => {
       setReviewMode(false);
       // Wait for form to mount and onLayout to fire, then live-measure
       // (audit B1.6 — cache may not yet have refreshed after re-mount).
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
+          const controls = formScrollControlsRef.current;
+          if (fieldId && controls) {
+            // scrollToField handles auto-expand of a collapsed parent
+            // internally + live-measures so a sibling collapse doesn't
+            // strand us on a stale Y.
+            const found = controls.scrollToField(fieldId, {
+              topPadding: 100,
+              animated: false,
+            });
+            if (found) {
+              // Focus is only registered for TextInput-backed fields; a
+              // no-op on SelectField / PickerField / DatePickerField.
+              controls.focusField(fieldId);
+              // Amber border pulse so non-text targets get a visual cue
+              // even when no keyboard pops to confirm landing.
+              controls.triggerDeepLinkPulse(fieldId);
+              return;
+            }
+          }
           scrollToSection(sectionId, { offset: 20, animated: false });
         });
       });
@@ -832,6 +858,7 @@ export default function CaseFormScreen() {
           <FormScrollProvider
             scrollViewRef={scrollViewRef}
             scrollOffsetRef={scrollPositionRef}
+            controlsRef={formScrollControlsRef}
           >
             {reviewMode ? (
               <CaseSummaryView

@@ -12,9 +12,11 @@ import {
 } from "react-native";
 import Animated, {
   Easing,
+  interpolateColor,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
+  withSequence,
   withTiming,
 } from "react-native-reanimated";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -33,6 +35,176 @@ import {
 } from "@/lib/dateValues";
 import { useFormScrollContext } from "@/contexts/FormScrollContext";
 import { useReduceMotion } from "@/hooks/useReduceMotion";
+import { useCollapsibleFormSectionContext } from "@/components/case-form/CollapsibleFormSection";
+
+// ── Field-level deep-link primitives (Cluster 4) ────────────────────────────
+
+type FocusFn = () => void;
+
+interface FieldRegistrationResult {
+  fieldRef: React.RefObject<View | null>;
+  handleLayout: () => void;
+}
+
+/**
+ * Wires a field primitive into the FormScrollContext field registry so the
+ * deep-link pipeline (CaseSummaryView Edit → CaseFormScreen) can scroll
+ * directly to a specific field, optionally focus it, and fire a brief amber
+ * border pulse.
+ *
+ * - The returned `fieldRef` should be placed on the field's outermost View.
+ * - `handleLayout` is wired to the same View's `onLayout` so we re-register
+ *   the live measure helper after every layout pass (handles re-mounts and
+ *   sibling collapses that shifted Y).
+ * - When a focus callback is provided (FormField, the only TextInput-backed
+ *   primitive), it's registered alongside the layout so `focusField(fieldId)`
+ *   pops the keyboard after the scroll lands.
+ *
+ * No-op outside a FormScrollProvider.
+ */
+function useFieldRegistration(
+  fieldId: string | undefined,
+  focusFn?: FocusFn,
+): FieldRegistrationResult {
+  const fieldRef = useRef<View | null>(null);
+  const formScroll = useFormScrollContext();
+  const parentCollapsible = useCollapsibleFormSectionContext();
+  const parentCollapsibleId = parentCollapsible?.collapsibleId;
+
+  const handleLayout = useCallback(() => {
+    if (!fieldId || !formScroll) return;
+
+    const measure = (cb: (scrollContentY: number) => void) => {
+      const node = fieldRef.current;
+      if (!node) {
+        cb(0);
+        return;
+      }
+      try {
+        (
+          node as unknown as {
+            measure: (
+              fn: (
+                x: number,
+                y: number,
+                width: number,
+                height: number,
+                pageX: number,
+                pageY: number,
+              ) => void,
+            ) => void;
+          }
+        ).measure((_x, y) => {
+          // Mirrors scrollToSection's translation: View.measure returns
+          // viewport-relative Y for descendants of the scroll content;
+          // adding the current scroll offset produces the scroll-content Y.
+          const offset = formScroll.getScrollOffset();
+          cb(offset + y);
+        });
+      } catch {
+        cb(0);
+      }
+    };
+
+    formScroll.setFieldLayout(fieldId, {
+      measure,
+      parentCollapsibleId,
+    });
+  }, [fieldId, formScroll, parentCollapsibleId]);
+
+  useEffect(() => {
+    if (!fieldId || !formScroll) return;
+    return () => formScroll.removeField(fieldId);
+  }, [fieldId, formScroll]);
+
+  useEffect(() => {
+    if (!fieldId || !formScroll || !focusFn) return;
+    formScroll.setFieldFocusable(fieldId, focusFn);
+    return () => formScroll.removeFieldFocusable(fieldId);
+  }, [fieldId, formScroll, focusFn]);
+
+  return { fieldRef, handleLayout };
+}
+
+/**
+ * Subscribe to deep-link pulse triggers for `fieldId`. Returns a 0–1 shared
+ * value driven by withSequence(300ms→1, 300ms→0). Reduce Motion snaps to 1
+ * then immediately back to 0 with no animation.
+ *
+ * No-op outside a FormScrollProvider or when fieldId is undefined.
+ */
+function useDeepLinkPulse(fieldId: string | undefined) {
+  const formScroll = useFormScrollContext();
+  const reduceMotion = useReduceMotion();
+  const pulseProgress = useSharedValue(0);
+  const lastTsRef = useRef(0);
+
+  const trigger = formScroll?.lastDeepLinkedFieldId;
+
+  useEffect(() => {
+    if (!fieldId || !trigger) return;
+    if (trigger.id !== fieldId) return;
+    if (trigger.ts === lastTsRef.current) return;
+    lastTsRef.current = trigger.ts;
+
+    if (reduceMotion) {
+      pulseProgress.value = 1;
+      pulseProgress.value = withTiming(0, { duration: 0 });
+      return;
+    }
+
+    pulseProgress.value = withSequence(
+      withTiming(1, { duration: 300, easing: Easing.out(Easing.cubic) }),
+      withTiming(0, { duration: 300, easing: Easing.out(Easing.cubic) }),
+    );
+  }, [fieldId, trigger, reduceMotion, pulseProgress]);
+
+  return pulseProgress;
+}
+
+/**
+ * Absolutely-positioned border halo overlay rendered as the last child of a
+ * field primitive's outer container. Inactive when `fieldId` is undefined or
+ * no pulse has fired for it. The 2px transparent border has zero visual
+ * footprint and adds zero layout cost when not pulsing.
+ */
+function PulseHalo({
+  fieldId,
+  radius = BorderRadius.sm,
+}: {
+  fieldId?: string;
+  radius?: number;
+}) {
+  const { theme } = useTheme();
+  const pulseProgress = useDeepLinkPulse(fieldId);
+  const animatedStyle = useAnimatedStyle(() => ({
+    borderColor: interpolateColor(
+      pulseProgress.value,
+      [0, 1],
+      ["transparent", theme.accent],
+    ),
+  }));
+  if (!fieldId) return null;
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        {
+          position: "absolute",
+          top: -2,
+          left: -2,
+          right: -2,
+          bottom: -2,
+          borderWidth: 2,
+          borderRadius: radius,
+        },
+        animatedStyle,
+      ]}
+    />
+  );
+}
+
+// ── FormField ────────────────────────────────────────────────────────────────
 
 interface FormFieldProps {
   label: string;
@@ -61,6 +233,12 @@ interface FormFieldProps {
     | "telephoneNumber";
   returnKeyType?: "done" | "next" | "go" | "search" | "default";
   testID?: string;
+  /**
+   * Stable identifier used by the field-level deep-link pipeline. When set,
+   * the field registers its layout + focus callback with FormScrollContext
+   * so CaseSummaryView Edit warnings can land directly here.
+   */
+  fieldId?: string;
 }
 
 export function FormField({
@@ -79,11 +257,22 @@ export function FormField({
   textContentType,
   returnKeyType,
   testID,
+  fieldId,
 }: FormFieldProps) {
   const { theme } = useTheme();
+  const inputRef = useRef<TextInput>(null);
+  const focusInput = useCallback(() => {
+    inputRef.current?.focus();
+  }, []);
+  const { fieldRef, handleLayout } = useFieldRegistration(fieldId, focusInput);
 
   return (
-    <View style={styles.container}>
+    <View
+      ref={fieldRef}
+      onLayout={handleLayout}
+      style={styles.container}
+      collapsable={false}
+    >
       <View style={styles.labelRow}>
         <ThemedText style={[styles.label, { color: theme.textSecondary }]}>
           {label}
@@ -104,6 +293,7 @@ export function FormField({
         ]}
       >
         <TextInput
+          ref={inputRef}
           testID={testID}
           value={value}
           onChangeText={onChangeText}
@@ -139,9 +329,12 @@ export function FormField({
           </ThemedText>
         </View>
       ) : null}
+      <PulseHalo fieldId={fieldId} />
     </View>
   );
 }
+
+// ── SelectField ──────────────────────────────────────────────────────────────
 
 interface SelectFieldProps {
   label: string;
@@ -151,6 +344,7 @@ interface SelectFieldProps {
   required?: boolean;
   error?: string;
   testID?: string;
+  fieldId?: string;
 }
 
 export function SelectField({
@@ -161,11 +355,18 @@ export function SelectField({
   required = false,
   error,
   testID,
+  fieldId,
 }: SelectFieldProps) {
   const { theme } = useTheme();
+  const { fieldRef, handleLayout } = useFieldRegistration(fieldId);
 
   return (
-    <View style={styles.container}>
+    <View
+      ref={fieldRef}
+      onLayout={handleLayout}
+      style={styles.container}
+      collapsable={false}
+    >
       <View style={styles.labelRow}>
         <ThemedText style={[styles.label, { color: theme.textSecondary }]}>
           {label}
@@ -225,6 +426,7 @@ export function SelectField({
           </ThemedText>
         </View>
       ) : null}
+      <PulseHalo fieldId={fieldId} />
     </View>
   );
 }
@@ -394,7 +596,8 @@ const styles = StyleSheet.create({
   },
 });
 
-// Compact modal-based picker field
+// ── PickerField ──────────────────────────────────────────────────────────────
+
 interface PickerFieldProps {
   label: string;
   value: string;
@@ -404,6 +607,7 @@ interface PickerFieldProps {
   required?: boolean;
   error?: string;
   testID?: string;
+  fieldId?: string;
 }
 
 export function PickerField({
@@ -415,12 +619,14 @@ export function PickerField({
   required = false,
   error,
   testID,
+  fieldId,
 }: PickerFieldProps) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const [modalVisible, setModalVisible] = useState(false);
   const pendingValueRef = useRef<string | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { fieldRef, handleLayout } = useFieldRegistration(fieldId);
 
   const selectedOption = options.find((o) => o.value === value);
 
@@ -463,7 +669,12 @@ export function PickerField({
   }, []);
 
   return (
-    <View style={styles.container}>
+    <View
+      ref={fieldRef}
+      onLayout={handleLayout}
+      style={styles.container}
+      collapsable={false}
+    >
       {label ? (
         <View style={styles.labelRow}>
           <ThemedText style={[styles.label, { color: theme.textSecondary }]}>
@@ -586,11 +797,13 @@ export function PickerField({
           </Pressable>
         </Pressable>
       </Modal>
+      <PulseHalo fieldId={fieldId} />
     </View>
   );
 }
 
-// Date picker field
+// ── DatePickerField ──────────────────────────────────────────────────────────
+
 interface DatePickerFieldProps {
   label: string;
   value?: string | number; // Canonical YYYY-MM-DD, tolerant of legacy ISO/timestamp values
@@ -603,6 +816,7 @@ interface DatePickerFieldProps {
   minimumDate?: Date;
   maximumDate?: Date;
   testID?: string;
+  fieldId?: string;
 }
 
 const INLINE_PICKER_HEIGHT = 380;
@@ -621,13 +835,17 @@ export function DatePickerField({
   minimumDate,
   maximumDate,
   testID,
+  fieldId,
 }: DatePickerFieldProps) {
   const { theme, isDark } = useTheme();
   const reduceMotion = useReduceMotion();
   const [showPicker, setShowPicker] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const expandHeight = useSharedValue(0);
-  const fieldRef = useRef<View>(null);
+  // Shared with the field-level deep-link registry: the same outer View ref
+  // serves both the registry's live-measure helper and the inline picker's
+  // self-positioning effect below.
+  const { fieldRef, handleLayout } = useFieldRegistration(fieldId);
   const scrollContext = useFormScrollContext();
   const { minimumDate: safeMinimumDate, maximumDate: safeMaximumDate } =
     sanitizeDateBounds(minimumDate, maximumDate);
@@ -719,14 +937,19 @@ export function DatePickerField({
   useEffect(() => {
     if (!showPicker || Platform.OS !== "ios" || !scrollContext) return;
     const handle = requestAnimationFrame(() => {
-      fieldRef.current?.measureInWindow((_x, y, _w, h) => {
+      const node = fieldRef.current as unknown as {
+        measureInWindow?: (
+          fn: (x: number, y: number, w: number, h: number) => void,
+        ) => void;
+      } | null;
+      node?.measureInWindow?.((_x, y, _w, h) => {
         scrollContext.ensureVisible(y, h + INLINE_TOTAL_HEIGHT, {
           extraPadding: 32,
         });
       });
     });
     return () => cancelAnimationFrame(handle);
-  }, [showPicker, scrollContext]);
+  }, [showPicker, scrollContext, fieldRef]);
 
   const handleDatePickerDone = useCallback(() => {
     const isoDate = toIsoDateValue(
@@ -746,7 +969,12 @@ export function DatePickerField({
   }));
 
   return (
-    <View ref={fieldRef} style={styles.container}>
+    <View
+      ref={fieldRef}
+      onLayout={handleLayout}
+      style={styles.container}
+      collapsable={false}
+    >
       <View style={styles.labelRow}>
         <ThemedText style={[styles.label, { color: theme.textSecondary }]}>
           {label}
@@ -896,6 +1124,7 @@ export function DatePickerField({
           maximumDate={safeMaximumDate}
         />
       ) : null}
+      <PulseHalo fieldId={fieldId} />
     </View>
   );
 }

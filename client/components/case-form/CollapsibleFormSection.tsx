@@ -1,4 +1,12 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { View, Pressable, StyleSheet } from "react-native";
 import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
@@ -12,6 +20,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useScrollPreserve } from "@/hooks/useScrollPreserve";
 import { useReduceMotion } from "@/hooks/useReduceMotion";
+import { useFormScrollContext } from "@/contexts/FormScrollContext";
 
 interface CollapsibleFormSectionProps {
   title: string;
@@ -21,6 +30,26 @@ interface CollapsibleFormSectionProps {
   children: React.ReactNode;
   defaultExpanded?: boolean;
   testID?: string;
+  /**
+   * Optional stable ID. When set, the section registers itself with
+   * FormScrollContext so the field-level deep-link pipeline can call
+   * `expandCollapsible(id)` before scrolling to a field that lives inside.
+   * Children read the parent ID via `useCollapsibleFormSectionContext()`
+   * so field primitives can record it on their layout entry.
+   */
+  collapsibleId?: string;
+}
+
+interface CollapsibleFormSectionContextValue {
+  collapsibleId: string;
+  expand: () => void;
+}
+
+const CollapsibleFormSectionContext =
+  createContext<CollapsibleFormSectionContextValue | null>(null);
+
+export function useCollapsibleFormSectionContext(): CollapsibleFormSectionContextValue | null {
+  return useContext(CollapsibleFormSectionContext);
 }
 
 export const CollapsibleFormSection = React.memo(
@@ -32,10 +61,12 @@ export const CollapsibleFormSection = React.memo(
     children,
     defaultExpanded = true,
     testID,
+    collapsibleId,
   }: CollapsibleFormSectionProps) {
     const { theme } = useTheme();
     const { snapshot, restore } = useScrollPreserve();
     const reduceMotion = useReduceMotion();
+    const formScroll = useFormScrollContext();
     const [expanded, setExpanded] = useState(defaultExpanded);
     const [isMeasured, setIsMeasured] = useState(defaultExpanded);
     const expandedRef = useRef(defaultExpanded);
@@ -62,6 +93,33 @@ export const CollapsibleFormSection = React.memo(
       }
       restore();
     }, [animatedHeight, isMeasured, snapshot, restore, reduceMotion]);
+
+    /**
+     * Force-expand without toggling. Called by the field-level deep-link
+     * pipeline before scrolling to a field that lives inside this section.
+     * No-op if already expanded so re-fired triggers don't accidentally
+     * collapse.
+     */
+    const expand = useCallback(() => {
+      if (expandedRef.current) return;
+      expandedRef.current = true;
+      setExpanded(true);
+      if (isMeasured) {
+        animatedHeight.value = withTiming(contentHeightRef.current, {
+          duration: reduceMotion ? 0 : 250,
+        });
+      }
+    }, [animatedHeight, isMeasured, reduceMotion]);
+
+    // Register with FormScrollContext when given a collapsibleId so deep-link
+    // navigation can expand us before scrolling to an inner field.
+    useEffect(() => {
+      if (!collapsibleId || !formScroll) return;
+      formScroll.setCollapsible(collapsibleId, expand);
+      return () => {
+        formScroll.removeCollapsible(collapsibleId);
+      };
+    }, [collapsibleId, formScroll, expand]);
 
     const contentStyle = useAnimatedStyle(() => {
       if (animatedHeight.value === -1) {
@@ -91,7 +149,12 @@ export const CollapsibleFormSection = React.memo(
 
     const badgeColor = filledCount > 0 ? theme.link : theme.textTertiary;
 
-    return (
+    const childContext = useMemo<CollapsibleFormSectionContextValue | null>(
+      () => (collapsibleId ? { collapsibleId, expand } : null),
+      [collapsibleId, expand],
+    );
+
+    const content = (
       <View style={styles.wrapper}>
         <Pressable
           testID={testID}
@@ -151,6 +214,15 @@ export const CollapsibleFormSection = React.memo(
         </Animated.View>
       </View>
     );
+
+    if (childContext) {
+      return (
+        <CollapsibleFormSectionContext.Provider value={childContext}>
+          {content}
+        </CollapsibleFormSectionContext.Provider>
+      );
+    }
+    return content;
   },
 );
 

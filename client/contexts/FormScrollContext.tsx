@@ -1,5 +1,18 @@
-import React, { createContext, useContext, useMemo, useRef } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Dimensions } from "react-native";
+import {
+  createFormScrollRegistry,
+  type FieldLayoutEntry,
+  type FormScrollRegistry,
+} from "@/lib/formScrollRegistry";
 
 interface ScrollableRef {
   scrollTo: (opts: { y?: number; x?: number; animated?: boolean }) => void;
@@ -16,6 +29,11 @@ interface ScrollableRef {
  *   - `ensureVisible(y, h)` — scroll just enough to keep the absolute screen
  *                           rect [y, y+h] inside the viewport. No-op when
  *                           the region already fits.
+ *   - field-level deep-link API (Cluster 4): a registry of field layouts and
+ *     focus callbacks, plus collapsible-expand handles, plus a reactive
+ *     `lastDeepLinkedFieldId` that field components subscribe to via
+ *     `useDeepLinkPulse(fieldId)` to drive a brief amber border pulse on
+ *     deep-link arrival.
  *
  * `ensureVisible` is intentionally minimal — it scrolls by a positive delta
  * only and never scrolls *up* (so existing scroll context above the field is
@@ -29,11 +47,43 @@ type EnsureVisible = (
   options?: { extraPadding?: number },
 ) => void;
 
-interface FormScrollContextValue {
+interface ScrollToFieldOptions {
+  /** Pixels above the field after scroll. Default 80 (clears the SectionNavBar). */
+  topPadding?: number;
+  animated?: boolean;
+}
+
+interface DeepLinkPulseTrigger {
+  id: string;
+  /**
+   * Monotonic timestamp. Same id with a new timestamp re-fires the pulse,
+   * which lets a repeat tap on the same warning row replay the animation.
+   */
+  ts: number;
+}
+
+export interface FormScrollContextValue {
   scrollViewRef: React.RefObject<ScrollableRef | null>;
   /** Read the most recent scroll Y offset reported by the parent. */
   getScrollOffset: () => number;
   ensureVisible: EnsureVisible;
+
+  // ── Field registry (Cluster 4) ────────────────────────────────────────
+  setFieldLayout: FormScrollRegistry["setFieldLayout"];
+  removeField: FormScrollRegistry["removeField"];
+  setFieldFocusable: FormScrollRegistry["setFieldFocusable"];
+  removeFieldFocusable: FormScrollRegistry["removeFieldFocusable"];
+  setCollapsible: FormScrollRegistry["setCollapsible"];
+  removeCollapsible: FormScrollRegistry["removeCollapsible"];
+  /** Returns true if the field was registered (scroll is async via measure). */
+  scrollToField: (fieldId: string, opts?: ScrollToFieldOptions) => boolean;
+  /** Returns true if a focus callback was registered and invoked. */
+  focusField: (fieldId: string) => boolean;
+  /** Returns true if a collapsible was registered (expand is fired). */
+  expandCollapsible: (collapsibleId: string) => boolean;
+  /** Reactive trigger — fields subscribe via useDeepLinkPulse(fieldId). */
+  lastDeepLinkedFieldId: DeepLinkPulseTrigger;
+  triggerDeepLinkPulse: (fieldId: string) => void;
 }
 
 const FormScrollContext = createContext<FormScrollContextValue | null>(null);
@@ -41,6 +91,13 @@ const FormScrollContext = createContext<FormScrollContextValue | null>(null);
 interface FormScrollProviderProps {
   scrollViewRef: React.RefObject<ScrollableRef | null>;
   scrollOffsetRef: React.RefObject<number>;
+  /**
+   * Optional imperative escape hatch — populated with the live context value
+   * on mount so a parent component (which sits OUTSIDE the provider, e.g.
+   * CaseFormScreen wiring `handleEditFromSummary`) can call into the field
+   * registry without itself being inside the context tree.
+   */
+  controlsRef?: React.MutableRefObject<FormScrollContextValue | null>;
   children: React.ReactNode;
 }
 
@@ -52,12 +109,21 @@ interface FormScrollProviderProps {
 export function FormScrollProvider({
   scrollViewRef,
   scrollOffsetRef,
+  controlsRef,
   children,
 }: FormScrollProviderProps) {
   const lastEnsureAtRef = useRef(0);
+  const registryRef = useRef<FormScrollRegistry | null>(null);
+  if (registryRef.current === null) {
+    registryRef.current = createFormScrollRegistry();
+  }
+  const registry = registryRef.current;
 
-  const value = useMemo<FormScrollContextValue>(() => {
-    const ensureVisible: EnsureVisible = (absoluteY, height, options) => {
+  const [lastDeepLinkedFieldId, setLastDeepLinkedFieldId] =
+    useState<DeepLinkPulseTrigger>({ id: "", ts: 0 });
+
+  const ensureVisible = useCallback<EnsureVisible>(
+    (absoluteY, height, options) => {
       // Debounce: ignore rapid retriggers within the same animation window.
       const now = Date.now();
       if (now - lastEnsureAtRef.current < 60) return;
@@ -73,12 +139,169 @@ export function FormScrollProvider({
       const delta = targetBottom - screenHeight;
       const nextOffset = (scrollOffsetRef.current ?? 0) + delta;
       scrollViewRef.current?.scrollTo({ y: nextOffset, animated: true });
+    },
+    [scrollOffsetRef, scrollViewRef],
+  );
+
+  const getScrollOffset = useCallback(
+    () => scrollOffsetRef.current ?? 0,
+    [scrollOffsetRef],
+  );
+
+  // ── Field-level deep-link pipeline ───────────────────────────────────────
+
+  const scrollToField = useCallback(
+    (fieldId: string, opts?: ScrollToFieldOptions): boolean => {
+      const entry = registry.getFieldLayout(fieldId);
+      if (!entry) return false;
+      const topPadding = opts?.topPadding ?? 80;
+      const animated = opts?.animated ?? true;
+
+      const performScroll = () => {
+        // Live-measure each time so a sibling collapse since registration
+        // doesn't strand us on a stale Y. Mirrors the scrollToSection
+        // pattern (audit B1.6).
+        entry.measure((scrollContentY) => {
+          scrollViewRef.current?.scrollTo({
+            y: Math.max(0, scrollContentY - topPadding),
+            animated,
+          });
+        });
+      };
+
+      // If the field's parent CollapsibleFormSection is collapsed, expand it
+      // first so the measured Y reflects the post-expand layout, not the
+      // collapsed-card-header Y. One rAF lets the expand animation start
+      // before we re-measure; the live measure inside performScroll will
+      // converge on the correct Y as the animation progresses (RN measures
+      // the LAYOUT tree, not the visual transform).
+      if (entry.parentCollapsibleId) {
+        const expand = registry.getCollapsible(entry.parentCollapsibleId);
+        if (expand) {
+          expand();
+          requestAnimationFrame(performScroll);
+          return true;
+        }
+      }
+      performScroll();
+      return true;
+    },
+    [registry, scrollViewRef],
+  );
+
+  const focusField = useCallback(
+    (fieldId: string): boolean => {
+      const focus = registry.getFieldFocusable(fieldId);
+      if (!focus) return false;
+      focus();
+      return true;
+    },
+    [registry],
+  );
+
+  const expandCollapsible = useCallback(
+    (collapsibleId: string): boolean => {
+      const expand = registry.getCollapsible(collapsibleId);
+      if (!expand) return false;
+      expand();
+      return true;
+    },
+    [registry],
+  );
+
+  const triggerDeepLinkPulse = useCallback((fieldId: string) => {
+    setLastDeepLinkedFieldId({ id: fieldId, ts: Date.now() });
+  }, []);
+
+  // Stable wrappers around registry mutators so the context value identity
+  // stays stable across renders (the underlying Map mutates in place).
+  const setFieldLayout = useCallback<FormScrollRegistry["setFieldLayout"]>(
+    (fieldId: string, entry: FieldLayoutEntry) => {
+      registry.setFieldLayout(fieldId, entry);
+    },
+    [registry],
+  );
+  const removeField = useCallback<FormScrollRegistry["removeField"]>(
+    (fieldId: string) => {
+      registry.removeField(fieldId);
+    },
+    [registry],
+  );
+  const setFieldFocusable = useCallback<
+    FormScrollRegistry["setFieldFocusable"]
+  >(
+    (fieldId: string, focus: () => void) => {
+      registry.setFieldFocusable(fieldId, focus);
+    },
+    [registry],
+  );
+  const removeFieldFocusable = useCallback<
+    FormScrollRegistry["removeFieldFocusable"]
+  >(
+    (fieldId: string) => {
+      registry.removeFieldFocusable(fieldId);
+    },
+    [registry],
+  );
+  const setCollapsible = useCallback<FormScrollRegistry["setCollapsible"]>(
+    (collapsibleId: string, expand: () => void) => {
+      registry.setCollapsible(collapsibleId, expand);
+    },
+    [registry],
+  );
+  const removeCollapsible = useCallback<
+    FormScrollRegistry["removeCollapsible"]
+  >(
+    (collapsibleId: string) => {
+      registry.removeCollapsible(collapsibleId);
+    },
+    [registry],
+  );
+
+  const value = useMemo<FormScrollContextValue>(
+    () => ({
+      scrollViewRef,
+      getScrollOffset,
+      ensureVisible,
+      setFieldLayout,
+      removeField,
+      setFieldFocusable,
+      removeFieldFocusable,
+      setCollapsible,
+      removeCollapsible,
+      scrollToField,
+      focusField,
+      expandCollapsible,
+      lastDeepLinkedFieldId,
+      triggerDeepLinkPulse,
+    }),
+    [
+      scrollViewRef,
+      getScrollOffset,
+      ensureVisible,
+      setFieldLayout,
+      removeField,
+      setFieldFocusable,
+      removeFieldFocusable,
+      setCollapsible,
+      removeCollapsible,
+      scrollToField,
+      focusField,
+      expandCollapsible,
+      lastDeepLinkedFieldId,
+      triggerDeepLinkPulse,
+    ],
+  );
+
+  useEffect(() => {
+    if (!controlsRef) return;
+    controlsRef.current = value;
+    return () => {
+      if (controlsRef.current === value) {
+        controlsRef.current = null;
+      }
     };
-
-    const getScrollOffset = () => scrollOffsetRef.current ?? 0;
-
-    return { scrollViewRef, getScrollOffset, ensureVisible };
-  }, [scrollViewRef, scrollOffsetRef]);
+  }, [controlsRef, value]);
 
   return (
     <FormScrollContext.Provider value={value}>

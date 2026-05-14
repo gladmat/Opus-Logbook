@@ -29,10 +29,15 @@ import {
 import { getDiagnosisGroupTitle } from "@/lib/caseDiagnosisSummary";
 import { DIGIT_LABELS } from "@/lib/diagnosisPicklists/multiDigitConfig";
 import { Button } from "@/components/Button";
-import { validateRequiredFields } from "@/hooks/useCaseForm";
+import {
+  validateRequiredFields,
+  type ValidationError,
+} from "@/hooks/useCaseForm";
+
+type EditHandler = (sectionId: string, fieldId?: string) => void;
 
 interface CaseSummaryViewProps {
-  onEdit: (sectionId: string) => void;
+  onEdit: EditHandler;
   onConfirmSave: () => void;
   onBackToEdit: () => void;
   saving: boolean;
@@ -45,14 +50,14 @@ function SummaryCard({
   sectionId,
   onEdit,
   accentColor,
-  warning,
+  warnings,
   children,
 }: {
   title: string;
   sectionId: string;
-  onEdit: (sectionId: string) => void;
+  onEdit: EditHandler;
   accentColor?: string;
-  warning?: string;
+  warnings?: ValidationError[];
   children: React.ReactNode;
 }) {
   const { theme } = useTheme();
@@ -83,14 +88,36 @@ function SummaryCard({
           </ThemedText>
         </Pressable>
       </View>
-      {warning ? (
-        <View style={styles.warningRow}>
-          <Feather name="alert-triangle" size={14} color={theme.warning} />
-          <ThemedText style={[styles.warningText, { color: theme.warning }]}>
-            {warning}
-          </ThemedText>
-        </View>
-      ) : null}
+      {warnings && warnings.length > 0
+        ? warnings.map((w) => (
+            <Pressable
+              key={`${w.sectionId}.${w.field}`}
+              onPress={() => onEdit(w.sectionId, w.field)}
+              accessibilityRole="button"
+              accessibilityLabel={`Fix issue: ${w.message}`}
+              accessibilityHint="Double tap to jump to the field"
+              hitSlop={4}
+              testID={`caseForm.summary.warning-${w.sectionId}-${w.field}`}
+              style={({ pressed }) => [
+                styles.warningRow,
+                pressed ? { opacity: 0.6 } : undefined,
+              ]}
+            >
+              <Feather name="alert-triangle" size={14} color={theme.warning} />
+              <ThemedText
+                style={[styles.warningText, { color: theme.warning }]}
+              >
+                {w.message}
+              </ThemedText>
+              <Feather
+                name="chevron-right"
+                size={14}
+                color={theme.warning}
+                style={{ marginLeft: "auto" }}
+              />
+            </Pressable>
+          ))
+        : null}
       {children}
     </View>
   );
@@ -248,8 +275,14 @@ export function CaseSummaryView({
   const { errors } = useMemo(() => validateRequiredFields(state), [state]);
 
   const hasWarnings = errors.length > 0;
-  const patientWarning = errors.find((e) => e.sectionId === "patient")?.message;
-  const diagnosisWarning = errors.find((e) => e.sectionId === "case")?.message;
+  const patientWarnings = useMemo(
+    () => errors.filter((e) => e.sectionId === "patient"),
+    [errors],
+  );
+  const caseWarnings = useMemo(
+    () => errors.filter((e) => e.sectionId === "case"),
+    [errors],
+  );
 
   return (
     <View style={styles.container}>
@@ -258,7 +291,7 @@ export function CaseSummaryView({
         title="Patient Info"
         sectionId="patient"
         onEdit={onEdit}
-        warning={patientWarning}
+        warnings={patientWarnings}
       >
         {(state.patientFirstName || state.patientLastName) && (
           <SummaryRow
@@ -318,7 +351,7 @@ export function CaseSummaryView({
             sectionId="case"
             onEdit={onEdit}
             accentColor={accentColor}
-            warning={idx === 0 ? diagnosisWarning : undefined}
+            warnings={idx === 0 ? caseWarnings : undefined}
           >
             <SummaryRow
               label="Specialty"

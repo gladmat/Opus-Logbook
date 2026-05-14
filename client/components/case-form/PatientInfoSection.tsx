@@ -111,6 +111,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
               onBlur={() => onFieldBlur("patientIdentifier")}
               error={fieldErrors.patientIdentifier}
               testID="caseForm.patient.input-identifier"
+              fieldId="patientIdentifier"
             />
           ) : (
             <FormField
@@ -125,6 +126,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
               onBlur={() => onFieldBlur("patientIdentifier")}
               error={fieldErrors.patientIdentifier}
               testID="caseForm.patient.input-identifier"
+              fieldId="patientIdentifier"
             />
           )}
         </View>
@@ -204,6 +206,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
             error={fieldErrors.procedureDate}
             maximumDate={new Date()}
             testID="caseForm.patient.picker-procedureDate"
+            fieldId="procedureDate"
           />
         </View>
         <View style={styles.halfField}>
@@ -226,6 +229,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
               required
               error={fieldErrors.facility}
               testID="caseForm.patient.picker-facility"
+              fieldId="facility"
             />
           ) : (
             <FormField
@@ -237,6 +241,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
               onBlur={() => onFieldBlur("facility")}
               error={fieldErrors.facility}
               testID="caseForm.patient.picker-facility"
+              fieldId="facility"
             />
           )}
         </View>
