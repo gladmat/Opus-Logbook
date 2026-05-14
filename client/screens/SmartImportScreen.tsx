@@ -316,7 +316,7 @@ export default function SmartImportScreen() {
   }, [assetIds, performDelete]);
 
   if (phase === "picking") {
-    return <ThemedView style={styles.container} />;
+    return <ThemedView testID="screen-smartImport" style={styles.container} />;
   }
 
   return (

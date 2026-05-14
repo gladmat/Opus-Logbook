@@ -389,6 +389,7 @@ export default function OpusCameraScreen({ navigation, route }: Props) {
   if (!permission) {
     return (
       <View
+        testID="screen-opusCamera"
         style={[styles.centered, { backgroundColor: theme.backgroundRoot }]}
       >
         <ActivityIndicator color={theme.link} />
@@ -399,6 +400,7 @@ export default function OpusCameraScreen({ navigation, route }: Props) {
   if (!permission.granted) {
     return (
       <View
+        testID="screen-opusCamera"
         style={[styles.centered, { backgroundColor: theme.backgroundRoot }]}
       >
         <Feather name="camera-off" size={48} color={theme.textSecondary} />
@@ -436,6 +438,7 @@ export default function OpusCameraScreen({ navigation, route }: Props) {
   if (!showViewfinder) {
     return (
       <View
+        testID="screen-opusCamera"
         style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
       >
         <ScrollView
