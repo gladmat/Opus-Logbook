@@ -144,7 +144,7 @@ const SectionWrapper = React.forwardRef<
   );
 
   return (
-    <View ref={viewRef} onLayout={handleLayout}>
+    <View ref={viewRef} onLayout={handleLayout} testID={`section-${sectionId}`}>
       {children}
     </View>
   );

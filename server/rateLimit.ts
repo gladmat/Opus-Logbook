@@ -1,4 +1,4 @@
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import type { Request } from "express";
 
 /**
@@ -35,7 +35,8 @@ export const userSearchRateLimiter = rateLimit({
   standardHeaders: "draft-7",
   legacyHeaders: false,
   keyGenerator: (req: Request) =>
-    (req as AuthenticatedRequest).userId ?? req.ip ?? "unknown",
+    (req as AuthenticatedRequest).userId ??
+    (req.ip ? ipKeyGenerator(req.ip) : "unknown"),
   message: {
     error: "Too many user lookups. Please wait a moment and try again.",
   },
@@ -51,7 +52,8 @@ export const invitationRateLimiter = rateLimit({
   standardHeaders: "draft-7",
   legacyHeaders: false,
   keyGenerator: (req: Request) =>
-    (req as AuthenticatedRequest).userId ?? req.ip ?? "unknown",
+    (req as AuthenticatedRequest).userId ??
+    (req.ip ? ipKeyGenerator(req.ip) : "unknown"),
   message: {
     error:
       "Daily invitation limit reached. Try again in 24 hours or contact support.",

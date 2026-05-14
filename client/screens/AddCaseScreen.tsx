@@ -34,6 +34,7 @@ export default function AddCaseScreen() {
 
   return (
     <KeyboardAwareScrollViewCompat
+      testID="screen-addCase"
       style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
       contentContainerStyle={[
         styles.content,

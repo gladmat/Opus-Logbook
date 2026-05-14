@@ -189,7 +189,11 @@ function AddCaseFABInner({
       {isExpanded && (
         <AnimatedPressable
           onPress={() => collapse()}
-          style={[styles.backdrop, backdropAnimatedStyle]}
+          style={[
+            styles.backdrop,
+            { backgroundColor: theme.scrim },
+            backdropAnimatedStyle,
+          ]}
           accessibilityRole="button"
           accessibilityLabel="Close menu"
           testID="dashboard.fab.backdrop"
@@ -281,7 +285,7 @@ export const AddCaseFAB = React.memo(AddCaseFABInner);
 const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#000",
+    // backgroundColor applied inline via theme.scrim — theme-aware
     zIndex: 99,
   },
   fab: {

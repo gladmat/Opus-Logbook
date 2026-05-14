@@ -40,7 +40,7 @@ appId: com.drgladysz.opus
 - assertVisible:
     id: "section-patient"
 - tapOn:
-    id: "input-nhi"
+    id: "caseForm.patient.input-identifier"
     optional: true
 - inputText: "TST0001"
 
@@ -48,7 +48,7 @@ appId: com.drgladysz.opus
 # the form mounts and accepts input. The save path needs richer fixture
 # data and is the territory of `case-form-save-end-to-end.yaml` (TODO).
 - tapOn:
-    id: "caseForm.btn-actions"
+    id: "caseForm.header.btn-overflow"
     optional: true
 - back
 

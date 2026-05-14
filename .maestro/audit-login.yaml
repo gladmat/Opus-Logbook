@@ -1,0 +1,49 @@
+# Audit: log in as test account 1.
+appId: com.drgladysz.opus
+---
+- launchApp:
+    clearState: false
+
+# May be on the signup landing — tap "I already have an account" if visible.
+- tapOn:
+    text: "I already have an account"
+    optional: true
+
+# May be on welcome — tap Sign in if visible.
+- tapOn:
+    id: "welcome.btn-signIn"
+    optional: true
+
+# Wait for sign-in form to settle. The textContentType fix in EmailSignupScreen
+# uses key={isSignup ? "password-new" : "password-existing"} so the password
+# TextInput must remount in signin mode before we type into it.
+- extendedWaitUntil:
+    visible:
+      id: "onboarding.emailSignup.input-email"
+    timeout: 15000
+
+# Type credentials. The key={...} ensures iOS won't replay the Strong-Password
+# sheet that intercepted typing under the old textContentType="password" path.
+- tapOn:
+    id: "onboarding.emailSignup.input-email"
+- inputText: "m.gladysz@outlook.com"
+- tapOn:
+    id: "onboarding.emailSignup.input-password"
+- inputText: "testtest"
+
+- tapOn:
+    id: "onboarding.emailSignup.btn-submit"
+
+- runFlow:
+    when:
+      visible:
+        id: "screen-lock"
+    commands:
+      - inputText: "1111"
+
+- extendedWaitUntil:
+    visible:
+      id: "screen-dashboard"
+    timeout: 45000
+
+- takeScreenshot: dashboard-after-login

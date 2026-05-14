@@ -219,6 +219,7 @@ export function EmailSignupScreen({
               autoComplete="email"
               returnKeyType="next"
               onSubmitEditing={() => passwordRef.current?.focus()}
+              testID="onboarding.emailSignup.input-email"
             />
           </View>
 
@@ -229,6 +230,10 @@ export function EmailSignupScreen({
             ]}
           >
             <TextInput
+              // Force remount when toggling signup ↔ signin: iOS caches the
+              // textContentType on first focus and would otherwise keep
+              // offering the Strong-Password sheet after a toggle.
+              key={isSignup ? "password-new" : "password-existing"}
               ref={passwordRef}
               style={styles.input}
               placeholder={c.passwordPlaceholder}
@@ -238,11 +243,18 @@ export function EmailSignupScreen({
               onFocus={() => setPasswordFocused(true)}
               onBlur={() => setPasswordFocused(false)}
               secureTextEntry
-              textContentType={isSignup ? "newPassword" : "password"}
+              // Only declare `newPassword` for actual signups. In signin mode
+              // leave textContentType undefined so iOS doesn't fall back to
+              // the Strong-Password generator when no saved credential matches
+              // — which hijacked the typed value and stranded users on a
+              // perpetually wrong-password error in practice.
+              textContentType={isSignup ? "newPassword" : undefined}
+              passwordRules={isSignup ? undefined : "minlength: 1;"}
               autoCapitalize="none"
               autoCorrect={false}
               returnKeyType="done"
               onSubmitEditing={handleSubmit}
+              testID="onboarding.emailSignup.input-password"
             />
           </View>
 
@@ -273,6 +285,7 @@ export function EmailSignupScreen({
             style={[styles.submitButton, !canSubmit && styles.submitDisabled]}
             onPress={handleSubmit}
             disabled={!canSubmit}
+            testID="onboarding.emailSignup.btn-submit"
           >
             {isLoading ? (
               <ActivityIndicator color={palette.charcoal[950]} />

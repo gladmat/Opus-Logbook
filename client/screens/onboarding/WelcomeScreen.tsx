@@ -207,6 +207,7 @@ export function WelcomeScreen({
             onPress={onComplete}
             accessibilityLabel="Get Started"
             accessibilityRole="button"
+            testID="welcome.btn-getStarted"
           >
             <Text style={styles.primaryBtnText}>{copy.welcome.cta}</Text>
           </Pressable>
@@ -219,6 +220,7 @@ export function WelcomeScreen({
               onPress={onSignIn}
               accessibilityLabel="Already have an account? Sign in"
               accessibilityRole="link"
+              testID="welcome.btn-signIn"
             >
               <Text style={styles.secondaryBtnText}>{copy.welcome.signIn}</Text>
             </Pressable>
