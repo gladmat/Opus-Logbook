@@ -194,169 +194,50 @@ export const OperativeSection = React.memo(function OperativeSection() {
   }, [asaScore, smoker, heightCm, weightKg, selectedComorbidities.length]);
 
   return (
-    <CollapsibleFormSection
-      title="Operative Details"
-      subtitle="Role, admission, timing, and patient factors"
-      filledCount={
-        admissionTimingFilled +
-        roleAnaesthesiaFilled +
-        surgicalFactorsFilled +
-        patientFactorsFilled
-      }
-      totalCount={15}
-    >
-      {/* ── Your Role & Supervision ──────────────────────────────────────── */}
-
-      <SectionHeader title="Your Role & Supervision" />
-
-      {isConsultant ? (
-        <View style={styles.consultantRow}>
-          <ThemedText
-            style={[styles.fieldLabel, { color: theme.textSecondary }]}
-          >
-            Responsible Consultant
-          </ThemedText>
-          <ThemedText style={styles.consultantValue}>
-            {responsibleConsultantName || "You"}
-          </ThemedText>
-          {responsibleConsultantName ? (
-            <Pressable
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                dispatch(setField("responsibleConsultantName", ""));
-                dispatch(setField("responsibleConsultantUserId", ""));
-              }}
-              hitSlop={8}
-            >
-              <ThemedText style={[styles.changeLink, { color: theme.link }]}>
-                Change
-              </ThemedText>
-            </Pressable>
-          ) : null}
-        </View>
-      ) : (
-        <FormField
-          label="Responsible Consultant"
-          value={responsibleConsultantName}
-          onChangeText={(v: string) =>
-            dispatch(setField("responsibleConsultantName", v))
-          }
-          placeholder="Consultant name"
-        />
-      )}
-
-      <SelectField
-        label="Operative Role"
-        value={defaultOperativeRole}
-        options={OPERATIVE_ROLE_OPTIONS}
-        onSelect={(v: string) => {
-          dispatch(setField("defaultOperativeRole", v as OperativeRole));
-          // Auto-clear supervision when switching away from SURGEON
-          if (!supervisionApplicable(v as OperativeRole)) {
-            dispatch(setField("defaultSupervisionLevel", "NOT_APPLICABLE"));
-          }
-        }}
-        testID="caseForm.operative.picker-operativeRole"
-      />
-
-      {supervisionApplicable(defaultOperativeRole as OperativeRole) ? (
-        <SelectField
-          label="Supervision Level"
-          value={defaultSupervisionLevel}
-          options={SUPERVISION_OPTIONS}
-          onSelect={(v: string) =>
-            dispatch(setField("defaultSupervisionLevel", v as SupervisionLevel))
-          }
-          testID="caseForm.operative.picker-supervisionLevel"
-        />
-      ) : null}
-
+    <View>
       {/* ── Admission & Timing ──────────────────────────────────────────── */}
 
-      <SectionHeader title="Admission & Timing" />
-
-      <View style={styles.row}>
-        <View style={styles.halfField}>
-          <ThemedText
-            style={[styles.fieldLabel, { color: theme.textSecondary }]}
-          >
-            Urgency
-          </ThemedText>
-          <View
-            style={[
-              styles.segmentedControl,
-              {
-                borderColor: theme.border,
-                backgroundColor: theme.backgroundDefault,
-              },
-            ]}
-          >
-            {(
-              Object.entries(ADMISSION_URGENCY_LABELS) as [
-                AdmissionUrgency,
-                string,
-              ][]
-            ).map(([value, label]) => {
-              const isSelected = admissionUrgency === value;
-              return (
-                <Pressable
-                  key={value}
-                  testID={`caseForm.operative.chip-urgency-${value}`}
-                  style={[
-                    styles.segmentedButton,
-                    isSelected ? { backgroundColor: theme.link } : undefined,
-                  ]}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    dispatch(setField("admissionUrgency", value));
-                  }}
-                >
-                  <ThemedText
-                    style={[
-                      styles.segmentedButtonText,
-                      {
-                        color: isSelected
-                          ? theme.buttonText
-                          : theme.textSecondary,
-                      },
-                    ]}
-                  >
-                    {label}
-                  </ThemedText>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-        <View style={styles.halfField}>
-          <ThemedText
-            style={[styles.fieldLabel, { color: theme.textSecondary }]}
-          >
-            Stay Type
-          </ThemedText>
-          <View
-            style={[
-              styles.segmentedControl,
-              {
-                borderColor: theme.border,
-                backgroundColor: theme.backgroundDefault,
-              },
-            ]}
-          >
-            {(Object.entries(STAY_TYPE_LABELS) as [StayType, string][]).map(
-              ([value, label]) => {
-                const isSelected = stayType === value;
+      <CollapsibleFormSection
+        title="Admission & Timing"
+        subtitle="Urgency, stay type, admission/discharge, surgery times"
+        defaultExpanded
+        filledCount={admissionTimingFilled}
+        totalCount={5}
+      >
+        <View style={styles.row}>
+          <View style={styles.halfField}>
+            <ThemedText
+              style={[styles.fieldLabel, { color: theme.textSecondary }]}
+            >
+              Urgency
+            </ThemedText>
+            <View
+              style={[
+                styles.segmentedControl,
+                {
+                  borderColor: theme.border,
+                  backgroundColor: theme.backgroundDefault,
+                },
+              ]}
+            >
+              {(
+                Object.entries(ADMISSION_URGENCY_LABELS) as [
+                  AdmissionUrgency,
+                  string,
+                ][]
+              ).map(([value, label]) => {
+                const isSelected = admissionUrgency === value;
                 return (
                   <Pressable
                     key={value}
-                    testID={`caseForm.operative.chip-stay-${value}`}
+                    testID={`caseForm.operative.chip-urgency-${value}`}
                     style={[
                       styles.segmentedButton,
                       isSelected ? { backgroundColor: theme.link } : undefined,
                     ]}
                     onPress={() => {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      dispatch(setField("stayType", value));
+                      dispatch(setField("admissionUrgency", value));
                     }}
                   >
                     <ThemedText
@@ -373,204 +254,396 @@ export const OperativeSection = React.memo(function OperativeSection() {
                     </ThemedText>
                   </Pressable>
                 );
-              },
-            )}
+              })}
+            </View>
+          </View>
+          <View style={styles.halfField}>
+            <ThemedText
+              style={[styles.fieldLabel, { color: theme.textSecondary }]}
+            >
+              Stay Type
+            </ThemedText>
+            <View
+              style={[
+                styles.segmentedControl,
+                {
+                  borderColor: theme.border,
+                  backgroundColor: theme.backgroundDefault,
+                },
+              ]}
+            >
+              {(Object.entries(STAY_TYPE_LABELS) as [StayType, string][]).map(
+                ([value, label]) => {
+                  const isSelected = stayType === value;
+                  return (
+                    <Pressable
+                      key={value}
+                      testID={`caseForm.operative.chip-stay-${value}`}
+                      style={[
+                        styles.segmentedButton,
+                        isSelected
+                          ? { backgroundColor: theme.link }
+                          : undefined,
+                      ]}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        dispatch(setField("stayType", value));
+                      }}
+                    >
+                      <ThemedText
+                        style={[
+                          styles.segmentedButtonText,
+                          {
+                            color: isSelected
+                              ? theme.buttonText
+                              : theme.textSecondary,
+                          },
+                        ]}
+                      >
+                        {label}
+                      </ThemedText>
+                    </Pressable>
+                  );
+                },
+              )}
+            </View>
           </View>
         </View>
-      </View>
 
-      <View style={styles.row}>
-        <View style={styles.halfField}>
-          <DatePickerField
-            label="Admission Date"
-            value={admissionDate}
-            onChange={(v: string) => dispatch(setField("admissionDate", v))}
-            maximumDate={new Date()}
-            testID="caseForm.operative.picker-admissionDate"
-          />
-        </View>
-        <View style={styles.halfField}>
-          <DatePickerField
-            label="Discharge Date"
-            value={dischargeDate}
-            onChange={(v: string) => dispatch(setField("dischargeDate", v))}
-            minimumDate={parseDateOnlyValue(admissionDate) ?? undefined}
-            clearable
-            testID="caseForm.operative.picker-dischargeDate"
-          />
-        </View>
-      </View>
-
-      {showInjuryDate && !hasHandTraumaGroup ? (
         <View style={styles.row}>
           <View style={styles.halfField}>
             <DatePickerField
-              label="Day of Injury"
-              value={injuryDate}
-              onChange={(v: string) => dispatch(setField("injuryDate", v))}
-              placeholder="Select date..."
+              label="Admission Date"
+              value={admissionDate}
+              onChange={(v: string) => dispatch(setField("admissionDate", v))}
               maximumDate={new Date()}
+              testID="caseForm.operative.picker-admissionDate"
+            />
+          </View>
+          <View style={styles.halfField}>
+            <DatePickerField
+              label="Discharge Date"
+              value={dischargeDate}
+              onChange={(v: string) => dispatch(setField("dischargeDate", v))}
+              minimumDate={parseDateOnlyValue(admissionDate) ?? undefined}
+              clearable
+              testID="caseForm.operative.picker-dischargeDate"
             />
           </View>
         </View>
-      ) : null}
 
-      {episodeId ? (
+        {showInjuryDate && !hasHandTraumaGroup ? (
+          <View style={styles.row}>
+            <View style={styles.halfField}>
+              <DatePickerField
+                label="Day of Injury"
+                value={injuryDate}
+                onChange={(v: string) => dispatch(setField("injuryDate", v))}
+                placeholder="Select date..."
+                maximumDate={new Date()}
+              />
+            </View>
+          </View>
+        ) : null}
+
+        {episodeId ? (
+          <SelectField
+            label="Encounter Class"
+            value={encounterClass}
+            options={Object.entries(ENCOUNTER_CLASS_LABELS).map(
+              ([value, label]) => ({ value, label }),
+            )}
+            onSelect={(v: string) =>
+              dispatch(setField("encounterClass", v as EncounterClass))
+            }
+          />
+        ) : null}
+
+        <View style={styles.row}>
+          <View style={styles.halfField}>
+            <TimeField
+              label="Start Time"
+              value={surgeryStartTime}
+              onChangeText={(v: string) =>
+                dispatch(setField("surgeryStartTime", v))
+              }
+              placeholder="e.g., 0830"
+              testID="caseForm.operative.picker-surgeryStart"
+            />
+          </View>
+          <View style={styles.halfField}>
+            <TimeField
+              label="End Time"
+              value={surgeryEndTime}
+              onChangeText={(v: string) =>
+                dispatch(setField("surgeryEndTime", v))
+              }
+              placeholder="e.g., 1415"
+              testID="caseForm.operative.picker-surgeryEnd"
+            />
+          </View>
+        </View>
+
+        {durationDisplay ? (
+          <View
+            style={[
+              styles.durationCard,
+              { backgroundColor: theme.link + "10" },
+            ]}
+          >
+            <Feather name="clock" size={16} color={theme.link} />
+            <ThemedText style={[styles.durationText, { color: theme.link }]}>
+              Duration: {durationDisplay}
+            </ThemedText>
+          </View>
+        ) : null}
+      </CollapsibleFormSection>
+
+      {/* ── Role & Anaesthesia ──────────────────────────────────────────── */}
+
+      <CollapsibleFormSection
+        title="Role & Anaesthesia"
+        subtitle="Consultant, your role, supervision, anaesthetic type"
+        defaultExpanded
+        filledCount={roleAnaesthesiaFilled}
+        totalCount={3}
+      >
+        {isConsultant ? (
+          <View style={styles.consultantRow}>
+            <ThemedText
+              style={[styles.fieldLabel, { color: theme.textSecondary }]}
+            >
+              Responsible Consultant
+            </ThemedText>
+            <ThemedText style={styles.consultantValue}>
+              {responsibleConsultantName || "You"}
+            </ThemedText>
+            {responsibleConsultantName ? (
+              <Pressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  dispatch(setField("responsibleConsultantName", ""));
+                  dispatch(setField("responsibleConsultantUserId", ""));
+                }}
+                hitSlop={8}
+              >
+                <ThemedText style={[styles.changeLink, { color: theme.link }]}>
+                  Change
+                </ThemedText>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : (
+          <FormField
+            label="Responsible Consultant"
+            value={responsibleConsultantName}
+            onChangeText={(v: string) =>
+              dispatch(setField("responsibleConsultantName", v))
+            }
+            placeholder="Consultant name"
+          />
+        )}
+
         <SelectField
-          label="Encounter Class"
-          value={encounterClass}
-          options={Object.entries(ENCOUNTER_CLASS_LABELS).map(
-            ([value, label]) => ({ value, label }),
-          )}
-          onSelect={(v: string) =>
-            dispatch(setField("encounterClass", v as EncounterClass))
-          }
+          label="Operative Role"
+          value={defaultOperativeRole}
+          options={OPERATIVE_ROLE_OPTIONS}
+          onSelect={(v: string) => {
+            dispatch(setField("defaultOperativeRole", v as OperativeRole));
+            // Auto-clear supervision when switching away from SURGEON
+            if (!supervisionApplicable(v as OperativeRole)) {
+              dispatch(setField("defaultSupervisionLevel", "NOT_APPLICABLE"));
+            }
+          }}
+          testID="caseForm.operative.picker-operativeRole"
         />
-      ) : null}
 
-      <View style={styles.row}>
-        <View style={styles.halfField}>
-          <TimeField
-            label="Start Time"
-            value={surgeryStartTime}
-            onChangeText={(v: string) =>
-              dispatch(setField("surgeryStartTime", v))
+        {supervisionApplicable(defaultOperativeRole as OperativeRole) ? (
+          <SelectField
+            label="Supervision Level"
+            value={defaultSupervisionLevel}
+            options={SUPERVISION_OPTIONS}
+            onSelect={(v: string) =>
+              dispatch(
+                setField("defaultSupervisionLevel", v as SupervisionLevel),
+              )
             }
-            placeholder="e.g., 0830"
-            testID="caseForm.operative.picker-surgeryStart"
+            testID="caseForm.operative.picker-supervisionLevel"
           />
-        </View>
-        <View style={styles.halfField}>
-          <TimeField
-            label="End Time"
-            value={surgeryEndTime}
-            onChangeText={(v: string) =>
-              dispatch(setField("surgeryEndTime", v))
-            }
-            placeholder="e.g., 1415"
-            testID="caseForm.operative.picker-surgeryEnd"
-          />
-        </View>
-      </View>
+        ) : null}
 
-      {durationDisplay ? (
-        <View
-          style={[styles.durationCard, { backgroundColor: theme.link + "10" }]}
-        >
-          <Feather name="clock" size={16} color={theme.link} />
-          <ThemedText style={[styles.durationText, { color: theme.link }]}>
-            Duration: {durationDisplay}
-          </ThemedText>
-        </View>
-      ) : null}
-
-      {/* ── Anaesthesia ────────────────────────────────────────────────── */}
-
-      <SectionHeader title="Anaesthesia" />
-
-      <SelectField
-        label="Anaesthetic Type"
-        value={anaestheticType}
-        options={ANAESTHETIC_OPTIONS}
-        onSelect={(v: string) =>
-          dispatch(setField("anaestheticType", v as AnaestheticType))
-        }
-        testID="caseForm.operative.picker-anaestheticType"
-      />
+        <SelectField
+          label="Anaesthetic Type"
+          value={anaestheticType}
+          options={ANAESTHETIC_OPTIONS}
+          onSelect={(v: string) =>
+            dispatch(setField("anaestheticType", v as AnaestheticType))
+          }
+          testID="caseForm.operative.picker-anaestheticType"
+        />
+      </CollapsibleFormSection>
 
       {/* ── Surgical Factors ────────────────────────────────────────────── */}
 
-      <SectionHeader title="Surgical Factors" />
+      <CollapsibleFormSection
+        title="Surgical Factors"
+        subtitle="Infection risk and prophylaxis"
+        defaultExpanded
+        filledCount={surgicalFactorsFilled}
+        totalCount={3}
+      >
+        <SelectField
+          label="Wound Infection Risk"
+          value={woundInfectionRisk}
+          options={WOUND_RISK_OPTIONS}
+          onSelect={(v: string) =>
+            dispatch(setField("woundInfectionRisk", v as WoundInfectionRisk))
+          }
+          testID="caseForm.operative.picker-woundRisk"
+        />
 
-      <SelectField
-        label="Wound Infection Risk"
-        value={woundInfectionRisk}
-        options={WOUND_RISK_OPTIONS}
-        onSelect={(v: string) =>
-          dispatch(setField("woundInfectionRisk", v as WoundInfectionRisk))
-        }
-        testID="caseForm.operative.picker-woundRisk"
-      />
+        <View style={styles.checkboxRow}>
+          <Pressable
+            style={[
+              styles.checkbox,
+              {
+                backgroundColor: antibioticProphylaxis
+                  ? theme.link + "20"
+                  : theme.backgroundDefault,
+                borderColor: antibioticProphylaxis ? theme.link : theme.border,
+              },
+            ]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              dispatch(
+                setField("antibioticProphylaxis", !antibioticProphylaxis),
+              );
+            }}
+            testID="caseForm.operative.toggle-antibioticProphylaxis"
+          >
+            {antibioticProphylaxis ? (
+              <Feather name="check" size={16} color={theme.link} />
+            ) : null}
+          </Pressable>
+          <ThemedText style={styles.checkboxLabel}>
+            Antibiotic Prophylaxis Given
+          </ThemedText>
+        </View>
 
-      <View style={styles.checkboxRow}>
-        <Pressable
-          style={[
-            styles.checkbox,
-            {
-              backgroundColor: antibioticProphylaxis
-                ? theme.link + "20"
-                : theme.backgroundDefault,
-              borderColor: antibioticProphylaxis ? theme.link : theme.border,
-            },
-          ]}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            dispatch(setField("antibioticProphylaxis", !antibioticProphylaxis));
-          }}
-          testID="caseForm.operative.toggle-antibioticProphylaxis"
-        >
-          {antibioticProphylaxis ? (
-            <Feather name="check" size={16} color={theme.link} />
-          ) : null}
-        </Pressable>
-        <ThemedText style={styles.checkboxLabel}>
-          Antibiotic Prophylaxis Given
-        </ThemedText>
-      </View>
-
-      <View style={styles.checkboxRow}>
-        <Pressable
-          style={[
-            styles.checkbox,
-            {
-              backgroundColor: dvtProphylaxis
-                ? theme.link + "20"
-                : theme.backgroundDefault,
-              borderColor: dvtProphylaxis ? theme.link : theme.border,
-            },
-          ]}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            dispatch(setField("dvtProphylaxis", !dvtProphylaxis));
-          }}
-          testID="caseForm.operative.toggle-dvtProphylaxis"
-        >
-          {dvtProphylaxis ? (
-            <Feather name="check" size={16} color={theme.link} />
-          ) : null}
-        </Pressable>
-        <ThemedText style={styles.checkboxLabel}>
-          DVT Prophylaxis Given
-        </ThemedText>
-      </View>
+        <View style={styles.checkboxRow}>
+          <Pressable
+            style={[
+              styles.checkbox,
+              {
+                backgroundColor: dvtProphylaxis
+                  ? theme.link + "20"
+                  : theme.backgroundDefault,
+                borderColor: dvtProphylaxis ? theme.link : theme.border,
+              },
+            ]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              dispatch(setField("dvtProphylaxis", !dvtProphylaxis));
+            }}
+            testID="caseForm.operative.toggle-dvtProphylaxis"
+          >
+            {dvtProphylaxis ? (
+              <Feather name="check" size={16} color={theme.link} />
+            ) : null}
+          </Pressable>
+          <ThemedText style={styles.checkboxLabel}>
+            DVT Prophylaxis Given
+          </ThemedText>
+        </View>
+      </CollapsibleFormSection>
 
       {/* ── Patient Factors (collapsed by default) ──────────────────────── */}
 
-      <SectionHeader title="Patient Factors" />
-
-      <View style={styles.labelRow}>
-        <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
-          ASA Score
-        </ThemedText>
-        <Pressable
-          onPress={() => setShowAsaInfo(true)}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Feather name="info" size={16} color={theme.textTertiary} />
-        </Pressable>
-      </View>
-      <View
-        style={[
-          styles.segmentedControl,
-          {
-            borderColor: theme.border,
-            backgroundColor: theme.backgroundDefault,
-          },
-        ]}
+      <CollapsibleFormSection
+        title="Patient Factors"
+        subtitle="ASA, smoking, BMI, comorbidities"
+        defaultExpanded={false}
+        filledCount={patientFactorsFilled}
+        totalCount={4}
       >
-        {(Object.entries(ASA_SHORT_LABELS) as [string, string][]).map(
-          ([value, label]) => {
-            const isSelected = asaScore === value;
+        <View style={styles.labelRow}>
+          <ThemedText
+            style={[styles.fieldLabel, { color: theme.textSecondary }]}
+          >
+            ASA Score
+          </ThemedText>
+          <Pressable
+            onPress={() => setShowAsaInfo(true)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Feather name="info" size={16} color={theme.textTertiary} />
+          </Pressable>
+        </View>
+        <View
+          style={[
+            styles.segmentedControl,
+            {
+              borderColor: theme.border,
+              backgroundColor: theme.backgroundDefault,
+            },
+          ]}
+        >
+          {(Object.entries(ASA_SHORT_LABELS) as [string, string][]).map(
+            ([value, label]) => {
+              const isSelected = asaScore === value;
+              return (
+                <Pressable
+                  key={value}
+                  style={[
+                    styles.segmentedButton,
+                    isSelected ? { backgroundColor: theme.link } : undefined,
+                  ]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    dispatch(setField("asaScore", value));
+                  }}
+                >
+                  <ThemedText
+                    style={[
+                      styles.segmentedButtonText,
+                      {
+                        color: isSelected
+                          ? theme.buttonText
+                          : theme.textSecondary,
+                      },
+                    ]}
+                  >
+                    {label}
+                  </ThemedText>
+                </Pressable>
+              );
+            },
+          )}
+        </View>
+        {asaScore ? (
+          <ThemedText
+            style={[styles.asaDescription, { color: theme.textTertiary }]}
+          >
+            {ASA_GRADE_LABELS[parseInt(asaScore) as ASAScore]}
+          </ThemedText>
+        ) : null}
+
+        <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+          Smoking Status
+        </ThemedText>
+        <View
+          style={[
+            styles.segmentedControl,
+            {
+              borderColor: theme.border,
+              backgroundColor: theme.backgroundDefault,
+            },
+          ]}
+        >
+          {(
+            Object.entries(SMOKING_STATUS_LABELS) as [SmokingStatus, string][]
+          ).map(([value, label]) => {
+            const isSelected = smoker === value;
             return (
               <Pressable
                 key={value}
@@ -580,7 +653,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
                 ]}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  dispatch(setField("asaScore", value));
+                  dispatch(setField("smoker", value));
                 }}
               >
                 <ThemedText
@@ -597,161 +670,112 @@ export const OperativeSection = React.memo(function OperativeSection() {
                 </ThemedText>
               </Pressable>
             );
-          },
-        )}
-      </View>
-      {asaScore ? (
-        <ThemedText
-          style={[styles.asaDescription, { color: theme.textTertiary }]}
-        >
-          {ASA_GRADE_LABELS[parseInt(asaScore) as ASAScore]}
-        </ThemedText>
-      ) : null}
+          })}
+        </View>
 
-      <ThemedText style={[styles.fieldLabel, { color: theme.textSecondary }]}>
-        Smoking Status
-      </ThemedText>
-      <View
-        style={[
-          styles.segmentedControl,
-          {
-            borderColor: theme.border,
-            backgroundColor: theme.backgroundDefault,
-          },
-        ]}
-      >
-        {(
-          Object.entries(SMOKING_STATUS_LABELS) as [SmokingStatus, string][]
-        ).map(([value, label]) => {
-          const isSelected = smoker === value;
-          return (
-            <Pressable
-              key={value}
-              style={[
-                styles.segmentedButton,
-                isSelected ? { backgroundColor: theme.link } : undefined,
-              ]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                dispatch(setField("smoker", value));
-              }}
-            >
+        <View style={styles.row}>
+          <View style={styles.thirdField}>
+            <FormField
+              label="Height"
+              value={heightCm}
+              onChangeText={(v: string) => dispatch(setField("heightCm", v))}
+              placeholder="170"
+              keyboardType="decimal-pad"
+              unit="cm"
+              testID="caseForm.operative.input-height"
+            />
+          </View>
+          <View style={styles.thirdField}>
+            <FormField
+              label="Weight"
+              value={weightKg}
+              onChangeText={(v: string) => dispatch(setField("weightKg", v))}
+              placeholder="70"
+              keyboardType="decimal-pad"
+              unit="kg"
+              testID="caseForm.operative.input-weight"
+            />
+          </View>
+          <View style={styles.thirdField}>
+            <View style={styles.bmiDisplay}>
+              <ThemedText
+                style={[styles.bmiLabel, { color: theme.textSecondary }]}
+              >
+                BMI
+              </ThemedText>
               <ThemedText
                 style={[
-                  styles.segmentedButtonText,
-                  {
-                    color: isSelected ? theme.buttonText : theme.textSecondary,
-                  },
+                  styles.bmiValue,
+                  { color: calculatedBmi ? theme.text : theme.textTertiary },
                 ]}
               >
-                {label}
+                {calculatedBmi ? calculatedBmi.toFixed(1) : "--"}
               </ThemedText>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <View style={styles.row}>
-        <View style={styles.thirdField}>
-          <FormField
-            label="Height"
-            value={heightCm}
-            onChangeText={(v: string) => dispatch(setField("heightCm", v))}
-            placeholder="170"
-            keyboardType="decimal-pad"
-            unit="cm"
-            testID="caseForm.operative.input-height"
-          />
-        </View>
-        <View style={styles.thirdField}>
-          <FormField
-            label="Weight"
-            value={weightKg}
-            onChangeText={(v: string) => dispatch(setField("weightKg", v))}
-            placeholder="70"
-            keyboardType="decimal-pad"
-            unit="kg"
-            testID="caseForm.operative.input-weight"
-          />
-        </View>
-        <View style={styles.thirdField}>
-          <View style={styles.bmiDisplay}>
-            <ThemedText
-              style={[styles.bmiLabel, { color: theme.textSecondary }]}
-            >
-              BMI
-            </ThemedText>
-            <ThemedText
-              style={[
-                styles.bmiValue,
-                { color: calculatedBmi ? theme.text : theme.textTertiary },
-              ]}
-            >
-              {calculatedBmi ? calculatedBmi.toFixed(1) : "--"}
-            </ThemedText>
+            </View>
           </View>
         </View>
-      </View>
 
-      {showComorbidities ? (
-        <>
-          <SectionHeader
-            title="Co-morbidities"
-            subtitle="Select all that apply"
-          />
+        {showComorbidities ? (
+          <>
+            <SectionHeader
+              title="Co-morbidities"
+              subtitle="Select all that apply"
+            />
 
-          <View style={styles.comorbidityGrid}>
-            {COMMON_COMORBIDITIES.slice(0, 20).map((comorbidity) => {
-              const isSelected = selectedComorbidities.some(
-                (c) => c.snomedCtCode === comorbidity.snomedCtCode,
-              );
-              return (
-                <Pressable
-                  key={comorbidity.snomedCtCode}
-                  style={[
-                    styles.comorbidityChip,
-                    {
-                      backgroundColor: isSelected
-                        ? theme.link + "20"
-                        : theme.backgroundDefault,
-                      borderColor: isSelected ? theme.link : theme.border,
-                    },
-                  ]}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    if (isSelected) {
-                      dispatch(
-                        setField(
-                          "selectedComorbidities",
-                          selectedComorbidities.filter(
-                            (c) => c.snomedCtCode !== comorbidity.snomedCtCode,
-                          ),
-                        ),
-                      );
-                    } else {
-                      dispatch(
-                        setField("selectedComorbidities", [
-                          ...selectedComorbidities,
-                          comorbidity,
-                        ]),
-                      );
-                    }
-                  }}
-                >
-                  <ThemedText
+            <View style={styles.comorbidityGrid}>
+              {COMMON_COMORBIDITIES.slice(0, 20).map((comorbidity) => {
+                const isSelected = selectedComorbidities.some(
+                  (c) => c.snomedCtCode === comorbidity.snomedCtCode,
+                );
+                return (
+                  <Pressable
+                    key={comorbidity.snomedCtCode}
                     style={[
-                      styles.comorbidityText,
-                      { color: isSelected ? theme.link : theme.text },
+                      styles.comorbidityChip,
+                      {
+                        backgroundColor: isSelected
+                          ? theme.link + "20"
+                          : theme.backgroundDefault,
+                        borderColor: isSelected ? theme.link : theme.border,
+                      },
                     ]}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      if (isSelected) {
+                        dispatch(
+                          setField(
+                            "selectedComorbidities",
+                            selectedComorbidities.filter(
+                              (c) =>
+                                c.snomedCtCode !== comorbidity.snomedCtCode,
+                            ),
+                          ),
+                        );
+                      } else {
+                        dispatch(
+                          setField("selectedComorbidities", [
+                            ...selectedComorbidities,
+                            comorbidity,
+                          ]),
+                        );
+                      }
+                    }}
                   >
-                    {comorbidity.commonName || comorbidity.displayName}
-                  </ThemedText>
-                </Pressable>
-              );
-            })}
-          </View>
-        </>
-      ) : null}
+                    <ThemedText
+                      style={[
+                        styles.comorbidityText,
+                        { color: isSelected ? theme.link : theme.text },
+                      ]}
+                    >
+                      {comorbidity.commonName || comorbidity.displayName}
+                    </ThemedText>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </>
+        ) : null}
+      </CollapsibleFormSection>
 
       {/* ASA Info Modal */}
       <Modal
@@ -830,7 +854,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
           </Pressable>
         </Pressable>
       </Modal>
-    </CollapsibleFormSection>
+    </View>
   );
 });
 
