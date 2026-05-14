@@ -49,6 +49,9 @@ export default function AddCaseScreen() {
           <Pressable
             key={specialty}
             onPress={() => handleSpecialtySelect(specialty)}
+            testID={`addCase.card-${specialty}`}
+            accessibilityRole="button"
+            accessibilityLabel={`${SPECIALTY_LABELS[specialty]}, ${getProceduresForSpecialty(specialty).length} procedures`}
             style={({ pressed }) => [
               styles.specialtyCard,
               {

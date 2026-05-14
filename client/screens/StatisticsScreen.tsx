@@ -404,6 +404,7 @@ export default function StatisticsScreen() {
   if (isLoading) {
     return (
       <View
+        testID="screen-statistics"
         style={[styles.centered, { backgroundColor: theme.backgroundRoot }]}
       >
         <ActivityIndicator color={theme.accent} />
@@ -414,6 +415,7 @@ export default function StatisticsScreen() {
   if (isEmpty || totalCases < EMPTY_THRESHOLD) {
     return (
       <ScrollView
+        testID="screen-statistics"
         style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
         contentContainerStyle={{
           paddingBottom: insets.bottom + tabBarHeight,

@@ -37,6 +37,7 @@ function InboxButton() {
       accessibilityLabel={
         count > 0 ? `Photo inbox, ${count} items` : "Photo inbox"
       }
+      testID="dashboard.btn-inbox"
       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
     >
       <View>
@@ -84,6 +85,7 @@ function SearchButton() {
       accessibilityRole="button"
       accessibilityLabel="Search cases"
       accessibilityHint="Opens the case search screen"
+      testID="dashboard.btn-search"
       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
     >
       <Feather name="search" size={20} color={theme.textSecondary} />
