@@ -75,8 +75,10 @@ export LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
   `tapOn: { point: "94%,93%" }` guarded by `runFlow when visible text:".*Open debugger.*"`.
 - Screenshots: `.claude/audit-screenshot.sh <path>` (downscales to ≤1568 px).
   Theme: `xcrun simctl ui booted appearance light|dark`.
-- Throwaway flows in `/tmp/audit-flows/`; `/tmp/audit-flows/run.sh <name>...` is a
-  robust runner (per-flow timeout + kill + retry). Session 3's flows are still there.
+- Throwaway Maestro flows go in `/tmp/audit-flows/` with a `run.sh` runner
+  (per-flow timeout + `pkill` + one retry). Session 3 left its flows there, but
+  `/tmp` may have been cleared since — if so, recreate them; every pattern you
+  need is documented in this section, so a flow is ~10 lines.
 
 ## THE TASK — priority order (each is a committable cluster)
 
@@ -111,8 +113,8 @@ a new `.claude/audit-2026-05-14/REPORT-session4.md`.
    case form + `HeadNeckDiagnosisPicker`. If it re-renders on a loop, that's a
    real perf bug (jank on the 88-diagnosis picker) — fix it.
 5. **Remaining light-theme captures** — light NeedsAttentionList, EpisodeDetail,
-   Settings sub-screens (session 3's `light-data.yaml` died partway on the
-   kAXError-flaky NeedsAttention nav). Low-risk; nice-to-have for completeness.
+   Settings sub-screens (session 3's light run died partway on the kAXError-flaky
+   NeedsAttention nav). Low-risk; nice-to-have for completeness.
 6. **Deeper module coverage** — session 3 captured specialty modules at
    "diagnosis selected + scrolled"; the deepest nested cards (Aesthetics
    `ImplantDetailsCard`, per-procedure footers, etc.) were not all reached.
