@@ -318,6 +318,12 @@ function DiagnosisGroupEditorInner({
   const [procedures, setProcedures] = useState<CaseProcedure[]>(
     group.procedures,
   );
+  // Mirror `procedures` in a ref so callbacks below can read the latest array
+  // without listing it as a dependency. Lets removeProcedure (and friends) be
+  // useCallback'd with `[]` deps so child memos (CompactProcedureList +
+  // ProcedureEntryCard.memo's bypass-callbacks pattern) get stable refs.
+  const proceduresRef = useRef(procedures);
+  proceduresRef.current = procedures;
   const [fractures, setFractures] = useState<FractureEntry[]>(
     group.fractures || [],
   );
@@ -1872,8 +1878,8 @@ function DiagnosisGroupEditorInner({
     );
   }, []);
 
-  const removeProcedure = (id: string) => {
-    const target = procedures.find((p) => p.id === id);
+  const removeProcedure = useCallback((id: string) => {
+    const target = proceduresRef.current.find((p) => p.id === id);
     // `freeFlapDetails` is stored under `clinicalDetails` for free-flap
     // procedures, so the `clinicalDetails != null` check covers it.
     const hasSubstantiveContent =
@@ -1905,9 +1911,9 @@ function DiagnosisGroupEditorInner({
         { text: "Delete", style: "destructive", onPress: performDelete },
       ],
     );
-  };
+  }, []);
 
-  const moveProcedureUp = (id: string) => {
+  const moveProcedureUp = useCallback((id: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setProcedures((prev) => {
       const idx = prev.findIndex((p) => p.id === id);
@@ -1919,9 +1925,9 @@ function DiagnosisGroupEditorInner({
       newArr[idx] = a;
       return newArr.map((p, i) => ({ ...p, sequenceOrder: i + 1 }));
     });
-  };
+  }, []);
 
-  const moveProcedureDown = (id: string) => {
+  const moveProcedureDown = useCallback((id: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setProcedures((prev) => {
       const idx = prev.findIndex((p) => p.id === id);
@@ -1933,7 +1939,7 @@ function DiagnosisGroupEditorInner({
       newArr[idx + 1] = a;
       return newArr.map((p, i) => ({ ...p, sequenceOrder: i + 1 }));
     });
-  };
+  }, []);
 
   const handleSpecialtyChange = (newSpecialty: string) => {
     const s = newSpecialty as Specialty;
@@ -4042,18 +4048,12 @@ function DiagnosisGroupEditorInner({
                               index={procedures.length - 1}
                               isOnlyProcedure={false}
                               onUpdate={updateProcedure}
-                              onDelete={() => {
-                                removeProcedure(
-                                  procedures[procedures.length - 1]!.id,
-                                );
+                              onDelete={(id) => {
+                                removeProcedure(id);
                                 setShowCustomProcedureEntry(false);
                               }}
-                              onMoveUp={() =>
-                                moveProcedureUp(
-                                  procedures[procedures.length - 1]!.id,
-                                )
-                              }
-                              onMoveDown={() => {}}
+                              onMoveUp={moveProcedureUp}
+                              onMoveDown={undefined}
                               canMoveUp={procedures.length > 1}
                               canMoveDown={false}
                               diagnosisId={selectedDiagnosis?.id}
@@ -4132,9 +4132,9 @@ function DiagnosisGroupEditorInner({
                               index={idx}
                               isOnlyProcedure={procedures.length === 1}
                               onUpdate={updateProcedure}
-                              onDelete={() => removeProcedure(proc.id)}
-                              onMoveUp={() => moveProcedureUp(proc.id)}
-                              onMoveDown={() => moveProcedureDown(proc.id)}
+                              onDelete={removeProcedure}
+                              onMoveUp={moveProcedureUp}
+                              onMoveDown={moveProcedureDown}
                               canMoveUp={idx > 0}
                               canMoveDown={idx < procedures.length - 1}
                               diagnosisId={selectedDiagnosis?.id}

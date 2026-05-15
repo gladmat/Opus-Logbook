@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { View, StyleSheet, Pressable } from "react-native";
 import { v4 as uuidv4 } from "uuid";
 import { Feather } from "@/components/FeatherIcon";
@@ -58,9 +58,14 @@ interface ProcedureEntryCardProps {
   index: number;
   isOnlyProcedure: boolean;
   onUpdate: (procedure: CaseProcedure) => void;
-  onDelete: () => void;
-  onMoveUp?: () => void;
-  onMoveDown?: () => void;
+  /**
+   * Receive the procedure id so callers can pass a stable reference instead
+   * of an inline arrow per procedure. Keeps parent-side useCallback wrappers
+   * referentially stable across procedure-array mutations.
+   */
+  onDelete: (procedureId: string) => void;
+  onMoveUp?: (procedureId: string) => void;
+  onMoveDown?: (procedureId: string) => void;
   canMoveUp: boolean;
   canMoveDown: boolean;
   /** Diagnosis picklist ID for auto-fill context (e.g. "orth_dx_open_fx_lower_leg") */
@@ -94,6 +99,13 @@ function ProcedureEntryCardInner({
   );
   const [showTags, setShowTags] = useState((procedure.tags?.length ?? 0) > 0);
 
+  // Track the latest procedure via a ref so the picklist-select callback can
+  // be useCallback'd without listing `procedure` as a dep. With a stable
+  // onSelect, ProcedureSubcategoryPicker.memo bails on parent renders driven
+  // by other procedure-entry fields (notes, role overrides, etc.).
+  const procedureRef = useRef(procedure);
+  procedureRef.current = procedure;
+
   const handleSpecialtyChange = (value: string) => {
     onUpdate({
       ...procedure,
@@ -107,124 +119,128 @@ function ProcedureEntryCardInner({
     });
   };
 
-  const handlePicklistSelect = (entry: ProcedurePicklistEntry) => {
-    const mappedFlapType = PICKLIST_TO_FLAP_TYPE[entry.id];
+  const handlePicklistSelect = useCallback(
+    (entry: ProcedurePicklistEntry) => {
+      const current = procedureRef.current;
+      const mappedFlapType = PICKLIST_TO_FLAP_TYPE[entry.id];
 
-    let clinicalDetails: ClinicalDetails | undefined = undefined;
-    if (entry.hasFreeFlap && mappedFlapType) {
-      const snomedEntry = FLAP_SNOMED_MAP[mappedFlapType];
-      let flapSpecificDetails = getDefaultFlapSpecificDetails(mappedFlapType);
-      const prefAnticoag =
-        profile?.surgicalPreferences?.microsurgery?.anticoagulationProtocol;
+      let clinicalDetails: ClinicalDetails | undefined = undefined;
+      if (entry.hasFreeFlap && mappedFlapType) {
+        const snomedEntry = FLAP_SNOMED_MAP[mappedFlapType];
+        let flapSpecificDetails = getDefaultFlapSpecificDetails(mappedFlapType);
+        const prefAnticoag =
+          profile?.surgicalPreferences?.microsurgery?.anticoagulationProtocol;
 
-      // ── Recipient site: use diagnosis mapping, then specialty fallback ──
-      let recipientSiteRegion: AnatomicalRegion | undefined;
-      if (diagnosisId && DIAGNOSIS_TO_RECIPIENT_SITE[diagnosisId]) {
-        recipientSiteRegion = DIAGNOSIS_TO_RECIPIENT_SITE[diagnosisId];
-      } else if (procedure.specialty === "breast") {
-        recipientSiteRegion = "breast_chest";
-      }
+        // ── Recipient site: use diagnosis mapping, then specialty fallback ──
+        let recipientSiteRegion: AnatomicalRegion | undefined;
+        if (diagnosisId && DIAGNOSIS_TO_RECIPIENT_SITE[diagnosisId]) {
+          recipientSiteRegion = DIAGNOSIS_TO_RECIPIENT_SITE[diagnosisId];
+        } else if (current.specialty === "breast") {
+          recipientSiteRegion = "breast_chest";
+        }
 
-      const recipientSiteSnomed = recipientSiteRegion
-        ? RECIPIENT_SITE_SNOMED_MAP[recipientSiteRegion]
-        : undefined;
+        const recipientSiteSnomed = recipientSiteRegion
+          ? RECIPIENT_SITE_SNOMED_MAP[recipientSiteRegion]
+          : undefined;
 
-      // ── Indication from clinical group ──
-      let indication: Indication | undefined;
-      if (clinicalGroup && CLINICAL_GROUP_TO_INDICATION[clinicalGroup]) {
-        indication = CLINICAL_GROUP_TO_INDICATION[clinicalGroup];
-      }
+        // ── Indication from clinical group ──
+        let indication: Indication | undefined;
+        if (clinicalGroup && CLINICAL_GROUP_TO_INDICATION[clinicalGroup]) {
+          indication = CLINICAL_GROUP_TO_INDICATION[clinicalGroup];
+        }
 
-      // ── Context-specific flap overrides ──
-      let skinIsland: boolean | undefined;
+        // ── Context-specific flap overrides ──
+        let skinIsland: boolean | undefined;
 
-      if (mappedFlapType === "gracilis" || mappedFlapType === "tug") {
-        if (diagnosisId) {
-          const gracilisDefaults = getGracilisContextDefaults(diagnosisId);
+        if (mappedFlapType === "gracilis" || mappedFlapType === "tug") {
+          if (diagnosisId) {
+            const gracilisDefaults = getGracilisContextDefaults(diagnosisId);
+            flapSpecificDetails = {
+              ...flapSpecificDetails,
+              ...gracilisDefaults.flapSpecificDetails,
+            };
+            skinIsland = gracilisDefaults.skinIsland;
+          }
+        }
+
+        if (mappedFlapType === "fibula") {
+          const fibulaDefaults = getFibulaContextDefaults(recipientSiteRegion);
           flapSpecificDetails = {
             ...flapSpecificDetails,
-            ...gracilisDefaults.flapSpecificDetails,
+            ...fibulaDefaults,
           };
-          skinIsland = gracilisDefaults.skinIsland;
         }
+
+        if (mappedFlapType === "diep" && diagnosisLaterality === "bilateral") {
+          flapSpecificDetails = {
+            ...flapSpecificDetails,
+            ...DIEP_BILATERAL_DEFAULTS,
+          };
+        }
+
+        // ── Breast recon default vessels ──
+        const anastomoses =
+          recipientSiteRegion === "breast_chest"
+            ? [
+                {
+                  id: uuidv4(),
+                  vesselType: "artery" as const,
+                  recipientVesselName:
+                    BREAST_RECON_DEFAULT_RECIPIENT_VESSELS.artery,
+                  anastomosisConfiguration: "end_to_end" as const,
+                  couplingMethod: "hand_sewn" as const,
+                },
+                {
+                  id: uuidv4(),
+                  vesselType: "vein" as const,
+                  recipientVesselName:
+                    BREAST_RECON_DEFAULT_RECIPIENT_VESSELS.vein,
+                  couplingMethod: "coupler" as const,
+                },
+              ]
+            : [];
+
+        clinicalDetails = {
+          flapType: mappedFlapType,
+          flapSnomedCode: snomedEntry?.code,
+          flapSnomedDisplay: snomedEntry?.display,
+          harvestSide: "left",
+          anastomoses,
+          recipientSiteRegion,
+          recipientSiteSnomedCode: recipientSiteSnomed?.code,
+          recipientSiteSnomedDisplay: recipientSiteSnomed?.display,
+          ...(indication ? { indication } : {}),
+          ...(skinIsland !== undefined ? { skinIsland } : {}),
+          ...(Object.keys(flapSpecificDetails).length > 0
+            ? { flapSpecificDetails }
+            : {}),
+          ...(prefAnticoag ? { anticoagulationProtocol: prefAnticoag } : {}),
+        } as FreeFlapDetails;
+      } else if (entry.hasSlnb) {
+        clinicalDetails = {
+          basins: [],
+          radioisotopeUsed: true, // default: most SLNBs use radioisotope
+          gammaProbeUsed: true,
+        } as SlnbDetails;
       }
 
-      if (mappedFlapType === "fibula") {
-        const fibulaDefaults = getFibulaContextDefaults(recipientSiteRegion);
-        flapSpecificDetails = {
-          ...flapSpecificDetails,
-          ...fibulaDefaults,
-        };
-      }
-
-      if (mappedFlapType === "diep" && diagnosisLaterality === "bilateral") {
-        flapSpecificDetails = {
-          ...flapSpecificDetails,
-          ...DIEP_BILATERAL_DEFAULTS,
-        };
-      }
-
-      // ── Breast recon default vessels ──
-      const anastomoses =
-        recipientSiteRegion === "breast_chest"
-          ? [
-              {
-                id: uuidv4(),
-                vesselType: "artery" as const,
-                recipientVesselName:
-                  BREAST_RECON_DEFAULT_RECIPIENT_VESSELS.artery,
-                anastomosisConfiguration: "end_to_end" as const,
-                couplingMethod: "hand_sewn" as const,
-              },
-              {
-                id: uuidv4(),
-                vesselType: "vein" as const,
-                recipientVesselName:
-                  BREAST_RECON_DEFAULT_RECIPIENT_VESSELS.vein,
-                couplingMethod: "coupler" as const,
-              },
-            ]
-          : [];
-
-      clinicalDetails = {
-        flapType: mappedFlapType,
-        flapSnomedCode: snomedEntry?.code,
-        flapSnomedDisplay: snomedEntry?.display,
-        harvestSide: "left",
-        anastomoses,
-        recipientSiteRegion,
-        recipientSiteSnomedCode: recipientSiteSnomed?.code,
-        recipientSiteSnomedDisplay: recipientSiteSnomed?.display,
-        ...(indication ? { indication } : {}),
-        ...(skinIsland !== undefined ? { skinIsland } : {}),
-        ...(Object.keys(flapSpecificDetails).length > 0
-          ? { flapSpecificDetails }
-          : {}),
-        ...(prefAnticoag ? { anticoagulationProtocol: prefAnticoag } : {}),
-      } as FreeFlapDetails;
-    } else if (entry.hasSlnb) {
-      clinicalDetails = {
-        basins: [],
-        radioisotopeUsed: true, // default: most SLNBs use radioisotope
-        gammaProbeUsed: true,
-      } as SlnbDetails;
-    }
-
-    onUpdate({
-      ...procedure,
-      procedureName: entry.displayName,
-      picklistEntryId: entry.id,
-      subcategory: entry.subcategory,
-      tags: entry.tags,
-      snomedCtCode: entry.snomedCtCode,
-      snomedCtDisplay: entry.snomedCtDisplay,
-      clinicalDetails,
-      implantDetails:
-        entry.hasImplant && entry.id === procedure.picklistEntryId
-          ? procedure.implantDetails
-          : undefined,
-    });
-  };
+      onUpdate({
+        ...current,
+        procedureName: entry.displayName,
+        picklistEntryId: entry.id,
+        subcategory: entry.subcategory,
+        tags: entry.tags,
+        snomedCtCode: entry.snomedCtCode,
+        snomedCtDisplay: entry.snomedCtDisplay,
+        clinicalDetails,
+        implantDetails:
+          entry.hasImplant && entry.id === current.picklistEntryId
+            ? current.implantDetails
+            : undefined,
+      });
+    },
+    [diagnosisId, clinicalGroup, diagnosisLaterality, onUpdate, profile],
+  );
 
   const handleProcedureNameChange = (value: string) => {
     onUpdate({
@@ -362,7 +378,7 @@ function ProcedureEntryCardInner({
             <Pressable
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                onMoveUp?.();
+                onMoveUp?.(procedure.id);
               }}
               hitSlop={8}
               style={styles.iconButton}
@@ -378,7 +394,7 @@ function ProcedureEntryCardInner({
             <Pressable
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                onMoveDown?.();
+                onMoveDown?.(procedure.id);
               }}
               hitSlop={8}
               style={styles.iconButton}
@@ -394,7 +410,7 @@ function ProcedureEntryCardInner({
             <Pressable
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                onDelete();
+                onDelete(procedure.id);
               }}
               hitSlop={8}
               style={styles.iconButton}

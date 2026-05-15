@@ -1517,15 +1517,9 @@ export function BreastProgressiveAssessment({
                     )}
                     isOnlyProcedure={draftProcedures.length === 1}
                     onUpdate={handleUpdateDraftProcedure}
-                    onDelete={() =>
-                      handleRemoveDraftProcedure(draftCustomProcedure.id)
-                    }
-                    onMoveUp={() =>
-                      moveDraftProcedure(draftCustomProcedure.id, -1)
-                    }
-                    onMoveDown={() =>
-                      moveDraftProcedure(draftCustomProcedure.id, 1)
-                    }
+                    onDelete={handleRemoveDraftProcedure}
+                    onMoveUp={(id) => moveDraftProcedure(id, -1)}
+                    onMoveDown={(id) => moveDraftProcedure(id, 1)}
                     canMoveUp={
                       draftProcedures.findIndex(
                         (procedure) => procedure.id === draftCustomProcedure.id,
