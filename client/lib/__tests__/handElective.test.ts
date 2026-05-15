@@ -13,6 +13,10 @@ import {
   bridgeDigitsToFingers,
   QUINNELL_GRADES,
 } from "@/lib/handElectiveFieldConfig";
+import {
+  resolveDigitConfig,
+  MULTI_DIGIT_RESOLUTIONS,
+} from "@/lib/diagnosisPicklists/multiDigitConfig";
 
 // ═══════════════════════════════════════════════════════════
 // Helpers
@@ -637,6 +641,41 @@ describe("Per-finger Quinnell grading", () => {
     );
     expect(dx).toBeDefined();
     expect(dx!.hasStaging).toBe(false);
+  });
+
+  // Multi-digit resolution covers all 5 digits with thumb override.
+  // These tests guard against regressions in the data shape that the
+  // DiagnosisGroupEditor multi-digit confirm callback depends on. If the
+  // resolution map regresses (missing trigger_digit entry, broken override
+  // shape), the wired-up handler would silently fail to generate procedures.
+  it("multi-digit resolution: thumb (I) uses trigger thumb SNOMED + procedure", () => {
+    const resolution = resolveDigitConfig("hand_dx_trigger_digit", "I");
+    expect(resolution).not.toBeNull();
+    expect(resolution!.diagnosisSnomedCode).toBe("202855006");
+    expect(resolution!.procedurePicklistId).toBe("hand_comp_trigger_thumb");
+  });
+
+  it("multi-digit resolution: fingers (II-V) use trigger finger SNOMED + procedure", () => {
+    for (const digit of ["II", "III", "IV", "V"] as const) {
+      const resolution = resolveDigitConfig("hand_dx_trigger_digit", digit);
+      expect(resolution).not.toBeNull();
+      expect(resolution!.diagnosisSnomedCode).toBe("1539003");
+      expect(resolution!.procedurePicklistId).toBe("hand_comp_trigger_finger");
+    }
+  });
+
+  it("multi-digit resolution returns null for unmapped diagnosis", () => {
+    expect(resolveDigitConfig("hand_dx_carpal_tunnel", "II")).toBeNull();
+  });
+
+  it("multi-digit resolution map only contains hasDigitMultiSelect diagnoses", () => {
+    // Every key in MULTI_DIGIT_RESOLUTIONS must reference a real diagnosis
+    // that has hasDigitMultiSelect:true. Prevents drift between data files.
+    for (const diagnosisId of Object.keys(MULTI_DIGIT_RESOLUTIONS)) {
+      const dx = HAND_SURGERY_DIAGNOSES.find((d) => d.id === diagnosisId);
+      expect(dx).toBeDefined();
+      expect(dx!.hasDigitMultiSelect).toBe(true);
+    }
   });
 });
 

@@ -3220,6 +3220,10 @@ function DiagnosisGroupEditorInner({
                       handleToggleProcedureSuggestion
                     }
                     onShowAllProcedures={() => setShowAllProcedures(true)}
+                    pendingMultiDigitDiagnosis={pendingMultiDigitDiagnosis}
+                    selectedDigits={selectedDigits}
+                    onDigitsChange={setSelectedDigits}
+                    onMultiDigitConfirm={handleMultiDigitConfirm}
                   />
 
                   {/* Fast path: add another elective hand diagnosis */}
