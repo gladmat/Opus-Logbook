@@ -1,34 +1,35 @@
-# Next-session prompt — Opus visual + functional audit (overnight autonomous run)
+# Next-session prompt — Opus audit, session 4 (follow-up + backlog)
 
 > Paste everything below the line into a fresh Claude Code session in
-> `/Users/mateusz/projects-local/Opus_Logbook`. It is designed to run autonomously
-> for hours — work the priority list top-down, commit after every cluster, and stop
-> cleanly when context gets tight (see "End-of-session protocol").
+> `/Users/mateusz/projects-local/Opus_Logbook`. Designed to run autonomously —
+> work the priority list top-down, commit after every cluster, stop cleanly when
+> context gets tight (see "End-of-session protocol").
 
 ---
 
-You are continuing a multi-session visual + functional audit of **Opus**, a full-stack
-Expo/React Native surgical logbook. Two prior sessions ran on 2026-05-14. **Your job
-tonight: drive the iOS simulator autonomously, capture and evaluate the screens the
-prior sessions could not reach, fix objective UI defects inline, and catalogue
-everything for a later design-polish pass.** Mateusz is asleep — work end-to-end without
-checking in, be persistent through friction, and commit progressively so nothing is lost.
+You are continuing a multi-session visual + functional audit of **Opus**, a
+full-stack Expo/React Native surgical logbook. Sessions 1–3 ran on 2026-05-14/15.
+**Session 3 completed the full screen-capture brief** — all 11 specialty modules,
+the 40-screen map, the 5-step onboarding flow, populated data surfaces, iPhone
+SE 3, and a light-theme sweep are all captured and evaluated. The app's visual
+craftsmanship was found to be strong: only **two** Broken/Wrong layout bugs
+across everything, both fixed. **Your job now is the follow-up backlog** — the
+structural findings sessions 1–3 reported but did not fix, plus a few capture
+gaps. Mateusz is asleep — work end-to-end, be persistent through friction, commit
+progressively.
 
 ## START HERE — read these first, in order
 
-1. `.claude/audit-2026-05-14/REPORT-session2.md` — the prior session's full write-up:
-   what was fixed (4 real bugs incl. a Critical E2EE one), what was captured (~30
-   screens), the **"Coverage & honest gaps"** section (your task list) and the
-   **"Tooling notes for the next session"** section (read this carefully — it will save
-   you hours of the friction the prior session paid).
-2. `.claude/audit-2026-05-14/REPORT.md` — the original prep-session report (environment
-   recipe, findings #1–#13).
-3. `CLAUDE.md` → **"AI Testing & Visual Quality Standards"** + **"Design Quality &
-   Aesthetics"** — the authoritative spec: 40-screen map, 12 specialties, testID
-   conventions, theme tokens, the visual QA checklist, and the **Screenshot Evaluation
-   Priority** triage (Broken / Wrong / Uncomfortable / Inconsistent / Unpolished).
-4. Your auto-loaded memory: `project_mac_dev_env.md` (environment recipe + Maestro
-   gotchas) and `feedback_testing_delegation.md` (how Mateusz wants this run).
+1. `.claude/audit-2026-05-14/REPORT-session3.md` — the most recent report. Its
+   **"Findings — triaged"** section IS your task list; its **"Coverage & gaps"**
+   section lists exactly what's left. Read the **"Tooling notes"** section near
+   the top — the kAXError workarounds will save you hours.
+2. `.claude/audit-2026-05-14/REPORT-session2.md` + `REPORT.md` — earlier findings
+   (the Critical E2EE fix, findings #1–#13).
+3. `CLAUDE.md` → "AI Testing & Visual Quality Standards" + "Design Quality &
+   Aesthetics" — the authoritative spec.
+4. Your auto-loaded memory: `project_mac_dev_env.md`, `project_opus_visual_audit.md`,
+   `feedback_testing_delegation.md`.
 
 ## ENVIRONMENT BRING-UP
 
@@ -39,102 +40,109 @@ export LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
 ```
 
 - iPhone 17 sim, UDID `6AF34D12-7A59-439E-A861-768C5578B00A`, iOS 26.4. `Opus.app`
-  should still be installed. If the build is stale, rebuild:
+  should still be installed. Rebuild only if stale:
   `LC_ALL=en_US.UTF-8 npx expo run:ios --device 6AF34D12-7A59-439E-A861-768C5578B00A`.
-- API server (`npm run server:dev`, port 5001) and Metro (port 8081) were left running
-  by the prior session but **may have died** — verify and restart if needed (Metro:
-  `EXPO_PUBLIC_API_URL=http://localhost:5001 npx expo start --dev-client --port 8081`).
-- **Verify the API works before driving the UI:**
-  `curl -s -X POST http://127.0.0.1:5001/api/auth/login -H "Content-Type: application/json" -d '{"email":"m.gladysz@outlook.com","password":"testtest"}'` → expect a JWT.
-  If it 500s, the local DB drifted again — fix with
-  `DATABASE_URL="postgresql://localhost:5432/surgical_logbook" npx drizzle-kit push --force`.
-- Login is via the dev deep link: `xcrun simctl openurl booted "opus://debug/login"` or
-  `maestro test .maestro/audit-login.yaml`. Do **not** fight the sign-in form.
+- API server (`npm run server:dev`, :5001) + Metro (:8081) may have died — verify
+  + restart. Verify the API: `curl -s -X POST http://127.0.0.1:5001/api/auth/login
+  -H "Content-Type: application/json" -d '{"email":"m.gladysz@outlook.com","password":"testtest"}'`
+  → expect a JWT. If it 500s: `DATABASE_URL="postgresql://localhost:5432/surgical_logbook" npx drizzle-kit push --force`.
+- Login: `xcrun simctl openurl booted "opus://debug/login"`.
 
-## PROVEN WORKING METHOD (do not re-discover this)
+## PROVEN WORKING METHOD (session 3 — do not re-discover)
 
-- **Every Maestro flow starts with `launchApp`** — it is the only deterministic anchor
-  (always lands on the authenticated dashboard). `back`-chaining and `scrollUntilVisible`
-  on long ScrollViews are unreliable; keep flows short and launchApp-anchored.
-- Navigation: FAB → `dashboard.fab.btn-main` → `dashboard.fab.btn-log` → AddCaseScreen →
-  `addCase.card-{specialty}` → CaseForm → `caseForm.nav.pill-{patient|team|case|operative|media|outcomes}`.
-- The dev **LogBox banner** covers the bottom ~90 pt (tab bar). The FAB and case-form
-  pills sit *above* it, so most flows don't need it dismissed. For tab navigation, open
-  + close the FAB speed dial first. NEVER blind-tap a coordinate to dismiss it.
-- Screenshots: `xcrun simctl io booted screenshot <path>` (primary) or Maestro's
-  `takeScreenshot`. Theme: `xcrun simctl ui booted appearance light|dark`.
-- `expo-mcp` automation tools are NOT available — don't try them.
-- Throwaway Maestro flows go in `/tmp/audit-flows/`. Get the full testID list with
-  `grep -rhoE 'testID="[^"]*"' client/ | sort -u` plus `tabBarButtonTestID` props.
+- **Three `__DEV__` debug deep links exist** (`client/components/DevDeepLinkHandler.tsx`):
+  `opus://debug/login`, `opus://debug/seed` (22 audit cases + 1 episode), and
+  `opus://debug/onboarding` (replays the post-auth onboarding flow). Fire via
+  `xcrun simctl openurl booted "<url>"`.
+- **After ANY client code edit, force a fresh Metro bundle before testing.**
+  `launchApp` alone serves a stale bundle. Recipe:
+  `xcrun simctl terminate booted com.drgladysz.opus` →
+  `curl -s -m 180 "http://localhost:8081/.expo/.virtual-metro-entry.bundle?platform=ios&dev=true" -o /tmp/x.bundle`
+  (this blocks until Metro rebuilds; `grep` your change in `/tmp/x.bundle` to confirm)
+  → `xcrun simctl launch booted com.drgladysz.opus` → deep-link login.
+- **`kAXErrorInvalidUIElement` is the #1 friction.** Maestro 2.5.1's `tapOn`
+  hierarchy query crashes intermittently — worst on dense screens (Settings list,
+  case form, NeedsAttentionList). **Workaround: coordinate-tap (`tapOn: { point: "x%,y%" }`)
+  — a point tap needs no hierarchy query.** Take a screenshot first to get the
+  coordinate. This is how session 3 got past the Settings list and the onboarding
+  CTAs.
+- **`launchApp` cold-restarts the dev client** — it loses in-memory state. For
+  stateful flows (onboarding replay), do NOT `launchApp` in the Maestro flow;
+  fire the deep link from the host, then run a flow that starts with
+  `waitForAnimationToEnd` and drives from the current screen.
+- **`retryTapIfNoChange: false`** is mandatory on toggle-type elements (FAB,
+  chips). The LogBox dev banner covers the bottom ~90 pt — dismiss with
+  `tapOn: { point: "94%,93%" }` guarded by `runFlow when visible text:".*Open debugger.*"`.
+- Screenshots: `.claude/audit-screenshot.sh <path>` (downscales to ≤1568 px).
+  Theme: `xcrun simctl ui booted appearance light|dark`.
+- Throwaway flows in `/tmp/audit-flows/`; `/tmp/audit-flows/run.sh <name>...` is a
+  robust runner (per-flow timeout + kill + retry). Session 3's flows are still there.
 
-## THE TASK — priority order (work top-down; each is a committable cluster)
+## THE TASK — priority order (each is a committable cluster)
 
-Write screenshots to `.claude/audit-<today's date>/screenshots/` and findings to
-`.claude/audit-<today's date>/REPORT-session3.md`. Capture **dark + light** and, where
-noted, **iPhone SE 3 (375 pt)**.
+Write any new screenshots to `.claude/audit-2026-05-14/screenshots/`, findings to
+a new `.claude/audit-2026-05-14/REPORT-session4.md`.
 
-1. **Specialty assessment modules WITH a diagnosis selected.** The prior sessions
-   captured only the diagnosis *pickers*. Drive each specialty's case form, pick a
-   representative diagnosis, and screenshot the rendered assessment module
-   (HandTraumaAssessment, SkinCancerAssessment, BreastAssessment, BurnsAssessment,
-   etc.). This is the densest custom UI in the app — highest bug yield. No data seeding
-   needed.
-2. **iPhone SE 3 (375 pt) pass.** Boot `iPhone SE (3rd generation)`, install, re-capture
-   the core screens + case form + a few specialty modules. The one known visual finding
-   (SectionNavBar truncates "Oper…"/"Outc…") should be checked here first — Phase 7's
-   short-label logic is meant to trigger at this width.
-3. **Remaining 3 specialties** — `head_neck`, `cleft_cranio`, `general` are not in the
-   test account's visible set. Enable all 12 in Settings → Personalisation, then capture
-   their case forms + modules.
-4. **Settings sub-screens** — EditProfile, ManageFacilities, SurgicalPreferences,
-   Personalisation, TeamContacts, SetupAppLock, ChangePassword. (Maestro scroll-to-find
-   is flaky on the Settings list — anchor with `launchApp` + a tab tap each time.)
-5. **Capture screens** — OpusCamera, GuidedCapture, SmartImport, PlanCase. Grant camera
-   first: `xcrun simctl privacy booted grant camera com.drgladysz.opus`.
-6. **Seeded-data run** — create ~6 cases across specialties through the case form
-   (cases are on-device only; there is no API seed path). Then audit the screens that
-   need data: CaseDetail, AddTimelineEvent, AddHistology, EpisodeList, EpisodeDetail,
-   NeedsAttentionList, and the *populated* Dashboard + Statistics (charts, deltas,
-   milestone timeline).
-7. **Onboarding flow** — needs a `clearState` launch; walk Welcome → Features →
-   EmailSignup → Categories → Training → Hospital → Privacy, then re-login via the deep
-   link.
-8. **Full light-theme sweep** — re-run the dark clusters in light for anything not yet
-   covered in both themes.
+1. **Two dead routes — `PlanCase` and `EpisodeList`.** Both are registered in
+   `RootStackNavigator.tsx` but nothing calls `navigation.navigate(...)` for them.
+   Investigate git history / surrounding code to decide delete-vs-rewire for each.
+   `PlanCase` was almost certainly superseded by the in-form plan-mode toggle —
+   likely a clean delete. `EpisodeList` (full SectionList screen, `episodes.input-search`)
+   may have lost its entry point in a refactor — check whether it *should* be
+   reachable (e.g. from a Settings row or an episode-related surface). Fix
+   whichever way is correct; this is an objective dead-code finding.
+2. **testID + a11y backlog.** Add `testID` + `accessibilityRole`/`accessibilityLabel`
+   to: `client/components/ProcedureSubcategoryPicker.tsx` procedure rows
+   (`caseForm.procedure.row-${entry.id}`), `client/components/dashboard/AttentionCard.tsx`
+   (the card + its quick-action buttons), and the 5 onboarding screens
+   (`CategoriesScreen` / `TrainingScreen` / `HospitalScreen` / `PrivacyScreen` /
+   `SecurityScreen` — CLAUDE.md's screen map cites `onboarding.*` testIDs that
+   don't exist). Then the pre-existing batch: raw-hex sweep (~29 files — see
+   REPORT.md finding #10) + case-form Pressable a11y gaps (REPORT.md finding #11).
+   This is large but mechanical and squarely "fix inline".
+3. **CLAUDE.md screen-map fix.** The post-auth onboarding is **5 steps**, not 4 —
+   `SecurityScreen` ("Secure your logbook", PIN setup) follows Privacy. Update the
+   screen-map section. Also note in CLAUDE.md that onboarding cannot be *completed*
+   without setting a PIN (`SecurityScreen` has no skip) — confirm with Mateusz
+   whether that is intended.
+4. **HeadNeck / case-form re-render perf investigation.** `HeadNeckDiagnosisPicker`
+   is unusually `kAXErrorInvalidUIElement`-prone, which usually means continuous
+   re-rendering. Connect React DevTools, do a "highlight re-renders" pass on the
+   case form + `HeadNeckDiagnosisPicker`. If it re-renders on a loop, that's a
+   real perf bug (jank on the 88-diagnosis picker) — fix it.
+5. **Remaining light-theme captures** — light NeedsAttentionList, EpisodeDetail,
+   Settings sub-screens (session 3's `light-data.yaml` died partway on the
+   kAXError-flaky NeedsAttention nav). Low-risk; nice-to-have for completeness.
+6. **Deeper module coverage** — session 3 captured specialty modules at
+   "diagnosis selected + scrolled"; the deepest nested cards (Aesthetics
+   `ImplantDetailsCard`, per-procedure footers, etc.) were not all reached.
 
-## GUARDRAILS — important, you are running unsupervised
+> **NOT for this session (needs a server session):** the BCRL lymphoedema
+> TNM-vs-ISL staging bug in `server/diagnosisStagingConfig.ts` — the audit brief
+> forbids touching `server/`. Flag it to Mateusz instead.
 
-- **Fix inline only OBJECTIVE defects:** raw hex instead of `theme.*` tokens, WCAG
-  contrast failures, touch targets < 44 pt, text < 12 pt, text truncation/overflow bugs,
-  missing `testID` / `accessibilityRole` / `accessibilityLabel`, and clear functional
-  bugs. These map to CLAUDE.md's **Broken / Wrong / Uncomfortable** tiers.
-- **Do NOT make subjective design changes** (layout redesigns, "this would look nicer",
-  spacing/visual-hierarchy taste calls) autonomously. Catalogue those — with the
-  screenshot — under **Inconsistent / Unpolished** in the report for Mateusz's design
-  pass. The nav-pill truncation is exactly this kind of call: report it, don't redesign
-  the nav bar.
-- Respect every CLAUDE.md **locked decision** and **anti-pattern** — especially the
-  skin-cancer process design guidelines and the per-module "DO NOT" lists.
-- **Do not touch `server/` or `shared/`** — keep the night's work client-only (no
-  Railway implications). Do not push to remote. Do not trigger an EAS build.
-- Before committing any code change, run `npm run check:types` (must stay clean). The
-  pre-commit hook runs lint/format. Make focused, well-described commits per cluster.
-- The known-batch backlog (raw-hex sweep ~29 files, case-form Pressable a11y gaps) is a
-  separate dedicated session — note *new* instances you see but don't rabbit-hole into
-  the whole backlog.
-- Local dev API on :5001 only — never point at Railway prod.
+## GUARDRAILS
+
+- **Fix inline only OBJECTIVE defects:** dead code/routes, missing
+  `testID`/`accessibilityRole`/`accessibilityLabel`, raw hex instead of `theme.*`,
+  WCAG contrast failures, <44 pt targets, <12 pt text, truncation/overflow bugs,
+  clear functional bugs. **Do NOT make subjective design changes** — catalogue
+  Inconsistent/Unpolished items for Mateusz's design pass.
+- Respect every CLAUDE.md **locked decision** and **anti-pattern**.
+- **Do not touch `server/` or `shared/`.** Do not push to remote. Do not trigger
+  an EAS build. Local dev API on :5001 only.
+- Before committing code, `npm run check:types` must stay clean. Make focused,
+  well-described commits per cluster.
+- If you flip server-side state for testing (e.g. `onboardingComplete`), restore
+  it before you finish — `PUT /api/profile` with the test-account JWT.
 
 ## END-OF-SESSION PROTOCOL
 
-When context gets tight (or the priority list is done):
-1. Commit any uncommitted screenshots + the in-progress `REPORT-session3.md`.
-2. Make sure `REPORT-session3.md` has: a TL;DR, the findings (triaged), a commits table,
-   and an honest **"Coverage & gaps"** section listing what's still not done.
-3. If the priority list isn't finished, write an updated `NEXT-SESSION-PROMPT.md` (same
-   structure as this file) so session 4 can continue.
-4. Final message to Mateusz: concise summary — bugs fixed, screens covered, top
-   findings for his design pass, what's left.
+1. Commit any uncommitted screenshots + the in-progress `REPORT-session4.md`.
+2. `REPORT-session4.md` needs: TL;DR, triaged findings, a commits table, an
+   honest "Coverage & gaps".
+3. If the priority list isn't finished, update this `NEXT-SESSION-PROMPT.md`.
+4. Final message to Mateusz: concise — what was fixed, what's left, top design-pass items.
 
-Be thorough and persistent — Mateusz explicitly wants a long autonomous run and picked
-the most comprehensive scope at every fork. Surface real blockers honestly, but only
-after genuinely trying to get past them.
+Be thorough and persistent. Mateusz wants a long autonomous run and the most
+comprehensive scope at every fork.
