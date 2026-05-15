@@ -151,26 +151,6 @@ export function filterOutPlannedCases<T extends { caseStatus?: string }>(
   return cases.filter((caseData) => !isPlannedCaseSummary(caseData));
 }
 
-export function getPlannedCases<
-  T extends { caseStatus?: string; plannedDate?: string; createdAt: string },
->(cases: T[]): T[] {
-  return cases.filter(isPlannedCaseSummary).sort((a, b) => {
-    // Sort by plannedDate ascending (unscheduled last), then createdAt
-    if (a.plannedDate && b.plannedDate) {
-      return a.plannedDate.localeCompare(b.plannedDate);
-    }
-    if (a.plannedDate && !b.plannedDate) return -1;
-    if (!a.plannedDate && b.plannedDate) return 1;
-    return a.createdAt.localeCompare(b.createdAt);
-  });
-}
-
-export function getPlannedCaseCount<T extends { caseStatus?: string }>(
-  cases: T[],
-): number {
-  return cases.filter(isPlannedCaseSummary).length;
-}
-
 export function filterCasesByVisibleSpecialties<T extends Case | CaseSummary>(
   cases: T[],
   visibleSpecialties: Specialty[],

@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Case } from "@/types/case";
 import { resolvedCaseStatus, isPlannedCase } from "@/types/case";
-import {
-  filterOutPlannedCases,
-  getPlannedCases,
-  getPlannedCaseCount,
-} from "../dashboardSelectors";
+import { filterOutPlannedCases } from "../dashboardSelectors";
 import { inboxItemToOperativeMediaSmart } from "../inboxAssignment";
 import type { InboxItem } from "@/types/inbox";
 
@@ -117,72 +113,6 @@ describe("filterOutPlannedCases", () => {
       makeCase({ id: "c2", caseStatus: "planned" }),
     ];
     expect(filterOutPlannedCases(cases)).toHaveLength(0);
-  });
-});
-
-// ═══════════════════════════════════════════════════════════
-// getPlannedCases
-// ═══════════════════════════════════════════════════════════
-
-describe("getPlannedCases", () => {
-  it("returns only planned cases", () => {
-    const cases = [
-      makeCase({ id: "c1", caseStatus: "active" }),
-      makeCase({ id: "c2", caseStatus: "planned", plannedDate: "2025-07-01" }),
-      makeCase({ id: "c3", caseStatus: "planned", plannedDate: "2025-06-20" }),
-    ];
-    const result = getPlannedCases(cases);
-    expect(result).toHaveLength(2);
-  });
-
-  it("sorts by plannedDate ascending", () => {
-    const cases = [
-      makeCase({
-        id: "late",
-        caseStatus: "planned",
-        plannedDate: "2025-08-01",
-      }),
-      makeCase({
-        id: "early",
-        caseStatus: "planned",
-        plannedDate: "2025-06-01",
-      }),
-      makeCase({ id: "mid", caseStatus: "planned", plannedDate: "2025-07-01" }),
-    ];
-    const result = getPlannedCases(cases);
-    expect(result.map((c) => c.id)).toEqual(["early", "mid", "late"]);
-  });
-
-  it("puts cases without plannedDate last", () => {
-    const cases = [
-      makeCase({ id: "noDate", caseStatus: "planned" }),
-      makeCase({
-        id: "hasDate",
-        caseStatus: "planned",
-        plannedDate: "2025-06-01",
-      }),
-    ];
-    const result = getPlannedCases(cases);
-    expect(result.map((c) => c.id)).toEqual(["hasDate", "noDate"]);
-  });
-});
-
-// ═══════════════════════════════════════════════════════════
-// getPlannedCaseCount
-// ═══════════════════════════════════════════════════════════
-
-describe("getPlannedCaseCount", () => {
-  it("returns count of planned cases", () => {
-    const cases = [
-      makeCase({ id: "c1", caseStatus: "planned" }),
-      makeCase({ id: "c2", caseStatus: "active" }),
-      makeCase({ id: "c3", caseStatus: "planned" }),
-    ];
-    expect(getPlannedCaseCount(cases)).toBe(2);
-  });
-
-  it("returns 0 when no planned cases", () => {
-    expect(getPlannedCaseCount([makeCase()])).toBe(0);
   });
 });
 
