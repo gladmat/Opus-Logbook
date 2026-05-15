@@ -1,51 +1,60 @@
-# Next-session prompt — Opus audit, session 6 (overnight autonomous)
+# Next-session prompt — Opus audit, session 7
 
 > Paste everything below the line into a fresh Claude Code session in
-> `/Users/mateusz/projects-local/Opus_Logbook`. **Designed to run
-> autonomously through the night** — work the priority list top-down,
-> commit after every cluster, stop cleanly between clusters when context
-> gets tight. Session 6 front-loads source-level work that doesn't need
-> the simulator (because unattended sim runs are fragile); sim-dependent
-> clusters are at the END so they only run if the source-level work
-> finishes early AND the sim is healthy.
+> `/Users/mateusz/projects-local/Opus_Logbook`. Designed to run
+> autonomously — work the priority list top-down, commit after every
+> cluster, stop cleanly between clusters when context gets tight. Most
+> source-level audit work is done; session 7 is for the deeper refactors
+> session 6 explicitly deferred + the sim-dependent work that's been
+> skipped since session 3.
 
 ---
 
 You are continuing a multi-session visual + functional audit of **Opus**,
-a full-stack Expo/React Native surgical logbook. Sessions 1–5 (2026-05-14/15)
-cleared all the source-level audit findings:
-- 40-screen visual sweep + 11 specialty modules + populated data surfaces +
-  light-theme sweep + iPhone SE 3 (sessions 1–3)
-- Dead routes deleted, testID + a11y backlog, raw-hex round 1, case-form
-  Pressable a11y, HeadNeck React.memo (session 4)
-- Server BCRL/post-melanoma TNM-vs-ISL staging fix, vestigial PlanCase
-  cleanup, React.memo perf audit (DiagnosisPicker / HandElectivePicker /
-  ProcedureSubcategoryPicker), all 19 react-hooks/exhaustive-deps closed,
-  18 import-duplicates closed, 29 array-types closed, 82 of 83 unused-vars
-  closed, raw-hex round 2 with new theme.pathology / .burnDepth /
-  .nerveSeverity tokens (session 5)
+a full-stack Expo/React Native surgical logbook. Sessions 1–6 (2026-05-14/16)
+have cleared the bulk of source-level audit findings:
 
-**Current lint state:** 3 warnings remain across the entire codebase
-(`handleMultiDigitConfirm` half-shipped feature flagged for Mateusz, plus
-2 `import/no-named-as-default` from npm packages we can't fix). **Tests:**
-1541/1541. **`tsc --noEmit`:** clean.
+- **Sessions 1–3:** 40-screen visual sweep, 11 specialty modules,
+  populated-data surfaces, light-theme sweep, iPhone SE 3.
+- **Session 4:** Dead routes deleted, testID + a11y backlog, raw-hex
+  round 1, case-form Pressable a11y, HeadNeck React.memo.
+- **Session 5:** Server BCRL/post-melanoma TNM-vs-ISL staging fix,
+  vestigial PlanCase cleanup, React.memo perf audit (DiagnosisPicker /
+  HandElectivePicker / ProcedureSubcategoryPicker), all 19
+  react-hooks/exhaustive-deps closed, 18 import-duplicates, 29
+  array-types, 82 unused-vars, raw-hex round 2.
+- **Session 6:** Onboarding token activation + raw-hex round 3 (132 → 10),
+  half-shipped multi-digit trigger digit feature wired up,
+  ProcedureClinicalDetails React.memo + stable props, BreastProgressive
+  picker handler stabilised, 4 test coverage gaps closed (+69 tests:
+  moduleVisibility / caseNormalization / caseDiagnosisSummary /
+  seniorityTier), CLAUDE.md drift fixes for 10+ quantitative claims.
 
-Session 6 is the FOLLOW-UP pass — verify session 5 didn't break anything,
-attack the remaining raw-hex pile, find perf gaps the original brief
-missed, and (if time permits) on-device verification + Maestro flows.
+**Current state:**
+- **Tests:** 1614/1614 across 91 files.
+- **Lint warnings:** 2 (both upstream `import/no-named-as-default` from
+  `expo-server-sdk` and `express-rate-limit` — can't fix without forking).
+- **`tsc --noEmit`:** clean.
+- **Raw-hex in client/:** 10 (all legitimate per CLAUDE.md skip rules).
+- **No remaining client-side lint warnings.**
+
+Session 7 picks up the work session 6 explicitly deferred plus the
+sim-dependent clusters that have been skipped since session 3.
 
 ## START HERE — read these first, in order
 
-1. `.claude/audit-2026-05-14/REPORT-session5.md` — most recent. Its
-   "Findings — triaged" + "Coverage & gaps" sections list what's left.
-2. `.claude/audit-2026-05-14/REPORT-session4.md`
-3. `.claude/audit-2026-05-14/REPORT-session3.md` — has the "Tooling
+1. `.claude/audit-2026-05-14/REPORT-session6.md` — most recent. Its
+   "Findings — triaged" + "Coverage & gaps" sections list what's left,
+   including the perf refactor that's now the biggest remaining win.
+2. `.claude/audit-2026-05-14/REPORT-session5.md`
+3. `.claude/audit-2026-05-14/REPORT-session4.md`
+4. `.claude/audit-2026-05-14/REPORT-session3.md` — has the "Tooling
    notes" with Maestro 2.5.1 kAXError workarounds. Read before driving
    the sim.
-4. `.claude/audit-2026-05-14/REPORT-session2.md` + `REPORT.md`
-5. `CLAUDE.md` → "AI Testing & Visual Quality Standards" + "Design
+5. `.claude/audit-2026-05-14/REPORT-session2.md` + `REPORT.md`
+6. `CLAUDE.md` → "AI Testing & Visual Quality Standards" + "Design
    Quality & Aesthetics".
-6. Auto-loaded memory: `project_mac_dev_env.md`,
+7. Auto-loaded memory: `project_mac_dev_env.md`,
    `project_opus_visual_audit.md`, `feedback_testing_delegation.md`.
 
 ## ENVIRONMENT BRING-UP — verify but don't depend on it
@@ -56,284 +65,235 @@ export PATH=$JAVA_HOME/bin:$HOME/.maestro/bin:$PATH
 export LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
 ```
 
-**Source-level clusters (1–6) don't need the sim or API server.** They
+**Source-level clusters (1–3) don't need the sim or API server.** They
 run on:
 - `npm run check:types` (must stay clean)
 - `npx vitest run` (must stay green; can add tests)
-- `npm run lint` (warning count must not increase)
+- `npm run lint` (warning count must not increase above 2)
 
-For the optional sim-dependent clusters (7–9): iPhone 17 sim UDID
+For the optional sim-dependent clusters (4–6): iPhone 17 sim UDID
 `6AF34D12-7A59-439E-A861-768C5578B00A`, iOS 26.4. Verify before
 attempting: `xcrun simctl list devices | grep 6AF34D12`. If the sim
-isn't booted or the app isn't installed, **skip clusters 7–9** and
-spend the remaining time on cluster 6 or write a follow-up audit
-document. Don't burn an hour trying to revive the sim unattended.
+isn't booted or the app isn't installed, **skip clusters 4–6** and
+spend the remaining time on cluster 3 or write a follow-up audit
+document. Don't burn time trying to revive the sim unattended.
 
 ## THE TASK — priority order
 
 Write any new screenshots to `.claude/audit-2026-05-14/screenshots/`,
-findings to a new `.claude/audit-2026-05-14/REPORT-session6.md`. **Work
-the list top-down**; each cluster is independently committable. Stop
-cleanly between clusters if you hit context limits.
+findings to a new `.claude/audit-2026-05-14/REPORT-session7.md`. **Work
+the list top-down**; each cluster is independently committable.
 
 ---
 
-### 1. **Session 5 commit self-review** (~30 min, source-level)
+### 1. **ProcedureEntryCard perf refactor — biggest remaining perf win** (~1.5 hours, source-level)
 
-The fastest way to catch any damage session 5 caused: read each commit
-with fresh eyes and verify it does what the message claims.
+The session 6 perf audit (cluster 4 commit `088e5e5`) landed two
+mechanical wins (ProcedureClinicalDetails memo, BreastProgressive picker
+handler) but explicitly deferred the bigger refactor: stabilising the
+procedure-mutation callbacks in DiagnosisGroupEditor so
+ProcedureEntryCard.memo actually bails.
 
-Walk these 7 commits in order:
+**The problem:**
 
-```bash
-git log --oneline 6839909..a7b2fa1
+`ProcedureEntryCard` is React.memo'd (session 4 work). It's mapped over
+the `procedures` array in DiagnosisGroupEditor:
+
+```tsx
+{procedures.map((proc, idx) => (
+  <ProcedureEntryCard
+    procedure={proc}
+    onUpdate={updateProcedure}                          // useCallback ✓
+    onDelete={() => removeProcedure(proc.id)}           // inline arrow ✗
+    onMoveUp={() => moveProcedureUp(proc.id)}           // inline arrow ✗
+    onMoveDown={() => moveProcedureDown(proc.id)}       // inline arrow ✗
+    ...
+  />
+))}
 ```
 
-For each, `git show <sha>` and check:
+Every keystroke in ANY procedure rebuilds these 3 inline arrows for
+every other procedure card, defeating the memo. With 4 procedures, every
+keystroke triggers 4 unnecessary re-renders of unrelated ProcedureEntryCard
+trees (and ProcedureClinicalDetails trees underneath).
 
-- **`5706471` BCRL fix** — confirm the added SNOMED codes match what
-  the client diagnosis picklist actually uses. Cross-reference
-  `client/lib/diagnosisPicklists/lymphoedemaDiagnoses.ts` snomedCtCode
-  values against the ISL config's snomedCtCodes array. Any codes used
-  by the client that AREN'T in the ISL list are still broken.
-- **`513bc18` PlanCase cleanup** — grep for any indirect callers of
-  `getPlannedCases` or `getPlannedCaseCount` I might have missed
-  (re-exports, dynamic imports, etc).
-- **`d5e2796` memoize pickers** — re-read each call site and verify
-  the `onSelect` / `onChange` props really are `useCallback`-wrapped.
-  Session 5 audited these but the bar was "useCallback exists at the
-  call site"; the better bar is "all deps in that useCallback are
-  stable". Check for `useCallback` calls whose deps include unstable
-  values (e.g. `[procedure]` where procedure changes per keystroke).
-- **`a87f7e4` exhaustive-deps** — verify the deletions of array-index
-  expressions from HandTraumaAssessment's useMemo deps are truly
-  redundant. Pick one and write a test that fails if you re-add an
-  index-mutation without changing the array reference.
-- **`bced1b3` array-type cleanup** — spot-check that no `eslint-disable`
-  comments got incorrectly stripped along with the `Array<T>` →
-  `T[]` rewrites.
-- **`5476b98` unused-vars** — re-grep for each deleted identifier across
-  the whole codebase (including server/, shared/, tests). If anything
-  pops up, that's a real regression — re-add the import.
-- **`0dc0bf5` raw-hex round 2** — visually trace each migrated colour
-  to confirm the new theme token resolves to a clinically-equivalent
-  shade. The PATHOLOGY_OPTIONS migration is the highest-risk because
-  the chip selected-state derives from `theme.pathology[opt.colorKey]`
-  at render time — confirm shallow re-render doesn't blow up.
+Same issue applies to ProcedureEntryCard's internal `handlePicklistSelect`
+(110-line auto-fill builder). It reads `procedure`, `diagnosisId`,
+`clinicalGroup`, `diagnosisLaterality`, `profile`, `onUpdate`. Wrapping
+in useCallback with these as deps would still recreate on every procedure
+mutation.
 
-If you find anything, fix it inline and document in REPORT-session6.md.
-If everything's clean, document "self-review clean — no regressions"
-and move on.
+**The fix pattern (ref-based stability):**
 
----
+```tsx
+// In DiagnosisGroupEditor
+const proceduresRef = useRef(procedures);
+proceduresRef.current = procedures;
 
-### 2. **Raw-hex round 3 — finish the remaining 132 instances** (~1.5 hours, source-level)
+const removeProcedure = useCallback((id: string) => {
+  const target = proceduresRef.current.find((p) => p.id === id);
+  // ... rest of body, reading from proceduresRef.current
+  // setProcedures uses functional updater pattern (already does)
+}, []);
 
-After round 2 (session 5 commit `0dc0bf5`), `client/` still has 132
-raw-hex literals. Many are intentional (always-black camera viewfinder
-overlays, charcoal palette references), but a triage will surface the
-ones that should migrate to existing or new theme tokens.
+const moveProcedureUp = useCallback((id: string) => {
+  // setProcedures functional updater — no need for proceduresRef
+}, []);
 
-**Method:** Walk the file list with this command:
-
-```bash
-grep -rnE "#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3}\b" /Users/mateusz/projects-local/Opus_Logbook/client \
-  --include="*.tsx" --include="*.ts" | \
-  grep -v __tests__ | grep -v constants/theme.ts | \
-  awk -F: '{print $1}' | sort -u
+const moveProcedureDown = useCallback((id: string) => {
+  // setProcedures functional updater — no need for proceduresRef
+}, []);
 ```
 
-For each file:
-1. Open it and read the hex usage in context
-2. Categorize each instance:
-   - **Migrate to existing theme token** (e.g. `#FFFFFF` on dark scrim → `palette.white`)
-   - **Migrate to existing palette ref** (e.g. `#8B949E` → `palette.charcoal[400]`)
-   - **Add new theme token** (only if the colour adapts to theme AND there's no existing token)
-   - **Keep as-is** (truly always-this-colour, e.g. camera viewfinder black)
-3. For migrations: edit, typecheck, run tests
-4. Commit per-file or per-batch of related files
+For the call site, two options:
 
-**Skip rules** (preserve these as raw hex):
-- `rgba(...)` semi-transparent overlays on always-black surfaces
-- Brand-specific SVG fills inside `OpusMark` / `OpusLogo` (already
-  parameterized; defaults are fine)
-- Burn-depth diagram colours already migrated to `theme.burnDepth`
-- Severity / pathology colours already migrated
+**Option A — change ProcedureEntryCard's API to take id-args:**
+```tsx
+// Before: onDelete: () => void
+// After: onDelete: (id: string) => void
 
-**Stretch goal:** if any new clinical signal pattern emerges that
-warrants a new token set (e.g. tendon repair colour-coding,
-osteotomy fixation badges), add the token set with both light and
-dark variants per the existing patterns (`theme.specialty`, `theme.role*`).
+// Call site:
+<ProcedureEntryCard
+  onDelete={removeProcedure}      // raw function, stable
+  onMoveUp={moveProcedureUp}      // raw function, stable
+  onMoveDown={moveProcedureDown}  // raw function, stable
+/>
 
-Target outcome: 132 → under 50 raw-hex instances in `client/`.
-
----
-
-### 3. **`handleMultiDigitConfirm` decision — investigate + propose** (~30 min, source-level)
-
-`client/components/DiagnosisGroupEditor.tsx:2100` has a 50-line
-`useCallback` named `handleMultiDigitConfirm` that's defined but never
-wired up. Comment: "Multi-digit confirm: create per-digit procedures
-from resolution map". The only remaining `no-unused-vars` warning.
-
-Investigate:
-1. `git log -S 'handleMultiDigitConfirm' --all --oneline` — find when
-   it was added and what commit context
-2. Read `DigitMultiSelect` component if it exists — its props,
-   particularly any `onConfirm` callback shape
-3. Search for `pendingMultiDigitDiagnosis` usage — the variable
-   `handleMultiDigitConfirm` closes over
-4. Check `resolveDigitConfig` (the function it calls) — is it tested,
-   used elsewhere?
-
-If the answer is clear (e.g. there's a `DigitMultiSelect` already
-rendered with no `onConfirm` prop, and the callback shape matches
-exactly), **wire it up** with an `onConfirm={handleMultiDigitConfirm}`
-prop and commit.
-
-If the answer is ambiguous (e.g. the multi-digit selector is also
-unused, or the resolution map function has no callers), **delete
-both `handleMultiDigitConfirm` and `pendingMultiDigitDiagnosis`**
-along with any related dead code. Commit.
-
-Either way, the lone remaining `no-unused-vars` warning should go to
-0 after this cluster.
-
----
-
-### 4. **Audit for MORE perf opportunities** (~1 hour, source-level)
-
-Session 5's React.memo audit covered the 6 components in the brief's
-explicit list. There are likely more components that would benefit.
-
-**Method 1 — Find components without React.memo:**
-
-```bash
-grep -rL "React.memo" /Users/mateusz/projects-local/Opus_Logbook/client/components --include="*.tsx" | \
-  xargs -I {} grep -l "^export function\|^export default function" {}
+// Inside ProcedureEntryCard:
+<Pressable onPress={() => onDelete(procedure.id)}>
 ```
 
-For each unwrapped component:
-1. Find its call sites with grep
-2. Check if all props are reference-stable (strings, numbers, booleans,
-   or useCallback-wrapped functions, or useMemo-wrapped objects/arrays)
-3. If stable, wrap in React.memo
-4. If NOT stable, look at the call site — can you stabilise with
-   useCallback / useMemo there?
+Inside the child the inline arrow is fine — it only recreates when
+THIS child re-renders, which is the right behavior.
 
-Prioritize:
-- Components rendered inside lists (FlatList renderItem, .map())
-- Components inside frequently-changing parents (case form, dashboard)
-- Components with > 50 lines of render output
-
-**Method 2 — Find unstable useCallback dep arrays:**
-
-```bash
-grep -rE "useCallback\([^)]*\), \[[^\]]*\]" /Users/mateusz/projects-local/Opus_Logbook/client | \
-  grep -v __tests__
+**Option B — keep API, use useCallback with the proc.id closure:**
+```tsx
+const handleDelete = useCallback(() => removeProcedure(proc.id), [proc.id]);
+// Same for onMoveUp, onMoveDown
 ```
 
-Look for useCallback dep arrays that include:
-- Whole-state-bag objects (`state`, `form`, `procedure`)
-- Array refs (`procedures`, `diagnosisGroups`) — unstable on every dispatch
-- Inline expressions (already eliminated in session 5, but verify)
+This creates N stable callbacks (one per procedure) instead of 1. Better
+than the inline arrows but more complex than Option A.
 
-For each unstable callback, can you scope it tighter? (e.g. pull the
-specific field out: `[procedure.id]` instead of `[procedure]`)
+**Recommended: Option A.** Cleaner API, smaller change, exactly the
+React-Native idiom.
 
-**Method 3 — Look for `.map((x, idx) =>` with inline-arrow children:**
+**Steps:**
 
-This pattern produces N new closures per render. If the children are
-components that could benefit from React.memo, the closure recreation
-defeats memoization.
+1. Read [`client/components/DiagnosisGroupEditor.tsx:1875`](client/components/DiagnosisGroupEditor.tsx:1875)
+   (removeProcedure / moveProcedureUp / moveProcedureDown definitions).
+2. Read [`client/components/ProcedureEntryCard.tsx:56`](client/components/ProcedureEntryCard.tsx:56)
+   (ProcedureEntryCardProps interface) and lines 110-227 (handlePicklistSelect).
+3. Refactor:
+   - Add `proceduresRef = useRef(procedures); proceduresRef.current = procedures` to DiagnosisGroupEditor.
+   - Convert removeProcedure / moveProcedureUp / moveProcedureDown to
+     useCallback with `[]` deps, reading via proceduresRef.current.
+   - Change ProcedureEntryCardProps: `onDelete: (id: string) => void`,
+     `onMoveUp?: (id: string) => void`, `onMoveDown?: (id: string) => void`.
+   - Update the two call sites in DiagnosisGroupEditor (lines 4040 and 4130).
+   - Update the call site in BreastProgressiveAssessment (line 1503).
+   - Inside ProcedureEntryCard: where these callbacks were called, change
+     `onPress={onDelete}` to `onPress={() => onDelete(procedure.id)}`.
+4. For `handlePicklistSelect`: wrap in useCallback with deps `[diagnosisId,
+   clinicalGroup, diagnosisLaterality, onUpdate, profile]`. Read `procedure`
+   via a similar `procedureRef` pattern (the body needs the current procedure
+   to spread its fields).
+5. `npm run check:types` clean.
+6. `npx vitest run` — should stay 1614. **Tests don't currently cover
+   procedure delete/move callbacks; consider adding 2-3 if there's an
+   existing test surface.**
+7. **No regression test for the perf win itself** — perf is hard to test
+   in vitest. Manual sim check (clusters 4-6 if available) would help.
 
-Document everything found in REPORT-session6.md. Fix anything where
-the win is clear; flag the ambiguous ones for Mateusz.
-
----
-
-### 5. **Test coverage gap audit** (~45 min, source-level)
-
-Vitest doesn't show coverage by default, but the structure is
-discoverable.
-
-```bash
-find /Users/mateusz/projects-local/Opus_Logbook/client/lib -maxdepth 1 -name "*.ts" \
-  -not -name "*.test.ts" | sort
-```
-
-For each `.ts` file in `client/lib`, check if there's a corresponding
-`__tests__/<name>.test.ts`. List the gaps in REPORT-session6.md.
-
-For the gaps:
-1. Read the file — is it pure logic (testable) or React-coupled (skip)?
-2. For pure-logic files with 0 tests: write a smoke test (3-5 cases
-   for the main exports) to lock in current behaviour
-3. Prioritize:
-   - Files with > 200 lines (broad surface area)
-   - Files that handle clinical data (skinCancerConfig, burnsConfig,
-     etc — anything specialty-config)
-   - Files with date / cryptographic / patient-identity work
-
-Don't try to hit full coverage in one session. Just close the most
-critical gaps. Each test file = one commit.
-
-Target: identify all gaps; close 3–5 of the most critical ones.
+Commit when each piece compiles + tests stay green.
 
 ---
 
-### 6. **CLAUDE.md drift audit** (~30 min, source-level)
+### 2. **More test coverage** (~1 hour, source-level)
 
-The CLAUDE.md document is the single source of truth, but it can drift
-from the code as the codebase evolves. Compare against current state.
+Session 6 closed 4 of 12 identified gaps. Continue with the next batch.
 
-**Check each:**
-- "AI Testing & Visual Quality Standards" → "App Screen Map" — verify
-  each listed screen file exists. Run:
-  ```bash
-  ls /Users/mateusz/projects-local/Opus_Logbook/client/screens/*.tsx | wc -l
-  ```
-  Compare to CLAUDE.md's "Total: 36 screen files" claim.
-- "Diagnosis Inventory" table — check the count per specialty against
-  the actual `LENGTH` of each picklist export
-- "Case Form Architecture" — verify every named component still exists
-  at the listed path
-- "Module Activation Logic" — verify each rule still matches
-  `client/lib/moduleVisibility.ts`
-- "testID Convention" — count current testIDs:
-  ```bash
-  grep -rohE 'testID="[^"]*"' /Users/mateusz/projects-local/Opus_Logbook/client | sort -u | wc -l
-  ```
-  Compare to CLAUDE.md's "287 total testID definitions" claim
-- "Design Tokens Reference" — verify theme.ts still defines every
-  token mentioned
+**Method 1: list-by-priority (already done in session 6 report).** Next 6:
 
-For each discrepancy: fix CLAUDE.md inline (it's the document of record).
-Don't change code to match outdated docs.
+| File | Lines | Priority | Why it matters |
+|------|-------|----------|-------|
+| moduleSummary | 328 | Medium-High | Summary text per module, used in CaseSummaryView |
+| melanomaStaging | 419 | Medium-High | AJCC 8th Ed staging logic |
+| procedureConfig | 393 | Medium | Procedure metadata |
+| episodeHelpers | 86 | Medium | Episode link/update plans |
+| handElectiveFlow | 65 | Low-Medium | SNOMED fallback state builder (small surface) |
+| buildShareableBlob | 39 | Low | E2EE blob construction (already has indirect coverage via sharingBridge.test.ts) |
+
+**For each file:**
+
+1. Read the file end-to-end to understand the exports.
+2. Identify the most important contract (data shape, error handling,
+   edge cases).
+3. Write 5-10 focused tests covering the main exports.
+4. `npx vitest run <filename>` — should pass.
+5. `npx vitest run` (full suite) — should stay green.
+6. Commit per file (or per batch of 2-3 related files).
+
+**Target: close 3 of the 6 above this session.**
+
+**Skip rule:** If a file is dominated by side effects (AsyncStorage,
+expo APIs, fetch), it needs mocks — defer to a future session that
+explicitly takes that on. The session 6 work focused on pure-logic files
+exactly to avoid this.
 
 ---
 
-### 7. **(Optional, requires sim) On-device verification of session 5 fixes** (~30 min)
+### 3. **CLAUDE.md App Screen Map table cleanup** (~30 min, source-level)
 
-ONLY START THIS if cluster 1 self-review passed AND you have time AND the
-sim is healthy. If `xcrun simctl list devices | grep 6AF34D12 | grep -i
-booted` returns nothing, skip this entire cluster.
+Session 6 fixed the quantitative drift (33 vs 27, 10 vs 9, 43 vs 36) and
+added a footnote enumerating the 6 missing screens. But the table itself
+at `CLAUDE.md:1543+` still doesn't have rows for those screens.
 
-Verification steps:
-- BCRL staging — log a case → Lymphoedema → "BCRL — upper limb". Confirm
-  staging block reads "ISL Stage". Capture screenshot.
+Add rows for:
+- AssessmentScreen
+- AssessmentHistoryScreen
+- AssessmentRevealScreen
+- SharedCaseDetailScreen
+- SharedInboxScreen
+- OnboardingScreen
+
+For each: source file, testID prefix (if any), presentation type (push /
+modal / fullScreenModal). Use grep on the navigation files to verify.
+
+Also verify the testID prefix table at `CLAUDE.md:1765+` is current —
+session 6 saw testID growth from 287 → 396, suggesting new prefixes may
+have been added but not documented.
+
+---
+
+### 4. **(Optional, requires sim) On-device verification of session 5+6 fixes** (~30 min)
+
+ONLY START THIS if the sim is healthy. Verify:
+- `xcrun simctl list devices | grep 6AF34D12 | grep -i booted` returns
+  something.
+- If not, skip this entire cluster.
+
+**Steps:**
+
+- BCRL staging — log a case → Lymphoedema → "BCRL — upper limb".
+  Confirm staging block reads "ISL Stage". Capture screenshot with prefix
+  `s7-bcrl-`.
 - Post-melanoma lymphoedema upper + lower → confirm ISL.
-- Aesthetics flow — verify no visual regression from session 5's
-  unused-useMemo deletions.
+- Trigger digit multi-select — log a case → Hand surgery (elective) →
+  Stenosing Tenosynovitis → Trigger finger / thumb. Confirm
+  DigitMultiSelect appears with 5 chips (Thumb / Index / Middle / Ring /
+  Little). Capture screenshot prefix `s7-trigger-`.
+- ProcedureClinicalDetails — log a free flap case (orthoplastic specialty,
+  ALT or DIEP). Confirm the inline FreeFlapClinicalFields render. Capture.
 
-Document captures in `screenshots/` with the `s6-` prefix. Findings to
-REPORT-session6.md.
+Document captures in `screenshots/` with `s7-` prefix. Findings to
+REPORT-session7.md.
 
 ---
 
-### 8. **(Optional, requires sim) Maestro flow extensions** (~30 min)
+### 5. **(Optional, requires sim) Maestro flow extensions** (~30 min)
 
-Same conditions as cluster 7.
+Same conditions as cluster 4.
 
 Add 3 flows from the session 5 brief:
 - `.maestro/case-form-skin-cancer.yaml`
@@ -344,11 +304,11 @@ Each ~20 lines per existing patterns. Use `id:` selectors only.
 
 ---
 
-### 9. **(Optional, requires sim) Deep specialty captures** (~1 hour)
+### 6. **(Optional, requires sim) Deep specialty captures** (~1 hour)
 
-Same conditions as cluster 7.
+Same conditions as cluster 4.
 
-Reach the surfaces session 4 + 5 didn't:
+Reach the surfaces sessions 4 + 5 + 6 didn't:
 - Aesthetics ImplantDetailsCard
 - ProcedureTeamFooter on 2+ procedure case
 - Joint implant arthroplasty (`JointImplantSection`)
@@ -360,13 +320,13 @@ Reach the surfaces session 4 + 5 didn't:
 ## GUARDRAILS
 
 - **Fix inline only OBJECTIVE defects** (dead code, real perf bugs,
-  raw hex per CLAUDE.md, lint warnings pointing to real issues).
-  Do NOT make subjective design changes — catalogue them.
+  lint warnings pointing to real issues). Do NOT make subjective design
+  changes — catalogue them.
 - Respect every CLAUDE.md **locked decision** and **anti-pattern**.
 - `server/` is **off-limits** unless a clinical bug surfaces.
 - **Do not push to remote.** Do not trigger an EAS build.
 - Before committing code, `npm run check:types` must stay clean.
-  Tests must stay ≥ 1541. Lint warnings must not increase above 3.
+  Tests must stay ≥ 1614. Lint warnings must not increase above 2.
 - If you flip server-side state for testing, restore it before you
   finish.
 
@@ -375,9 +335,9 @@ Reach the surfaces session 4 + 5 didn't:
 If a cluster goes sideways (TS errors you can't fix, tests fail,
 unexpected behaviour), **revert the cluster's commits** with
 `git reset --hard <sha>` to the last known-good commit before the
-cluster, document the failure in REPORT-session6.md, and move to
+cluster, document the failure in REPORT-session7.md, and move to
 the next cluster. Don't waste hours fighting a stuck cluster — the
-goal is steady progress across the whole list.
+goal is steady progress.
 
 If your overall scratch state gets dirty (uncommitted changes from
 multiple half-done clusters):
@@ -387,7 +347,7 @@ multiple half-done clusters):
 4. Start the next cluster from a clean state
 5. Don't try to recover the stash unless you understand it
 
-## PROVEN WORKING METHOD (from sessions 3–5)
+## PROVEN WORKING METHOD (from sessions 3–6)
 
 - **`__DEV__` debug deep links** in `client/components/DevDeepLinkHandler.tsx`:
   `opus://debug/login`, `opus://debug/seed` (22 cases + 1 episode),
@@ -401,22 +361,21 @@ multiple half-done clusters):
 
 ## END-OF-SESSION PROTOCOL
 
-1. Commit any uncommitted screenshots + the in-progress `REPORT-session6.md`.
-2. `REPORT-session6.md` needs: TL;DR, triaged findings, a commits
+1. Commit any uncommitted screenshots + the in-progress `REPORT-session7.md`.
+2. `REPORT-session7.md` needs: TL;DR, triaged findings, a commits
    table, an honest "Coverage & gaps".
 3. If the priority list isn't finished, update this
-   `NEXT-SESSION-PROMPT.md` for session 7 — rewrite the priority list
+   `NEXT-SESSION-PROMPT.md` for session 8 — rewrite the priority list
    to reflect what's left.
 4. Final message to Mateusz: concise — what was done, what's left,
    any critical findings.
 
 ## SHAPE EXPECTATIONS
 
-Sessions 2 and 4 hit ~6–8 commits each in their long-runs — that's the
-target shape for this session too. Cluster 1 (self-review) might be
-zero-commit if everything's clean; clusters 2 and 4 should produce
-several commits each. The optional sim-dependent clusters (7–9) add
-1–3 commits between them if the sim is healthy.
+Sessions 5+6 hit 6-8 commits each. The ref-based perf refactor in cluster
+1 is likely 1 commit (~200 line diff across 3 files). Each test coverage
+file is 1 commit. The CLAUDE.md cleanup is 1 commit. The sim-dependent
+clusters add 1-3 commits between them if the sim is healthy.
 
-Aim for **5–10 commits total**. If you're past 12, you're probably
-churning rather than making progress — pause and write the report.
+Aim for **4-8 commits total** depending on how much sim-dependent work
+runs. If past 12, you're probably churning — pause and write the report.
