@@ -28,6 +28,7 @@ import {
 } from "@/data/facilities";
 import { copy } from "@/constants/onboardingCopy";
 import { Colors, palette } from "@/constants/theme";
+import { colors as onboardingColors } from "@/theme/tokens";
 
 const dark = Colors.dark;
 const SIDE_PADDING = 24;
@@ -326,7 +327,7 @@ export function HospitalScreen({
                     ? c.searchPlaceholder
                     : "Select a country first"
                 }
-                placeholderTextColor="#636366"
+                placeholderTextColor={onboardingColors.text.tertiary}
                 value={query}
                 onChangeText={handleQueryChange}
                 onFocus={handleFocus}
@@ -483,7 +484,7 @@ const styles = StyleSheet.create({
   subhead: {
     fontSize: 15,
     fontWeight: "400",
-    color: "#AEAEB2",
+    color: onboardingColors.text.secondary,
     marginTop: 8,
     lineHeight: 22,
   },
@@ -492,7 +493,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     letterSpacing: 0.4,
     textTransform: "uppercase",
-    color: "#AEAEB2",
+    color: onboardingColors.text.secondary,
     marginTop: 28,
   },
   countryRow: {
@@ -504,8 +505,8 @@ const styles = StyleSheet.create({
   countryChip: {
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#38383A",
-    backgroundColor: "#1C1C1E",
+    borderColor: onboardingColors.border.default,
+    backgroundColor: onboardingColors.background.elevated,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
@@ -524,7 +525,7 @@ const styles = StyleSheet.create({
   countryHelp: {
     fontSize: 13,
     lineHeight: 20,
-    color: "#636366",
+    color: onboardingColors.text.tertiary,
     marginTop: 10,
   },
   searchContainer: {
@@ -533,10 +534,10 @@ const styles = StyleSheet.create({
   },
   searchField: {
     height: 56,
-    backgroundColor: "#1C1C1E",
+    backgroundColor: onboardingColors.background.elevated,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#38383A",
+    borderColor: onboardingColors.border.default,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
@@ -550,7 +551,7 @@ const styles = StyleSheet.create({
   },
   searchIcon: {
     fontSize: 16,
-    color: "#636366",
+    color: onboardingColors.text.tertiary,
   },
   searchInput: {
     flex: 1,
@@ -559,14 +560,14 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     fontSize: 14,
-    color: "#636366",
+    color: onboardingColors.text.tertiary,
     padding: 4,
   },
   dropdown: {
-    backgroundColor: "#1C1C1E",
+    backgroundColor: onboardingColors.background.elevated,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#38383A",
+    borderColor: onboardingColors.border.default,
     marginTop: 4,
     overflow: "hidden",
   },
@@ -577,7 +578,7 @@ const styles = StyleSheet.create({
   },
   resultSeparator: {
     borderBottomWidth: 1,
-    borderBottomColor: "#38383A",
+    borderBottomColor: onboardingColors.border.default,
   },
   resultName: {
     fontSize: 15,
@@ -587,12 +588,12 @@ const styles = StyleSheet.create({
   resultLocation: {
     fontSize: 13,
     fontWeight: "400",
-    color: "#AEAEB2",
+    color: onboardingColors.text.secondary,
     marginTop: 1,
   },
   emptyState: {
     fontSize: 13,
-    color: "#636366",
+    color: onboardingColors.text.tertiary,
     marginTop: 12,
   },
   selectedList: {
@@ -602,7 +603,7 @@ const styles = StyleSheet.create({
   selectedBadge: {
     backgroundColor: "rgba(229, 160, 13, 0.08)",
     borderWidth: 1,
-    borderColor: "#E5A00D",
+    borderColor: onboardingColors.border.focused,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -649,6 +650,6 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontSize: 15,
-    color: "#636366",
+    color: onboardingColors.text.tertiary,
   },
 });

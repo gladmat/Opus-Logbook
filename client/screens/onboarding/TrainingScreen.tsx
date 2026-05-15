@@ -19,6 +19,7 @@ import { StepHeader } from "@/components/onboarding/StepHeader";
 import { TRAINING_OPTIONS } from "@/constants/trainingProgrammes";
 import { palette, Colors } from "@/constants/theme";
 import { copy } from "@/constants/onboardingCopy";
+import { colors as onboardingColors } from "@/theme/tokens";
 
 const dark = Colors.dark;
 
@@ -189,7 +190,7 @@ export function TrainingScreen({
                   <TextInput
                     style={styles.otherInput}
                     placeholder="Programme name"
-                    placeholderTextColor="#636366"
+                    placeholderTextColor={onboardingColors.text.tertiary}
                     value={otherText}
                     onChangeText={setOtherText}
                     autoCapitalize="words"
@@ -264,7 +265,7 @@ const styles = StyleSheet.create({
   subhead: {
     fontSize: 15,
     fontWeight: "400",
-    color: "#AEAEB2",
+    color: onboardingColors.text.secondary,
     marginTop: 8,
     lineHeight: 22,
   },
@@ -292,7 +293,7 @@ const styles = StyleSheet.create({
   optionDetail: {
     fontSize: 13,
     fontWeight: "400",
-    color: "#AEAEB2",
+    color: onboardingColors.text.secondary,
     marginTop: 2,
     lineHeight: 18,
   },
@@ -301,7 +302,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 1.5,
-    borderColor: "#38383A",
+    borderColor: onboardingColors.border.default,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -316,7 +317,7 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 1,
-    backgroundColor: "#38383A",
+    backgroundColor: onboardingColors.border.default,
     marginLeft: 0,
   },
   otherInputContainer: {
@@ -324,10 +325,10 @@ const styles = StyleSheet.create({
   },
   otherInput: {
     height: 56,
-    backgroundColor: "#1C1C1E",
+    backgroundColor: onboardingColors.background.elevated,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#38383A",
+    borderColor: onboardingColors.border.default,
     paddingHorizontal: 16,
     fontSize: 17,
     color: dark.text,
@@ -359,6 +360,6 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontSize: 15,
-    color: "#636366",
+    color: onboardingColors.text.tertiary,
   },
 });

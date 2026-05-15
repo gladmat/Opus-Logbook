@@ -19,6 +19,7 @@ import Animated, {
 import { OpusMark } from "@/components/brand";
 import { palette, Colors } from "@/constants/theme";
 import { copy } from "@/constants/onboardingCopy";
+import { colors as onboardingColors } from "@/theme/tokens";
 
 interface Props {
   onComplete: () => void;
@@ -266,7 +267,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontWeight: "500",
     fontSize: 9,
-    color: "#AEAEB2",
+    color: onboardingColors.text.secondary,
     letterSpacing: 3,
     textTransform: "uppercase",
     textAlign: "center",

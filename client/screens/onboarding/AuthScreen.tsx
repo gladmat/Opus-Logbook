@@ -15,6 +15,7 @@ import { OpusMark } from "@/components/brand";
 import { useAuth } from "@/contexts/AuthContext";
 import { palette, Colors } from "@/constants/theme";
 import { copy } from "@/constants/onboardingCopy";
+import { colors as onboardingColors } from "@/theme/tokens";
 import { getApiUrl } from "@/lib/query-client";
 
 const dark = Colors.dark;
@@ -112,7 +113,7 @@ export function OnboardingAuthScreen({ onContinueWithEmail, onSignIn }: Props) {
                 />
                 {isAppleLoading && (
                   <View style={styles.appleLoadingOverlay}>
-                    <ActivityIndicator color="#000" size="small" />
+                    <ActivityIndicator color={palette.black} size="small" />
                   </View>
                 )}
               </View>
@@ -170,7 +171,7 @@ const styles = StyleSheet.create({
   subhead: {
     fontSize: 15,
     fontWeight: "400",
-    color: "#AEAEB2",
+    color: onboardingColors.text.secondary,
     textAlign: "center",
     marginTop: 8,
   },
@@ -204,12 +205,12 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "#38383A",
+    backgroundColor: onboardingColors.border.default,
   },
   dividerText: {
     fontSize: 13,
     fontWeight: "500",
-    color: "#636366",
+    color: onboardingColors.text.tertiary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
@@ -235,12 +236,12 @@ const styles = StyleSheet.create({
   },
   legalText: {
     fontSize: 13,
-    color: "#636366",
+    color: onboardingColors.text.tertiary,
     textAlign: "center",
     lineHeight: 18,
   },
   legalLink: {
     textDecorationLine: "underline",
-    color: "#636366",
+    color: onboardingColors.text.tertiary,
   },
 });

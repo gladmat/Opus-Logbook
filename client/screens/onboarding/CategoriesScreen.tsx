@@ -21,6 +21,7 @@ import { StepHeader } from "@/components/onboarding/StepHeader";
 import { PROCEDURE_CATEGORIES } from "@/constants/procedureCategories";
 import { palette, Colors } from "@/constants/theme";
 import { copy } from "@/constants/onboardingCopy";
+import { colors as onboardingColors } from "@/theme/tokens";
 import type { Specialty } from "@/types/case";
 
 const dark = Colors.dark;
@@ -65,12 +66,12 @@ function CategoryCard({
     const bgColor = interpolateColor(
       selectionProgress.value,
       [0, 1],
-      ["#1C1C1E", "rgba(229, 160, 13, 0.08)"],
+      [onboardingColors.background.elevated, "rgba(229, 160, 13, 0.08)"],
     );
     const borderColor = interpolateColor(
       selectionProgress.value,
       [0, 1],
-      ["#38383A", "#E5A00D"],
+      [onboardingColors.border.default, onboardingColors.border.focused],
     );
 
     return {
@@ -261,7 +262,7 @@ const styles = StyleSheet.create({
   subhead: {
     fontSize: 15,
     fontWeight: "400",
-    color: "#AEAEB2",
+    color: onboardingColors.text.secondary,
     marginTop: 8,
     lineHeight: 22,
   },
@@ -321,6 +322,6 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontSize: 15,
-    color: "#636366",
+    color: onboardingColors.text.tertiary,
   },
 });

@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FeatureSlide } from "./FeatureSlide";
 import { palette, Colors } from "@/constants/theme";
 import { copy } from "@/constants/onboardingCopy";
+import { colors as onboardingColors } from "@/theme/tokens";
 
 const dark = Colors.dark;
 const SLIDE_COUNT = 3;
@@ -336,7 +337,7 @@ const teamStyles = StyleSheet.create({
   },
   caseDetail: {
     fontSize: 11,
-    color: "#AEAEB2",
+    color: onboardingColors.text.secondary,
     marginTop: 2,
   },
   branchArea: {
@@ -370,12 +371,12 @@ const teamStyles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#2EA043",
+    backgroundColor: dark.success,
   },
   surgeonName: {
     fontSize: 10,
     fontWeight: "500",
-    color: "#AEAEB2",
+    color: onboardingColors.text.secondary,
   },
 });
 
@@ -491,7 +492,7 @@ const dataStyles = StyleSheet.create({
   },
   caseLabel: {
     fontSize: 10,
-    color: "#AEAEB2",
+    color: onboardingColors.text.secondary,
     marginTop: 2,
   },
   labelsColumn: {
@@ -516,7 +517,7 @@ const dataStyles = StyleSheet.create({
   labelText: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#AEAEB2",
+    color: onboardingColors.text.secondary,
     letterSpacing: 0.5,
   },
 });

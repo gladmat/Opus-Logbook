@@ -6,6 +6,7 @@ import { StepHeader } from "@/components/onboarding/StepHeader";
 import FeatherIcon from "@/components/FeatherIcon";
 import { palette, Colors } from "@/constants/theme";
 import { copy } from "@/constants/onboardingCopy";
+import { colors as onboardingColors } from "@/theme/tokens";
 
 const dark = Colors.dark;
 const SIDE_PADDING = 24;
@@ -32,7 +33,11 @@ function TrustPointRow({ point, index }: { point: TrustPoint; index: number }) {
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
       >
-        <FeatherIcon name={point.icon} size={22} color="#AEAEB2" />
+        <FeatherIcon
+          name={point.icon}
+          size={22}
+          color={onboardingColors.text.secondary}
+        />
       </View>
       <View style={styles.trustContent}>
         <Text style={styles.trustTitle}>{point.title}</Text>
@@ -159,7 +164,7 @@ const styles = StyleSheet.create({
   trustDetail: {
     fontSize: 14,
     fontWeight: "400",
-    color: "#AEAEB2",
+    color: onboardingColors.text.secondary,
     lineHeight: 20,
     marginTop: 2,
   },
@@ -167,7 +172,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "400",
     fontStyle: "italic",
-    color: "#636366",
+    color: onboardingColors.text.tertiary,
     lineHeight: 22,
     marginTop: 40,
     textAlign: "center",

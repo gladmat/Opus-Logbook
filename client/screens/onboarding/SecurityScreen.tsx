@@ -29,6 +29,7 @@ import { isFaceIdUnsupportedInCurrentRuntime } from "@/lib/biometrics";
 import { useAppLock } from "@/contexts/AppLockContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { palette, Colors, Spacing, BorderRadius } from "@/constants/theme";
+import { colors as onboardingColors } from "@/theme/tokens";
 
 const dark = Colors.dark;
 const PIN_LENGTH = 6;
@@ -218,7 +219,9 @@ export function SecurityScreen({ onComplete, onBack }: Props) {
                     backgroundColor:
                       i < pin.length ? palette.amber[600] : "transparent",
                     borderColor:
-                      i < pin.length ? palette.amber[600] : "#38383A",
+                      i < pin.length
+                        ? palette.amber[600]
+                        : onboardingColors.border.default,
                   },
                 ]}
               />
@@ -315,15 +318,18 @@ export function SecurityScreen({ onComplete, onBack }: Props) {
               <FeatherIcon
                 name={biometricLabel === "Face ID" ? "smile" : "smartphone"}
                 size={22}
-                color="#AEAEB2"
+                color={onboardingColors.text.secondary}
               />
               <Text style={styles.biometricLabel}>Enable {biometricLabel}</Text>
             </View>
             <Switch
               value={biometricEnabled}
               onValueChange={handleToggleBiometric}
-              trackColor={{ false: "#38383A", true: palette.amber[600] }}
-              thumbColor="#FFFFFF"
+              trackColor={{
+                false: onboardingColors.border.default,
+                true: palette.amber[600],
+              }}
+              thumbColor={palette.white}
               accessibilityRole="switch"
               accessibilityLabel={`Enable ${biometricLabel}`}
               accessibilityState={{ checked: biometricEnabled }}
@@ -335,7 +341,11 @@ export function SecurityScreen({ onComplete, onBack }: Props) {
             entering={FadeInDown.delay(150).duration(400)}
             style={styles.biometricNote}
           >
-            <FeatherIcon name="info" size={16} color="#AEAEB2" />
+            <FeatherIcon
+              name="info"
+              size={16}
+              color={onboardingColors.text.secondary}
+            />
             <Text style={styles.biometricNoteText}>
               {biometricBlockedReason}
             </Text>
@@ -387,7 +397,7 @@ const styles = StyleSheet.create({
   subhead: {
     fontSize: 15,
     fontWeight: "400",
-    color: "#AEAEB2",
+    color: onboardingColors.text.secondary,
     lineHeight: 22,
     textAlign: "center",
     marginTop: 8,
@@ -462,7 +472,7 @@ const styles = StyleSheet.create({
   doneSubhead: {
     fontSize: 15,
     fontWeight: "400",
-    color: "#AEAEB2",
+    color: onboardingColors.text.secondary,
     lineHeight: 22,
     textAlign: "center",
     marginTop: 8,
@@ -474,7 +484,7 @@ const styles = StyleSheet.create({
     marginTop: 32,
     paddingVertical: 16,
     paddingHorizontal: 16,
-    backgroundColor: "#1C1C1E",
+    backgroundColor: onboardingColors.background.elevated,
     borderRadius: BorderRadius.md,
   },
   biometricInfo: {
@@ -497,7 +507,7 @@ const styles = StyleSheet.create({
   biometricNoteText: {
     flex: 1,
     fontSize: 13,
-    color: "#AEAEB2",
+    color: onboardingColors.text.secondary,
     lineHeight: 18,
   },
 

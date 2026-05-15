@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { palette, Colors } from "@/constants/theme";
+import { colors as onboardingColors } from "@/theme/tokens";
 
 const dark = Colors.dark;
 
@@ -133,7 +134,7 @@ const styles = StyleSheet.create({
   body: {
     fontSize: 15,
     fontWeight: "400",
-    color: "#AEAEB2",
+    color: onboardingColors.text.secondary,
     textAlign: "center",
     marginTop: 12,
     lineHeight: 22,

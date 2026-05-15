@@ -23,6 +23,7 @@ import { OpusMark } from "@/components/brand";
 import { useAuth } from "@/contexts/AuthContext";
 import { palette, Colors } from "@/constants/theme";
 import { copy } from "@/constants/onboardingCopy";
+import { colors as onboardingColors } from "@/theme/tokens";
 import { getApiUrl } from "@/lib/query-client";
 
 const dark = Colors.dark;
@@ -207,7 +208,7 @@ export function EmailSignupScreen({
             <TextInput
               style={styles.input}
               placeholder={c.emailPlaceholder}
-              placeholderTextColor="#636366"
+              placeholderTextColor={onboardingColors.text.tertiary}
               value={email}
               onChangeText={setEmail}
               onFocus={() => setEmailFocused(true)}
@@ -237,7 +238,7 @@ export function EmailSignupScreen({
               ref={passwordRef}
               style={styles.input}
               placeholder={c.passwordPlaceholder}
-              placeholderTextColor="#636366"
+              placeholderTextColor={onboardingColors.text.tertiary}
               value={password}
               onChangeText={setPassword}
               onFocus={() => setPasswordFocused(true)}
@@ -328,7 +329,11 @@ export function EmailSignupScreen({
                 onPress={() => setShowForgotPassword(false)}
                 hitSlop={12}
               >
-                <Feather name="x" size={24} color="#AEAEB2" />
+                <Feather
+                  name="x"
+                  size={24}
+                  color={onboardingColors.text.secondary}
+                />
               </Pressable>
             </View>
             <Text style={styles.modalDescription}>
@@ -342,7 +347,7 @@ export function EmailSignupScreen({
                 value={resetEmail}
                 onChangeText={setResetEmail}
                 placeholder="you@hospital.org"
-                placeholderTextColor="#636366"
+                placeholderTextColor={onboardingColors.text.tertiary}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -393,7 +398,7 @@ const styles = StyleSheet.create({
   subhead: {
     fontSize: 15,
     fontWeight: "400",
-    color: "#AEAEB2",
+    color: onboardingColors.text.secondary,
     textAlign: "center",
     marginTop: 8,
   },
@@ -418,10 +423,10 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     height: 56,
-    backgroundColor: "#1C1C1E",
+    backgroundColor: onboardingColors.background.elevated,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#38383A",
+    borderColor: onboardingColors.border.default,
     justifyContent: "center",
     paddingHorizontal: 16,
   },
@@ -434,7 +439,7 @@ const styles = StyleSheet.create({
   },
   progressTrack: {
     height: 3,
-    backgroundColor: "#38383A",
+    backgroundColor: onboardingColors.border.default,
     borderRadius: 1.5,
     overflow: "hidden",
     marginTop: 4,
@@ -471,7 +476,7 @@ const styles = StyleSheet.create({
   },
   switchText: {
     fontSize: 14,
-    color: "#AEAEB2",
+    color: onboardingColors.text.secondary,
   },
   switchLink: {
     fontSize: 14,
@@ -510,15 +515,15 @@ const styles = StyleSheet.create({
   },
   modalDescription: {
     fontSize: 15,
-    color: "#AEAEB2",
+    color: onboardingColors.text.secondary,
     lineHeight: 22,
   },
   modalInputContainer: {
     height: 56,
-    backgroundColor: "#1C1C1E",
+    backgroundColor: onboardingColors.background.elevated,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#38383A",
+    borderColor: onboardingColors.border.default,
     justifyContent: "center",
     paddingHorizontal: 16,
   },
