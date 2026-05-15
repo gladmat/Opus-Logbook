@@ -83,7 +83,7 @@ interface HandElectivePickerProps {
 // Component
 // ═══════════════════════════════════════════════════════════════
 
-export function HandElectivePicker({
+function HandElectivePickerImpl({
   onSelect,
   onSnomedSelect,
 }: HandElectivePickerProps) {
@@ -515,3 +515,8 @@ const styles = StyleSheet.create({
     fontWeight: "400",
   },
 });
+
+// Memoize: 40 chip-grid diagnoses across 8 subcategories. HandElectiveAssessment
+// passes reference-stable props (handleDiagnosisSelect is useCallback-wrapped;
+// onSnomedSelect is a prop passed through from a useCallback'd parent handler).
+export const HandElectivePicker = React.memo(HandElectivePickerImpl);

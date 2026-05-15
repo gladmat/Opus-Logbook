@@ -41,7 +41,7 @@ function matchesGroupFilter(
   return dx.clinicalGroup !== "trauma" && dx.clinicalGroup !== "acute";
 }
 
-export function DiagnosisPicker({
+function DiagnosisPickerImpl({
   specialty,
   selectedDiagnosisId,
   onSelect,
@@ -388,3 +388,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
 });
+
+// Memoize the picker to stop parent-induced re-renders of the chip grid.
+// All callers pass reference-stable props (useCallback-wrapped onSelect at
+// DiagnosisGroupEditor + AcuteHandAssessment), and filteredDiagnoses is
+// either undefined or computed inside a useMemo upstream. Default shallow
+// comparison is sufficient. Same template as HeadNeckDiagnosisPicker
+// (commit 3ce67ea).
+export const DiagnosisPicker = React.memo(DiagnosisPickerImpl);

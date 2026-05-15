@@ -22,7 +22,7 @@ interface ProcedureSubcategoryPickerProps {
   onSelect: (entry: ProcedurePicklistEntry) => void;
 }
 
-export function ProcedureSubcategoryPicker({
+function ProcedureSubcategoryPickerImpl({
   specialty,
   selectedEntryId,
   onSelect,
@@ -334,3 +334,13 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+
+// Memoize: subcategory chips + procedure rows. Used by ProcedureEntryCard,
+// BreastProgressiveAssessment, AestheticProcedureFirstFlow. Only the
+// AestheticProcedureFirstFlow call site currently passes a useCallback-wrapped
+// onSelect — the other two call sites pass plain functions / inline arrows
+// and won't benefit until those are stabilised. Memo is still net positive
+// for the aesthetics path and a no-op for the others.
+export const ProcedureSubcategoryPicker = React.memo(
+  ProcedureSubcategoryPickerImpl,
+);

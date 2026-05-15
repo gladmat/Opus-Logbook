@@ -5,7 +5,7 @@
  * Two zones: general microsurgery fields + per-anastomosis card list (add/remove).
  */
 
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   View,
   TextInput,
@@ -533,7 +533,10 @@ export const LVAOperativeDetailsComponent = React.memo(
       [value, onChange],
     );
 
-    const anastomoses = value.anastomoses ?? [];
+    const anastomoses = useMemo(
+      () => value.anastomoses ?? [],
+      [value.anastomoses],
+    );
 
     const addAnastomosis = useCallback(() => {
       const newA: LVAAnastomosis = {

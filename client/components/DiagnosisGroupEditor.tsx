@@ -1864,14 +1864,14 @@ function DiagnosisGroupEditorInner({
     setShowAllProcedures(false);
   }, []);
 
-  const updateProcedure = (updated: CaseProcedure) => {
+  const updateProcedure = useCallback((updated: CaseProcedure) => {
     const sanitized = procedureHasImplant(updated)
       ? updated
       : { ...updated, implantDetails: undefined };
     setProcedures((prev) =>
       prev.map((p) => (p.id === sanitized.id ? sanitized : p)),
     );
-  };
+  }, []);
 
   const removeProcedure = (id: string) => {
     const target = procedures.find((p) => p.id === id);
