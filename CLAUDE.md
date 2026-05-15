@@ -122,7 +122,7 @@ See `CONTRIBUTING.md` at repo root for the full contributor checklist.
 ```
 client/
   App.tsx                        # Root: providers + deep-link routing + locked-capture ingress
-  screens/                       # 27 screens + 9 onboarding sub-screens
+  screens/                       # 33 main screens + 10 onboarding sub-screens
   components/                    # 160+ files across 18 subdirectories
     case-form/                   # 6 sections (incl. TeamSection) + CollapsibleFormSection, SectionNavBar, CaseSummaryView, AcceptedMappingCard
     dashboard/                   # 10 files — dashboard v2 (see Dashboard v2 section)
@@ -247,7 +247,7 @@ Legacy `teams` and `teamMembers` tables removed in `20260326_drop_legacy_teams.s
 
 ~55 endpoints under `/api/`, JWT bearer auth via `authenticateToken` middleware. See `server/routes.ts` for full details.
 
-**Groups:** Auth (rate-limited, 8 endpoints including signup/login/refresh/password-reset), Profile (CRUD + avatar), Facilities (CRUD with isPrimary auto-clear), Device Keys (E2EE key management), Team Contacts (CRUD + link/unlink + invitations, rate-limited), User Lookup (search by email/phone + batch discover + device keys by user ID), Sharing (create/inbox/outbox/verify/revoke/update blob), Assessments (submit + status + history with auto-reveal), Push Tokens (register/unregister), SNOMED CT (live search via Ontoserver + reference data for vessels/flaps/regions/coupling), Staging (14 configs), Health check.
+**Groups:** Auth (rate-limited, 8 endpoints including signup/login/refresh/password-reset), Profile (CRUD + avatar), Facilities (CRUD with isPrimary auto-clear), Device Keys (E2EE key management), Team Contacts (CRUD + link/unlink + invitations, rate-limited), User Lookup (search by email/phone + batch discover + device keys by user ID), Sharing (create/inbox/outbox/verify/revoke/update blob), Assessments (submit + status + history with auto-reveal), Push Tokens (register/unregister), SNOMED CT (live search via Ontoserver + reference data for vessels/flaps/regions/coupling), Staging (21 SNOMED-keyed configs surfacing 29 individual staging systems), Health check.
 
 **Non-obvious:** Auth rate-limited. Password reset always returns success (no email leak). Avatar upload capped at 5MB via Multer. `seed-snomed-ref` is dev-only (env-gated).
 
@@ -268,7 +268,7 @@ Each has: dedicated diagnosis picklist, specialty colour, SVG icon, procedure su
 
 ### Diagnosis-to-procedure suggestions
 
-286 structured diagnoses across specialties with procedure suggestions (staging-conditional). Selecting a diagnosis auto-populates default procedures. Components: `DiagnosisPicker`, `ProcedureSuggestions`.
+477 structured diagnoses across specialties with procedure suggestions (staging-conditional). Selecting a diagnosis auto-populates default procedures. Components: `DiagnosisPicker`, `ProcedureSuggestions`. See "Diagnosis Inventory" table further down for the per-specialty breakdown.
 
 ### Procedure-first (reverse) entry
 
@@ -622,7 +622,7 @@ PIN and biometric unlock via `AppLockContext`. Setup in `SetupAppLockScreen`, un
 
 ### Staging configurations
 
-17 systems: Tubiana, Gustilo-Anderson, Breslow, CTS Severity, Quinnell, TNM, NPUAP, Burns Depth/TBSA, Baker Classification, Hurley Stage, ISL Stage, House-Brackmann Grade, Wagner Grade, Le Fort Classification, Tubiana-Dupuytren (elective hand), CTS-Severity (elective hand), Quinnell-Trigger (elective hand).
+29 staging systems (full list documented in "AI Testing & Visual Quality Standards" → "Diagnosis Inventory"): Tubiana, Gustilo-Anderson, Breslow Thickness, Ulceration, Severity, EMG Grade, TNM T/N/M Stage (legacy + AJCC 8th Ed), Overall Stage (AJCC 8th Ed), NPUAP Stage, Depth, TBSA %, Baker Classification, Hurley Stage, ISL Stage, Cheng Lymphoedema Grade, MD Anderson ICG Stage, House-Brackmann Grade, Wagner Grade, Le Fort Classification, Veau Classification, Pittsburgh Fistula Classification, Whitaker Classification, Kanavel Signs, Eaton-Littler Stage, Herbert Classification, Lichtman Stage, plus elective-hand-specific Tubiana-Dupuytren, CTS-Severity, and Quinnell-Trigger.
 
 ### Data export
 
@@ -1474,7 +1474,7 @@ RACS MALT codes and other training-programme formats are derived at export time 
 
 ## Testing
 
-- **Framework:** Vitest 4.0.18, **1540 tests** across 87 files (+15 MFC in Phase 7, +11 formScrollRegistry in Phase 7.1 follow-up Cluster 4)
+- **Framework:** Vitest 4.0.18, **1614 tests** across 91 files (+15 MFC in Phase 7, +11 formScrollRegistry in Phase 7.1 follow-up Cluster 4, +7 lymphoedema-staging regression guards in audit session 5, +4 multi-digit resolution + 69 module-visibility / case-normalization / case-diagnosis-summary / seniority-tier in audit session 6)
 - **Client tests:** `client/lib/__tests__/` and `client/components/` — covering hand trauma (diagnosis, mapping, ux), skin cancer (config 89, phase4 11, phase5 18, diagnoses 7), dashboard (selectors 7), hand (infection 42, elective 103), dupuytren (37), joint implant (44), osteotomy (18), media (encryption 7, fileStorage 3, tagHelpers 82, captureProtocols 41, operativeMedia 19, form 4, defaults 4, context 3, decrypt-cache pinning 3), inbox (storage 13, assignment 17), capture (smartImportPrefs 10, sharedIngress 2), case (specialty 5, storageCache 4, draftPersistence 1, procedure-remap 7), statistics (helpers 3, stats 7), dates (values 12, normalization 4), export (implant 3, breast), planned case (18), media organiser (15), NHI validation (12), patient identity (11), operative role (68), head & neck integration (4), breast (phase3, phase4, export), FISS calculator (12), craniofacial, aesthetics, burns, peripheral nerve, lymphoedema, team contacts (11), operative team (15), sharing bridge (8), EPA derivation (14), assessment roles + calibration (22), encryption AEAD-only (4), scrypt PIN + lockout (7), JWT refresh mutex (2), TOFU key pinning (7), plus media UI coverage
 - **Server tests:** `server/__tests__/` — auth (17), validation (7), diagnosisStagingConfig (3), teamContacts (17), invitations (6), assessments authZ (3), env-blocklist (6), utils (8)
 - **Run:** `npm run test` (once) or `npm run test:watch` (watch mode)
@@ -1610,19 +1610,26 @@ app-lock after onboarding either (only change PIN / toggle biometric).
 
 **Lock overlay:** `LockScreen.tsx` (`screen-lock`) renders as absolute overlay when `isAppLockConfigured && isLocked`.
 
-**Total: 36 screen files** (27 main + 9 onboarding). Three routes (`PlanCase`,
-`PlannedCaseList`, `EpisodeList`) and their screen files were deleted in the
-session-4 audit cleanup — `PlanCase` was superseded by the in-form plan-mode
-toggle (`caseForm.patient.toggle-planMode` + `PlanModeBanner` from Phase 7);
+**Total: 43 screen files** (33 main + 10 onboarding — the onboarding count
+includes `FeaturePager.tsx` + `FeatureSlide.tsx` wrappers in addition to the
+8 navigable step screens). Three routes (`PlanCase`, `PlannedCaseList`,
+`EpisodeList`) and their screen files were deleted in the session-4 audit
+cleanup — `PlanCase` was superseded by the in-form plan-mode toggle
+(`caseForm.patient.toggle-planMode` + `PlanModeBanner` from Phase 7);
 `EpisodeList` lost its entry point in a refactor and the dashboard's Needs
 Attention carousel + `NeedsAttentionListScreen` cover the active-episode case.
 Completed/cancelled episodes no longer have a historical browser surface.
+Not enumerated in the "App Screen Map" table above but present in `client/screens/`:
+`AssessmentScreen`, `AssessmentHistoryScreen`, `AssessmentRevealScreen` (EPA /
+blinded assessment surfaces from Team Sharing Phase 4); `SharedCaseDetailScreen`,
+`SharedInboxScreen` (E2EE share-receiver surfaces); `OnboardingScreen` (legacy
+root onboarding wrapper).
 
 ### Diagnosis Inventory
 
 | Specialty | File | Count | Staging Systems | Module Trigger |
 |-----------|------|-------|-----------------|----------------|
-| Hand Surgery | `handSurgeryDiagnoses.ts` | 103 | Gustilo-Anderson, Eaton-Littler, Herbert, Lichtman, Kanavel Signs | `hand_wrist` specialty + `caseType` gate |
+| Hand Surgery | `handSurgeryDiagnoses.ts` | 106 | Gustilo-Anderson, Eaton-Littler, Herbert, Lichtman, Kanavel Signs | `hand_wrist` specialty + `caseType` gate |
 | Head & Neck | `headNeckDiagnoses.ts` | 88 | TNM (T/N/M + Overall), House-Brackmann, Le Fort, Pittsburgh Fistula, Whitaker | `head_neck` specialty |
 | Aesthetics | `aestheticsDiagnoses.ts` | 42 | Baker Classification | `aesthetics` specialty or `aes_`/`bc_` procedure prefix |
 | Burns | `burnsDiagnoses.ts` | 19 | Depth, TBSA %, Severity | `burns` specialty (acute: `burns_dx_acute` only) |
@@ -1631,11 +1638,11 @@ Completed/cancelled episodes no longer have a historical browser surface.
 | Peripheral Nerve | `peripheralNerveDiagnoses.ts` | 43 (34 native + 9 facial nerve cross-ref) | EMG Grade, Severity | `peripheral_nerve` specialty or diagnosis metadata |
 | General | `generalDiagnoses.ts` | 57 | NPUAP Stage, Hurley Stage | Default (no special module) |
 | Lymphoedema | `lymphoedemaDiagnoses.ts` | 29 | ISL Stage, Cheng Grade, MD Anderson ICG | `lymphoedema` specialty or diagnosis metadata |
-| Orthoplastic | `orthoplasticDiagnoses.ts` | 14 | Gustilo-Anderson | Free flap / pedicled flap module |
+| Orthoplastic | `orthoplasticDiagnoses.ts` | 16 | Gustilo-Anderson | Free flap / pedicled flap module |
 | Skin Cancer | `skinCancerDiagnoses.ts` | 11 | Breslow Thickness, Ulceration, TNM (AJCC 8th Ed) | Diagnosis-driven (`hasEnhancedHistology` or SNOMED match) |
 | Body Contouring | `bodyContouringDiagnoses.ts` | (deprecated — re-exports from aesthetics) | — | — |
 
-**Total: 481 structured diagnoses** across 11 active picklist files (body contouring is deprecated/merged into aesthetics).
+**Total: 477 structured diagnoses** across 11 active picklist files (body contouring is deprecated/merged into aesthetics).
 
 **29 staging systems** defined in `server/diagnosisStagingConfig.ts`: Gustilo-Anderson, Breslow Thickness, Ulceration, Severity, EMG Grade, TNM T/N/M Stage, NPUAP Stage, Depth, TBSA %, Baker Classification, Hurley Stage, ISL Stage, Cheng Lymphoedema Grade, MD Anderson ICG Stage, Wagner Grade, Le Fort Classification, House-Brackmann Grade, Kanavel Signs, Eaton-Littler Stage, Herbert Classification, Lichtman Stage, Veau Classification, Pittsburgh Fistula Classification, Whitaker Classification, TNM T/N/M Stage (AJCC 8th Ed), Overall Stage (AJCC 8th Ed).
 
@@ -1780,7 +1787,7 @@ grep -roh 'testID="[^"]*"' client/ | sort | uniq -d
 # Must return empty
 ```
 
-**Current testID count: 193 unique static + 94 unique dynamic patterns = 287 total testID definitions.**
+**Current testID count: 269 unique static + 127 unique dynamic patterns = 396 unique testIDs (288 raw static-string definitions across files; 420 total testID prop usages including dynamic).**
 
 ### Visual Standards
 
