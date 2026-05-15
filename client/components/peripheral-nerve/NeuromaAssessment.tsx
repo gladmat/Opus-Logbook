@@ -25,7 +25,7 @@ import * as Haptics from "expo-haptics";
 import { Feather } from "@/components/FeatherIcon";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { Spacing, BorderRadius, palette } from "@/constants/theme";
 import type {
   NeuromaAssessmentData,
   NeuromaTechnique,
@@ -862,7 +862,8 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.xs,
     paddingLeft: Spacing.sm,
     borderLeftWidth: 2,
-    borderLeftColor: "#E5A00D40",
+    // Brand amber at 25% alpha — visible against both dark and light backgrounds.
+    borderLeftColor: palette.amber[600] + "40",
   },
   sectionHeader: {
     flexDirection: "row",

@@ -41,7 +41,7 @@ import * as Haptics from "expo-haptics";
 import { v4 as uuidv4 } from "uuid";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
-import { Spacing, BorderRadius, palette } from "@/constants/theme";
+import { Spacing, BorderRadius, palette, Colors } from "@/constants/theme";
 import { SkinCancerAssessment } from "@/components/skin-cancer/SkinCancerAssessment";
 import {
   getPathwayBadge,
@@ -86,16 +86,18 @@ const COMMON_SITES: string[] = [
 
 // ─── Option configs ────────────────────────────────────────────────────────
 
+// Pathology label + theme token key. Colour comes from theme.pathology so
+// the chip + index-badge stay theme-aware in light vs dark mode.
 const PATHOLOGY_OPTIONS: {
   value: LesionPathologyType;
   label: string;
-  color: string;
+  colorKey: keyof (typeof Colors.light)["pathology"];
 }[] = [
-  { value: "bcc", label: "BCC", color: "#2563EB" },
-  { value: "scc", label: "SCC", color: "#E5A00D" },
-  { value: "melanoma", label: "Mel", color: "#7C3AED" },
-  { value: "benign", label: "Benign", color: "#059669" },
-  { value: "other", label: "Other", color: "#6B7280" },
+  { value: "bcc", label: "BCC", colorKey: "bcc" },
+  { value: "scc", label: "SCC", colorKey: "scc" },
+  { value: "melanoma", label: "Mel", colorKey: "melanoma" },
+  { value: "benign", label: "Benign", colorKey: "benign" },
+  { value: "other", label: "Other", colorKey: "other" },
 ];
 
 const RECON_OPTIONS: { value: LesionReconstruction; label: string }[] = [
@@ -253,7 +255,11 @@ function LesionRow({
         <View
           style={[
             styles.lesionIndexBadge,
-            { backgroundColor: pathologyOption?.color ?? theme.link },
+            {
+              backgroundColor: pathologyOption
+                ? theme.pathology[pathologyOption.colorKey]
+                : theme.link,
+            },
           ]}
         >
           <ThemedText style={styles.lesionIndexText}>{index + 1}</ThemedText>
@@ -326,45 +332,48 @@ function LesionRow({
                   Pathology
                 </ThemedText>
                 <View style={styles.chipRow}>
-                  {PATHOLOGY_OPTIONS.map((opt) => (
-                    <Pressable
-                      key={opt.value}
-                      onPress={() =>
-                        onUpdate({ ...lesion, pathologyType: opt.value })
-                      }
-                      style={[
-                        styles.chip,
-                        {
-                          backgroundColor:
-                            lesion.pathologyType === opt.value
-                              ? opt.color + "20"
-                              : theme.backgroundRoot,
-                          borderColor:
-                            lesion.pathologyType === opt.value
-                              ? opt.color
-                              : theme.border,
-                        },
-                      ]}
-                    >
-                      <ThemedText
+                  {PATHOLOGY_OPTIONS.map((opt) => {
+                    const pathologyColor = theme.pathology[opt.colorKey];
+                    return (
+                      <Pressable
+                        key={opt.value}
+                        onPress={() =>
+                          onUpdate({ ...lesion, pathologyType: opt.value })
+                        }
                         style={[
-                          styles.chipText,
+                          styles.chip,
                           {
-                            color:
+                            backgroundColor:
                               lesion.pathologyType === opt.value
-                                ? opt.color
-                                : theme.textSecondary,
-                            fontWeight:
+                                ? pathologyColor + "20"
+                                : theme.backgroundRoot,
+                            borderColor:
                               lesion.pathologyType === opt.value
-                                ? "600"
-                                : "400",
+                                ? pathologyColor
+                                : theme.border,
                           },
                         ]}
                       >
-                        {opt.label}
-                      </ThemedText>
-                    </Pressable>
-                  ))}
+                        <ThemedText
+                          style={[
+                            styles.chipText,
+                            {
+                              color:
+                                lesion.pathologyType === opt.value
+                                  ? pathologyColor
+                                  : theme.textSecondary,
+                              fontWeight:
+                                lesion.pathologyType === opt.value
+                                  ? "600"
+                                  : "400",
+                            },
+                          ]}
+                        >
+                          {opt.label}
+                        </ThemedText>
+                      </Pressable>
+                    );
+                  })}
                 </View>
               </View>
 

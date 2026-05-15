@@ -15,7 +15,7 @@ import * as Haptics from "expo-haptics";
 import Svg, { Rect, Line, Text as SvgText, G } from "react-native-svg";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { Spacing, BorderRadius, Colors, palette } from "@/constants/theme";
 import type {
   BPRoot,
   BPTrunk,
@@ -97,34 +97,45 @@ const TERM_Y: Record<BPTerminalBranch, number> = {
 };
 
 // ── Colour mapping ───────────────────────────────────────────────────────────
+// Severity ladder maps to existing semantic tokens where possible.
+// "rupture" gets its own theme.nerveSeverity.rupture token because it sits
+// between warning and error on the severity ladder.
 
-function getInjuryFill(type?: BPInjuryType, isDark?: boolean): string {
+type DiagramTheme = typeof Colors.light;
+
+function getInjuryFill(
+  type: BPInjuryType | undefined,
+  theme: DiagramTheme,
+): string {
   switch (type) {
     case "intact":
-      return isDark ? "#2EA043" : "#1A7F37";
+      return theme.success;
     case "stretch":
-      return isDark ? "#D29922" : "#9A6700";
+      return theme.warning;
     case "rupture":
-      return isDark ? "#E5883E" : "#C4632B";
+      return theme.nerveSeverity.rupture;
     case "avulsion":
-      return isDark ? "#F85149" : "#CF222E";
+      return theme.error;
     case "unknown":
     default:
-      return isDark ? "#3D444D" : "#D0D7DE";
+      return theme.backgroundTertiary;
   }
 }
 
-function getInjuryTextColor(type?: BPInjuryType, isDark?: boolean): string {
+function getInjuryTextColor(
+  type: BPInjuryType | undefined,
+  theme: DiagramTheme,
+): string {
   switch (type) {
     case "intact":
     case "rupture":
     case "avulsion":
-      return "#FFFFFF";
+      return palette.white;
     case "stretch":
-      return isDark ? "#0C0F14" : "#FFFFFF";
+      return theme.buttonText; // dark on amber in dark mode, white in light
     case "unknown":
     default:
-      return isDark ? "#8B949E" : "#656D76";
+      return theme.textSecondary;
   }
 }
 
@@ -266,7 +277,7 @@ export const BrachialPlexusDiagram = React.memo(function BrachialPlexusDiagram({
     [editable, onTerminalBranchPress],
   );
 
-  const lineColor = isDark ? "#4D555E" : "#B0B8C1";
+  const lineColor = isDark ? palette.charcoal[750] : palette.charcoal[300];
 
   return (
     <View
@@ -377,9 +388,11 @@ export const BrachialPlexusDiagram = React.memo(function BrachialPlexusDiagram({
                     width={NODE_W}
                     height={NODE_H}
                     rx={NODE_R}
-                    fill={getInjuryFill(injury, isDark)}
+                    fill={getInjuryFill(injury, theme)}
                     strokeWidth={1.5}
-                    stroke={isDark ? "#4D555E" : "#B0B8C1"}
+                    stroke={
+                      isDark ? palette.charcoal[750] : palette.charcoal[300]
+                    }
                   />
                   <SvgText
                     x={COL_ROOT}
@@ -387,7 +400,7 @@ export const BrachialPlexusDiagram = React.memo(function BrachialPlexusDiagram({
                     textAnchor="middle"
                     fontSize={12}
                     fontWeight="700"
-                    fill={getInjuryTextColor(injury, isDark)}
+                    fill={getInjuryTextColor(injury, theme)}
                   >
                     {root}
                   </SvgText>
@@ -406,9 +419,11 @@ export const BrachialPlexusDiagram = React.memo(function BrachialPlexusDiagram({
                     width={NODE_W}
                     height={NODE_H}
                     rx={NODE_R}
-                    fill={getInjuryFill(injury, isDark)}
+                    fill={getInjuryFill(injury, theme)}
                     strokeWidth={1.5}
-                    stroke={isDark ? "#4D555E" : "#B0B8C1"}
+                    stroke={
+                      isDark ? palette.charcoal[750] : palette.charcoal[300]
+                    }
                   />
                   <SvgText
                     x={COL_TRUNK}
@@ -416,7 +431,7 @@ export const BrachialPlexusDiagram = React.memo(function BrachialPlexusDiagram({
                     textAnchor="middle"
                     fontSize={11}
                     fontWeight="600"
-                    fill={getInjuryTextColor(injury, isDark)}
+                    fill={getInjuryTextColor(injury, theme)}
                   >
                     {BP_TRUNK_LABELS[trunk]}
                   </SvgText>
@@ -435,9 +450,11 @@ export const BrachialPlexusDiagram = React.memo(function BrachialPlexusDiagram({
                     width={NODE_W}
                     height={NODE_H}
                     rx={NODE_R}
-                    fill={getInjuryFill(injury, isDark)}
+                    fill={getInjuryFill(injury, theme)}
                     strokeWidth={1.5}
-                    stroke={isDark ? "#4D555E" : "#B0B8C1"}
+                    stroke={
+                      isDark ? palette.charcoal[750] : palette.charcoal[300]
+                    }
                   />
                   <SvgText
                     x={COL_CORD}
@@ -445,7 +462,7 @@ export const BrachialPlexusDiagram = React.memo(function BrachialPlexusDiagram({
                     textAnchor="middle"
                     fontSize={11}
                     fontWeight="600"
-                    fill={getInjuryTextColor(injury, isDark)}
+                    fill={getInjuryTextColor(injury, theme)}
                   >
                     {BP_CORD_LABELS[cord]}
                   </SvgText>
@@ -464,9 +481,11 @@ export const BrachialPlexusDiagram = React.memo(function BrachialPlexusDiagram({
                     width={NODE_W}
                     height={NODE_H}
                     rx={NODE_R}
-                    fill={getInjuryFill(injury, isDark)}
+                    fill={getInjuryFill(injury, theme)}
                     strokeWidth={1.5}
-                    stroke={isDark ? "#4D555E" : "#B0B8C1"}
+                    stroke={
+                      isDark ? palette.charcoal[750] : palette.charcoal[300]
+                    }
                   />
                   <SvgText
                     x={COL_TERM}
@@ -474,7 +493,7 @@ export const BrachialPlexusDiagram = React.memo(function BrachialPlexusDiagram({
                     textAnchor="middle"
                     fontSize={11}
                     fontWeight="600"
-                    fill={getInjuryTextColor(injury, isDark)}
+                    fill={getInjuryTextColor(injury, theme)}
                   >
                     {BP_TERMINAL_LABELS[term]}
                   </SvgText>
@@ -581,7 +600,7 @@ export const BrachialPlexusDiagram = React.memo(function BrachialPlexusDiagram({
             <View
               style={[
                 styles.legendDot,
-                { backgroundColor: getInjuryFill(type, isDark) },
+                { backgroundColor: getInjuryFill(type, theme) },
               ]}
             />
             <ThemedText

@@ -630,7 +630,7 @@ export default function OpusCameraScreen({ navigation, route }: Props) {
                   style={[
                     styles.dot,
                     captured
-                      ? styles.dotCaptured
+                      ? [styles.dotCaptured, { backgroundColor: theme.success }]
                       : isCurrent
                         ? [styles.dotCurrent, { borderColor: theme.link }]
                         : styles.dotEmpty,
@@ -874,7 +874,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   dotCaptured: {
-    backgroundColor: "#2EA043",
+    // backgroundColor overridden inline by theme.success — the static
+    // base style stays empty so the inline theme value isn't double-applied.
   },
   dotCurrent: {
     backgroundColor: "transparent",

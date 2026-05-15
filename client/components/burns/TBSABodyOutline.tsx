@@ -9,28 +9,30 @@ import { View, StyleSheet } from "react-native";
 import Svg, { Path, Circle } from "react-native-svg";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { Spacing, BorderRadius, Colors } from "@/constants/theme";
 import type { TBSAData, TBSARegion, BurnDepth } from "@/types/burns";
 
 interface TBSABodyOutlineProps {
   data: TBSAData;
 }
 
-/** Depth → colour mapping */
-function getDepthColor(depth?: BurnDepth): string {
+/** Depth → theme.burnDepth token-key mapping */
+function getDepthColorKey(
+  depth?: BurnDepth,
+): keyof (typeof Colors.light)["burnDepth"] | null {
   switch (depth) {
     case "superficial":
     case "superficial_partial":
-      return "#FFB3BA";
+      return "superficial";
     case "deep_partial":
-      return "#FF6B6B";
+      return "deepPartial";
     case "full_thickness":
     case "subdermal":
-      return "#CC0000";
+      return "fullThickness";
     case "mixed":
-      return "#FF8844";
+      return "mixed";
     default:
-      return "transparent";
+      return null;
   }
 }
 
@@ -65,8 +67,10 @@ export const TBSABodyOutline = React.memo(function TBSABodyOutline({
     return null;
   }
 
-  const fill = (region: TBSARegion) =>
-    getDepthColor(regionDepthMap[region]) || "transparent";
+  const fill = (region: TBSARegion) => {
+    const key = getDepthColorKey(regionDepthMap[region]);
+    return key ? theme.burnDepth[key] : "transparent";
+  };
   const stroke = theme.textTertiary;
 
   return (
@@ -151,7 +155,12 @@ export const TBSABodyOutline = React.memo(function TBSABodyOutline({
       {/* Depth legend */}
       <View style={styles.legend}>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: "#FFB3BA" }]} />
+          <View
+            style={[
+              styles.legendDot,
+              { backgroundColor: theme.burnDepth.superficial },
+            ]}
+          />
           <ThemedText
             style={[styles.legendText, { color: theme.textTertiary }]}
           >
@@ -159,7 +168,12 @@ export const TBSABodyOutline = React.memo(function TBSABodyOutline({
           </ThemedText>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: "#FF6B6B" }]} />
+          <View
+            style={[
+              styles.legendDot,
+              { backgroundColor: theme.burnDepth.deepPartial },
+            ]}
+          />
           <ThemedText
             style={[styles.legendText, { color: theme.textTertiary }]}
           >
@@ -167,7 +181,12 @@ export const TBSABodyOutline = React.memo(function TBSABodyOutline({
           </ThemedText>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: "#CC0000" }]} />
+          <View
+            style={[
+              styles.legendDot,
+              { backgroundColor: theme.burnDepth.fullThickness },
+            ]}
+          />
           <ThemedText
             style={[styles.legendText, { color: theme.textTertiary }]}
           >

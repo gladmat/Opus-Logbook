@@ -91,6 +91,30 @@ export const Colors = {
       peripheral_nerve: "#7C3AED",
       general: "#656D76",
     },
+    // Skin cancer pathology category badges — semantic distinguishers for
+    // multi-lesion sessions. Pattern mirrors theme.specialty (5 categories
+    // each with light + dark variants).
+    pathology: {
+      bcc: "#2563EB", // BCC — blue
+      scc: "#B47E00", // SCC — amber (matches light mode accent)
+      melanoma: "#7C3AED", // Melanoma — purple
+      benign: "#059669", // Benign — green
+      other: "#6B7280", // Other / unspecified — grey
+    },
+    // Burn depth — semantic clinical signal (lighter in light mode).
+    burnDepth: {
+      superficial: "#FFB3BA", // Sunburn / superficial-partial — pink
+      deepPartial: "#FF6B6B", // Deep partial — red
+      fullThickness: "#CC0000", // Full-thickness / subdermal — deep red
+      mixed: "#FF8844", // Mixed depth — orange
+    },
+    // Nerve injury severity — used in the brachial plexus diagram. Most
+    // grades map to existing semantic tokens (success/warning/error); only
+    // "rupture" needs its own colour because it sits between warning and
+    // error on the severity ladder.
+    nerveSeverity: {
+      rupture: "#C4632B",
+    },
   },
   dark: {
     text: "#E6EDF3",
@@ -139,6 +163,27 @@ export const Colors = {
       aesthetics: "#F9A8D4",
       peripheral_nerve: "#A78BFA",
       general: "#94A3B8",
+    },
+    // See light theme for token rationale.
+    pathology: {
+      bcc: "#2563EB",
+      scc: "#E5A00D", // SCC — amber (matches dark mode accent)
+      melanoma: "#7C3AED",
+      benign: "#059669",
+      other: "#6B7280",
+    },
+    // Same burn-depth palette as light mode — the depth gradient is
+    // saturated enough to read on either background. Surgeons learn the
+    // sunburn-pink → red → deep-red mapping in trauma training so we
+    // preserve it regardless of theme.
+    burnDepth: {
+      superficial: "#FFB3BA",
+      deepPartial: "#FF6B6B",
+      fullThickness: "#CC0000",
+      mixed: "#FF8844",
+    },
+    nerveSeverity: {
+      rupture: "#E5883E", // Brighter in dark mode for legibility on charcoal
     },
   },
 };
