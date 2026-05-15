@@ -187,7 +187,10 @@ export function SecurityScreen({ onComplete, onBack }: Props) {
 
   if (step === "enter_new" || step === "confirm_new") {
     return (
-      <View style={[styles.root, { paddingBottom: insets.bottom + 20 }]}>
+      <View
+        testID="screen-onboardingSecurity"
+        style={[styles.root, { paddingBottom: insets.bottom + 20 }]}
+      >
         <StepHeader
           currentStep={5}
           onBack={step === "enter_new" ? onBack : undefined}
@@ -235,6 +238,9 @@ export function SecurityScreen({ onComplete, onBack }: Props) {
                   styles.key,
                   pressed && styles.keyPressed,
                 ]}
+                accessibilityRole="button"
+                accessibilityLabel={d}
+                testID={`onboarding.security.key-${d}`}
               >
                 <Text style={styles.keyText}>{d}</Text>
               </Pressable>
@@ -246,6 +252,9 @@ export function SecurityScreen({ onComplete, onBack }: Props) {
                 styles.key,
                 pressed && styles.keyPressed,
               ]}
+              accessibilityRole="button"
+              accessibilityLabel="0"
+              testID="onboarding.security.key-0"
             >
               <Text style={styles.keyText}>0</Text>
             </Pressable>
@@ -253,6 +262,10 @@ export function SecurityScreen({ onComplete, onBack }: Props) {
               onPress={handlePinBackspace}
               disabled={pin.length === 0}
               style={[styles.key, styles.iconKey]}
+              accessibilityRole="button"
+              accessibilityLabel="Backspace"
+              accessibilityState={{ disabled: pin.length === 0 }}
+              testID="onboarding.security.key-backspace"
             >
               <Feather
                 name="delete"
@@ -269,7 +282,10 @@ export function SecurityScreen({ onComplete, onBack }: Props) {
   // ── Done state: biometric toggle + CTA ─────────────────────────────────────
 
   return (
-    <View style={[styles.root, { paddingBottom: insets.bottom + 20 }]}>
+    <View
+      testID="screen-onboardingSecurityDone"
+      style={[styles.root, { paddingBottom: insets.bottom + 20 }]}
+    >
       <StepHeader currentStep={5} />
 
       <View style={styles.doneContent}>
@@ -308,6 +324,10 @@ export function SecurityScreen({ onComplete, onBack }: Props) {
               onValueChange={handleToggleBiometric}
               trackColor={{ false: "#38383A", true: palette.amber[600] }}
               thumbColor="#FFFFFF"
+              accessibilityRole="switch"
+              accessibilityLabel={`Enable ${biometricLabel}`}
+              accessibilityState={{ checked: biometricEnabled }}
+              testID="onboarding.security.toggle-biometric"
             />
           </Reanimated.View>
         ) : biometricBlockedReason ? (
@@ -329,6 +349,10 @@ export function SecurityScreen({ onComplete, onBack }: Props) {
           style={[styles.ctaButton, isSubmitting && styles.ctaDisabled]}
           onPress={handleComplete}
           disabled={isSubmitting}
+          accessibilityRole="button"
+          accessibilityLabel="Start logging"
+          accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
+          testID="onboarding.security.btn-complete"
         >
           {isSubmitting ? (
             <ActivityIndicator color={dark.buttonText} />

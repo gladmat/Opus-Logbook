@@ -59,7 +59,10 @@ export function PrivacyScreen({ onComplete, onBack }: Props) {
   };
 
   return (
-    <View style={[styles.root, { paddingBottom: insets.bottom + 20 }]}>
+    <View
+      testID="screen-onboardingPrivacy"
+      style={[styles.root, { paddingBottom: insets.bottom + 20 }]}
+    >
       <StepHeader currentStep={4} onBack={onBack} />
 
       {/* Content */}
@@ -95,7 +98,13 @@ export function PrivacyScreen({ onComplete, onBack }: Props) {
 
       {/* Bottom CTA */}
       <View style={styles.bottomArea}>
-        <Pressable style={styles.ctaButton} onPress={handleContinue}>
+        <Pressable
+          style={styles.ctaButton}
+          onPress={handleContinue}
+          accessibilityRole="button"
+          accessibilityLabel={c.cta}
+          testID="onboarding.privacy.btn-continue"
+        >
           <Text style={styles.ctaText}>{c.cta}</Text>
         </Pressable>
       </View>

@@ -127,7 +127,10 @@ export function TrainingScreen({
   const c = copy.training;
 
   return (
-    <View style={[styles.root, { paddingBottom: insets.bottom + 20 }]}>
+    <View
+      testID="screen-onboardingTraining"
+      style={[styles.root, { paddingBottom: insets.bottom + 20 }]}
+    >
       <StepHeader currentStep={2} onBack={onBack} />
 
       {/* Content */}
@@ -160,6 +163,7 @@ export function TrainingScreen({
                 accessibilityState={{
                   checked: selectedId === option.id,
                 }}
+                testID={`onboarding.training.row-${option.id}`}
               >
                 <View style={styles.rowContent}>
                   <Text
@@ -191,6 +195,8 @@ export function TrainingScreen({
                     autoCapitalize="words"
                     autoCorrect={false}
                     returnKeyType="done"
+                    accessibilityLabel="Other training programme name"
+                    testID="onboarding.training.input-other"
                   />
                 </View>
               )}
@@ -211,6 +217,10 @@ export function TrainingScreen({
           style={[styles.ctaButton, !canContinue && styles.ctaDisabled]}
           onPress={handleContinue}
           disabled={!canContinue}
+          accessibilityRole="button"
+          accessibilityLabel={isNoneSelected ? "Skip" : c.cta}
+          accessibilityState={{ disabled: !canContinue, busy: isSubmitting }}
+          testID="onboarding.training.btn-continue"
         >
           <Text style={styles.ctaText}>
             {isSubmitting ? "Saving..." : isNoneSelected ? "Skip" : c.cta}
@@ -223,6 +233,10 @@ export function TrainingScreen({
           onPress={handleSkip}
           disabled={isSubmitting}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          accessibilityRole="button"
+          accessibilityLabel={c.skip}
+          accessibilityState={{ disabled: isSubmitting }}
+          testID="onboarding.training.btn-skip"
         >
           <Text style={styles.skipText}>{c.skip}</Text>
         </Pressable>

@@ -221,6 +221,7 @@ function AttentionCardInner({
             accessibilityRole="button"
             accessibilityLabel={`View episode for ${item.patientIdentifier}`}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            testID={testID ? `${testID}.btn-episode` : undefined}
           >
             <Feather name="layers" size={13} color={theme.textSecondary} />
             <ThemedText

@@ -117,6 +117,10 @@ export function ProcedureSubcategoryPicker({
                 Haptics.selectionAsync();
                 setActiveSubcategory(subcat);
               }}
+              accessibilityRole="tab"
+              accessibilityLabel={subcat}
+              accessibilityState={{ selected: isActive }}
+              testID={`caseForm.procedure.chip-subcat-${subcat}`}
               style={[
                 styles.subcatChip,
                 {
@@ -151,6 +155,10 @@ export function ProcedureSubcategoryPicker({
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 onSelect(entry);
               }}
+              accessibilityRole="button"
+              accessibilityLabel={entry.displayName}
+              accessibilityState={{ selected: isSelected }}
+              testID={`caseForm.procedure.row-${entry.id}`}
               style={[
                 styles.procedureRow,
                 {
@@ -224,6 +232,14 @@ export function ProcedureSubcategoryPicker({
                     toggleFavourite("procedure", entry.id);
                   }}
                   hitSlop={6}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    isFav
+                      ? `Remove ${entry.displayName} from favourites`
+                      : `Add ${entry.displayName} to favourites`
+                  }
+                  accessibilityState={{ selected: isFav }}
+                  testID={`caseForm.procedure.btn-favourite-${entry.id}`}
                   style={styles.starButton}
                 >
                   <Feather

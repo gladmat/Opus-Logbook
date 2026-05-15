@@ -31,11 +31,13 @@ const SIDE_PADDING = 24;
 // ── Category Card ────────────────────────────────────────────────────────────
 
 function CategoryCard({
+  id,
   label,
   selected,
   onToggle,
   width,
 }: {
+  id: Specialty;
   label: string;
   selected: boolean;
   onToggle: () => void;
@@ -85,6 +87,7 @@ function CategoryCard({
       accessibilityLabel={selected ? `${label}, selected` : label}
       accessibilityRole="button"
       accessibilityState={{ selected }}
+      testID={`onboarding.categories.card-${id}`}
     >
       <Animated.View style={[styles.card, { width }, animatedStyle]}>
         <Text
@@ -166,6 +169,7 @@ export function CategoriesScreen({
 
   return (
     <View
+      testID="screen-onboardingCategories"
       style={[
         styles.root,
         {
@@ -193,6 +197,7 @@ export function CategoriesScreen({
           {PROCEDURE_CATEGORIES.map((cat) => (
             <CategoryCard
               key={cat.id}
+              id={cat.id}
               label={cat.label}
               selected={selected.has(cat.id)}
               onToggle={() => toggleCategory(cat.id)}
@@ -209,6 +214,10 @@ export function CategoriesScreen({
           style={[styles.ctaButton, !canContinue && styles.ctaDisabled]}
           onPress={handleContinue}
           disabled={!canContinue}
+          accessibilityRole="button"
+          accessibilityLabel={c.cta}
+          accessibilityState={{ disabled: !canContinue, busy: isSubmitting }}
+          testID="onboarding.categories.btn-continue"
         >
           <Text style={styles.ctaText}>
             {isSubmitting ? "Saving..." : c.cta}
@@ -221,6 +230,10 @@ export function CategoriesScreen({
           onPress={handleSkip}
           disabled={isSubmitting}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          accessibilityRole="button"
+          accessibilityLabel={c.skip}
+          accessibilityState={{ disabled: isSubmitting }}
+          testID="onboarding.categories.btn-skip"
         >
           <Text style={styles.skipText}>{c.skip}</Text>
         </Pressable>

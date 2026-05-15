@@ -256,7 +256,10 @@ export function HospitalScreen({
       style={styles.flex}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <View style={[styles.root, { paddingBottom: insets.bottom + 20 }]}>
+      <View
+        testID="screen-onboardingHospital"
+        style={[styles.root, { paddingBottom: insets.bottom + 20 }]}
+      >
         <StepHeader currentStep={3} onBack={onBack} />
 
         <ScrollView
@@ -285,6 +288,10 @@ export function HospitalScreen({
                     setShowDropdown(false);
                     inputRef.current?.focus();
                   }}
+                  accessibilityRole="radio"
+                  accessibilityLabel={country.name}
+                  accessibilityState={{ selected: isSelected }}
+                  testID={`onboarding.hospital.chip-country-${country.code}`}
                 >
                   <Text
                     style={[
@@ -331,6 +338,7 @@ export function HospitalScreen({
                 editable={!!selectedCountryCode}
                 accessibilityLabel="Search hospitals"
                 accessibilityHint="Type to search the curated hospital list"
+                testID="onboarding.hospital.input-search"
               />
               {query.length > 0 ? (
                 <Pressable
@@ -341,6 +349,7 @@ export function HospitalScreen({
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   accessibilityLabel="Clear search"
                   accessibilityRole="button"
+                  testID="onboarding.hospital.btn-clearSearch"
                 >
                   <Text style={styles.clearButton}>✕</Text>
                 </Pressable>
@@ -367,6 +376,9 @@ export function HospitalScreen({
                         styles.resultSeparator,
                     ]}
                     onPress={() => handleSelectHospital(hospital)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${hospital.name}, ${hospital.region}, ${hospital.type === "public" ? "Public" : "Private"}`}
+                    testID={`onboarding.hospital.row-result-${hospital.id}`}
                   >
                     <Text style={styles.resultName} numberOfLines={1}>
                       {hospital.name}
@@ -397,6 +409,7 @@ export function HospitalScreen({
                   accessible
                   accessibilityLabel={`Selected hospital: ${hospital.name}`}
                   accessibilityRole="text"
+                  testID={`onboarding.hospital.badge-selected-${hospital.facilityId ?? hospital.name}`}
                 >
                   <Text style={styles.selectedText}>{hospital.name}</Text>
                   <Pressable
@@ -404,6 +417,7 @@ export function HospitalScreen({
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     accessibilityLabel={`Remove ${hospital.name}`}
                     accessibilityRole="button"
+                    testID={`onboarding.hospital.btn-remove-${hospital.facilityId ?? hospital.name}`}
                   >
                     <Text style={styles.selectedRemove}>✕</Text>
                   </Pressable>
@@ -420,7 +434,8 @@ export function HospitalScreen({
             disabled={!canContinue}
             accessibilityLabel={c.cta}
             accessibilityRole="button"
-            accessibilityState={{ disabled: !canContinue }}
+            accessibilityState={{ disabled: !canContinue, busy: isSubmitting }}
+            testID="onboarding.hospital.btn-continue"
           >
             <Text style={styles.ctaText}>
               {isSubmitting ? "Saving..." : c.cta}
@@ -434,6 +449,8 @@ export function HospitalScreen({
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             accessibilityLabel={c.skip}
             accessibilityRole="link"
+            accessibilityState={{ disabled: isSubmitting }}
+            testID="onboarding.hospital.btn-skip"
           >
             <Text style={styles.skipText}>{c.skip}</Text>
           </Pressable>
