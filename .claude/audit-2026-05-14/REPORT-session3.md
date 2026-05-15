@@ -10,7 +10,31 @@
 
 ## TL;DR
 
-_(written at session end)_
+Session 3 worked the full eight-cluster brief across several turns. **Headline:
+Opus's visual craftsmanship is genuinely strong.** Across all 11 specialty
+assessment modules, the 40-screen map, the five-step onboarding flow, every
+Settings sub-screen, the capture screens, iPhone SE 3, and the data-dependent
+surfaces with a 22-case fixture — the only Broken/Wrong *layout* bugs found were
+**two**, both in the seeded-data cluster, and **both fixed + verified on-device**:
+
+- 🟡 **`RoleBadge` rendered full-width** inside CaseDetail's "Surgical Team"
+  column layout (no `alignSelf`) — the role chip looked like an empty input on
+  every CaseDetail. Fixed (`955850a`).
+- 🟡 **30-Day Complication Review countdown drifted a day** in non-UTC zones —
+  `daysSinceProcedure` used `new Date("YYYY-MM-DD")` (UTC-midnight parse) against
+  a wall-clock `now()`. The RACS-MALT review-due gate also fired a day late.
+  Fixed (`955850a`).
+
+Six code changes landed (2 inline UI fixes, 1 testID/a11y fix, 1 capture-screen
+testID fix, 1 audit-seed extension 6→22 cases, 1 new `opus://debug/onboarding`
+deep link). All `tsc --noEmit` clean. The substantive *reported* findings: one
+clinical-data bug (BCRL lymphoedema shows breast-TNM staging instead of ISL —
+server-side, untouched per the brief), **two dead routes** (`PlanCase` and
+`EpisodeList` — registered but unreachable), and a cluster of testID/a11y gaps
+(`ProcedureSubcategoryPicker`, dashboard `AttentionCard`, all four+1 onboarding
+screens). Everything else is Inconsistent/Unpolished design-pass material — the
+nav-pill truncation chief among them. Nothing on the dashboard / statistics /
+case-detail / onboarding surfaces is broken.
 
 ---
 
@@ -60,7 +84,9 @@ forced new working patterns. The proven session-3 method:
 | `eb6600c` | Cluster 5 — `screen-*` root testID on all conditional branches of OpusCamera / SmartImport (Code fix 2) |
 | `54e8157` | Add dev-only `opus://debug/seed` deep link for audit fixture data (6 cases + 1 episode) |
 | `955850a` | **Fix RoleBadge full-width render + 30-day countdown TZ drift** (Code fixes 3/4); extend audit seed 6 → 22 cases (Code fix 5) |
-| _(this report + Cluster-6 seeded screenshots)_ | committed progressively through session end |
+| `db84088` | Cluster 6 — seeded-data audit + 2 bug fixes verified + `.claude/audit-screenshot.sh` wrapper |
+| `db319f4` | Cluster 7 — post-auth onboarding captured + `opus://debug/onboarding` deep link (Code fix 6) |
+| _(final commit)_ | Cluster 8 light-theme screenshots + report TL;DR / Coverage & gaps |
 
 ---
 
@@ -488,6 +514,47 @@ further" (harmless), but `03≈04` meant the **filtered dashboard was never
 actually captured** (the flow's chip-tap was `optional:true` against stale
 text); that is now genuinely captured (`s3-data-04`).
 
+## Light-theme sweep (Cluster 8)
+
+Session 3's SE 3 pass (Cluster 2) already booted in light, covering core +
+case-form light coverage; session 2 sampled light on the dashboard/FAB/AddCase.
+This cluster filled the remaining gaps — the data surfaces and a dense specialty
+module in light, on iPhone 17.
+
+| Light surface | Shots | Assessment |
+|---|---|---|
+| Dashboard (populated) | `s3-light-01..02` | ✅ Clean. White/`#F6F8FA` surfaces, dark text, amber confined to interactive elements (logo, active chip, Discharge/Log-Case buttons, View-all, FAB, active tab). Light-mode card shadows present (allowed per CLAUDE.md). |
+| Statistics (populated) | `s3-light-06..08` | ✅ Clean. Practice/Training pill bar uses the light-mode amber (`#B47E00`); Practice Profile bars use the deeper light specialty palette; Monthly Activity + Milestones render correctly. |
+| CaseDetail (breast) | `s3-light-04..05` | ✅ Clean. White cards + subtle shadows, hero badges, RoleBadge "Surgeon" chips compact (the fix holds in light too). |
+| Burns assessment module | `s3-light-20..22` | ✅ Clean. Case-form light rendering, amber-bordered Burns Assessment module, Depth/TBSA chips. |
+
+**Result: the app follows system appearance correctly** — no raw-hex bleed-through,
+no light-specific Broken/Wrong issues across the surfaces sampled. The nav-pill
+truncation ("Oper…" / "Outc…") reproduces in light, confirming it is a
+theme-independent layout issue. `light-data.yaml` died partway on the
+kAXError-flaky NeedsAttention nav, so light NeedsAttentionList / EpisodeDetail /
+Settings were not captured — low-risk given the consistent system-appearance
+behaviour everywhere else.
+
 ## Coverage & gaps
 
-_(written at session end)_
+**Covered this session (all eight brief clusters touched):**
+
+- ✅ **Cluster 1** — all 11 specialty assessment modules with a diagnosis selected. All clean.
+- ✅ **Cluster 2** — iPhone SE 3 / 375 pt pass (core + case form + SE 3 doubled as light coverage).
+- ✅ **Cluster 3** — `head_neck` / `cleft_cranio` / `general` modules (folded into Cluster 1's table).
+- ✅ **Cluster 4** — all 6 Settings sub-screens. All clean.
+- ✅ **Cluster 5** — capture screens (OpusCamera / GuidedCapture / SmartImport / Inbox). `PlanCase` found dead.
+- ✅ **Cluster 6** — seeded-data run: populated + filtered Dashboard, NeedsAttentionList, CaseDetail ×3, AddHistology, AddTimelineEvent, EpisodeDetail, populated Statistics (22-case seed). **Caught + fixed 2 bugs.** `EpisodeList` found dead.
+- ✅ **Cluster 7** — all 5 post-auth onboarding steps (Categories / Training / Hospital / Privacy / Security) via the new `opus://debug/onboarding` deep link.
+- ◑ **Cluster 8** — light sweep of Dashboard, Statistics, CaseDetail, Burns module. Light NeedsAttentionList / EpisodeDetail / Settings not captured (kAXError-flaky nav; low-risk).
+
+**Honest gaps — recommended follow-ups:**
+
+- **`EpisodeList` screen** — unreachable (dead route); cannot be captured through the UI until it is re-wired or deleted.
+- **Light theme** — NeedsAttentionList / EpisodeDetail / Settings sub-screens not captured in light (the rest of light is consistent, so risk is low).
+- **HeadNeck / dense-module re-render investigation** — the `kAXErrorInvalidUIElement` proneness of `HeadNeckDiagnosisPicker` (and, to a lesser extent, the whole case form) is *plausibly* a real perf bug behind the automation friction. Needs a React-DevTools "highlight re-renders" pass — not screenshottable.
+- **The two dead routes** (`PlanCase`, `EpisodeList`) need a delete-vs-rewire decision.
+- **testID/a11y backlog** — `ProcedureSubcategoryPicker` rows, dashboard `AttentionCard`, all 5 onboarding screens. Plus the pre-existing raw-hex sweep (~29 files) + case-form Pressable a11y gaps. A dedicated session.
+- **BCRL lymphoedema TNM-vs-ISL staging bug** — server-side (`server/diagnosisStagingConfig.ts`), untouched per the brief's "do not touch server/" guardrail. Needs a server session.
+- **Deeper module coverage** — the specialty modules were captured at "diagnosis selected + scrolled"; the deepest nested cards (e.g. Aesthetics `ImplantDetailsCard`, per-procedure footers) were not all reached. Diminishing returns, but noted.
