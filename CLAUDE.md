@@ -1607,8 +1607,16 @@ app-lock after onboarding either (only change PIN / toggle biometric).
 | AddHistology | `AddHistologyScreen.tsx` | `screen-addHistology` | push |
 | TeamContacts | `TeamContactsScreen.tsx` | `screen-teamContacts` | push |
 | AddEditTeamContact | `AddEditTeamContactScreen.tsx` | `screen-addEditTeamContact` | push |
+| SharedInbox | `SharedInboxScreen.tsx` | `screen-sharedInbox` | push (route: `SharedInbox`) |
+| SharedCaseDetail | `SharedCaseDetailScreen.tsx` | `screen-sharedCaseDetail` | push (route: `SharedCaseDetail`) |
+| Assessment | `AssessmentScreen.tsx` | `screen-assessment` | push (route: `Assessment`) |
+| AssessmentReveal | `AssessmentRevealScreen.tsx` | `screen-assessmentReveal` | push (route: `AssessmentReveal`) |
+| AssessmentHistory | `AssessmentHistoryScreen.tsx` | `screen-assessmentHistory` | push (route: `AssessmentHistory`) |
 
 **Lock overlay:** `LockScreen.tsx` (`screen-lock`) renders as absolute overlay when `isAppLockConfigured && isLocked`.
+
+**Orphaned (in `client/screens/` but not wired into any navigator):**
+`OnboardingScreen.tsx` (`screen-onboarding`) — a 4-step agreement/country/career/facilities flow superseded by the current Welcome→FeaturePager→EmailSignup→Auth pre-auth flow plus the post-auth Categories→Training→Hospital→Privacy→Security onboarding stack. Has no callers; eligible for deletion in a future cleanup pass (parallel to the session-4 PlanCase / PlannedCaseList / EpisodeList sweep).
 
 **Total: 43 screen files** (33 main + 10 onboarding — the onboarding count
 includes `FeaturePager.tsx` + `FeatureSlide.tsx` wrappers in addition to the
@@ -1619,11 +1627,10 @@ cleanup — `PlanCase` was superseded by the in-form plan-mode toggle
 `EpisodeList` lost its entry point in a refactor and the dashboard's Needs
 Attention carousel + `NeedsAttentionListScreen` cover the active-episode case.
 Completed/cancelled episodes no longer have a historical browser surface.
-Not enumerated in the "App Screen Map" table above but present in `client/screens/`:
-`AssessmentScreen`, `AssessmentHistoryScreen`, `AssessmentRevealScreen` (EPA /
-blinded assessment surfaces from Team Sharing Phase 4); `SharedCaseDetailScreen`,
-`SharedInboxScreen` (E2EE share-receiver surfaces); `OnboardingScreen` (legacy
-root onboarding wrapper).
+The Team Sharing Phase 4 EPA / blinded-assessment surfaces (`Assessment`,
+`AssessmentHistory`, `AssessmentReveal`) and the E2EE share-receiver surfaces
+(`SharedInbox`, `SharedCaseDetail`) are wired into the root stack but only
+mounted when `isAuthenticated && !showOnboarding`.
 
 ### Diagnosis Inventory
 
@@ -1769,17 +1776,25 @@ Element type abbreviations:
 | Scope | Example |
 |-------|---------|
 | `screen-*` | `screen-dashboard`, `screen-caseForm` |
-| `main.*` | `main.tab-dashboard`, `main.tab-statistics`, `main.tab-settings` |
+| `main.*` | `main.tab-dashboard`, `main.tab-statistics`, `main.tab-settings` (these are `tabBarButtonTestID`, not `testID`) |
 | `caseForm.*` | `caseForm.nav.pill-case`, `caseForm.hand.chip-digit-thumb` |
 | `caseDetail.*` | `caseDetail.btn-actions`, `caseDetail.btn-addHistology` |
+| `caseSearch.*` | `caseSearch.input-search`, `caseSearch.btn-clear` |
 | `dashboard.*` | `dashboard.fab.btn-logCase`, `dashboard.cases.card-${id}` |
 | `settings.*` | `settings.row-editProfile`, `settings.profile.input-firstName` |
 | `statistics.*` | `statistics.card-${specialty}`, `statistics.btn-seeAllMilestones` |
 | `onboarding.*` | `onboarding.profile.input-firstName`, `onboarding.country.card-nz` |
+| `welcome.*` | `welcome.btn-getStarted`, `welcome.btn-signIn` |
 | `episodeDetail.*` | `episodeDetail.btn-changeStatus-${status}` |
-| `episodes.*` | `episodes.card-${id}` |
 | `histology.*` | `histology.chip-category-${value}` |
 | `timelineEvent.*` | `timelineEvent.btn-save` |
+| `media.*` | `media.add.btn-confirm`, `media.management.btn-openPreview` |
+| `mediaGallery.*` | `mediaGallery.btn-close`, `mediaGallery.btn-share`, `mediaGallery.counter` |
+| `teamContact.*` | `teamContact.input-firstName`, `teamContact.btn-save` |
+| `teamContacts.*` | `teamContacts.btn-add` |
+| `assessment.*` | `assessment.btn-submit`, `assessment.input-narrative` |
+| `assessmentReveal.*` | `assessmentReveal.entrustment-supervisor`, `assessmentReveal.teaching-quality` |
+| `sharedCaseDetail.*` | `sharedCaseDetail.btn-verify`, `sharedCaseDetail.btn-dispute` |
 
 Duplicate check:
 ```bash
