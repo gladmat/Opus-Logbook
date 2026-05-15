@@ -8,6 +8,7 @@ import type {
 } from "../types/aesthetics";
 import { findDiagnosisById } from "./diagnosisPicklists/index";
 import type { DiagnosisPicklistEntry } from "./diagnosisPicklists/index";
+import { palette, Colors } from "../constants/theme";
 
 /**
  * Category merge: body_contouring → aesthetics.
@@ -225,11 +226,14 @@ export const INTENT_LABELS: Record<AestheticIntent, string> = {
   combined: "Combined",
 };
 
+// Intent palette is theme-independent (used in chips that need consistent
+// semantic colour regardless of dark/light mode). Map to canonical palette refs
+// instead of literal hex.
 export const INTENT_COLORS: Record<AestheticIntent, string> = {
-  cosmetic: "#E5A00D",
-  post_bariatric_mwl: "#58A6FF",
-  functional_reconstructive: "#2EA043",
-  combined: "#D8B4FE",
+  cosmetic: palette.amber[600],
+  post_bariatric_mwl: Colors.dark.info,
+  functional_reconstructive: Colors.dark.success,
+  combined: Colors.dark.roleSupervising,
 };
 
 export const ACGME_LABELS: Record<string, string> = {

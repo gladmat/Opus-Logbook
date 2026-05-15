@@ -22,7 +22,7 @@ import * as Haptics from "expo-haptics";
 import { Feather } from "@/components/FeatherIcon";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { Spacing, BorderRadius, palette } from "@/constants/theme";
 import { SectionWrapper } from "@/components/shared/SectionWrapper";
 import type { OMENSClassification } from "@/types/craniofacial";
 
@@ -311,7 +311,9 @@ export function OMENSInput({ value, onChange }: OMENSInputProps) {
                   updateExtras({ [item.key]: v });
                 }}
                 trackColor={{ false: theme.border, true: theme.link }}
-                thumbColor={Platform.OS === "android" ? "#fff" : undefined}
+                thumbColor={
+                  Platform.OS === "android" ? palette.white : undefined
+                }
               />
             </View>
           ))}

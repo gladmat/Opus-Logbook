@@ -774,21 +774,29 @@ export default function CaseDetailScreen() {
               flexDirection: "row",
               alignItems: "center",
               gap: 8,
-              backgroundColor: "#FEF3C7",
+              backgroundColor: palette.amber[100],
               padding: 12,
               borderRadius: 10,
               marginBottom: 16,
             }}
           >
-            <Feather name="clock" size={18} color="#E5A00D" />
+            <Feather name="clock" size={18} color={palette.amber[600]} />
             <View style={{ flex: 1 }}>
               <ThemedText
-                style={{ fontWeight: "600", color: "#92400E", fontSize: 14 }}
+                style={{
+                  fontWeight: "600",
+                  color: palette.amber[800],
+                  fontSize: 14,
+                }}
               >
                 Histology pending
               </ThemedText>
               <ThemedText
-                style={{ color: "#92400E", fontSize: 12, marginTop: 2 }}
+                style={{
+                  color: palette.amber[800],
+                  fontSize: 12,
+                  marginTop: 2,
+                }}
               >
                 Edit this case to update diagnosis when results arrive
               </ThemedText>

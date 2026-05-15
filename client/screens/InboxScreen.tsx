@@ -27,7 +27,7 @@ import { MediaGalleryViewer } from "@/components/media";
 import { Feather } from "@/components/FeatherIcon";
 import { useTheme } from "@/hooks/useTheme";
 import { useMediaCallback } from "@/contexts/MediaCallbackContext";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { Spacing, BorderRadius, palette } from "@/constants/theme";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
 import type { InboxItem } from "@/types/inbox";
 import type { OperativeMediaItem, Case } from "@/types/case";
@@ -55,7 +55,7 @@ import {
 
 // White-on-photo overlay — intentionally theme-independent
 // (always white text with shadow on photo thumbnails / dark modal backdrops)
-const OVERLAY_TEXT = "#FFFFFF";
+const OVERLAY_TEXT = palette.white;
 
 // ═══════════════════════════════════════════════════════════
 // Types

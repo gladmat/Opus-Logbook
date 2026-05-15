@@ -27,7 +27,7 @@ import * as Haptics from "expo-haptics";
 import { Feather } from "@/components/FeatherIcon";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { Spacing, BorderRadius, palette } from "@/constants/theme";
 import { SectionWrapper } from "@/components/shared/SectionWrapper";
 import type {
   CraniofacialAssessmentData,
@@ -609,7 +609,9 @@ export function CraniofacialAssessment({
                   updateCleftClassification({ [feat.key]: v });
                 }}
                 trackColor={{ false: theme.border, true: theme.link }}
-                thumbColor={Platform.OS === "android" ? "#fff" : undefined}
+                thumbColor={
+                  Platform.OS === "android" ? palette.white : undefined
+                }
               />
             </View>
           ))}
@@ -696,7 +698,7 @@ export function CraniofacialAssessment({
                       }}
                       trackColor={{ false: theme.border, true: theme.link }}
                       thumbColor={
-                        Platform.OS === "android" ? "#fff" : undefined
+                        Platform.OS === "android" ? palette.white : undefined
                       }
                     />
                   </View>
@@ -1144,7 +1146,9 @@ export function CraniofacialAssessment({
                   });
                 }}
                 trackColor={{ false: theme.border, true: theme.link }}
-                thumbColor={Platform.OS === "android" ? "#fff" : undefined}
+                thumbColor={
+                  Platform.OS === "android" ? palette.white : undefined
+                }
               />
             </View>
             {ops.transfusionRequired ? (
@@ -1305,7 +1309,9 @@ export function CraniofacialAssessment({
                   updateSpeech({ audibleNasalEmission: v });
                 }}
                 trackColor={{ false: theme.border, true: theme.link }}
-                thumbColor={Platform.OS === "android" ? "#fff" : undefined}
+                thumbColor={
+                  Platform.OS === "android" ? palette.white : undefined
+                }
               />
             </View>
             <View style={styles.switchRow}>
@@ -1319,7 +1325,9 @@ export function CraniofacialAssessment({
                   updateSpeech({ secondarySpeechSurgeryNeeded: v });
                 }}
                 trackColor={{ false: theme.border, true: theme.link }}
-                thumbColor={Platform.OS === "android" ? "#fff" : undefined}
+                thumbColor={
+                  Platform.OS === "android" ? palette.white : undefined
+                }
               />
             </View>
             <View style={styles.inlineField}>
@@ -1516,7 +1524,9 @@ export function CraniofacialAssessment({
                   });
                 }}
                 trackColor={{ false: theme.border, true: theme.link }}
-                thumbColor={Platform.OS === "android" ? "#fff" : undefined}
+                thumbColor={
+                  Platform.OS === "android" ? palette.white : undefined
+                }
               />
             </View>
             {outcomes?.hearing?.grommetsInserted ? (
@@ -1563,7 +1573,9 @@ export function CraniofacialAssessment({
                   updateHearing({ hearingAidUse: v });
                 }}
                 trackColor={{ false: theme.border, true: theme.link }}
-                thumbColor={Platform.OS === "android" ? "#fff" : undefined}
+                thumbColor={
+                  Platform.OS === "android" ? palette.white : undefined
+                }
               />
             </View>
             <View
@@ -1684,7 +1696,7 @@ export function CraniofacialAssessment({
                 updateComplications({ [comp.key]: v });
               }}
               trackColor={{ false: theme.border, true: theme.link }}
-              thumbColor={Platform.OS === "android" ? "#fff" : undefined}
+              thumbColor={Platform.OS === "android" ? palette.white : undefined}
             />
           </View>
         ))}

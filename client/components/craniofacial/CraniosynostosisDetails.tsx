@@ -24,7 +24,7 @@ import * as Haptics from "expo-haptics";
 import { Feather } from "@/components/FeatherIcon";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { Spacing, BorderRadius, palette } from "@/constants/theme";
 import { SectionWrapper } from "@/components/shared/SectionWrapper";
 import type {
   CraniosynostosisDetails as CraniosynostosisDetailsType,
@@ -212,7 +212,7 @@ export function CraniosynostosisDetails({
             });
           }}
           trackColor={{ false: theme.border, true: theme.link }}
-          thumbColor={Platform.OS === "android" ? "#fff" : undefined}
+          thumbColor={Platform.OS === "android" ? palette.white : undefined}
         />
       </View>
       {details.syndromic ? (
@@ -267,7 +267,7 @@ export function CraniosynostosisDetails({
                 updateIcp({ measured: v });
               }}
               trackColor={{ false: theme.border, true: theme.link }}
-              thumbColor={Platform.OS === "android" ? "#fff" : undefined}
+              thumbColor={Platform.OS === "android" ? palette.white : undefined}
             />
           </View>
 
@@ -398,7 +398,9 @@ export function CraniosynostosisDetails({
                     updateIcp({ copperBeating: v });
                   }}
                   trackColor={{ false: theme.border, true: theme.link }}
-                  thumbColor={Platform.OS === "android" ? "#fff" : undefined}
+                  thumbColor={
+                    Platform.OS === "android" ? palette.white : undefined
+                  }
                 />
               </View>
             </>
@@ -475,7 +477,7 @@ export function CraniosynostosisDetails({
                 updateHelmet({ prescribed: v });
               }}
               trackColor={{ false: theme.border, true: theme.link }}
-              thumbColor={Platform.OS === "android" ? "#fff" : undefined}
+              thumbColor={Platform.OS === "android" ? palette.white : undefined}
             />
           </View>
 

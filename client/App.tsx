@@ -27,6 +27,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { AppLockProvider } from "@/contexts/AppLockContext";
 import { MediaCallbackProvider } from "@/contexts/MediaCallbackContext";
 import { ThemeProvider, useTheme } from "@/hooks/useTheme";
+import { palette } from "@/constants/theme";
 import { initClientSentry, captureClientException } from "@/lib/sentry";
 import { initAnalytics, track } from "@/lib/analytics";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
@@ -286,7 +287,7 @@ export default function App() {
                           accessible={false}
                           style={styles.privacyOverlay}
                         >
-                          <OpusMark size={64} color="#E5A00D" />
+                          <OpusMark size={64} color={palette.amber[600]} />
                         </View>
                       ) : null}
                     </View>
@@ -314,7 +315,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "#0C0F14",
+    backgroundColor: palette.charcoal[950],
     alignItems: "center",
     justifyContent: "center",
   },

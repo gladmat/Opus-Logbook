@@ -16,7 +16,13 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import { Feather } from "@/components/FeatherIcon";
 import { OpusLogo } from "@/components/brand";
 import { useAuth } from "@/contexts/AuthContext";
-import { Spacing, BorderRadius, Typography, Shadows } from "@/constants/theme";
+import {
+  Spacing,
+  BorderRadius,
+  Typography,
+  Shadows,
+  palette,
+} from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { getApiUrl } from "@/lib/query-client";
 
@@ -187,7 +193,7 @@ export default function AuthScreen() {
         ]}
       >
         <View style={styles.header}>
-          <OpusLogo size="lg" showSubtitle color="#E5A00D" />
+          <OpusLogo size="lg" showSubtitle color={palette.amber[600]} />
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             {mode === "login"
               ? "Sign in to your account"

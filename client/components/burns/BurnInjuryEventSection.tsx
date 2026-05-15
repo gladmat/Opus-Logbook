@@ -15,7 +15,7 @@ import {
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { Spacing, BorderRadius, palette } from "@/constants/theme";
 import type {
   BurnInjuryEvent,
   BurnMechanism,
@@ -150,7 +150,7 @@ function SwitchRow({
           onChange(v);
         }}
         trackColor={{ false: theme.border, true: theme.link }}
-        thumbColor={Platform.OS === "android" ? "#fff" : undefined}
+        thumbColor={Platform.OS === "android" ? palette.white : undefined}
       />
     </View>
   );

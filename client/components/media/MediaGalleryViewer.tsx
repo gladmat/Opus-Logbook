@@ -34,7 +34,7 @@ import * as Haptics from "expo-haptics";
 import { Feather } from "@/components/FeatherIcon";
 import { ThemedText } from "@/components/ThemedText";
 import { MediaTagBadge } from "@/components/media/MediaTagBadge";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { Spacing, BorderRadius, palette } from "@/constants/theme";
 import { useDecryptedImage } from "@/hooks/useDecryptedImage";
 import { isOpusMediaUri } from "@/lib/mediaStorage";
 import type { MediaTag } from "@/types/media";
@@ -70,9 +70,9 @@ interface MediaGalleryViewerProps {
 // Constants
 // ═══════════════════════════════════════════════════════════
 
-const BACKDROP = "#000";
+const BACKDROP = palette.black;
 const CHROME_BG = "rgba(0,0,0,0.55)";
-const CHROME_TEXT = "#FFFFFF";
+const CHROME_TEXT = palette.white;
 const MIN_SCALE = 1;
 const MAX_SCALE = 5;
 const DOUBLE_TAP_SCALE = 2;

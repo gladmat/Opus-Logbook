@@ -818,7 +818,7 @@ const styles = StyleSheet.create({
   // Viewfinder
   viewfinderContainer: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: palette.black,
   },
   topOverlay: {
     position: "absolute",

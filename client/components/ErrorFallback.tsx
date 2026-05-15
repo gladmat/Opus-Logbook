@@ -12,7 +12,7 @@ import { Feather } from "@/components/FeatherIcon";
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
-import { Spacing, BorderRadius, Fonts } from "@/constants/theme";
+import { Spacing, BorderRadius, Fonts, palette } from "@/constants/theme";
 
 export type ErrorFallbackProps = {
   error: Error;
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing["2xl"],
     minWidth: 200,
-    shadowColor: "#000",
+    shadowColor: palette.black,
     shadowOffset: {
       width: 0,
       height: 2,

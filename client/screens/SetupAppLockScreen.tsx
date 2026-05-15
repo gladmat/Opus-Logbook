@@ -33,7 +33,13 @@ import {
   clearAllAppLockData,
 } from "@/lib/appLockStorage";
 import { isFaceIdUnsupportedInCurrentRuntime } from "@/lib/biometrics";
-import { Spacing, BorderRadius, Shadows, Typography } from "@/constants/theme";
+import {
+  Spacing,
+  BorderRadius,
+  Shadows,
+  Typography,
+  palette,
+} from "@/constants/theme";
 
 const PIN_LENGTH = 6;
 
@@ -512,7 +518,7 @@ export default function SetupAppLockScreen() {
                   false: colors.backgroundTertiary,
                   true: colors.link,
                 }}
-                thumbColor="#FFFFFF"
+                thumbColor={palette.white}
               />
             </View>
           </View>
