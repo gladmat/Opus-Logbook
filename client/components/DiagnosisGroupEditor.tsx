@@ -2288,7 +2288,7 @@ function DiagnosisGroupEditorInner({
         clinicalDetails: details,
       });
     },
-    [activeFlapSheetProcedure],
+    [activeFlapSheetProcedure, updateProcedure],
   );
 
   const handleCopyFlapToOtherSide = useCallback(
@@ -2352,7 +2352,7 @@ function DiagnosisGroupEditorInner({
         clinicalDetails: { ...currentDetails, flapOutcome: outcomeDetails },
       });
     },
-    [activeFlapOutcomeProcedure],
+    [activeFlapOutcomeProcedure, updateProcedure],
   );
 
   const handleFractureWizardClose = useCallback(() => {

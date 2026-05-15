@@ -482,6 +482,7 @@ export default function NeedsAttentionListScreen() {
     },
     [
       theme,
+      navigation,
       handleCardPress,
       handleLogCase,
       handleDischarge,

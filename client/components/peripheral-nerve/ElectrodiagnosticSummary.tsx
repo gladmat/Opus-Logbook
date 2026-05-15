@@ -5,7 +5,7 @@
  * Collapsible section within PeripheralNerveAssessment.
  */
 
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import { View, Switch, TextInput, Pressable, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
@@ -29,11 +29,11 @@ const SEVERITY_OPTIONS = [
 
 type SeverityValue = (typeof SEVERITY_OPTIONS)[number];
 
-const BOOLEAN_FIELDS: Array<{
+const BOOLEAN_FIELDS: {
   key: keyof EDXData;
   label: string;
   hint?: string;
-}> = [
+}[] = [
   {
     key: "snapsPresent",
     label: "SNAPs present",
@@ -55,7 +55,7 @@ export const ElectrodiagnosticSummaryComponent = React.memo(
     onChange,
   }: ElectrodiagnosticSummaryProps) {
     const { theme } = useTheme();
-    const edx = data ?? {};
+    const edx = useMemo<EDXData>(() => data ?? {}, [data]);
 
     const update = useCallback(
       (updates: Partial<EDXData>) => {

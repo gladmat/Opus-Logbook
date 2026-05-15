@@ -541,7 +541,7 @@ export default function CaseFormScreen() {
     setValidationErrors([]);
     preReviewScrollRef.current = scrollPositionRef.current;
     setReviewMode(true);
-  }, [form.state]);
+  }, [form.state, scrollToSection]);
 
   const handleEditFromSummary = useCallback(
     (sectionId: string, fieldId?: string) => {

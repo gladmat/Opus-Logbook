@@ -761,13 +761,7 @@ export function HandTraumaAssessment({
     return {
       digitAmputations: value.digitAmputations ?? [],
     };
-  }, [
-    value.digitAmputations,
-    value.digitAmputations?.[0]?.level,
-    value.digitAmputations?.[0]?.type,
-    value.digitAmputations?.[0]?.isReplantable,
-    selectedDigits,
-  ]);
+  }, [value.digitAmputations]);
 
   const handleSoftTissueChange = useCallback(
     (state: SoftTissueState) => {
@@ -880,12 +874,9 @@ export function HandTraumaAssessment({
     perfusionStatuses,
     softTissueDescriptors,
     value.digitAmputations,
-    value.digitAmputations?.[0]?.level,
-    value.digitAmputations?.[0]?.type,
     value.isCompartmentSyndrome,
     value.isFightBite,
     value.isHighPressureInjection,
-    value.digitAmputations?.[0]?.isReplantable,
     value.isRingAvulsion,
   ]);
 
@@ -911,7 +902,6 @@ export function HandTraumaAssessment({
       perfusionStatuses.length,
       softTissueDescriptors.length,
       value.digitAmputations,
-      value.digitAmputations?.[0]?.level,
       value.isCompartmentSyndrome,
       value.isFightBite,
       value.isHighPressureInjection,
@@ -948,12 +938,9 @@ export function HandTraumaAssessment({
       selectedMechanismOther,
       softTissueDescriptors,
       value.digitAmputations,
-      value.digitAmputations?.[0]?.level,
-      value.digitAmputations?.[0]?.type,
       value.isCompartmentSyndrome,
       value.isFightBite,
       value.isHighPressureInjection,
-      value.digitAmputations?.[0]?.isReplantable,
       value.isRingAvulsion,
     ],
   );

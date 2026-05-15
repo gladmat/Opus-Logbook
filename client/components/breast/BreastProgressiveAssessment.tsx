@@ -992,6 +992,7 @@ export function BreastProgressiveAssessment({
     defaultClinicalContext,
     handleAssessmentChange,
     handleSideChange,
+    suppressFreeFlap,
     theme.backgroundDefault,
     theme.border,
     theme.text,
