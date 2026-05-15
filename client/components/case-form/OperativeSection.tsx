@@ -232,6 +232,9 @@ export const OperativeSection = React.memo(function OperativeSection() {
                   <Pressable
                     key={value}
                     testID={`caseForm.operative.chip-urgency-${value}`}
+                    accessibilityRole="radio"
+                    accessibilityLabel={label}
+                    accessibilityState={{ selected: isSelected }}
                     style={[
                       styles.segmentedButton,
                       isSelected ? { backgroundColor: theme.link } : undefined,
@@ -280,6 +283,9 @@ export const OperativeSection = React.memo(function OperativeSection() {
                     <Pressable
                       key={value}
                       testID={`caseForm.operative.chip-stay-${value}`}
+                      accessibilityRole="radio"
+                      accessibilityLabel={label}
+                      accessibilityState={{ selected: isSelected }}
                       style={[
                         styles.segmentedButton,
                         isSelected
@@ -428,6 +434,9 @@ export const OperativeSection = React.memo(function OperativeSection() {
                   dispatch(setField("responsibleConsultantUserId", ""));
                 }}
                 hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Change responsible consultant"
+                testID="caseForm.operative.btn-changeConsultant"
               >
                 <ThemedText style={[styles.changeLink, { color: theme.link }]}>
                   Change
@@ -522,6 +531,9 @@ export const OperativeSection = React.memo(function OperativeSection() {
                 setField("antibioticProphylaxis", !antibioticProphylaxis),
               );
             }}
+            accessibilityRole="checkbox"
+            accessibilityLabel="Antibiotic prophylaxis given"
+            accessibilityState={{ checked: !!antibioticProphylaxis }}
             testID="caseForm.operative.toggle-antibioticProphylaxis"
           >
             {antibioticProphylaxis ? (
@@ -548,6 +560,9 @@ export const OperativeSection = React.memo(function OperativeSection() {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               dispatch(setField("dvtProphylaxis", !dvtProphylaxis));
             }}
+            accessibilityRole="checkbox"
+            accessibilityLabel="DVT prophylaxis given"
+            accessibilityState={{ checked: !!dvtProphylaxis }}
             testID="caseForm.operative.toggle-dvtProphylaxis"
           >
             {dvtProphylaxis ? (
@@ -579,6 +594,10 @@ export const OperativeSection = React.memo(function OperativeSection() {
           <Pressable
             onPress={() => setShowAsaInfo(true)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="ASA score explanation"
+            accessibilityHint="Opens a modal with the full ASA Physical Status Classification"
+            testID="caseForm.operative.btn-asaInfo"
           >
             <Feather name="info" size={16} color={theme.textTertiary} />
           </Pressable>
@@ -598,6 +617,10 @@ export const OperativeSection = React.memo(function OperativeSection() {
               return (
                 <Pressable
                   key={value}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`ASA ${label}`}
+                  accessibilityState={{ selected: isSelected }}
+                  testID={`caseForm.operative.chip-asa-${value}`}
                   style={[
                     styles.segmentedButton,
                     isSelected ? { backgroundColor: theme.link } : undefined,
@@ -651,6 +674,10 @@ export const OperativeSection = React.memo(function OperativeSection() {
             return (
               <Pressable
                 key={value}
+                accessibilityRole="radio"
+                accessibilityLabel={label}
+                accessibilityState={{ selected: isSelected }}
+                testID={`caseForm.operative.chip-smoker-${value}`}
                 style={[
                   styles.segmentedButton,
                   isSelected ? { backgroundColor: theme.link } : undefined,
@@ -734,6 +761,12 @@ export const OperativeSection = React.memo(function OperativeSection() {
                 return (
                   <Pressable
                     key={comorbidity.snomedCtCode}
+                    accessibilityRole="checkbox"
+                    accessibilityLabel={
+                      comorbidity.commonName || comorbidity.displayName
+                    }
+                    accessibilityState={{ checked: isSelected }}
+                    testID={`caseForm.operative.chip-comorbidity-${comorbidity.snomedCtCode}`}
                     style={[
                       styles.comorbidityChip,
                       {
@@ -811,6 +844,9 @@ export const OperativeSection = React.memo(function OperativeSection() {
               <Pressable
                 onPress={() => setShowAsaInfo(false)}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Close ASA information"
+                testID="caseForm.operative.btn-closeAsaInfo"
               >
                 <Feather name="x" size={22} color={theme.textSecondary} />
               </Pressable>

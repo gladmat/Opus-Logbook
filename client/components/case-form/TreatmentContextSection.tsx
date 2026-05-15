@@ -97,6 +97,10 @@ export const TreatmentContextSection = React.memo(
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   dispatch(setField("priorRadiotherapy", !priorRadiotherapy));
                 }}
+                accessibilityRole="checkbox"
+                accessibilityLabel="Prior radiotherapy"
+                accessibilityState={{ checked: !!priorRadiotherapy }}
+                testID="caseForm.treatmentContext.toggle-priorRadiotherapy"
               >
                 {priorRadiotherapy ? (
                   <Feather name="check" size={16} color={theme.link} />
@@ -122,6 +126,10 @@ export const TreatmentContextSection = React.memo(
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   dispatch(setField("priorChemotherapy", !priorChemotherapy));
                 }}
+                accessibilityRole="checkbox"
+                accessibilityLabel="Prior chemotherapy"
+                accessibilityState={{ checked: !!priorChemotherapy }}
+                testID="caseForm.treatmentContext.toggle-priorChemotherapy"
               >
                 {priorChemotherapy ? (
                   <Feather name="check" size={16} color={theme.link} />
@@ -162,6 +170,10 @@ export const TreatmentContextSection = React.memo(
                     ),
                   );
                 }}
+                accessibilityRole="checkbox"
+                accessibilityLabel="Intraoperative transfusion"
+                accessibilityState={{ checked: !!intraoperativeTransfusion }}
+                testID="caseForm.treatmentContext.toggle-intraoperativeTransfusion"
               >
                 {intraoperativeTransfusion ? (
                   <Feather name="check" size={16} color={theme.link} />

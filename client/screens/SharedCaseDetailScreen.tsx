@@ -21,9 +21,9 @@ import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, Shadows, palette } from "@/constants/theme";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
-import type {
-  SharedCaseData,
+import {
   ENTRUSTMENT_LABELS,
+  type SharedCaseData,
   type EntrustmentLevel,
 } from "@/types/sharing";
 import {

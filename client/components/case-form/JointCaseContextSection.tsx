@@ -254,6 +254,10 @@ export const JointCaseContextSection = React.memo(
                       <Pressable
                         key={option.value}
                         onPress={() => toggleStructure(option.value)}
+                        accessibilityRole="checkbox"
+                        accessibilityLabel={option.label}
+                        accessibilityState={{ checked: selected }}
+                        testID={`caseForm.jointContext.chip-structure-${option.value}`}
                         style={[
                           styles.structureChip,
                           {

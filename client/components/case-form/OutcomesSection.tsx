@@ -130,6 +130,9 @@ export const OutcomesSection = React.memo(function OutcomesSection({
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             dispatch(setField("discussedAtMDM", !discussedAtMDM));
           }}
+          accessibilityRole="checkbox"
+          accessibilityLabel="Discussed at MDM"
+          accessibilityState={{ checked: !!discussedAtMDM }}
           testID="caseForm.outcomes.toggle-mdm"
         >
           {discussedAtMDM ? (
@@ -184,6 +187,9 @@ export const OutcomesSection = React.memo(function OutcomesSection({
           <Pressable
             style={styles.checkboxRow}
             testID="caseForm.outcomes.toggle-unplannedReadmission"
+            accessibilityRole="checkbox"
+            accessibilityLabel="Unplanned readmission within 28 days"
+            accessibilityState={{ checked: !!isUnplannedReadmission }}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               const newValue = !isUnplannedReadmission;
@@ -266,6 +272,9 @@ export const OutcomesSection = React.memo(function OutcomesSection({
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 dispatch(setField("returnToTheatre", !returnToTheatre));
               }}
+              accessibilityRole="checkbox"
+              accessibilityLabel="Unplanned return to theatre"
+              accessibilityState={{ checked: !!returnToTheatre }}
               testID="caseForm.outcomes.toggle-returnToTheatre"
             >
               {returnToTheatre ? (

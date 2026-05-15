@@ -214,6 +214,9 @@ export const DiagnosisProcedureSection = React.memo(
             },
           ]}
           onPress={() => addDiagnosisGroup()}
+          accessibilityRole="button"
+          accessibilityLabel="Add diagnosis group"
+          accessibilityHint="Adds a new diagnosis group to the case"
           testID="caseForm.case.btn-addGroup"
         >
           <Feather name="plus-circle" size={18} color={theme.link} />

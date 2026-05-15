@@ -131,6 +131,9 @@ function TeamMemberTaggingInner() {
       <Pressable
         style={styles.headerRow}
         onPress={() => setCollapsed((c) => !c)}
+        accessibilityRole="button"
+        accessibilityLabel={`Team Members${memberCount > 0 ? `, ${memberCount} tagged` : ""}`}
+        accessibilityState={{ expanded: !collapsed }}
         testID="caseForm.operative.section-teamMembers"
       >
         <View style={styles.headerLeft}>
@@ -225,6 +228,8 @@ function TeamMemberTaggingInner() {
                 <Pressable
                   style={[styles.addButton, { backgroundColor: theme.accent }]}
                   onPress={handleAdd}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Add ${foundUser.displayName} to team`}
                   testID="caseForm.operative.btn-addTeamMember"
                 >
                   <ThemedText
@@ -272,6 +277,8 @@ function TeamMemberTaggingInner() {
               <Pressable
                 onPress={() => handleRemove(member.userId)}
                 hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={`Remove ${member.displayName} from team`}
                 testID={`caseForm.operative.btn-removeTeamMember-${member.userId}`}
               >
                 <Feather name="x" size={18} color={theme.textSecondary} />

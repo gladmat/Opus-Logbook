@@ -81,6 +81,8 @@ function SummaryCard({
         <Pressable
           onPress={() => onEdit(sectionId)}
           hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={`Edit ${title}`}
           testID={`caseForm.summary.btn-edit-${sectionId}`}
         >
           <ThemedText style={[styles.editLink, { color: theme.link }]}>
@@ -552,6 +554,8 @@ export function CaseSummaryView({
         <Pressable
           onPress={onBackToEdit}
           style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel="Back to edit"
           testID="caseForm.summary.btn-backToEdit"
         >
           <ThemedText style={[styles.backButtonText, { color: theme.link }]}>
