@@ -145,8 +145,6 @@ export const BreastFlapCard = React.memo(function BreastFlapCard({
     [onChange, value],
   );
 
-  const isIma = !!value.imaInterspace;
-
   const summary = getFlapSummaryText(value);
 
   // ── Perforator helpers ──

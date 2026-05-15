@@ -26,14 +26,9 @@ import { Feather } from "@/components/FeatherIcon";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
-import { SectionWrapper } from "@/components/shared/SectionWrapper";
 import type {
   BrachialPlexusAssessmentData,
   BPRoot,
-  BPTrunk,
-  BPCord,
-  BPTerminalBranch,
-  BPInjuryType,
   BPInjuryPattern,
   BPMechanism,
   BPLevelInjury,
@@ -41,13 +36,11 @@ import type {
   SunderlandGrade,
   BrachialPlexusProcedureEntry,
   FFMTDetails,
-  NerveIdentifier,
 } from "@/types/peripheralNerve";
 import {
   BP_INJURY_TYPE_LABELS,
   BP_PATTERN_LABELS,
   BP_MECHANISM_LABELS,
-  SUNDERLAND_LABELS,
 } from "@/types/peripheralNerve";
 import {
   BP_ROOT_ORDER,

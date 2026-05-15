@@ -148,7 +148,7 @@ describe("detail card consistency", () => {
     const botoxIds = Object.entries(AESTHETIC_PROCEDURE_CONFIG).filter(([id]) =>
       id.includes("botox"),
     );
-    for (const [id, config] of botoxIds) {
+    for (const [, config] of botoxIds) {
       expect(config.detailCard).toBe("neurotoxin");
     }
   });
@@ -157,7 +157,7 @@ describe("detail card consistency", () => {
     const fillerIds = Object.entries(AESTHETIC_PROCEDURE_CONFIG).filter(
       ([id]) => id.includes("filler"),
     );
-    for (const [id, config] of fillerIds) {
+    for (const [, config] of fillerIds) {
       expect(config.detailCard).toBe("filler");
     }
   });
@@ -169,7 +169,7 @@ describe("detail card consistency", () => {
         id.includes("_laser_") ||
         (id.includes("_rf_") && !id.includes("_fat_transfer")),
     );
-    for (const [id, config] of energyIds) {
+    for (const [, config] of energyIds) {
       expect(config.detailCard).toBe("energy");
     }
   });
@@ -184,7 +184,7 @@ describe("intervention type consistency", () => {
         getInterventionType(id) === "non_surgical_injectable" &&
         isAestheticProcedure(id),
     );
-    for (const [id, config] of injectables) {
+    for (const [, config] of injectables) {
       expect(config.isSurgical).toBe(false);
     }
   });
@@ -195,7 +195,7 @@ describe("intervention type consistency", () => {
         getInterventionType(id) === "non_surgical_energy" &&
         isAestheticProcedure(id),
     );
-    for (const [id, config] of energy) {
+    for (const [, config] of energy) {
       expect(config.isSurgical).toBe(false);
     }
   });
@@ -215,7 +215,7 @@ describe("intervention type consistency", () => {
         isAestheticProcedure(id) &&
         !KNOWN_EXCEPTIONS.has(id),
     );
-    for (const [id, config] of surgical) {
+    for (const [, config] of surgical) {
       expect(config.isSurgical).toBe(true);
     }
   });
@@ -229,7 +229,7 @@ describe("intent prompt configuration", () => {
       ([, config]) => config.needsIntentPrompt,
     );
     expect(prompted.length).toBeGreaterThan(0);
-    for (const [id, config] of prompted) {
+    for (const [, config] of prompted) {
       expect(config.intentOptions).toBeDefined();
       expect(config.intentOptions!.length).toBeGreaterThanOrEqual(2);
     }
@@ -239,7 +239,7 @@ describe("intent prompt configuration", () => {
     const notPrompted = Object.entries(AESTHETIC_PROCEDURE_CONFIG).filter(
       ([, config]) => !config.needsIntentPrompt,
     );
-    for (const [id, config] of notPrompted) {
+    for (const [, config] of notPrompted) {
       expect(config.intentOptions).toBeUndefined();
     }
   });
@@ -251,7 +251,7 @@ describe("intent prompt configuration", () => {
       "functional_reconstructive",
       "combined",
     ]);
-    for (const [id, config] of Object.entries(AESTHETIC_PROCEDURE_CONFIG)) {
+    for (const [, config] of Object.entries(AESTHETIC_PROCEDURE_CONFIG)) {
       expect(validIntents.has(config.defaultIntent)).toBe(true);
     }
   });

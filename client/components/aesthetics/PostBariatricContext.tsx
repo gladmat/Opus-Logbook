@@ -17,7 +17,6 @@ import type {
   TimeSinceBariatricSurgery,
   PittsburghRegion,
   PittsburghScore,
-  PittsburghRatingScale,
 } from "@/types/aesthetics";
 import { Spacing, BorderRadius } from "@/constants/theme";
 

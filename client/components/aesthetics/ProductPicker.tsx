@@ -12,10 +12,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { useRecentProducts } from "@/hooks/useRecentProducts";
 import { getProductsByCategory, getProductById } from "@/lib/aestheticProducts";
-import {
-  getAllEnergyDevices,
-  type EnergyDeviceProduct,
-} from "@/lib/aestheticProductsEnergy";
+import { getAllEnergyDevices } from "@/lib/aestheticProductsEnergy";
 import type {
   AestheticProduct,
   AestheticProductCategory,

@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Pressable, StyleSheet } from "react-native";
-import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
@@ -11,11 +10,8 @@ import { AestheticAssessment } from "./AestheticAssessment";
 import {
   getAestheticProcedureConfig,
   autoInferDiagnosisEntry,
-  resolveAutoInferredDiagnosisId,
   isAestheticProcedure,
   getAcgmeCategory,
-  getAcgmeSubcategory,
-  getInterventionType,
   INTENT_LABELS,
   INTENT_COLORS,
   ACGME_LABELS,
@@ -137,30 +133,6 @@ export const AestheticProcedureFirstFlow = React.memo(
         primaryProcedureId ? getAcgmeCategory(primaryProcedureId) : undefined,
       [primaryProcedureId],
     );
-    const acgmeSubcategory = useMemo(
-      () =>
-        primaryProcedureId
-          ? getAcgmeSubcategory(primaryProcedureId)
-          : undefined,
-      [primaryProcedureId],
-    );
-    const interventionType = useMemo(
-      () =>
-        primaryProcedureId
-          ? getInterventionType(primaryProcedureId)
-          : undefined,
-      [primaryProcedureId],
-    );
-
-    // Auto-inferred diagnosis (for coding details display)
-    const inferredDiagnosisId = useMemo(
-      () =>
-        primaryProcedureId
-          ? resolveAutoInferredDiagnosisId(primaryProcedureId, currentIntent)
-          : undefined,
-      [primaryProcedureId, currentIntent],
-    );
-
     const inferredDiagnosis = useMemo(
       () =>
         primaryProcedureId

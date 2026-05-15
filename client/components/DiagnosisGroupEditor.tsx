@@ -59,7 +59,6 @@ import {
   getActiveProcedureIds,
   evaluateSuggestions,
   findDiagnosisById,
-  getDiagnosesForSpecialty,
 } from "@/lib/diagnosisPicklists";
 import type { DiagnosisPicklistEntry } from "@/types/diagnosis";
 import {
@@ -151,7 +150,7 @@ import { AestheticProcedureFirstFlow } from "@/components/aesthetics/AestheticPr
 import { isAestheticProcedure } from "@/lib/aestheticsConfig";
 import type { AestheticAssessment as AestheticAssessmentData } from "@/types/aesthetics";
 import { BurnsAssessment } from "@/components/burns/BurnsAssessment";
-import { isBurnsDiagnosis, getDefaultBurnsAssessment } from "@/lib/burnsConfig";
+import { getDefaultBurnsAssessment } from "@/lib/burnsConfig";
 import type { BurnsAssessmentData } from "@/types/burns";
 import {
   isPeripheralNerveDiagnosis,

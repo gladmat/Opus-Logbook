@@ -19,21 +19,10 @@ import {
   getDefaultNeuromaAssessment,
   cleanNeuromaForAetiologyChange,
   BP_ROOT_ORDER,
-  BP_APPROACH_LABELS,
-  BP_PROCEDURE_TYPE_LABELS,
-  BP_TRUNK_LABELS,
-  BP_CORD_LABELS,
-  BP_TERMINAL_LABELS,
   TRUNK_ROOT_MAP,
-  CORD_TRUNK_MAP,
   TERMINAL_CORD_MAP,
   NEUROMA_AETIOLOGY_LABELS,
   NEUROMA_MORPHOLOGY_LABELS,
-  AMPUTATION_CAUSE_LABELS,
-  STUMP_POSITION_LABELS,
-  CAUSATIVE_PROCEDURE_LABELS,
-  RPNI_MUSCLE_SOURCE_LABELS,
-  RPNI_VARIANT_LABELS,
   NERVE_TARGET_MUSCLES,
   MRC_MOTOR_GRADE_LABELS,
   BMRC_SENSORY_GRADE_LABELS,
@@ -42,7 +31,6 @@ import {
 import type {
   BPRoot,
   BPLevelInjury,
-  BPInjuryType,
   NeuromaAssessmentData,
 } from "@/types/peripheralNerve";
 import {
@@ -407,7 +395,7 @@ describe("NERVE_TARGET_MUSCLES", () => {
   });
 
   it("each entry has a non-empty muscle name", () => {
-    for (const [nerve, muscles] of Object.entries(NERVE_TARGET_MUSCLES)) {
+    for (const muscles of Object.values(NERVE_TARGET_MUSCLES)) {
       if (muscles) {
         for (const entry of muscles) {
           expect(entry.muscle).toBeTruthy();

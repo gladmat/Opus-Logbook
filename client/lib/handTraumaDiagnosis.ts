@@ -7,7 +7,6 @@ import type {
   DislocationEntry,
   FractureEntry,
   HandTraumaCompleteness,
-  HandTraumaDetails,
   HandTraumaStructure,
   Laterality,
   PerfusionStatusEntry,

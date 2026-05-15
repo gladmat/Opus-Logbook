@@ -37,7 +37,6 @@ import {
   ReconstructionTiming,
   QuickCasePrefillData,
   JointCaseContext,
-  getAllProcedures,
 } from "@/types/case";
 import { InfectionOverlay } from "@/types/infection";
 import type { EncounterClass, EpisodePrefillData } from "@/types/episode";
@@ -79,7 +78,6 @@ import type {
   TeamContact,
 } from "@/types/teamContacts";
 import { abbreviateName } from "@/types/teamContacts";
-import { getSeniorityTier } from "@/lib/seniorityTier";
 import {
   restoreDraftDateOnlyValue,
   restoreDraftOperativeMedia,
@@ -110,10 +108,7 @@ import {
   encryptPayloadWithCaseKey,
   wrapCaseKeyForRecipient,
 } from "@/lib/e2ee";
-import {
-  deriveEpaAssessments,
-  type EpaAssessmentTarget,
-} from "@/lib/epaDerivation";
+import { deriveEpaAssessments } from "@/lib/epaDerivation";
 import { saveEpaTargets } from "@/lib/assessmentStorage";
 
 // ─── Default Donor Vessels ──────────────────────────────────────────────────

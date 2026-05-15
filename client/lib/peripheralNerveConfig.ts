@@ -245,10 +245,6 @@ export function deriveInjuryPattern(
     const type = roots[root]?.injuryType;
     return type && type !== "intact" && type !== "unknown";
   };
-  const intact = (root: BPRoot) => {
-    const type = roots[root]?.injuryType;
-    return type === "intact";
-  };
 
   const c5i = injured("C5");
   const c6i = injured("C6");

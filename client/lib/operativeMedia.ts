@@ -1,5 +1,4 @@
 import type { MediaAttachment, OperativeMediaItem } from "@/types/case";
-import type { MediaTag } from "@/types/media";
 import { resolveMediaTag } from "@/lib/mediaTagHelpers";
 
 export function operativeMediaToAttachments(

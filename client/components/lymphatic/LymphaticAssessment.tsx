@@ -39,12 +39,9 @@ import type {
   LymphoedemaHistory,
   OnsetType,
   CDTResponse,
-  CompressionClass,
-  CancerSurgeryType,
   LVAOperativeDetails,
   VLNTSpecificDetails,
   SAPLOperativeDetails,
-  LymphaticFollowUp,
 } from "@/types/lymphatic";
 import {
   ISL_STAGE_LABELS,

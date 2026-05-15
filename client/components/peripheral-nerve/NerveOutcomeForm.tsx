@@ -35,7 +35,6 @@ import type {
 import {
   NERVE_TARGET_MUSCLES,
   MRC_MOTOR_GRADE_SHORT,
-  BMRC_SENSORY_GRADE_LABELS,
   SWMT_RESULT_LABELS,
 } from "@/lib/peripheralNerveConfig";
 

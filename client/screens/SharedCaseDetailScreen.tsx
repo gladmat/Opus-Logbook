@@ -21,11 +21,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, Shadows, palette } from "@/constants/theme";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
-import {
-  ENTRUSTMENT_LABELS,
-  type SharedCaseData,
-  type EntrustmentLevel,
-} from "@/types/sharing";
+import type { SharedCaseData } from "@/types/sharing";
 import {
   OPERATIVE_ROLE_LABELS,
   type OperativeRole,

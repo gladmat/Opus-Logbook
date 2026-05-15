@@ -19,7 +19,6 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import type {
   BurnInjuryEvent,
   BurnMechanism,
-  BurnMechanismDetail,
   BurnIntent,
   BurnPlaceOfInjury,
   BurnReferralSource,

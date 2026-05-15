@@ -4,12 +4,8 @@
  * Pattern follows getCaseImplantExportFields() and extractBreastCsvFields().
  */
 
-import type { DiagnosisGroup, CaseProcedure } from "../types/case";
-import type {
-  BurnsAssessmentData,
-  BurnProcedureDetails,
-  BurnOutcomeData,
-} from "../types/burns";
+import type { DiagnosisGroup } from "../types/case";
+import type { BurnsAssessmentData, BurnProcedureDetails } from "../types/burns";
 import {
   BURN_PHASE_LABELS,
   BURN_MECHANISM_LABELS,
@@ -21,7 +17,6 @@ import {
   DERMAL_SUBSTITUTE_LABELS,
 } from "../types/burns";
 import {
-  getBurnProcedureCategory,
   getBurnPhaseFromDiagnosis,
   calculateVSSTotal,
   calculatePOSASTotal,

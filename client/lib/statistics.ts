@@ -4,7 +4,6 @@ import {
   DiagnosisGroup,
   Specialty,
   FreeFlapDetails,
-  getAllProcedures,
   getCaseSpecialties,
   SPECIALTY_LABELS,
   type DonorSiteComplication,

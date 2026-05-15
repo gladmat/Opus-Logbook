@@ -24,7 +24,6 @@ import { INFECTION_SYNDROME_LABELS } from "@/types/infection";
 import { encryptData, decryptData } from "./encryption";
 import {
   canonicalizePersistedMediaUris,
-  clearAllMediaStorage,
   deleteMultipleEncryptedMedia,
 } from "./mediaStorage";
 import { normalizeTimelineEventDateOnlyFields } from "./dateFieldNormalization";
@@ -324,12 +323,6 @@ async function getCaseIndex(): Promise<CaseIndexEntry[]> {
     console.error("Error reading case index:", error);
     return [];
   }
-}
-
-async function saveCaseIndex(index: CaseIndexEntry[]): Promise<void> {
-  caseIndexCache = index;
-  allCasesCache = null;
-  await AsyncStorage.setItem(caseIndexKey(), JSON.stringify(index));
 }
 
 async function saveCaseSummaries(summaries: CaseSummary[]): Promise<void> {

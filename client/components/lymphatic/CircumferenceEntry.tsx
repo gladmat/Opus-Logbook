@@ -11,7 +11,6 @@ import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import type {
-  CircumferenceMeasurement,
   LimbMeasurementData,
   MeasurementMethod,
   LymphoedemaRegion,

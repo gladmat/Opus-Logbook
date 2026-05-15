@@ -24,7 +24,7 @@ import type {
   TBSARegion,
   BurnDepth,
 } from "@/types/burns";
-import { TBSA_REGION_LABELS, BURN_DEPTH_LABELS } from "@/types/burns";
+import { TBSA_REGION_LABELS } from "@/types/burns";
 
 interface TBSARegionalBreakdownProps {
   data: TBSAData;

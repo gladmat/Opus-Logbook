@@ -12,7 +12,7 @@
  * Phase 5 implementation — full UI with all 4 sections.
  */
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Pressable,

@@ -6,12 +6,11 @@
  */
 
 import type {
-  BurnInjuryEvent,
   BurnsAssessmentData,
   BurnPhase,
   BurnProcedureDetails,
 } from "../types/burns";
-import { BURN_MECHANISM_LABELS, BURN_PHASE_LABELS } from "../types/burns";
+import { BURN_MECHANISM_LABELS } from "../types/burns";
 import { getBurnProcedureCategory } from "./burnsConfig";
 import { parseIsoDateValue } from "./dateValues";
 

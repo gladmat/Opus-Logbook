@@ -5,7 +5,6 @@ import { Feather } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { ProductPicker } from "./ProductPicker";
-import { getProductById } from "@/lib/aestheticProducts";
 import type {
   BiostimulatorDetails,
   FillerTechnique,

@@ -129,8 +129,6 @@ function MultiAmputationUI({
   const updateDigit = (digit: DigitId, entry: DigitAmputation | undefined) => {
     const filtered = value.digitAmputations.filter((e) => e.digit !== digit);
     const next = entry ? [...filtered, entry] : filtered;
-    // Also update legacy fields from first entry
-    const first = next[0];
     onChange({
       ...value,
       digitAmputations: next,

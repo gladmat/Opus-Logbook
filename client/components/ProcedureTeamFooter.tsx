@@ -16,7 +16,6 @@ import {
 } from "@/contexts/CaseFormContext";
 import {
   TEAM_MEMBER_ROLE_SHORT,
-  TEAM_MEMBER_ROLE_LABELS,
   type CaseTeamMember,
   type TeamMemberOperativeRole,
 } from "@/types/teamContacts";

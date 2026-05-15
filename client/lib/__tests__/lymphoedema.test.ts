@@ -18,7 +18,6 @@ import { LYMPHOEDEMA_DIAGNOSES } from "../diagnosisPicklists/lymphoedemaDiagnose
 import { PROCEDURE_PICKLIST } from "../procedurePicklist";
 import type { DiagnosisPicklistEntry } from "@/types/diagnosis";
 import type {
-  LVAAnastomosis,
   LVAOperativeDetails,
   VLNTSpecificDetails,
   SAPLOperativeDetails,

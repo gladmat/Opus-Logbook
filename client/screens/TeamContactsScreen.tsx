@@ -15,7 +15,7 @@ import { Feather } from "@/components/FeatherIcon";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
-import { Spacing, BorderRadius, Shadows } from "@/constants/theme";
+import { Spacing, BorderRadius } from "@/constants/theme";
 import { getTeamContacts, linkContact } from "@/lib/teamContactsApi";
 import { getCareerStageLabel } from "@shared/careerStages";
 import {

@@ -1,11 +1,10 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback } from "react";
 import { View, TextInput, Pressable, Switch, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Feather } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { ProductPicker } from "./ProductPicker";
-import { getProductById } from "@/lib/aestheticProducts";
 import type { ThreadLiftDetails, AestheticProduct } from "@/types/aesthetics";
 import { Spacing, BorderRadius } from "@/constants/theme";
 

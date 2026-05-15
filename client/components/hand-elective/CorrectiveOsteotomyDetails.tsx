@@ -41,7 +41,6 @@ import {
   GRAFT_TYPE_LABELS,
   GRAFT_DONOR_SITE_LABELS,
   FIXATION_LABELS,
-  createEmptyOsteotomyData,
 } from "@/types/osteotomy";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -264,7 +263,6 @@ export const CorrectiveOsteotomyDetails = React.memo(
       value.bone === "proximal_phalanx" ||
       value.bone === "middle_phalanx";
     const isDr = value.bone === "distal_radius";
-    const isUlna = value.bone === "distal_ulna";
     const showSiteRow = isMcPhalanx || isDr;
     const siteOptions = isMcPhalanx ? MC_PHALANX_SITES : DR_SITES;
     const siteLabels = isMcPhalanx

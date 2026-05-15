@@ -6,7 +6,6 @@ import {
 } from "@/lib/operativeMedia";
 import type { MediaAttachment, OperativeMediaItem } from "@/types/case";
 import { MEDIA_TAG_REGISTRY } from "@/types/media";
-import type { MediaTag } from "@/types/media";
 import { resolveMediaTag } from "@/lib/mediaTagHelpers";
 
 // ===============================================================

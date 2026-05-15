@@ -6,7 +6,7 @@
 
 import React, { useMemo } from "react";
 import { View, StyleSheet } from "react-native";
-import Svg, { Path, Circle, Text as SvgText } from "react-native-svg";
+import Svg, { Path, Circle } from "react-native-svg";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";

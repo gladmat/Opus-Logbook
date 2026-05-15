@@ -46,8 +46,6 @@ export function EncryptedImage({
   onError,
   onLoad,
 }: EncryptedImageProps) {
-  const { theme } = useTheme();
-
   // v2: opus-media:{uuid} — file-based AES-256-GCM
   if (isOpusMediaUri(uri)) {
     return (

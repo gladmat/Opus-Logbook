@@ -6,10 +6,7 @@ import {
 } from "../craniofacialConfig";
 import { CLEFT_CRANIO_DIAGNOSES } from "../diagnosisPicklists/cleftCranioDiagnoses";
 import { PROCEDURE_PICKLIST } from "../procedurePicklist";
-import type {
-  CraniofacialAssessmentData,
-  CraniofacialSubcategory,
-} from "@/types/craniofacial";
+import type { CraniofacialAssessmentData } from "@/types/craniofacial";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // HELPERS
