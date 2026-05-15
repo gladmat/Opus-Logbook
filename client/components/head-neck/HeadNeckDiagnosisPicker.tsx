@@ -44,7 +44,7 @@ interface HeadNeckDiagnosisPickerProps {
 // Component
 // ═══════════════════════════════════════════════════════════════
 
-export function HeadNeckDiagnosisPicker({
+function HeadNeckDiagnosisPickerInner({
   selectedDiagnosisId,
   onSelect,
 }: HeadNeckDiagnosisPickerProps) {
@@ -276,6 +276,16 @@ export function HeadNeckDiagnosisPicker({
     </View>
   );
 }
+
+// React.memo guard: parent DiagnosisGroupEditor has many independent state
+// branches (staging values, infection details, free flap, etc.) that each
+// re-render the editor. Without React.memo, every one of those parent updates
+// causes HeadNeckDiagnosisPicker to re-render — which builds 88 diagnosis
+// chips. The component was unusually `kAXErrorInvalidUIElement`-prone under
+// Maestro 2.5.1's accessibility-tree queries (audit session 3), which usually
+// signals continuous re-rendering. selectedDiagnosisId / onSelect are stable
+// from the parent (onSelect is wrapped in useCallback at the call site).
+export const HeadNeckDiagnosisPicker = React.memo(HeadNeckDiagnosisPickerInner);
 
 // ═══════════════════════════════════════════════════════════════
 // Selected diagnosis detail (shows full name + SNOMED code below chips)
