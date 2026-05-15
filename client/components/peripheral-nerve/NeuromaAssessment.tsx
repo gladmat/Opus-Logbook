@@ -60,13 +60,13 @@ interface NeuromaAssessmentProps {
 
 const SMOOTH_LAYOUT = LayoutAnimation.Presets.easeInEaseOut;
 
-const AETIOLOGIES = Object.keys(NEUROMA_AETIOLOGY_LABELS) as Array<
-  NeuromaAssessmentData["aetiology"]
->;
+const AETIOLOGIES = Object.keys(
+  NEUROMA_AETIOLOGY_LABELS,
+) as NeuromaAssessmentData["aetiology"][];
 
-const MORPHOLOGIES = Object.keys(NEUROMA_MORPHOLOGY_LABELS) as Array<
-  NonNullable<NeuromaAssessmentData["morphology"]>
->;
+const MORPHOLOGIES = Object.keys(NEUROMA_MORPHOLOGY_LABELS) as NonNullable<
+  NeuromaAssessmentData["morphology"]
+>[];
 
 const TECHNIQUES = Object.keys(NEUROMA_TECHNIQUE_LABELS) as NeuromaTechnique[];
 
@@ -271,9 +271,9 @@ export const NeuromaAssessment = React.memo(function NeuromaAssessment({
           </ThemedText>
           <View style={styles.chipRow}>
             {(
-              Object.keys(AMPUTATION_CAUSE_LABELS) as Array<
-                NonNullable<NeuromaAssessmentData["amputationCause"]>
-              >
+              Object.keys(AMPUTATION_CAUSE_LABELS) as NonNullable<
+                NeuromaAssessmentData["amputationCause"]
+              >[]
             ).map((cause) => (
               <Pressable
                 key={cause}
@@ -450,9 +450,9 @@ export const NeuromaAssessment = React.memo(function NeuromaAssessment({
           </ThemedText>
           <View style={styles.chipRow}>
             {(
-              Object.keys(STUMP_POSITION_LABELS) as Array<
-                NonNullable<NeuromaAssessmentData["neuromaPositionInStump"]>
-              >
+              Object.keys(STUMP_POSITION_LABELS) as NonNullable<
+                NeuromaAssessmentData["neuromaPositionInStump"]
+              >[]
             ).map((pos) => (
               <Pressable
                 key={pos}
@@ -517,9 +517,9 @@ export const NeuromaAssessment = React.memo(function NeuromaAssessment({
           </ThemedText>
           <View style={styles.chipRow}>
             {(
-              Object.keys(CAUSATIVE_PROCEDURE_LABELS) as Array<
-                NonNullable<NeuromaAssessmentData["causativeProcedure"]>
-              >
+              Object.keys(CAUSATIVE_PROCEDURE_LABELS) as NonNullable<
+                NeuromaAssessmentData["causativeProcedure"]
+              >[]
             ).map((proc) => (
               <Pressable
                 key={proc}
@@ -744,9 +744,9 @@ export const NeuromaAssessment = React.memo(function NeuromaAssessment({
               </ThemedText>
               <View style={styles.chipRow}>
                 {(
-                  Object.keys(RPNI_MUSCLE_SOURCE_LABELS) as Array<
-                    NonNullable<NeuromaAssessmentData["rpniMuscleSource"]>
-                  >
+                  Object.keys(RPNI_MUSCLE_SOURCE_LABELS) as NonNullable<
+                    NeuromaAssessmentData["rpniMuscleSource"]
+                  >[]
                 ).map((src) => (
                   <Pressable
                     key={src}
@@ -802,9 +802,9 @@ export const NeuromaAssessment = React.memo(function NeuromaAssessment({
               </ThemedText>
               <View style={styles.chipRow}>
                 {(
-                  Object.keys(RPNI_VARIANT_LABELS) as Array<
-                    NonNullable<NeuromaAssessmentData["rpniVariant"]>
-                  >
+                  Object.keys(RPNI_VARIANT_LABELS) as NonNullable<
+                    NeuromaAssessmentData["rpniVariant"]
+                  >[]
                 ).map((variant) => (
                   <Pressable
                     key={variant}

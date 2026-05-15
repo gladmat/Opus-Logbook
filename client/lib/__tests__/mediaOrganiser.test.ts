@@ -3,18 +3,18 @@ import type { InboxItem } from "@/types/inbox";
 import type { OperativeMediaItem, Case } from "@/types/case";
 import type { CaptureStep } from "@/data/mediaCaptureProtocols";
 
+import {
+  autoAssign,
+  findMatchingCasesByPatientId,
+  inboxItemToOperativeMediaSmart,
+} from "../inboxAssignment";
+
 // Mock HMAC module — return a deterministic hash (uppercased + prefixed) so
 // tests can verify matching logic without Keychain access.
 vi.mock("@/lib/patientIdentifierHmac", () => ({
   hashPatientIdentifierHmac: async (id: string) =>
     `hmac:${id.toUpperCase().trim()}`,
 }));
-
-import {
-  autoAssign,
-  findMatchingCasesByPatientId,
-  inboxItemToOperativeMediaSmart,
-} from "../inboxAssignment";
 
 // ── Helpers ──────────────────────────────────────────────────
 

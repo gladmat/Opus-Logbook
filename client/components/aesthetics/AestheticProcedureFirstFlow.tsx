@@ -49,7 +49,7 @@ interface AestheticProcedureFirstFlowProps {
   ) => CaseProcedure | undefined;
 }
 
-const LATERALITY_OPTIONS: Array<{ value: Laterality; label: string }> = [
+const LATERALITY_OPTIONS: { value: Laterality; label: string }[] = [
   { value: "left", label: "Left" },
   { value: "right", label: "Right" },
   { value: "bilateral", label: "Bilateral" },

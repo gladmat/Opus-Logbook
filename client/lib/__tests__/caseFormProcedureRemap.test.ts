@@ -1,21 +1,19 @@
-import { describe, it, expect } from "vitest";
-
 // Mock noisy native modules so the reducer module loads clean under Vitest.
 // (`useCaseForm.ts` pulls in Haptics → Expo native bridge, which we don't
 // exercise in these pure-reducer tests.)
-import { vi } from "vitest";
-vi.mock("expo-haptics", () => ({
-  impactAsync: vi.fn(),
-  notificationAsync: vi.fn(),
-  ImpactFeedbackStyle: { Light: 0, Medium: 1, Heavy: 2 },
-  NotificationFeedbackType: { Success: 0, Warning: 1, Error: 2 },
-}));
+import { describe, it, expect, vi } from "vitest";
 
 import type { DiagnosisGroup } from "@/types/case";
 import type {
   CaseTeamMember,
   TeamMemberOperativeRole,
 } from "@/types/teamContacts";
+vi.mock("expo-haptics", () => ({
+  impactAsync: vi.fn(),
+  notificationAsync: vi.fn(),
+  ImpactFeedbackStyle: { Light: 0, Medium: 1, Heavy: 2 },
+  NotificationFeedbackType: { Success: 0, Warning: 1, Error: 2 },
+}));
 
 // Re-declare the helpers inline rather than import them — they're private to
 // useCaseForm.ts. This mirrors the teamContacts.test.ts / invitations.test.ts

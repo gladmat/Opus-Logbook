@@ -9,9 +9,9 @@ import type {
   BurnInjuryEvent,
   BurnsAssessmentData,
   BurnPhase,
+  BurnProcedureDetails,
 } from "../types/burns";
 import { BURN_MECHANISM_LABELS, BURN_PHASE_LABELS } from "../types/burns";
-import type { BurnProcedureDetails } from "../types/burns";
 import { getBurnProcedureCategory } from "./burnsConfig";
 import { parseIsoDateValue } from "./dateValues";
 
@@ -120,10 +120,10 @@ export interface BurnEpisodeCaseSummary {
   daysSinceInjury?: number;
   phase?: BurnPhase;
   tbsaExcised?: number;
-  procedures: Array<{
+  procedures: {
     name: string;
     category: string | null;
-  }>;
+  }[];
   graftTake?: number;
 }
 
@@ -213,12 +213,12 @@ export function extractBurnCaseSummary(
   caseId: string,
   procedureDate: string,
   assessment: BurnsAssessmentData,
-  procedures: Array<{
+  procedures: {
     id: string;
     picklistEntryId: string;
     procedureName: string;
     burnProcedureDetails?: BurnProcedureDetails;
-  }>,
+  }[],
   injuryDate?: string,
 ): BurnEpisodeCaseSummary {
   let daysSinceInjury: number | undefined;

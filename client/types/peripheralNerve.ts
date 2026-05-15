@@ -772,11 +772,11 @@ export interface NerveOutcomeAssessment {
   assessmentDate: string;
   monthsSinceSurgery: number;
 
-  motorAssessments?: Array<{
+  motorAssessments?: {
     muscle: string;
     nerve: NerveIdentifier;
     mrcGrade: MRCMotorGrade;
-  }>;
+  }[];
 
   sensoryGrade?: BMRCSensoryGrade;
   static2PD_mm?: number;

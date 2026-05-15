@@ -227,18 +227,18 @@ export function extractBurnsCsvFields(
 export function buildBurnsFhirExtension(
   ba: BurnsAssessmentData,
   diagnosisPicklistId?: string,
-): Array<{
+): {
   url: string;
   valueString?: string;
   valueDecimal?: number;
   valueBoolean?: boolean;
-}> {
-  const extensions: Array<{
+}[] {
+  const extensions: {
     url: string;
     valueString?: string;
     valueDecimal?: number;
     valueBoolean?: boolean;
-  }> = [];
+  }[] = [];
 
   const phase = diagnosisPicklistId
     ? getBurnPhaseFromDiagnosis(diagnosisPicklistId)
@@ -281,12 +281,12 @@ export function buildBurnsFhirExtension(
  */
 export function buildBurnProcedureFhirExtension(
   details: BurnProcedureDetails,
-): Array<{ url: string; valueString?: string; valueDecimal?: number }> {
-  const ext: Array<{
+): { url: string; valueString?: string; valueDecimal?: number }[] {
+  const ext: {
     url: string;
     valueString?: string;
     valueDecimal?: number;
-  }> = [];
+  }[] = [];
 
   if (details.excision) {
     if (details.excision.tbsaExcised != null)

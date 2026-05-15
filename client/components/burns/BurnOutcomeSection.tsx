@@ -39,11 +39,11 @@ interface BurnOutcomeSectionProps {
   value: BurnOutcomeData;
   onChange: (value: BurnOutcomeData) => void;
   /** Graft procedures in this case for per-procedure graft take */
-  graftProcedures?: Array<{
+  graftProcedures?: {
     id: string;
     name: string;
     graftTakePercentage?: number;
-  }>;
+  }[];
   onGraftTakeChange?: (
     procedureId: string,
     percentage: number | undefined,
@@ -405,7 +405,7 @@ function ExpandLink({
 }: {
   label: string;
   onPress: () => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   theme: any;
 }) {
   return (
@@ -429,7 +429,7 @@ function MetricRow({
   value?: number;
   suffix: string;
   onChange: (v: number | undefined) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   theme: any;
 }) {
   return (

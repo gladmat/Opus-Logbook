@@ -14,9 +14,9 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import type {
   NerveGraftDetails,
   NerveConduitDetails,
+  NerveGraftSource,
 } from "@/types/peripheralNerve";
 import { GRAFT_SOURCE_LABELS } from "@/types/peripheralNerve";
-import type { NerveGraftSource } from "@/types/peripheralNerve";
 
 interface NerveGraftDetailsProps {
   graftDetails?: NerveGraftDetails;

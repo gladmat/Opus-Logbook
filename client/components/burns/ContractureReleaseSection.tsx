@@ -381,7 +381,7 @@ export const ContractureReleaseSection = React.memo(
 interface DegreeStepperFieldProps {
   value?: number;
   onChange: (value?: number) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   theme: any;
 }
 

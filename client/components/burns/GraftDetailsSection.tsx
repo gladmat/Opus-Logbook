@@ -20,18 +20,18 @@ import { ThemedText } from "@/components/ThemedText";
 import { Feather } from "@/components/FeatherIcon";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
-import type { BurnProcedureDetails } from "@/types/burns";
+import type {
+  BurnProcedureDetails,
+  GraftType,
+  GraftDonorSite,
+  MeshRatio,
+  GraftFixation,
+} from "@/types/burns";
 import {
   GRAFT_TYPE_LABELS,
   GRAFT_DONOR_LABELS,
   MESH_RATIO_LABELS,
   GRAFT_FIXATION_LABELS,
-} from "@/types/burns";
-import type {
-  GraftType,
-  GraftDonorSite,
-  MeshRatio,
-  GraftFixation,
 } from "@/types/burns";
 import {
   graftTypeShowsMeshRatio,
@@ -443,7 +443,7 @@ interface StepperInlineProps {
   max: number;
   step: number;
   suffix?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   theme: any;
 }
 

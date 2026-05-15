@@ -261,7 +261,7 @@ export interface AestheticProcedureConfig {
   /** Does this procedure need an intent prompt? */
   needsIntentPrompt: boolean;
   /** If needsIntentPrompt, what are the options? */
-  intentOptions?: Array<{ value: AestheticIntent; label: string }>;
+  intentOptions?: { value: AestheticIntent; label: string }[];
   /** Default intent if no prompt needed */
   defaultIntent: AestheticIntent;
   /** Auto-inferred diagnosis ID (from aestheticsDiagnoses.ts) */
@@ -275,26 +275,26 @@ export interface AestheticProcedureConfig {
 }
 
 // Intent option presets
-const COSMETIC_FUNCTIONAL: Array<{ value: AestheticIntent; label: string }> = [
+const COSMETIC_FUNCTIONAL: { value: AestheticIntent; label: string }[] = [
   { value: "cosmetic", label: "Cosmetic" },
   { value: "functional_reconstructive", label: "Functional" },
 ];
 
-const COSMETIC_POSTBAR: Array<{ value: AestheticIntent; label: string }> = [
+const COSMETIC_POSTBAR: { value: AestheticIntent; label: string }[] = [
   { value: "cosmetic", label: "Cosmetic" },
   { value: "post_bariatric_mwl", label: "Post-bariatric" },
 ];
 
-const COSMETIC_POSTBAR_FUNCTIONAL: Array<{
+const COSMETIC_POSTBAR_FUNCTIONAL: {
   value: AestheticIntent;
   label: string;
-}> = [
+}[] = [
   { value: "cosmetic", label: "Cosmetic" },
   { value: "post_bariatric_mwl", label: "Post-bariatric" },
   { value: "functional_reconstructive", label: "Functional" },
 ];
 
-const RHINO_INTENT: Array<{ value: AestheticIntent; label: string }> = [
+const RHINO_INTENT: { value: AestheticIntent; label: string }[] = [
   { value: "cosmetic", label: "Cosmetic" },
   { value: "functional_reconstructive", label: "Functional" },
   { value: "combined", label: "Combined" },

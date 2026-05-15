@@ -28,6 +28,7 @@ import type {
   NerveIdentifier,
   RepairTiming,
   RepairTechnique,
+  NerveGroup,
 } from "@/types/peripheralNerve";
 import {
   NERVE_LABELS,
@@ -36,7 +37,6 @@ import {
   REPAIR_TIMING_LABELS,
   REPAIR_TECHNIQUE_LABELS,
 } from "@/types/peripheralNerve";
-import type { NerveGroup } from "@/types/peripheralNerve";
 import type { BodyRegion } from "@/lib/peripheralNerveConfig";
 import {
   DIAGNOSIS_TO_NERVE,

@@ -85,11 +85,11 @@ function SummaryRow({
   theme,
 }: {
   aggregate: BurnEpisodeAggregate;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   theme: any;
 }) {
   const metrics = useMemo(() => {
-    const items: Array<{ label: string; value: string; icon: string }> = [];
+    const items: { label: string; value: string; icon: string }[] = [];
 
     // Procedure counts
     const totalProcs = Object.values(
@@ -178,7 +178,7 @@ function CaseTimelineCard({
   theme,
 }: {
   caseData: BurnEpisodeCaseSummary;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   theme: any;
 }) {
   return (

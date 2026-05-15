@@ -133,9 +133,9 @@ function getMechanismsForAetiology(
   }
 }
 
-const APPROACHES = Object.keys(BP_APPROACH_LABELS) as Array<
-  NonNullable<BrachialPlexusAssessmentData["approach"]>
->;
+const APPROACHES = Object.keys(BP_APPROACH_LABELS) as NonNullable<
+  BrachialPlexusAssessmentData["approach"]
+>[];
 
 const PRE_POST_OPTIONS: { key: BPPrePostGanglionic; label: string }[] = [
   { key: "preganglionic", label: "Pre-ganglionic" },
@@ -154,9 +154,9 @@ const SUNDERLAND_GRADES: SunderlandGrade[] = [
   "VI",
 ];
 
-const PROCEDURE_TYPES = Object.keys(BP_PROCEDURE_TYPE_LABELS) as Array<
-  BrachialPlexusProcedureEntry["procedureType"]
->;
+const PROCEDURE_TYPES = Object.keys(
+  BP_PROCEDURE_TYPE_LABELS,
+) as BrachialPlexusProcedureEntry["procedureType"][];
 
 /** Get injured roots (non-intact, non-unknown) for per-root detail cards */
 function getInjuredRoots(
@@ -910,12 +910,12 @@ const FFMTFields = React.memo(function FFMTFields({
     [theme],
   );
 
-  const DONOR_MUSCLES = Object.keys(FFMT_DONOR_MUSCLE_LABELS) as Array<
-    FFMTDetails["donorMuscle"]
-  >;
-  const TARGETS = Object.keys(FFMT_TARGET_LABELS) as Array<
-    FFMTDetails["targetFunction"]
-  >;
+  const DONOR_MUSCLES = Object.keys(
+    FFMT_DONOR_MUSCLE_LABELS,
+  ) as FFMTDetails["donorMuscle"][];
+  const TARGETS = Object.keys(
+    FFMT_TARGET_LABELS,
+  ) as FFMTDetails["targetFunction"][];
 
   return (
     <View style={styles.ffmtContainer}>

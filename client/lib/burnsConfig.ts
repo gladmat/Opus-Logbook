@@ -7,9 +7,15 @@ import type {
   BurnInjuryEvent,
   TBSAData,
   TBSARegionalEntry,
+  VancouverScarScale,
+  POSASObserver,
 } from "../types/burns";
 import { LUND_BROWDER_AGE_ADJUSTMENT } from "../types/burns";
 import type { ProcedureSuggestion } from "@/types/diagnosis";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SCAR ASSESSMENT CALCULATORS
+// ═══════════════════════════════════════════════════════════════════════════════
 
 // Re-export the age adjustment table for external use
 export { LUND_BROWDER_AGE_ADJUSTMENT };
@@ -516,12 +522,6 @@ export function getROMImprovementSeverity(
   if (improvement >= 10) return "moderate";
   return "minimal";
 }
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// SCAR ASSESSMENT CALCULATORS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-import type { VancouverScarScale, POSASObserver } from "../types/burns";
 
 /** Calculates VSS total from partial data */
 export function calculateVSSTotal(vss: Partial<VancouverScarScale>): number {

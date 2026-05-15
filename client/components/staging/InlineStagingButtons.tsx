@@ -15,11 +15,11 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 
 interface InlineStagingButtonsProps {
   label: string;
-  options: Array<{
+  options: {
     value: string;
     label: string;
     description?: string;
-  }>;
+  }[];
   selectedValue: string | undefined;
   onSelect: (value: string) => void;
 }

@@ -367,11 +367,11 @@ export interface DerivedBurnDiagnosis {
   snomedCtDisplay: string;
   displayName: string;
   /** Secondary diagnoses (e.g., inhalation injury alongside the primary burn) */
-  secondaryDiagnoses?: Array<{
+  secondaryDiagnoses?: {
     snomedCtCode: string;
     snomedCtDisplay: string;
     displayName: string;
-  }>;
+  }[];
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

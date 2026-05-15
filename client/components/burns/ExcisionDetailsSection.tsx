@@ -20,8 +20,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { Feather } from "@/components/FeatherIcon";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
-import type { BurnProcedureDetails } from "@/types/burns";
-import type { TBSAData, TBSARegion } from "@/types/burns";
+import type { BurnProcedureDetails, TBSAData, TBSARegion } from "@/types/burns";
 import { TBSA_REGION_LABELS } from "@/types/burns";
 
 // ─── Props ──────────────────────────────────────────────────────────────────
@@ -282,7 +281,7 @@ interface StepperControlProps {
   max: number;
   step: number;
   suffix: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   theme: any;
 }
 

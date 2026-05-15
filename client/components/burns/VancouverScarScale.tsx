@@ -25,7 +25,7 @@ interface VancouverScarScaleProps {
 interface DimensionConfig {
   key: keyof VSSData;
   label: string;
-  options: Array<{ value: number; label: string }>;
+  options: { value: number; label: string }[];
   max: number;
 }
 

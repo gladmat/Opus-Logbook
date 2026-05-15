@@ -41,6 +41,10 @@ import type {
   CDTResponse,
   CompressionClass,
   CancerSurgeryType,
+  LVAOperativeDetails,
+  VLNTSpecificDetails,
+  SAPLOperativeDetails,
+  LymphaticFollowUp,
 } from "@/types/lymphatic";
 import {
   ISL_STAGE_LABELS,
@@ -57,12 +61,6 @@ import { SAPLDetailsComponent } from "./SAPLDetails";
 import { LymphaticFollowUpEntry } from "./LymphaticFollowUpEntry";
 import { getLymphaticProcedureCategory } from "@/lib/lymphaticConfig";
 import type { CaseProcedure } from "@/types/case";
-import type {
-  LVAOperativeDetails,
-  VLNTSpecificDetails,
-  SAPLOperativeDetails,
-  LymphaticFollowUp,
-} from "@/types/lymphatic";
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 

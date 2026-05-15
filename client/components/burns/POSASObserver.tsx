@@ -22,10 +22,10 @@ interface POSASObserverProps {
 
 // ─── Dimension configs ──────────────────────────────────────────────────────
 
-const DIMENSIONS: Array<{
+const DIMENSIONS: {
   key: keyof POSASData;
   label: string;
-}> = [
+}[] = [
   { key: "vascularity", label: "Vascularity" },
   { key: "pigmentation", label: "Pigmentation" },
   { key: "thickness", label: "Thickness" },

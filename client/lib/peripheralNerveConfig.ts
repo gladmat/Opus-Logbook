@@ -535,7 +535,7 @@ export function cleanNeuromaForAetiologyChange(
 
 /** Target muscles to assess per nerve at follow-up */
 export const NERVE_TARGET_MUSCLES: Partial<
-  Record<NerveIdentifier, Array<{ muscle: string }>>
+  Record<NerveIdentifier, { muscle: string }[]>
 > = {
   median: [
     { muscle: "APB (abductor pollicis brevis)" },

@@ -20,12 +20,12 @@ import type {
 
 function makeGroup(
   ba: BurnsAssessmentData,
-  procedures: Array<{
+  procedures: {
     id: string;
     picklistEntryId: string;
     procedureName: string;
     burnProcedureDetails?: BurnProcedureDetails;
-  }> = [],
+  }[] = [],
 ): DiagnosisGroup {
   return {
     id: "g1",

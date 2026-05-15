@@ -18,9 +18,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import { getTeamContacts, linkContact } from "@/lib/teamContactsApi";
 import { getCareerStageLabel } from "@shared/careerStages";
-import type { TeamContact } from "@/types/teamContacts";
 import {
   TEAM_MEMBER_ROLE_SHORT,
+  type TeamContact,
   type TeamMemberOperativeRole,
 } from "@/types/teamContacts";
 import {
