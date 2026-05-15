@@ -13,8 +13,8 @@ import { requestOnboardingRestart } from "@/lib/onboarding";
 //
 // `opus://debug/seed` populates on-device storage with a varied set of cases
 // (+ one treatment episode) so the data-dependent surfaces (CaseDetail,
-// EpisodeList/Detail, NeedsAttentionList, populated Dashboard/Statistics) can
-// be visually audited without hand-driving the case form six times.
+// EpisodeDetail, NeedsAttentionList, populated Dashboard/Statistics) can be
+// visually audited without hand-driving the case form six times.
 //
 // `opus://debug/onboarding` replays the post-auth onboarding flow (Welcome →
 // Features → Categories → Training → Hospital → Privacy) for the signed-in

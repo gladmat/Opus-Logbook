@@ -2,9 +2,9 @@
 //
 // `opus://debug/seed` populates on-device storage with a small, varied set of
 // cases (+ one treatment episode) so the data-dependent surfaces — CaseDetail,
-// EpisodeList/Detail, NeedsAttentionList, the populated Dashboard and
-// Statistics tabs — can be visually audited without hand-driving the case form
-// six times. Cases are encrypted on-device only; there is no server seed path.
+// EpisodeDetail, NeedsAttentionList, the populated Dashboard and Statistics
+// tabs — can be visually audited without hand-driving the case form six times.
+// Cases are encrypted on-device only; there is no server seed path.
 //
 // Tree-shaken from production: the sole call site (DevDeepLinkHandler) guards on
 // `__DEV__`. Stable fixture IDs make re-running idempotent — `saveCase` /

@@ -23,7 +23,6 @@ import LockScreen from "@/screens/LockScreen";
 import SetupAppLockScreen from "@/screens/SetupAppLockScreen";
 import EditProfileScreen from "@/screens/EditProfileScreen";
 import EpisodeDetailScreen from "@/screens/EpisodeDetailScreen";
-import EpisodeListScreen from "@/screens/EpisodeListScreen";
 import ManageFacilitiesScreen from "@/screens/ManageFacilitiesScreen";
 import PersonalisationScreen from "@/screens/PersonalisationScreen";
 import CaseSearchScreen from "@/screens/CaseSearchScreen";
@@ -32,8 +31,6 @@ import NeedsAttentionListScreen from "@/screens/NeedsAttentionListScreen";
 import InboxScreen from "@/screens/InboxScreen";
 import SmartImportScreen from "@/screens/SmartImportScreen";
 import OpusCameraScreen from "@/screens/OpusCameraScreen";
-import PlanCaseScreen from "@/screens/PlanCaseScreen";
-import PlannedCaseListScreen from "@/screens/PlannedCaseListScreen";
 import CaseMediaOrganiserScreen from "@/screens/CaseMediaOrganiserScreen";
 import GuidedCaptureScreen from "@/screens/GuidedCaptureScreen";
 import SurgicalPreferencesScreen from "@/screens/SurgicalPreferencesScreen";
@@ -215,7 +212,6 @@ export type RootStackParamList = {
     mediaContext?: MediaContext;
   };
   EpisodeDetail: { episodeId: string };
-  EpisodeList: undefined;
   SetupAppLock: undefined;
   EditProfile: undefined;
   ManageFacilities: undefined;
@@ -275,8 +271,6 @@ export type RootStackParamList = {
       }
     | undefined;
   GuidedCapture: undefined;
-  PlanCase: undefined;
-  PlannedCaseList: undefined;
   CaseMediaOrganiser: {
     callbackId: string;
     media: import("@/types/case").OperativeMediaItem[];
@@ -788,13 +782,6 @@ export default function RootStackNavigator() {
               }}
             />
             <Stack.Screen
-              name="EpisodeList"
-              component={EpisodeListScreen}
-              options={{
-                headerTitle: "All Episodes",
-              }}
-            />
-            <Stack.Screen
               name="SetupAppLock"
               component={SetupAppLockScreen}
               options={{
@@ -887,21 +874,6 @@ export default function RootStackNavigator() {
               options={{
                 headerTitle: "Guided Capture",
                 presentation: "fullScreenModal",
-              }}
-            />
-            <Stack.Screen
-              name="PlanCase"
-              component={PlanCaseScreen}
-              options={{
-                headerTitle: "Plan a Case",
-                presentation: "fullScreenModal",
-              }}
-            />
-            <Stack.Screen
-              name="PlannedCaseList"
-              component={PlannedCaseListScreen}
-              options={{
-                headerTitle: "Planned Cases",
               }}
             />
             <Stack.Screen
