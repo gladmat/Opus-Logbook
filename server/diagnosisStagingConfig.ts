@@ -405,20 +405,41 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
   },
 
   // Lymphoedema — ISL Stage
+  //
+  // IMPORTANT: keep this list synchronised with the SNOMED codes used by
+  // `client/lib/diagnosisPicklists/lymphoedemaDiagnoses.ts`. The keyword
+  // fallback is FRAGILE for lymphoedema entries because their display names
+  // typically embed an aetiology that collides with earlier configs in this
+  // array — "breast cancer-related lymphoedema" matches the TNM-Breast
+  // config's "breast cancer" keyword, "post-melanoma lymphoedema" matches
+  // the Melanoma/Breslow config's "melanoma" keyword. Resolving every
+  // lymphoedema diagnosis via exact SNOMED match is the only safe path.
   {
     snomedCtCodes: [
-      "234097001", // Lymphedema
+      // Codes actively used by client lymphoedema diagnosis picklist entries
+      "449620005", // Lymphedema of upper limb (BCRL upper, post-melanoma upper)
+      "234097001", // Lymphoedema (BCRL breast, H&N, post-infection, obesity, phlebo, chylous leak)
+      "403385000", // Lymphedema of lower extremity (post-gynae, post-melanoma lower, post-uro)
+      "440121002", // Postsurgical lymphoedema (sarcoma, post-trauma)
+      "724859002", // Lymphoedema due to and following radiotherapy
+      "403386004", // Lymphedema of genitalia (genital cancer, genital primary)
+      "240820001", // Lymphatic filariasis
+      "1217009002", // Primary lymphoedema (primary upper, primary lower)
+      "254199006", // Hereditary lymphoedema (hereditary other)
+      "400158000", // Primary lymphoedema tardum
+      "77123007", // Lymphedema praecox (Meige)
+      "399889006", // Hereditary lymphoedema type I (Milroy)
+      "234102003", // Lipoedema (lipedema, lipo-LE)
+      // Defensive: codes from earlier SNOMED ref sets, retained so any
+      // ad-hoc SNOMED search that returns one of these still resolves to ISL.
       "402672004", // Lymphedema of upper limb
       "445710004", // Lymphedema following surgical procedure
-      "234102003", // Lymphedema due to radiation therapy
       "403462001", // Genital lymphedema
       "56266002", // Congenital lymphedema (Milroy)
-      "77123007", // Lymphedema praecox (Meige)
       "56970002", // Lymphedema tarda
       "439128001", // Hereditary lymphedema
       "95570007", // Primary lymphedema
       "443250000", // Lymphedema of trunk
-      "399889006", // Lymphatic filariasis
       "33129002", // Lipedema
     ],
     keywords: ["lymphoedema", "lymphedema", "isl stage", "lipedema"],
