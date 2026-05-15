@@ -1,10 +1,16 @@
-# Next-session prompt — Opus audit, session 8
+# Next-session prompt — Opus audit, session 8 (overnight autonomous)
 
 > Paste everything below the line into a fresh Claude Code session in
-> `/Users/mateusz/projects-local/Opus_Logbook`. Designed to run
-> autonomously when the operator can't supervise tap-driven sim work.
-> Source-level clusters first (1–3), then optional sim-dependent
-> clusters (4–6) if tap tooling is available.
+> `/Users/mateusz/projects-local/Opus_Logbook`. **Designed to run
+> autonomously through the night** — work the priority list top-down,
+> commit after every cluster, stop cleanly between clusters when context
+> gets tight. Source-level clusters 1–3 are the meaty pieces and should
+> consume ~80% of the run; cluster 4–6 work is OPTIONAL and only runs
+> if the simulator AND interactive tap tooling are both available at
+> session start. **Do not waste overnight time reviving fragile sim
+> infrastructure** — if computer-use MCP isn't loaded in the deferred
+> tool list, skip clusters 4–6 entirely and add more test coverage
+> instead.
 
 ---
 
@@ -223,7 +229,7 @@ Document captures in `screenshots/` with `s8-` prefix.
 
 ---
 
-### 5. **(Optional, requires sim + tap) OnboardingScreen.tsx deletion** (~15 min)
+### 5. **OnboardingScreen.tsx deletion** (~15 min, source-level — NOT sim-dependent)
 
 Session 7 marked `client/screens/OnboardingScreen.tsx` as orphaned dead
 code (no navigator imports it; superseded by current onboarding chain).
@@ -235,15 +241,15 @@ break. Apply that here:
 2. Delete the file.
 3. `npm run check:types` clean.
 4. `npx vitest run` green.
-5. Commit with the message style of session 4 dead-code deletions.
-
-This isn't sim-dependent per se but it IS deliberate cleanup the user
-should review — leave a comment in the commit asking for review before
-push.
+5. Also remove the "Orphaned (in `client/screens/` but not wired into
+   any navigator)" stanza from CLAUDE.md at line ~1612 (the explicit
+   orphaned annotation session 7 added).
+6. Commit with the message style of session 4 dead-code deletions.
+   Don't push to remote — let Mateusz review the deletion before push.
 
 ---
 
-### 6. **(Optional) ProcedureEntryCard internal callback stabilisation** (~30 min, source-level)
+### 6. **ProcedureEntryCard internal callback stabilisation** (~30 min, source-level)
 
 Session 7's Cluster 1 stabilised the heaviest ProcedureEntryCard
 internal callback (`handlePicklistSelect`). Several lighter callbacks
@@ -261,6 +267,50 @@ they're cheap to batch:
    `procedure` via the existing `procedureRef` from session 7.
 2. `npm run check:types` clean.
 3. `npx vitest run` green.
+
+---
+
+### 7. **N3c clinical correctness fix — `calculateOverallStage` follow-up** (~20 min, source-level — DO ONLY IF Cluster 2 (the N3c short-circuit) shipped cleanly)
+
+Session 7's Cluster 2 spec mandates fixing the early N3c return in
+`calculateNStage`. AFTER that fix lands, also verify
+`calculateOverallStage(t, "N3C")` handling:
+
+1. Read `client/lib/melanomaStaging.ts:215-345` (`calculateOverallStage`).
+2. The current explicit IIID check is `t === "T4B" && n === "N3"` —
+   verify that this still hits for `n === "N3C"` (which it doesn't, because
+   `=== "N3"` is strict-equality).
+3. Fix: change to `(n === "N3" || n === "N3C")` or `n.startsWith("N3")`.
+4. Mirror the change in any IIIC catch-all path that depends on N-stage
+   string matching.
+5. Add 1-2 tests in `melanomaStaging.test.ts`: `T4b + N3c → IIID`,
+   `T3a + N3c → IIIC`.
+
+---
+
+## FALLBACK WORK (if everything above is done, or if cluster 4–6 are skipped due to missing tap tooling)
+
+Pick the highest-value source-level work that fits the remaining budget.
+Don't sit idle.
+
+- **More cleanup of plain-function callbacks** across other heavy
+  components: `DiagnosisGroupEditor` has many `handle*` functions that
+  could be useCallback'd. Same pattern as session 7 Cluster 1 / session 8
+  Cluster 6.
+- **moduleSummary test coverage** — 328 lines, mostly display strings.
+  Mechanical. 10–20 focused tests.
+- **procedureConfig test coverage** — 393 lines, procedure metadata.
+  Mostly data assertions. Could be a big +30 tests batch.
+- **CLAUDE.md drift round 3** — verify all the post-session-7 numbers
+  are still accurate. Re-run the test/testID/diagnosis counts.
+- **Hunt for new dead code** — grep across `client/lib/` and
+  `client/components/` for exports with zero importers. Pattern:
+  for each `export function X` / `export const X` in a file, grep for
+  `\bX\b` everywhere else and confirm > 0 hits. If 0, the export is
+  dead.
+- **Raw-hex round 4** — re-grep `'#[0-9A-Fa-f]\{3,8\}'` across
+  `client/` and verify the count is still 10. New hex may have crept
+  in across sessions 6+7.
 
 ---
 
@@ -319,7 +369,40 @@ next cluster.
 
 Source-level clusters 1–3 should yield 3–5 commits. The N3c fix
 (cluster 2) is a single small commit. Test coverage (cluster 1) is
-1 commit per file (3 commits). CLAUDE.md drift (cluster 3) is 1 commit.
+1 commit per file (up to 3 commits). CLAUDE.md drift (cluster 3) is
+1 commit.
 
-Aim for **4–7 commits total** depending on optional clusters. Past 12
-and you're churning — pause and write the report.
+Aim for **4–8 commits total** depending on optional clusters and
+fallback work. Past 12 and you're churning — pause and write the
+report.
+
+## TIME BUDGET PER CLUSTER (rough)
+
+| Cluster | Budget | Cumulative |
+|---------|--------|------------|
+| 1 — Test coverage 3 files | 1.5 hours | 1.5h |
+| 2 — N3c clinical fix | 30 min | 2.0h |
+| 3 — CLAUDE.md drift round 2 | 30 min | 2.5h |
+| 4 — Interactive sim verification | 45 min (OPTIONAL — skip if no tap tooling) | 3.25h |
+| 5 — OnboardingScreen deletion | 15 min | 3.5h |
+| 6 — More callback stabilisation | 30 min | 4.0h |
+| 7 — N3c overall-stage follow-up | 20 min | 4.3h |
+| Fallback work | variable | until report |
+
+If you finish all priority work plus some fallback by hour 5, write
+the report and stop. Don't grind into hour 8 — diminishing returns.
+
+## REMINDERS FOR THE NIGHT
+
+- The user is asleep. You will get **no clarification** until morning.
+  When in doubt about whether to fix something, **catalogue it in the
+  report instead of fixing it**. Better to under-do than to ship a
+  surprise.
+- **Don't push to remote** under any circumstances.
+- **Don't trigger EAS / TestFlight builds.**
+- **Don't run destructive git ops** (reset --hard onto known-good
+  commits is fine within the crash-recovery flow; nothing beyond that).
+- If you finish early, **stop**. The morning report should be readable
+  in 5 minutes.
+- The untracked `.claude/plans/archive/` directory is pre-existing
+  scratch — leave it alone, don't try to commit or clean it.
