@@ -59,7 +59,7 @@ export function DigitSelector({
                 type="small"
                 style={[
                   styles.chipText,
-                  { color: isSelected ? "#FFFFFF" : theme.text },
+                  { color: isSelected ? theme.buttonText : theme.text },
                 ]}
               >
                 {digit}
@@ -70,7 +70,10 @@ export function DigitSelector({
                   styles.chipSubtext,
                   {
                     color: isSelected
-                      ? "rgba(255,255,255,0.7)"
+                      ? // 70% of theme.buttonText so the subtext (e.g. "Index")
+                        // dims relative to the digit number above. Same B3 alpha
+                        // suffix the original used, but now theme-aware.
+                        `${theme.buttonText}B3`
                       : theme.textTertiary,
                   },
                 ]}

@@ -385,7 +385,11 @@ export function AnastomosisEntryCard({
                   <ThemedText
                     style={[
                       styles.segmentedButtonText,
-                      { color: isSelected ? "#fff" : theme.textSecondary },
+                      {
+                        color: isSelected
+                          ? theme.buttonText
+                          : theme.textSecondary,
+                      },
                     ]}
                   >
                     {option.label}
@@ -443,7 +447,11 @@ export function AnastomosisEntryCard({
                 <ThemedText
                   style={[
                     styles.segmentedButtonText,
-                    { color: isSelected ? "#fff" : theme.textSecondary },
+                    {
+                      color: isSelected
+                        ? theme.buttonText
+                        : theme.textSecondary,
+                    },
                   ]}
                 >
                   {label}

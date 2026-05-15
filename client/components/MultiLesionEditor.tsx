@@ -41,7 +41,7 @@ import * as Haptics from "expo-haptics";
 import { v4 as uuidv4 } from "uuid";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { Spacing, BorderRadius, palette } from "@/constants/theme";
 import { SkinCancerAssessment } from "@/components/skin-cancer/SkinCancerAssessment";
 import {
   getPathwayBadge,
@@ -926,7 +926,9 @@ export function MultiLesionEditor({
         )}
         {pendingCount > 0 && (
           <View style={styles.statItem}>
-            <ThemedText style={[styles.statNumber, { color: "#6B7280" }]}>
+            <ThemedText
+              style={[styles.statNumber, { color: theme.textSecondary }]}
+            >
               {pendingCount}
             </ThemedText>
             <ThemedText
@@ -1026,7 +1028,9 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   lesionIndexText: {
-    color: "#FFFFFF",
+    // Always white — badge background is a saturated pathology category color
+    // (BCC/SCC/Melanoma/Benign/Other) that needs the highest-contrast text.
+    color: palette.white,
     fontSize: 13,
     fontWeight: "700",
   },

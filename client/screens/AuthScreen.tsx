@@ -349,9 +349,11 @@ export default function AuthScreen() {
             testID="onboarding.auth.btn-submit"
           >
             {isLoading ? (
-              <ActivityIndicator color="#FFF" size="small" />
+              <ActivityIndicator color={colors.buttonText} size="small" />
             ) : (
-              <Text style={styles.submitButtonText}>
+              <Text
+                style={[styles.submitButtonText, { color: colors.buttonText }]}
+              >
                 {mode === "login" ? "Sign In" : "Create Account"}
               </Text>
             )}
@@ -448,9 +450,14 @@ export default function AuthScreen() {
               testID="onboarding.auth.btn-requestReset"
             >
               {isRequestingReset ? (
-                <ActivityIndicator color="#FFF" size="small" />
+                <ActivityIndicator color={colors.buttonText} size="small" />
               ) : (
-                <Text style={styles.submitButtonText}>
+                <Text
+                  style={[
+                    styles.submitButtonText,
+                    { color: colors.buttonText },
+                  ]}
+                >
                   Send Reset Instructions
                 </Text>
               )}
@@ -551,7 +558,7 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     ...Typography.bodySemibold,
-    color: "#FFF",
+    // color applied inline via colors.buttonText (text on amber button)
   },
   footer: {
     flexDirection: "row",

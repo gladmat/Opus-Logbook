@@ -360,7 +360,7 @@ export default function OnboardingScreen() {
                 ]}
               >
                 {agreementAccepted ? (
-                  <Feather name="check" size={16} color="#FFF" />
+                  <Feather name="check" size={16} color={colors.buttonText} />
                 ) : null}
               </View>
               <Text
@@ -590,8 +590,13 @@ export default function OnboardingScreen() {
                   disabled={isLoading}
                   testID="onboarding.facilities.btn-searchNz"
                 >
-                  <Feather name="search" size={18} color="#FFF" />
-                  <Text style={styles.selectFacilityButtonText}>
+                  <Feather name="search" size={18} color={colors.buttonText} />
+                  <Text
+                    style={[
+                      styles.selectFacilityButtonText,
+                      { color: colors.buttonText },
+                    ]}
+                  >
                     Search NZ Hospitals
                   </Text>
                 </Pressable>
@@ -643,7 +648,7 @@ export default function OnboardingScreen() {
                   disabled={!newFacility.trim() || isLoading}
                   testID="onboarding.facilities.btn-add"
                 >
-                  <Feather name="plus" size={22} color="#FFF" />
+                  <Feather name="plus" size={22} color={colors.buttonText} />
                 </Pressable>
               </View>
             )}
@@ -847,12 +852,20 @@ export default function OnboardingScreen() {
             disabled={isLoading}
           >
             {isLoading ? (
-              <ActivityIndicator color="#FFF" size="small" />
+              <ActivityIndicator color={colors.buttonText} size="small" />
             ) : (
               <>
-                <Text style={styles.nextButtonText}>{buttonLabel}</Text>
+                <Text
+                  style={[styles.nextButtonText, { color: colors.buttonText }]}
+                >
+                  {buttonLabel}
+                </Text>
                 {step !== "facilities" && (
-                  <Feather name="arrow-right" size={20} color="#FFF" />
+                  <Feather
+                    name="arrow-right"
+                    size={20}
+                    color={colors.buttonText}
+                  />
                 )}
               </>
             )}
@@ -965,7 +978,7 @@ const styles = StyleSheet.create({
   },
   selectFacilityButtonText: {
     ...Typography.bodySemibold,
-    color: "#FFF",
+    // color applied inline via colors.buttonText
   },
   orDivider: {
     ...Typography.caption,
@@ -1066,7 +1079,7 @@ const styles = StyleSheet.create({
   },
   nextButtonText: {
     ...Typography.bodySemibold,
-    color: "#FFF",
+    // color applied inline via colors.buttonText
   },
   agreementContainer: {
     flex: 1,

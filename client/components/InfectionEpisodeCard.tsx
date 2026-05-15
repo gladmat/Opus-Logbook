@@ -5,7 +5,7 @@ import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
 import { FormField, SelectField } from "@/components/FormField";
 import { useTheme } from "@/hooks/useTheme";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { Spacing, BorderRadius, palette } from "@/constants/theme";
 import {
   InfectionEpisode,
   EpisodeIntent,
@@ -197,7 +197,9 @@ export function InfectionEpisodeCard({
           </View>
 
           {showDebridementExtent ? (
-            <View style={styles.modifierSection}>
+            <View
+              style={[styles.modifierSection, { borderTopColor: theme.border }]}
+            >
               <SelectField
                 label="Debridement Extent"
                 value={episode.debridementExtent || ""}
@@ -246,7 +248,9 @@ export function InfectionEpisodeCard({
           ) : null}
 
           {showReconstruction ? (
-            <View style={styles.modifierSection}>
+            <View
+              style={[styles.modifierSection, { borderTopColor: theme.border }]}
+            >
               <SelectField
                 label="Reconstruction Type"
                 value={episode.reconstructionType || ""}
@@ -264,7 +268,9 @@ export function InfectionEpisodeCard({
           ) : null}
 
           {showAmputation ? (
-            <View style={styles.modifierSection}>
+            <View
+              style={[styles.modifierSection, { borderTopColor: theme.border }]}
+            >
               <SelectField
                 label="Amputation Level"
                 value={episode.amputationLevel || ""}
@@ -324,7 +330,9 @@ const styles = StyleSheet.create({
   episodeBadgeText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#fff",
+    // Always white — badge background is theme.link (amber) in both themes;
+    // sits on a strong amber fill that needs the highest-contrast text.
+    color: palette.white,
   },
   headerInfo: {
     flex: 1,
@@ -370,7 +378,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: "#eee",
+    // borderTopColor applied inline via theme.border at the View — theme-aware
   },
   extentDescription: {
     padding: Spacing.sm,

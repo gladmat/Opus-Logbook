@@ -320,7 +320,9 @@ export function AOFractureCascadingForm({
           <ThemedText
             style={[
               styles.optionText,
-              { color: selected === opt.key ? "#FFF" : theme.text },
+              {
+                color: selected === opt.key ? theme.buttonText : theme.text,
+              },
             ]}
           >
             {opt.label}
@@ -390,7 +392,10 @@ export function AOFractureCascadingForm({
               <ThemedText
                 style={[
                   styles.optionText,
-                  { color: boneCategory === opt.key ? "#FFF" : theme.text },
+                  {
+                    color:
+                      boneCategory === opt.key ? theme.buttonText : theme.text,
+                  },
                 ]}
               >
                 {opt.label}
@@ -566,13 +571,13 @@ export function AOFractureCascadingForm({
                     styles.checkbox,
                     {
                       borderColor: selectedQualifications.includes(opt.key)
-                        ? "#FFF"
+                        ? theme.buttonText
                         : theme.border,
                     },
                   ]}
                 >
                   {selectedQualifications.includes(opt.key) ? (
-                    <Feather name="check" size={12} color="#FFF" />
+                    <Feather name="check" size={12} color={theme.buttonText} />
                   ) : null}
                 </View>
                 <ThemedText
@@ -580,7 +585,7 @@ export function AOFractureCascadingForm({
                     styles.optionText,
                     {
                       color: selectedQualifications.includes(opt.key)
-                        ? "#FFF"
+                        ? theme.buttonText
                         : theme.text,
                     },
                   ]}
@@ -670,7 +675,9 @@ export function AOFractureCascadingForm({
             <View
               style={[styles.aoCodeDisplay, { backgroundColor: theme.link }]}
             >
-              <ThemedText style={styles.aoCodeDisplayText}>
+              <ThemedText
+                style={[styles.aoCodeDisplayText, { color: theme.buttonText }]}
+              >
                 {currentAOCode || "79"}
               </ThemedText>
             </View>
@@ -705,12 +712,12 @@ export function AOFractureCascadingForm({
           <Feather
             name="plus"
             size={18}
-            color={canSubmit ? "#FFF" : theme.textSecondary}
+            color={canSubmit ? theme.buttonText : theme.textSecondary}
           />
           <ThemedText
             style={[
               styles.submitButtonText,
-              { color: canSubmit ? "#FFF" : theme.textSecondary },
+              { color: canSubmit ? theme.buttonText : theme.textSecondary },
             ]}
           >
             Add Fracture
@@ -846,7 +853,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   aoCodeDisplayText: {
-    color: "#FFF",
+    // color applied inline via theme.buttonText (text on amber link badge)
     fontSize: 18,
     fontWeight: "700",
     fontFamily: "monospace",

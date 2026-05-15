@@ -10,7 +10,7 @@ import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { Spacing, BorderRadius, palette } from "@/constants/theme";
 import type { InjuryCategory } from "@/lib/handTraumaMapping";
 
 interface InjuryCategoryChipsProps {
@@ -99,8 +99,11 @@ export function InjuryCategoryChips({
                   style={[
                     styles.countBadge,
                     {
+                      // Active: faint white wash on amber chip — palette.white
+                      // since the parent text is theme.buttonText (dark in
+                      // dark mode, white in light); inactive: full amber link.
                       backgroundColor: isActive
-                        ? "rgba(255,255,255,0.25)"
+                        ? `${palette.white}40`
                         : theme.link,
                     },
                   ]}
@@ -109,7 +112,10 @@ export function InjuryCategoryChips({
                     style={[
                       styles.countText,
                       {
-                        color: isActive ? theme.buttonText : "#FFFFFF",
+                        // Inactive count badge sits on amber, so always-white
+                        // gives the highest contrast. Active badge inherits
+                        // theme.buttonText to match the chip's text colour.
+                        color: isActive ? theme.buttonText : palette.white,
                       },
                     ]}
                   >

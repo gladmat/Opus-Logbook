@@ -23,7 +23,7 @@ import Constants from "expo-constants";
 import { ThemedText } from "@/components/ThemedText";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { useTheme } from "@/hooks/useTheme";
-import { Spacing, BorderRadius, Shadows } from "@/constants/theme";
+import { Spacing, BorderRadius, Shadows, palette } from "@/constants/theme";
 import { clearAllData, getCaseCount } from "@/lib/storage";
 import { exportCases, ExportFormat, EXPORT_FORMAT_LABELS } from "@/lib/export";
 import { requestOnboardingRestart } from "@/lib/onboarding";
@@ -696,13 +696,19 @@ export default function SettingsScreen() {
                     <Feather
                       name={opt.icon}
                       size={14}
-                      color={isSelected ? "#FFFFFF" : theme.textSecondary}
+                      color={
+                        isSelected ? theme.buttonText : theme.textSecondary
+                      }
                       style={{ marginRight: 4 }}
                     />
                     <ThemedText
                       style={[
                         styles.themeSegmentedText,
-                        { color: isSelected ? "#FFFFFF" : theme.textSecondary },
+                        {
+                          color: isSelected
+                            ? theme.buttonText
+                            : theme.textSecondary,
+                        },
                       ]}
                     >
                       {opt.label}
@@ -1143,9 +1149,14 @@ export default function SettingsScreen() {
               testID="settings.security.btn-changePassword"
             >
               {isChangingPassword ? (
-                <ActivityIndicator color="#FFF" size="small" />
+                <ActivityIndicator color={theme.buttonText} size="small" />
               ) : (
-                <ThemedText style={styles.changePasswordButtonText}>
+                <ThemedText
+                  style={[
+                    styles.changePasswordButtonText,
+                    { color: theme.buttonText },
+                  ]}
+                >
                   Change Password
                 </ThemedText>
               )}
@@ -1233,9 +1244,15 @@ export default function SettingsScreen() {
               disabled={isDeletingAccount}
             >
               {isDeletingAccount ? (
-                <ActivityIndicator color="#FFF" size="small" />
+                <ActivityIndicator color={palette.white} size="small" />
               ) : (
-                <ThemedText style={styles.changePasswordButtonText}>
+                <ThemedText
+                  style={[
+                    styles.changePasswordButtonText,
+                    // Always white — destructive button is on theme.error (red)
+                    { color: palette.white },
+                  ]}
+                >
                   Delete My Account
                 </ThemedText>
               )}
@@ -1512,37 +1529,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: Spacing.sm,
   },
-  emptyFacilitiesHint: {
-    fontSize: 12,
-    marginTop: Spacing.xs,
-    textAlign: "center",
-  },
   facilitiesModalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: Spacing.xs,
-  },
-  addFromListButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.lg,
-  },
-  addFromListButtonText: {
-    color: "#FFF",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  facilityItemTextContainer: {
-    flex: 1,
-  },
-  facilityItemId: {
-    fontSize: 11,
-    marginTop: 2,
   },
   divider: {
     height: 1,
@@ -1588,7 +1579,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   changePasswordButtonText: {
-    color: "#FFF",
+    // color applied inline (theme.buttonText for amber, palette.white for destructive red)
     fontSize: 16,
     fontWeight: "600",
   },

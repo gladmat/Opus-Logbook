@@ -191,8 +191,10 @@ export default function ManageFacilitiesScreen() {
               style={[styles.addButton, { backgroundColor: theme.link }]}
               onPress={() => setShowFacilitySelector(true)}
             >
-              <Feather name="plus" size={18} color="#FFF" />
-              <ThemedText style={styles.addButtonText}>
+              <Feather name="plus" size={18} color={theme.buttonText} />
+              <ThemedText
+                style={[styles.addButtonText, { color: theme.buttonText }]}
+              >
                 Add from curated list
               </ThemedText>
             </Pressable>
@@ -388,7 +390,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   addButtonText: {
-    color: "#FFF",
+    // color applied inline via theme.buttonText (text on amber button)
     fontSize: 15,
     fontWeight: "600",
   },

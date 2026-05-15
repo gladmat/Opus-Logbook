@@ -21,7 +21,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import * as Haptics from "expo-haptics";
 import { Feather } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/useTheme";
-import { BorderRadius, Spacing, Typography } from "@/constants/theme";
+import { BorderRadius, Spacing, Typography, palette } from "@/constants/theme";
 import {
   ALL_PROTOCOLS,
   filterStepsByPhase,
@@ -636,7 +636,9 @@ export default function OpusCameraScreen({ navigation, route }: Props) {
                         : styles.dotEmpty,
                   ]}
                 >
-                  {captured && <Feather name="check" size={10} color="#fff" />}
+                  {captured && (
+                    <Feather name="check" size={10} color={palette.white} />
+                  )}
                 </Pressable>
               );
             }}
@@ -654,7 +656,7 @@ export default function OpusCameraScreen({ navigation, route }: Props) {
         {/* Processing indicator */}
         {isProcessing && (
           <View style={styles.processingRow}>
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={palette.white} />
             <Text style={styles.processingText}>
               {isFinishing ? "Finishing captures..." : "Encrypting..."}
             </Text>
@@ -693,7 +695,7 @@ export default function OpusCameraScreen({ navigation, route }: Props) {
               <Feather
                 name={flash === "on" ? "zap" : "zap-off"}
                 size={22}
-                color="#fff"
+                color={palette.white}
               />
             </Pressable>
             <Pressable
@@ -703,7 +705,7 @@ export default function OpusCameraScreen({ navigation, route }: Props) {
               disabled={isFinishing}
               style={styles.iconButton}
             >
-              <Feather name="refresh-cw" size={22} color="#fff" />
+              <Feather name="refresh-cw" size={22} color={palette.white} />
             </Pressable>
           </View>
         </View>
@@ -834,7 +836,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   stepLabel: {
-    color: "#fff",
+    // Always white — camera viewfinder UI sits on a black background.
+    color: palette.white,
     fontSize: 17,
     fontWeight: "600",
     flex: 1,
@@ -916,7 +919,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   doneText: {
-    color: "#fff",
+    // Always white — camera viewfinder UI sits on a black background.
+    color: palette.white,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -927,7 +931,8 @@ const styles = StyleSheet.create({
     height: 72,
     borderRadius: 36,
     borderWidth: 4,
-    borderColor: "#fff",
+    // Always white — iOS-style shutter button on black viewfinder.
+    borderColor: palette.white,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -935,7 +940,8 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "#fff",
+    // Always white — iOS-style shutter button on black viewfinder.
+    backgroundColor: palette.white,
   },
 
   // Right controls

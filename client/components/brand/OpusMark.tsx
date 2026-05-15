@@ -6,6 +6,7 @@ import Animated, {
   withTiming,
   Easing,
 } from "react-native-reanimated";
+import { palette } from "@/constants/theme";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -32,12 +33,12 @@ interface OpusMarkProps {
  * Stroke width scales proportionally: 7.2% of viewBox size.
  *
  * @param size - Width and height in points (default: 32)
- * @param color - Stroke color (default: '#E5A00D')
+ * @param color - Stroke color (default: canonical brand amber palette.amber[600])
  * @param animate - Draw-on animation (default: false)
  */
 export function OpusMark({
   size = 32,
-  color = "#E5A00D",
+  color = palette.amber[600],
   animate = false,
 }: OpusMarkProps) {
   const dashOffset = useSharedValue(animate ? ARC_LENGTH : 0);

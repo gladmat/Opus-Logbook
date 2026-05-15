@@ -7,7 +7,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { FormField, SelectField } from "@/components/FormField";
 import { InfectionEpisodeTimeline } from "@/components/InfectionEpisodeTimeline";
 import { useTheme } from "@/hooks/useTheme";
-import { Spacing, BorderRadius } from "@/constants/theme";
+import { Spacing, BorderRadius, palette } from "@/constants/theme";
 import {
   InfectionOverlay,
   InfectionSyndrome,
@@ -539,7 +539,10 @@ const styles = StyleSheet.create({
   statusBadgeText: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#fff",
+    // Always white — text sits on theme.error (red) or theme.success (green)
+    // in both light + dark. theme.buttonText is amber-button-specific (dark
+    // in dark mode), so palette.white is the correct choice here.
+    color: palette.white,
   },
   content: {
     padding: Spacing.md,
@@ -610,16 +613,5 @@ const styles = StyleSheet.create({
   hint: {
     fontSize: 13,
     fontStyle: "italic",
-  },
-  episodesSummary: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingTop: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: "#eee",
-  },
-  episodesText: {
-    fontSize: 13,
   },
 });

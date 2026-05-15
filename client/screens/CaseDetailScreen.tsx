@@ -26,7 +26,7 @@ import { WoundDimensionChart } from "@/components/WoundDimensionChart";
 import { WoundAssessmentCard } from "@/components/WoundAssessmentCard";
 import { EncryptedImage } from "@/components/EncryptedImage";
 import { useTheme } from "@/hooks/useTheme";
-import { Spacing, BorderRadius, Shadows } from "@/constants/theme";
+import { Spacing, BorderRadius, Shadows, palette } from "@/constants/theme";
 import {
   TEAM_MEMBER_ROLE_LABELS,
   type TeamMemberOperativeRole,
@@ -3809,11 +3809,6 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 4,
   },
-  mediaTypeBadgeText: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: "#fff",
-  },
   mediaCaptionOverlay: {
     position: "absolute",
     bottom: 0,
@@ -3824,7 +3819,8 @@ const styles = StyleSheet.create({
   },
   mediaCaptionText: {
     fontSize: 11,
-    color: "#fff",
+    // Always white — caption sits on an opaque dark scrim over a photo.
+    color: palette.white,
   },
   histologyButton: {
     flexDirection: "row",

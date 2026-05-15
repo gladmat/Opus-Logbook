@@ -19,9 +19,13 @@ import * as Haptics from "expo-haptics";
 import { Feather } from "@/components/FeatherIcon";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
-import { Spacing, BorderRadius, Shadows } from "@/constants/theme";
+import { Spacing, BorderRadius, Shadows, palette } from "@/constants/theme";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
-import type { SharedCaseData } from "@/types/sharing";
+import type {
+  SharedCaseData,
+  ENTRUSTMENT_LABELS,
+  type EntrustmentLevel,
+} from "@/types/sharing";
 import {
   OPERATIVE_ROLE_LABELS,
   type OperativeRole,
@@ -58,7 +62,6 @@ import {
   getAssessmentStatus,
   type AssessmentStatusResponse,
 } from "@/lib/assessmentApi";
-import { ENTRUSTMENT_LABELS, type EntrustmentLevel } from "@/types/sharing";
 
 type RouteProps = RouteProp<RootStackParamList, "SharedCaseDetail">;
 type NavProps = NativeStackNavigationProp<
@@ -685,7 +688,7 @@ export default function SharedCaseDetailScreen() {
                       ]}
                     >
                       <ThemedText
-                        style={{ color: "#FFFFFF", fontWeight: "600" }}
+                        style={{ color: palette.white, fontWeight: "600" }}
                       >
                         {submitting ? "Submitting..." : "Submit Dispute"}
                       </ThemedText>
@@ -703,7 +706,7 @@ export default function SharedCaseDetailScreen() {
                       { backgroundColor: theme.success },
                     ]}
                   >
-                    <Feather name="check" size={18} color="#FFFFFF" />
+                    <Feather name="check" size={18} color={palette.white} />
                     <ThemedText style={styles.verifyButtonText}>
                       {submitting ? "Verifying..." : "Verify"}
                     </ThemedText>
@@ -1069,7 +1072,8 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.sm,
   },
   verifyButtonText: {
-    color: "#FFFFFF",
+    // Always white — verify button is on theme.success (green)
+    color: palette.white,
     fontSize: 16,
     fontWeight: "600",
   },

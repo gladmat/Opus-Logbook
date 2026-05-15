@@ -162,7 +162,9 @@ export function FractureClassificationWizard({
                       { backgroundColor: theme.link },
                     ]}
                   >
-                    <ThemedText style={styles.aoCodeText}>
+                    <ThemedText
+                      style={[styles.aoCodeText, { color: theme.buttonText }]}
+                    >
                       {f.aoCode}
                     </ThemedText>
                   </View>
@@ -191,8 +193,10 @@ export function FractureClassificationWizard({
               style={[styles.saveButton, { backgroundColor: theme.link }]}
               onPress={handleSave}
             >
-              <Feather name="check" size={20} color="#FFF" />
-              <ThemedText style={styles.saveButtonText}>
+              <Feather name="check" size={20} color={theme.buttonText} />
+              <ThemedText
+                style={[styles.saveButtonText, { color: theme.buttonText }]}
+              >
                 Save All Fractures
               </ThemedText>
             </Pressable>
@@ -269,7 +273,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.sm,
   },
   aoCodeText: {
-    color: "#FFF",
+    // color applied inline via theme.buttonText (text on amber link badge)
     fontSize: 14,
     fontWeight: "600",
     fontFamily: "monospace",
@@ -302,7 +306,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   saveButtonText: {
-    color: "#FFF",
+    // color applied inline via theme.buttonText (text on amber save button)
     fontSize: 15,
     fontWeight: "600",
   },

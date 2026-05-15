@@ -1,6 +1,8 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { OpusMark } from "./OpusMark";
+import { useTheme } from "@/hooks/useTheme";
+import { palette } from "@/constants/theme";
 
 interface OpusLogoProps {
   size?: "sm" | "md" | "lg";
@@ -23,8 +25,9 @@ const sizes = {
 export function OpusLogo({
   size = "md",
   showSubtitle = false,
-  color = "#E5A00D",
+  color = palette.amber[600],
 }: OpusLogoProps) {
+  const { theme } = useTheme();
   const s = sizes[size];
 
   return (
@@ -47,7 +50,7 @@ export function OpusLogo({
             style={{
               fontWeight: "500",
               fontSize: s.subtitle,
-              color: "#656D76",
+              color: theme.textTertiary,
               letterSpacing: s.subtitleSpacing,
               textTransform: "uppercase",
               marginTop: 2,

@@ -215,7 +215,11 @@ export function ExtensorTendonSection({
                       ]}
                     >
                       {checked ? (
-                        <Feather name="check" size={12} color="#FFFFFF" />
+                        <Feather
+                          name="check"
+                          size={12}
+                          color={theme.buttonText}
+                        />
                       ) : null}
                     </View>
                     <ThemedText

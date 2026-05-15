@@ -20,7 +20,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { ThemedText } from "@/components/ThemedText";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { useTheme } from "@/hooks/useTheme";
-import { Spacing, BorderRadius, Shadows } from "@/constants/theme";
+import { Spacing, BorderRadius, Shadows, palette } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { getApiUrl } from "@/lib/query-client";
 import {
@@ -417,7 +417,7 @@ export default function EditProfileScreen() {
             </View>
           )}
           <View style={[styles.cameraButton, { backgroundColor: theme.link }]}>
-            <Feather name="camera" size={14} color="#FFF" />
+            <Feather name="camera" size={14} color={theme.buttonText} />
           </View>
         </Pressable>
         <View style={styles.avatarActions}>
@@ -582,7 +582,9 @@ export default function EditProfileScreen() {
                   ]}
                   onPress={() => setShowDatePicker(false)}
                 >
-                  <ThemedText style={{ color: "#FFF", fontWeight: "600" }}>
+                  <ThemedText
+                    style={{ color: theme.buttonText, fontWeight: "600" }}
+                  >
                     Done
                   </ThemedText>
                 </Pressable>
@@ -1034,7 +1036,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: "#FFF",
+    // Always-white ring separates the camera-circle button from the avatar
+    // photo regardless of theme — same Apple-app convention.
+    borderColor: palette.white,
   },
   avatarActions: {
     flexDirection: "row",

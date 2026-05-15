@@ -74,7 +74,7 @@ function AOTAClassificationCard({
         <Feather
           name={hasClassification ? "check" : "layers"}
           size={16}
-          color={hasClassification ? "#FFF" : theme.textSecondary}
+          color={hasClassification ? theme.buttonText : theme.textSecondary}
         />
       </View>
 
@@ -218,7 +218,7 @@ export function DiagnosisClinicalFields({
                   <ThemedText
                     style={[
                       styles.lateralityOptionText,
-                      { color: isSelected ? "#FFF" : theme.text },
+                      { color: isSelected ? theme.buttonText : theme.text },
                     ]}
                   >
                     {option.label}
@@ -281,7 +281,7 @@ export function DiagnosisClinicalFields({
                   <ThemedText
                     style={[
                       styles.pickerOptionText,
-                      { color: isSelected ? "#FFF" : theme.text },
+                      { color: isSelected ? theme.buttonText : theme.text },
                     ]}
                   >
                     {option.label}

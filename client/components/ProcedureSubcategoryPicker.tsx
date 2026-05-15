@@ -213,10 +213,20 @@ export function ProcedureSubcategoryPicker({
                   {entry.tags.includes("pedicled_flap") &&
                   !entry.hasFreeFlap ? (
                     <View
-                      style={[styles.badge, { backgroundColor: "#8B5CF620" }]}
+                      style={[
+                        styles.badge,
+                        // Purple "Pedicled" pill differentiates from amber
+                        // "Microsurgery" and red "Free flap". Reuses the
+                        // theme.roleSupervising purple token so it's theme-aware
+                        // (deeper purple in light mode, brighter in dark).
+                        { backgroundColor: theme.roleSupervising + "20" },
+                      ]}
                     >
                       <ThemedText
-                        style={[styles.badgeText, { color: "#8B5CF6" }]}
+                        style={[
+                          styles.badgeText,
+                          { color: theme.roleSupervising },
+                        ]}
                       >
                         Pedicled
                       </ThemedText>
