@@ -148,6 +148,20 @@ facility / month spread over ~6 months) so the fixture set clears the gate and
 the charts, deltas, milestone timeline, facility + role breakdowns render
 non-trivially. Tree-shakes from production. Re-captured `s3-data-70..75`.
 
+### 6. Added `opus://debug/onboarding` deep link (audit infrastructure)
+
+**File:** `client/components/DevDeepLinkHandler.tsx`.
+
+Cluster 7 (post-auth onboarding) was a session-3 gap. The UI entry point —
+Settings → "Preview Onboarding From Start" — sits in the kAXError-prone Settings
+list and could not be driven reliably with Maestro 2.5.1 (the `tapOn` hierarchy
+query crashed repeatedly; the row has no `testID`). Following the established
+`opus://debug/login` / `opus://debug/seed` pattern, added a third `__DEV__`-gated
+deep link that replays the full post-auth onboarding flow for the signed-in user
+(`requestOnboardingRestart` + `updateProfile({onboardingComplete:false})` — the
+exact body of `handleRestartOnboarding`, minus the Alert). Tree-shakes from
+production. With this, all five onboarding steps were captured (see Cluster 7).
+
 ---
 
 ## Findings — triaged (Broken / Wrong / Uncomfortable / Inconsistent / Unpolished)
@@ -263,6 +277,30 @@ seeded-data and onboarding clusters:
 Both are part of the broader testID/a11y backlog; recommend folding into the
 same dedicated pass as `ProcedureSubcategoryPicker`.
 
+### 🟡 Onboarding has an undocumented 5th step, and no way to finish without a PIN
+
+**Severity: Wrong (doc drift) + a UX/product call. Reported, not fixed.**
+Two things surfaced driving Cluster 7:
+
+1. **CLAUDE.md's screen map is one step short.** It lists the post-auth
+   onboarding as four steps (Categories → Training → Hospital → Privacy). There
+   is a **fifth** — `SecurityScreen` ("Secure your logbook", a 6-digit PIN
+   keypad), rendered after Privacy (`RootStackNavigator` routes it; the
+   `StepIndicator` is 5-segment, confirming five steps). The screen-map section
+   of CLAUDE.md should be updated.
+2. **`SecurityScreen` has no skip.** An exhaustive `grep` of
+   `client/screens/onboarding/SecurityScreen.tsx` finds no skip / "set up
+   later" / "maybe later" affordance — `handleComplete` (which calls
+   `onComplete()` to finish onboarding) is only reachable from the post-PIN
+   "Start logging" CTA, which only appears *after* a PIN is set. Every other
+   onboarding step (Categories / Training / Hospital) has an explicit skip link.
+   So onboarding cannot be *completed* without setting an app-lock PIN. That may
+   well be intentional for a PHI-bearing medical app — but it's a deliberate
+   product decision worth confirming, and it's inconsistent with the skip
+   affordance on every preceding step. (The audit did not set a PIN — it would
+   gate every future automated launch — and instead restored `onboardingComplete`
+   via the API; see the Cluster 7 section.)
+
 ### Inconsistent / Unpolished — catalogued for Mateusz's design pass
 
 - **Nav-pill labels ellipsis-truncate ("Oper…" / "Outc…")** — confirmed reproduces on
@@ -374,12 +412,27 @@ documented." + Get Started) → `s3-onboard-02..05` (FeaturePager — "Log any c
 under 60 seconds", registry-superset slide w/ ISCP/FEBOPRAS/BSSH/RACS/NMBRA chips, etc.)
 → `s3-onboard-06/07` (last FeaturePager slide + sign-in). All render cleanly.
 
-**Gap:** the *post-auth* onboarding steps (Categories → Training → Hospital → Privacy)
-were **not** reachable — `onboardingComplete` is read from the server `profile`
-(`AuthContext.tsx:540`), and the audit test account has it `true`, so a deep-link login
-jumps straight past them to the dashboard. Capturing those four needs a *fresh,
-not-yet-onboarded* server account (creating one hits the EmailSignup Strong-Password
-issue from session 1). Left for a future session.
+**Post-auth steps — now captured.** Session 3 originally left these as a gap
+(`onboardingComplete` is server-side `true` for the test account, so a deep-link
+login skips straight to the dashboard). A follow-up turn added a third audit
+deep link — **`opus://debug/onboarding`** (commit, see Code fixes) — that does
+exactly what Settings → "Preview Onboarding From Start" does (`requestOnboardingRestart`
++ `updateProfile({onboardingComplete:false})`), giving a reliable entry point
+without fighting the kAXError-prone Settings list. All five post-auth steps
+captured on iPhone 17 / dark:
+
+| Step | Shot | Assessment |
+|---|---|---|
+| 1 — Categories ("What do you operate on?") | `s3-onboard-10-categories` | ✅ Clean. 11 category cards (2-col), prefilled-checked, amber borders, "Continue" + "Use all categories for now" skip. Same long-label truncation as the Personalisation grid ("Cleft & Craniof…"). |
+| 2 — Training ("Are you in a training programme?") | `s3-onboard-11-training` | ✅ Clean. 5 radio options (ISCP / FEBOPRAS / ACGME / RACS / Other) + "Not currently in training"; the amber CTA label is **state-dependent** ("Continue" vs "Skip" when none-selected) but always calls `handleContinue`. |
+| 3 — Hospital ("Where do you work?") | `s3-onboard-12-hospital` | ✅ Clean. Country chip (New Zealand), search field, prefilled facilities with × remove, "Continue" + "Skip for now". |
+| 4 — Privacy ("Your data, your control.") | `s3-onboard-13-privacy` | ✅ Clean. 4 trust points (encrypted / offline / no-tracking / standards), italic founder line, "Continue". |
+| 5 — Security ("Secure your logbook") | `s3-onboard-15-security` | ✅ Clean. 6-digit PIN keypad. **Not in CLAUDE.md's screen map** — the screen map lists onboarding as 4 steps (Categories/Training/Hospital/Privacy); there is a 5th, `SecurityScreen`. Worth a screen-map update. See Findings — "Onboarding has an undocumented 5th step + no PIN-skip". |
+
+The audit test account's `onboardingComplete` was restored to `true` via
+`PUT /api/profile` after the run (the flow was not completed through the PIN
+step on purpose — see Findings); a fresh deep-link login lands on the dashboard
+normally, account state is clean.
 
 ## Capture screens (Cluster 5)
 

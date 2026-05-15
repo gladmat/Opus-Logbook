@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import * as Linking from "expo-linking";
 import { useAuth } from "@/contexts/AuthContext";
 import { seedAuditCases } from "@/lib/devSeed";
+import { requestOnboardingRestart } from "@/lib/onboarding";
 
 // Dev-only deep-link helpers for automated audit runs.
 //
@@ -15,19 +16,27 @@ import { seedAuditCases } from "@/lib/devSeed";
 // EpisodeList/Detail, NeedsAttentionList, populated Dashboard/Statistics) can
 // be visually audited without hand-driving the case form six times.
 //
+// `opus://debug/onboarding` replays the post-auth onboarding flow (Welcome →
+// Features → Categories → Training → Hospital → Privacy) for the signed-in
+// user — the same thing Settings → "Preview Onboarding From Start" does, minus
+// the Alert. The Settings list is kAXError-prone to drive with Maestro 2.5.1,
+// so this gives the audit a reliable entry point. Completing the flow restores
+// `onboardingComplete: true`.
+//
 // Real users keep the normal flow untouched. Tree-shaken from production: the
 // sole call site guards on `__DEV__` and the effect bails on `!__DEV__` as a
 // second line of defence.
 //
 // Trigger from the host:  xcrun simctl openurl booted "opus://debug/login"
 //                         xcrun simctl openurl booted "opus://debug/seed"
+//                         xcrun simctl openurl booted "opus://debug/onboarding"
 const DEFAULT_EMAIL = "m.gladysz@outlook.com";
 const DEFAULT_PASSWORD = "testtest";
 
 export function DevDeepLinkHandler() {
-  const { login, isAuthenticated } = useAuth();
-  const authRef = useRef({ login, isAuthenticated });
-  authRef.current = { login, isAuthenticated };
+  const { login, isAuthenticated, user, updateProfile } = useAuth();
+  const authRef = useRef({ login, isAuthenticated, user, updateProfile });
+  authRef.current = { login, isAuthenticated, user, updateProfile };
   const handlingRef = useRef(false);
 
   useEffect(() => {
@@ -69,6 +78,26 @@ export function DevDeepLinkHandler() {
           );
         } catch (error) {
           console.warn("[DevDeepLink] seed failed:", error);
+        } finally {
+          handlingRef.current = false;
+        }
+        return;
+      }
+
+      if (url.includes("debug/onboarding")) {
+        if (handlingRef.current) return;
+        const userId = authRef.current.user?.id;
+        if (!userId) {
+          console.warn("[DevDeepLink] onboarding restart: not signed in");
+          return;
+        }
+        handlingRef.current = true;
+        try {
+          await requestOnboardingRestart(userId, "full");
+          await authRef.current.updateProfile({ onboardingComplete: false });
+          console.log("[DevDeepLink] onboarding flow restarted");
+        } catch (error) {
+          console.warn("[DevDeepLink] onboarding restart failed:", error);
         } finally {
           handlingRef.current = false;
         }
