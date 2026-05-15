@@ -657,6 +657,16 @@ export function BreastProgressiveAssessment({
     [createProcedureFromPicklistId, updateDraftProcedures],
   );
 
+  // Adapter for ProcedureSubcategoryPicker's `(entry) => void` signature.
+  // Stabilised so the React.memo on ProcedureSubcategoryPicker actually bails
+  // on parent-induced re-renders.
+  const handlePicklistEntrySelect = useCallback(
+    (entry: { id: string }) => {
+      handleAddPicklistProcedure(entry.id);
+    },
+    [handleAddPicklistProcedure],
+  );
+
   const handleRemoveDraftProcedure = useCallback(
     (procedureId: string) => {
       updateDraftProcedures((current) =>
@@ -1484,7 +1494,7 @@ export function BreastProgressiveAssessment({
               <ProcedureSubcategoryPicker
                 specialty="breast"
                 selectedEntryId={pickerSelectionId}
-                onSelect={(entry) => handleAddPicklistProcedure(entry.id)}
+                onSelect={handlePicklistEntrySelect}
               />
 
               <CompactProcedureList

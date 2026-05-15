@@ -1652,7 +1652,7 @@ interface ProcedureClinicalDetailsProps {
   isSlnbProcedure?: boolean;
 }
 
-export function ProcedureClinicalDetails({
+function ProcedureClinicalDetailsImpl({
   specialty,
   procedureType,
   picklistEntryId,
@@ -1721,6 +1721,15 @@ export function ProcedureClinicalDetails({
 
   return null;
 }
+
+// React.memo guards against parent-induced re-renders. The body is large,
+// imports many helpers, and runs derived flag computation per render. With
+// stable `clinicalDetails` + `onUpdate` from ProcedureEntryCard (useMemo +
+// useCallback), the shallow-compare keeps this tree from rebuilding on every
+// unrelated keystroke in the case form.
+export const ProcedureClinicalDetails = React.memo(
+  ProcedureClinicalDetailsImpl,
+);
 
 const styles = StyleSheet.create({
   container: {

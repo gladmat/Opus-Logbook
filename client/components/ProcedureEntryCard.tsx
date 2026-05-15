@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { View, StyleSheet, Pressable } from "react-native";
 import { v4 as uuidv4 } from "uuid";
 import { Feather } from "@/components/FeatherIcon";
@@ -296,12 +296,25 @@ function ProcedureEntryCardInner({
     });
   };
 
-  const handleClinicalDetailsUpdate = (details: ClinicalDetails) => {
-    onUpdate({
-      ...procedure,
-      clinicalDetails: details,
-    });
-  };
+  const handleClinicalDetailsUpdate = useCallback(
+    (details: ClinicalDetails) => {
+      onUpdate({
+        ...procedure,
+        clinicalDetails: details,
+      });
+    },
+    [onUpdate, procedure],
+  );
+
+  // Stabilise the prop reference for the React.memo on ProcedureClinicalDetails
+  // so it bails on no-op renders. New `{}` every render would otherwise force
+  // ProcedureClinicalDetails to recompute its derived `picklistEntry` /
+  // `isFreeFlapProcedure` / `isSlnb` flags on every keystroke in an unrelated
+  // field.
+  const clinicalDetailsRef = useMemo(
+    () => procedure.clinicalDetails || {},
+    [procedure.clinicalDetails],
+  );
 
   const handleTagToggle = (tag: ProcedureTag) => {
     const currentTags = procedure.tags || [];
@@ -666,7 +679,7 @@ function ProcedureEntryCardInner({
           specialty={procedure.specialty}
           procedureType={procedure.procedureName}
           picklistEntryId={procedure.picklistEntryId}
-          clinicalDetails={procedure.clinicalDetails || {}}
+          clinicalDetails={clinicalDetailsRef}
           onUpdate={handleClinicalDetailsUpdate}
         />
       ) : null}
