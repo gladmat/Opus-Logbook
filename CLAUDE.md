@@ -122,7 +122,7 @@ See `CONTRIBUTING.md` at repo root for the full contributor checklist.
 ```
 client/
   App.tsx                        # Root: providers + deep-link routing + locked-capture ingress
-  screens/                       # 31 screens + 9 onboarding sub-screens
+  screens/                       # 27 screens + 9 onboarding sub-screens
   components/                    # 160+ files across 18 subdirectories
     case-form/                   # 6 sections (incl. TeamSection) + CollapsibleFormSection, SectionNavBar, CaseSummaryView, AcceptedMappingCard
     dashboard/                   # 10 files — dashboard v2 (see Dashboard v2 section)
@@ -488,7 +488,7 @@ Serial wound assessment as timeline event type (`wound_assessment`). `WoundAsses
 
 ### Treatment episodes
 
-Serial case tracking via local encrypted episode storage. Episode status machine: planned → active ⇄ on_hold → completed. 7 episode types, 4 encounter classes, 9 pending actions. Types in `client/types/episode.ts`. UI: `EpisodeListScreen`, `EpisodeDetailScreen`, `InlineEpisodeCreator`, `EpisodeLinkBanner`.
+Serial case tracking via local encrypted episode storage. Episode status machine: planned → active ⇄ on_hold → completed. 7 episode types, 4 encounter classes, 9 pending actions. Types in `client/types/episode.ts`. UI: `EpisodeDetailScreen`, `InlineEpisodeCreator`, `EpisodeLinkBanner` (the dashboard Needs Attention carousel + `NeedsAttentionListScreen` are the entry points; the historical-browse `EpisodeListScreen` was deleted in the session-4 audit cleanup).
 
 ### Dashboard v2 (COMPLETE)
 
@@ -1555,14 +1555,23 @@ Conditional screen switching based on `isAuthenticated`, `hasSeenWelcome`, `hasS
 | `showEmailAuth` | EmailSignup | `client/screens/onboarding/EmailSignupScreen.tsx` |
 | Default | Auth | `client/screens/AuthScreen.tsx` (`screen-auth`) |
 
-**Onboarding flow** (post-auth, `!onboardingComplete`):
+**Onboarding flow** (post-auth, `!onboardingComplete`) — 5 sequential steps, gated by `StepHeader currentStep={n}`:
 
-| Step | Screen | File |
-|------|--------|------|
-| categories | Categories | `client/screens/onboarding/CategoriesScreen.tsx` |
-| training | Training | `client/screens/onboarding/TrainingScreen.tsx` |
-| hospital | Hospital | `client/screens/onboarding/HospitalScreen.tsx` |
-| privacy | Privacy | `client/screens/onboarding/PrivacyScreen.tsx` |
+| Step | Screen | File | testID | Skip? |
+|------|--------|------|--------|-------|
+| 1 — categories | Categories | `client/screens/onboarding/CategoriesScreen.tsx` | `screen-onboardingCategories` | yes ("Use all categories for now") |
+| 2 — training | Training | `client/screens/onboarding/TrainingScreen.tsx` | `screen-onboardingTraining` | yes |
+| 3 — hospital | Hospital | `client/screens/onboarding/HospitalScreen.tsx` | `screen-onboardingHospital` | yes |
+| 4 — privacy | Privacy | `client/screens/onboarding/PrivacyScreen.tsx` | `screen-onboardingPrivacy` | no (informational, single Continue) |
+| 5 — security | Security | `client/screens/onboarding/SecurityScreen.tsx` | `screen-onboardingSecurity` (entry) / `screen-onboardingSecurityDone` (post-PIN) | **no — PIN required to finish onboarding** |
+
+Step 5 (`SecurityScreen`) sets a 6-digit PIN via a keypad; there is no "skip" /
+"set up later" affordance. `handleComplete` (which calls
+`updateProfile({ onboardingComplete: true })` and exits the onboarding stack)
+only runs after a PIN is set + confirmed. This is a deliberate product
+decision for a PHI-bearing medical app, but unusually it makes app-lock setup
+non-optional during onboarding — Settings does not offer a way to disable
+app-lock after onboarding either (only change PIN / toggle biometric).
 
 **Main tab navigator** (`client/navigation/MainTabNavigator.tsx`):
 
@@ -1583,7 +1592,6 @@ Conditional screen switching based on `isAuthenticated`, `hasSeenWelcome`, `hasS
 | MediaManagement | `MediaManagementScreen.tsx` | `screen-mediaManagement` | fullScreenModal |
 | AddOperativeMedia | `AddOperativeMediaScreen.tsx` | `screen-addOperativeMedia` | fullScreenModal |
 | EpisodeDetail | `EpisodeDetailScreen.tsx` | `screen-episodeDetail` | push |
-| EpisodeList | `EpisodeListScreen.tsx` | `screen-episodeList` | push |
 | SetupAppLock | `SetupAppLockScreen.tsx` | `screen-setupAppLock` | push |
 | EditProfile | `EditProfileScreen.tsx` | `screen-editProfile` | push |
 | ManageFacilities | `ManageFacilitiesScreen.tsx` | `screen-manageFacilities` | push |
@@ -1595,8 +1603,6 @@ Conditional screen switching based on `isAuthenticated`, `hasSeenWelcome`, `hasS
 | SmartImport | `SmartImportScreen.tsx` | `screen-smartImport` | fullScreenModal |
 | OpusCamera | `OpusCameraScreen.tsx` | `screen-opusCamera` | fullScreenModal |
 | GuidedCapture | `GuidedCaptureScreen.tsx` | `screen-guidedCapture` | fullScreenModal |
-| PlanCase | `PlanCaseScreen.tsx` | `screen-planCase` | fullScreenModal |
-| PlannedCaseList | `PlannedCaseListScreen.tsx` | `screen-plannedCaseList` | push |
 | CaseMediaOrganiser | `CaseMediaOrganiserScreen.tsx` | `screen-caseMediaOrganiser` | modal |
 | AddHistology | `AddHistologyScreen.tsx` | `screen-addHistology` | push |
 | TeamContacts | `TeamContactsScreen.tsx` | `screen-teamContacts` | push |
@@ -1604,7 +1610,13 @@ Conditional screen switching based on `isAuthenticated`, `hasSeenWelcome`, `hasS
 
 **Lock overlay:** `LockScreen.tsx` (`screen-lock`) renders as absolute overlay when `isAppLockConfigured && isLocked`.
 
-**Total: 40 screen files** (31 main + 9 onboarding).
+**Total: 36 screen files** (27 main + 9 onboarding). Three routes (`PlanCase`,
+`PlannedCaseList`, `EpisodeList`) and their screen files were deleted in the
+session-4 audit cleanup — `PlanCase` was superseded by the in-form plan-mode
+toggle (`caseForm.patient.toggle-planMode` + `PlanModeBanner` from Phase 7);
+`EpisodeList` lost its entry point in a refactor and the dashboard's Needs
+Attention carousel + `NeedsAttentionListScreen` cover the active-episode case.
+Completed/cancelled episodes no longer have a historical browser surface.
 
 ### Diagnosis Inventory
 
