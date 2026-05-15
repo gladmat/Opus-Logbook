@@ -1,4 +1,4 @@
-# Next-session prompt — Opus audit, session 4 (follow-up + backlog)
+# Next-session prompt — Opus audit, session 5 (final polish + product calls)
 
 > Paste everything below the line into a fresh Claude Code session in
 > `/Users/mateusz/projects-local/Opus_Logbook`. Designed to run autonomously —
@@ -8,28 +8,29 @@
 ---
 
 You are continuing a multi-session visual + functional audit of **Opus**, a
-full-stack Expo/React Native surgical logbook. Sessions 1–3 ran on 2026-05-14/15.
-**Session 3 completed the full screen-capture brief** — all 11 specialty modules,
-the 40-screen map, the 5-step onboarding flow, populated data surfaces, iPhone
-SE 3, and a light-theme sweep are all captured and evaluated. The app's visual
-craftsmanship was found to be strong: only **two** Broken/Wrong layout bugs
-across everything, both fixed. **Your job now is the follow-up backlog** — the
-structural findings sessions 1–3 reported but did not fix, plus a few capture
-gaps. Mateusz is asleep — work end-to-end, be persistent through friction, commit
-progressively.
+full-stack Expo/React Native surgical logbook. Sessions 1–4 ran on 2026-05-14/15.
+**Session 4 cleared the structural backlog** — dead routes deleted, testID + a11y
+gaps closed, raw-hex swept to theme tokens, case-form Pressable a11y fixed,
+HeadNeck re-render perf addressed, light-theme NeedsAttention/EpisodeDetail/
+Settings captured, CLAUDE.md screen-map corrected (onboarding is 5 steps not 4,
+with the no-PIN-skip caveat documented). **Sessions 1–4 landed ~21 commits on
+`main` (local, not pushed). The major remaining work is a server session for
+the BCRL staging bug + your product calls on the catalogued design-pass items.**
 
 ## START HERE — read these first, in order
 
-1. `.claude/audit-2026-05-14/REPORT-session3.md` — the most recent report. Its
-   **"Findings — triaged"** section IS your task list; its **"Coverage & gaps"**
-   section lists exactly what's left. Read the **"Tooling notes"** section near
-   the top — the kAXError workarounds will save you hours.
-2. `.claude/audit-2026-05-14/REPORT-session2.md` + `REPORT.md` — earlier findings
-   (the Critical E2EE fix, findings #1–#13).
-3. `CLAUDE.md` → "AI Testing & Visual Quality Standards" + "Design Quality &
+1. `.claude/audit-2026-05-14/REPORT-session4.md` — the most recent report. Its
+   **"Findings — triaged"** + **"Coverage & gaps"** sections are this session's
+   task list.
+2. `.claude/audit-2026-05-14/REPORT-session3.md` — the session that completed
+   the screen-capture brief. Its **"Tooling notes"** section near the top has
+   the kAXError workarounds — read them before driving the sim.
+3. `.claude/audit-2026-05-14/REPORT-session2.md` + `REPORT.md` — earlier
+   findings.
+4. `CLAUDE.md` → "AI Testing & Visual Quality Standards" + "Design Quality &
    Aesthetics" — the authoritative spec.
-4. Your auto-loaded memory: `project_mac_dev_env.md`, `project_opus_visual_audit.md`,
-   `feedback_testing_delegation.md`.
+5. Your auto-loaded memory: `project_mac_dev_env.md`,
+   `project_opus_visual_audit.md`, `feedback_testing_delegation.md`.
 
 ## ENVIRONMENT BRING-UP
 
@@ -39,112 +40,111 @@ export PATH=$JAVA_HOME/bin:$HOME/.maestro/bin:$PATH
 export LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
 ```
 
-- iPhone 17 sim, UDID `6AF34D12-7A59-439E-A861-768C5578B00A`, iOS 26.4. `Opus.app`
-  should still be installed. Rebuild only if stale:
+- iPhone 17 sim, UDID `6AF34D12-7A59-439E-A861-768C5578B00A`, iOS 26.4.
+  `Opus.app` should still be installed. Rebuild only if stale:
   `LC_ALL=en_US.UTF-8 npx expo run:ios --device 6AF34D12-7A59-439E-A861-768C5578B00A`.
 - API server (`npm run server:dev`, :5001) + Metro (:8081) may have died — verify
   + restart. Verify the API: `curl -s -X POST http://127.0.0.1:5001/api/auth/login
   -H "Content-Type: application/json" -d '{"email":"m.gladysz@outlook.com","password":"testtest"}'`
-  → expect a JWT. If it 500s: `DATABASE_URL="postgresql://localhost:5432/surgical_logbook" npx drizzle-kit push --force`.
+  → expect a JWT. If it 500s:
+  `DATABASE_URL="postgresql://localhost:5432/surgical_logbook" npx drizzle-kit push --force`.
 - Login: `xcrun simctl openurl booted "opus://debug/login"`.
-
-## PROVEN WORKING METHOD (session 3 — do not re-discover)
-
-- **Three `__DEV__` debug deep links exist** (`client/components/DevDeepLinkHandler.tsx`):
-  `opus://debug/login`, `opus://debug/seed` (22 audit cases + 1 episode), and
-  `opus://debug/onboarding` (replays the post-auth onboarding flow). Fire via
-  `xcrun simctl openurl booted "<url>"`.
-- **After ANY client code edit, force a fresh Metro bundle before testing.**
-  `launchApp` alone serves a stale bundle. Recipe:
-  `xcrun simctl terminate booted com.drgladysz.opus` →
+- After ANY client code edit: `xcrun simctl terminate booted com.drgladysz.opus` →
   `curl -s -m 180 "http://localhost:8081/.expo/.virtual-metro-entry.bundle?platform=ios&dev=true" -o /tmp/x.bundle`
-  (this blocks until Metro rebuilds; `grep` your change in `/tmp/x.bundle` to confirm)
-  → `xcrun simctl launch booted com.drgladysz.opus` → deep-link login.
-- **`kAXErrorInvalidUIElement` is the #1 friction.** Maestro 2.5.1's `tapOn`
-  hierarchy query crashes intermittently — worst on dense screens (Settings list,
-  case form, NeedsAttentionList). **Workaround: coordinate-tap (`tapOn: { point: "x%,y%" }`)
-  — a point tap needs no hierarchy query.** Take a screenshot first to get the
-  coordinate. This is how session 3 got past the Settings list and the onboarding
-  CTAs.
-- **`launchApp` cold-restarts the dev client** — it loses in-memory state. For
-  stateful flows (onboarding replay), do NOT `launchApp` in the Maestro flow;
-  fire the deep link from the host, then run a flow that starts with
-  `waitForAnimationToEnd` and drives from the current screen.
-- **`retryTapIfNoChange: false`** is mandatory on toggle-type elements (FAB,
-  chips). The LogBox dev banner covers the bottom ~90 pt — dismiss with
-  `tapOn: { point: "94%,93%" }` guarded by `runFlow when visible text:".*Open debugger.*"`.
-- Screenshots: `.claude/audit-screenshot.sh <path>` (downscales to ≤1568 px).
-  Theme: `xcrun simctl ui booted appearance light|dark`.
-- Throwaway Maestro flows go in `/tmp/audit-flows/` with a `run.sh` runner
-  (per-flow timeout + `pkill` + one retry). Session 3 left its flows there, but
-  `/tmp` may have been cleared since — if so, recreate them; every pattern you
-  need is documented in this section, so a flow is ~10 lines.
+  → `xcrun simctl launch booted com.drgladysz.opus` → deep-link login. See
+  `REPORT-session3.md` "Tooling notes" for the full method.
 
 ## THE TASK — priority order (each is a committable cluster)
 
-Write any new screenshots to `.claude/audit-2026-05-14/screenshots/`, findings to
-a new `.claude/audit-2026-05-14/REPORT-session4.md`.
+The session-4 brief is **done**. The remaining items split into:
+*server-session work*, *product calls that need Mateusz*, and *low-priority
+polish*. **Confirm with Mateusz before starting** — the highest-value next
+session may not be more autonomous audit work. Mateusz's input is needed on:
 
-1. **Two dead routes — `PlanCase` and `EpisodeList`.** Both are registered in
-   `RootStackNavigator.tsx` but nothing calls `navigation.navigate(...)` for them.
-   Investigate git history / surrounding code to decide delete-vs-rewire for each.
-   `PlanCase` was almost certainly superseded by the in-form plan-mode toggle —
-   likely a clean delete. `EpisodeList` (full SectionList screen, `episodes.input-search`)
-   may have lost its entry point in a refactor — check whether it *should* be
-   reachable (e.g. from a Settings row or an episode-related surface). Fix
-   whichever way is correct; this is an objective dead-code finding.
-2. **testID + a11y backlog.** Add `testID` + `accessibilityRole`/`accessibilityLabel`
-   to: `client/components/ProcedureSubcategoryPicker.tsx` procedure rows
-   (`caseForm.procedure.row-${entry.id}`), `client/components/dashboard/AttentionCard.tsx`
-   (the card + its quick-action buttons), and the 5 onboarding screens
-   (`CategoriesScreen` / `TrainingScreen` / `HospitalScreen` / `PrivacyScreen` /
-   `SecurityScreen` — CLAUDE.md's screen map cites `onboarding.*` testIDs that
-   don't exist). Then the pre-existing batch: raw-hex sweep (~29 files — see
-   REPORT.md finding #10) + case-form Pressable a11y gaps (REPORT.md finding #11).
-   This is large but mechanical and squarely "fix inline".
-3. **CLAUDE.md screen-map fix.** The post-auth onboarding is **5 steps**, not 4 —
-   `SecurityScreen` ("Secure your logbook", PIN setup) follows Privacy. Update the
-   screen-map section. Also note in CLAUDE.md that onboarding cannot be *completed*
-   without setting a PIN (`SecurityScreen` has no skip) — confirm with Mateusz
-   whether that is intended.
-4. **HeadNeck / case-form re-render perf investigation.** `HeadNeckDiagnosisPicker`
-   is unusually `kAXErrorInvalidUIElement`-prone, which usually means continuous
-   re-rendering. Connect React DevTools, do a "highlight re-renders" pass on the
-   case form + `HeadNeckDiagnosisPicker`. If it re-renders on a loop, that's a
-   real perf bug (jank on the 88-diagnosis picker) — fix it.
-5. **Remaining light-theme captures** — light NeedsAttentionList, EpisodeDetail,
-   Settings sub-screens (session 3's light run died partway on the kAXError-flaky
-   NeedsAttention nav). Low-risk; nice-to-have for completeness.
-6. **Deeper module coverage** — session 3 captured specialty modules at
-   "diagnosis selected + scrolled"; the deepest nested cards (Aesthetics
-   `ImplantDetailsCard`, per-procedure footers, etc.) were not all reached.
+1. **BCRL lymphoedema TNM-vs-ISL staging bug** (server session — was excluded
+   from sessions 2–4 by the audit brief's "do not touch `server/`" guardrail).
+   Root cause + suggested fix documented in `REPORT-session3.md`. The fix is:
+   in `server/diagnosisStagingConfig.ts`, add `449620005` (Lymphedema of upper
+   limb) and any other secondary-cancer lymphoedema SNOMED codes to the ISL
+   config's `snomedCtCodes` array so the exact-match branch resolves before
+   the keyword-fallback `.find()` can mis-fire on "breast cancer" hitting the
+   TNM config first. Recommend: server session, write the fix + add a focused
+   unit test (`server/__tests__/diagnosisStagingConfig.test.ts` extension —
+   the file exists with 3 tests already). The 4 non-breast post-cancer
+   lymphoedema diagnoses are NOT affected (no TNM keywords in their names).
 
-> **NOT for this session (needs a server session):** the BCRL lymphoedema
-> TNM-vs-ISL staging bug in `server/diagnosisStagingConfig.ts` — the audit brief
-> forbids touching `server/`. Flag it to Mateusz instead.
+2. **Onboarding no-PIN-skip product call.** `SecurityScreen` (step 5) has no
+   skip; every preceding onboarding step does. Confirmed deliberate-feeling
+   for a PHI-bearing medical app, but inconsistent. Two reasonable answers:
+   (a) accept it and document on the screen ("PIN required to complete
+   onboarding"); (b) add "Set up later" affordance for consistency. Documented
+   in CLAUDE.md per session 4; needs your call.
+
+3. **Inconsistent / Unpolished design-pass items** catalogued in sessions 2–4.
+   None are objective defects — each needs your design eye. Top items, ordered
+   by reproduction frequency:
+   - **Nav-pill labels ellipsis-truncate** ("Oper…" / "Outc…") at 376–402 pt
+     band. Session 2 / 3 / 4 all reproduce. Fix: widen the short-label
+     breakpoint in `SectionNavBar.tsx` to cover iPhone 17 width (402 pt) too.
+   - **InfectionEpisodeCard episode-number badge text colour** preserved as
+     `palette.white` (always-white) in session 4 Cluster 2b. Design system
+     says text-on-amber should be `theme.buttonText` (dark in dark mode).
+     Verify on-device whether dark-on-amber or white-on-amber reads better in
+     dark mode and standardise.
+   - **AddCase specialty-card content vertical distribution** is inconsistent
+     across cards.
+   - **Chip-text truncation in dense grids** (hand-trauma 3-col Injury Type;
+     Personalisation 2-col category cards; AddCase specialty grid).
+   - **Episode cards show raw patient identifier** where case cards show a
+     name (AUDIT-SKIN-02 vs Priya Anand). The episode could resolve the
+     linked case's name.
+   - **EpisodeDetail "Change Status" amber fill** reads as a current
+     selection.
+   - **Statistics horizontal-bar labels truncate** ("Orthoplastic & Li…",
+     "Auckland City Ho…") — by spec, but worth a deliberate call.
+
+4. **Vestigial code after PlanCase deletion** (session 4 left as-is to avoid
+   touching typed JSON storage on a UI-only session). Decide:
+   `getPlannedCases` / `getPlannedCaseCount` selectors + `plannedTemplateId`
+   field on Case/CaseSummary. Either wire them to a new "Planned Cases"
+   filter chip (the in-form plan-mode toggle still sets
+   `caseStatus: "planned"`) or delete + delete `plannedCase.test.ts`.
+
+5. **Deferred captures** if you still want them:
+   - Light-theme EditProfile / ManageFacilities / SurgicalPreferences /
+     TeamContacts / SetupAppLock / SharedInbox. The app follows system
+     appearance consistently on every other surface so risk is low.
+   - Aesthetics `ImplantDetailsCard` deep capture — needs you to manually
+     add a case form > Aesthetics > Breast augmentation — implant and scroll
+     past the procedure list. The code path is unit-tested
+     (`jointImplant.test.ts` × 44).
+
+6. **On-device verification of session-4 perf fix.** Manual: open the case
+   form in `head_neck` specialty, rapidly tap subcategory tabs + diagnosis
+   chips, watch for jank improvement vs pre-fix recall. (The
+   `kAXErrorInvalidUIElement` flakiness is the proxy symptom — if Maestro
+   driving the H&N form stops crashing, the fix worked.)
 
 ## GUARDRAILS
 
-- **Fix inline only OBJECTIVE defects:** dead code/routes, missing
-  `testID`/`accessibilityRole`/`accessibilityLabel`, raw hex instead of `theme.*`,
-  WCAG contrast failures, <44 pt targets, <12 pt text, truncation/overflow bugs,
-  clear functional bugs. **Do NOT make subjective design changes** — catalogue
-  Inconsistent/Unpolished items for Mateusz's design pass.
+- **Fix inline only OBJECTIVE defects.** Sessions 1–4 already covered the
+  objective backlog; the remaining items are mostly subjective design calls
+  or server-session work.
 - Respect every CLAUDE.md **locked decision** and **anti-pattern**.
-- **Do not touch `server/` or `shared/`.** Do not push to remote. Do not trigger
-  an EAS build. Local dev API on :5001 only.
+- **Do not push to remote.** Do not trigger an EAS build. Local dev API on
+  :5001 only.
 - Before committing code, `npm run check:types` must stay clean. Make focused,
   well-described commits per cluster.
-- If you flip server-side state for testing (e.g. `onboardingComplete`), restore
-  it before you finish — `PUT /api/profile` with the test-account JWT.
 
 ## END-OF-SESSION PROTOCOL
 
-1. Commit any uncommitted screenshots + the in-progress `REPORT-session4.md`.
-2. `REPORT-session4.md` needs: TL;DR, triaged findings, a commits table, an
+1. Commit any uncommitted screenshots + the in-progress `REPORT-session5.md`.
+2. `REPORT-session5.md` needs: TL;DR, triaged findings, a commits table, an
    honest "Coverage & gaps".
 3. If the priority list isn't finished, update this `NEXT-SESSION-PROMPT.md`.
-4. Final message to Mateusz: concise — what was fixed, what's left, top design-pass items.
+4. Final message to Mateusz: concise — what was fixed, what's left, top
+   design-pass items.
 
-Be thorough and persistent. Mateusz wants a long autonomous run and the most
-comprehensive scope at every fork.
+**Most likely outcome:** this is a short session focused on Mateusz's product
+calls + the server-session BCRL fix, not another long autonomous run. The
+objective audit work is largely done.
