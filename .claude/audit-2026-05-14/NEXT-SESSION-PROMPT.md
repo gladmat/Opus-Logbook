@@ -1,12 +1,14 @@
-# Next-session prompt — Opus audit, session 7
+# Next-session prompt — Opus audit, session 7 (overnight autonomous)
 
 > Paste everything below the line into a fresh Claude Code session in
-> `/Users/mateusz/projects-local/Opus_Logbook`. Designed to run
-> autonomously — work the priority list top-down, commit after every
-> cluster, stop cleanly between clusters when context gets tight. Most
-> source-level audit work is done; session 7 is for the deeper refactors
-> session 6 explicitly deferred + the sim-dependent work that's been
-> skipped since session 3.
+> `/Users/mateusz/projects-local/Opus_Logbook`. **Designed to run
+> autonomously through the night** — work the priority list top-down,
+> commit after every cluster, stop cleanly between clusters when context
+> gets tight. Cluster 1 (perf refactor) is the meaty piece and should
+> consume ~40% of the run; clusters 2–3 are mechanical fillers; clusters
+> 4–6 are the sim-dependent visual work that should ONLY run if the
+> simulator is already booted and healthy at session start — don't waste
+> overnight time reviving fragile sim infrastructure.
 
 ---
 
