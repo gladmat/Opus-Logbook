@@ -106,18 +106,21 @@ function ProcedureEntryCardInner({
   const procedureRef = useRef(procedure);
   procedureRef.current = procedure;
 
-  const handleSpecialtyChange = (value: string) => {
-    onUpdate({
-      ...procedure,
-      specialty: value as Specialty,
-      procedureName: "",
-      picklistEntryId: undefined,
-      subcategory: undefined,
-      snomedCtCode: undefined,
-      snomedCtDisplay: undefined,
-      implantDetails: undefined,
-    });
-  };
+  const handleSpecialtyChange = useCallback(
+    (value: string) => {
+      onUpdate({
+        ...procedureRef.current,
+        specialty: value as Specialty,
+        procedureName: "",
+        picklistEntryId: undefined,
+        subcategory: undefined,
+        snomedCtCode: undefined,
+        snomedCtDisplay: undefined,
+        implantDetails: undefined,
+      });
+    },
+    [onUpdate],
+  );
 
   const handlePicklistSelect = useCallback(
     (entry: ProcedurePicklistEntry) => {
@@ -242,15 +245,18 @@ function ProcedureEntryCardInner({
     [diagnosisId, clinicalGroup, diagnosisLaterality, onUpdate, profile],
   );
 
-  const handleProcedureNameChange = (value: string) => {
-    onUpdate({
-      ...procedure,
-      procedureName: value,
-      picklistEntryId: undefined,
-      subcategory: undefined,
-      implantDetails: undefined,
-    });
-  };
+  const handleProcedureNameChange = useCallback(
+    (value: string) => {
+      onUpdate({
+        ...procedureRef.current,
+        procedureName: value,
+        picklistEntryId: undefined,
+        subcategory: undefined,
+        implantDetails: undefined,
+      });
+    },
+    [onUpdate],
+  );
 
   // ── Role override helpers ───────────────────────────────────────────────
   const caseDefaultRole = (defaultOperativeRole as OperativeRole) || undefined;
@@ -267,59 +273,70 @@ function ProcedureEntryCardInner({
   );
   const isOverridden = hasRoleOverride(procedure);
 
-  const handleRoleOverrideChange = (value: string) => {
-    onUpdate({
-      ...procedure,
-      operativeRoleOverride: value as OperativeRole,
-      // Auto-clear supervision override when switching away from SURGEON
-      supervisionLevelOverride: supervisionApplicable(value as OperativeRole)
-        ? procedure.supervisionLevelOverride
-        : "NOT_APPLICABLE",
-    });
-  };
+  const handleRoleOverrideChange = useCallback(
+    (value: string) => {
+      const current = procedureRef.current;
+      onUpdate({
+        ...current,
+        operativeRoleOverride: value as OperativeRole,
+        // Auto-clear supervision override when switching away from SURGEON
+        supervisionLevelOverride: supervisionApplicable(value as OperativeRole)
+          ? current.supervisionLevelOverride
+          : "NOT_APPLICABLE",
+      });
+    },
+    [onUpdate],
+  );
 
-  const handleSupervisionOverrideChange = (value: string) => {
-    onUpdate({
-      ...procedure,
-      supervisionLevelOverride: value as SupervisionLevel,
-    });
-  };
+  const handleSupervisionOverrideChange = useCallback(
+    (value: string) => {
+      onUpdate({
+        ...procedureRef.current,
+        supervisionLevelOverride: value as SupervisionLevel,
+      });
+    },
+    [onUpdate],
+  );
 
-  const handleResetOverrides = () => {
+  const handleResetOverrides = useCallback(() => {
     Haptics.selectionAsync();
     setShowRoleOverride(false);
     onUpdate({
-      ...procedure,
+      ...procedureRef.current,
       operativeRoleOverride: undefined,
       supervisionLevelOverride: undefined,
     });
-  };
+  }, [onUpdate]);
 
-  const handleSnomedProcedureSelect = (
-    result: { conceptId: string; term: string } | null,
-  ) => {
-    onUpdate({
-      ...procedure,
-      snomedCtCode: result?.conceptId || "",
-      snomedCtDisplay: result?.term || "",
-    });
-  };
+  const handleSnomedProcedureSelect = useCallback(
+    (result: { conceptId: string; term: string } | null) => {
+      onUpdate({
+        ...procedureRef.current,
+        snomedCtCode: result?.conceptId || "",
+        snomedCtDisplay: result?.term || "",
+      });
+    },
+    [onUpdate],
+  );
 
-  const handleNotesChange = (value: string) => {
-    onUpdate({
-      ...procedure,
-      notes: value,
-    });
-  };
+  const handleNotesChange = useCallback(
+    (value: string) => {
+      onUpdate({
+        ...procedureRef.current,
+        notes: value,
+      });
+    },
+    [onUpdate],
+  );
 
   const handleClinicalDetailsUpdate = useCallback(
     (details: ClinicalDetails) => {
       onUpdate({
-        ...procedure,
+        ...procedureRef.current,
         clinicalDetails: details,
       });
     },
-    [onUpdate, procedure],
+    [onUpdate],
   );
 
   // Stabilise the prop reference for the React.memo on ProcedureClinicalDetails
@@ -332,16 +349,20 @@ function ProcedureEntryCardInner({
     [procedure.clinicalDetails],
   );
 
-  const handleTagToggle = (tag: ProcedureTag) => {
-    const currentTags = procedure.tags || [];
-    const newTags = currentTags.includes(tag)
-      ? currentTags.filter((t) => t !== tag)
-      : [...currentTags, tag];
-    onUpdate({
-      ...procedure,
-      tags: newTags,
-    });
-  };
+  const handleTagToggle = useCallback(
+    (tag: ProcedureTag) => {
+      const current = procedureRef.current;
+      const currentTags = current.tags || [];
+      const newTags = currentTags.includes(tag)
+        ? currentTags.filter((t) => t !== tag)
+        : [...currentTags, tag];
+      onUpdate({
+        ...current,
+        tags: newTags,
+      });
+    },
+    [onUpdate],
+  );
 
   const procedureTypeOptions = procedure.specialty
     ? PROCEDURE_TYPES[procedure.specialty]?.map((type) => ({
