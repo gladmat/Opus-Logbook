@@ -122,7 +122,7 @@ See `CONTRIBUTING.md` at repo root for the full contributor checklist.
 ```
 client/
   App.tsx                        # Root: providers + deep-link routing + locked-capture ingress
-  screens/                       # 33 main screens + 10 onboarding sub-screens
+  screens/                       # 32 main screens + 10 onboarding sub-screens
   components/                    # 160+ files across 18 subdirectories
     case-form/                   # 6 sections (incl. TeamSection) + CollapsibleFormSection, SectionNavBar, CaseSummaryView, AcceptedMappingCard
     dashboard/                   # 10 files — dashboard v2 (see Dashboard v2 section)
@@ -1615,14 +1615,12 @@ app-lock after onboarding either (only change PIN / toggle biometric).
 
 **Lock overlay:** `LockScreen.tsx` (`screen-lock`) renders as absolute overlay when `isAppLockConfigured && isLocked`.
 
-**Orphaned (in `client/screens/` but not wired into any navigator):**
-`OnboardingScreen.tsx` (`screen-onboarding`) — a 4-step agreement/country/career/facilities flow superseded by the current Welcome→FeaturePager→EmailSignup→Auth pre-auth flow plus the post-auth Categories→Training→Hospital→Privacy→Security onboarding stack. Has no callers; eligible for deletion in a future cleanup pass (parallel to the session-4 PlanCase / PlannedCaseList / EpisodeList sweep).
-
-**Total: 43 screen files** (33 main + 10 onboarding — the onboarding count
+**Total: 42 screen files** (32 main + 10 onboarding — the onboarding count
 includes `FeaturePager.tsx` + `FeatureSlide.tsx` wrappers in addition to the
-8 navigable step screens). Three routes (`PlanCase`, `PlannedCaseList`,
-`EpisodeList`) and their screen files were deleted in the session-4 audit
-cleanup — `PlanCase` was superseded by the in-form plan-mode toggle
+8 navigable step screens). Four routes (`PlanCase`, `PlannedCaseList`,
+`EpisodeList`, plus the orphaned legacy `OnboardingScreen`) and their screen
+files were deleted in the session-4 / session-8 audit cleanups — `PlanCase`
+was superseded by the in-form plan-mode toggle
 (`caseForm.patient.toggle-planMode` + `PlanModeBanner` from Phase 7);
 `EpisodeList` lost its entry point in a refactor and the dashboard's Needs
 Attention carousel + `NeedsAttentionListScreen` cover the active-episode case.
