@@ -127,16 +127,16 @@ client/
     case-form/                   # 6 sections (incl. TeamSection) + CollapsibleFormSection, SectionNavBar, CaseSummaryView, AcceptedMappingCard
     dashboard/                   # 10 files — dashboard v2 (see Dashboard v2 section)
     statistics/                  # BarChart, HorizontalBarChart, StatCard, MilestoneTimeline, SpecialtyDeepDiveCard
-    hand-trauma/                 # 15 files — unified hand trauma assessment
+    hand-trauma/                 # 14 files — unified hand trauma assessment
     hand-infection/              # HandInfectionCard — 4-layer progressive disclosure
     hand-elective/               # HandElectivePicker + CorrectiveOsteotomyDetails — chip-based elective hand diagnosis selector
     acute-hand/                  # AcuteHandAssessment + AcuteHandSummaryPanel
     dupuytren/                   # DupuytrenAssessment — per-ray measurement + auto Tubiana staging
     joint-implant/               # JointImplantSection — 3-layer progressive disclosure
-    skin-cancer/                 # 14 files — inline skin cancer assessment module
+    skin-cancer/                 # 12 files — inline skin cancer assessment module
     head-neck/                   # HeadNeckDiagnosisPicker — chip-based, 88 diagnoses, 9 subcategories
-    breast/                      # 18 files — BreastAssessment, side cards, implant/flap/lipofilling
-    media/                       # MediaTagBadge, MediaTagPicker, ProtocolBadge, CaptureStepCard, GuidedCaptureFlow
+    breast/                      # 17 files — BreastAssessment, side cards, implant/flap/lipofilling
+    media/                       # MediaTagBadge, MediaTagPicker, ProtocolBadge, CaptureStepCard, GuidedCaptureFlow, MediaGalleryViewer
     brand/                       # OpusMark, OpusLogo
     detail-sheets/ onboarding/ shared/ staging/
   contexts/                      # AuthContext, CaseFormContext, AppLockContext, MediaCallbackContext
@@ -158,7 +158,7 @@ client/
     discoveryService.ts          # Background contact discovery (24h throttle, user-scoped)
     seniorityTier.ts             # 6-tier career seniority model
     appLockStorage.ts            # scrypt PIN + persistent lockout ladder
-    __tests__/                   # 85 test files
+    __tests__/                   # 83 test files
   types/                         # case, media, inbox, episode, infection, skinCancer, breast, dupuytren, osteotomy,
                                  #   handInfection, wound, jointImplant, operativeRole, teamContacts, sharing, etc.
   constants/                     # theme.ts (design tokens), categories, hospitals, trainingProgrammes
@@ -356,7 +356,7 @@ Tests: `client/lib/__tests__/jointImplant.test.ts` (44 tests)
 
 ### Skin cancer assessment module
 
-Inline assessment flow (mirrors hand trauma pattern — no modal, no separate screen) with 14 components in `client/components/skin-cancer/`, config logic in `client/lib/skinCancerConfig.ts` (1058 lines), and types in `client/types/skinCancer.ts` (629 lines).
+Inline assessment flow (mirrors hand trauma pattern — no modal, no separate screen) with 12 components in `client/components/skin-cancer/`, config logic in `client/lib/skinCancerConfig.ts` (1260 lines), and types in `client/types/skinCancer.ts` (629 lines).
 
 **Current runtime model: 2 pathways only**
 
@@ -1474,7 +1474,7 @@ RACS MALT codes and other training-programme formats are derived at export time 
 
 ## Testing
 
-- **Framework:** Vitest 4.0.18, **1614 tests** across 91 files (+15 MFC in Phase 7, +11 formScrollRegistry in Phase 7.1 follow-up Cluster 4, +7 lymphoedema-staging regression guards in audit session 5, +4 multi-digit resolution + 69 module-visibility / case-normalization / case-diagnosis-summary / seniority-tier in audit session 6)
+- **Framework:** Vitest 4.0.18, **1766 tests** across 97 files (+15 MFC in Phase 7, +11 formScrollRegistry in Phase 7.1 follow-up Cluster 4, +7 lymphoedema-staging regression guards in audit session 5, +4 multi-digit resolution + 69 module-visibility / case-normalization / case-diagnosis-summary / seniority-tier in audit session 6, +54 melanoma-staging / episode-helpers / hand-elective-flow in audit session 7, +98 moduleSummary / procedureConfig / buildShareableBlob + 3 N3c clinical-fix in audit session 8)
 - **Client tests:** `client/lib/__tests__/` and `client/components/` — covering hand trauma (diagnosis, mapping, ux), skin cancer (config 89, phase4 11, phase5 18, diagnoses 7), dashboard (selectors 7), hand (infection 42, elective 103), dupuytren (37), joint implant (44), osteotomy (18), media (encryption 7, fileStorage 3, tagHelpers 82, captureProtocols 41, operativeMedia 19, form 4, defaults 4, context 3, decrypt-cache pinning 3), inbox (storage 13, assignment 17), capture (smartImportPrefs 10, sharedIngress 2), case (specialty 5, storageCache 4, draftPersistence 1, procedure-remap 7), statistics (helpers 3, stats 7), dates (values 12, normalization 4), export (implant 3, breast), planned case (18), media organiser (15), NHI validation (12), patient identity (11), operative role (68), head & neck integration (4), breast (phase3, phase4, export), FISS calculator (12), craniofacial, aesthetics, burns, peripheral nerve, lymphoedema, team contacts (11), operative team (15), sharing bridge (8), EPA derivation (14), assessment roles + calibration (22), encryption AEAD-only (4), scrypt PIN + lockout (7), JWT refresh mutex (2), TOFU key pinning (7), plus media UI coverage
 - **Server tests:** `server/__tests__/` — auth (17), validation (7), diagnosisStagingConfig (3), teamContacts (17), invitations (6), assessments authZ (3), env-blocklist (6), utils (8)
 - **Run:** `npm run test` (once) or `npm run test:watch` (watch mode)
@@ -1800,7 +1800,7 @@ grep -roh 'testID="[^"]*"' client/ | sort | uniq -d
 # Must return empty
 ```
 
-**Current testID count: 269 unique static + 127 unique dynamic patterns = 396 unique testIDs (288 raw static-string definitions across files; 420 total testID prop usages including dynamic).**
+**Current testID count: 258 unique static + 123 unique dynamic patterns = 381 unique testIDs (277 raw static-string definitions across files; 440 total testID prop usages including dynamic).**
 
 ### Visual Standards
 
