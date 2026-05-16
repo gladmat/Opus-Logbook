@@ -158,6 +158,18 @@ export function calculateNStage(
   }
 
   if (lnStatus === "positive") {
+    // N3c: ≥1 positive node AND satellite/in-transit metastases.
+    // Must short-circuit before the N1/N2 node-count branches so an
+    // in-transit deposit always promotes substage to N3c per AJCC 8th Ed.
+    if (positiveNodes >= 1 && satelliteInTransit) {
+      return {
+        nStage: "N3",
+        nSubstage: "N3c",
+        description: `N3c: ${positiveNodes} positive node(s) plus in-transit metastases`,
+        hasSatelliteInTransit: true,
+      };
+    }
+
     if (positiveNodes === 1) {
       const sub = positiveNodesMicrometastases >= 1 ? "N1a" : "N1b";
       return {
@@ -184,10 +196,10 @@ export function calculateNStage(
       };
     }
 
-    if (positiveNodes >= 4 || (positiveNodes >= 1 && satelliteInTransit)) {
+    if (positiveNodes >= 4) {
       return {
         nStage: "N3",
-        description: `N3: ${positiveNodes} positive node(s)${satelliteInTransit ? " plus in-transit metastases" : ""}`,
+        description: `N3: ${positiveNodes} positive node(s)`,
         hasSatelliteInTransit: satelliteInTransit,
       };
     }
@@ -303,17 +315,19 @@ export function calculateOverallStage(
     };
   }
 
-  // IIID: T4b + N3 (worst Stage III prognosis — check before generic IIIC)
-  if (t === "T4B" && n === "N3") {
+  // IIID: T4b + any N3 substage (worst Stage III — check before generic IIIC).
+  // Accepts plain "N3" plus N3a/N3b/N3c so the AJCC 8th Ed N3c substage
+  // emitted by calculateNStage routes here when paired with T4b.
+  if (t === "T4B" && n.startsWith("N3")) {
     return {
       stage: "IIID",
-      description: "Stage IIID: T4b N3",
+      description: `Stage IIID: T4b ${n}`,
       fiveYearSurvivalApprox: "26–40%",
     };
   }
 
   // IIIC: catch-all for remaining Stage III
-  if (thinT && (n === "N2C" || n === "N3")) {
+  if (thinT && (n === "N2C" || n.startsWith("N3"))) {
     return {
       stage: "IIIC",
       description: `Stage IIIC: ${t} ${n}`,

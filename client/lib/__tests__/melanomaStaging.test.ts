@@ -93,20 +93,30 @@ describe("calculateNStage", () => {
     expect(calculateNStage("positive", 3, 1, false).nSubstage).toBe("N2b");
   });
 
-  it("returns N3 for ≥4 nodes", () => {
+  it("returns N3 for ≥4 nodes without satellite/in-transit", () => {
     expect(calculateNStage("positive", 4, 0, false).nStage).toBe("N3");
-    expect(calculateNStage("positive", 6, 2, true).nStage).toBe("N3");
+    expect(calculateNStage("positive", 6, 2, false).nStage).toBe("N3");
+    // ≥4 nodes WITHOUT in-transit returns N3 with no substage (N3a/N3b
+    // distinction requires occult-vs-clinical info we don't capture).
+    expect(calculateNStage("positive", 4, 0, false).nSubstage).toBeUndefined();
   });
 
-  it("preserves satelliteInTransit flag on N1/N2 (early N1/N2 short-circuit takes precedence)", () => {
-    // The implementation returns N1 for positiveNodes===1 before checking
-    // the satelliteInTransit branch — lock in the actual contract.
+  it("returns N3c for ≥1 positive node + satellite/in-transit (AJCC 8th Ed)", () => {
+    // 1 node + in-transit → N3c (NOT N1a/N1b — N3c short-circuits)
     const r1 = calculateNStage("positive", 1, 1, true);
-    expect(r1.nSubstage).toBe("N1a");
+    expect(r1.nStage).toBe("N3");
+    expect(r1.nSubstage).toBe("N3c");
     expect(r1.hasSatelliteInTransit).toBe(true);
+    expect(r1.description).toContain("N3c");
+    // 2 nodes + in-transit → N3c (NOT N2a/N2b)
     const r2 = calculateNStage("positive", 2, 0, true);
-    expect(r2.nStage).toBe("N2");
+    expect(r2.nStage).toBe("N3");
+    expect(r2.nSubstage).toBe("N3c");
     expect(r2.hasSatelliteInTransit).toBe(true);
+    // ≥4 nodes + in-transit → N3c (overrides plain N3 path)
+    const r3 = calculateNStage("positive", 6, 2, true);
+    expect(r3.nStage).toBe("N3");
+    expect(r3.nSubstage).toBe("N3c");
   });
 
   it("returns NX when status is unrecognized (passes through to fallthrough)", () => {
@@ -151,9 +161,32 @@ describe("calculateOverallStage", () => {
     expect(calculateOverallStage("T4b", "N3").stage).toBe("IIID");
   });
 
+  it("Stage IIID for T4b paired with any N3 substage (N3a/N3b/N3c)", () => {
+    // N3c is emitted by calculateNStage for ≥1 node + in-transit metastases.
+    // It must route to IIID when T4b — strict equality `n === "N3"` would
+    // skip past the IIID check and fall through to the thickT IIIC catch-all,
+    // misclassifying the worst-prognosis Stage III patients.
+    expect(calculateOverallStage("T4b", "N3c").stage).toBe("IIID");
+    expect(calculateOverallStage("T4b", "N3a").stage).toBe("IIID");
+    expect(calculateOverallStage("T4b", "N3b").stage).toBe("IIID");
+  });
+
   it("Stage IIIC for thick T with any N+", () => {
     expect(calculateOverallStage("T3a", "N1a").stage).toBe("IIIC");
     expect(calculateOverallStage("T4a", "N2b").stage).toBe("IIIC");
+  });
+
+  it("Stage IIIC for thick T (non-T4b) with N3c", () => {
+    // Thick T (T3a/T3b/T4a) + N3c stays IIIC; only T4b promotes to IIID.
+    expect(calculateOverallStage("T3a", "N3c").stage).toBe("IIIC");
+    expect(calculateOverallStage("T3b", "N3c").stage).toBe("IIIC");
+    expect(calculateOverallStage("T4a", "N3c").stage).toBe("IIIC");
+  });
+
+  it("Stage IIIC for thin T with N3c", () => {
+    // The thin-T IIIC branch must accept any N3 substage, not just bare "N3".
+    expect(calculateOverallStage("T1a", "N3c").stage).toBe("IIIC");
+    expect(calculateOverallStage("T2b", "N3c").stage).toBe("IIIC");
   });
 
   it("returns Unknown when staging cannot be determined", () => {
