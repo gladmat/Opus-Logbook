@@ -11,9 +11,7 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from "react-native";
-import DateTimePicker, {
-  DateTimePickerEvent,
-} from "@react-native-community/datetimepicker";
+import { DischargeDatePickerField } from "@/components/DischargeDatePickerField";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -37,7 +35,7 @@ import {
   updateCase,
   saveTimelineEvent,
 } from "@/lib/storage";
-import { toIsoDateValue } from "@/lib/dateValues";
+import { toIsoDateValue, toUtcNoonIsoTimestamp } from "@/lib/dateValues";
 import { MediaCapture } from "@/components/MediaCapture";
 import { useActiveEpisodes } from "@/hooks/useActiveEpisodes";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
@@ -97,9 +95,10 @@ export default function DashboardScreen() {
   // Discharge modal state
   const [dischargeModalVisible, setDischargeModalVisible] = useState(false);
   const [dischargeCase, setDischargeCase] = useState<Case | null>(null);
-  const [dischargeDate, setDischargeDate] = useState(new Date());
+  const [dischargeDate, setDischargeDate] = useState(
+    toIsoDateValue(new Date()),
+  );
   const [dischargePhotos, setDischargePhotos] = useState<MediaAttachment[]>([]);
-  const [showDischargeDatePicker, setShowDischargeDatePicker] = useState(false);
 
   const loadCases = useCallback(async () => {
     try {
@@ -210,7 +209,7 @@ export default function DashboardScreen() {
   const handleOpenDischargeModal = useCallback((caseItem: Case) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setDischargeCase(caseItem);
-    setDischargeDate(new Date());
+    setDischargeDate(toIsoDateValue(new Date()));
     setDischargePhotos([]);
     setDischargeModalVisible(true);
   }, []);
@@ -218,7 +217,7 @@ export default function DashboardScreen() {
   const handleConfirmDischarge = async () => {
     if (!dischargeCase) return;
 
-    const dateStr = toIsoDateValue(dischargeDate);
+    const dateStr = dischargeDate;
 
     try {
       await updateCase(dischargeCase.id, {
@@ -238,7 +237,8 @@ export default function DashboardScreen() {
           caseId: dischargeCase.id,
           eventType: "discharge_photo",
           note: "",
-          createdAt: dischargeDate.toISOString(),
+          createdAt:
+            toUtcNoonIsoTimestamp(dischargeDate) ?? new Date().toISOString(),
           clinicalContext: "discharge",
           mediaAttachments: dischargePhotos,
         };
@@ -253,16 +253,6 @@ export default function DashboardScreen() {
     } catch (error) {
       console.error("Error discharging case:", error);
       Alert.alert("Error", "Failed to discharge case. Please try again.");
-    }
-  };
-
-  const handleDischargeDateChange = (
-    event: DateTimePickerEvent,
-    selectedDate?: Date,
-  ) => {
-    setShowDischargeDatePicker(false);
-    if (selectedDate) {
-      setDischargeDate(selectedDate);
     }
   };
 
@@ -581,39 +571,11 @@ export default function DashboardScreen() {
                 </View>
 
                 <View style={styles.dischargeField}>
-                  <ThemedText style={styles.dischargeFieldLabel}>
-                    Discharge Date
-                  </ThemedText>
-                  <Pressable
-                    onPress={() => setShowDischargeDatePicker(true)}
-                    style={[
-                      styles.dischargeDateButton,
-                      {
-                        backgroundColor: theme.backgroundSecondary,
-                        borderColor: theme.border,
-                      },
-                    ]}
-                  >
-                    <ThemedText>
-                      {dischargeDate.toLocaleDateString()}
-                    </ThemedText>
-                    <Feather
-                      name="calendar"
-                      size={18}
-                      color={theme.textSecondary}
-                    />
-                  </Pressable>
-                </View>
-
-                {showDischargeDatePicker ? (
-                  <DateTimePicker
+                  <DischargeDatePickerField
                     value={dischargeDate}
-                    mode="date"
-                    display="spinner"
-                    onChange={handleDischargeDateChange}
-                    maximumDate={new Date()}
+                    onChange={setDischargeDate}
                   />
-                ) : null}
+                </View>
 
                 <View style={styles.dischargeField}>
                   <ThemedText style={styles.dischargeFieldLabel}>
@@ -625,7 +587,7 @@ export default function DashboardScreen() {
                     maxAttachments={15}
                     mediaType="photo"
                     eventType="discharge_photo"
-                    defaultMediaDate={toIsoDateValue(dischargeDate)}
+                    defaultMediaDate={dischargeDate}
                     mediaContext={
                       dischargeCase
                         ? buildMediaContextFromCase(dischargeCase)

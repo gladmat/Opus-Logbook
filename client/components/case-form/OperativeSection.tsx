@@ -15,12 +15,13 @@ import {
   useCaseFormDispatch,
   useCaseFormField,
   useCaseFormSelector,
+  useCaseFormValidation,
 } from "@/contexts/CaseFormContext";
 import { setField } from "@/hooks/useCaseForm";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { parseDateOnlyValue } from "@/lib/dateValues";
+import { notFutureMax, relativeMin } from "@/lib/dateBounds";
 import {
   AdmissionUrgency,
   StayType,
@@ -135,6 +136,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
     (snapshot) => snapshot.calculatedBmi,
   );
   const { dispatch } = useCaseFormDispatch();
+  const { fieldErrors } = useCaseFormValidation();
   const { profile } = useAuth();
   const [showAsaInfo, setShowAsaInfo] = useState(false);
 
@@ -323,7 +325,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
               label="Admission Date"
               value={admissionDate}
               onChange={(v: string) => dispatch(setField("admissionDate", v))}
-              maximumDate={new Date()}
+              maximumDate={notFutureMax()}
               testID="caseForm.operative.picker-admissionDate"
             />
           </View>
@@ -332,8 +334,10 @@ export const OperativeSection = React.memo(function OperativeSection() {
               label="Discharge Date"
               value={dischargeDate}
               onChange={(v: string) => dispatch(setField("dischargeDate", v))}
-              minimumDate={parseDateOnlyValue(admissionDate) ?? undefined}
+              minimumDate={relativeMin(admissionDate)}
+              maximumDate={notFutureMax()}
               clearable
+              error={fieldErrors.dischargeDate}
               testID="caseForm.operative.picker-dischargeDate"
             />
           </View>
@@ -347,7 +351,8 @@ export const OperativeSection = React.memo(function OperativeSection() {
                 value={injuryDate}
                 onChange={(v: string) => dispatch(setField("injuryDate", v))}
                 placeholder="Select date..."
-                maximumDate={new Date()}
+                maximumDate={notFutureMax()}
+                error={fieldErrors.injuryDate}
               />
             </View>
           </View>
@@ -386,6 +391,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
                 dispatch(setField("surgeryEndTime", v))
               }
               placeholder="e.g., 1415"
+              error={fieldErrors.surgeryEndTime}
               testID="caseForm.operative.picker-surgeryEnd"
             />
           </View>

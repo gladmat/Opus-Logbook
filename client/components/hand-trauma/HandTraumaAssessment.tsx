@@ -33,6 +33,7 @@ import { v4 as uuidv4 } from "uuid";
 import { Feather } from "@/components/FeatherIcon";
 import { ThemedText } from "@/components/ThemedText";
 import { DatePickerField, FormField } from "@/components/FormField";
+import { notFutureMax } from "@/lib/dateBounds";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import type {
@@ -1232,7 +1233,7 @@ export function HandTraumaAssessment({
             value={injuryDate}
             onChange={(value) => updateIncident({ injuryDate: value })}
             placeholder="Select date..."
-            maximumDate={new Date()}
+            maximumDate={notFutureMax()}
             testID="caseForm.hand.picker-injuryDate"
           />
 

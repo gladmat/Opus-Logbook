@@ -20,6 +20,7 @@ import * as Haptics from "expo-haptics";
 import { Feather } from "@/components/FeatherIcon";
 import { ThemedText } from "@/components/ThemedText";
 import { DatePickerField } from "@/components/FormField";
+import { notFutureMax } from "@/lib/dateBounds";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { quickTStage } from "@/lib/melanomaStaging";
@@ -719,7 +720,7 @@ export const HistologySection = React.memo(function HistologySection({
                 value={base.reportDate}
                 onChange={(d) => update({ reportDate: d })}
                 clearable
-                maximumDate={new Date()}
+                maximumDate={notFutureMax()}
               />
               <View style={styles.labRefField}>
                 <ThemedText

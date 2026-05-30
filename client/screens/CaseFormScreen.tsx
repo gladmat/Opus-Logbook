@@ -527,6 +527,14 @@ export default function CaseFormScreen() {
         const err = validateField(field, form.state);
         if (err) newErrors[field] = err;
       }
+      // Surface any remaining hard-block errors (e.g. cross-field date
+      // consistency) inline against their field, so the block is actionable
+      // rather than just a count on the Review button. Marking the field
+      // touched lets the re-validation effect clear it once the user fixes it.
+      for (const e of errors) {
+        touchedFieldsRef.current.add(e.field);
+        if (!newErrors[e.field]) newErrors[e.field] = e.message;
+      }
       setFieldErrors(newErrors);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
 

@@ -31,6 +31,7 @@ import { DIGIT_LABELS } from "@/lib/diagnosisPicklists/multiDigitConfig";
 import { Button } from "@/components/Button";
 import {
   validateRequiredFields,
+  collectDateWarnings,
   type ValidationError,
 } from "@/hooks/useCaseForm";
 
@@ -275,15 +276,24 @@ export function CaseSummaryView({
   const { state, calculatedBmi, durationDisplay } = useCaseFormState();
 
   const { errors } = useMemo(() => validateRequiredFields(state), [state]);
+  // Soft, non-blocking date warnings. Rendered in the section cards alongside
+  // hard errors, but deliberately NOT folded into `hasWarnings` so they don't
+  // disable Save.
+  const dateWarnings = useMemo(() => collectDateWarnings(state), [state]);
 
   const hasWarnings = errors.length > 0;
   const patientWarnings = useMemo(
-    () => errors.filter((e) => e.sectionId === "patient"),
-    [errors],
+    () => [...errors, ...dateWarnings].filter((e) => e.sectionId === "patient"),
+    [errors, dateWarnings],
   );
   const caseWarnings = useMemo(
     () => errors.filter((e) => e.sectionId === "case"),
     [errors],
+  );
+  const operativeWarnings = useMemo(
+    () =>
+      [...errors, ...dateWarnings].filter((e) => e.sectionId === "operative"),
+    [errors, dateWarnings],
   );
 
   return (
@@ -416,6 +426,7 @@ export function CaseSummaryView({
         title="Operative Details"
         sectionId="operative"
         onEdit={onEdit}
+        warnings={operativeWarnings}
       >
         <SummaryRow
           label="Urgency"

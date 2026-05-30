@@ -27,6 +27,7 @@ import {
   SelectField,
   DatePickerField,
 } from "@/components/FormField";
+import { notFutureMax } from "@/lib/dateBounds";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Button } from "@/components/Button";
 import { MediaCapture } from "@/components/MediaCapture";
@@ -487,6 +488,7 @@ export default function AddTimelineEventScreen() {
           value={eventDate}
           onChange={setEventDate}
           placeholder="Select date..."
+          maximumDate={notFutureMax()}
         />
       ) : null}
 

@@ -16,8 +16,9 @@ import { useNavigation } from "@react-navigation/native";
 import { Feather } from "@/components/FeatherIcon";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { ThemedText } from "@/components/ThemedText";
+import { DatePickerField } from "@/components/FormField";
+import { dobFloor, notFutureMax } from "@/lib/dateBounds";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, Shadows, palette } from "@/constants/theme";
@@ -59,34 +60,6 @@ if (
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-function parseIsoDate(date: string | null | undefined): Date | null {
-  if (!date) {
-    return null;
-  }
-
-  const [yearRaw, monthRaw, dayRaw] = date.split("-");
-  const year = Number(yearRaw);
-  const month = Number(monthRaw);
-  const day = Number(dayRaw);
-
-  if (
-    !Number.isFinite(year) ||
-    !Number.isFinite(month) ||
-    !Number.isFinite(day)
-  ) {
-    return null;
-  }
-
-  return new Date(year, month - 1, day);
-}
-
-function toIsoDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
 function getFilledRegistrationJurisdictions(
   registrations: ProfessionalRegistrations | undefined,
 ) {
@@ -96,7 +69,7 @@ function getFilledRegistrationJurisdictions(
 }
 
 export default function EditProfileScreen() {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { profile, updateProfile, uploadProfilePicture, deleteProfilePicture } =
@@ -104,10 +77,9 @@ export default function EditProfileScreen() {
 
   const [firstName, setFirstName] = useState(profile?.firstName || "");
   const [lastName, setLastName] = useState(profile?.lastName || "");
-  const [dateOfBirth, setDateOfBirth] = useState<Date | null>(
-    parseIsoDate(profile?.dateOfBirth),
+  const [dateOfBirth, setDateOfBirth] = useState<string>(
+    profile?.dateOfBirth ?? "",
   );
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [sex, setSex] = useState<string | null>(profile?.sex || null);
   const [countryOfPractice, setCountryOfPractice] = useState(
     profile?.countryOfPractice || "",
@@ -169,7 +141,7 @@ export default function EditProfileScreen() {
 
     setFirstName(profile.firstName || "");
     setLastName(profile.lastName || "");
-    setDateOfBirth(parseIsoDate(profile.dateOfBirth));
+    setDateOfBirth(profile.dateOfBirth ?? "");
     setSex(profile.sex || null);
     setCountryOfPractice(profile.countryOfPractice || "");
     setCareerStage(profile.careerStage || "");
@@ -321,7 +293,7 @@ export default function EditProfileScreen() {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         fullName: derivedFullName,
-        dateOfBirth: dateOfBirth ? toIsoDate(dateOfBirth) : null,
+        dateOfBirth: dateOfBirth || null,
         sex,
         countryOfPractice: countryOfPractice || null,
         careerStage: careerStage || null,
@@ -339,24 +311,6 @@ export default function EditProfileScreen() {
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const handleDateChange = (_event: any, selectedDate?: Date) => {
-    if (Platform.OS === "android") {
-      setShowDatePicker(false);
-    }
-    if (selectedDate) {
-      setHasLocalEdits(true);
-      setDateOfBirth(selectedDate);
-    }
-  };
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
   };
 
   if (!profile) {
@@ -510,87 +464,19 @@ export default function EditProfileScreen() {
 
           {/* Date of Birth */}
           <View style={styles.fieldRow}>
-            <ThemedText
-              style={[styles.fieldLabel, { color: theme.textSecondary }]}
-            >
-              Date of Birth
-            </ThemedText>
-            <View style={styles.dateRow}>
-              <Pressable
-                style={[
-                  styles.fieldInput,
-                  styles.dateButton,
-                  {
-                    backgroundColor: theme.backgroundSecondary,
-                    borderColor: theme.border,
-                    flex: 1,
-                  },
-                ]}
-                onPress={() => setShowDatePicker(true)}
-              >
-                <ThemedText
-                  style={{
-                    color: dateOfBirth ? theme.text : theme.textTertiary,
-                  }}
-                >
-                  {dateOfBirth ? formatDate(dateOfBirth) : "Select date"}
-                </ThemedText>
-                <Feather
-                  name="calendar"
-                  size={18}
-                  color={theme.textSecondary}
-                />
-              </Pressable>
-              {dateOfBirth ? (
-                <Pressable
-                  style={styles.clearDateButton}
-                  onPress={() => {
-                    setHasLocalEdits(true);
-                    setDateOfBirth(null);
-                    setShowDatePicker(false);
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  }}
-                  hitSlop={8}
-                >
-                  <Feather
-                    name="x-circle"
-                    size={20}
-                    color={theme.textTertiary}
-                  />
-                </Pressable>
-              ) : null}
-            </View>
+            <DatePickerField
+              label="Date of Birth"
+              value={dateOfBirth}
+              onChange={(v) => {
+                setHasLocalEdits(true);
+                setDateOfBirth(v);
+              }}
+              placeholder="Select date"
+              clearable
+              minimumDate={dobFloor()}
+              maximumDate={notFutureMax()}
+            />
           </View>
-
-          {showDatePicker && (
-            <View style={styles.datePickerContainer}>
-              <DateTimePicker
-                value={dateOfBirth || new Date(1990, 0, 1)}
-                mode="date"
-                display={Platform.OS === "ios" ? "spinner" : "default"}
-                maximumDate={new Date()}
-                minimumDate={new Date(1920, 0, 1)}
-                onChange={handleDateChange}
-                themeVariant={isDark ? "dark" : "light"}
-                style={styles.datePicker}
-              />
-              {Platform.OS === "ios" && (
-                <Pressable
-                  style={[
-                    styles.datePickerDone,
-                    { backgroundColor: theme.link },
-                  ]}
-                  onPress={() => setShowDatePicker(false)}
-                >
-                  <ThemedText
-                    style={{ color: theme.buttonText, fontWeight: "600" }}
-                  >
-                    Done
-                  </ThemedText>
-                </Pressable>
-              )}
-            </View>
-          )}
 
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
 

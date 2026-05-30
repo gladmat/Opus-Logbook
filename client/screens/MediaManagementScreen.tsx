@@ -31,6 +31,7 @@ import { EncryptedImage } from "@/components/EncryptedImage";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { DatePickerField } from "@/components/FormField";
+import { notFutureMax } from "@/lib/dateBounds";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { toUtcNoonIsoTimestamp } from "@/lib/dateValues";
@@ -534,6 +535,7 @@ export default function MediaManagementScreen() {
               }
               onChange={(date) => handleDateChange(selectedAttachment.id, date)}
               placeholder="Select date..."
+              maximumDate={notFutureMax()}
             />
 
             <MediaTagPicker
