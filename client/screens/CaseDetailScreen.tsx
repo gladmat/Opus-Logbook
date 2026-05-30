@@ -116,6 +116,7 @@ import {
 } from "@/types/jointImplant";
 import { buildMediaContextFromCase } from "@/lib/mediaContext";
 import { resolveMediaTag } from "@/lib/mediaTagHelpers";
+import { getAllCaseMediaItems, findCaseMediaIndexById } from "@/lib/caseMedia";
 import {
   IMPLANT_DIGIT_LABELS,
   IMPLANT_LATERALITY_LABELS,
@@ -288,6 +289,23 @@ export default function CaseDetailScreen() {
   const closeGallery = useCallback(() => {
     setGalleryState(null);
   }, []);
+
+  // All of a case's photos (operative media + every timeline event's media)
+  // flattened into one ordered list, so the gallery swipes across everything
+  // instead of being siloed per-section.
+  const allCaseMedia = useMemo(
+    () => getAllCaseMediaItems(caseData?.operativeMedia, timelineEvents),
+    [caseData?.operativeMedia, timelineEvents],
+  );
+
+  // Open the consolidated gallery starting at the tapped photo (by id) so the
+  // user can keep swiping forward/back through the whole case.
+  const openCaseGallery = useCallback(
+    (mediaId: string) => {
+      openGallery(allCaseMedia, findCaseMediaIndexById(allCaseMedia, mediaId));
+    },
+    [allCaseMedia, openGallery],
+  );
 
   // Pre-populate audit fields from existing case data
   useEffect(() => {
@@ -1452,6 +1470,31 @@ export default function CaseDetailScreen() {
           </>
         ) : null}
 
+        {allCaseMedia.length > 0 ? (
+          <Pressable
+            onPress={() => openGallery(allCaseMedia, 0)}
+            style={[
+              styles.viewAllPhotosButton,
+              {
+                backgroundColor: theme.link + "14",
+                borderColor: theme.link,
+              },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={`View all ${allCaseMedia.length} case photos in a full-screen gallery`}
+            testID="caseDetail.btn-viewAllPhotos"
+          >
+            <Feather name="image" size={18} color={theme.link} />
+            <ThemedText
+              style={[styles.viewAllPhotosText, { color: theme.link }]}
+            >
+              View all {allCaseMedia.length} photo
+              {allCaseMedia.length === 1 ? "" : "s"}
+            </ThemedText>
+            <Feather name="chevron-right" size={18} color={theme.link} />
+          </Pressable>
+        ) : null}
+
         {caseData.operativeMedia && caseData.operativeMedia.length > 0 ? (
           <>
             <SectionHeader title="Operative Media" />
@@ -1460,12 +1503,10 @@ export default function CaseDetailScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.mediaGalleryContainer}
             >
-              {caseData.operativeMedia.map((media, mediaIndex) => (
+              {caseData.operativeMedia.map((media) => (
                 <Pressable
                   key={media.id}
-                  onPress={() =>
-                    openGallery(caseData.operativeMedia ?? [], mediaIndex)
-                  }
+                  onPress={() => openCaseGallery(media.id)}
                   style={[
                     styles.mediaItem,
                     { backgroundColor: theme.backgroundDefault },
@@ -3074,15 +3115,10 @@ export default function CaseDetailScreen() {
                         style={styles.mediaThumbnails}
                         contentContainerStyle={styles.mediaThumbnailsContent}
                       >
-                        {event.mediaAttachments?.map((media, mediaIndex) => (
+                        {event.mediaAttachments?.map((media) => (
                           <Pressable
                             key={media.id}
-                            onPress={() =>
-                              openGallery(
-                                event.mediaAttachments ?? [],
-                                mediaIndex,
-                              )
-                            }
+                            onPress={() => openCaseGallery(media.id)}
                             accessibilityRole="imagebutton"
                             accessibilityLabel={
                               media.caption ??
@@ -3797,6 +3833,21 @@ const styles = StyleSheet.create({
   mediaGalleryContainer: {
     gap: Spacing.sm,
     paddingVertical: Spacing.xs,
+  },
+  viewAllPhotosButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    marginTop: Spacing.sm,
+  },
+  viewAllPhotosText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "600",
   },
   mediaItem: {
     width: 140,

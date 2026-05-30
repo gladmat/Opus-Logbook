@@ -11,6 +11,7 @@ import * as Haptics from "expo-haptics";
 import { v4 as uuidv4 } from "uuid";
 import { ThemedText } from "@/components/ThemedText";
 import { FormField, DatePickerField } from "@/components/FormField";
+import { notFutureMax } from "@/lib/dateBounds";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import {
@@ -548,6 +549,7 @@ export function FlapOutcomeSection({
           onChange={handleAssessedDateChange}
           placeholder="Select assessment date..."
           clearable
+          maximumDate={notFutureMax()}
         />
         <FormField
           label="Assessment Day Post-op"

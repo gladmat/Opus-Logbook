@@ -69,6 +69,14 @@ import { findDiagnosisById } from "@/lib/diagnosisPicklists";
 import { UserProfile } from "@/lib/auth";
 import { withDefaultFlapOutcome } from "@/lib/flapOutcomeDefaults";
 import { toIsoDateValue, parseIsoDateValue } from "@/lib/dateValues";
+import { endOfTodayLocal } from "@/lib/dateBounds";
+import {
+  getDateHardBlockErrors,
+  getDateWarnings,
+  validateDateFieldInline,
+  procedureBeforeDobMessage,
+  type ValidationError,
+} from "@/lib/caseFormDateChecks";
 import type { OperativeRole, SupervisionLevel } from "@/types/operativeRole";
 import { toNearestLegacyRole } from "@/types/operativeRole";
 import { suggestRoleDefaults, isConsultantLevel } from "@/lib/roleDefaults";
@@ -775,11 +783,7 @@ function calculateDuration(start: string, end: string): number | undefined {
 
 // ─── Validation ──────────────────────────────────────────────────────────────
 
-export interface ValidationError {
-  field: string;
-  sectionId: string;
-  message: string;
-}
+export type { ValidationError };
 
 /** Per-field inline validation. Returns error message or null if valid. */
 export function validateField(
@@ -801,12 +805,16 @@ export function validateField(
       if (!procedureLocalNoon) return "Invalid procedure date";
       // "Today" anchor: local midnight end-of-day so the entire current
       // calendar day counts as "not in the future" regardless of timezone.
-      const endOfTodayLocal = new Date();
-      endOfTodayLocal.setHours(23, 59, 59, 999);
-      if (procedureLocalNoon.getTime() > endOfTodayLocal.getTime())
+      if (procedureLocalNoon.getTime() > endOfTodayLocal().getTime())
         return "Procedure date cannot be in the future";
-      return null;
+      // Cross-field: a procedure can't predate the patient's birth.
+      return procedureBeforeDobMessage(state);
     }
+    case "patientDateOfBirth":
+    case "dischargeDate":
+    case "injuryDate":
+    case "surgeryEndTime":
+      return validateDateFieldInline(field, state);
     case "facility":
       if (!state.facility.trim()) return "Facility is required";
       return null;
@@ -910,9 +918,22 @@ export function validateRequiredFields(state: CaseFormState): {
         });
       }
     });
+
+    // Cross-field date consistency (physically-impossible combinations only).
+    errors.push(...getDateHardBlockErrors(state));
   }
 
   return { valid: errors.length === 0, errors };
+}
+
+/**
+ * Soft, non-blocking date warnings surfaced on the Review screen. These flag
+ * clinically-unusual-but-possible date combinations for the surgeon to confirm
+ * — they never prevent a save. Skipped entirely in plan mode.
+ */
+export function collectDateWarnings(state: CaseFormState): ValidationError[] {
+  if (state.isPlanMode) return [];
+  return getDateWarnings(state);
 }
 
 // ─── Team ↔ procedure index remap ─────────────────────────────────────────

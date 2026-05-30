@@ -12,6 +12,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import { normalizeDateOnlyValue, toIsoDateValue } from "@/lib/dateValues";
+import { notFutureMax } from "@/lib/dateBounds";
 import { saveEpisode } from "@/lib/episodeStorage";
 import { suggestEpisodeType, suggestEpisodeTitle } from "@/lib/episodeHelpers";
 import type { Specialty } from "@/types/case";
@@ -188,6 +189,7 @@ export function InlineEpisodeCreator({
               label="Onset Date"
               value={onsetDate}
               onChange={setOnsetDate}
+              maximumDate={notFutureMax()}
             />
 
             <SelectField

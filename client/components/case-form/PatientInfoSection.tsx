@@ -12,6 +12,7 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { resolveFacilityName } from "@/lib/facilities";
+import { dobFloor, notFutureMax } from "@/lib/dateBounds";
 import {
   useCaseFormDispatch,
   useCaseFormField,
@@ -136,9 +137,12 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
             value={patientDateOfBirth}
             onChange={(v: string) => {
               dispatch(setField("patientDateOfBirth", v));
+              onFieldBlur("patientDateOfBirth");
             }}
             placeholder="DOB..."
-            maximumDate={new Date()}
+            minimumDate={dobFloor()}
+            maximumDate={notFutureMax()}
+            error={fieldErrors.patientDateOfBirth}
             testID="caseForm.patient.picker-dob"
           />
         </View>
@@ -204,7 +208,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
             placeholder="Date..."
             required
             error={fieldErrors.procedureDate}
-            maximumDate={new Date()}
+            maximumDate={notFutureMax()}
             testID="caseForm.patient.picker-procedureDate"
             fieldId="procedureDate"
           />

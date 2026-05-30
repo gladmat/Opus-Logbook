@@ -9,9 +9,7 @@ import {
   Alert,
   Modal,
 } from "react-native";
-import DateTimePicker, {
-  DateTimePickerEvent,
-} from "@react-native-community/datetimepicker";
+import { DischargeDatePickerField } from "@/components/DischargeDatePickerField";
 import {
   useNavigation,
   useFocusEffect,
@@ -32,7 +30,7 @@ import {
   updateCase,
   saveTimelineEvent,
 } from "@/lib/storage";
-import { toIsoDateValue } from "@/lib/dateValues";
+import { toIsoDateValue, toUtcNoonIsoTimestamp } from "@/lib/dateValues";
 import { useActiveEpisodes } from "@/hooks/useActiveEpisodes";
 import { useAttentionItems } from "@/hooks/useAttentionItems";
 import { getFirstHistologyTarget } from "@/lib/skinCancerConfig";
@@ -72,9 +70,10 @@ export default function NeedsAttentionListScreen() {
   // Discharge modal state
   const [dischargeModalVisible, setDischargeModalVisible] = useState(false);
   const [dischargeCase, setDischargeCase] = useState<Case | null>(null);
-  const [dischargeDate, setDischargeDate] = useState(new Date());
+  const [dischargeDate, setDischargeDate] = useState(
+    toIsoDateValue(new Date()),
+  );
   const [dischargePhotos, setDischargePhotos] = useState<MediaAttachment[]>([]);
-  const [showDischargeDatePicker, setShowDischargeDatePicker] = useState(false);
 
   const { episodes: activeEpisodes, refresh: refreshEpisodes } =
     useActiveEpisodes();
@@ -189,7 +188,7 @@ export default function NeedsAttentionListScreen() {
     if (caseItem) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setDischargeCase(caseItem);
-      setDischargeDate(new Date());
+      setDischargeDate(toIsoDateValue(new Date()));
       setDischargePhotos([]);
       setDischargeModalVisible(true);
     }
@@ -198,7 +197,7 @@ export default function NeedsAttentionListScreen() {
   const handleConfirmDischarge = async () => {
     if (!dischargeCase) return;
 
-    const dateStr = toIsoDateValue(dischargeDate);
+    const dateStr = dischargeDate;
 
     try {
       await updateCase(dischargeCase.id, {
@@ -217,7 +216,8 @@ export default function NeedsAttentionListScreen() {
           caseId: dischargeCase.id,
           eventType: "discharge_photo",
           note: "",
-          createdAt: dischargeDate.toISOString(),
+          createdAt:
+            toUtcNoonIsoTimestamp(dischargeDate) ?? new Date().toISOString(),
           clinicalContext: "discharge",
           mediaAttachments: dischargePhotos,
         };
@@ -232,16 +232,6 @@ export default function NeedsAttentionListScreen() {
     } catch (error) {
       console.error("Error discharging case:", error);
       Alert.alert("Error", "Failed to discharge case. Please try again.");
-    }
-  };
-
-  const handleDischargeDateChange = (
-    _event: DateTimePickerEvent,
-    selectedDate?: Date,
-  ) => {
-    setShowDischargeDatePicker(false);
-    if (selectedDate) {
-      setDischargeDate(selectedDate);
     }
   };
 
@@ -589,31 +579,10 @@ export default function NeedsAttentionListScreen() {
               Discharge {dischargeCase?.patientIdentifier}
             </ThemedText>
 
-            <Pressable
-              style={[styles.dateButton, { borderColor: theme.border }]}
-              onPress={() => setShowDischargeDatePicker(true)}
-            >
-              <Feather name="calendar" size={16} color={theme.textSecondary} />
-              <ThemedText
-                style={[styles.dateText, { color: theme.textSecondary }]}
-              >
-                {dischargeDate.toLocaleDateString("en-NZ", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                })}
-              </ThemedText>
-            </Pressable>
-
-            {showDischargeDatePicker ? (
-              <DateTimePicker
-                value={dischargeDate}
-                mode="date"
-                display="spinner"
-                onChange={handleDischargeDateChange}
-                maximumDate={new Date()}
-              />
-            ) : null}
+            <DischargeDatePickerField
+              value={dischargeDate}
+              onChange={setDischargeDate}
+            />
 
             <View style={styles.photoSection}>
               <ThemedText
@@ -627,7 +596,7 @@ export default function NeedsAttentionListScreen() {
                 maxAttachments={15}
                 mediaType="photo"
                 eventType="discharge_photo"
-                defaultMediaDate={toIsoDateValue(dischargeDate)}
+                defaultMediaDate={dischargeDate}
                 mediaContext={
                   dischargeCase
                     ? buildMediaContextFromCase(dischargeCase)

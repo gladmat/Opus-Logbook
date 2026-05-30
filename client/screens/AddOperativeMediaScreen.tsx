@@ -28,6 +28,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { DatePickerField } from "@/components/FormField";
+import { notFutureMax } from "@/lib/dateBounds";
 import { useMediaCallback } from "@/contexts/MediaCallbackContext";
 import {
   normalizeDateOnlyValue,
@@ -326,6 +327,7 @@ export default function AddOperativeMediaScreen() {
             value={mediaDate}
             onChange={setMediaDate}
             placeholder="Select date..."
+            maximumDate={notFutureMax()}
           />
 
           <ThemedText
