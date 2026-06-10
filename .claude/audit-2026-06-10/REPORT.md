@@ -52,4 +52,37 @@ PSI discovery · per-file iCloud backup exclusion · commit-reveal blinded asses
 
 ## Remediation
 
-Executed on branch `quality/remediation-2026-06-10` per the approved plan (`~/.claude/plans/using-the-new-frontier-shimmying-sketch.md`): Phase 1 mechanical (N1, F003+N4, F002, F004–F009, N2, N3), Phase 2 human-gated drizzle upgrade (F001), Phase 3 media tests + coverage ratchet. A remediation log is appended below as waves complete.
+Executed on branch `quality/remediation-2026-06-10` per the approved plan (`~/.claude/plans/using-the-new-frontier-shimmying-sketch.md`). Every wave gated on `tsc` + full vitest + lint before commit; all gates stayed green throughout. Not pushed; no deploy.
+
+### Remediation log (2026-06-10, same session)
+
+| Wave | Finding(s) | Commit | Outcome |
+| --- | --- | --- | --- |
+| 0 | — | `ce549bc` | Audit artifacts persisted |
+| 1 | N1 | `ba9eb3f` | `handleShare` pins the decrypted file for the share duration, unpin in `finally` |
+| 2 | F003, N4 | `9bc4063` | `npm audit fix` (non-force): runtime surface now **0 critical / 3 high / 15 moderate** — remaining highs are the tracked @xmldom chain (F008) |
+| 3 | F002 | `03fa406` | `episodeStorage.test.ts` — 12 tests (mutex serialisation, transition guard, 7-day linger) |
+| 4 | F004/F005/F006/F007/F009 | `86afecc` | `deleteEpisode`, `getActiveEpisodes`, dead `queueMicrotask` block deleted (importers re-verified zero) |
+| 5 | N2 | `259a7a7` | 47 `console.*` sites across 13 client/lib files `__DEV__`-gated (vitest defines `__DEV__=true`, test behaviour unchanged) |
+| 6 | N3 | `167c753` | `pushTokenRateLimiter` (30/min/user) on POST + DELETE `/api/push-tokens` |
+| 7 | F001 | `a956f3d` | **drizzle-orm 0.39.3 → 0.45.2.** Verified: tsc clean; 1811/1811 tests; `drizzle-kit push` to scratch Postgres created all 12 tables; local server smoke on scratch DB (health read, signup write, login + authed profile read) green; scratch DB dropped. **Railway deploy not performed — separate decision.** |
+| 8 | Phase 3 | `3b44f82` | +4 decrypt-cache pinning tests (invalidate/clearAll drop pins, unbalanced unpin, stale-file self-heal); coverage thresholds ratcheted 48/52/42/48 → 52/55/47/52 |
+
+### Final gate snapshot
+
+| Gate | Before | After |
+| --- | --- | --- |
+| `tsc --noEmit` | clean | clean |
+| vitest | 1799/1799 (100 files) | **1811/1811 (101 files)** |
+| eslint | 2 known warnings | 2 known warnings |
+| Coverage (lines) | 51.84% | **52.95%** (threshold ratcheted 48 → 52) |
+| `npm audit --omit=dev` | 1 critical / 3 high / 21 moderate | **0 critical / 3 high / 15 moderate** (highs = tracked @xmldom chain) |
+
+### Deviations from plan
+
+- `mediaFileStorage.ts` already had an adequate test file (save/load round-trip, thumb fallback, delete) — the audit agent's "untested" claim was wrong; no padding tests added.
+- The drizzle-orm HIGH advisory no longer appeared in `npm audit` output at remediation time (advisory DB churn); the upgrade was applied anyway per plan, eliminating the question permanently.
+
+### Still open after remediation
+
+F008 (@xmldom chain — track-only, upstream-owned) · deferred security items (PSI discovery, iCloud per-file backup exclusion, commit-reveal assessments, TOFU safety-number UI) · sim/visual QA sweep (run `quality-audit.js` with `includeSim: true`, scoped, when a sim with the dev build is up) · manual sim spot-check of gallery share (N1) queued for next sim session · Railway deploy of the server-side changes (drizzle bump + push-token limiter) awaiting an explicit go.
