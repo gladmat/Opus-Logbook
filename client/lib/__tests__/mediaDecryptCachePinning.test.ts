@@ -113,4 +113,57 @@ describe("mediaDecryptCache pin / LRU refcounting", () => {
     // One pin still remains on 'x' — it must survive.
     expect(decryptCache.getCached("x", "full")).not.toBeNull();
   });
+
+  it("invalidate drops pins and deletes the temp file", async () => {
+    const uri = await materializeMock("x");
+    decryptCache.pin("x", "full");
+
+    decryptCache.invalidate("x");
+
+    expect(decryptCache.getCached("x", "full")).toBeNull();
+    expect(deleteCalls).toContain(uri);
+
+    // The pin must not linger: re-materialize and fill past capacity —
+    // a stale pin would wrongly protect 'x' from eviction.
+    await materializeMock("x");
+    for (let i = 0; i < 10; i++) {
+      await materializeMock(`o${i}`);
+    }
+    expect(decryptCache.getCached("x", "full")).toBeNull();
+  });
+
+  it("clearAll drops pins", async () => {
+    await materializeMock("x");
+    decryptCache.pin("x", "full");
+
+    decryptCache.clearAll();
+
+    await materializeMock("x");
+    for (let i = 0; i < 10; i++) {
+      await materializeMock(`o${i}`);
+    }
+    // Pin was cleared, so 'x' (oldest) evicts normally.
+    expect(decryptCache.getCached("x", "full")).toBeNull();
+  });
+
+  it("unbalanced unpin is a safe no-op (refcount never goes negative)", async () => {
+    await materializeMock("y");
+    decryptCache.unpin("y", "full");
+    decryptCache.unpin("y", "full");
+
+    // A single pin after the spurious unpins must still protect the entry.
+    decryptCache.pin("y", "full");
+    for (let i = 0; i < 11; i++) {
+      await materializeMock(`o${i}`);
+    }
+    expect(decryptCache.getCached("y", "full")).not.toBeNull();
+  });
+
+  it("getCached drops a stale entry whose underlying file disappeared", async () => {
+    const uri = await materializeMock("gone");
+    // Simulate the OS reclaiming the cache file out from under us.
+    existsMap.set(uri, false);
+
+    expect(decryptCache.getCached("gone", "full")).toBeNull();
+  });
 });
