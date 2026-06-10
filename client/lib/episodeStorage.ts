@@ -35,7 +35,7 @@ async function getEpisodeIndex(): Promise<EpisodeIndexEntry[]> {
     const decrypted = await decryptData(encrypted);
     return JSON.parse(decrypted) as EpisodeIndexEntry[];
   } catch (error) {
-    console.error("Error reading episode index:", error);
+    if (__DEV__) console.error("Error reading episode index:", error);
     return [];
   }
 }
@@ -56,7 +56,7 @@ export async function getEpisode(id: string): Promise<TreatmentEpisode | null> {
       JSON.parse(decrypted) as TreatmentEpisode,
     );
   } catch (error) {
-    console.error("Error reading episode:", error);
+    if (__DEV__) console.error("Error reading episode:", error);
     return null;
   }
 }
@@ -98,7 +98,7 @@ export async function saveEpisode(episode: TreatmentEpisode): Promise<void> {
     );
     await saveEpisodeIndex(index);
   } catch (error) {
-    console.error("Error saving episode:", error);
+    if (__DEV__) console.error("Error saving episode:", error);
     throw error;
   }
 }
@@ -163,9 +163,11 @@ export async function updateEpisode(
   if (updates.status && updates.status !== existing.status) {
     const allowed = EPISODE_STATUS_TRANSITIONS[existing.status] ?? [];
     if (!allowed.includes(updates.status)) {
-      console.warn(
-        `[episodeStorage] Illegal status transition ${existing.status} → ${updates.status} rejected for episode ${id}`,
-      );
+      if (__DEV__) {
+        console.warn(
+          `[episodeStorage] Illegal status transition ${existing.status} → ${updates.status} rejected for episode ${id}`,
+        );
+      }
       // Drop only the offending field; allow other updates to proceed so
       // unrelated metadata writes aren't blocked by the bad status attempt.
       const { status: _dropped, ...rest } = updates;
@@ -189,7 +191,7 @@ export async function getEpisodes(): Promise<TreatmentEpisode[]> {
     );
     return results.filter((e): e is TreatmentEpisode => e !== null);
   } catch (error) {
-    console.error("Error reading episodes:", error);
+    if (__DEV__) console.error("Error reading episodes:", error);
     return [];
   }
 }
@@ -208,7 +210,7 @@ export async function findEpisodesByPatientIdentifier(
     );
     return results.filter((e): e is TreatmentEpisode => e !== null);
   } catch (error) {
-    console.error("Error finding episodes by patient:", error);
+    if (__DEV__) console.error("Error finding episodes by patient:", error);
     return [];
   }
 }
@@ -252,7 +254,8 @@ export async function getVisibleDashboardEpisodes(): Promise<
       return true;
     });
   } catch (error) {
-    console.error("Error reading visible dashboard episodes:", error);
+    if (__DEV__)
+      console.error("Error reading visible dashboard episodes:", error);
     return [];
   }
 }
@@ -275,7 +278,7 @@ export async function clearAllEpisodes(): Promise<void> {
     }
     await AsyncStorage.removeItem(episodeIndexKey());
   } catch (error) {
-    console.error("Error clearing episodes:", error);
+    if (__DEV__) console.error("Error clearing episodes:", error);
     throw error;
   }
 }

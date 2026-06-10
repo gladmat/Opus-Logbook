@@ -64,7 +64,7 @@ export async function searchSnomedProcedures(
   const url = new URL(`/api/snomed/procedures?${params.toString()}`, API_BASE);
   const response = await authedFetch(url.toString());
   if (!response.ok) {
-    console.error("Failed to search SNOMED procedures");
+    if (__DEV__) console.error("Failed to search SNOMED procedures");
     return [];
   }
   return response.json();
@@ -93,7 +93,7 @@ export async function searchSnomedDiagnoses(
   const url = new URL(`/api/snomed/diagnoses?${params.toString()}`, API_BASE);
   const response = await authedFetch(url.toString());
   if (!response.ok) {
-    console.error("Failed to search SNOMED diagnoses");
+    if (__DEV__) console.error("Failed to search SNOMED diagnoses");
     return [];
   }
   return response.json();
@@ -117,7 +117,7 @@ export async function getDiagnosisStaging(
   const url = new URL(`/api/staging/diagnosis?${params.toString()}`, API_BASE);
   const response = await authedFetch(url.toString());
   if (!response.ok) {
-    console.error("Failed to fetch staging config");
+    if (__DEV__) console.error("Failed to fetch staging config");
     return null;
   }
   const data = await response.json();

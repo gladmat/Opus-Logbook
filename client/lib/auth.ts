@@ -101,7 +101,7 @@ function emitSessionExpired(): void {
     try {
       listener();
     } catch (error) {
-      console.warn("sessionExpired listener threw:", error);
+      if (__DEV__) console.warn("sessionExpired listener threw:", error);
     }
   }
 }

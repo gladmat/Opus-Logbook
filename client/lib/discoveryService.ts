@@ -83,7 +83,7 @@ export async function discoverUnlinkedContacts(): Promise<number> {
 
     return allMatches.length;
   } catch (error) {
-    console.warn("Discovery check failed:", error);
+    if (__DEV__) console.warn("Discovery check failed:", error);
     return 0;
   }
 }

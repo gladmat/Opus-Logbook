@@ -160,11 +160,13 @@ function parseState(raw?: string | null): InboxState {
         try {
           const parsed = JSON.parse(backup) as InboxState;
           const items = Array.isArray(parsed.items) ? parsed.items : [];
-          console.warn(
-            "Inbox state corrupted, restored from backup with",
-            items.length,
-            "items",
-          );
+          if (__DEV__) {
+            console.warn(
+              "Inbox state corrupted, restored from backup with",
+              items.length,
+              "items",
+            );
+          }
           return {
             items: items as InboxItem[],
             version: parsed.version ?? INBOX_STATE_VERSION,
@@ -174,9 +176,11 @@ function parseState(raw?: string | null): InboxState {
         }
       }
     }
-    console.warn(
-      "Inbox state corrupted and no backup available, resetting to empty",
-    );
+    if (__DEV__) {
+      console.warn(
+        "Inbox state corrupted and no backup available, resetting to empty",
+      );
+    }
     return baseState();
   }
 }

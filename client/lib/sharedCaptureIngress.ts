@@ -100,7 +100,8 @@ export async function ingestPendingLockedCameraCaptures(): Promise<number> {
       importedInboxIds.push(item.id);
       await deleteFileIfExists(capture.sourceUri);
     } catch (error) {
-      console.warn("[LockedCamera] Failed to ingest pending capture:", error);
+      if (__DEV__)
+        console.warn("[LockedCamera] Failed to ingest pending capture:", error);
       remainingCaptures.push(capture);
     }
   }

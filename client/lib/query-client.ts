@@ -59,9 +59,11 @@ export function getApiUrl(): string {
       !__DEV__ &&
       url.startsWith("http://")
     ) {
-      console.error(
-        "HTTP URLs are not allowed in production builds, falling back to production URL",
-      );
+      if (__DEV__) {
+        console.error(
+          "HTTP URLs are not allowed in production builds, falling back to production URL",
+        );
+      }
       return PRODUCTION_API_URL;
     }
     return url;
