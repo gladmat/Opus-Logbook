@@ -140,6 +140,10 @@ export function MediaGalleryViewer({
 
   const handleShare = useCallback(async () => {
     if (!current) return;
+    // The rendering hook's pin only lives while this page stays mounted —
+    // a swipe (FlatList window eviction) or backgrounding into the share
+    // target could otherwise delete the decrypted temp file mid-share.
+    let unpin: (() => void) | null = null;
     try {
       // For opus-media URIs, the decrypt cache holds a file:// URI after
       // the page has rendered. For plain URIs, pass through.
@@ -149,6 +153,8 @@ export function MediaGalleryViewer({
         const mediaId = current.localUri.replace(/^opus-media:/, "");
         const cached = decryptCache.getCached(mediaId, "full");
         if (!cached) return;
+        decryptCache.pin(mediaId, "full");
+        unpin = () => decryptCache.unpin(mediaId, "full");
         shareUri = cached;
       }
       const ok = await Sharing.isAvailableAsync();
@@ -160,6 +166,8 @@ export function MediaGalleryViewer({
       Haptics.selectionAsync().catch(() => {});
     } catch {
       // Swallow share errors silently — user cancelled or system denied.
+    } finally {
+      unpin?.();
     }
   }, [current]);
 
