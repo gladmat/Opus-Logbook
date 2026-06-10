@@ -146,13 +146,6 @@ export async function allocateEpisodeSequence(
     return next;
   } finally {
     release();
-    // Clean up map entry when this is the last waiter.
-    queueMicrotask(() => {
-      if (_episodeSequenceLocks.get(episodeId) === prior.then(() => thisLock)) {
-        // No-op — GC handles the resolved chain; the map entry will be
-        // replaced by the next allocator call.
-      }
-    });
   }
 }
 
@@ -186,19 +179,6 @@ export async function updateEpisode(
   await saveEpisode(updated);
 }
 
-export async function deleteEpisode(id: string): Promise<void> {
-  try {
-    await AsyncStorage.removeItem(episodeKey(id));
-
-    const index = await getEpisodeIndex();
-    const filtered = index.filter((e) => e.id !== id);
-    await saveEpisodeIndex(filtered);
-  } catch (error) {
-    console.error("Error deleting episode:", error);
-    throw error;
-  }
-}
-
 export async function getEpisodes(): Promise<TreatmentEpisode[]> {
   try {
     const index = await getEpisodeIndex();
@@ -210,26 +190,6 @@ export async function getEpisodes(): Promise<TreatmentEpisode[]> {
     return results.filter((e): e is TreatmentEpisode => e !== null);
   } catch (error) {
     console.error("Error reading episodes:", error);
-    return [];
-  }
-}
-
-export async function getActiveEpisodes(): Promise<TreatmentEpisode[]> {
-  try {
-    const index = await getEpisodeIndex();
-    const activeEntries = index.filter(
-      (e) =>
-        e.status === "active" ||
-        e.status === "on_hold" ||
-        e.status === "planned",
-    );
-
-    const results = await Promise.all(
-      activeEntries.map((entry) => getEpisode(entry.id)),
-    );
-    return results.filter((e): e is TreatmentEpisode => e !== null);
-  } catch (error) {
-    console.error("Error reading active episodes:", error);
     return [];
   }
 }
