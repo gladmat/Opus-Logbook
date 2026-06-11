@@ -16,9 +16,18 @@ import { userScopedAsyncKey } from "./activeUser";
 import {
   getTeamContacts,
   discoverContacts,
+  discoverContactsPsi,
   type DiscoverContactInput,
   type DiscoverMatch,
 } from "./teamContactsApi";
+import {
+  blindIdentifiers,
+  finalizeAndIntersect,
+  normalizeDiscoveryEmail,
+  normalizeDiscoveryPhone,
+  type IdentifierInput,
+} from "./psiDiscovery";
+import type { TeamContact } from "@/types/teamContacts";
 
 const LAST_RUN_BASE_KEY = "@opus_discovery_last_run";
 const MATCHES_BASE_KEY = "@opus_discovery_matches";
@@ -56,8 +65,25 @@ export async function discoverUnlinkedContacts(): Promise<number> {
       return 0;
     }
 
+    // PSI pre-filter: determine which unlinked contacts are Opus members
+    // WITHOUT revealing the others to the server. Only the matched subset
+    // proceeds to the legacy /discover endpoint for details — a disclosure
+    // the server inherently gains at link time anyway. `null` = the server
+    // doesn't support PSI yet (older deployment) → legacy full-batch path.
+    const psiMatched = await psiPreFilter(unlinked);
+    const candidates =
+      psiMatched === null
+        ? unlinked
+        : unlinked.filter((c) => psiMatched.has(c.id));
+
+    if (candidates.length === 0) {
+      await AsyncStorage.setItem(matchesKey(), JSON.stringify([]));
+      await AsyncStorage.setItem(lastRunKey(), String(Date.now()));
+      return 0;
+    }
+
     // Build discovery input
-    const input: DiscoverContactInput[] = unlinked.map((c) => ({
+    const input: DiscoverContactInput[] = candidates.map((c) => ({
       contactId: c.id,
       ...(c.email ? { email: c.email } : {}),
       ...(c.phone ? { phone: c.phone } : {}),
@@ -86,6 +112,54 @@ export async function discoverUnlinkedContacts(): Promise<number> {
     if (__DEV__) console.warn("Discovery check failed:", error);
     return 0;
   }
+}
+
+/**
+ * Run the OPRF membership pre-filter over every contact identifier.
+ * Returns the set of matched contactIds, or `null` when the server has no
+ * PSI endpoint (legacy fallback). Throws on protocol errors — the caller's
+ * catch aborts the whole discovery round rather than degrading to the
+ * plaintext path, so a flaky PSI never silently leaks the address book.
+ */
+async function psiPreFilter(
+  unlinked: TeamContact[],
+): Promise<Set<string> | null> {
+  const identifiers: IdentifierInput[] = [];
+  for (const contact of unlinked) {
+    if (contact.email) {
+      identifiers.push({
+        ref: `${contact.id}|email`,
+        value: normalizeDiscoveryEmail(contact.email),
+      });
+    }
+    if (contact.phone) {
+      identifiers.push({
+        ref: `${contact.id}|phone`,
+        value: normalizeDiscoveryPhone(contact.phone),
+      });
+    }
+  }
+  // Registration-number-only contacts have no PSI-matchable identifier;
+  // the legacy endpoint defers registration lookups too, so parity holds.
+  if (identifiers.length === 0) return new Set();
+
+  const matched = new Set<string>();
+  for (let i = 0; i < identifiers.length; i += 50) {
+    const slice = identifiers.slice(i, i + 50);
+    const { payload, contexts } = blindIdentifiers(slice);
+    const response = await discoverContactsPsi(payload);
+    if (response === null) return null;
+    const refs = finalizeAndIntersect(
+      contexts,
+      response.evaluated,
+      response.members,
+    );
+    for (const ref of refs) {
+      const contactId = ref.split("|")[0];
+      if (contactId) matched.add(contactId);
+    }
+  }
+  return matched;
 }
 
 /**

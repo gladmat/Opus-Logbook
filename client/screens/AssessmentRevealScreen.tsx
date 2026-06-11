@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, ScrollView, ActivityIndicator, StyleSheet } from "react-native";
+import {
+  Alert,
+  View,
+  ScrollView,
+  ActivityIndicator,
+  StyleSheet,
+} from "react-native";
 import { useRoute } from "@react-navigation/native";
 import type { RouteProp } from "@react-navigation/native";
 import { Feather } from "@/components/FeatherIcon";
@@ -30,6 +36,10 @@ import {
   decryptPayloadWithCaseKey,
   type CaseKeyEnvelope,
 } from "@/lib/e2ee";
+import {
+  parseRevealPayload,
+  verifyCommitment,
+} from "@/lib/assessmentCommitment";
 
 type RouteProps = RouteProp<RootStackParamList, "AssessmentReveal">;
 
@@ -95,6 +105,10 @@ export default function AssessmentRevealScreen() {
   const [pair, setPair] = useState<RevealedAssessmentPair | null>(null);
   const [caseData, setCaseData] = useState<SharedCaseData | null>(null);
   const [isPartialReveal, setIsPartialReveal] = useState(false);
+  // "verified" | "failed" — null for legacy (pre-commit-reveal) payloads.
+  const [integrity, setIntegrity] = useState<"verified" | "failed" | null>(
+    null,
+  );
 
   const loadReveal = useCallback(async () => {
     if (!user) return;
@@ -181,7 +195,31 @@ export default function AssessmentRevealScreen() {
         status.otherAssessment.encryptedAssessment,
         assessmentKeyHex,
       );
-      const otherAssessment = JSON.parse(otherPlaintext) as
+
+      // Commit-reveal integrity check: the v2 payload carries the exact
+      // JSON string the counterpart committed to, plus their nonce. If the
+      // recomputed hash doesn't match the commitment the server stored at
+      // phase 1, the content was changed after committing — surface loudly.
+      const { shareableJson, commitmentNonce } =
+        parseRevealPayload(otherPlaintext);
+      if (commitmentNonce && status.otherAssessment.commitment) {
+        const verified = verifyCommitment(
+          shareableJson,
+          commitmentNonce,
+          status.otherAssessment.commitment,
+        );
+        setIntegrity(verified ? "verified" : "failed");
+        if (!verified) {
+          Alert.alert(
+            "Integrity check failed",
+            "The other party's assessment does not match the commitment they made before seeing yours. Treat this assessment with caution.",
+          );
+        }
+      } else {
+        setIntegrity(null);
+      }
+
+      const otherAssessment = JSON.parse(shareableJson) as
         | SupervisorAssessment
         | TraineeAssessment;
 
@@ -290,6 +328,31 @@ export default function AssessmentRevealScreen() {
             >
               {caseData.procedureDate} · {caseData.facility}
             </ThemedText>
+          ) : null}
+          {integrity !== null ? (
+            <View style={styles.integrityRow}>
+              <Feather
+                name={
+                  integrity === "verified" ? "check-circle" : "alert-triangle"
+                }
+                size={13}
+                color={integrity === "verified" ? theme.success : theme.error}
+              />
+              <ThemedText
+                style={[
+                  styles.integrityText,
+                  {
+                    color:
+                      integrity === "verified" ? theme.success : theme.error,
+                  },
+                ]}
+                testID="assessmentReveal.integrity"
+              >
+                {integrity === "verified"
+                  ? "Integrity verified — matches their pre-reveal commitment"
+                  : "Integrity check FAILED — content changed after commitment"}
+              </ThemedText>
+            </View>
           ) : null}
         </View>
 
@@ -598,6 +661,16 @@ const styles = StyleSheet.create({
   contextDetail: {
     fontSize: 14,
     marginTop: 4,
+  },
+  integrityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 8,
+  },
+  integrityText: {
+    fontSize: 12,
+    flexShrink: 1,
   },
   // Comparison card
   comparisonCard: {

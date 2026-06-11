@@ -152,6 +152,31 @@ export async function discoverContacts(
   return data.matches;
 }
 
+export interface PsiDiscoverResponse {
+  evaluated: { ref: string; point: string }[];
+  members: string[];
+}
+
+/**
+ * PSI membership pre-filter (see client/lib/psiDiscovery.ts). Returns null
+ * when the server doesn't support the endpoint yet (older deployment) so
+ * the caller can fall back to the legacy plaintext path.
+ */
+export async function discoverContactsPsi(
+  blinded: { ref: string; point: string }[],
+): Promise<PsiDiscoverResponse | null> {
+  const res = await authFetch("/api/users/discover-psi", {
+    method: "POST",
+    body: JSON.stringify({ blinded }),
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    const error = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(error.error || "Failed to run private discovery");
+  }
+  return res.json();
+}
+
 /**
  * Send an invitation email to an unlinked contact.
  */

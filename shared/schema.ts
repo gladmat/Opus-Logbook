@@ -358,7 +358,15 @@ export const caseAssessments = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     assessorRole: varchar("assessor_role", { length: 20 }).notNull(),
-    encryptedAssessment: text("encrypted_assessment").notNull(),
+    // NULL while a commit-reveal assessment is in the commit phase — the
+    // ciphertext only reaches the server at reveal time. Legacy rows
+    // (pre-commit-reveal clients) always have content.
+    encryptedAssessment: text("encrypted_assessment"),
+    // Commit-reveal phase 1: SHA-256 hex of (shareable JSON + nonce). The
+    // nonce travels inside the E2EE blob at reveal; the COUNTERPART verifies
+    // the commitment after decrypting. NULL on legacy rows.
+    commitment: varchar("commitment", { length: 64 }),
+    committedAt: timestamp("committed_at"),
     submittedAt: timestamp("submitted_at")
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),

@@ -8,6 +8,7 @@ import {
 } from "react";
 import { Alert } from "react-native";
 import * as Haptics from "expo-haptics";
+import { navigationRef } from "@/navigation/navigationRef";
 import { v4 as uuidv4 } from "uuid";
 import {
   Case,
@@ -2529,7 +2530,15 @@ export function useCaseForm({
           // we assert the key matches. If the server swapped a key
           // (malicious operator, MITM on an older TLS config, etc.) the
           // mismatch surfaces as a warning and we skip that recipient.
-          const tofuMismatchedRecipients: string[] = [];
+          const tofuMismatchedRecipients: {
+            userId: string;
+            displayName: string;
+            mismatches: {
+              deviceId: string;
+              storedPublicKey: string;
+              receivedPublicKey: string;
+            }[];
+          }[] = [];
           const linkedOpMembers = state.operativeTeam.filter(
             (m) => m.linkedUserId,
           );
@@ -2548,12 +2557,17 @@ export function useCaseForm({
                   keys,
                 );
                 if (verification.kind === "mismatch") {
-                  tofuMismatchedRecipients.push(member.displayName);
-                  console.warn(
-                    "[useCaseForm] TOFU mismatch for",
-                    member.displayName,
-                    verification.mismatches,
-                  );
+                  tofuMismatchedRecipients.push({
+                    userId: member.linkedUserId!,
+                    displayName: member.displayName,
+                    mismatches: verification.mismatches,
+                  });
+                  if (__DEV__)
+                    console.warn(
+                      "[useCaseForm] TOFU mismatch for",
+                      member.displayName,
+                      verification.mismatches,
+                    );
                   continue;
                 }
                 shareableMembers.push({
@@ -2568,9 +2582,26 @@ export function useCaseForm({
             }
           }
           if (tofuMismatchedRecipients.length > 0) {
+            const names = tofuMismatchedRecipients
+              .map((r) => r.displayName)
+              .join(", ");
             Alert.alert(
               "Sharing skipped for some recipients",
-              `The stored device key for ${tofuMismatchedRecipients.join(", ")} doesn't match what the server returned. The case was not shared with them. Confirm their device change in person, then retry.`,
+              `The stored device key for ${names} doesn't match what the server returned. The case was not shared with them. Verify the device change with them directly, then accept the new key and retry.`,
+              [
+                { text: "Later", style: "cancel" },
+                {
+                  text: "Review keys",
+                  onPress: () => {
+                    if (navigationRef.isReady()) {
+                      navigationRef.navigate("KeyVerification", {
+                        userId: tofuMismatchedRecipients[0]?.userId,
+                        pendingRotations: tofuMismatchedRecipients,
+                      });
+                    }
+                  },
+                },
+              ],
             );
           }
 

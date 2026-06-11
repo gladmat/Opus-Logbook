@@ -8,10 +8,10 @@ import {
   DefaultTheme,
   DarkTheme,
   Theme,
-  createNavigationContainerRef,
   getStateFromPath as defaultGetStateFromPath,
   type LinkingOptions,
 } from "@react-navigation/native";
+import { navigationRef } from "@/navigation/navigationRef";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
   KeyboardProvider,
@@ -47,8 +47,6 @@ Notifications.setNotificationHandler({
   }),
 });
 
-const navigationRef = createNavigationContainerRef<RootStackParamList>();
-
 function handleNotificationNavigation(data: Record<string, unknown>) {
   const type = data.type as string | undefined;
   const sharedCaseId = data.sharedCaseId as string | undefined;
@@ -68,6 +66,10 @@ function handleNotificationNavigation(data: Record<string, unknown>) {
       break;
     case "assessment_pending":
       navigationRef.navigate("SharedCaseDetail", { sharedCaseId });
+      break;
+    case "assessment_ready_to_reveal":
+      // Opening the Assessment screen triggers the pending reveal upload.
+      navigationRef.navigate("Assessment", { sharedCaseId });
       break;
     default:
       break;
@@ -201,6 +203,17 @@ export default function App() {
       } catch (error) {
         console.warn("[App] Inbox initialization failed:", error);
       }
+
+      // Mark PHI-bearing directories (opus-media, AsyncStorage, MMKV) as
+      // excluded from iCloud backup. Their contents are ciphertext under a
+      // WHEN_UNLOCKED_THIS_DEVICE_ONLY Keychain key that never survives a
+      // restore, so exclusion loses nothing and removes the iCloud copy.
+      void import("../modules/opus-backup-guard")
+        .then((guard) => guard.excludePhiPathsFromBackup())
+        .then((result) => {
+          if (__DEV__) console.log("[App] backup-guard:", result);
+        })
+        .catch(() => {});
 
       setReady(true);
     }

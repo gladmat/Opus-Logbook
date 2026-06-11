@@ -21,6 +21,7 @@ import { PrivacyScreen } from "@/screens/onboarding/PrivacyScreen";
 import { SecurityScreen } from "@/screens/onboarding/SecurityScreen";
 import LockScreen from "@/screens/LockScreen";
 import SetupAppLockScreen from "@/screens/SetupAppLockScreen";
+import KeyVerificationScreen from "@/screens/KeyVerificationScreen";
 import EditProfileScreen from "@/screens/EditProfileScreen";
 import EpisodeDetailScreen from "@/screens/EpisodeDetailScreen";
 import ManageFacilitiesScreen from "@/screens/ManageFacilitiesScreen";
@@ -213,6 +214,20 @@ export type RootStackParamList = {
   };
   EpisodeDetail: { episodeId: string };
   SetupAppLock: undefined;
+  KeyVerification:
+    | {
+        userId?: string;
+        pendingRotations?: {
+          userId: string;
+          displayName: string;
+          mismatches: {
+            deviceId: string;
+            storedPublicKey: string;
+            receivedPublicKey: string;
+          }[];
+        }[];
+      }
+    | undefined;
   EditProfile: undefined;
   ManageFacilities: undefined;
   SurgicalPreferences: undefined;
@@ -786,6 +801,13 @@ export default function RootStackNavigator() {
               component={SetupAppLockScreen}
               options={{
                 headerTitle: "App Lock",
+              }}
+            />
+            <Stack.Screen
+              name="KeyVerification"
+              component={KeyVerificationScreen}
+              options={{
+                headerTitle: "Device Key Verification",
               }}
             />
             <Stack.Screen
