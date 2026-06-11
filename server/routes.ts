@@ -16,6 +16,11 @@ import {
 } from "./diagnosisStagingConfig";
 import { sendPasswordResetEmail, sendInvitationEmail } from "./email";
 import { normalizeEmail, SNOMED_CONCEPT_ID_RE } from "./utils";
+import {
+  generateEphemeralOprfKey,
+  evaluateBlindedPoint,
+  evaluateIdentifier,
+} from "./psi";
 import bcrypt from "bcryptjs";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { signAppJwt, verifyAppJwt } from "./jwt";
@@ -263,6 +268,19 @@ const discoverContactsSchema = z.object({
     )
     .min(1)
     .max(50),
+});
+
+const discoverPsiSchema = z.object({
+  blinded: z
+    .array(
+      z.object({
+        ref: z.string().min(1).max(120),
+        // Hex-encoded ristretto255 element (32 bytes).
+        point: z.string().regex(/^[0-9a-f]{64}$/),
+      }),
+    )
+    .min(1)
+    .max(100),
 });
 
 // ── Sharing validation schemas ──────────────────────────────────────────────
@@ -2578,6 +2596,57 @@ export async function registerRoutes(app: Express): Promise<void> {
           "error discovering contacts",
         );
         res.status(500).json({ error: "Failed to discover contacts" });
+      }
+    },
+  );
+
+  // PSI discovery — privacy-preserving membership pre-filter. The client
+  // sends OPRF-blinded contact identifiers; the server evaluates them under
+  // a per-request ephemeral key and returns the PRF outputs of every
+  // discoverable member identifier. The client intersects locally, then
+  // fetches details for MATCHES ONLY via the legacy /discover endpoint.
+  // The server never learns contacts who are not Opus members.
+  app.post(
+    "/api/users/discover-psi",
+    authenticateToken,
+    userSearchRateLimiter,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const parseResult = discoverPsiSchema.safeParse(req.body);
+        if (!parseResult.success) {
+          res.status(400).json({
+            error: "Invalid discover request",
+            details: parseResult.error.flatten(),
+          });
+          return;
+        }
+
+        const secretKey = generateEphemeralOprfKey();
+
+        let evaluated: { ref: string; point: string }[];
+        try {
+          evaluated = parseResult.data.blinded.map((b) => ({
+            ref: b.ref,
+            point: evaluateBlindedPoint(secretKey, b.point),
+          }));
+        } catch {
+          res.status(400).json({ error: "Invalid blinded element" });
+          return;
+        }
+
+        const identifiers = await storage.getDiscoverableIdentifiers();
+        // Sorted so the response leaks no insertion/identity ordering.
+        const members = identifiers
+          .map((identifier) => evaluateIdentifier(secretKey, identifier))
+          .sort();
+
+        res.json({ evaluated, members });
+      } catch (error) {
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error in PSI discovery",
+        );
+        res.status(500).json({ error: "Failed to run discovery" });
       }
     },
   );

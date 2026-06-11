@@ -188,6 +188,7 @@ export interface IStorage {
 
   // Discovery helpers
   getUserByPhone(phone: string): Promise<User | undefined>;
+  getDiscoverableIdentifiers(): Promise<string[]>;
 
   // Invitations
   recordInvitation(
@@ -910,6 +911,32 @@ export class DatabaseStorage implements IStorage {
       .where(eq(profiles.phone, phone));
     if (!profile) return undefined;
     return this.getUser(profile.userId);
+  }
+
+  /**
+   * Every discoverable user's matchable identifiers (email + phone) for the
+   * PSI member set. Emails are stored normalized (lowercase, enforced by
+   * the 20260425 migration); phones use the same exact-string semantics as
+   * getUserByPhone. Users with `discoverable === false` are excluded —
+   * mirrors the legacy /discover opt-out.
+   */
+  async getDiscoverableIdentifiers(): Promise<string[]> {
+    const rows = await db
+      .select({
+        email: users.email,
+        phone: profiles.phone,
+        discoverable: profiles.discoverable,
+      })
+      .from(users)
+      .leftJoin(profiles, eq(profiles.userId, users.id));
+
+    const identifiers: string[] = [];
+    for (const row of rows) {
+      if (row.discoverable === false) continue;
+      if (row.email) identifiers.push(row.email);
+      if (row.phone) identifiers.push(row.phone.trim());
+    }
+    return identifiers;
   }
 
   // ──────────────────────────────────────────────────────────────────────────
