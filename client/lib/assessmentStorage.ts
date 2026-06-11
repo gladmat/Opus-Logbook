@@ -15,6 +15,7 @@ const ASSESSMENT_KEYS = {
   REVEALED_PREFIX: "@opus_assessment_revealed_",
   REVEALED_INDEX: "@opus_assessment_revealed_index",
   EPA_TARGETS_PREFIX: "@opus_epa_targets_",
+  PENDING_COMMIT_PREFIX: "@opus_assessment_pending_",
 } as const;
 
 function myAssessmentKey(sharedCaseId: string): string {
@@ -50,6 +51,54 @@ export async function getMyAssessment(
     return JSON.parse(plaintext) as SupervisorAssessment | TraineeAssessment;
   } catch {
     return null;
+  }
+}
+
+// ── Pending commit-reveal state (encrypted with K_user) ─────────────────────
+
+/**
+ * Everything needed to perform the reveal upload later: the EXACT JSON
+ * string the commitment was computed over, the nonce, and the server-side
+ * assessment row id. Persisted at commit time so the reveal survives app
+ * restarts and can fire from any surface (screen focus, push tap).
+ */
+export interface PendingCommit {
+  sharedCaseId: string;
+  assessmentId: string;
+  assessorRole: "supervisor" | "trainee";
+  shareableJson: string;
+  nonceHex: string;
+  commitment: string;
+}
+
+function pendingCommitKey(sharedCaseId: string): string {
+  return userScopedAsyncKey(
+    `${ASSESSMENT_KEYS.PENDING_COMMIT_PREFIX}${sharedCaseId}`,
+  );
+}
+
+export async function savePendingCommit(pending: PendingCommit): Promise<void> {
+  const encrypted = await encryptData(JSON.stringify(pending));
+  await AsyncStorage.setItem(pendingCommitKey(pending.sharedCaseId), encrypted);
+}
+
+export async function getPendingCommit(
+  sharedCaseId: string,
+): Promise<PendingCommit | null> {
+  const encrypted = await AsyncStorage.getItem(pendingCommitKey(sharedCaseId));
+  if (!encrypted) return null;
+  try {
+    return JSON.parse(await decryptData(encrypted)) as PendingCommit;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearPendingCommit(sharedCaseId: string): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(pendingCommitKey(sharedCaseId));
+  } catch {
+    // Best-effort.
   }
 }
 

@@ -331,6 +331,26 @@ const assessmentSchema = z.object({
     .min(1),
 });
 
+const commitAssessmentSchema = z.object({
+  sharedCaseId: z.string().min(1),
+  assessorRole: z.enum(["supervisor", "trainee"]),
+  // SHA-256 hex of (shareable assessment JSON + client nonce).
+  commitment: z.string().regex(/^[0-9a-f]{64}$/),
+});
+
+const revealAssessmentSchema = z.object({
+  encryptedAssessment: z.string().min(1),
+  keyEnvelopes: z
+    .array(
+      z.object({
+        recipientUserId: z.string().min(1),
+        recipientDeviceId: z.string().min(1),
+        envelopeJson: z.string().min(1),
+      }),
+    )
+    .min(1),
+});
+
 const pushTokenSchema = z.object({
   expoPushToken: z.string().min(1),
   deviceId: z.string().min(1).max(64),
@@ -2654,9 +2674,204 @@ export async function registerRoutes(app: Express): Promise<void> {
   // ──────────────────────────────────────────────────────────────────────────
   // Assessment Routes
   // Consumer: Mobile client (blinded supervisor/trainee assessments)
+  //
+  // Two submission models coexist:
+  //  - Legacy instant-submit (POST /api/assessments): ciphertext + envelopes
+  //    arrive immediately; reveal when both parties have submitted.
+  //  - Commit-reveal (POST /commit then POST /:id/reveal): phase 1 stores a
+  //    hash commitment ONLY — no ciphertext or submission content reaches
+  //    the server until BOTH parties committed (or 72h elapsed). Closes the
+  //    window where one party's ciphertext + timing metadata sat server-side
+  //    while the counterpart had not yet engaged, and makes post-commit
+  //    content changes detectable by the counterpart (commitment verify
+  //    happens on-device after decryption).
   // ──────────────────────────────────────────────────────────────────────────
 
-  // Submit an assessment (blinded until both parties submit)
+  // Commit-reveal phase 1: store the commitment hash only.
+  app.post(
+    "/api/assessments/commit",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const parseResult = commitAssessmentSchema.safeParse(req.body);
+        if (!parseResult.success) {
+          res.status(400).json({
+            error: "Invalid input",
+            details: parseResult.error.flatten(),
+          });
+          return;
+        }
+        const { sharedCaseId, assessorRole, commitment } = parseResult.data;
+
+        const sharedCase = await storage.getSharedCaseById(sharedCaseId);
+        if (!sharedCase) {
+          res.status(404).json({ error: "Shared case not found" });
+          return;
+        }
+        if (!assertIsPartyOnSharedCase(req.userId!, sharedCase, res)) {
+          return;
+        }
+
+        const existing = await storage.getCaseAssessments(sharedCaseId);
+        if (existing.some((a) => a.assessorUserId === req.userId!)) {
+          res.status(409).json({
+            error: "You have already submitted an assessment for this case",
+          });
+          return;
+        }
+
+        const assessment = await storage.createAssessmentCommitment({
+          sharedCaseId,
+          assessorUserId: req.userId!,
+          assessorRole,
+          commitment,
+        });
+
+        // Second commitment in → both parties may now reveal. A legacy
+        // instant-submit row counts as committed (its content is already up).
+        const all = await storage.getCaseAssessments(sharedCaseId);
+        const bothCommitted = all.length >= 2;
+        if (bothCommitted) {
+          for (const a of all) {
+            sendPushNotification(
+              a.assessorUserId,
+              "Ready to Reveal",
+              "Both assessments are in — open Opus to complete the reveal",
+              { type: "assessment_ready_to_reveal", sharedCaseId },
+            ).catch(() => {});
+          }
+        }
+
+        res.status(201).json({ id: assessment.id, bothCommitted });
+      } catch (error) {
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error committing assessment",
+        );
+        res.status(500).json({ error: "Failed to commit assessment" });
+      }
+    },
+  );
+
+  // Commit-reveal phase 2: attach ciphertext + envelopes to own commitment.
+  app.post(
+    "/api/assessments/:id/reveal",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const parseResult = revealAssessmentSchema.safeParse(req.body);
+        if (!parseResult.success) {
+          res.status(400).json({
+            error: "Invalid input",
+            details: parseResult.error.flatten(),
+          });
+          return;
+        }
+
+        const assessment = await storage.getCaseAssessmentById(req.params.id!);
+        if (!assessment) {
+          res.status(404).json({ error: "Assessment not found" });
+          return;
+        }
+        // Only the author may attach content to their own commitment.
+        if (assessment.assessorUserId !== req.userId!) {
+          res.status(403).json({ error: "Not your assessment" });
+          return;
+        }
+        if (!assessment.commitment) {
+          res.status(409).json({
+            error: "This assessment was submitted via the legacy flow",
+          });
+          return;
+        }
+        if (assessment.encryptedAssessment) {
+          res.status(409).json({ error: "Assessment already revealed" });
+          return;
+        }
+
+        // Gate: the counterpart must have committed too (legacy submitted
+        // rows count — their content is already up), OR the author's own
+        // commitment is older than 72h (parity with the legacy lone-submit
+        // timeout so an unresponsive counterpart can't hold content hostage).
+        const all = await storage.getCaseAssessments(assessment.sharedCaseId);
+        const otherCommitted = all.some(
+          (a) => a.assessorUserId !== req.userId!,
+        );
+        const committedMs = assessment.committedAt
+          ? new Date(assessment.committedAt).getTime()
+          : Date.now();
+        const hoursSinceCommit = (Date.now() - committedMs) / (1000 * 60 * 60);
+        if (!otherCommitted && hoursSinceCommit < 72) {
+          res.status(409).json({
+            error: "Waiting for the other party to commit their assessment",
+          });
+          return;
+        }
+
+        await storage.attachAssessmentContent(
+          assessment.id,
+          parseResult.data.encryptedAssessment,
+        );
+        await storage.createAssessmentKeyEnvelopes(
+          parseResult.data.keyEnvelopes.map((ke) => ({
+            caseAssessmentId: assessment.id,
+            recipientUserId: ke.recipientUserId,
+            recipientDeviceId: ke.recipientDeviceId,
+            envelopeJson: ke.envelopeJson,
+          })),
+        );
+
+        // Mutual reveal: every row for this case now carries content.
+        const refreshed = await storage.getCaseAssessments(
+          assessment.sharedCaseId,
+        );
+        const allHaveContent = refreshed.every((a) => a.encryptedAssessment);
+        let revealed = false;
+        if (allHaveContent) {
+          await storage.revealAssessments(assessment.sharedCaseId);
+          await storage.releaseAssessmentKeyEnvelopes(assessment.sharedCaseId);
+          revealed = true;
+          for (const a of refreshed) {
+            sendPushNotification(
+              a.assessorUserId,
+              "Assessments Revealed",
+              "Both assessments are now available for review",
+              {
+                type: "assessments_revealed",
+                sharedCaseId: assessment.sharedCaseId,
+              },
+            ).catch(() => {});
+          }
+        } else {
+          // Nudge the counterpart who committed but hasn't uploaded yet.
+          const pendingOther = refreshed.find(
+            (a) => a.assessorUserId !== req.userId! && !a.encryptedAssessment,
+          );
+          if (pendingOther) {
+            sendPushNotification(
+              pendingOther.assessorUserId,
+              "Ready to Reveal",
+              "Open Opus to complete the assessment reveal",
+              {
+                type: "assessment_ready_to_reveal",
+                sharedCaseId: assessment.sharedCaseId,
+              },
+            ).catch(() => {});
+          }
+        }
+
+        res.json({ id: assessment.id, revealed });
+      } catch (error) {
+        log.error(
+          { err: error instanceof Error ? error.message : "Unknown error" },
+          "error revealing assessment",
+        );
+        res.status(500).json({ error: "Failed to reveal assessment" });
+      }
+    },
+  );
+
+  // Submit an assessment (legacy instant-submit — older clients)
   app.post(
     "/api/assessments",
     authenticateToken,
@@ -2724,12 +2939,17 @@ export async function registerRoutes(app: Express): Promise<void> {
 
         await storage.createAssessmentKeyEnvelopes(envelopeRows);
 
-        // Check if both roles have submitted → reveal
+        // Check if both roles have submitted → reveal. A commit-reveal row
+        // without content yet must NOT trigger the reveal — its author still
+        // has to upload via /:id/reveal.
         const allAssessments = await storage.getCaseAssessments(sharedCaseId);
         const unrevealed = allAssessments.filter((a) => !a.revealedAt);
         let revealed = false;
 
-        if (unrevealed.length >= 2) {
+        if (
+          unrevealed.length >= 2 &&
+          unrevealed.every((a) => a.encryptedAssessment)
+        ) {
           await storage.revealAssessments(sharedCaseId);
           await storage.releaseAssessmentKeyEnvelopes(sharedCaseId);
           revealed = true;
@@ -2824,8 +3044,15 @@ export async function registerRoutes(app: Express): Promise<void> {
 
         let assessments = await storage.getCaseAssessments(sharedCaseId);
 
-        // 72-hour auto-reveal: if one assessment submitted > 72h ago with no second
-        if (assessments.length === 1 && !assessments[0]!.revealedAt) {
+        // 72-hour auto-reveal: if one assessment submitted > 72h ago with no
+        // second. Only applies to rows that already carry content (legacy
+        // instant-submit) — a content-less commitment has nothing to reveal;
+        // its author unlocks via the /:id/reveal 72h gate instead.
+        if (
+          assessments.length === 1 &&
+          !assessments[0]!.revealedAt &&
+          assessments[0]!.encryptedAssessment
+        ) {
           const submittedAt = new Date(assessments[0]!.submittedAt!).getTime();
           const hoursSince = (Date.now() - submittedAt) / (1000 * 60 * 60);
           if (hoursSince >= 72) {
@@ -2858,14 +3085,15 @@ export async function registerRoutes(app: Express): Promise<void> {
           }));
         }
 
-        // Other party's public keys (only needed before user submits their own)
+        // Other party's public keys — needed before the user submits (legacy)
+        // and at commit-reveal upload time (committed but no content yet).
         const otherUserId =
           req.userId === sharedCase.ownerUserId
             ? sharedCase.recipientUserId
             : sharedCase.ownerUserId;
         let otherPartyPublicKeys: { deviceId: string; publicKey: string }[] =
           [];
-        if (!myAssessment) {
+        if (!myAssessment || !myAssessment.encryptedAssessment) {
           const deviceKeys = await storage.getUserDeviceKeys(otherUserId);
           otherPartyPublicKeys = deviceKeys.map((dk) => ({
             deviceId: dk.deviceId,
@@ -2880,6 +3108,8 @@ export async function registerRoutes(app: Express): Promise<void> {
                 assessorRole: myAssessment.assessorRole,
                 submittedAt: myAssessment.submittedAt,
                 revealedAt: myAssessment.revealedAt,
+                committedAt: myAssessment.committedAt,
+                hasContent: !!myAssessment.encryptedAssessment,
               }
             : null,
           otherAssessment: otherAssessment
@@ -2888,8 +3118,13 @@ export async function registerRoutes(app: Express): Promise<void> {
                 assessorRole: otherAssessment.assessorRole,
                 submittedAt: otherAssessment.submittedAt,
                 revealedAt: otherAssessment.revealedAt,
+                committedAt: otherAssessment.committedAt,
+                hasContent: !!otherAssessment.encryptedAssessment,
+                // The commitment is intentionally public — the counterpart
+                // uses it to verify content integrity after decryption.
+                commitment: otherAssessment.commitment,
                 encryptedAssessment: otherAssessment.revealedAt
-                  ? otherAssessment.encryptedAssessment
+                  ? (otherAssessment.encryptedAssessment ?? undefined)
                   : undefined,
                 keyEnvelopes: otherAssessment.revealedAt ? otherEnvelopes : [],
               }

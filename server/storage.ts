@@ -129,6 +129,17 @@ export interface IStorage {
   // Case assessments
   createCaseAssessment(data: InsertCaseAssessment): Promise<CaseAssessment>;
   getCaseAssessments(sharedCaseId: string): Promise<CaseAssessment[]>;
+  getCaseAssessmentById(id: string): Promise<CaseAssessment | undefined>;
+  createAssessmentCommitment(data: {
+    sharedCaseId: string;
+    assessorUserId: string;
+    assessorRole: string;
+    commitment: string;
+  }): Promise<CaseAssessment>;
+  attachAssessmentContent(
+    id: string,
+    encryptedAssessment: string,
+  ): Promise<CaseAssessment | undefined>;
   revealAssessments(sharedCaseId: string): Promise<void>;
 
   // Assessment key envelopes
@@ -665,6 +676,48 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(caseAssessments)
       .where(eq(caseAssessments.sharedCaseId, sharedCaseId));
+  }
+
+  async getCaseAssessmentById(id: string): Promise<CaseAssessment | undefined> {
+    const [row] = await db
+      .select()
+      .from(caseAssessments)
+      .where(eq(caseAssessments.id, id));
+    return row || undefined;
+  }
+
+  /** Commit-reveal phase 1: store the hash commitment only (no ciphertext). */
+  async createAssessmentCommitment(data: {
+    sharedCaseId: string;
+    assessorUserId: string;
+    assessorRole: string;
+    commitment: string;
+  }): Promise<CaseAssessment> {
+    const [created] = await db
+      .insert(caseAssessments)
+      .values({
+        sharedCaseId: data.sharedCaseId,
+        assessorUserId: data.assessorUserId,
+        assessorRole: data.assessorRole,
+        commitment: data.commitment,
+        committedAt: new Date(),
+        encryptedAssessment: null,
+      })
+      .returning();
+    return created!;
+  }
+
+  /** Commit-reveal phase 2: attach the E2EE ciphertext to a committed row. */
+  async attachAssessmentContent(
+    id: string,
+    encryptedAssessment: string,
+  ): Promise<CaseAssessment | undefined> {
+    const [updated] = await db
+      .update(caseAssessments)
+      .set({ encryptedAssessment })
+      .where(eq(caseAssessments.id, id))
+      .returning();
+    return updated || undefined;
   }
 
   async revealAssessments(sharedCaseId: string): Promise<void> {

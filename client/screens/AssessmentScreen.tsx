@@ -32,10 +32,15 @@ import type {
 import { ENTRUSTMENT_LABELS, TEACHING_QUALITY_LABELS } from "@/types/sharing";
 import {
   getAssessmentStatus,
-  submitAssessment,
+  commitAssessment,
   type AssessmentStatusResponse,
 } from "@/lib/assessmentApi";
-import { saveMyAssessment } from "@/lib/assessmentStorage";
+import { saveMyAssessment, savePendingCommit } from "@/lib/assessmentStorage";
+import {
+  generateCommitmentNonce,
+  computeCommitment,
+} from "@/lib/assessmentCommitment";
+import { uploadPendingReveal } from "@/lib/assessmentReveal";
 import {
   getDecryptedSharedCase,
   getSharedInboxIndex,
@@ -44,11 +49,6 @@ import {
   determineAssessorRole,
   type AssessorRole,
 } from "@/lib/assessmentRoles";
-import {
-  generateCaseKeyHex,
-  encryptPayloadWithCaseKey,
-  wrapCaseKeyForRecipient,
-} from "@/lib/e2ee";
 
 type RouteProps = RouteProp<RootStackParamList, "Assessment">;
 type NavProps = NativeStackNavigationProp<RootStackParamList, "Assessment">;
@@ -273,7 +273,9 @@ export default function AssessmentScreen() {
     loadData();
   }, [loadData]);
 
-  // Poll for reveal on focus (when already submitted)
+  // Poll for reveal on focus (when already submitted). For commit-reveal
+  // submissions this also performs the phase-2 ciphertext upload as soon as
+  // the counterpart has committed.
   useFocusEffect(
     useCallback(() => {
       if (!status?.myAssessment || status.myAssessment.revealedAt) return;
@@ -281,6 +283,13 @@ export default function AssessmentScreen() {
       let cancelled = false;
       (async () => {
         try {
+          if (user) {
+            const outcome = await uploadPendingReveal(sharedCaseId, user.id);
+            if (!cancelled && outcome === "revealed") {
+              navigation.replace("AssessmentReveal", { sharedCaseId });
+              return;
+            }
+          }
           const updated = await getAssessmentStatus(sharedCaseId);
           if (cancelled) return;
           setStatus(updated);
@@ -297,7 +306,7 @@ export default function AssessmentScreen() {
       return () => {
         cancelled = true;
       };
-    }, [sharedCaseId, status?.myAssessment, navigation]),
+    }, [sharedCaseId, status?.myAssessment, navigation, user]),
   );
 
   // ── Submit handler ───────────────────────────────────────────────────────
@@ -339,56 +348,52 @@ export default function AssessmentScreen() {
         shareable = rest;
       }
 
-      // 2. Generate assessment key
-      const assessmentKeyHex = await generateCaseKeyHex();
+      // 2. Commit-reveal phase 1: send ONLY a hash commitment. The exact
+      // serialized string is what gets hashed AND what later travels inside
+      // the E2EE blob, so the counterpart can verify integrity on-device.
+      // No assessment content reaches the server until both parties commit.
+      const shareableJson = JSON.stringify(shareable);
+      const nonceHex = await generateCommitmentNonce();
+      const commitment = computeCommitment(shareableJson, nonceHex);
 
-      // 3. Encrypt shareable assessment
-      const encryptedAssessment = await encryptPayloadWithCaseKey(
-        JSON.stringify(shareable),
-        assessmentKeyHex,
-      );
-
-      // 4. Wrap key for other party's devices
-      const otherUserId =
-        user.id === status.ownerUserId
-          ? status.recipientUserId
-          : status.ownerUserId;
-
-      const keyEnvelopes = await Promise.all(
-        status.otherPartyPublicKeys.map(async (pk) => {
-          const envelope = await wrapCaseKeyForRecipient(
-            assessmentKeyHex,
-            pk.publicKey,
-          );
-          return {
-            recipientUserId: otherUserId,
-            recipientDeviceId: pk.deviceId,
-            envelopeJson: JSON.stringify(envelope),
-          };
-        }),
-      );
-
-      // 5. Submit to server
-      const result = await submitAssessment({
+      const result = await commitAssessment({
         sharedCaseId,
         assessorRole: role,
-        encryptedAssessment,
-        keyEnvelopes,
+        commitment,
       });
 
-      // 6. Save own assessment locally (with reflective notes intact)
+      // 3. Save own assessment locally (with reflective notes intact) plus
+      // the pending-reveal state (survives restarts; any surface can upload).
       await saveMyAssessment(sharedCaseId, assessment);
+      await savePendingCommit({
+        sharedCaseId,
+        assessmentId: result.id,
+        assessorRole: role,
+        shareableJson,
+        nonceHex,
+        commitment,
+      });
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-      // 7. Navigate based on result
-      if (result.revealed) {
-        navigation.replace("AssessmentReveal", { sharedCaseId });
-      } else {
-        // Refresh status to show waiting state
-        const updated = await getAssessmentStatus(sharedCaseId);
-        setStatus(updated);
+      // 4. If the counterpart already committed, complete the reveal now.
+      if (result.bothCommitted) {
+        const outcome = await uploadPendingReveal(sharedCaseId, user.id);
+        if (outcome === "revealed") {
+          navigation.replace("AssessmentReveal", { sharedCaseId });
+          return;
+        }
+        if (outcome === "key-mismatch") {
+          Alert.alert(
+            "Reveal blocked — device key changed",
+            "The other party's device key doesn't match the one pinned on this phone. Verify the change with them in Settings → Device Key Verification, then reopen this assessment.",
+          );
+        }
       }
+
+      // Refresh status to show the waiting state.
+      const updated = await getAssessmentStatus(sharedCaseId);
+      setStatus(updated);
     } catch (err) {
       console.error("Error submitting assessment:", err);
       Alert.alert(

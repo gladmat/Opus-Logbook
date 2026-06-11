@@ -37,6 +37,37 @@ describe("Assessment endpoints", () => {
     });
   });
 
+  describe("POST /api/assessments/commit", () => {
+    it("returns 401 without auth token", async () => {
+      const res = await request(app)
+        .post("/api/assessments/commit")
+        .send({
+          sharedCaseId: "abc",
+          assessorRole: "supervisor",
+          commitment: "ab".repeat(32),
+        });
+      expect(res.status).toBe(401);
+    });
+  });
+
+  describe("POST /api/assessments/:id/reveal", () => {
+    it("returns 401 without auth token", async () => {
+      const res = await request(app)
+        .post("/api/assessments/some-id/reveal")
+        .send({
+          encryptedAssessment: "enc:v1:a:b",
+          keyEnvelopes: [
+            {
+              recipientUserId: "u",
+              recipientDeviceId: "d",
+              envelopeJson: "{}",
+            },
+          ],
+        });
+      expect(res.status).toBe(401);
+    });
+  });
+
   describe("GET /api/assessments/history", () => {
     it("returns 401 (not 404) without auth token — proves /history is not shadowed by /:sharedCaseId", async () => {
       // Before the route-order fix, Express would match /history against

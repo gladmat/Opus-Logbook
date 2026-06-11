@@ -67,6 +67,10 @@ function handleNotificationNavigation(data: Record<string, unknown>) {
     case "assessment_pending":
       navigationRef.navigate("SharedCaseDetail", { sharedCaseId });
       break;
+    case "assessment_ready_to_reveal":
+      // Opening the Assessment screen triggers the pending reveal upload.
+      navigationRef.navigate("Assessment", { sharedCaseId });
+      break;
     default:
       break;
   }
