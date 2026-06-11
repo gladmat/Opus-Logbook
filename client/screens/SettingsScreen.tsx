@@ -633,6 +633,14 @@ export default function SettingsScreen() {
             />
             <View style={[styles.divider, { backgroundColor: theme.border }]} />
             <SettingsItem
+              icon="key"
+              label="Device Key Verification"
+              subtitle="Safety numbers for shared-case encryption"
+              onPress={() => navigation.navigate("KeyVerification")}
+              testID="settings.row-keyVerification"
+            />
+            <View style={[styles.divider, { backgroundColor: theme.border }]} />
+            <SettingsItem
               icon="lock"
               label="Change Password"
               subtitle="Update your account password"

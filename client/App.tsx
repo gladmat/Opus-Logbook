@@ -8,10 +8,10 @@ import {
   DefaultTheme,
   DarkTheme,
   Theme,
-  createNavigationContainerRef,
   getStateFromPath as defaultGetStateFromPath,
   type LinkingOptions,
 } from "@react-navigation/native";
+import { navigationRef } from "@/navigation/navigationRef";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
   KeyboardProvider,
@@ -46,8 +46,6 @@ Notifications.setNotificationHandler({
     shouldShowList: true,
   }),
 });
-
-const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 function handleNotificationNavigation(data: Record<string, unknown>) {
   const type = data.type as string | undefined;
