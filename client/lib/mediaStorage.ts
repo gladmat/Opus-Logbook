@@ -64,7 +64,7 @@ async function loadV2AsDataUri(
 
     return `data:${payload.mimeType};base64,${bytesToBase64(payload.bytes)}`;
   } catch (error) {
-    console.error(`v2 ${variant} load failed:`, error);
+    if (__DEV__) console.error(`v2 ${variant} load failed:`, error);
     return null;
   }
 }

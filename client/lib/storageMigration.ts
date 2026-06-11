@@ -149,7 +149,8 @@ export async function migrateUnscopedStorage(userId: string): Promise<void> {
 
     await AsyncStorage.setItem(flagKey, "1");
   } catch (error) {
-    console.warn("[storageMigration] Migration failed (will retry):", error);
+    if (__DEV__)
+      console.warn("[storageMigration] Migration failed (will retry):", error);
     // Don't set flag — migration will be retried on next login
   }
 }

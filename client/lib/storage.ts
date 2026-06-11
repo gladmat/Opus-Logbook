@@ -320,7 +320,7 @@ async function getCaseIndex(): Promise<CaseIndexEntry[]> {
     caseIndexCache = [];
     return [];
   } catch (error) {
-    console.error("Error reading case index:", error);
+    if (__DEV__) console.error("Error reading case index:", error);
     return [];
   }
 }
@@ -381,7 +381,7 @@ export async function getCaseSummaries(): Promise<CaseSummary[]> {
 
     return rebuildCaseSummariesFromIndex(index);
   } catch (error) {
-    console.error("Error reading case summaries:", error);
+    if (__DEV__) console.error("Error reading case summaries:", error);
     return [];
   }
 }
@@ -424,7 +424,7 @@ export async function getCases(): Promise<Case[]> {
     allCasesCache = hydratedCases;
     return hydratedCases;
   } catch (error) {
-    console.error("Error reading cases:", error);
+    if (__DEV__) console.error("Error reading cases:", error);
     return [];
   }
 }
@@ -444,7 +444,7 @@ export async function getCase(id: string): Promise<Case | null> {
 
     return cacheCase(caseData);
   } catch (error) {
-    console.error("Error reading case:", error);
+    if (__DEV__) console.error("Error reading case:", error);
     return null;
   }
 }
@@ -549,7 +549,7 @@ export async function saveCase(caseData: Case): Promise<void> {
     caseIndexCache = index;
     caseSummaryCache = nextSummaries;
   } catch (error) {
-    console.error("Error saving case:", error);
+    if (__DEV__) console.error("Error saving case:", error);
     throw error;
   }
 }
@@ -559,7 +559,7 @@ export async function getCaseCount(): Promise<number> {
     const index = await getCaseIndex();
     return index.length;
   } catch (error) {
-    console.error("Error reading case count:", error);
+    if (__DEV__) console.error("Error reading case count:", error);
     return 0;
   }
 }
@@ -573,7 +573,7 @@ export async function getCaseDraft(
     const decrypted = await decryptData(data);
     return JSON.parse(decrypted);
   } catch (error) {
-    console.error("Error reading case draft:", error);
+    if (__DEV__) console.error("Error reading case draft:", error);
     return null;
   }
 }
@@ -587,7 +587,7 @@ export async function saveCaseDraft(
     const encrypted = await encryptData(JSON.stringify(canonicalizedDraft));
     await AsyncStorage.setItem(caseDraftKey(specialty), encrypted);
   } catch (error) {
-    console.error("Error saving case draft:", error);
+    if (__DEV__) console.error("Error saving case draft:", error);
     throw error;
   }
 }
@@ -598,7 +598,7 @@ export async function clearCaseDraft(
   try {
     await AsyncStorage.removeItem(caseDraftKey(specialty));
   } catch (error) {
-    console.error("Error clearing case draft:", error);
+    if (__DEV__) console.error("Error clearing case draft:", error);
     throw error;
   }
 }
@@ -618,7 +618,7 @@ export async function updateCase(
     };
     await saveCase(updatedCase);
   } catch (error) {
-    console.error("Error updating case:", error);
+    if (__DEV__) console.error("Error updating case:", error);
     throw error;
   }
 }
@@ -724,7 +724,11 @@ export async function deleteCase(id: string): Promise<void> {
       try {
         await deleteMultipleEncryptedMedia(mediaUris);
       } catch (mediaErr) {
-        console.warn("Failed to delete some case media (orphaned):", mediaErr);
+        if (__DEV__)
+          console.warn(
+            "Failed to delete some case media (orphaned):",
+            mediaErr,
+          );
       }
     }
 
@@ -736,10 +740,12 @@ export async function deleteCase(id: string): Promise<void> {
         try {
           await deleteMultipleEncryptedMedia(eventMediaUris);
         } catch (mediaErr) {
-          console.warn(
-            "Failed to delete some event media (orphaned):",
-            mediaErr,
-          );
+          if (__DEV__) {
+            console.warn(
+              "Failed to delete some event media (orphaned):",
+              mediaErr,
+            );
+          }
         }
       }
       await deleteTimelineEvent(event.id);
@@ -768,7 +774,7 @@ export async function deleteCase(id: string): Promise<void> {
     caseCache.delete(id);
     allCasesCache = null;
   } catch (error) {
-    console.error("Error deleting case:", error);
+    if (__DEV__) console.error("Error deleting case:", error);
     throw error;
   }
 }
@@ -790,7 +796,7 @@ export async function getTimelineEvents(
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
   } catch (error) {
-    console.error("Error reading timeline events:", error);
+    if (__DEV__) console.error("Error reading timeline events:", error);
     return [];
   }
 }
@@ -808,7 +814,7 @@ export async function saveTimelineEvent(event: TimelineEvent): Promise<void> {
     const encrypted = await encryptData(JSON.stringify(events));
     await AsyncStorage.setItem(timelineKey(), encrypted);
   } catch (error) {
-    console.error("Error saving timeline event:", error);
+    if (__DEV__) console.error("Error saving timeline event:", error);
     throw error;
   }
 }
@@ -833,7 +839,7 @@ export async function updateTimelineEvent(
     const encrypted = await encryptData(JSON.stringify(events));
     await AsyncStorage.setItem(timelineKey(), encrypted);
   } catch (error) {
-    console.error("Error updating timeline event:", error);
+    if (__DEV__) console.error("Error updating timeline event:", error);
     throw error;
   }
 }
@@ -848,7 +854,7 @@ export async function deleteTimelineEvent(id: string): Promise<void> {
     const encrypted = await encryptData(JSON.stringify(filtered));
     await AsyncStorage.setItem(timelineKey(), encrypted);
   } catch (error) {
-    console.error("Error deleting timeline event:", error);
+    if (__DEV__) console.error("Error deleting timeline event:", error);
     throw error;
   }
 }
@@ -859,7 +865,7 @@ export async function getLocalUser(): Promise<LocalUser | null> {
     if (!data) return null;
     return JSON.parse(data);
   } catch (error) {
-    console.error("Error reading user:", error);
+    if (__DEV__) console.error("Error reading user:", error);
     return null;
   }
 }
@@ -868,7 +874,7 @@ export async function saveLocalUser(user: LocalUser): Promise<void> {
   try {
     await AsyncStorage.setItem(userKey(), JSON.stringify(user));
   } catch (error) {
-    console.error("Error saving user:", error);
+    if (__DEV__) console.error("Error saving user:", error);
     throw error;
   }
 }
@@ -877,7 +883,7 @@ export async function clearLocalUser(): Promise<void> {
   try {
     await AsyncStorage.removeItem(userKey());
   } catch (error) {
-    console.error("Error clearing user:", error);
+    if (__DEV__) console.error("Error clearing user:", error);
     throw error;
   }
 }
@@ -888,7 +894,7 @@ export async function getSettings(): Promise<AppSettings | null> {
     if (!data) return null;
     return JSON.parse(data);
   } catch (error) {
-    console.error("Error reading settings:", error);
+    if (__DEV__) console.error("Error reading settings:", error);
     return null;
   }
 }
@@ -897,7 +903,7 @@ export async function saveSettings(settings: AppSettings): Promise<void> {
   try {
     await AsyncStorage.setItem(settingsKey(), JSON.stringify(settings));
   } catch (error) {
-    console.error("Error saving settings:", error);
+    if (__DEV__) console.error("Error saving settings:", error);
     throw error;
   }
 }
@@ -907,7 +913,7 @@ export async function exportCasesAsJSON(): Promise<string> {
     const cases = await getCases();
     return JSON.stringify(cases, null, 2);
   } catch (error) {
-    console.error("Error exporting cases:", error);
+    if (__DEV__) console.error("Error exporting cases:", error);
     throw error;
   }
 }
@@ -926,7 +932,7 @@ export async function getCasesByEpisodeId(episodeId: string): Promise<Case[]> {
 
     return getCasesByIds(matching.map((entry) => entry.id));
   } catch (error) {
-    console.error("Error reading cases by episode:", error);
+    if (__DEV__) console.error("Error reading cases by episode:", error);
     return [];
   }
 }
@@ -960,7 +966,7 @@ export async function getLatestCaseForEpisode(
     if (matching.length === 0) return null;
     return getCase(matching[0]!.id);
   } catch (error) {
-    console.error("Error reading latest case for episode:", error);
+    if (__DEV__) console.error("Error reading latest case for episode:", error);
     return null;
   }
 }
@@ -1013,7 +1019,7 @@ export async function clearAllData(): Promise<void> {
 
     clearCaseReadCaches();
   } catch (error) {
-    console.error("Error clearing all data:", error);
+    if (__DEV__) console.error("Error clearing all data:", error);
     throw error;
   }
 }

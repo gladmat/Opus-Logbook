@@ -19,7 +19,11 @@ import { normalizeEmail, SNOMED_CONCEPT_ID_RE } from "./utils";
 import bcrypt from "bcryptjs";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { signAppJwt, verifyAppJwt } from "./jwt";
-import { userSearchRateLimiter, invitationRateLimiter } from "./rateLimit";
+import {
+  userSearchRateLimiter,
+  invitationRateLimiter,
+  pushTokenRateLimiter,
+} from "./rateLimit";
 import {
   insertProfileSchema,
   insertUserFacilitySchema,
@@ -2844,6 +2848,7 @@ export async function registerRoutes(app: Express): Promise<void> {
   app.post(
     "/api/push-tokens",
     authenticateToken,
+    pushTokenRateLimiter,
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       try {
         const parseResult = pushTokenSchema.safeParse(req.body);
@@ -2877,6 +2882,7 @@ export async function registerRoutes(app: Express): Promise<void> {
   app.delete(
     "/api/push-tokens/:deviceId",
     authenticateToken,
+    pushTokenRateLimiter,
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       try {
         const deleted = await storage.deletePushToken(

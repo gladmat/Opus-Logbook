@@ -26,17 +26,17 @@ export default defineConfig({
         "client/lib/procedurePicklist.ts",
         "server/seedData.ts",
       ],
-      // Thresholds set just below current baseline (48.9% lines / 52.95%
-      // functions / 43.46% branches / 48.58% statements as of 2026-05-05)
+      // Thresholds set just below current baseline (52.95% lines / 56.01%
+      // functions / 48.31% branches / 52.42% statements as of 2026-06-10)
       // so any meaningful regression fails CI but existing tests pass.
       // Raise these when adding tests, never lower. The case-form
       // happy-path integration test (planned) and the API-caller test
       // pass should let us push these meaningfully higher.
       thresholds: {
-        lines: 48,
-        functions: 52,
-        branches: 42,
-        statements: 48,
+        lines: 52,
+        functions: 55,
+        branches: 47,
+        statements: 52,
       },
     },
   },

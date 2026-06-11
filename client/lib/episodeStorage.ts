@@ -35,7 +35,7 @@ async function getEpisodeIndex(): Promise<EpisodeIndexEntry[]> {
     const decrypted = await decryptData(encrypted);
     return JSON.parse(decrypted) as EpisodeIndexEntry[];
   } catch (error) {
-    console.error("Error reading episode index:", error);
+    if (__DEV__) console.error("Error reading episode index:", error);
     return [];
   }
 }
@@ -56,7 +56,7 @@ export async function getEpisode(id: string): Promise<TreatmentEpisode | null> {
       JSON.parse(decrypted) as TreatmentEpisode,
     );
   } catch (error) {
-    console.error("Error reading episode:", error);
+    if (__DEV__) console.error("Error reading episode:", error);
     return null;
   }
 }
@@ -98,7 +98,7 @@ export async function saveEpisode(episode: TreatmentEpisode): Promise<void> {
     );
     await saveEpisodeIndex(index);
   } catch (error) {
-    console.error("Error saving episode:", error);
+    if (__DEV__) console.error("Error saving episode:", error);
     throw error;
   }
 }
@@ -146,13 +146,6 @@ export async function allocateEpisodeSequence(
     return next;
   } finally {
     release();
-    // Clean up map entry when this is the last waiter.
-    queueMicrotask(() => {
-      if (_episodeSequenceLocks.get(episodeId) === prior.then(() => thisLock)) {
-        // No-op — GC handles the resolved chain; the map entry will be
-        // replaced by the next allocator call.
-      }
-    });
   }
 }
 
@@ -170,9 +163,11 @@ export async function updateEpisode(
   if (updates.status && updates.status !== existing.status) {
     const allowed = EPISODE_STATUS_TRANSITIONS[existing.status] ?? [];
     if (!allowed.includes(updates.status)) {
-      console.warn(
-        `[episodeStorage] Illegal status transition ${existing.status} → ${updates.status} rejected for episode ${id}`,
-      );
+      if (__DEV__) {
+        console.warn(
+          `[episodeStorage] Illegal status transition ${existing.status} → ${updates.status} rejected for episode ${id}`,
+        );
+      }
       // Drop only the offending field; allow other updates to proceed so
       // unrelated metadata writes aren't blocked by the bad status attempt.
       const { status: _dropped, ...rest } = updates;
@@ -186,19 +181,6 @@ export async function updateEpisode(
   await saveEpisode(updated);
 }
 
-export async function deleteEpisode(id: string): Promise<void> {
-  try {
-    await AsyncStorage.removeItem(episodeKey(id));
-
-    const index = await getEpisodeIndex();
-    const filtered = index.filter((e) => e.id !== id);
-    await saveEpisodeIndex(filtered);
-  } catch (error) {
-    console.error("Error deleting episode:", error);
-    throw error;
-  }
-}
-
 export async function getEpisodes(): Promise<TreatmentEpisode[]> {
   try {
     const index = await getEpisodeIndex();
@@ -209,27 +191,7 @@ export async function getEpisodes(): Promise<TreatmentEpisode[]> {
     );
     return results.filter((e): e is TreatmentEpisode => e !== null);
   } catch (error) {
-    console.error("Error reading episodes:", error);
-    return [];
-  }
-}
-
-export async function getActiveEpisodes(): Promise<TreatmentEpisode[]> {
-  try {
-    const index = await getEpisodeIndex();
-    const activeEntries = index.filter(
-      (e) =>
-        e.status === "active" ||
-        e.status === "on_hold" ||
-        e.status === "planned",
-    );
-
-    const results = await Promise.all(
-      activeEntries.map((entry) => getEpisode(entry.id)),
-    );
-    return results.filter((e): e is TreatmentEpisode => e !== null);
-  } catch (error) {
-    console.error("Error reading active episodes:", error);
+    if (__DEV__) console.error("Error reading episodes:", error);
     return [];
   }
 }
@@ -248,7 +210,7 @@ export async function findEpisodesByPatientIdentifier(
     );
     return results.filter((e): e is TreatmentEpisode => e !== null);
   } catch (error) {
-    console.error("Error finding episodes by patient:", error);
+    if (__DEV__) console.error("Error finding episodes by patient:", error);
     return [];
   }
 }
@@ -292,7 +254,8 @@ export async function getVisibleDashboardEpisodes(): Promise<
       return true;
     });
   } catch (error) {
-    console.error("Error reading visible dashboard episodes:", error);
+    if (__DEV__)
+      console.error("Error reading visible dashboard episodes:", error);
     return [];
   }
 }
@@ -315,7 +278,7 @@ export async function clearAllEpisodes(): Promise<void> {
     }
     await AsyncStorage.removeItem(episodeIndexKey());
   } catch (error) {
-    console.error("Error clearing episodes:", error);
+    if (__DEV__) console.error("Error clearing episodes:", error);
     throw error;
   }
 }

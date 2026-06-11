@@ -20,7 +20,7 @@ export function setActiveUserId(id: string | null): void {
     try {
       cb(id);
     } catch (e) {
-      console.warn("[activeUser] listener threw:", e);
+      if (__DEV__) console.warn("[activeUser] listener threw:", e);
     }
   }
 }

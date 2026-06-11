@@ -74,7 +74,7 @@ export async function generateThumbnailFile(
       height: result.height,
     };
   } catch (error) {
-    console.warn("Thumbnail generation failed:", error);
+    if (__DEV__) console.warn("Thumbnail generation failed:", error);
     return null;
   }
 }

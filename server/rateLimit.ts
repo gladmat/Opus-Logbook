@@ -43,6 +43,26 @@ export const userSearchRateLimiter = rateLimit({
 });
 
 /**
+ * Per-user limiter for push-token register/unregister. The upsert is
+ * idempotent on (userId, deviceId) so legitimate clients touch these
+ * endpoints a handful of times per session; 30/min absorbs retries while
+ * stopping an authenticated client from spamming token writes. Same key
+ * fallback as `userSearchRateLimiter`.
+ */
+export const pushTokenRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 30,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  keyGenerator: (req: Request) =>
+    (req as AuthenticatedRequest).userId ??
+    (req.ip ? ipKeyGenerator(req.ip) : "unknown"),
+  message: {
+    error: "Too many push token updates. Please wait a moment and try again.",
+  },
+});
+
+/**
  * Per-user limiter for invitations. 20 invitations per rolling 24h
  * window. Same key fallback as `userSearchRateLimiter`.
  */
