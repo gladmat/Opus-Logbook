@@ -15,18 +15,29 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import type { ProfessionalRegistrations } from "./professionalRegistrations";
 
-export const users = pgTable("users", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  email: text("email").notNull().unique(),
-  password: text("password").notNull(),
-  appleUserId: text("apple_user_id"),
-  tokenVersion: integer("token_version").default(0).notNull(),
-  createdAt: timestamp("created_at")
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull(),
-});
+export const users = pgTable(
+  "users",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    email: text("email").notNull().unique(),
+    password: text("password").notNull(),
+    appleUserId: text("apple_user_id"),
+    tokenVersion: integer("token_version").default(0).notNull(),
+    createdAt: timestamp("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => [
+    // Applied manually in prod during the Apple Sign In rollout; declared
+    // here so drizzle-kit push doesn't propose dropping it (2026-06-11
+    // prod drift audit).
+    uniqueIndex("idx_users_apple_user_id")
+      .on(t.appleUserId)
+      .where(sql`apple_user_id IS NOT NULL`),
+  ],
+);
 
 export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
@@ -332,6 +343,7 @@ export const caseKeyEnvelopes = pgTable(
       t.recipientUserId,
       t.recipientDeviceId,
     ),
+    index("case_key_envelopes_shared_case_idx").on(t.sharedCaseId),
   ],
 );
 
@@ -374,6 +386,7 @@ export const caseAssessments = pgTable(
   },
   (t) => [
     index("case_assessments_shared_case_idx").on(t.sharedCaseId),
+    index("case_assessments_assessor_idx").on(t.assessorUserId),
     uniqueIndex("case_assessments_case_role_idx").on(
       t.sharedCaseId,
       t.assessorRole,
