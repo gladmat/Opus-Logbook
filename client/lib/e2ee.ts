@@ -55,8 +55,9 @@ async function getOrCreateDevicePrivateKeyHex(): Promise<string> {
 
   // Use noble's dedicated keygen which returns a properly clamped X25519
   // secret (bits 0,1,2 and 255 cleared appropriately). Pre-clamping means
-  // the stored secret round-trips cleanly through any library expecting
-  // canonical-form X25519 keys — important for future device migration.
+  // the stored secret is in canonical form for any X25519 implementation.
+  // Note: there is intentionally NO cross-device migration path for this
+  // key — it is device-bound (WHEN_UNLOCKED_THIS_DEVICE_ONLY) by design.
   const priv = bytesToHex(x25519.utils.randomSecretKey());
   await setSecureItem(DEVICE_PRIVATE_KEY, priv);
   return priv;
@@ -140,10 +141,19 @@ export function decryptPayloadWithCaseKey(
   envelope: string,
   caseKeyHex: string,
 ): string {
-  if (!envelope.startsWith("case:v1:")) return envelope;
+  // Fail closed: anything that isn't a well-formed `case:v1:` envelope is
+  // rejected rather than passed through as plaintext, matching the
+  // `decryptData` contract. A passthrough here would let a compromised
+  // server (or tampered row) inject unauthenticated content into the E2EE
+  // share path.
+  if (!envelope.startsWith("case:v1:")) {
+    throw new Error("Unrecognized case envelope format");
+  }
 
   const parts = envelope.split(":");
-  if (parts.length !== 4) return envelope;
+  if (parts.length !== 4) {
+    throw new Error("Malformed case envelope");
+  }
 
   const nonceHex = parts[2]!;
   const cipherHex = parts[3]!;

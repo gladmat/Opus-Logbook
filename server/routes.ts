@@ -425,7 +425,10 @@ function serializeProfile(profile: Profile | undefined | null) {
 // instances. The auth limiter is mounted on `/api/auth` in setupApp; the
 // user-search and invitation limiters are mounted per-route below.
 
-// Hash password reset tokens before storing in database
+// Hash password reset tokens before storing in database. Plain SHA-256
+// (no salt/HMAC) is sufficient here because tokens are randomBytes(32) —
+// 256 bits of entropy makes preimage/lookup-table attacks infeasible, and
+// tokens are single-use with a 1-hour expiry.
 const hashResetToken = (token: string) =>
   createHash("sha256").update(token).digest("hex");
 
@@ -658,10 +661,14 @@ export async function registerRoutes(app: Express): Promise<void> {
           return;
         }
 
-        // New user — create account
-        const userEmail = normalizeEmail(
-          email || tokenEmail || `apple_${appleUserId}@private.opus.local`,
-        );
+        // New user — create account. Normalize each candidate BEFORE
+        // picking, so a whitespace-only client-supplied email falls through
+        // to the token email / synthetic fallback instead of winning the
+        // `||` chain and normalizing to "".
+        const userEmail =
+          normalizeEmail(email ?? "") ||
+          normalizeEmail(tokenEmail ?? "") ||
+          `apple_${appleUserId}@private.opus.local`;
 
         // Check if email already exists (user may have signed up with email first)
         let emailUser;
@@ -2656,6 +2663,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
         const identifiers = await storage.getDiscoverableIdentifiers();
         // Sorted so the response leaks no insertion/identity ordering.
+        // Cross-request correlation is impossible too: the OPRF key is
+        // ephemeral per request, so the same member yields a different PRF
+        // output (and thus a different sorted position) on every call.
         const members = identifiers
           .map((identifier) => evaluateIdentifier(secretKey, identifier))
           .sort();

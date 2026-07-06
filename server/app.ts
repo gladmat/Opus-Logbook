@@ -303,7 +303,9 @@ function configureExpoAndLanding(app: Express) {
   app.use(
     "/uploads",
     (req: Request, res: Response, next: NextFunction) => {
-      void authenticateToken(req, res, next);
+      // Forward unexpected rejections to the Express error handler —
+      // otherwise a thrown verify would leave the request hanging forever.
+      authenticateToken(req, res, next).catch(next);
     },
     express.static(path.resolve(process.cwd(), "uploads")),
   );

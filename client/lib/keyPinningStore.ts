@@ -69,10 +69,26 @@ async function readStore(): Promise<PinStore> {
     const parsed = JSON.parse(plain) as PinStore;
     if (parsed?.version !== 1 || !parsed.pins) return emptyStore();
     return parsed;
-  } catch {
+  } catch (err) {
     // Corrupt / legacy — start fresh. Treating failures as "no pins yet"
     // degrades to pre-TOFU behaviour (anyone can be pinned next time)
-    // rather than hard-blocking the app.
+    // rather than hard-blocking the app. That downgrade is security-
+    // relevant (a wiped store re-pins whatever the server sends next), so
+    // make it observable instead of silent.
+    void import("./sentry")
+      .then(({ captureClientMessage }) =>
+        captureClientMessage(
+          "TOFU pin store unreadable — reset to empty",
+          "warning",
+        ),
+      )
+      .catch(() => {});
+    if (__DEV__) {
+      console.warn(
+        "[keyPinningStore] pin store unreadable, starting fresh",
+        err,
+      );
+    }
     return emptyStore();
   }
 }
