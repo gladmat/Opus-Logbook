@@ -149,6 +149,18 @@ describe("getDateWarnings", () => {
     );
     expect(getDateHardBlockErrors(f)).toEqual([]);
   });
+
+  it("warns when end time is set without a start time", () => {
+    const f = fields({ surgeryEndTime: "14:15" });
+    expect(codes(f)).toContain("Surgery end time set without a start time");
+    expect(getDateHardBlockErrors(f)).toEqual([]);
+  });
+
+  it("does not warn about missing start when both times set", () => {
+    expect(
+      codes(fields({ surgeryStartTime: "08:30", surgeryEndTime: "14:15" })),
+    ).not.toContain("Surgery end time set without a start time");
+  });
 });
 
 describe("validateDateFieldInline + procedureBeforeDobMessage", () => {
@@ -186,6 +198,19 @@ describe("validateDateFieldInline + procedureBeforeDobMessage", () => {
         fields({ surgeryStartTime: "08:30", surgeryEndTime: "08:30" }),
       ),
     ).toBe("Surgery end time must be after start time");
+  });
+
+  it("nudges for a start time when only end time is entered", () => {
+    expect(
+      validateDateFieldInline(
+        "surgeryEndTime",
+        fields({ surgeryEndTime: "14:15" }),
+      ),
+    ).toBe("Enter a start time as well");
+  });
+
+  it("stays quiet when neither time is entered", () => {
+    expect(validateDateFieldInline("surgeryEndTime", fields())).toBeNull();
   });
 
   it("procedureBeforeDobMessage flags and clears correctly", () => {

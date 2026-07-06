@@ -84,6 +84,8 @@ export function validateDateFieldInline(
       // treated as an overnight case — a soft warning, not a hard block.
       const startMins = timeToMinutes(fields.surgeryStartTime);
       const endMins = timeToMinutes(fields.surgeryEndTime);
+      if (endMins != null && startMins == null)
+        return "Enter a start time as well";
       if (startMins != null && endMins != null && endMins === startMins)
         return "Surgery end time must be after start time";
       return null;
@@ -218,6 +220,13 @@ export function getDateWarnings(fields: CaseDateFields): ValidationError[] {
       sectionId: "operative",
       message:
         "Surgery end time is before start time — confirm this crossed midnight",
+    });
+  }
+  if (endMins != null && startMins == null) {
+    warnings.push({
+      field: "surgeryStartTime",
+      sectionId: "operative",
+      message: "Surgery end time set without a start time",
     });
   }
 

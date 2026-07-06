@@ -7,9 +7,9 @@ import {
   FormField,
   SelectField,
   DatePickerField,
+  TimePickerField,
 } from "@/components/FormField";
 import { SectionHeader } from "@/components/SectionHeader";
-import { TimeField } from "@/components/TimeField";
 import { CollapsibleFormSection } from "./CollapsibleFormSection";
 import {
   useCaseFormDispatch,
@@ -327,6 +327,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
               onChange={(v: string) => dispatch(setField("admissionDate", v))}
               maximumDate={notFutureMax()}
               testID="caseForm.operative.picker-admissionDate"
+              fieldId="admissionDate"
             />
           </View>
           <View style={styles.halfField}>
@@ -339,6 +340,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
               clearable
               error={fieldErrors.dischargeDate}
               testID="caseForm.operative.picker-dischargeDate"
+              fieldId="dischargeDate"
             />
           </View>
         </View>
@@ -353,6 +355,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
                 placeholder="Select date..."
                 maximumDate={notFutureMax()}
                 error={fieldErrors.injuryDate}
+                fieldId="injuryDate"
               />
             </View>
           </View>
@@ -373,18 +376,20 @@ export const OperativeSection = React.memo(function OperativeSection() {
 
         <View style={styles.row}>
           <View style={styles.halfField}>
-            <TimeField
+            <TimePickerField
               label="Start Time"
               value={surgeryStartTime}
               onChangeText={(v: string) =>
                 dispatch(setField("surgeryStartTime", v))
               }
               placeholder="e.g., 0830"
+              error={fieldErrors.surgeryStartTime}
               testID="caseForm.operative.picker-surgeryStart"
+              fieldId="surgeryStartTime"
             />
           </View>
           <View style={styles.halfField}>
-            <TimeField
+            <TimePickerField
               label="End Time"
               value={surgeryEndTime}
               onChangeText={(v: string) =>
@@ -393,6 +398,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
               placeholder="e.g., 1415"
               error={fieldErrors.surgeryEndTime}
               testID="caseForm.operative.picker-surgeryEnd"
+              fieldId="surgeryEndTime"
             />
           </View>
         </View>
