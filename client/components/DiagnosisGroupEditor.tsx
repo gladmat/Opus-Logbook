@@ -2551,6 +2551,9 @@ function DiagnosisGroupEditorInner({
             setIsExpanded(true);
           }}
           style={styles.collapsedGroupCardInner}
+          accessibilityRole="button"
+          accessibilityLabel={`Expand diagnosis group ${index + 1}: ${currentGroupTitle}`}
+          accessibilityState={{ expanded: false }}
         >
           <View style={styles.collapsedGroupHeader}>
             <View
@@ -2620,6 +2623,8 @@ function DiagnosisGroupEditorInner({
                       onMoveUp();
                     }}
                     hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Move diagnosis group up"
                   >
                     <Feather
                       name="chevron-up"
@@ -2635,6 +2640,8 @@ function DiagnosisGroupEditorInner({
                       onMoveDown();
                     }}
                     hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Move diagnosis group down"
                   >
                     <Feather
                       name="chevron-down"
@@ -2722,6 +2729,9 @@ function DiagnosisGroupEditorInner({
                 setIsExpanded(false);
               }}
               hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={`Collapse diagnosis group ${index + 1}`}
+              accessibilityState={{ expanded: true }}
             >
               <Feather name="minus" size={20} color={theme.textSecondary} />
             </Pressable>
@@ -2842,6 +2852,9 @@ function DiagnosisGroupEditorInner({
                       },
                     ]}
                     testID={`caseForm.hand.chip-caseType-${type}`}
+                    accessibilityRole="radio"
+                    accessibilityLabel={`Case type: ${label}`}
+                    accessibilityState={{ selected: isActive }}
                   >
                     <ThemedText
                       style={[
@@ -2894,6 +2907,9 @@ function DiagnosisGroupEditorInner({
                       },
                     ]}
                     testID={`caseForm.hand.chip-laterality-${side}`}
+                    accessibilityRole="radio"
+                    accessibilityLabel={`Laterality: ${side === "left" ? "Left hand" : "Right hand"}`}
+                    accessibilityState={{ selected: isSelected }}
                   >
                     <ThemedText
                       style={[
@@ -2990,6 +3006,8 @@ function DiagnosisGroupEditorInner({
                     onAddElectiveHandGroup();
                   }}
                   style={styles.addElectiveRow}
+                  accessibilityRole="button"
+                  accessibilityLabel="Add elective procedure"
                 >
                   <Feather name="plus-circle" size={16} color={theme.link} />
                   <View>
@@ -3081,6 +3099,8 @@ function DiagnosisGroupEditorInner({
                   onAddElectiveHandGroup();
                 }}
                 style={styles.addElectiveRow}
+                accessibilityRole="button"
+                accessibilityLabel="Add elective procedure"
               >
                 <Feather name="plus-circle" size={16} color={theme.link} />
                 <View>
@@ -3243,6 +3263,8 @@ function DiagnosisGroupEditorInner({
                           onAddElectiveHandGroup();
                         }}
                         style={styles.addElectiveRow}
+                        accessibilityRole="button"
+                        accessibilityLabel="Add another elective diagnosis"
                       >
                         <Feather
                           name="plus-circle"
@@ -3345,6 +3367,13 @@ function DiagnosisGroupEditorInner({
                   }}
                   style={styles.showAllLink}
                   testID="caseForm.diagnosis.btn-snomedSearch"
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    showSnomedSearch
+                      ? "Hide SNOMED CT diagnosis search"
+                      : "Search SNOMED CT for diagnosis"
+                  }
+                  accessibilityState={{ expanded: showSnomedSearch }}
                 >
                   <Feather
                     name={showSnomedSearch ? "chevron-up" : "search"}
@@ -3499,6 +3528,9 @@ function DiagnosisGroupEditorInner({
                               : (value as ClinicalSuspicion),
                           );
                         }}
+                        accessibilityRole="radio"
+                        accessibilityLabel={`Clinical suspicion: ${label}`}
+                        accessibilityState={{ selected: isSelected }}
                       >
                         <ThemedText
                           style={[
@@ -3672,6 +3704,8 @@ function DiagnosisGroupEditorInner({
                   setShowManualTraumaDiagnosisPicker(false);
                   setIsDiagnosisPickerCollapsed(true);
                 }}
+                accessibilityRole="button"
+                accessibilityLabel="Use trauma auto-diagnosis"
               >
                 <Feather name="refresh-ccw" size={14} color={theme.link} />
                 <ThemedText
@@ -3789,6 +3823,8 @@ function DiagnosisGroupEditorInner({
             <Pressable
               style={styles.inlineDiagnosisToggle}
               onPress={openTraumaProcedureEditor}
+              accessibilityRole="button"
+              accessibilityLabel="Review full procedure editor"
             >
               <Feather name="list" size={14} color={theme.link} />
               <ThemedText
@@ -3815,6 +3851,8 @@ function DiagnosisGroupEditorInner({
               <Pressable
                 style={styles.inlineDiagnosisToggle}
                 onPress={closeTraumaProcedureEditor}
+                accessibilityRole="button"
+                accessibilityLabel="Hide full procedure editor"
               >
                 <Feather name="chevron-up" size={14} color={theme.link} />
                 <ThemedText
@@ -3834,6 +3872,9 @@ function DiagnosisGroupEditorInner({
               groupSpecialty === "head_neck") ? (
               <View style={{ marginBottom: Spacing.md }}>
                 <Pressable
+                  accessibilityRole="checkbox"
+                  accessibilityLabel="Multiple lesions in this session"
+                  accessibilityState={{ checked: isMultiLesion }}
                   onPress={() => {
                     const newValue = !isMultiLesion;
                     setIsMultiLesion(newValue);
@@ -3965,6 +4006,9 @@ function DiagnosisGroupEditorInner({
                                     !isSelected,
                                   );
                                 }}
+                                accessibilityRole="checkbox"
+                                accessibilityLabel={s.displayName}
+                                accessibilityState={{ checked: isSelected }}
                               >
                                 <Feather
                                   name={isSelected ? "check-circle" : "circle"}
@@ -4004,6 +4048,8 @@ function DiagnosisGroupEditorInner({
                         style={styles.showAllProceduresLink}
                         onPress={() => setShowAllProcedures(true)}
                         testID="caseForm.procedure.btn-showAll"
+                        accessibilityRole="button"
+                        accessibilityLabel="Show all procedures"
                       >
                         <Feather
                           name="chevron-down"
@@ -4065,6 +4111,8 @@ function DiagnosisGroupEditorInner({
                             <Pressable
                               style={styles.showAllProceduresLink}
                               onPress={() => setShowCustomProcedureEntry(false)}
+                              accessibilityRole="button"
+                              accessibilityLabel="Collapse custom procedure entry"
                             >
                               <Feather
                                 name="chevron-up"
@@ -4088,6 +4136,8 @@ function DiagnosisGroupEditorInner({
                               addProcedure();
                               setShowCustomProcedureEntry(true);
                             }}
+                            accessibilityRole="button"
+                            accessibilityLabel="Add custom procedure"
                           >
                             <Feather name="plus" size={16} color={theme.link} />
                             <ThemedText
@@ -4108,6 +4158,8 @@ function DiagnosisGroupEditorInner({
                             style={styles.showAllProceduresLink}
                             onPress={() => setShowAllProcedures(false)}
                             testID="caseForm.procedure.btn-showFewer"
+                            accessibilityRole="button"
+                            accessibilityLabel="Show fewer procedures"
                           >
                             <Feather
                               name="chevron-up"
@@ -4215,6 +4267,8 @@ function DiagnosisGroupEditorInner({
                             { borderColor: theme.link },
                           ]}
                           onPress={addProcedure}
+                          accessibilityRole="button"
+                          accessibilityLabel="Add another procedure"
                         >
                           <Feather name="plus" size={18} color={theme.link} />
                           <ThemedText
@@ -4247,6 +4301,9 @@ function DiagnosisGroupEditorInner({
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setHistologyPending(!histologyPending);
               }}
+              accessibilityRole="checkbox"
+              accessibilityLabel="Histology pending"
+              accessibilityState={{ checked: histologyPending }}
               style={{
                 flexDirection: "row",
                 alignItems: "center",

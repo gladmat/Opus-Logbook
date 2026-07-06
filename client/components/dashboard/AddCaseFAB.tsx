@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text } from "react-native";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { Feather } from "@/components/FeatherIcon";
 import { useTheme } from "@/hooks/useTheme";
+import { useReduceMotion } from "@/hooks/useReduceMotion";
 import { Shadows, Spacing } from "@/constants/theme";
 import * as Haptics from "expo-haptics";
 import Animated, {
@@ -46,6 +47,7 @@ function AddCaseFABInner({
   onGuidedCapture,
 }: AddCaseFABProps) {
   const { theme, isDark } = useTheme();
+  const reduceMotion = useReduceMotion();
   const tabBarHeight = useBottomTabBarHeight();
   const [isExpanded, setIsExpanded] = useState(false);
   const expandedRef = useRef(false);
@@ -79,6 +81,15 @@ function AddCaseFABInner({
     setIsExpanded(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
+    if (reduceMotion) {
+      iconRotation.value = 45;
+      backdropOpacity.value = 1;
+      for (const progress of itemProgressValues) {
+        progress.value = 1;
+      }
+      return;
+    }
+
     iconRotation.value = withSpring(45, { damping: 22, stiffness: 200 });
     backdropOpacity.value = withTiming(1, { duration: 200 });
 
@@ -89,11 +100,22 @@ function AddCaseFABInner({
         withSpring(1, { damping: 22, stiffness: 200 }),
       );
     }
-  }, [iconRotation, backdropOpacity, itemProgressValues]);
+  }, [iconRotation, backdropOpacity, itemProgressValues, reduceMotion]);
 
   const collapse = useCallback(
     (action?: () => void) => {
       expandedRef.current = false;
+
+      if (reduceMotion) {
+        iconRotation.value = 0;
+        backdropOpacity.value = 0;
+        for (const progress of itemProgressValues) {
+          progress.value = 0;
+        }
+        setIsExpanded(false);
+        action?.();
+        return;
+      }
 
       iconRotation.value = withSpring(0, { damping: 22, stiffness: 200 });
       backdropOpacity.value = withTiming(0, { duration: 150 });
@@ -112,7 +134,7 @@ function AddCaseFABInner({
         action?.();
       }, 180);
     },
-    [iconRotation, backdropOpacity, itemProgressValues],
+    [iconRotation, backdropOpacity, itemProgressValues, reduceMotion],
   );
 
   const handleFABPress = useCallback(() => {

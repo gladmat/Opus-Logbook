@@ -174,12 +174,6 @@ export default function CaseFormScreen() {
   const formOpenedAtRef = useRef(new Date().toISOString());
   // Snapshot of scroll position taken when entering reviewMode, restored on exit.
   const preReviewScrollRef = useRef(0);
-  // Used by the dev-only jump detector — last scroll sample {y, t}.
-  const lastScrollSampleRef = useRef({ y: 0, t: 0 });
-  // Last touched testID, captured on the root scroll view's onTouchStart. Used
-  // by the dev-only jump detector to attribute a jump to the element that was
-  // pressed immediately before it.
-  const lastTouchedTestIdRef = useRef<string | null>(null);
 
   const [activeSection, setActiveSection] = useState("patient");
   const [reviewMode, setReviewMode] = useState(false);
@@ -725,22 +719,6 @@ export default function CaseFormScreen() {
 
   const handleScroll = useCallback((event: any) => {
     const y = event.nativeEvent.contentOffset.y;
-    const t = Date.now();
-
-    // Dev-only jump detector: an abrupt upward delta in a tiny time window is
-    // almost certainly an unintentional scroll reset, not a user gesture.
-    // Threshold tuned for "obvious" jumps; smooth flicks stay below.
-    if (__DEV__) {
-      const prev = lastScrollSampleRef.current;
-      const dt = t - prev.t;
-      const dy = y - prev.y;
-      if (dt > 0 && dt < 200 && dy < -250) {
-        console.warn(
-          `[opus:scroll-jump] Δy=${dy.toFixed(0)}px in ${dt}ms (${prev.y.toFixed(0)} → ${y.toFixed(0)}); lastTouched=${lastTouchedTestIdRef.current ?? "<unknown>"}`,
-        );
-      }
-    }
-    lastScrollSampleRef.current = { y, t };
 
     scrollPositionRef.current = y;
 
@@ -758,36 +736,6 @@ export default function CaseFormScreen() {
     setActiveSection((prev) =>
       prev === currentSection ? prev : currentSection,
     );
-  }, []);
-
-  // Capture the last-touched testID so the jump detector can attribute a
-  // scroll-to-top to the element that was just tapped.
-  const handleTouchStart = useCallback((event: any) => {
-    if (!__DEV__) return;
-    try {
-      // Walk up the event target's parent chain looking for a testID prop.
-      // React Native exposes the actual native tag rather than the testID,
-      // so we read it off the event's _targetInst fiber when available.
-      const target =
-        event?._targetInst ?? event?.nativeEvent?._targetInst ?? event?.target;
-      let node: any = target;
-      let depth = 0;
-      while (node && depth < 12) {
-        const testID =
-          node.memoizedProps?.testID ??
-          node.stateNode?.props?.testID ??
-          node.props?.testID;
-        if (typeof testID === "string" && testID.length > 0) {
-          lastTouchedTestIdRef.current = testID;
-          return;
-        }
-        node = node.return ?? node._owner ?? null;
-        depth += 1;
-      }
-      lastTouchedTestIdRef.current = null;
-    } catch {
-      lastTouchedTestIdRef.current = null;
-    }
   }, []);
 
   // ── Render ────────────────────────────────────────────────────────────
@@ -860,7 +808,6 @@ export default function CaseFormScreen() {
             },
           ]}
           onScroll={handleScroll}
-          onTouchStart={__DEV__ ? handleTouchStart : undefined}
           scrollEventThrottle={16}
         >
           <FormScrollProvider
