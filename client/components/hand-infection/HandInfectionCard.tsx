@@ -260,7 +260,7 @@ export const HandInfectionCard = React.memo(function HandInfectionCard({
         ]}
       >
         <View
-          style={[styles.header, { backgroundColor: theme.warning + "15" }]}
+          style={[styles.header, { backgroundColor: theme.warningSurface }]}
         >
           <Feather name="alert-triangle" size={16} color={theme.warning} />
           <ThemedText style={[styles.headerTitle, { color: theme.text }]}>
@@ -334,7 +334,7 @@ export const HandInfectionCard = React.memo(function HandInfectionCard({
       ]}
     >
       {/* ── Header ──────────────────────────────────────────────────── */}
-      <View style={[styles.header, { backgroundColor: theme.warning + "15" }]}>
+      <View style={[styles.header, { backgroundColor: theme.warningSurface }]}>
         <Feather name="alert-triangle" size={16} color={theme.warning} />
         <ThemedText style={[styles.headerTitle, { color: theme.text }]}>
           Hand Infection Details

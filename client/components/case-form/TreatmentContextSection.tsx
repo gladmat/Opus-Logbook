@@ -88,7 +88,7 @@ export const TreatmentContextSection = React.memo(
                   styles.checkbox,
                   {
                     backgroundColor: priorRadiotherapy
-                      ? theme.link + "20"
+                      ? theme.accentSurface
                       : theme.backgroundDefault,
                     borderColor: priorRadiotherapy ? theme.link : theme.border,
                   },
@@ -117,7 +117,7 @@ export const TreatmentContextSection = React.memo(
                   styles.checkbox,
                   {
                     backgroundColor: priorChemotherapy
-                      ? theme.link + "20"
+                      ? theme.accentSurface
                       : theme.backgroundDefault,
                     borderColor: priorChemotherapy ? theme.link : theme.border,
                   },
@@ -154,7 +154,7 @@ export const TreatmentContextSection = React.memo(
                   styles.checkbox,
                   {
                     backgroundColor: intraoperativeTransfusion
-                      ? theme.link + "20"
+                      ? theme.accentSurface
                       : theme.backgroundDefault,
                     borderColor: intraoperativeTransfusion
                       ? theme.link

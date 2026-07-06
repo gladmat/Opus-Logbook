@@ -214,7 +214,7 @@ function LocationCard({
                     styles.smallPill,
                     {
                       backgroundColor: isSelected
-                        ? theme.link + "15"
+                        ? theme.accentSurface
                         : theme.backgroundDefault,
                       borderColor: isSelected ? theme.link : theme.border,
                     },
@@ -251,7 +251,7 @@ function LocationCard({
                   styles.pill,
                   {
                     backgroundColor: isSelected
-                      ? theme.link + "15"
+                      ? theme.accentSurface
                       : theme.backgroundDefault,
                     borderColor: isSelected ? theme.link : theme.border,
                   },
@@ -288,7 +288,7 @@ function LocationCard({
                     styles.pill,
                     {
                       backgroundColor: isSelected
-                        ? theme.link + "15"
+                        ? theme.accentSurface
                         : theme.backgroundDefault,
                       borderColor: isSelected ? theme.link : theme.border,
                     },
@@ -325,7 +325,7 @@ function LocationCard({
                   styles.pill,
                   {
                     backgroundColor: isSelected
-                      ? theme.link + "15"
+                      ? theme.accentSurface
                       : theme.backgroundDefault,
                     borderColor: isSelected ? theme.link : theme.border,
                   },
@@ -538,7 +538,7 @@ export function SoftTissueSpecialInjurySection({
                 styles.specialCard,
                 {
                   backgroundColor: isActive
-                    ? theme.link + "15"
+                    ? theme.accentSurface
                     : theme.backgroundTertiary,
                   borderColor: isActive ? theme.link : theme.border,
                 },

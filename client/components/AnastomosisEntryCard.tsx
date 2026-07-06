@@ -279,7 +279,7 @@ export function AnastomosisEntryCard({
                     {
                       backgroundColor:
                         entry.recipientVesselSnomedCode === option.value
-                          ? theme.link + "15"
+                          ? theme.accentSurface
                           : theme.backgroundDefault,
                       borderColor:
                         entry.recipientVesselSnomedCode === option.value

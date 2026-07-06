@@ -200,7 +200,7 @@ export const TBSAQuickEntry = React.memo(function TBSAQuickEntry({
                   styles.chip,
                   {
                     backgroundColor: isSelected
-                      ? theme.link + "20"
+                      ? theme.accentSurface
                       : theme.backgroundRoot,
                     borderColor: isSelected ? theme.link : theme.border,
                   },
@@ -238,7 +238,7 @@ export const TBSAQuickEntry = React.memo(function TBSAQuickEntry({
                   styles.chip,
                   {
                     backgroundColor: isSelected
-                      ? theme.link + "20"
+                      ? theme.accentSurface
                       : theme.backgroundRoot,
                     borderColor: isSelected ? theme.link : theme.border,
                   },

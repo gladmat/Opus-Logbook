@@ -319,8 +319,8 @@ export function DiagnosisProcedureSuggestionPanel({
           style={[
             styles.stateBanner,
             {
-              backgroundColor: theme.warning + "14",
-              borderColor: theme.warning + "30",
+              backgroundColor: theme.warningSurface,
+              borderColor: theme.warningBorder,
             },
           ]}
         >
@@ -351,8 +351,8 @@ export function DiagnosisProcedureSuggestionPanel({
                   styles.summaryIconWrap,
                   {
                     backgroundColor: isAccepted
-                      ? theme.success + "18"
-                      : theme.link + "14",
+                      ? theme.successSurface
+                      : theme.accentSurface,
                   },
                 ]}
               >
@@ -634,7 +634,7 @@ export function DiagnosisProcedureSuggestionPanel({
                                 ? theme.link
                                 : theme.border,
                               backgroundColor: isChecked
-                                ? theme.link + "12"
+                                ? theme.accentSurface
                                 : theme.backgroundSecondary,
                               opacity: isAccepted ? 1 : undefined,
                             },
@@ -688,7 +688,7 @@ export function DiagnosisProcedureSuggestionPanel({
                                 <View
                                   style={[
                                     styles.recommendedBadge,
-                                    { backgroundColor: theme.link + "14" },
+                                    { backgroundColor: theme.accentSurface },
                                   ]}
                                 >
                                   <ThemedText

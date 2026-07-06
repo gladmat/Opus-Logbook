@@ -35,8 +35,8 @@ function ProtocolBadgeInner({
       style={[
         styles.badge,
         {
-          backgroundColor: theme.link + "15",
-          borderColor: theme.link + "40",
+          backgroundColor: theme.accentSurface,
+          borderColor: theme.accentBorder,
         },
       ]}
     >

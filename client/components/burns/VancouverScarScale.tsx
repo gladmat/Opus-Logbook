@@ -156,7 +156,7 @@ export const VancouverScarScaleInput = React.memo(
                       styles.optionChip,
                       {
                         backgroundColor: selected
-                          ? theme.link + "20"
+                          ? theme.accentSurface
                           : theme.backgroundRoot,
                         borderColor: selected ? theme.link : theme.border,
                       },

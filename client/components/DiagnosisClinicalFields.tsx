@@ -56,7 +56,7 @@ function AOTAClassificationCard({
         {
           borderColor: hasClassification ? theme.link : theme.border,
           backgroundColor: hasClassification
-            ? theme.link + "08"
+            ? theme.accentSurface
             : theme.backgroundDefault,
         },
       ]}

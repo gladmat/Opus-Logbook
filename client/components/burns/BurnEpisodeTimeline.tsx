@@ -210,8 +210,8 @@ function CaseTimelineCard({
         style={[
           styles.phaseBadge,
           {
-            backgroundColor: theme.link + "15",
-            borderColor: theme.link + "30",
+            backgroundColor: theme.accentSurface,
+            borderColor: theme.accentBorder,
           },
         ]}
       >

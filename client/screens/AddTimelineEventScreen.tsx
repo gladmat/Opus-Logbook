@@ -443,7 +443,7 @@ export default function AddTimelineEventScreen() {
             flexDirection: "row",
             alignItems: "flex-start",
             gap: Spacing.sm,
-            backgroundColor: theme.warning + "1A",
+            backgroundColor: theme.warningSurface,
             borderRadius: BorderRadius.md,
             padding: Spacing.md,
             marginTop: Spacing.md,

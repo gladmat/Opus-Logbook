@@ -336,7 +336,7 @@ export function OMENSInput({ value, onChange }: OMENSInputProps) {
 
       {/* OMENS string badge */}
       <View
-        style={[styles.notationBadge, { backgroundColor: theme.link + "15" }]}
+        style={[styles.notationBadge, { backgroundColor: theme.accentSurface }]}
       >
         <ThemedText
           style={[styles.notationLabel, { color: theme.textSecondary }]}

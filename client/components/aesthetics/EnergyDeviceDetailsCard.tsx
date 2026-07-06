@@ -344,7 +344,7 @@ export const EnergyDeviceDetailsCard = React.memo(
           <View
             style={[
               styles.deviceBadge,
-              { backgroundColor: theme.link + "1A", borderColor: theme.link },
+              { backgroundColor: theme.accentSurface, borderColor: theme.link },
             ]}
           >
             <ThemedText style={[styles.deviceBadgeText, { color: theme.link }]}>

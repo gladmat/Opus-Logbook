@@ -121,7 +121,7 @@ export const OutcomesSection = React.memo(function OutcomesSection({
             styles.checkbox,
             {
               backgroundColor: discussedAtMDM
-                ? theme.link + "20"
+                ? theme.accentSurface
                 : theme.backgroundDefault,
               borderColor: discussedAtMDM ? theme.link : theme.border,
             },
@@ -204,7 +204,7 @@ export const OutcomesSection = React.memo(function OutcomesSection({
                 styles.checkbox,
                 {
                   backgroundColor: isUnplannedReadmission
-                    ? theme.warning + "20"
+                    ? theme.warningSurface
                     : theme.backgroundDefault,
                   borderColor: isUnplannedReadmission
                     ? theme.warning
@@ -263,7 +263,7 @@ export const OutcomesSection = React.memo(function OutcomesSection({
                 styles.checkbox,
                 {
                   backgroundColor: returnToTheatre
-                    ? theme.error + "20"
+                    ? theme.errorSurface
                     : theme.backgroundDefault,
                   borderColor: returnToTheatre ? theme.error : theme.border,
                 },

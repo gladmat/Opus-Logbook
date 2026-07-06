@@ -339,7 +339,7 @@ export const AestheticProcedureFirstFlow = React.memo(
                       styles.chip,
                       {
                         backgroundColor: isSelected
-                          ? theme.link + "1A"
+                          ? theme.accentSurface
                           : theme.backgroundSecondary,
                         borderColor: isSelected ? theme.link : theme.border,
                       },

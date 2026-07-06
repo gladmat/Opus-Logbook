@@ -163,7 +163,7 @@ function ProcedureSubcategoryPickerImpl({
                 styles.procedureRow,
                 {
                   backgroundColor: isSelected
-                    ? theme.link + "15"
+                    ? theme.accentSurface
                     : theme.backgroundDefault,
                   borderColor: isSelected ? theme.link : theme.border,
                 },
@@ -186,7 +186,7 @@ function ProcedureSubcategoryPickerImpl({
                     <View
                       style={[
                         styles.badge,
-                        { backgroundColor: theme.error + "20" },
+                        { backgroundColor: theme.errorSurface },
                       ]}
                     >
                       <ThemedText
@@ -200,7 +200,7 @@ function ProcedureSubcategoryPickerImpl({
                     <View
                       style={[
                         styles.badge,
-                        { backgroundColor: theme.link + "15" },
+                        { backgroundColor: theme.accentSurface },
                       ]}
                     >
                       <ThemedText

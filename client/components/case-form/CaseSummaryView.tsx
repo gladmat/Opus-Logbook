@@ -580,8 +580,8 @@ export function CaseSummaryView({
           style={[
             styles.warningBanner,
             {
-              backgroundColor: theme.warning + "10",
-              borderColor: theme.warning + "40",
+              backgroundColor: theme.warningSurface,
+              borderColor: theme.warningBorder,
             },
           ]}
         >

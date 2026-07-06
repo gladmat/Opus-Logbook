@@ -191,8 +191,8 @@ export const DiagnosisProcedureSection = React.memo(
             style={[
               styles.diagnosisError,
               {
-                backgroundColor: theme.error + "10",
-                borderColor: theme.error + "40",
+                backgroundColor: theme.errorSurface,
+                borderColor: theme.errorBorder,
               },
             ]}
           >

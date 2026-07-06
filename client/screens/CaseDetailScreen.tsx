@@ -860,7 +860,7 @@ export default function CaseDetailScreen() {
                         <View
                           style={[
                             styles.procedureNumber,
-                            { backgroundColor: theme.link + "20" },
+                            { backgroundColor: theme.accentSurface },
                           ]}
                         >
                           <ThemedText
@@ -1476,7 +1476,7 @@ export default function CaseDetailScreen() {
             style={[
               styles.viewAllPhotosButton,
               {
-                backgroundColor: theme.link + "14",
+                backgroundColor: theme.accentSurface,
                 borderColor: theme.link,
               },
             ]}
@@ -1937,8 +1937,8 @@ export default function CaseDetailScreen() {
                       style={[
                         styles.handInfectionSummary,
                         {
-                          backgroundColor: theme.warning + "10",
-                          borderColor: theme.warning + "30",
+                          backgroundColor: theme.warningSurface,
+                          borderColor: theme.warningBorder,
                         },
                       ]}
                     >
@@ -2036,8 +2036,8 @@ export default function CaseDetailScreen() {
             style={[
               styles.histologyButton,
               {
-                backgroundColor: theme.warning + "15",
-                borderColor: theme.warning + "40",
+                backgroundColor: theme.warningSurface,
+                borderColor: theme.warningBorder,
               },
             ]}
             testID="caseDetail.btn-addHistology"
@@ -2086,7 +2086,7 @@ export default function CaseDetailScreen() {
                     style={[
                       styles.comorbidityChip,
                       {
-                        backgroundColor: theme.warning + "20",
+                        backgroundColor: theme.warningSurface,
                         borderColor: theme.warning,
                       },
                     ]}
@@ -2183,7 +2183,10 @@ export default function CaseDetailScreen() {
           {caseData.teamMembers.map((member) => (
             <View key={member.id} style={styles.teamMember}>
               <View
-                style={[styles.avatar, { backgroundColor: theme.link + "20" }]}
+                style={[
+                  styles.avatar,
+                  { backgroundColor: theme.accentSurface },
+                ]}
               >
                 <Feather name="user" size={18} color={theme.link} />
               </View>
@@ -2474,7 +2477,7 @@ export default function CaseDetailScreen() {
             style={[
               styles.reviewCard,
               {
-                backgroundColor: theme.warning + "15",
+                backgroundColor: theme.warningSurface,
                 borderColor: theme.warning,
               },
             ]}
@@ -2666,7 +2669,7 @@ export default function CaseDetailScreen() {
                     styles.auditCheckbox,
                     {
                       backgroundColor: auditReadmission
-                        ? theme.warning + "20"
+                        ? theme.warningSurface
                         : theme.backgroundDefault,
                       borderColor: auditReadmission
                         ? theme.warning
@@ -2782,7 +2785,7 @@ export default function CaseDetailScreen() {
                     styles.auditCheckbox,
                     {
                       backgroundColor: auditReturnToTheatre
-                        ? theme.error + "20"
+                        ? theme.errorSurface
                         : theme.backgroundDefault,
                       borderColor: auditReturnToTheatre
                         ? theme.error
@@ -2864,7 +2867,7 @@ export default function CaseDetailScreen() {
                         <View
                           style={[
                             styles.gradeBadge,
-                            { backgroundColor: theme.warning + "20" },
+                            { backgroundColor: theme.warningSurface },
                           ]}
                         >
                           <ThemedText
@@ -3053,7 +3056,7 @@ export default function CaseDetailScreen() {
                               flexDirection: "row",
                               alignItems: "center",
                               gap: 4,
-                              backgroundColor: theme.success + "20",
+                              backgroundColor: theme.successSurface,
                               paddingHorizontal: 8,
                               paddingVertical: 2,
                               borderRadius: 10,
@@ -3173,7 +3176,7 @@ export default function CaseDetailScreen() {
                       <View
                         style={[
                           styles.complicationDataCard,
-                          { backgroundColor: theme.error + "10" },
+                          { backgroundColor: theme.errorSurface },
                         ]}
                       >
                         <ThemedText style={styles.complicationDesc}>

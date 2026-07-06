@@ -106,7 +106,7 @@ function ChipPicker<T extends string>({
                 styles.chip,
                 {
                   backgroundColor: isSelected
-                    ? theme.link + "20"
+                    ? theme.accentSurface
                     : theme.backgroundRoot,
                   borderColor: isSelected ? theme.link : theme.border,
                 },

@@ -245,7 +245,7 @@ function LesionRow({
         styles.lesionCard,
         {
           backgroundColor: theme.backgroundDefault,
-          borderColor: isExpanded ? theme.link + "40" : theme.border,
+          borderColor: isExpanded ? theme.accentBorder : theme.border,
           borderWidth: isExpanded ? 1.5 : 1,
         },
       ]}
@@ -431,7 +431,7 @@ function LesionRow({
                             {
                               backgroundColor:
                                 lesion.site === site
-                                  ? theme.link + "15"
+                                  ? theme.accentSurface
                                   : theme.backgroundRoot,
                               borderColor:
                                 lesion.site === site
@@ -490,7 +490,7 @@ function LesionRow({
                     {
                       backgroundColor:
                         lesion.reconstruction === opt.value
-                          ? theme.link + "15"
+                          ? theme.accentSurface
                           : theme.backgroundRoot,
                       borderColor:
                         lesion.reconstruction === opt.value

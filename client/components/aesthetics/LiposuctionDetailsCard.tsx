@@ -263,7 +263,7 @@ export const LiposuctionDetailsCard = React.memo(
         <View
           style={[
             styles.totalBadge,
-            { backgroundColor: theme.link + "1A", borderColor: theme.link },
+            { backgroundColor: theme.accentSurface, borderColor: theme.link },
           ]}
         >
           <ThemedText style={[styles.totalLabel, { color: theme.link }]}>

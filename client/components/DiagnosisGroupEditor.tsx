@@ -3902,7 +3902,7 @@ function DiagnosisGroupEditorInner({
                     borderWidth: 1,
                     borderColor: isMultiLesion ? theme.link : theme.border,
                     backgroundColor: isMultiLesion
-                      ? theme.link + "10"
+                      ? theme.accentSurface
                       : theme.backgroundDefault,
                   }}
                 >
@@ -4240,7 +4240,7 @@ function DiagnosisGroupEditorInner({
                           <View
                             style={[
                               styles.suggestionBanner,
-                              { backgroundColor: theme.warning + "12" },
+                              { backgroundColor: theme.warningSurface },
                             ]}
                           >
                             <Feather
@@ -4314,7 +4314,7 @@ function DiagnosisGroupEditorInner({
                 borderWidth: 1,
                 borderColor: histologyPending ? theme.warning : theme.border,
                 backgroundColor: histologyPending
-                  ? theme.warning + "10"
+                  ? theme.warningSurface
                   : theme.backgroundDefault,
               }}
             >

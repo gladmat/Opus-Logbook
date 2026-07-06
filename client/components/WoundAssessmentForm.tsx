@@ -359,7 +359,7 @@ export function WoundAssessmentForm({
                   styles.checkboxItem,
                   {
                     backgroundColor: checked
-                      ? theme.error + "15"
+                      ? theme.errorSurface
                       : theme.backgroundRoot,
                     borderColor: checked ? theme.error : theme.border,
                   },
@@ -665,7 +665,7 @@ function DressingCategorySection({
                   styles.productItem,
                   {
                     backgroundColor: isSelected
-                      ? theme.link + "10"
+                      ? theme.accentSurface
                       : theme.backgroundRoot,
                     borderColor: isSelected ? theme.link : theme.border,
                   },

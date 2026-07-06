@@ -163,8 +163,8 @@ export default function TeamContactsScreen() {
           style={[
             styles.discoveryBanner,
             {
-              backgroundColor: theme.link + "15",
-              borderColor: theme.link + "30",
+              backgroundColor: theme.accentSurface,
+              borderColor: theme.accentBorder,
             },
           ]}
         >
@@ -279,8 +279,8 @@ export default function TeamContactsScreen() {
                   style={[
                     styles.roleBadge,
                     {
-                      backgroundColor: theme.link + "15",
-                      borderColor: theme.link + "30",
+                      backgroundColor: theme.accentSurface,
+                      borderColor: theme.accentBorder,
                     },
                   ]}
                 >

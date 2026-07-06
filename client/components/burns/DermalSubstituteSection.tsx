@@ -120,7 +120,7 @@ export const DermalSubstituteSection = React.memo(
                     styles.chip,
                     {
                       backgroundColor: selected
-                        ? theme.link + "20"
+                        ? theme.accentSurface
                         : theme.backgroundRoot,
                       borderColor: selected ? theme.link : theme.border,
                     },
@@ -233,7 +233,7 @@ export const DermalSubstituteSection = React.memo(
                           styles.chip,
                           {
                             backgroundColor: selected
-                              ? theme.link + "20"
+                              ? theme.accentSurface
                               : theme.backgroundRoot,
                             borderColor: selected ? theme.link : theme.border,
                           },

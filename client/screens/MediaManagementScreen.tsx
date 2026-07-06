@@ -430,7 +430,7 @@ export default function MediaManagementScreen() {
                 paddingVertical: Spacing.sm,
                 borderRadius: BorderRadius.sm,
                 backgroundColor: lastSelectedTag
-                  ? theme.link + "15"
+                  ? theme.accentSurface
                   : theme.backgroundElevated,
                 borderWidth: 1,
                 borderColor: lastSelectedTag ? theme.link : theme.border,

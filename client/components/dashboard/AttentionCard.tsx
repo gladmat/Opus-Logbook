@@ -159,8 +159,8 @@ function AttentionCardInner({
             style={[
               styles.actionChip,
               {
-                backgroundColor: theme.accent + "15",
-                borderColor: theme.accent + "30",
+                backgroundColor: theme.accentSurface,
+                borderColor: theme.accentBorder,
               },
             ]}
             onPress={(e) => {
@@ -237,8 +237,8 @@ function AttentionCardInner({
             style={[
               styles.actionChip,
               {
-                backgroundColor: theme.accent + "15",
-                borderColor: theme.accent + "30",
+                backgroundColor: theme.accentSurface,
+                borderColor: theme.accentBorder,
               },
             ]}
             onPress={(e) => {

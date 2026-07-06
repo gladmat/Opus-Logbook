@@ -98,7 +98,7 @@ export function FlexorTendonSection({
                   styles.zoneChip,
                   {
                     backgroundColor: isSelected
-                      ? theme.link + "15"
+                      ? theme.accentSurface
                       : theme.backgroundTertiary,
                     borderColor: isSelected ? theme.link : theme.border,
                   },
@@ -142,7 +142,7 @@ export function FlexorTendonSection({
                   styles.zoneChip,
                   {
                     backgroundColor: isSelected
-                      ? theme.link + "15"
+                      ? theme.accentSurface
                       : theme.backgroundTertiary,
                     borderColor: isSelected ? theme.link : theme.border,
                   },
@@ -198,7 +198,7 @@ export function FlexorTendonSection({
                         : styles.tendonChipAuto,
                       {
                         backgroundColor: checked
-                          ? theme.link + "14"
+                          ? theme.accentSurface
                           : theme.backgroundDefault,
                         borderColor: checked ? theme.link : theme.border,
                       },

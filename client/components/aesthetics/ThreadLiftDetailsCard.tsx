@@ -111,7 +111,7 @@ export const ThreadLiftDetailsCard = React.memo(function ThreadLiftDetailsCard({
         <View
           style={[
             styles.badge,
-            { backgroundColor: theme.link + "1A", borderColor: theme.link },
+            { backgroundColor: theme.accentSurface, borderColor: theme.link },
           ]}
         >
           <ThemedText style={[styles.badgeText, { color: theme.link }]}>
@@ -261,7 +261,7 @@ export const ThreadLiftDetailsCard = React.memo(function ThreadLiftDetailsCard({
       <View
         style={[
           styles.badge,
-          { backgroundColor: theme.link + "1A", borderColor: theme.link },
+          { backgroundColor: theme.accentSurface, borderColor: theme.link },
         ]}
       >
         <ThemedText style={[styles.badgeText, { color: theme.link }]}>

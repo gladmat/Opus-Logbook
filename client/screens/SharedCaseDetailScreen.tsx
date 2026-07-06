@@ -405,7 +405,7 @@ export default function SharedCaseDetailScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Role badge */}
         <View
-          style={[styles.roleBanner, { backgroundColor: theme.accent + "15" }]}
+          style={[styles.roleBanner, { backgroundColor: theme.accentSurface }]}
         >
           <ThemedText style={[styles.roleLabel, { color: theme.accent }]}>
             YOUR ROLE:{" "}
@@ -610,7 +610,7 @@ export default function SharedCaseDetailScreen() {
                   <View
                     style={[
                       styles.teamRoleBadge,
-                      { backgroundColor: theme.accent + "20" },
+                      { backgroundColor: theme.accentSurface },
                     ]}
                   >
                     <ThemedText
@@ -738,7 +738,7 @@ export default function SharedCaseDetailScreen() {
             <View
               style={[
                 styles.statusBanner,
-                { backgroundColor: theme.success + "15" },
+                { backgroundColor: theme.successSurface },
               ]}
             >
               <Feather name="check-circle" size={20} color={theme.success} />
@@ -757,7 +757,7 @@ export default function SharedCaseDetailScreen() {
             <View
               style={[
                 styles.statusBanner,
-                { backgroundColor: theme.error + "15" },
+                { backgroundColor: theme.errorSurface },
               ]}
             >
               <Feather name="alert-triangle" size={20} color={theme.error} />

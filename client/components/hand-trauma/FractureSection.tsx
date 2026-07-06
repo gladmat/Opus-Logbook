@@ -395,8 +395,8 @@ export function FractureSection({
               style={[
                 styles.fractureChip,
                 {
-                  backgroundColor: theme.link + "15",
-                  borderColor: theme.link + "30",
+                  backgroundColor: theme.accentSurface,
+                  borderColor: theme.accentBorder,
                 },
               ]}
             >
@@ -505,7 +505,7 @@ export function FractureSection({
               styles.pill,
               {
                 backgroundColor: isComminuted
-                  ? theme.link + "15"
+                  ? theme.accentSurface
                   : theme.backgroundTertiary,
                 borderColor: isComminuted ? theme.link : theme.border,
               },

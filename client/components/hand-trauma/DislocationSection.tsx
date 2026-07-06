@@ -155,8 +155,8 @@ export function DislocationSection({
               style={[
                 styles.entryChip,
                 {
-                  backgroundColor: theme.link + "15",
-                  borderColor: theme.link + "30",
+                  backgroundColor: theme.accentSurface,
+                  borderColor: theme.accentBorder,
                 },
               ]}
             >
@@ -369,9 +369,9 @@ export function DislocationSection({
             styles.toggleRow,
             {
               backgroundColor: hasFracture
-                ? theme.link + "15"
+                ? theme.accentSurface
                 : theme.backgroundTertiary,
-              borderColor: hasFracture ? theme.link + "30" : theme.border,
+              borderColor: hasFracture ? theme.accentBorder : theme.border,
             },
           ]}
           onPress={() => {

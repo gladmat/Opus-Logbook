@@ -133,8 +133,8 @@ export function AcceptedMappingCard({
                 styles.summaryIconWrap,
                 {
                   backgroundColor: isAccepted
-                    ? theme.success + "18"
-                    : theme.link + "14",
+                    ? theme.successSurface
+                    : theme.accentSurface,
                 },
               ]}
             >
@@ -251,7 +251,7 @@ export function AcceptedMappingCard({
                       styles.procedureRow,
                       {
                         borderColor: theme.success,
-                        backgroundColor: theme.success + "12",
+                        backgroundColor: theme.successSurface,
                       },
                     ]}
                   >
@@ -306,7 +306,7 @@ export function AcceptedMappingCard({
                       {
                         borderColor: isSelected ? theme.link : theme.border,
                         backgroundColor: isSelected
-                          ? theme.link + "12"
+                          ? theme.accentSurface
                           : theme.backgroundSecondary,
                       },
                     ]}

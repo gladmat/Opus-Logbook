@@ -74,8 +74,8 @@ export const POSASObserverInput = React.memo(function POSASObserverInput({
           style={[
             styles.totalBadge,
             {
-              backgroundColor: theme.info + "15",
-              borderColor: theme.info + "40",
+              backgroundColor: theme.infoSurface,
+              borderColor: theme.infoBorder,
             },
           ]}
         >
@@ -114,7 +114,7 @@ export const POSASObserverInput = React.memo(function POSASObserverInput({
                     styles.scaleChip,
                     {
                       backgroundColor: selected
-                        ? theme.link + "20"
+                        ? theme.accentSurface
                         : theme.backgroundRoot,
                       borderColor: selected ? theme.link : theme.border,
                     },

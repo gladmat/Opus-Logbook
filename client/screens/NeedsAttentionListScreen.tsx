@@ -269,14 +269,14 @@ export default function NeedsAttentionListScreen() {
     (item: AttentionItem) => {
       if (item.type === "infection") {
         return {
-          bg: theme.error + "20",
+          bg: theme.errorSurface,
           text: theme.error,
           label: "Infection",
         };
       }
       if (item.type === "inpatient") {
         return {
-          bg: theme.accent + "20",
+          bg: theme.accentSurface,
           text: theme.accent,
           label: "Inpatient",
         };
@@ -284,27 +284,27 @@ export default function NeedsAttentionListScreen() {
       switch (item.episodeStatus) {
         case "active":
           return {
-            bg: theme.success + "20",
+            bg: theme.successSurface,
             text: theme.success,
             label: "Active",
           };
         case "on_hold":
           return {
-            bg: theme.warning + "20",
+            bg: theme.warningSurface,
             text: theme.warning,
             label: "On Hold",
           };
         case "planned":
-          return { bg: theme.info + "20", text: theme.info, label: "Planned" };
+          return { bg: theme.infoSurface, text: theme.info, label: "Planned" };
         default:
           return {
-            bg: theme.success + "20",
+            bg: theme.successSurface,
             text: theme.success,
             label: "Active",
           };
       }
     },
-    [theme.accent, theme.error, theme.info, theme.success, theme.warning],
+    [theme],
   );
 
   const renderItem = useCallback(
@@ -568,7 +568,7 @@ export default function NeedsAttentionListScreen() {
         animationType="fade"
         onRequestClose={() => setDischargeModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
+        <View style={[styles.modalOverlay, { backgroundColor: theme.scrim }]}>
           <View
             style={[
               styles.modalContent,
@@ -777,7 +777,6 @@ const styles = StyleSheet.create({
   // Discharge modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
     padding: Spacing.xl,

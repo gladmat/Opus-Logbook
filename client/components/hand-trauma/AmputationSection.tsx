@@ -253,7 +253,7 @@ function PerDigitCard({
         {
           borderColor: hasAmputation ? theme.link + "60" : theme.border,
           backgroundColor: hasAmputation
-            ? theme.link + "08"
+            ? theme.accentSurface
             : theme.backgroundTertiary,
         },
       ]}
@@ -438,8 +438,8 @@ function ReplantPicker({
                 {
                   backgroundColor: isSelected
                     ? key
-                      ? theme.success + "20"
-                      : theme.error + "20"
+                      ? theme.successSurface
+                      : theme.errorSurface
                     : small
                       ? theme.backgroundDefault
                       : theme.backgroundTertiary,

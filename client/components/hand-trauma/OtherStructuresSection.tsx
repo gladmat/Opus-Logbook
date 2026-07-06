@@ -104,7 +104,7 @@ export function OtherStructuresSection({
                     styles.digitPill,
                     {
                       backgroundColor: checked
-                        ? theme.link + "15"
+                        ? theme.accentSurface
                         : theme.backgroundTertiary,
                       borderColor: checked ? theme.link : theme.border,
                     },

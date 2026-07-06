@@ -404,7 +404,7 @@ export function SelectField({
               {
                 backgroundColor:
                   value === option.value
-                    ? theme.link + "15"
+                    ? theme.accentSurface
                     : theme.backgroundDefault,
                 borderColor: value === option.value ? theme.link : theme.border,
               },
@@ -523,7 +523,6 @@ const styles = StyleSheet.create({
   // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-end",
   },
   modalContent: {
@@ -742,7 +741,10 @@ export function PickerField({
         onRequestClose={handleClose}
         onDismiss={handleModalDismiss}
       >
-        <Pressable style={styles.modalOverlay} onPress={handleClose}>
+        <Pressable
+          style={[styles.modalOverlay, { backgroundColor: theme.scrim }]}
+          onPress={handleClose}
+        >
           <Pressable
             style={[
               styles.modalContent,

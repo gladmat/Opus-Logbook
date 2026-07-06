@@ -101,7 +101,7 @@ export const TBSARegionalBreakdown = React.memo(function TBSARegionalBreakdown({
           style={[
             styles.validationBadge,
             {
-              backgroundColor: theme.warning + "20",
+              backgroundColor: theme.warningSurface,
               borderColor: theme.warning,
             },
           ]}
@@ -181,7 +181,7 @@ export const TBSARegionalBreakdown = React.memo(function TBSARegionalBreakdown({
                       styles.depthMiniChip,
                       {
                         backgroundColor: isSelected
-                          ? theme.link + "20"
+                          ? theme.accentSurface
                           : "transparent",
                         borderColor: isSelected ? theme.link : theme.border,
                       },

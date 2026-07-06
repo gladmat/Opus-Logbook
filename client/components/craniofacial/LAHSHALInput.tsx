@@ -239,7 +239,10 @@ export function LAHSHALInput({ value, onChange }: LAHSHALInputProps) {
       {/* Notation badge */}
       {hasAny ? (
         <View
-          style={[styles.notationBadge, { backgroundColor: theme.link + "15" }]}
+          style={[
+            styles.notationBadge,
+            { backgroundColor: theme.accentSurface },
+          ]}
         >
           <ThemedText
             style={[styles.notationLabel, { color: theme.textSecondary }]}

@@ -91,7 +91,7 @@ export function SkinCancerPathwayGate({
           style={[
             styles.collapsedRow,
             {
-              backgroundColor: theme.link + "14",
+              backgroundColor: theme.accentSurface,
               borderColor: theme.link,
             },
           ]}
@@ -124,7 +124,7 @@ export function SkinCancerPathwayGate({
                 styles.stageCard,
                 {
                   backgroundColor: isSelected
-                    ? theme.link + "14"
+                    ? theme.accentSurface
                     : theme.backgroundElevated,
                   borderColor: isSelected ? theme.link : theme.border,
                 },

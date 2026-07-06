@@ -407,7 +407,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
           <View
             style={[
               styles.durationCard,
-              { backgroundColor: theme.link + "10" },
+              { backgroundColor: theme.accentSurface },
             ]}
           >
             <Feather name="clock" size={16} color={theme.link} />
@@ -532,7 +532,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
               styles.checkbox,
               {
                 backgroundColor: antibioticProphylaxis
-                  ? theme.link + "20"
+                  ? theme.accentSurface
                   : theme.backgroundDefault,
                 borderColor: antibioticProphylaxis ? theme.link : theme.border,
               },
@@ -563,7 +563,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
               styles.checkbox,
               {
                 backgroundColor: dvtProphylaxis
-                  ? theme.link + "20"
+                  ? theme.accentSurface
                   : theme.backgroundDefault,
                 borderColor: dvtProphylaxis ? theme.link : theme.border,
               },
@@ -783,7 +783,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
                       styles.comorbidityChip,
                       {
                         backgroundColor: isSelected
-                          ? theme.link + "20"
+                          ? theme.accentSurface
                           : theme.backgroundDefault,
                         borderColor: isSelected ? theme.link : theme.border,
                       },
@@ -874,7 +874,7 @@ export const OperativeSection = React.memo(function OperativeSection() {
                       style={[
                         styles.asaBadge,
                         {
-                          backgroundColor: theme.link + "15",
+                          backgroundColor: theme.accentSurface,
                         },
                       ]}
                     >

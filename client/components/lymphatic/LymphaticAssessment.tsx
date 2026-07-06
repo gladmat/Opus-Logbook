@@ -468,8 +468,8 @@ export const LymphaticAssessment = React.memo(function LymphaticAssessment({
               {
                 backgroundColor:
                   bio.changeFromBaseline > 10
-                    ? theme.error + "15"
-                    : theme.accent + "15",
+                    ? theme.errorSurface
+                    : theme.accentSurface,
                 borderColor:
                   bio.changeFromBaseline > 10 ? theme.error : theme.accent,
               },

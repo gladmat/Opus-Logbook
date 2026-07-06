@@ -1242,8 +1242,8 @@ export function HandTraumaAssessment({
               style={[
                 styles.sideSummary,
                 {
-                  backgroundColor: theme.link + "12",
-                  borderColor: theme.link + "35",
+                  backgroundColor: theme.accentSurface,
+                  borderColor: theme.accentBorder,
                 },
               ]}
             >
@@ -1259,8 +1259,8 @@ export function HandTraumaAssessment({
               style={[
                 styles.sideSummary,
                 {
-                  backgroundColor: theme.warning + "12",
-                  borderColor: theme.warning + "35",
+                  backgroundColor: theme.warningSurface,
+                  borderColor: theme.warningBorder,
                 },
               ]}
             >

@@ -288,7 +288,7 @@ export default function AddEditTeamContactScreen() {
                   styles.roleChip,
                   {
                     backgroundColor: isSelected
-                      ? theme.link + "15"
+                      ? theme.accentSurface
                       : theme.backgroundElevated,
                     borderColor: isSelected ? theme.link : theme.border,
                   },
@@ -337,7 +337,7 @@ export default function AddEditTeamContactScreen() {
                   styles.stageChip,
                   {
                     backgroundColor: isSelected
-                      ? theme.link + "15"
+                      ? theme.accentSurface
                       : theme.backgroundElevated,
                     borderColor: isSelected ? theme.link : theme.border,
                   },
@@ -378,7 +378,7 @@ export default function AddEditTeamContactScreen() {
                       styles.facilityChip,
                       {
                         backgroundColor: isSelected
-                          ? theme.link + "15"
+                          ? theme.accentSurface
                           : theme.backgroundElevated,
                         borderColor: isSelected ? theme.link : theme.border,
                       },

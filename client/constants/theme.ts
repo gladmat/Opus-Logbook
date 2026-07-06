@@ -73,6 +73,14 @@ export const Colors = {
     errorSurface: "rgba(207,34,46,0.12)",
     successSurface: "rgba(26,127,55,0.12)",
     infoSurface: "rgba(9,105,218,0.12)",
+    // Tinted border variants (selected cards, banner outlines). Same
+    // rationale as the *Surface tokens: pre-baked alpha instead of
+    // `theme.color + "40"` string concatenation.
+    accentBorder: "rgba(180,126,0,0.3)",
+    warningBorder: "rgba(154,103,0,0.3)",
+    errorBorder: "rgba(207,34,46,0.3)",
+    successBorder: "rgba(26,127,55,0.3)",
+    infoBorder: "rgba(9,105,218,0.3)",
     rolePrimary: "#B47E00",
     roleSupervising: "#8250DF",
     roleAssistant: "#1A7F37",
@@ -146,6 +154,12 @@ export const Colors = {
     errorSurface: "rgba(248,81,73,0.14)",
     successSurface: "rgba(46,160,67,0.14)",
     infoSurface: "rgba(88,166,255,0.14)",
+    // See light theme above for the rationale on the *Border tokens.
+    accentBorder: "rgba(229,160,13,0.3)",
+    warningBorder: "rgba(210,153,34,0.3)",
+    errorBorder: "rgba(248,81,73,0.3)",
+    successBorder: "rgba(46,160,67,0.3)",
+    infoBorder: "rgba(88,166,255,0.3)",
     rolePrimary: "#E5A00D",
     roleSupervising: "#D8B4FE",
     roleAssistant: "#86EFAC",
