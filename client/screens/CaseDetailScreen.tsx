@@ -1521,6 +1521,7 @@ export default function CaseDetailScreen() {
                     uri={media.localUri}
                     style={styles.mediaImage}
                     resizeMode="cover"
+                    thumbnail
                     onError={() =>
                       console.warn("Media file missing:", media.localUri)
                     }
@@ -3133,6 +3134,7 @@ export default function CaseDetailScreen() {
                               uri={media.localUri}
                               style={styles.mediaThumbnail}
                               resizeMode="cover"
+                              thumbnail
                               onError={() =>
                                 console.warn(
                                   "Media file missing:",

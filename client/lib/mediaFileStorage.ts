@@ -271,6 +271,12 @@ async function unwrapMediaDek(
   return unwrapDek(hexToBytes(meta.wrappedDEK), masterKey);
 }
 
+/**
+ * Bytes-returning decrypt path. Not used by the rendering pipeline (which is
+ * file-to-file via `decryptMediaVariantToFile`) — kept as the round-trip
+ * seam for tests and any future export feature that needs plaintext bytes.
+ * Always runs the pure-JS cipher; the native module is file-to-file only.
+ */
 async function loadVariantBytes(
   mediaId: string,
   masterKey: Uint8Array,

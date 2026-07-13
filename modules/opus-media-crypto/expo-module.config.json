@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["OpusMediaCryptoModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.opusmediacrypto.OpusMediaCryptoModule"]
+  }
+}

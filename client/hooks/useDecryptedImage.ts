@@ -16,10 +16,15 @@ import { getMasterKeyBytes } from "@/lib/encryption";
 import { decryptCache } from "@/lib/mediaDecryptCache";
 
 // ═══════════════════════════════════════════════════════════
-// Concurrency queue (max 3 parallel decryptions)
+// Concurrency queue (MAX_CONCURRENT parallel decryptions)
 // ═══════════════════════════════════════════════════════════
 
-const MAX_CONCURRENT = 2;
+// 4 in-flight items: native crypto serializes on its own background queue
+// (a thumb decrypts in ~1ms there), so extra concurrency exists to overlap
+// the JS-side stages (meta.json read, DEK unwrap, cache registration) with
+// native crypto + disk I/O. Beyond ~4 buys nothing and grows the temp-file
+// working set.
+const MAX_CONCURRENT = 4;
 let active = 0;
 const queue: { run: () => void }[] = [];
 

@@ -1,14 +1,27 @@
 /**
  * Async AES-256-GCM encryption helpers for the v2 media pipeline.
  *
- * The public API is file-oriented so the provider can later swap to a native
- * file-to-file implementation without changing consumers.
+ * The public API is file-oriented so `encryptFile`/`decryptFile` can route to
+ * the native `OpusMediaCrypto` module (CryptoKit, hardware AES, background
+ * dispatch queue) when it is present. On the native path plaintext never
+ * enters the JS heap at all — strictly better than the `fill(0)` discipline
+ * the pure-JS fallback keeps. Native implementations: CryptoKit on iOS,
+ * javax.crypto on Android. The fallback (@noble/ciphers on the JS thread)
+ * covers Expo Go and vitest. Both
+ * implementations share one envelope: RAW ciphertext in the `.enc` file (tag
+ * NOT appended), 12-byte nonce + 16-byte tag as lowercase hex in meta.json.
+ *
+ * A native *error* never falls back to JS — an auth failure must fail
+ * identically on both paths (tamper detection), and silent path-switching
+ * would mask native bugs. Fallback happens only on module absence.
  */
 
 import { gcm } from "@noble/ciphers/aes.js";
 import * as Crypto from "expo-crypto";
-import { File } from "expo-file-system";
+import { Directory, File, Paths } from "expo-file-system";
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
+
+import { nativeMediaCrypto } from "../../modules/opus-media-crypto";
 
 const GCM_NONCE_LENGTH = 12;
 const GCM_TAG_LENGTH = 16;
@@ -123,16 +136,48 @@ export async function unwrapDek(
   }
 }
 
-export async function encryptFile(
-  sourcePath: string,
-  destPath: string,
-  dek: Uint8Array,
-): Promise<{
+export interface EncryptFileResult {
   nonce: string;
   tag: string;
   sourceSize: number;
   ciphertextSize: number;
-}> {
+}
+
+export async function encryptFile(
+  sourcePath: string,
+  destPath: string,
+  dek: Uint8Array,
+): Promise<EncryptFileResult> {
+  if (nativeMediaCrypto) {
+    try {
+      const result = await nativeMediaCrypto.encryptFile(
+        sourcePath,
+        destPath,
+        dek,
+      );
+      return {
+        nonce: result.nonceHex,
+        tag: result.tagHex,
+        sourceSize: result.sourceSize,
+        ciphertextSize: result.ciphertextSize,
+      };
+    } catch (error) {
+      throw new MediaEncryptionError(
+        "ENCRYPT_FAILED",
+        error instanceof Error
+          ? error.message
+          : "File encryption failed for secure media storage.",
+      );
+    }
+  }
+  return encryptFileJs(sourcePath, destPath, dek);
+}
+
+async function encryptFileJs(
+  sourcePath: string,
+  destPath: string,
+  dek: Uint8Array,
+): Promise<EncryptFileResult> {
   try {
     const sourceFile = new File(sourcePath);
     const plain = await sourceFile.bytes();
@@ -170,6 +215,35 @@ export async function decryptFile(
   nonce: string,
   tag: string,
 ): Promise<void> {
+  if (nativeMediaCrypto) {
+    try {
+      await nativeMediaCrypto.decryptFile(
+        sourcePath,
+        destPath,
+        dek,
+        nonce,
+        tag,
+      );
+      return;
+    } catch (error) {
+      throw new MediaEncryptionError(
+        "DECRYPT_FAILED",
+        error instanceof Error
+          ? error.message
+          : "Decryption failed — wrong key or tampered data",
+      );
+    }
+  }
+  return decryptFileJs(sourcePath, destPath, dek, nonce, tag);
+}
+
+async function decryptFileJs(
+  sourcePath: string,
+  destPath: string,
+  dek: Uint8Array,
+  nonce: string,
+  tag: string,
+): Promise<void> {
   const sourceFile = new File(sourcePath);
   const ciphertext = await sourceFile.bytes();
   const destFile = new File(destPath);
@@ -196,6 +270,89 @@ export async function decryptFileToBytes(
   } finally {
     ciphertext.fill(0);
   }
+}
+
+/**
+ * Dev-only cross-implementation parity check: native-encrypt → JS-decrypt and
+ * JS-encrypt → native-decrypt over random bytes, byte-compared. Cheap
+ * insurance that the CryptoKit envelope stays byte-compatible with @noble.
+ * No-op in production builds and wherever the native module is absent.
+ */
+export async function runMediaCryptoParityCheck(): Promise<void> {
+  if (!__DEV__ || !nativeMediaCrypto) return;
+
+  const dir = new Directory(Paths.cache, "opus-crypto-parity");
+  try {
+    const dek = await generateDek();
+    // expo-crypto caps getRandomBytes at 1024 bytes per call — assemble a
+    // 64KB payload from chunks (crypto-quality randomness is irrelevant
+    // here; the payload just needs to be non-trivial).
+    const original = new Uint8Array(64 * 1024);
+    for (let offset = 0; offset < original.length; offset += 1024) {
+      original.set(Crypto.getRandomBytes(1024), offset);
+    }
+
+    if (!dir.exists) dir.create({ idempotent: true, intermediates: true });
+    const plainFile = new File(dir, "plain.bin");
+    writeBytes(plainFile, original);
+
+    const roundTrips: [
+      label: string,
+      encrypt: typeof encryptFile,
+      decrypt: typeof decryptFile,
+    ][] = [
+      ["native-encrypt → JS-decrypt", nativeEncryptForParity, decryptFileJs],
+      ["JS-encrypt → native-decrypt", encryptFileJs, nativeDecryptForParity],
+    ];
+
+    for (const [label, encrypt, decrypt] of roundTrips) {
+      const encFile = new File(dir, "parity.enc");
+      const outFile = new File(dir, "parity.out");
+      const { nonce, tag } = await encrypt(plainFile.uri, encFile.uri, dek);
+      await decrypt(encFile.uri, outFile.uri, dek, nonce, tag);
+      const decrypted = await outFile.bytes();
+      const ok =
+        decrypted.length === original.length &&
+        decrypted.every((b, i) => b === original[i]);
+      if (!ok) {
+        console.error(`[opus:media-crypto] parity FAILED: ${label}`);
+        return;
+      }
+    }
+    console.log("[opus:media-crypto] native/JS parity OK (both directions)");
+  } catch (error) {
+    console.error("[opus:media-crypto] parity check errored:", error);
+  } finally {
+    try {
+      if (dir.exists) dir.delete();
+    } catch {
+      // Best-effort cleanup of the parity scratch directory.
+    }
+  }
+}
+
+async function nativeEncryptForParity(
+  sourcePath: string,
+  destPath: string,
+  dek: Uint8Array,
+): Promise<EncryptFileResult> {
+  const r = await nativeMediaCrypto!.encryptFile(sourcePath, destPath, dek);
+  return {
+    nonce: r.nonceHex,
+    tag: r.tagHex,
+    sourceSize: r.sourceSize,
+    ciphertextSize: r.ciphertextSize,
+  };
+}
+
+async function nativeDecryptForParity(
+  sourcePath: string,
+  destPath: string,
+  dek: Uint8Array,
+  nonce: string,
+  tag: string,
+): Promise<void> {
+  await nativeMediaCrypto!.decryptFile(sourcePath, destPath, dek, nonce, tag);
 }
 
 export type MediaEncryptionErrorCode =

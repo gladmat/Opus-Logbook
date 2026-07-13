@@ -215,6 +215,15 @@ export default function App() {
         })
         .catch(() => {});
 
+      // Dev-only: byte-compare the native CryptoKit AES-GCM path against the
+      // pure-JS @noble path in both directions. No-op in production and
+      // wherever the native module is absent.
+      if (__DEV__) {
+        void import("@/lib/mediaEncryption")
+          .then((m) => m.runMediaCryptoParityCheck())
+          .catch(() => {});
+      }
+
       setReady(true);
     }
     prepare();

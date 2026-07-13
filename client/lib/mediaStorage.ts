@@ -6,8 +6,6 @@ import {
   opusMediaIdFromUri,
   OPUS_MEDIA_PREFIX,
   saveMediaV2,
-  loadDecryptedImageV2,
-  loadDecryptedThumbV2,
   deleteMediaV2,
   deleteMultipleMediaV2,
   hasMediaV2,
@@ -17,7 +15,6 @@ import {
   prepareImageForEncryption,
   generateThumbnailFile,
 } from "./thumbnailGenerator";
-import { bytesToBase64 } from "./binaryUtils";
 
 export { isOpusMediaUri, OPUS_MEDIA_PREFIX };
 
@@ -48,24 +45,6 @@ async function deleteFileIfExists(uri?: string | null): Promise<void> {
     }
   } catch {
     // Ignore best-effort temp-file cleanup failures.
-  }
-}
-
-async function loadV2AsDataUri(
-  mediaId: string,
-  variant: "image" | "thumb",
-): Promise<string | null> {
-  try {
-    const masterKey = await getMasterKeyBytes();
-    const payload =
-      variant === "thumb"
-        ? await loadDecryptedThumbV2(mediaId, masterKey)
-        : await loadDecryptedImageV2(mediaId, masterKey);
-
-    return `data:${payload.mimeType};base64,${bytesToBase64(payload.bytes)}`;
-  } catch (error) {
-    if (__DEV__) console.error(`v2 ${variant} load failed:`, error);
-    return null;
   }
 }
 
@@ -204,20 +183,6 @@ export async function importMediaAssets(
       index,
     );
   }
-}
-
-export async function loadThumbnail(uri: string): Promise<string | null> {
-  if (!isOpusMediaUri(uri)) return null;
-
-  const mediaId = opusMediaIdFromUri(uri);
-  return loadV2AsDataUri(mediaId, "thumb");
-}
-
-export async function loadEncryptedMedia(uri: string): Promise<string | null> {
-  if (!isOpusMediaUri(uri)) return null;
-
-  const mediaId = opusMediaIdFromUri(uri);
-  return loadV2AsDataUri(mediaId, "image");
 }
 
 async function deleteMediaById(mediaId: string): Promise<void> {
