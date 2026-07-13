@@ -1,0 +1,25 @@
+# Railway only builds/runs the Express server (npm run server:build →
+# node server_dist/index.mjs). Keep the upload small — the full repo is
+# ~55MB and repeatedly timed out the `railway up` upload (2026-07-13).
+#
+# The server needs at runtime: server/ (incl. templates/), shared/,
+# migrations/, assets/ (served statically), package.json + lockfile.
+
+# Mobile client — never used by the server build
+client/
+modules/
+targets/
+ios/
+android/
+
+# Tooling / docs / session artifacts
+.claude/
+.maestro/
+.github/
+.husky/
+attached_assets/
+*.md
+
+# Local dev
+.expo/
+.env
