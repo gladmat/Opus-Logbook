@@ -162,6 +162,27 @@ function SummaryRow({
   );
 }
 
+/**
+ * Mini sub-header inside a SummaryCard — mirrors the in-form 4-collapsible
+ * structure of OperativeSection so the review view isn't a flat 17-row wall
+ * (follow-up 5h / B3.10). Renders nothing when its group has no rows.
+ */
+function SummarySubHeader({
+  label,
+  visible,
+}: {
+  label: string;
+  visible: boolean;
+}) {
+  const { theme } = useTheme();
+  if (!visible) return null;
+  return (
+    <ThemedText style={[styles.subHeader, { color: theme.textTertiary }]}>
+      {label.toUpperCase()}
+    </ThemedText>
+  );
+}
+
 // ── Type Guards ───────────────────────────────────────────────────────────
 
 function isFreeFlapDetails(d: ClinicalDetails): d is FreeFlapDetails {
@@ -428,6 +449,18 @@ export function CaseSummaryView({
         onEdit={onEdit}
         warnings={operativeWarnings}
       >
+        <SummarySubHeader
+          label="Admission & Timing"
+          visible={Boolean(
+            state.admissionUrgency ||
+              state.stayType ||
+              state.admissionDate ||
+              state.dischargeDate ||
+              state.injuryDate ||
+              state.surgeryStartTime ||
+              state.surgeryEndTime,
+          )}
+        />
         <SummaryRow
           label="Urgency"
           value={state.admissionUrgency || undefined}
@@ -459,6 +492,15 @@ export function CaseSummaryView({
           mono
         />
         <SummaryRow label="Duration" value={durationDisplay} mono />
+        <SummarySubHeader
+          label="Role & Anaesthesia"
+          visible={Boolean(
+            state.responsibleConsultantName ||
+              state.defaultOperativeRole ||
+              state.defaultSupervisionLevel ||
+              state.anaestheticType,
+          )}
+        />
         <SummaryRow
           label="Consultant"
           value={state.responsibleConsultantName || undefined}
@@ -475,6 +517,14 @@ export function CaseSummaryView({
           label="Anaesthetic"
           value={state.anaestheticType || undefined}
         />
+        <SummarySubHeader
+          label="Surgical Factors"
+          visible={Boolean(
+            state.woundInfectionRisk ||
+              state.antibioticProphylaxis ||
+              state.dvtProphylaxis,
+          )}
+        />
         <SummaryRow
           label="Wound Risk"
           value={state.woundInfectionRisk || undefined}
@@ -486,6 +536,15 @@ export function CaseSummaryView({
         <SummaryRow
           label="DVT Prophylaxis"
           value={state.dvtProphylaxis ? "Yes" : undefined}
+        />
+        <SummarySubHeader
+          label="Patient Factors"
+          visible={Boolean(
+            state.asaScore ||
+              calculatedBmi ||
+              state.smoker ||
+              state.selectedComorbidities.length > 0,
+          )}
         />
         <SummaryRow
           label="ASA Score"
@@ -632,6 +691,13 @@ const styles = StyleSheet.create({
   },
   row: {
     paddingVertical: Spacing.xs,
+  },
+  subHeader: {
+    fontSize: 12,
+    fontWeight: "500",
+    letterSpacing: 0.5,
+    marginTop: Spacing.md,
+    marginBottom: 2,
   },
   rowLabel: {
     ...Typography.caption,

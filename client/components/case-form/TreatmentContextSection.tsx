@@ -61,7 +61,10 @@ export const TreatmentContextSection = React.memo(
         subtitle="Pre-op treatment & reconstruction timing"
         filledCount={filledCount}
         totalCount={4}
-        defaultExpanded={false}
+        // Only rendered for flap cases (caseHasFlapProcedure gate in
+        // CaseSection), so default-expand — radiotherapy + reconstruction
+        // timing were easy to miss when collapsed (follow-up 5g / B3.13).
+        defaultExpanded
       >
         <View style={styles.content}>
           <SelectField

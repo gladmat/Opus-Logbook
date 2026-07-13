@@ -244,6 +244,39 @@ interface HandTraumaDiagnosisResolution {
   selectedSuggestedProcedureIds?: string[];
 }
 
+/**
+ * Cross-flow bridge row (trauma → elective, acute → elective). Tapping it
+ * creates a SEPARATE elective diagnosis group — the copy makes that explicit
+ * so surgeons don't expect the procedure to land in the current group
+ * (follow-up 5i / B3.12).
+ */
+function CrossFlowElectiveBridge({ onPress }: { onPress: () => void }) {
+  const { theme } = useTheme();
+  return (
+    <Pressable
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        onPress();
+      }}
+      style={styles.addElectiveRow}
+      accessibilityRole="button"
+      accessibilityLabel="Also doing an elective procedure? Adds a separate diagnosis group"
+    >
+      <Feather name="plus-circle" size={16} color={theme.link} />
+      <View>
+        <ThemedText style={[styles.addElectiveRowText, { color: theme.link }]}>
+          Also doing an elective procedure?
+        </ThemedText>
+        <ThemedText
+          style={[styles.addElectiveRowHint, { color: theme.textTertiary }]}
+        >
+          Adds a separate diagnosis group
+        </ThemedText>
+      </View>
+    </Pressable>
+  );
+}
+
 function DiagnosisGroupEditorInner({
   group,
   index,
@@ -2723,6 +2756,37 @@ function DiagnosisGroupEditorInner({
               gap: Spacing.sm,
             }}
           >
+            {/* Reorder chevrons mirror the collapsed-header pair so users
+                don't have to collapse a group first to reorder it
+                (follow-up 5e / B3.3). */}
+            {totalGroups > 1 && onMoveUp && index > 0 ? (
+              <Pressable
+                onPress={onMoveUp}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Move diagnosis group up"
+              >
+                <Feather
+                  name="chevron-up"
+                  size={18}
+                  color={theme.textTertiary}
+                />
+              </Pressable>
+            ) : null}
+            {totalGroups > 1 && onMoveDown && index < totalGroups - 1 ? (
+              <Pressable
+                onPress={onMoveDown}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Move diagnosis group down"
+              >
+                <Feather
+                  name="chevron-down"
+                  size={18}
+                  color={theme.textTertiary}
+                />
+              </Pressable>
+            ) : null}
             <Pressable
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -3000,32 +3064,7 @@ function DiagnosisGroupEditorInner({
             {/* Cross-flow bridge: trauma → elective */}
             {procedures.some((p) => p.procedureName.trim()) &&
               onAddElectiveHandGroup && (
-                <Pressable
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    onAddElectiveHandGroup();
-                  }}
-                  style={styles.addElectiveRow}
-                  accessibilityRole="button"
-                  accessibilityLabel="Add elective procedure"
-                >
-                  <Feather name="plus-circle" size={16} color={theme.link} />
-                  <View>
-                    <ThemedText
-                      style={[styles.addElectiveRowText, { color: theme.link }]}
-                    >
-                      Add elective procedure
-                    </ThemedText>
-                    <ThemedText
-                      style={[
-                        styles.addElectiveRowHint,
-                        { color: theme.textTertiary },
-                      ]}
-                    >
-                      e.g., CTR, trigger finger release
-                    </ThemedText>
-                  </View>
-                </Pressable>
+                <CrossFlowElectiveBridge onPress={onAddElectiveHandGroup} />
               )}
           </>
         ) : null}
@@ -3093,32 +3132,7 @@ function DiagnosisGroupEditorInner({
 
             {/* Cross-flow bridge: acute → elective */}
             {acuteProceduresAccepted && onAddElectiveHandGroup && (
-              <Pressable
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  onAddElectiveHandGroup();
-                }}
-                style={styles.addElectiveRow}
-                accessibilityRole="button"
-                accessibilityLabel="Add elective procedure"
-              >
-                <Feather name="plus-circle" size={16} color={theme.link} />
-                <View>
-                  <ThemedText
-                    style={[styles.addElectiveRowText, { color: theme.link }]}
-                  >
-                    Add elective procedure
-                  </ThemedText>
-                  <ThemedText
-                    style={[
-                      styles.addElectiveRowHint,
-                      { color: theme.textTertiary },
-                    ]}
-                  >
-                    e.g., CTR, trigger finger release
-                  </ThemedText>
-                </View>
-              </Pressable>
+              <CrossFlowElectiveBridge onPress={onAddElectiveHandGroup} />
             )}
           </>
         ) : null}
@@ -3433,6 +3447,27 @@ function DiagnosisGroupEditorInner({
                 specialty={groupSpecialty}
                 onSelect={handleReverseDiagnosisSelect}
               />
+            ) : null}
+
+            {/* Reverse-mapping discoverability: with neither diagnosis nor
+                procedures picked, surface that procedure-first entry also
+                works (follow-up 5f / B3.11). Disappears as soon as either
+                side has a selection. */}
+            {!selectedDiagnosis &&
+            !primaryDiagnosis &&
+            procedurePicklistIds.length === 0 ? (
+              <View style={styles.reverseHintRow}>
+                <Feather name="info" size={14} color={theme.textTertiary} />
+                <ThemedText
+                  style={[
+                    styles.reverseHintText,
+                    { color: theme.textTertiary },
+                  ]}
+                >
+                  You can also pick procedures first — we&apos;ll suggest a
+                  diagnosis.
+                </ThemedText>
+              </View>
             ) : null}
 
             {!isElectiveHand &&
@@ -4626,6 +4661,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.sm,
+  },
+  reverseHintRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+  },
+  reverseHintText: {
+    fontSize: 13,
+    flex: 1,
   },
   suggestionText: {
     fontSize: 13,

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { AppState, AppStateStatus } from "react-native";
 import { Specialty } from "@/types/case";
 import { getCaseDraft, saveCaseDraft, clearCaseDraft } from "@/lib/storage";
@@ -33,12 +33,19 @@ export function useCaseDraft({
   savedRef,
   dispatch,
   primaryFacility,
-}: UseCaseDraftParams): { clearDraft: () => Promise<void> } {
+}: UseCaseDraftParams): {
+  clearDraft: () => Promise<void>;
+  lastSavedAt: number | null;
+} {
   const stateRef = useRef(state);
   stateRef.current = state;
 
   const prevStateJsonRef = useRef<string>("");
   const pendingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Timestamp of the last successful draft write — drives the header
+  // auto-save indicator. Null until the first save lands.
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
 
   // ── Load draft on mount (new case only) ───────────────────────────────
 
@@ -80,7 +87,9 @@ export function useCaseDraft({
     }
     if (!draftLoadedRef.current || savedRef.current || isEditMode) return;
     const draft = formStateToDraft(stateRef.current, specialty);
-    saveCaseDraft(specialty, draft);
+    saveCaseDraft(specialty, draft)
+      .then(() => setLastSavedAt(Date.now()))
+      .catch(() => {});
   }, [specialty, isEditMode, draftLoadedRef, savedRef]);
 
   // ── Debounced auto-save ───────────────────────────────────────────────
@@ -100,7 +109,9 @@ export function useCaseDraft({
       pendingTimeoutRef.current = null;
       if (!savedRef.current) {
         const draft = formStateToDraft(state, specialty);
-        saveCaseDraft(specialty, draft);
+        saveCaseDraft(specialty, draft)
+          .then(() => setLastSavedAt(Date.now()))
+          .catch(() => {});
       }
     }, 500);
 
@@ -138,5 +149,5 @@ export function useCaseDraft({
     await clearCaseDraft(specialty);
   }, [specialty]);
 
-  return { clearDraft };
+  return { clearDraft, lastSavedAt };
 }

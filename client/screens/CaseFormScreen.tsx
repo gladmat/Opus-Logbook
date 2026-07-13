@@ -230,7 +230,7 @@ export default function CaseFormScreen() {
 
   const { recordUsage } = useFavouritesRecents(form.specialty);
 
-  const { clearDraft } = useCaseDraft({
+  const { clearDraft, lastSavedAt } = useCaseDraft({
     state: form.state,
     specialty: form.specialty,
     isEditMode: form.isEditMode,
@@ -241,6 +241,9 @@ export default function CaseFormScreen() {
     dispatch: formDispatch,
     primaryFacility,
   });
+  // Boolean-derived so the header only re-renders on the FIRST draft save,
+  // not on every debounced write (follow-up 5a / B3.6).
+  const hasDraftSaved = lastSavedAt != null;
 
   // ── Inline validation handlers ──────────────────────────────────────────
 
@@ -619,6 +622,26 @@ export default function CaseFormScreen() {
       headerRight: () =>
         form.loadingExistingCase || form.loadError ? null : (
           <View style={styles.headerActions}>
+            {/* Quiet auto-save signal — drafts only save for new cases, so
+                this never shows in edit mode. Icon + text per Medical UX
+                Rule 1 (never colour alone). */}
+            {!form.isEditMode && !reviewMode && hasDraftSaved ? (
+              <View
+                style={styles.headerDraftIndicator}
+                accessible
+                accessibilityLabel="Draft auto-saved"
+              >
+                <Feather name="check-circle" size={13} color={theme.success} />
+                <ThemedText
+                  style={[
+                    styles.headerDraftText,
+                    { color: theme.textTertiary },
+                  ]}
+                >
+                  Draft
+                </ThemedText>
+              </View>
+            ) : null}
             <Pressable
               onPress={showOverflowMenu}
               hitSlop={8}
@@ -695,11 +718,14 @@ export default function CaseFormScreen() {
     theme.link,
     theme.textSecondary,
     theme.textTertiary,
+    theme.success,
     form.loadingExistingCase,
     form.loadError,
     headerTitle,
     navigation,
     showOverflowMenu,
+    hasDraftSaved,
+    reviewMode,
   ]);
 
   // ── Section nav press ─────────────────────────────────────────────────
@@ -991,6 +1017,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.xs,
+  },
+  headerDraftIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    marginRight: Spacing.xs,
+  },
+  headerDraftText: {
+    fontSize: 12,
   },
   headerIconButton: {
     width: 40,

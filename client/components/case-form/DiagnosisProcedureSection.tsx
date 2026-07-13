@@ -139,6 +139,31 @@ export const DiagnosisProcedureSection = React.memo(
 
     return (
       <>
+        {/* Top add-group affordance: the main dashed button sits below the
+            last group card, which is off-screen once 2+ groups exist —
+            mirror it up here so the action stays discoverable (follow-up
+            5d / B3.2). */}
+        {diagnosisGroups.length > 1 ? (
+          <View style={styles.topAddRow}>
+            <Pressable
+              onPress={() => addDiagnosisGroup()}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={styles.topAddButton}
+              accessibilityRole="button"
+              accessibilityLabel="Add diagnosis group"
+              accessibilityHint="Adds a new diagnosis group to the case"
+              testID="caseForm.case.btn-addGroupTop"
+            >
+              <Feather name="plus" size={14} color={theme.link} />
+              <ThemedText
+                style={[styles.topAddButtonText, { color: theme.link }]}
+              >
+                Add group
+              </ThemedText>
+            </Pressable>
+          </View>
+        ) : null}
+
         {diagnosisGroups.map((group, idx) => {
           // Compute global procedure offset for team footer indexing
           let procOffset = 0;
@@ -232,6 +257,22 @@ export const DiagnosisProcedureSection = React.memo(
 );
 
 const styles = StyleSheet.create({
+  topAddRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginBottom: Spacing.sm,
+  },
+  topAddButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  topAddButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
   addGroupButton: {
     flexDirection: "row",
     alignItems: "center",
