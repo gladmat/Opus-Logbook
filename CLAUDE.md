@@ -75,6 +75,7 @@ Key capabilities: multi-specialty case logging, SNOMED CT coded diagnoses and pr
   - **Design-system hygiene** (commit `f8e2fcc`, Cluster 6a): 320 `theme.<color> + "NN"` / `${theme.<color>}NN` concat sites replaced with baked tokens across 106 files; new `accentBorder`/`warningBorder`/`errorBorder`/`successBorder`/`infoBorder` tokens (rgba 0.3) join the 2.7.0 `*Surface` set in `theme.ts`; modal `rgba(0,0,0,0.5)` overlays migrated to `theme.scrim` in 7 more files. Deliberate strong tints (alpha ≥ 50), the 60%/35% group-accent ladder, and camera-HUD overlays left by design.
   - **Discoverability polish** (commit `d0e1e4f`, Cluster 5 complete 5a–5i): header draft auto-save indicator (`useCaseDraft` now returns `lastSavedAt`); OutcomesSection day-case "Auto-filled" badge + 30-day audit teaser; top "Add group" affordance when 2+ diagnosis groups; reorder chevrons on the expanded group header; reverse-mapping hint in the empty-group state; TreatmentContextSection default-expanded; CaseSummaryView operative section split with 4 mini sub-headers mirroring the in-form collapsibles; cross-flow bridge rows unified into `CrossFlowElectiveBridge` ("Adds a separate diagnosis group").
   - **Sim visual QA**: time-picker round-trip (spinner → Done → "12:00"), Draft header indicator, 4-collapsible operative layout, and light-mode token rendering all verified live on the iPhone 17 sim. Gotcha recorded: the dev client only auto-connects to Metro on **port 8081** — `--port 8083` yields "No script URL provided".
+  - **Shipped same day**: pushed to `main` (CI green), Railway server redeployed (auth gates smoke-tested live in prod: 401/403 on bad tokens, 401 on unauth avatars), TestFlight build **2.8.0 (1.2.70)** built + submitted successfully. See "Railway deploy operational lessons" and the Version bullet under Deployment for the two infrastructure root-causes fixed en route (`.railwayignore`; stale `ios/` overriding EAS versions). Open follow-ups: add `ios/`+`android/` to `.easignore`; on-device checks (time picker, SectionNavBar pill taps — Maestro showed odd scroll targets, likely tool artifact but unconfirmed; VoiceOver pass; dark/light sweep).
 
 ## Tech stack
 
@@ -1331,13 +1332,19 @@ Used for: master encryption key, JWT, device X25519 private key, patient HMAC ke
 - **Expo slug:** surgical-logbook
 - **EAS Project ID:** 0bc1b91c-c240-4f4e-b030-31d16389cd1e
 - **Expo account:** @gladmat
-- **Version:** 2.8.0 (app.json; 2.8.0 = audit remediation + security hardening: PSI discovery, commit-reveal assessments, safety numbers, backup exclusion, drizzle 0.45.2) — but `eas.json` has `appVersionSource: "remote"` so EAS's stored appVersion is the authoritative source for the TestFlight metadata. As of the Phase 7.1 build (commit `02fa37a`, build ID `a2e72ec5-daf8-4794-946c-69249a06bd4b`, 2026-05-14), the EAS remote appVersion is still **2.5.0** (last set during Phase 5 — bumping app.json doesn't propagate). Run `eas build:version:set --platform ios` (interactive) or update via the EAS dashboard to align the next build's TestFlight metadata. Latest TestFlight build ships as `2.5.0 build 1.2.60`; the code is fully 2.7.0 + Phase 7.1 follow-ups. 2.7.0 is the Case Form UX Overhaul release (Phase 7); 7.1 is the OperativeSection restructure + field-level deep-link + AcceptedMappingCard extraction follow-up; 2.6.0 was the security remediation (Phase 6, Sessions 1–7).
+- **Version:** 2.8.0 — **TestFlight build `2.8.0 (1.2.70)` shipped 2026-07-13 with correct metadata** (submission succeeded after re-signing the expired Apple agreement). The months-long version drift (builds shipping as 2.5.0/2.7.0) was root-caused: `.easignore` exists and therefore overrides `.gitignore` for EAS uploads, and it does NOT exclude the gitignored `ios/` dir — so the stale local native project's `Info.plist` version won over app.json/remote every build. Fixed for 1.2.70 by hand-bumping `ios/Opus/Info.plist` + `MARKETING_VERSION`; **the durable fix (add `ios/` + `android/` to `.easignore`) is still TODO.** `eas build:version:set` is un-scriptable (pty noise corrupts the prompt); the non-interactive path is the EAS GraphQL `appVersion.createAppVersion` mutation with the `expo-session` header from `~/.expo/state.json`. Release history: 2.8.0 = audit remediation + security hardening (PSI, commit-reveal, safety numbers, backup exclusion) + the 2026-07-13 security-verification/UX session; 2.7.0 = Case Form UX Overhaul (Phase 7 + 7.1); 2.6.0 = security remediation (Phase 6).
 - **New Architecture:** enabled
 - **React Compiler:** enabled (experimental)
 
+### Railway deploy operational lessons (2026-07-13)
+
+- **`.railwayignore` is required** (committed `8163e48`): without it, `railway up` uploads the full ~55MB tracked tree and times out client-side ("operation timed out"), leaving FAILED deployments with *no associated build*. The server runtime needs only `server/` (incl. `templates/`), `shared/`, `migrations/`, `assets/`, and the package manifests.
+- **Keep the Railway CLI current** (`brew upgrade railway`): the 4.x pairing-code login dies with "Login session does not exist" even on immediate confirmation; 5.x uses a `railway.com/activate?user_code=…` device flow that works. Login needs a pseudo-TTY (`script -q /tmp/log zsh -c "railway login --browserless"`) and Mateusz at the screen.
+- CLI 5.x logs syntax: `railway logs <deploymentId> --lines N` (`-d` means "deploy logs", not deployment id).
+
 ### EAS / TestFlight operational lessons
 
-Hard-won during the 2026-04-17 shipping session. Read these BEFORE submitting the next TestFlight build.
+Hard-won during the 2026-04-17 shipping session (plus 2026-07-13 additions above in the Version bullet). Read these BEFORE submitting the next TestFlight build.
 
 **Lockfile discipline — never use `--legacy-peer-deps` on this repo.**
 - EAS runs strict `npm ci --include=dev`, which fails the moment a peer dep is in `package.json` but not in `package-lock.json`
