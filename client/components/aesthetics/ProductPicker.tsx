@@ -123,7 +123,7 @@ export const ProductPicker = React.memo(function ProductPicker({
         <View
           style={[
             styles.selectedBadge,
-            { backgroundColor: theme.link + "1A", borderColor: theme.link },
+            { backgroundColor: theme.accentSurface, borderColor: theme.link },
           ]}
         >
           <ThemedText style={[styles.selectedText, { color: theme.link }]}>
@@ -223,9 +223,9 @@ export const ProductPicker = React.memo(function ProductPicker({
                 styles.brandHeader,
                 {
                   backgroundColor: isExpanded
-                    ? theme.link + "0D"
+                    ? theme.accentSurface
                     : theme.backgroundElevated,
-                  borderColor: isExpanded ? theme.link + "33" : theme.border,
+                  borderColor: isExpanded ? theme.accentBorder : theme.border,
                 },
               ]}
             >

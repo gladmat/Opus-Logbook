@@ -36,6 +36,12 @@ import {
 import { useFormScrollContext } from "@/contexts/FormScrollContext";
 import { useReduceMotion } from "@/hooks/useReduceMotion";
 import { useCollapsibleFormSectionContext } from "@/components/case-form/CollapsibleFormSection";
+import {
+  dateToTimeString,
+  finalizeTimeInput,
+  formatTimeInput,
+  timeStringToDate,
+} from "@/lib/timeInput";
 
 // ── Field-level deep-link primitives (Cluster 4) ────────────────────────────
 
@@ -398,7 +404,7 @@ export function SelectField({
               {
                 backgroundColor:
                   value === option.value
-                    ? theme.link + "15"
+                    ? theme.accentSurface
                     : theme.backgroundDefault,
                 borderColor: value === option.value ? theme.link : theme.border,
               },
@@ -517,7 +523,6 @@ const styles = StyleSheet.create({
   // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-end",
   },
   modalContent: {
@@ -736,7 +741,10 @@ export function PickerField({
         onRequestClose={handleClose}
         onDismiss={handleModalDismiss}
       >
-        <Pressable style={styles.modalOverlay} onPress={handleClose}>
+        <Pressable
+          style={[styles.modalOverlay, { backgroundColor: theme.scrim }]}
+          onPress={handleClose}
+        >
           <Pressable
             style={[
               styles.modalContent,
@@ -865,9 +873,11 @@ export function DatePickerField({
     ? formatDisplayDate(normalizedValue)
     : "";
   const hasDisplayValue = Boolean(displayValue);
-  const hasStoredValue =
-    (typeof value === "string" && value.trim().length > 0) ||
-    (typeof value === "number" && Number.isFinite(value));
+  // The clear button keys off the *displayable* value, not the raw stored
+  // one — an unparseable legacy value renders as the placeholder, and an
+  // ✕ button next to an apparently-empty field reads as a glitch. Picking
+  // any date overwrites such a value anyway.
+  const hasStoredValue = hasDisplayValue;
 
   const parsedValue = parseDateOnlyValue(value);
   const dateValue = clampDateToBounds(
@@ -1122,6 +1132,313 @@ export function DatePickerField({
           onChange={handleDateChange}
           minimumDate={safeMinimumDate}
           maximumDate={safeMaximumDate}
+        />
+      ) : null}
+      <PulseHalo fieldId={fieldId} />
+    </View>
+  );
+}
+
+// ── TimePickerField ──────────────────────────────────────────────────────────
+
+interface TimePickerFieldProps {
+  label: string;
+  /** Canonical `HH:MM` (24h) string; partial entries tolerated while typing. */
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder?: string;
+  required?: boolean;
+  error?: string;
+  testID?: string;
+  fieldId?: string;
+}
+
+const INLINE_TIME_PICKER_HEIGHT = 216;
+const INLINE_TIME_TOTAL_HEIGHT =
+  INLINE_TIME_PICKER_HEIGHT + INLINE_ACTIONS_HEIGHT;
+
+/**
+ * HH:MM time entry with two coequal paths: direct numeric typing through a
+ * progressive mask (fast path for surgeons who know the time), and a native
+ * time picker — inline spinner on iOS (mirrors DatePickerField's inline
+ * calendar), system dialog on Android.
+ */
+export function TimePickerField({
+  label,
+  value,
+  onChangeText,
+  placeholder = "HH:MM",
+  required = false,
+  error,
+  testID,
+  fieldId,
+}: TimePickerFieldProps) {
+  const { theme, isDark } = useTheme();
+  const reduceMotion = useReduceMotion();
+  const [displayValue, setDisplayValue] = useState(value);
+  const [showPicker, setShowPicker] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const [draftTime, setDraftTime] = useState<Date>(() =>
+    timeStringToDate(value),
+  );
+  const expandHeight = useSharedValue(0);
+  const inputRef = useRef<TextInput | null>(null);
+  const focusInput = useCallback(() => inputRef.current?.focus(), []);
+  const { fieldRef, handleLayout } = useFieldRegistration(fieldId, focusInput);
+  const scrollContext = useFormScrollContext();
+
+  const handleChangeText = useCallback(
+    (text: string) => {
+      if (text.length < displayValue.length) {
+        const newText = text.replace(":", "");
+        setDisplayValue(newText);
+        onChangeText(newText);
+        return;
+      }
+      const formatted = formatTimeInput(text);
+      setDisplayValue(formatted);
+      onChangeText(formatted);
+    },
+    [displayValue, onChangeText],
+  );
+
+  const handleBlur = useCallback(() => {
+    const finalized = finalizeTimeInput(displayValue);
+    if (finalized !== displayValue) {
+      setDisplayValue(finalized);
+      onChangeText(finalized);
+    }
+  }, [displayValue, onChangeText]);
+
+  useEffect(() => {
+    if (value !== displayValue) {
+      setDisplayValue(value);
+    }
+    // Intentionally only reacting to external `value` changes — local edits
+    // already keep displayValue in sync via handleChangeText.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  const handleUnmount = useCallback(() => {
+    setIsMounted(false);
+  }, []);
+
+  const closeTimePicker = useCallback(() => {
+    setShowPicker(false);
+    if (Platform.OS === "ios") {
+      expandHeight.value = withTiming(
+        0,
+        { duration: reduceMotion ? 0 : 200, easing: Easing.out(Easing.cubic) },
+        (finished) => {
+          if (finished) {
+            runOnJS(handleUnmount)();
+          }
+        },
+      );
+    }
+  }, [expandHeight, handleUnmount, reduceMotion]);
+
+  const openTimePicker = useCallback(() => {
+    // A half-typed entry seeds the spinner after finalisation ("14" → 14:00).
+    setDraftTime(timeStringToDate(finalizeTimeInput(displayValue)));
+    inputRef.current?.blur();
+    setShowPicker(true);
+    if (Platform.OS === "ios") {
+      setIsMounted(true);
+      expandHeight.value = withTiming(INLINE_TIME_TOTAL_HEIGHT, {
+        duration: reduceMotion ? 0 : 240,
+        easing: Easing.out(Easing.cubic),
+      });
+    }
+  }, [displayValue, expandHeight, reduceMotion]);
+
+  const handleNativeChange = useCallback(
+    (_event: unknown, selectedDate?: Date) => {
+      if (Platform.OS === "android") {
+        setShowPicker(false);
+        if (selectedDate) {
+          const hhmm = dateToTimeString(selectedDate);
+          setDisplayValue(hhmm);
+          onChangeText(hhmm);
+        }
+        return;
+      }
+      if (selectedDate) {
+        setDraftTime(selectedDate);
+      }
+    },
+    [onChangeText],
+  );
+
+  const handleDone = useCallback(() => {
+    const hhmm = dateToTimeString(draftTime);
+    closeTimePicker();
+    setDisplayValue(hhmm);
+    requestAnimationFrame(() => onChangeText(hhmm));
+  }, [closeTimePicker, draftTime, onChangeText]);
+
+  // Keep the field plus the expanded spinner visible, mirroring
+  // DatePickerField's self-positioning effect.
+  useEffect(() => {
+    if (!showPicker || Platform.OS !== "ios" || !scrollContext) return;
+    const handle = requestAnimationFrame(() => {
+      const node = fieldRef.current as unknown as {
+        measureInWindow?: (
+          fn: (x: number, y: number, w: number, h: number) => void,
+        ) => void;
+      } | null;
+      node?.measureInWindow?.((_x, y, _w, h) => {
+        scrollContext.ensureVisible(y, h + INLINE_TIME_TOTAL_HEIGHT, {
+          extraPadding: 32,
+        });
+      });
+    });
+    return () => cancelAnimationFrame(handle);
+  }, [showPicker, scrollContext, fieldRef]);
+
+  const animatedPickerStyle = useAnimatedStyle(() => ({
+    height: expandHeight.value,
+    overflow: "hidden" as const,
+  }));
+
+  return (
+    <View
+      ref={fieldRef}
+      onLayout={handleLayout}
+      style={styles.container}
+      collapsable={false}
+    >
+      <View style={styles.labelRow}>
+        <ThemedText style={[styles.label, { color: theme.textSecondary }]}>
+          {label}
+        </ThemedText>
+        {required ? (
+          <ThemedText style={[styles.required, { color: theme.error }]}>
+            *
+          </ThemedText>
+        ) : null}
+      </View>
+      <View
+        style={[
+          styles.inputContainer,
+          {
+            backgroundColor: theme.backgroundRoot,
+            borderColor: error
+              ? theme.error
+              : showPicker
+                ? theme.link
+                : theme.border,
+            minHeight: Spacing.inputHeight,
+          },
+        ]}
+      >
+        <TextInput
+          ref={inputRef}
+          testID={testID}
+          value={displayValue}
+          onChangeText={handleChangeText}
+          onBlur={handleBlur}
+          onFocus={showPicker ? closeTimePicker : undefined}
+          placeholder={placeholder}
+          placeholderTextColor={theme.textTertiary}
+          keyboardType="numeric"
+          maxLength={5}
+          style={[styles.input, { color: theme.text }]}
+          accessibilityLabel={`${label}: ${displayValue || "not set"}`}
+        />
+        <Pressable
+          onPress={showPicker ? closeTimePicker : openTimePicker}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel={
+            showPicker ? `Close ${label} picker` : `Open ${label} picker`
+          }
+          accessibilityState={{ expanded: showPicker }}
+          testID={testID ? `${testID}-toggle` : undefined}
+        >
+          <Feather
+            name={showPicker ? "chevron-up" : "clock"}
+            size={20}
+            color={showPicker ? theme.link : theme.textSecondary}
+          />
+        </Pressable>
+      </View>
+      {error ? (
+        <ThemedText
+          style={[styles.error, { color: theme.error, marginTop: 4 }]}
+        >
+          {error}
+        </ThemedText>
+      ) : null}
+
+      {Platform.OS === "ios" && isMounted ? (
+        <Animated.View
+          style={[
+            animatedPickerStyle,
+            styles.inlinePickerWrapper,
+            {
+              backgroundColor: theme.backgroundElevated,
+              borderColor: theme.border,
+            },
+          ]}
+          pointerEvents={showPicker ? "auto" : "none"}
+        >
+          <DateTimePicker
+            value={draftTime}
+            mode="time"
+            display="spinner"
+            onChange={handleNativeChange}
+            themeVariant={isDark ? "dark" : "light"}
+            accentColor={theme.link}
+            style={{ height: INLINE_TIME_PICKER_HEIGHT }}
+          />
+          <View
+            style={[
+              styles.inlinePickerActions,
+              { borderTopColor: theme.border },
+            ]}
+          >
+            <TouchableOpacity
+              onPress={closeTimePicker}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel time selection"
+            >
+              <ThemedText
+                style={[
+                  styles.inlinePickerActionText,
+                  { color: theme.textSecondary },
+                ]}
+              >
+                Cancel
+              </ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleDone}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Confirm time selection"
+            >
+              <ThemedText
+                style={[
+                  styles.inlinePickerActionText,
+                  { color: theme.link, fontWeight: "600" },
+                ]}
+              >
+                Done
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      ) : null}
+
+      {Platform.OS === "android" && showPicker ? (
+        <DateTimePicker
+          value={draftTime}
+          mode="time"
+          display="default"
+          is24Hour
+          onChange={handleNativeChange}
         />
       ) : null}
       <PulseHalo fieldId={fieldId} />

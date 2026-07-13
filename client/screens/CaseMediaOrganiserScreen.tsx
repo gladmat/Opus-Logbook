@@ -312,7 +312,7 @@ export default function CaseMediaOrganiserScreen() {
               {
                 backgroundColor:
                   phaseFilter === p.key
-                    ? theme.link + "20"
+                    ? theme.accentSurface
                     : theme.backgroundDefault,
                 borderColor: phaseFilter === p.key ? theme.link : theme.border,
               },
@@ -361,7 +361,10 @@ export default function CaseMediaOrganiserScreen() {
               onPress={handleAutoOrganise}
               style={[
                 styles.autoButton,
-                { backgroundColor: theme.link + "15", borderColor: theme.link },
+                {
+                  backgroundColor: theme.accentSurface,
+                  borderColor: theme.link,
+                },
               ]}
             >
               <Feather name="zap" size={14} color={theme.link} />

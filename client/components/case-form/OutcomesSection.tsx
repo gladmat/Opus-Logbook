@@ -12,6 +12,7 @@ import {
   useCaseFormField,
 } from "@/contexts/CaseFormContext";
 import { setField } from "@/hooks/useCaseForm";
+import { parseIsoDateValue } from "@/lib/dateValues";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import {
@@ -41,6 +42,8 @@ export const OutcomesSection = React.memo(function OutcomesSection({
 }: OutcomesSectionProps) {
   const { theme } = useTheme();
   const outcome = useCaseFormField("outcome");
+  const stayType = useCaseFormField("stayType");
+  const procedureDate = useCaseFormField("procedureDate");
   const mortalityClassification = useCaseFormField("mortalityClassification");
   const discussedAtMDM = useCaseFormField("discussedAtMDM");
   const isUnplannedReadmission = useCaseFormField("isUnplannedReadmission");
@@ -75,6 +78,23 @@ export const OutcomesSection = React.memo(function OutcomesSection({
 
   const [isAuditExpanded, setIsAuditExpanded] = useState(hasAuditData);
 
+  // Day case auto-fills outcome = "discharged_home" (applyDayCaseDefaults in
+  // useCaseForm) — surface that it was automatic (follow-up 5b / B3.7).
+  const isOutcomeAutoFilled =
+    stayType === "day_case" && outcome === "discharged_home";
+
+  // 30-day RACS audit window: teaser once the procedure is ≥30 days old and
+  // nothing has been recorded yet (follow-up 5c / B3.5). No auto-expand.
+  const auditWindowReached = useMemo(() => {
+    const parsed = parseIsoDateValue(procedureDate);
+    if (!parsed) return false;
+    const elapsedDays = (Date.now() - parsed.getTime()) / (1000 * 60 * 60 * 24);
+    return elapsedDays >= 30;
+  }, [procedureDate]);
+
+  const showAuditTeaser =
+    auditWindowReached && !hasAuditData && !isAuditExpanded;
+
   return (
     <CollapsibleFormSection
       title="Outcomes"
@@ -99,6 +119,22 @@ export const OutcomesSection = React.memo(function OutcomesSection({
         testID="caseForm.outcomes.picker-dischargeOutcome"
       />
 
+      {isOutcomeAutoFilled ? (
+        <View
+          style={[
+            styles.autoFillBadge,
+            { backgroundColor: theme.accentSurface },
+          ]}
+          accessibilityLabel="Outcome auto-filled from day case stay type"
+          testID="caseForm.outcomes.badge-outcomeAutoFilled"
+        >
+          <Feather name="zap" size={12} color={theme.link} />
+          <ThemedText style={[styles.autoFillBadgeText, { color: theme.link }]}>
+            Auto-filled
+          </ThemedText>
+        </View>
+      ) : null}
+
       {outcome === "died" ? (
         <PickerField
           label="Mortality Classification"
@@ -121,7 +157,7 @@ export const OutcomesSection = React.memo(function OutcomesSection({
             styles.checkbox,
             {
               backgroundColor: discussedAtMDM
-                ? theme.link + "20"
+                ? theme.accentSurface
                 : theme.backgroundDefault,
               borderColor: discussedAtMDM ? theme.link : theme.border,
             },
@@ -151,34 +187,47 @@ export const OutcomesSection = React.memo(function OutcomesSection({
           setIsAuditExpanded((v) => !v);
         }}
         accessibilityRole="button"
-        accessibilityLabel={`30-day audit, ${hasAuditData ? "has entries" : "empty"}`}
+        accessibilityLabel={`30-day audit, ${
+          hasAuditData
+            ? "has entries"
+            : showAuditTeaser
+              ? "audit window reached, tap to record"
+              : "empty"
+        }`}
         accessibilityState={{ expanded: isAuditExpanded }}
         testID="caseForm.outcomes.section-30dayAudit"
       >
-        <Feather
-          name={isAuditExpanded ? "chevron-down" : "chevron-right"}
-          size={16}
-          color={theme.textSecondary}
-        />
-        <ThemedText
-          style={[styles.auditToggleText, { color: theme.textSecondary }]}
-        >
-          30-Day Audit
-        </ThemedText>
-        {/* Status pairs colour + text (CLAUDE.md Medical UX Rule 1 — never
-            use colour alone). The previous bare warning-coloured dot
-            communicated state by hue only. */}
-        {hasAuditData ? (
-          <View style={styles.auditBadge}>
-            <View
-              style={[styles.auditDot, { backgroundColor: theme.warning }]}
-            />
-            <ThemedText
-              style={[styles.auditBadgeText, { color: theme.warning }]}
-            >
-              Has entries
-            </ThemedText>
-          </View>
+        <View style={styles.auditToggleRow}>
+          <Feather
+            name={isAuditExpanded ? "chevron-down" : "chevron-right"}
+            size={16}
+            color={theme.textSecondary}
+          />
+          <ThemedText
+            style={[styles.auditToggleText, { color: theme.textSecondary }]}
+          >
+            30-Day Audit
+          </ThemedText>
+          {/* Status pairs colour + text (CLAUDE.md Medical UX Rule 1 — never
+              use colour alone). The previous bare warning-coloured dot
+              communicated state by hue only. */}
+          {hasAuditData ? (
+            <View style={styles.auditBadge}>
+              <View
+                style={[styles.auditDot, { backgroundColor: theme.warning }]}
+              />
+              <ThemedText
+                style={[styles.auditBadgeText, { color: theme.warning }]}
+              >
+                Has entries
+              </ThemedText>
+            </View>
+          ) : null}
+        </View>
+        {showAuditTeaser ? (
+          <ThemedText style={[styles.auditTeaserText, { color: theme.link }]}>
+            30-day audit window reached — tap to record
+          </ThemedText>
         ) : null}
       </Pressable>
 
@@ -204,7 +253,7 @@ export const OutcomesSection = React.memo(function OutcomesSection({
                 styles.checkbox,
                 {
                   backgroundColor: isUnplannedReadmission
-                    ? theme.warning + "20"
+                    ? theme.warningSurface
                     : theme.backgroundDefault,
                   borderColor: isUnplannedReadmission
                     ? theme.warning
@@ -263,7 +312,7 @@ export const OutcomesSection = React.memo(function OutcomesSection({
                 styles.checkbox,
                 {
                   backgroundColor: returnToTheatre
-                    ? theme.error + "20"
+                    ? theme.errorSurface
                     : theme.backgroundDefault,
                   borderColor: returnToTheatre ? theme.error : theme.border,
                 },
@@ -334,12 +383,29 @@ const styles = StyleSheet.create({
     fontSize: 15,
     flex: 1,
   },
+  autoFillBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    marginBottom: Spacing.sm,
+  },
+  autoFillBadgeText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
   auditToggle: {
+    paddingVertical: Spacing.md,
+    marginTop: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  auditToggleRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.xs,
-    paddingVertical: Spacing.md,
-    marginTop: Spacing.sm,
   },
   auditToggleText: {
     fontSize: 15,
@@ -359,5 +425,10 @@ const styles = StyleSheet.create({
   auditBadgeText: {
     fontSize: 12,
     fontWeight: "600",
+  },
+  auditTeaserText: {
+    fontSize: 12,
+    fontWeight: "500",
+    marginLeft: Spacing.lg,
   },
 });

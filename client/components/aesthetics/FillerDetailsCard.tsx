@@ -301,7 +301,7 @@ export const FillerDetailsCard = React.memo(function FillerDetailsCard({
       <View
         style={[
           styles.totalBadge,
-          { backgroundColor: theme.link + "1A", borderColor: theme.link },
+          { backgroundColor: theme.accentSurface, borderColor: theme.link },
         ]}
       >
         <ThemedText style={[styles.totalLabel, { color: theme.link }]}>

@@ -191,7 +191,7 @@ function TeamSectionInner() {
                   styles.chip,
                   {
                     backgroundColor: isSelected
-                      ? theme.link + "15"
+                      ? theme.accentSurface
                       : theme.backgroundElevated,
                     borderColor: isSelected ? theme.link : theme.border,
                   },

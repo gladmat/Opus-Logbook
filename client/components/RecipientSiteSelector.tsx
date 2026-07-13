@@ -55,7 +55,7 @@ export function RecipientSiteSelector({
               {
                 backgroundColor:
                   value === region
-                    ? theme.link + "15"
+                    ? theme.accentSurface
                     : theme.backgroundDefault,
                 borderColor: value === region ? theme.link : theme.border,
               },

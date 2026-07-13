@@ -321,7 +321,7 @@ export const PeripheralNerveAssessment = React.memo(
             <View
               style={[
                 styles.patternBadge,
-                { backgroundColor: `${theme.accent}20` },
+                { backgroundColor: theme.accentSurface },
               ]}
             >
               <ThemedText

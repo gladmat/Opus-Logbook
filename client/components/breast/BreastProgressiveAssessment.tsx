@@ -1316,8 +1316,8 @@ export function BreastProgressiveAssessment({
               style={[
                 styles.selectedDiagnosisDetail,
                 {
-                  backgroundColor: theme.link + "10",
-                  borderColor: theme.link + "30",
+                  backgroundColor: theme.accentSurface,
+                  borderColor: theme.accentBorder,
                 },
               ]}
             >
@@ -1443,7 +1443,7 @@ export function BreastProgressiveAssessment({
                 borderWidth: 1,
                 borderColor: histologyPending ? theme.warning : theme.border,
                 backgroundColor: histologyPending
-                  ? theme.warning + "10"
+                  ? theme.warningSurface
                   : theme.backgroundDefault,
                 marginTop: Spacing.sm,
               }}

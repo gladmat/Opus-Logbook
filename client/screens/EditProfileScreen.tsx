@@ -365,7 +365,7 @@ export default function EditProfileScreen() {
             <AuthenticatedAvatar url={avatarUrl} size={styles.avatar.width} />
           ) : (
             <View
-              style={[styles.avatar, { backgroundColor: theme.link + "15" }]}
+              style={[styles.avatar, { backgroundColor: theme.accentSurface }]}
             >
               <Feather name="user" size={44} color={theme.link} />
             </View>
@@ -501,7 +501,7 @@ export default function EditProfileScreen() {
                       },
                       isSelected && {
                         borderColor: theme.link,
-                        backgroundColor: theme.link + "15",
+                        backgroundColor: theme.accentSurface,
                       },
                     ]}
                     onPress={() => {
@@ -561,7 +561,7 @@ export default function EditProfileScreen() {
                       },
                       isSelected && {
                         borderColor: theme.link,
-                        backgroundColor: theme.link + "15",
+                        backgroundColor: theme.accentSurface,
                       },
                     ]}
                     onPress={() => {
@@ -613,7 +613,7 @@ export default function EditProfileScreen() {
                         },
                         isSelected && {
                           borderColor: theme.link,
-                          backgroundColor: theme.link + "15",
+                          backgroundColor: theme.accentSurface,
                         },
                       ]}
                       onPress={() => {
@@ -660,7 +660,7 @@ export default function EditProfileScreen() {
                 <View
                   style={[
                     styles.registrationCountBadge,
-                    { backgroundColor: theme.link + "15" },
+                    { backgroundColor: theme.accentSurface },
                   ]}
                 >
                   <ThemedText
@@ -697,8 +697,8 @@ export default function EditProfileScreen() {
                     style={[
                       styles.recommendedRegistrationButton,
                       {
-                        backgroundColor: theme.link + "12",
-                        borderColor: theme.link + "40",
+                        backgroundColor: theme.accentSurface,
+                        borderColor: theme.accentBorder,
                       },
                     ]}
                     onPress={() =>

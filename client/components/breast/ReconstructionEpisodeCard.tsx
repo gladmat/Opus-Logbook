@@ -140,8 +140,8 @@ export const ReconstructionEpisodeCard = React.memo(
           style={[
             styles.linkedBanner,
             {
-              backgroundColor: `${theme.link}15`,
-              borderColor: `${theme.link}40`,
+              backgroundColor: theme.accentSurface,
+              borderColor: theme.accentBorder,
             },
           ]}
         >
@@ -267,7 +267,7 @@ export const ReconstructionEpisodeCard = React.memo(
                           styles.nextStepChip,
                           {
                             backgroundColor: isSelected
-                              ? theme.link + "18"
+                              ? theme.accentSurface
                               : theme.backgroundElevated,
                             borderColor: isSelected ? theme.link : theme.border,
                           },

@@ -182,7 +182,7 @@ export const ProcedureTeamFooter = React.memo(function ProcedureTeamFooter({
                             styles.roleChip,
                             {
                               backgroundColor: isSelected
-                                ? theme.link + "18"
+                                ? theme.accentSurface
                                 : theme.backgroundSecondary,
                               borderColor: isSelected
                                 ? theme.link

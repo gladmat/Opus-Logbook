@@ -66,7 +66,7 @@ export function WoundAssessmentCard({
     <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
       <View style={styles.headerRow}>
         <View
-          style={[styles.iconBadge, { backgroundColor: theme.info + "20" }]}
+          style={[styles.iconBadge, { backgroundColor: theme.infoSurface }]}
         >
           <Feather name="thermometer" size={14} color={theme.info} />
         </View>
@@ -156,7 +156,7 @@ export function WoundAssessmentCard({
 
       {hasInfectionSigns ? (
         <View
-          style={[styles.infectionRow, { backgroundColor: theme.error + "15" }]}
+          style={[styles.infectionRow, { backgroundColor: theme.errorSurface }]}
         >
           <Feather name="alert-triangle" size={13} color={theme.error} />
           <ThemedText style={[styles.infectionText, { color: theme.error }]}>

@@ -69,8 +69,8 @@ export function EpisodeLinkBanner({
       style={[
         styles.banner,
         {
-          backgroundColor: theme.info + "10",
-          borderColor: theme.info + "40",
+          backgroundColor: theme.infoSurface,
+          borderColor: theme.infoBorder,
         },
       ]}
     >

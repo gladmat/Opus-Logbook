@@ -167,7 +167,7 @@ export default function ManageFacilitiesScreen() {
                         borderColor: theme.border,
                       },
                       isSelected && {
-                        backgroundColor: theme.link + "15",
+                        backgroundColor: theme.accentSurface,
                         borderColor: theme.link,
                       },
                     ]}
@@ -246,7 +246,7 @@ export default function ManageFacilitiesScreen() {
                         <View
                           style={[
                             styles.primaryBadge,
-                            { backgroundColor: theme.link + "20" },
+                            { backgroundColor: theme.accentSurface },
                           ]}
                         >
                           <ThemedText

@@ -8,6 +8,7 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import { useTheme } from "@/hooks/useTheme";
+import { useReduceMotion } from "@/hooks/useReduceMotion";
 import { BorderRadius, Spacing } from "@/constants/theme";
 
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
@@ -108,6 +109,8 @@ export const BarChart = React.memo(function BarChart({
   );
 
   const defaultColor = barColor ?? theme.accent;
+  const reduceMotion = useReduceMotion();
+  const animateBars = animateOnMount && !reduceMotion;
 
   // For >6 bars, show short label only (first 3 chars e.g. "Jan")
   // For <=6 bars, show full label
@@ -155,7 +158,7 @@ export const BarChart = React.memo(function BarChart({
                 value={item.value}
                 maxValue={maxValue}
                 color={color}
-                animate={animateOnMount}
+                animate={animateBars}
                 paddingTop={paddingTop}
               />
               {/* Value label on top */}

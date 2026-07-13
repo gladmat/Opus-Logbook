@@ -299,7 +299,7 @@ export function SnomedSearchPicker({
                       <View
                         style={[
                           styles.semanticTag,
-                          { backgroundColor: theme.link + "20" },
+                          { backgroundColor: theme.accentSurface },
                         ]}
                       >
                         <ThemedText

@@ -244,7 +244,7 @@ export default function EpisodeDetailScreen() {
                     key={action}
                     style={[
                       styles.pendingPill,
-                      { backgroundColor: theme.warning + "15" },
+                      { backgroundColor: theme.warningSurface },
                     ]}
                   >
                     <Feather name="clock" size={13} color={theme.warning} />

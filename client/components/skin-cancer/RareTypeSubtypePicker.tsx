@@ -93,7 +93,7 @@ export const RareTypeSubtypePicker = React.memo(function RareTypeSubtypePicker({
                     styles.chip,
                     {
                       backgroundColor: isSelected
-                        ? theme.link + "14"
+                        ? theme.accentSurface
                         : theme.backgroundElevated,
                       borderColor: isSelected ? theme.link : theme.border,
                     },
@@ -137,7 +137,7 @@ export const RareTypeSubtypePicker = React.memo(function RareTypeSubtypePicker({
               style={[
                 styles.mdtBanner,
                 {
-                  backgroundColor: theme.warning + "10",
+                  backgroundColor: theme.warningSurface,
                   borderLeftColor: theme.warning,
                 },
               ]}
@@ -155,7 +155,7 @@ export const RareTypeSubtypePicker = React.memo(function RareTypeSubtypePicker({
               style={[
                 styles.mdtBanner,
                 {
-                  backgroundColor: theme.info + "10",
+                  backgroundColor: theme.infoSurface,
                   borderLeftColor: theme.info,
                 },
               ]}

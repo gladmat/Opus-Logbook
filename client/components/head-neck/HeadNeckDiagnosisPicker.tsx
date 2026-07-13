@@ -309,8 +309,8 @@ const SelectedDiagnosisDetail = React.memo(function SelectedDiagnosisDetail({
       style={[
         styles.selectedDetail,
         {
-          backgroundColor: theme.link + "10",
-          borderColor: theme.link + "30",
+          backgroundColor: theme.accentSurface,
+          borderColor: theme.accentBorder,
         },
       ]}
     >

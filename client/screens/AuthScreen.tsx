@@ -390,7 +390,7 @@ export default function AuthScreen() {
         onRequestClose={() => setShowForgotPasswordModal(false)}
       >
         <Pressable
-          style={styles.modalOverlay}
+          style={[styles.modalOverlay, { backgroundColor: colors.scrim }]}
           onPress={() => setShowForgotPasswordModal(false)}
         >
           <View
@@ -588,7 +588,6 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
     padding: Spacing.lg,

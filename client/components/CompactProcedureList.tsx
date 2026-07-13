@@ -109,7 +109,10 @@ const CompactProcedureRow = React.memo(function CompactProcedureRow({
         {/* Order badge + name */}
         <View style={styles.nameRow}>
           <View
-            style={[styles.orderBadge, { backgroundColor: theme.link + "20" }]}
+            style={[
+              styles.orderBadge,
+              { backgroundColor: theme.accentSurface },
+            ]}
           >
             <ThemedText style={[styles.orderText, { color: theme.link }]}>
               {index + 1}
@@ -142,7 +145,7 @@ const CompactProcedureRow = React.memo(function CompactProcedureRow({
                   key={tag}
                   style={[
                     styles.tagPill,
-                    { backgroundColor: theme.link + "18" },
+                    { backgroundColor: theme.accentSurface },
                   ]}
                 >
                   <ThemedText

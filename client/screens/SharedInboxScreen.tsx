@@ -54,15 +54,15 @@ function VerificationBadge({
   const config = {
     pending: {
       label: "Pending",
-      bg: theme.warning + "20",
+      bg: theme.warningSurface,
       color: theme.warning,
     },
     verified: {
       label: "Verified",
-      bg: theme.success + "20",
+      bg: theme.successSurface,
       color: theme.success,
     },
-    disputed: { label: "Disputed", bg: theme.error + "20", color: theme.error },
+    disputed: { label: "Disputed", bg: theme.errorSurface, color: theme.error },
   };
   const { label, bg, color } = config[status];
 
@@ -88,13 +88,13 @@ function AssessmentBadge({
     submitted: {
       label: "Assessed",
       icon: "clock" as const,
-      bg: theme.warning + "20",
+      bg: theme.warningSurface,
       color: theme.warning,
     },
     revealed: {
       label: "Assessed",
       icon: "check-circle" as const,
-      bg: theme.success + "20",
+      bg: theme.successSurface,
       color: theme.success,
     },
   };
@@ -140,7 +140,7 @@ const SharedCaseCard = React.memo(function SharedCaseCard({
           <View
             style={[
               styles.avatarCircle,
-              { backgroundColor: theme.accent + "20" },
+              { backgroundColor: theme.accentSurface },
             ]}
           >
             <Feather name="user" size={16} color={theme.accent} />

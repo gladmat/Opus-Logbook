@@ -384,7 +384,10 @@ function ProcedureEntryCardInner({
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
           <View
-            style={[styles.orderBadge, { backgroundColor: theme.link + "20" }]}
+            style={[
+              styles.orderBadge,
+              { backgroundColor: theme.accentSurface },
+            ]}
           >
             <ThemedText style={[styles.orderText, { color: theme.link }]}>
               {index + 1}

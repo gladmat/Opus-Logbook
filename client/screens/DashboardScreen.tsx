@@ -457,7 +457,7 @@ export default function DashboardScreen() {
               <View
                 style={[
                   styles.sharedCasesIcon,
-                  { backgroundColor: theme.accent + "20" },
+                  { backgroundColor: theme.accentSurface },
                 ]}
               >
                 <Feather name="users" size={18} color={theme.accent} />
@@ -520,7 +520,12 @@ export default function DashboardScreen() {
         animationType="slide"
         onRequestClose={() => setDischargeModalVisible(false)}
       >
-        <View style={styles.dischargeModalOverlay}>
+        <View
+          style={[
+            styles.dischargeModalOverlay,
+            { backgroundColor: theme.scrim },
+          ]}
+        >
           <View
             style={[
               styles.dischargeModalContent,
@@ -671,7 +676,6 @@ const styles = StyleSheet.create({
   },
   dischargeModalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
   },
   dischargeModalContent: {

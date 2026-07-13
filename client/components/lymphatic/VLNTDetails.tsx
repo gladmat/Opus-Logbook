@@ -181,8 +181,8 @@ export const VLNTDetailsComponent = React.memo(function VLNTDetailsComponent({
           style={[
             styles.infoBadge,
             {
-              backgroundColor: theme.info + "10",
-              borderColor: theme.info + "40",
+              backgroundColor: theme.infoSurface,
+              borderColor: theme.infoBorder,
             },
           ]}
         >

@@ -275,7 +275,7 @@ function DashboardCaseCardInner({
                 <View
                   style={[
                     chipStyles.chip,
-                    { backgroundColor: theme.accent + "20" },
+                    { backgroundColor: theme.accentSurface },
                   ]}
                 >
                   <ThemedText
@@ -321,8 +321,8 @@ function DashboardCaseCardInner({
                   style={[
                     styles.actionChip,
                     {
-                      backgroundColor: theme.accent + "15",
-                      borderColor: theme.accent + "30",
+                      backgroundColor: theme.accentSurface,
+                      borderColor: theme.accentBorder,
                     },
                   ]}
                 >

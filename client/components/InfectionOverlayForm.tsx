@@ -202,7 +202,7 @@ export function InfectionOverlayForm({
     <View style={styles.container}>
       <Pressable
         onPress={onToggleCollapse}
-        style={[styles.header, { backgroundColor: theme.warning + "20" }]}
+        style={[styles.header, { backgroundColor: theme.warningSurface }]}
       >
         <View style={styles.headerContent}>
           <Feather name="alert-triangle" size={18} color={theme.warning} />

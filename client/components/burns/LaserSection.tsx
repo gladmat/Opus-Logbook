@@ -89,7 +89,7 @@ export const LaserSection = React.memo(function LaserSection({
                   styles.chip,
                   {
                     backgroundColor: selected
-                      ? theme.link + "20"
+                      ? theme.accentSurface
                       : theme.backgroundRoot,
                     borderColor: selected ? theme.link : theme.border,
                   },

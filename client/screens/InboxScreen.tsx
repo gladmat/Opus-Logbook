@@ -529,7 +529,7 @@ export default function InboxScreen() {
           onPress={() => handleCaseSelected(nhiMatch.topMatch.caseData)}
           style={[
             styles.nhiBanner,
-            { backgroundColor: theme.link + "15", borderColor: theme.link },
+            { backgroundColor: theme.accentSurface, borderColor: theme.link },
           ]}
         >
           <View style={styles.nhiBannerContent}>
@@ -751,7 +751,7 @@ export default function InboxScreen() {
                   {
                     backgroundColor:
                       selectedIds.size > 0
-                        ? theme.error + "20"
+                        ? theme.errorSurface
                         : theme.textTertiary + "20",
                   },
                 ]}

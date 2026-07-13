@@ -262,7 +262,7 @@ export const JointCaseContextSection = React.memo(
                           styles.structureChip,
                           {
                             backgroundColor: selected
-                              ? theme.link + "20"
+                              ? theme.accentSurface
                               : theme.backgroundDefault,
                             borderColor: selected ? theme.link : theme.border,
                           },

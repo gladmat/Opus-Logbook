@@ -239,7 +239,7 @@ export function JointImplantSection({
       ]}
     >
       {/* ── Header ──────────────────────────────────────────────────── */}
-      <View style={[styles.header, { backgroundColor: theme.link + "15" }]}>
+      <View style={[styles.header, { backgroundColor: theme.accentSurface }]}>
         <Feather name="tool" size={16} color={theme.link} />
         <ThemedText style={[styles.headerTitle, { color: theme.text }]}>
           Implant Details
@@ -249,7 +249,7 @@ export function JointImplantSection({
             style={[
               styles.incompleteBadge,
               {
-                backgroundColor: theme.warning + "18",
+                backgroundColor: theme.warningSurface,
                 borderColor: theme.warning,
               },
             ]}
@@ -268,7 +268,7 @@ export function JointImplantSection({
             {
               backgroundColor:
                 value.procedureType === "revision"
-                  ? theme.warning + "20"
+                  ? theme.warningSurface
                   : theme.backgroundElevated,
               borderColor:
                 value.procedureType === "revision"
@@ -315,7 +315,7 @@ export function JointImplantSection({
           style={[
             styles.warningBanner,
             {
-              backgroundColor: theme.warning + "12",
+              backgroundColor: theme.warningSurface,
               borderBottomColor: theme.border,
             },
           ]}
@@ -370,7 +370,7 @@ export function JointImplantSection({
                   styles.implantRow,
                   {
                     backgroundColor: selected
-                      ? theme.link + "15"
+                      ? theme.accentSurface
                       : "transparent",
                     borderColor: selected ? theme.link : theme.border,
                   },
@@ -456,7 +456,7 @@ export function JointImplantSection({
                       styles.chip,
                       {
                         backgroundColor: selected
-                          ? theme.link + "15"
+                          ? theme.accentSurface
                           : "transparent",
                         borderColor: selected ? theme.link : theme.border,
                       },
@@ -500,7 +500,7 @@ export function JointImplantSection({
                           styles.chip,
                           {
                             backgroundColor: selected
-                              ? theme.link + "15"
+                              ? theme.accentSurface
                               : "transparent",
                             borderColor: selected ? theme.link : theme.border,
                           },
@@ -545,7 +545,7 @@ export function JointImplantSection({
                           styles.chip,
                           {
                             backgroundColor: selected
-                              ? theme.link + "15"
+                              ? theme.accentSurface
                               : "transparent",
                             borderColor: selected ? theme.link : theme.border,
                           },
@@ -591,7 +591,7 @@ export function JointImplantSection({
                             styles.chip,
                             {
                               backgroundColor: selected
-                                ? theme.link + "15"
+                                ? theme.accentSurface
                                 : "transparent",
                               borderColor: selected ? theme.link : theme.border,
                             },
@@ -635,7 +635,7 @@ export function JointImplantSection({
                       styles.chip,
                       {
                         backgroundColor: selected
-                          ? theme.link + "15"
+                          ? theme.accentSurface
                           : "transparent",
                         borderColor: selected ? theme.link : theme.border,
                       },
@@ -677,7 +677,7 @@ export function JointImplantSection({
                   styles.chip,
                   {
                     backgroundColor: selected
-                      ? theme.link + "15"
+                      ? theme.accentSurface
                       : "transparent",
                     borderColor: selected ? theme.link : theme.border,
                   },
@@ -749,7 +749,7 @@ export function JointImplantSection({
                     styles.chip,
                     {
                       backgroundColor: selected
-                        ? theme.link + "15"
+                        ? theme.accentSurface
                         : "transparent",
                       borderColor: selected ? theme.link : theme.border,
                     },
@@ -791,7 +791,7 @@ export function JointImplantSection({
                   styles.chip,
                   {
                     backgroundColor: selected
-                      ? theme.link + "15"
+                      ? theme.accentSurface
                       : "transparent",
                     borderColor: selected ? theme.link : theme.border,
                   },
@@ -862,7 +862,7 @@ export function JointImplantSection({
                       styles.chip,
                       {
                         backgroundColor: selected
-                          ? theme.link + "15"
+                          ? theme.accentSurface
                           : "transparent",
                         borderColor: selected ? theme.link : theme.border,
                       },
@@ -905,7 +905,7 @@ export function JointImplantSection({
                         styles.chip,
                         {
                           backgroundColor: selected
-                            ? theme.link + "15"
+                            ? theme.accentSurface
                             : "transparent",
                           borderColor: selected ? theme.link : theme.border,
                         },
@@ -1041,7 +1041,7 @@ export function JointImplantSection({
                 onValueChange={(val) => update({ grommetsUsed: val })}
                 trackColor={{
                   false: theme.backgroundElevated,
-                  true: theme.link + "40",
+                  true: theme.accentBorder,
                 }}
                 thumbColor={
                   value.grommetsUsed ? theme.link : theme.textTertiary
@@ -1068,7 +1068,7 @@ export function JointImplantSection({
                         styles.chip,
                         {
                           backgroundColor: selected
-                            ? theme.warning + "15"
+                            ? theme.warningSurface
                             : "transparent",
                           borderColor: selected ? theme.warning : theme.border,
                         },
@@ -1114,7 +1114,7 @@ export function JointImplantSection({
                         styles.chip,
                         {
                           backgroundColor: selected
-                            ? theme.warning + "15"
+                            ? theme.warningSurface
                             : "transparent",
                           borderColor: selected ? theme.warning : theme.border,
                         },

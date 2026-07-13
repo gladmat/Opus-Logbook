@@ -52,8 +52,8 @@ export function FavouritesRecentsChips({
                   style={[
                     styles.chip,
                     {
-                      backgroundColor: theme.link + "15",
-                      borderColor: theme.link + "40",
+                      backgroundColor: theme.accentSurface,
+                      borderColor: theme.accentBorder,
                     },
                   ]}
                   onPress={() => {

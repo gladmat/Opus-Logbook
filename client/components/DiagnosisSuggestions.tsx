@@ -53,7 +53,7 @@ export function DiagnosisSuggestions({
     >
       <View style={styles.headerRow}>
         <View
-          style={[styles.iconBadge, { backgroundColor: theme.warning + "20" }]}
+          style={[styles.iconBadge, { backgroundColor: theme.warningSurface }]}
         >
           <Feather name="help-circle" size={18} color={theme.warning} />
         </View>
@@ -126,7 +126,7 @@ function DiagnosisChip({
     ? theme.backgroundTertiary
     : theme.backgroundDefault;
 
-  const chipBorder = isCrossSpecialty ? theme.border : theme.link + "40";
+  const chipBorder = isCrossSpecialty ? theme.border : theme.accentBorder;
 
   return (
     <Pressable

@@ -391,7 +391,7 @@ export const HistologySection = React.memo(function HistologySection({
                     styles.chip,
                     {
                       backgroundColor: isSelected
-                        ? theme.link + "14"
+                        ? theme.accentSurface
                         : theme.backgroundElevated,
                       borderColor: isSelected ? theme.link : theme.border,
                     },
@@ -434,7 +434,7 @@ export const HistologySection = React.memo(function HistologySection({
                     styles.chip,
                     {
                       backgroundColor: isSelected
-                        ? theme.link + "14"
+                        ? theme.accentSurface
                         : theme.backgroundElevated,
                       borderColor: isSelected ? theme.link : theme.border,
                     },
@@ -499,7 +499,7 @@ export const HistologySection = React.memo(function HistologySection({
                     styles.chip,
                     {
                       backgroundColor: isSelected
-                        ? theme.link + "14"
+                        ? theme.accentSurface
                         : theme.backgroundElevated,
                       borderColor: isSelected ? theme.link : theme.border,
                     },
@@ -650,7 +650,7 @@ export const HistologySection = React.memo(function HistologySection({
                         styles.chip,
                         {
                           backgroundColor: isSelected
-                            ? theme.link + "14"
+                            ? theme.accentSurface
                             : theme.backgroundElevated,
                           borderColor: isSelected ? theme.link : theme.border,
                         },
@@ -828,7 +828,7 @@ function BCCFields({ histology, update, theme }: FieldProps) {
                 styles.chip,
                 {
                   backgroundColor: isSelected
-                    ? theme.link + "14"
+                    ? theme.accentSurface
                     : theme.backgroundElevated,
                   borderColor: isSelected ? theme.link : theme.border,
                 },
@@ -878,7 +878,7 @@ function SCCFields({ histology, update, theme }: FieldProps) {
                   styles.chip,
                   {
                     backgroundColor: isSelected
-                      ? theme.link + "14"
+                      ? theme.accentSurface
                       : theme.backgroundElevated,
                     borderColor: isSelected ? theme.link : theme.border,
                   },
@@ -979,7 +979,7 @@ function SCCFields({ histology, update, theme }: FieldProps) {
                   styles.chip,
                   {
                     backgroundColor: isSelected
-                      ? theme.link + "14"
+                      ? theme.accentSurface
                       : theme.backgroundElevated,
                     borderColor: isSelected ? theme.link : theme.border,
                   },
@@ -1101,7 +1101,7 @@ function MelanomaFields({
                   styles.chip,
                   {
                     backgroundColor: isSelected
-                      ? theme.link + "14"
+                      ? theme.accentSurface
                       : theme.backgroundElevated,
                     borderColor: isSelected ? theme.link : theme.border,
                   },
@@ -1228,7 +1228,7 @@ function MelanomaFields({
                       styles.chip,
                       {
                         backgroundColor: isSelected
-                          ? theme.link + "14"
+                          ? theme.accentSurface
                           : theme.backgroundElevated,
                         borderColor: isSelected ? theme.link : theme.border,
                       },
@@ -1274,7 +1274,7 @@ function MelanomaFields({
                       styles.chip,
                       {
                         backgroundColor: isSelected
-                          ? theme.link + "14"
+                          ? theme.accentSurface
                           : theme.backgroundElevated,
                         borderColor: isSelected ? theme.link : theme.border,
                       },
@@ -1365,7 +1365,7 @@ function MerkelFields({ histology, update, theme }: FieldProps) {
                   styles.chip,
                   {
                     backgroundColor: isSelected
-                      ? theme.link + "14"
+                      ? theme.accentSurface
                       : theme.backgroundElevated,
                     borderColor: isSelected ? theme.link : theme.border,
                   },

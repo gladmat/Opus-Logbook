@@ -83,7 +83,7 @@ export function FacilitySelector({
       transparent
       onRequestClose={handleClose}
     >
-      <View style={styles.overlay}>
+      <View style={[styles.overlay, { backgroundColor: theme.scrim }]}>
         <View
           style={[
             styles.container,
@@ -151,7 +151,7 @@ export function FacilitySelector({
                     {
                       backgroundColor:
                         selectedRegion === item.value
-                          ? theme.link + "20"
+                          ? theme.accentSurface
                           : theme.backgroundDefault,
                       borderColor:
                         selectedRegion === item.value
@@ -186,7 +186,7 @@ export function FacilitySelector({
                   {
                     backgroundColor:
                       selectedType === undefined
-                        ? theme.link + "20"
+                        ? theme.accentSurface
                         : theme.backgroundDefault,
                     borderColor:
                       selectedType === undefined ? theme.link : theme.border,
@@ -212,7 +212,7 @@ export function FacilitySelector({
                   {
                     backgroundColor:
                       selectedType === "public"
-                        ? theme.link + "20"
+                        ? theme.accentSurface
                         : theme.backgroundDefault,
                     borderColor:
                       selectedType === "public" ? theme.link : theme.border,
@@ -238,7 +238,7 @@ export function FacilitySelector({
                   {
                     backgroundColor:
                       selectedType === "private"
-                        ? theme.link + "20"
+                        ? theme.accentSurface
                         : theme.backgroundDefault,
                     borderColor:
                       selectedType === "private" ? theme.link : theme.border,
@@ -280,7 +280,7 @@ export function FacilitySelector({
                         styles.facilityItem,
                         {
                           backgroundColor: isSelected
-                            ? theme.link + "10"
+                            ? theme.accentSurface
                             : theme.backgroundDefault,
                           borderColor: isSelected ? theme.link : theme.border,
                         },
@@ -299,8 +299,8 @@ export function FacilitySelector({
                               {
                                 backgroundColor:
                                   facility.type === "public"
-                                    ? theme.success + "20"
-                                    : theme.link + "20",
+                                    ? theme.successSurface
+                                    : theme.accentSurface,
                               },
                             ]}
                           >
@@ -357,7 +357,6 @@ export function FacilitySelector({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-end",
   },
   container: {

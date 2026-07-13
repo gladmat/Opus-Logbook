@@ -196,7 +196,7 @@ export const BurnOutcomeSection = React.memo(function BurnOutcomeSection({
                   styles.chip,
                   {
                     backgroundColor: selected
-                      ? theme.error + "15"
+                      ? theme.errorSurface
                       : theme.backgroundRoot,
                     borderColor: selected ? theme.error : theme.border,
                   },
@@ -239,7 +239,7 @@ export const BurnOutcomeSection = React.memo(function BurnOutcomeSection({
                   styles.chip,
                   {
                     backgroundColor: selected
-                      ? theme.link + "20"
+                      ? theme.accentSurface
                       : theme.backgroundRoot,
                     borderColor: selected ? theme.link : theme.border,
                   },

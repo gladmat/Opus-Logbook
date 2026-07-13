@@ -439,8 +439,8 @@ export function CraniofacialAssessment({
           style={[
             styles.infoBanner,
             {
-              backgroundColor: theme.info + "15",
-              borderColor: theme.info + "40",
+              backgroundColor: theme.infoSurface,
+              borderColor: theme.infoBorder,
             },
           ]}
         >
@@ -884,7 +884,7 @@ export function CraniofacialAssessment({
         {/* Age at surgery */}
         {computedAge ? (
           <View
-            style={[styles.ageBadge, { backgroundColor: theme.link + "15" }]}
+            style={[styles.ageBadge, { backgroundColor: theme.accentSurface }]}
           >
             <Feather name="calendar" size={14} color={theme.link} />
             <ThemedText style={[styles.ageText, { color: theme.text }]}>
@@ -908,12 +908,12 @@ export function CraniofacialAssessment({
               {
                 backgroundColor:
                   ageWarning.severity === "red"
-                    ? theme.error + "15"
-                    : theme.warning + "15",
+                    ? theme.errorSurface
+                    : theme.warningSurface,
                 borderColor:
                   ageWarning.severity === "red"
-                    ? theme.error + "40"
-                    : theme.warning + "40",
+                    ? theme.errorBorder
+                    : theme.warningBorder,
               },
             ]}
           >

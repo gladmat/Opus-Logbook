@@ -286,7 +286,7 @@ export const CorrectiveOsteotomyDetails = React.memo(
           {
             borderColor: selected ? theme.link : theme.border,
             backgroundColor: selected
-              ? `${theme.link}14`
+              ? theme.accentSurface
               : theme.backgroundElevated,
             opacity: disabled ? 0.4 : 1,
           },
@@ -306,7 +306,10 @@ export const CorrectiveOsteotomyDetails = React.memo(
     const renderSectionHeader = (number: number, title: string) => (
       <View style={styles.sectionHeader}>
         <View
-          style={[styles.sectionNumber, { backgroundColor: `${theme.link}20` }]}
+          style={[
+            styles.sectionNumber,
+            { backgroundColor: theme.accentSurface },
+          ]}
         >
           <ThemedText style={[styles.sectionNumberText, { color: theme.link }]}>
             {number}

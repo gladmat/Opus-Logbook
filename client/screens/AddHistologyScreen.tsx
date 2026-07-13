@@ -102,7 +102,7 @@ function GeneralHistologyForm({ result, onChange }: GeneralHistologyFormProps) {
                   styles.chip,
                   {
                     backgroundColor: selected
-                      ? theme.link + "20"
+                      ? theme.accentSurface
                       : theme.backgroundElevated,
                     borderColor: selected ? theme.link : theme.border,
                   },
@@ -163,7 +163,7 @@ function GeneralHistologyForm({ result, onChange }: GeneralHistologyFormProps) {
                   styles.chip,
                   {
                     backgroundColor: selected
-                      ? theme.link + "20"
+                      ? theme.accentSurface
                       : theme.backgroundElevated,
                     borderColor: selected ? theme.link : theme.border,
                   },

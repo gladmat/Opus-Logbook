@@ -98,7 +98,7 @@ function LevelCard({
         styles.levelCard,
         {
           backgroundColor: selected
-            ? `${theme.accent}18`
+            ? theme.accentSurface
             : theme.backgroundElevated,
           borderColor: selected ? theme.accent : theme.border,
           borderLeftWidth: selected ? 3 : 1,
@@ -110,7 +110,7 @@ function LevelCard({
           styles.levelNumberCircle,
           {
             backgroundColor: selected
-              ? `${theme.accent}30`
+              ? theme.accentBorder
               : theme.backgroundSecondary,
           },
         ]}
@@ -168,7 +168,7 @@ function RoleChip({
         styles.roleChip,
         {
           backgroundColor: selected
-            ? `${theme.accent}18`
+            ? theme.accentSurface
             : theme.backgroundElevated,
           borderColor: selected ? theme.accent : theme.border,
         },

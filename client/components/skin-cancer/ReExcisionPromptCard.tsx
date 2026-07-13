@@ -44,8 +44,8 @@ export function ReExcisionPromptCard({
       style={[
         styles.container,
         {
-          backgroundColor: theme.warning + "1A",
-          borderColor: theme.warning + "4D",
+          backgroundColor: theme.warningSurface,
+          borderColor: theme.warningBorder,
         },
       ]}
     >

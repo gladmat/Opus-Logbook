@@ -303,7 +303,7 @@ function HandElectivePickerImpl({
                   <View
                     style={[
                       styles.stagingBadge,
-                      { backgroundColor: theme.link + "20" },
+                      { backgroundColor: theme.accentSurface },
                     ]}
                   >
                     <ThemedText

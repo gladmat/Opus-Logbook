@@ -1,9 +1,17 @@
 import React, { useState, useRef, useEffect } from "react";
-import { View, StyleSheet, Pressable, Animated } from "react-native";
+import { View, StyleSheet, Pressable } from "react-native";
+import Animated, {
+  Easing,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
+import { useReduceMotion } from "@/hooks/useReduceMotion";
 import { BorderRadius, Spacing } from "@/constants/theme";
 import { FormField, PickerField } from "@/components/FormField";
 import {
@@ -372,7 +380,7 @@ export function FreeFlapClinicalFields({
             style={[
               styles.lockedFlapBadge,
               {
-                backgroundColor: theme.link + "15",
+                backgroundColor: theme.accentSurface,
                 borderColor: theme.link,
               },
             ]}
@@ -445,7 +453,7 @@ export function FreeFlapClinicalFields({
             style={[
               styles.lockedFlapBadge,
               {
-                backgroundColor: theme.link + "15",
+                backgroundColor: theme.accentSurface,
                 borderColor: theme.link,
               },
             ]}
@@ -504,8 +512,8 @@ export function FreeFlapClinicalFields({
           style={[
             styles.addButton,
             {
-              backgroundColor: theme.error + "15",
-              borderColor: theme.error + "30",
+              backgroundColor: theme.errorSurface,
+              borderColor: theme.errorBorder,
             },
           ]}
           onPress={() => addAnastomosis("artery")}
@@ -519,8 +527,8 @@ export function FreeFlapClinicalFields({
           style={[
             styles.addButton,
             {
-              backgroundColor: theme.link + "15",
-              borderColor: theme.link + "30",
+              backgroundColor: theme.accentSurface,
+              borderColor: theme.accentBorder,
             },
           ]}
           onPress={() => addAnastomosis("vein")}
@@ -876,7 +884,7 @@ function SelectField({
               {
                 backgroundColor:
                   value === option.value
-                    ? theme.link + "20"
+                    ? theme.accentSurface
                     : theme.backgroundDefault,
                 borderColor: value === option.value ? theme.link : theme.border,
               },
@@ -1021,8 +1029,8 @@ function SlnbBasinCard({ result, onUpdate, onRemove }: SlnbBasinCardProps) {
           style={[
             slnbStyles.basinBadge,
             {
-              backgroundColor: theme.link + "18",
-              borderColor: theme.link + "40",
+              backgroundColor: theme.accentSurface,
+              borderColor: theme.accentBorder,
             },
           ]}
         >
@@ -1121,7 +1129,7 @@ function SlnbBasinCard({ result, onUpdate, onRemove }: SlnbBasinCardProps) {
                   slnbStyles.toggleChip,
                   {
                     backgroundColor: isActive
-                      ? theme.link + "20"
+                      ? theme.accentSurface
                       : theme.backgroundDefault,
                     borderColor: isActive ? theme.link : theme.border,
                   },
@@ -1256,7 +1264,7 @@ export function SlnbClinicalFields({
                 slnbStyles.techniqueChip,
                 {
                   backgroundColor: active
-                    ? theme.link + "18"
+                    ? theme.accentSurface
                     : theme.backgroundDefault,
                   borderColor: active ? theme.link : theme.border,
                 },
@@ -1318,7 +1326,7 @@ export function SlnbClinicalFields({
                     slnbStyles.basinOtherBtn,
                     {
                       backgroundColor: isActive
-                        ? theme.link + "18"
+                        ? theme.accentSurface
                         : theme.backgroundElevated,
                       borderColor: isActive ? theme.link : theme.border,
                     },
@@ -1355,7 +1363,7 @@ export function SlnbClinicalFields({
                     slnbStyles.basinSideBtn,
                     {
                       backgroundColor: leftActive
-                        ? theme.link + "18"
+                        ? theme.accentSurface
                         : theme.backgroundElevated,
                       borderColor: leftActive ? theme.link : theme.border,
                     },
@@ -1376,7 +1384,7 @@ export function SlnbClinicalFields({
                     slnbStyles.basinSideBtn,
                     {
                       backgroundColor: rightActive
-                        ? theme.link + "18"
+                        ? theme.accentSurface
                         : theme.backgroundElevated,
                       borderColor: rightActive ? theme.link : theme.border,
                     },
@@ -1561,31 +1569,36 @@ function SlnbDisclosureGroup({
   children: React.ReactNode;
 }) {
   const { theme } = useTheme();
+  const reduceMotion = useReduceMotion();
   const [expanded, setExpanded] = useState(defaultExpanded);
-  const animHeight = useRef(
-    new Animated.Value(defaultExpanded ? 1 : 0),
-  ).current;
-  const contentHeight = useRef(0);
+  const progress = useSharedValue(defaultExpanded ? 1 : 0);
 
   const toggle = () => {
     const next = !expanded;
     setExpanded(next);
-    Animated.spring(animHeight, {
-      toValue: next ? 1 : 0,
-      useNativeDriver: false,
-      friction: 20,
-      tension: 100,
-    }).start();
+    progress.value = withTiming(next ? 1 : 0, {
+      duration: reduceMotion ? 0 : 250,
+      easing: Easing.out(Easing.cubic),
+    });
   };
+
+  const animatedContentStyle = useAnimatedStyle(() => ({
+    overflow: "hidden" as const,
+    maxHeight: interpolate(progress.value, [0, 1], [0, 2000]),
+    opacity: progress.value,
+  }));
 
   return (
     <View style={disclosureStyles.container}>
       <Pressable
         style={[
           disclosureStyles.header,
-          { borderColor: expanded ? theme.link + "40" : theme.border },
+          { borderColor: expanded ? theme.accentBorder : theme.border },
         ]}
         onPress={toggle}
+        accessibilityRole="button"
+        accessibilityLabel="SLNB Details"
+        accessibilityState={{ expanded }}
       >
         <Feather
           name={expanded ? "chevron-down" : "chevron-right"}
@@ -1598,23 +1611,8 @@ function SlnbDisclosureGroup({
           SLNB Details
         </ThemedText>
       </Pressable>
-      <Animated.View
-        style={{
-          overflow: "hidden",
-          maxHeight: animHeight.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0, 2000],
-          }),
-          opacity: animHeight,
-        }}
-      >
-        <View
-          onLayout={(e) => {
-            contentHeight.current = e.nativeEvent.layout.height;
-          }}
-        >
-          {children}
-        </View>
+      <Animated.View style={animatedContentStyle}>
+        <View>{children}</View>
       </Animated.View>
     </View>
   );

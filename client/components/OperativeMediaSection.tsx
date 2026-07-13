@@ -206,7 +206,10 @@ export function OperativeMediaSection({
               onPress={handleOrganise}
               style={[
                 styles.manageButton,
-                { backgroundColor: theme.link + "15", borderColor: theme.link },
+                {
+                  backgroundColor: theme.accentSurface,
+                  borderColor: theme.link,
+                },
               ]}
             >
               <Feather name="grid" size={14} color={theme.link} />
@@ -222,7 +225,10 @@ export function OperativeMediaSection({
               onPress={handleManageMedia}
               style={[
                 styles.manageButton,
-                { backgroundColor: theme.link + "15", borderColor: theme.link },
+                {
+                  backgroundColor: theme.accentSurface,
+                  borderColor: theme.link,
+                },
               ]}
             >
               <Feather name="sliders" size={14} color={theme.link} />

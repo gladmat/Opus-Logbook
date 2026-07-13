@@ -92,8 +92,8 @@ function SettingsItem({
           styles.iconContainer,
           {
             backgroundColor: destructive
-              ? theme.error + "15"
-              : theme.link + "15",
+              ? theme.errorSurface
+              : theme.accentSurface,
           },
         ]}
       >
@@ -493,7 +493,7 @@ export default function SettingsScreen() {
               <View
                 style={[
                   styles.avatarContainer,
-                  { backgroundColor: theme.link + "15", overflow: "hidden" },
+                  { backgroundColor: theme.accentSurface, overflow: "hidden" },
                 ]}
               >
                 {profile?.profilePictureUrl ? (
@@ -847,7 +847,7 @@ export default function SettingsScreen() {
               <View
                 style={[
                   styles.privacyBadge,
-                  { backgroundColor: theme.success + "15" },
+                  { backgroundColor: theme.successSurface },
                 ]}
               >
                 <Feather name="shield" size={20} color={theme.success} />
@@ -1049,7 +1049,7 @@ export default function SettingsScreen() {
         onRequestClose={() => setShowChangePasswordModal(false)}
       >
         <Pressable
-          style={styles.modalOverlay}
+          style={[styles.modalOverlay, { backgroundColor: theme.scrim }]}
           onPress={() => setShowChangePasswordModal(false)}
         >
           <View
@@ -1184,7 +1184,7 @@ export default function SettingsScreen() {
         }}
       >
         <Pressable
-          style={styles.modalOverlay}
+          style={[styles.modalOverlay, { backgroundColor: theme.scrim }]}
           onPress={() => {
             if (!isDeletingAccount) {
               setShowDeleteAccountModal(false);
@@ -1382,7 +1382,6 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
     padding: Spacing.xl,

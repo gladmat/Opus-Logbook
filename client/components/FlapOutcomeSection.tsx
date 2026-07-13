@@ -137,7 +137,7 @@ function ComplicationChips<T extends string>({
                 styles.chip,
                 {
                   backgroundColor: isActive
-                    ? theme.link + "18"
+                    ? theme.accentSurface
                     : theme.backgroundDefault,
                   borderColor: isActive ? theme.link : theme.border,
                 },
@@ -242,7 +242,7 @@ function ReExplorationCard({
                     styles.selectOption,
                     {
                       backgroundColor: isActive
-                        ? theme.link + "20"
+                        ? theme.accentSurface
                         : theme.backgroundDefault,
                       borderColor: isActive ? theme.link : theme.border,
                     },
@@ -288,7 +288,7 @@ function ReExplorationCard({
                     styles.selectOption,
                     {
                       backgroundColor: isActive
-                        ? theme.link + "20"
+                        ? theme.accentSurface
                         : theme.backgroundDefault,
                       borderColor: isActive ? theme.link : theme.border,
                     },
@@ -333,7 +333,7 @@ function ReExplorationCard({
                   styles.selectOption,
                   {
                     backgroundColor: isActive
-                      ? theme.link + "20"
+                      ? theme.accentSurface
                       : theme.backgroundDefault,
                     borderColor: isActive ? theme.link : theme.border,
                   },
@@ -607,7 +607,7 @@ export function FlapOutcomeSection({
                         styles.selectOption,
                         {
                           backgroundColor: isActive
-                            ? theme.link + "20"
+                            ? theme.accentSurface
                             : theme.backgroundDefault,
                           borderColor: isActive ? theme.link : theme.border,
                         },
@@ -655,7 +655,7 @@ export function FlapOutcomeSection({
                   styles.selectOption,
                   {
                     backgroundColor: isActive
-                      ? theme.link + "20"
+                      ? theme.accentSurface
                       : theme.backgroundDefault,
                     borderColor: isActive ? theme.link : theme.border,
                   },
@@ -697,10 +697,10 @@ export function FlapOutcomeSection({
               styles.toggleRow,
               {
                 backgroundColor: reExploration.reExplored
-                  ? theme.warning + "15"
+                  ? theme.warningSurface
                   : theme.backgroundDefault,
                 borderColor: reExploration.reExplored
-                  ? theme.warning + "40"
+                  ? theme.warningBorder
                   : theme.border,
               },
             ]}
@@ -711,7 +711,7 @@ export function FlapOutcomeSection({
                 styles.toggleCheckbox,
                 {
                   backgroundColor: reExploration.reExplored
-                    ? theme.warning + "20"
+                    ? theme.warningSurface
                     : theme.backgroundDefault,
                   borderColor: reExploration.reExplored
                     ? theme.warning
@@ -743,8 +743,8 @@ export function FlapOutcomeSection({
                 style={[
                   styles.addButton,
                   {
-                    backgroundColor: theme.link + "15",
-                    borderColor: theme.link + "30",
+                    backgroundColor: theme.accentSurface,
+                    borderColor: theme.accentBorder,
                   },
                 ]}
                 onPress={addReExplorationEvent}

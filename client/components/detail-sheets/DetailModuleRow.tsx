@@ -40,7 +40,7 @@ export function DetailModuleRow({
         styles.row,
         {
           backgroundColor: theme.backgroundDefault,
-          borderColor: isComplete ? theme.link + "40" : theme.border,
+          borderColor: isComplete ? theme.accentBorder : theme.border,
         },
       ]}
       onPress={() => {
@@ -53,7 +53,7 @@ export function DetailModuleRow({
           styles.iconContainer,
           {
             backgroundColor: isComplete
-              ? theme.link + "15"
+              ? theme.accentSurface
               : theme.backgroundSecondary,
           },
         ]}

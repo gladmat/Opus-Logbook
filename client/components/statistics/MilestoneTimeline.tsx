@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
+import { useReduceMotion } from "@/hooks/useReduceMotion";
 import { Spacing } from "@/constants/theme";
 import {
   formatMilestoneDate,
@@ -32,6 +33,7 @@ export const MilestoneTimeline = React.memo(function MilestoneTimeline({
   maxVisible = 5,
 }: MilestoneTimelineProps) {
   const { theme } = useTheme();
+  const reduceMotion = useReduceMotion();
   const [showAll, setShowAll] = useState(false);
 
   const visible = showAll ? milestones : milestones.slice(-maxVisible);
@@ -77,12 +79,16 @@ export const MilestoneTimeline = React.memo(function MilestoneTimeline({
       {hasMore && (
         <Pressable
           onPress={() => {
-            LayoutAnimation.configureNext(
-              LayoutAnimation.Presets.easeInEaseOut,
-            );
+            if (!reduceMotion) {
+              LayoutAnimation.configureNext(
+                LayoutAnimation.Presets.easeInEaseOut,
+              );
+            }
             setShowAll(true);
           }}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel={`See all ${milestones.length} milestones`}
           testID="statistics.btn-seeAllMilestones"
         >
           <ThemedText style={[styles.seeAll, { color: theme.accent }]}>

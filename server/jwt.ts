@@ -55,6 +55,12 @@ export async function verifyAppJwt(
     if (typeof userId !== "string") {
       return { ok: false, reason: "invalid" };
     }
+    // jose only enforces `exp` when the claim is present. Every token we
+    // sign carries one, so a token without it was not minted by signAppJwt
+    // — reject it rather than granting a never-expiring session.
+    if (typeof payload.exp !== "number") {
+      return { ok: false, reason: "invalid" };
+    }
     return {
       ok: true,
       payload: {

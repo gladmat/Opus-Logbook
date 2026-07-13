@@ -244,6 +244,39 @@ interface HandTraumaDiagnosisResolution {
   selectedSuggestedProcedureIds?: string[];
 }
 
+/**
+ * Cross-flow bridge row (trauma → elective, acute → elective). Tapping it
+ * creates a SEPARATE elective diagnosis group — the copy makes that explicit
+ * so surgeons don't expect the procedure to land in the current group
+ * (follow-up 5i / B3.12).
+ */
+function CrossFlowElectiveBridge({ onPress }: { onPress: () => void }) {
+  const { theme } = useTheme();
+  return (
+    <Pressable
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        onPress();
+      }}
+      style={styles.addElectiveRow}
+      accessibilityRole="button"
+      accessibilityLabel="Also doing an elective procedure? Adds a separate diagnosis group"
+    >
+      <Feather name="plus-circle" size={16} color={theme.link} />
+      <View>
+        <ThemedText style={[styles.addElectiveRowText, { color: theme.link }]}>
+          Also doing an elective procedure?
+        </ThemedText>
+        <ThemedText
+          style={[styles.addElectiveRowHint, { color: theme.textTertiary }]}
+        >
+          Adds a separate diagnosis group
+        </ThemedText>
+      </View>
+    </Pressable>
+  );
+}
+
 function DiagnosisGroupEditorInner({
   group,
   index,
@@ -2551,6 +2584,9 @@ function DiagnosisGroupEditorInner({
             setIsExpanded(true);
           }}
           style={styles.collapsedGroupCardInner}
+          accessibilityRole="button"
+          accessibilityLabel={`Expand diagnosis group ${index + 1}: ${currentGroupTitle}`}
+          accessibilityState={{ expanded: false }}
         >
           <View style={styles.collapsedGroupHeader}>
             <View
@@ -2620,6 +2656,8 @@ function DiagnosisGroupEditorInner({
                       onMoveUp();
                     }}
                     hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Move diagnosis group up"
                   >
                     <Feather
                       name="chevron-up"
@@ -2635,6 +2673,8 @@ function DiagnosisGroupEditorInner({
                       onMoveDown();
                     }}
                     hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Move diagnosis group down"
                   >
                     <Feather
                       name="chevron-down"
@@ -2716,12 +2756,46 @@ function DiagnosisGroupEditorInner({
               gap: Spacing.sm,
             }}
           >
+            {/* Reorder chevrons mirror the collapsed-header pair so users
+                don't have to collapse a group first to reorder it
+                (follow-up 5e / B3.3). */}
+            {totalGroups > 1 && onMoveUp && index > 0 ? (
+              <Pressable
+                onPress={onMoveUp}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Move diagnosis group up"
+              >
+                <Feather
+                  name="chevron-up"
+                  size={18}
+                  color={theme.textTertiary}
+                />
+              </Pressable>
+            ) : null}
+            {totalGroups > 1 && onMoveDown && index < totalGroups - 1 ? (
+              <Pressable
+                onPress={onMoveDown}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Move diagnosis group down"
+              >
+                <Feather
+                  name="chevron-down"
+                  size={18}
+                  color={theme.textTertiary}
+                />
+              </Pressable>
+            ) : null}
             <Pressable
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setIsExpanded(false);
               }}
               hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={`Collapse diagnosis group ${index + 1}`}
+              accessibilityState={{ expanded: true }}
             >
               <Feather name="minus" size={20} color={theme.textSecondary} />
             </Pressable>
@@ -2842,6 +2916,9 @@ function DiagnosisGroupEditorInner({
                       },
                     ]}
                     testID={`caseForm.hand.chip-caseType-${type}`}
+                    accessibilityRole="radio"
+                    accessibilityLabel={`Case type: ${label}`}
+                    accessibilityState={{ selected: isActive }}
                   >
                     <ThemedText
                       style={[
@@ -2894,6 +2971,9 @@ function DiagnosisGroupEditorInner({
                       },
                     ]}
                     testID={`caseForm.hand.chip-laterality-${side}`}
+                    accessibilityRole="radio"
+                    accessibilityLabel={`Laterality: ${side === "left" ? "Left hand" : "Right hand"}`}
+                    accessibilityState={{ selected: isSelected }}
                   >
                     <ThemedText
                       style={[
@@ -2984,30 +3064,7 @@ function DiagnosisGroupEditorInner({
             {/* Cross-flow bridge: trauma → elective */}
             {procedures.some((p) => p.procedureName.trim()) &&
               onAddElectiveHandGroup && (
-                <Pressable
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    onAddElectiveHandGroup();
-                  }}
-                  style={styles.addElectiveRow}
-                >
-                  <Feather name="plus-circle" size={16} color={theme.link} />
-                  <View>
-                    <ThemedText
-                      style={[styles.addElectiveRowText, { color: theme.link }]}
-                    >
-                      Add elective procedure
-                    </ThemedText>
-                    <ThemedText
-                      style={[
-                        styles.addElectiveRowHint,
-                        { color: theme.textTertiary },
-                      ]}
-                    >
-                      e.g., CTR, trigger finger release
-                    </ThemedText>
-                  </View>
-                </Pressable>
+                <CrossFlowElectiveBridge onPress={onAddElectiveHandGroup} />
               )}
           </>
         ) : null}
@@ -3075,30 +3132,7 @@ function DiagnosisGroupEditorInner({
 
             {/* Cross-flow bridge: acute → elective */}
             {acuteProceduresAccepted && onAddElectiveHandGroup && (
-              <Pressable
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  onAddElectiveHandGroup();
-                }}
-                style={styles.addElectiveRow}
-              >
-                <Feather name="plus-circle" size={16} color={theme.link} />
-                <View>
-                  <ThemedText
-                    style={[styles.addElectiveRowText, { color: theme.link }]}
-                  >
-                    Add elective procedure
-                  </ThemedText>
-                  <ThemedText
-                    style={[
-                      styles.addElectiveRowHint,
-                      { color: theme.textTertiary },
-                    ]}
-                  >
-                    e.g., CTR, trigger finger release
-                  </ThemedText>
-                </View>
-              </Pressable>
+              <CrossFlowElectiveBridge onPress={onAddElectiveHandGroup} />
             )}
           </>
         ) : null}
@@ -3243,6 +3277,8 @@ function DiagnosisGroupEditorInner({
                           onAddElectiveHandGroup();
                         }}
                         style={styles.addElectiveRow}
+                        accessibilityRole="button"
+                        accessibilityLabel="Add another elective diagnosis"
                       >
                         <Feather
                           name="plus-circle"
@@ -3345,6 +3381,13 @@ function DiagnosisGroupEditorInner({
                   }}
                   style={styles.showAllLink}
                   testID="caseForm.diagnosis.btn-snomedSearch"
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    showSnomedSearch
+                      ? "Hide SNOMED CT diagnosis search"
+                      : "Search SNOMED CT for diagnosis"
+                  }
+                  accessibilityState={{ expanded: showSnomedSearch }}
                 >
                   <Feather
                     name={showSnomedSearch ? "chevron-up" : "search"}
@@ -3404,6 +3447,27 @@ function DiagnosisGroupEditorInner({
                 specialty={groupSpecialty}
                 onSelect={handleReverseDiagnosisSelect}
               />
+            ) : null}
+
+            {/* Reverse-mapping discoverability: with neither diagnosis nor
+                procedures picked, surface that procedure-first entry also
+                works (follow-up 5f / B3.11). Disappears as soon as either
+                side has a selection. */}
+            {!selectedDiagnosis &&
+            !primaryDiagnosis &&
+            procedurePicklistIds.length === 0 ? (
+              <View style={styles.reverseHintRow}>
+                <Feather name="info" size={14} color={theme.textTertiary} />
+                <ThemedText
+                  style={[
+                    styles.reverseHintText,
+                    { color: theme.textTertiary },
+                  ]}
+                >
+                  You can also pick procedures first — we&apos;ll suggest a
+                  diagnosis.
+                </ThemedText>
+              </View>
             ) : null}
 
             {!isElectiveHand &&
@@ -3499,6 +3563,9 @@ function DiagnosisGroupEditorInner({
                               : (value as ClinicalSuspicion),
                           );
                         }}
+                        accessibilityRole="radio"
+                        accessibilityLabel={`Clinical suspicion: ${label}`}
+                        accessibilityState={{ selected: isSelected }}
                       >
                         <ThemedText
                           style={[
@@ -3672,6 +3739,8 @@ function DiagnosisGroupEditorInner({
                   setShowManualTraumaDiagnosisPicker(false);
                   setIsDiagnosisPickerCollapsed(true);
                 }}
+                accessibilityRole="button"
+                accessibilityLabel="Use trauma auto-diagnosis"
               >
                 <Feather name="refresh-ccw" size={14} color={theme.link} />
                 <ThemedText
@@ -3789,6 +3858,8 @@ function DiagnosisGroupEditorInner({
             <Pressable
               style={styles.inlineDiagnosisToggle}
               onPress={openTraumaProcedureEditor}
+              accessibilityRole="button"
+              accessibilityLabel="Review full procedure editor"
             >
               <Feather name="list" size={14} color={theme.link} />
               <ThemedText
@@ -3815,6 +3886,8 @@ function DiagnosisGroupEditorInner({
               <Pressable
                 style={styles.inlineDiagnosisToggle}
                 onPress={closeTraumaProcedureEditor}
+                accessibilityRole="button"
+                accessibilityLabel="Hide full procedure editor"
               >
                 <Feather name="chevron-up" size={14} color={theme.link} />
                 <ThemedText
@@ -3834,6 +3907,9 @@ function DiagnosisGroupEditorInner({
               groupSpecialty === "head_neck") ? (
               <View style={{ marginBottom: Spacing.md }}>
                 <Pressable
+                  accessibilityRole="checkbox"
+                  accessibilityLabel="Multiple lesions in this session"
+                  accessibilityState={{ checked: isMultiLesion }}
                   onPress={() => {
                     const newValue = !isMultiLesion;
                     setIsMultiLesion(newValue);
@@ -3861,7 +3937,7 @@ function DiagnosisGroupEditorInner({
                     borderWidth: 1,
                     borderColor: isMultiLesion ? theme.link : theme.border,
                     backgroundColor: isMultiLesion
-                      ? theme.link + "10"
+                      ? theme.accentSurface
                       : theme.backgroundDefault,
                   }}
                 >
@@ -3965,6 +4041,9 @@ function DiagnosisGroupEditorInner({
                                     !isSelected,
                                   );
                                 }}
+                                accessibilityRole="checkbox"
+                                accessibilityLabel={s.displayName}
+                                accessibilityState={{ checked: isSelected }}
                               >
                                 <Feather
                                   name={isSelected ? "check-circle" : "circle"}
@@ -4004,6 +4083,8 @@ function DiagnosisGroupEditorInner({
                         style={styles.showAllProceduresLink}
                         onPress={() => setShowAllProcedures(true)}
                         testID="caseForm.procedure.btn-showAll"
+                        accessibilityRole="button"
+                        accessibilityLabel="Show all procedures"
                       >
                         <Feather
                           name="chevron-down"
@@ -4065,6 +4146,8 @@ function DiagnosisGroupEditorInner({
                             <Pressable
                               style={styles.showAllProceduresLink}
                               onPress={() => setShowCustomProcedureEntry(false)}
+                              accessibilityRole="button"
+                              accessibilityLabel="Collapse custom procedure entry"
                             >
                               <Feather
                                 name="chevron-up"
@@ -4088,6 +4171,8 @@ function DiagnosisGroupEditorInner({
                               addProcedure();
                               setShowCustomProcedureEntry(true);
                             }}
+                            accessibilityRole="button"
+                            accessibilityLabel="Add custom procedure"
                           >
                             <Feather name="plus" size={16} color={theme.link} />
                             <ThemedText
@@ -4108,6 +4193,8 @@ function DiagnosisGroupEditorInner({
                             style={styles.showAllProceduresLink}
                             onPress={() => setShowAllProcedures(false)}
                             testID="caseForm.procedure.btn-showFewer"
+                            accessibilityRole="button"
+                            accessibilityLabel="Show fewer procedures"
                           >
                             <Feather
                               name="chevron-up"
@@ -4188,7 +4275,7 @@ function DiagnosisGroupEditorInner({
                           <View
                             style={[
                               styles.suggestionBanner,
-                              { backgroundColor: theme.warning + "12" },
+                              { backgroundColor: theme.warningSurface },
                             ]}
                           >
                             <Feather
@@ -4215,6 +4302,8 @@ function DiagnosisGroupEditorInner({
                             { borderColor: theme.link },
                           ]}
                           onPress={addProcedure}
+                          accessibilityRole="button"
+                          accessibilityLabel="Add another procedure"
                         >
                           <Feather name="plus" size={18} color={theme.link} />
                           <ThemedText
@@ -4247,6 +4336,9 @@ function DiagnosisGroupEditorInner({
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setHistologyPending(!histologyPending);
               }}
+              accessibilityRole="checkbox"
+              accessibilityLabel="Histology pending"
+              accessibilityState={{ checked: histologyPending }}
               style={{
                 flexDirection: "row",
                 alignItems: "center",
@@ -4257,7 +4349,7 @@ function DiagnosisGroupEditorInner({
                 borderWidth: 1,
                 borderColor: histologyPending ? theme.warning : theme.border,
                 backgroundColor: histologyPending
-                  ? theme.warning + "10"
+                  ? theme.warningSurface
                   : theme.backgroundDefault,
               }}
             >
@@ -4569,6 +4661,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.sm,
+  },
+  reverseHintRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+  },
+  reverseHintText: {
+    fontSize: 13,
+    flex: 1,
   },
   suggestionText: {
     fontSize: 13,

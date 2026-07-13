@@ -162,7 +162,7 @@ function SelectField({
               {
                 backgroundColor:
                   value === option.value
-                    ? theme.link + "20"
+                    ? theme.accentSurface
                     : theme.backgroundDefault,
                 borderColor: value === option.value ? theme.link : theme.border,
               },
@@ -246,7 +246,7 @@ function MultiSelectField({
                 styles.optionChip,
                 {
                   backgroundColor: selected
-                    ? theme.link + "20"
+                    ? theme.accentSurface
                     : theme.backgroundDefault,
                   borderColor: selected ? theme.link : theme.border,
                 },

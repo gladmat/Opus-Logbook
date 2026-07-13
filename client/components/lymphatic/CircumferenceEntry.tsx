@@ -126,7 +126,7 @@ export const CircumferenceEntry = React.memo(function CircumferenceEntry({
               {
                 backgroundColor:
                   data.method === m
-                    ? theme.accent + "20"
+                    ? theme.accentSurface
                     : theme.backgroundSecondary,
                 borderColor: data.method === m ? theme.accent : theme.border,
               },
@@ -227,7 +227,7 @@ export const CircumferenceEntry = React.memo(function CircumferenceEntry({
         <View
           style={[
             styles.resultBadge,
-            { backgroundColor: theme.accent + "15", borderColor: theme.accent },
+            { backgroundColor: theme.accentSurface, borderColor: theme.accent },
           ]}
         >
           <ThemedText style={[styles.resultText, { color: theme.accent }]}>

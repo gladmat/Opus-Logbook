@@ -301,7 +301,7 @@ function TubianaBadge({
         {
           backgroundColor: isZero
             ? theme.backgroundTertiary
-            : `${theme.link}18`,
+            : theme.accentSurface,
           borderColor: isZero ? theme.border : theme.link,
         },
       ]}
@@ -531,7 +531,7 @@ function YearPicker({
                 styles.smallChip,
                 {
                   backgroundColor: isSelected
-                    ? `${theme.link}18`
+                    ? theme.accentSurface
                     : theme.backgroundTertiary,
                   borderColor: isSelected ? theme.link : theme.border,
                 },
@@ -717,7 +717,7 @@ export const DupuytrenAssessment = React.memo(function DupuytrenAssessment({
                     borderColor: isSelected
                       ? theme.link
                       : isCommon
-                        ? `${theme.link}40`
+                        ? theme.accentBorder
                         : theme.border,
                   },
                 ]}
@@ -887,7 +887,7 @@ export const DupuytrenAssessment = React.memo(function DupuytrenAssessment({
                         styles.smallChip,
                         {
                           backgroundColor: isSelected
-                            ? `${theme.link}18`
+                            ? theme.accentSurface
                             : theme.backgroundTertiary,
                           borderColor: isSelected ? theme.link : theme.border,
                         },
@@ -942,7 +942,7 @@ export const DupuytrenAssessment = React.memo(function DupuytrenAssessment({
               <View
                 style={[
                   styles.scoreBadge,
-                  { backgroundColor: `${theme.link}18` },
+                  { backgroundColor: theme.accentSurface },
                 ]}
               >
                 <ThemedText

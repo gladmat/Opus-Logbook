@@ -61,7 +61,10 @@ export const TreatmentContextSection = React.memo(
         subtitle="Pre-op treatment & reconstruction timing"
         filledCount={filledCount}
         totalCount={4}
-        defaultExpanded={false}
+        // Only rendered for flap cases (caseHasFlapProcedure gate in
+        // CaseSection), so default-expand — radiotherapy + reconstruction
+        // timing were easy to miss when collapsed (follow-up 5g / B3.13).
+        defaultExpanded
       >
         <View style={styles.content}>
           <SelectField
@@ -88,7 +91,7 @@ export const TreatmentContextSection = React.memo(
                   styles.checkbox,
                   {
                     backgroundColor: priorRadiotherapy
-                      ? theme.link + "20"
+                      ? theme.accentSurface
                       : theme.backgroundDefault,
                     borderColor: priorRadiotherapy ? theme.link : theme.border,
                   },
@@ -117,7 +120,7 @@ export const TreatmentContextSection = React.memo(
                   styles.checkbox,
                   {
                     backgroundColor: priorChemotherapy
-                      ? theme.link + "20"
+                      ? theme.accentSurface
                       : theme.backgroundDefault,
                     borderColor: priorChemotherapy ? theme.link : theme.border,
                   },
@@ -154,7 +157,7 @@ export const TreatmentContextSection = React.memo(
                   styles.checkbox,
                   {
                     backgroundColor: intraoperativeTransfusion
-                      ? theme.link + "20"
+                      ? theme.accentSurface
                       : theme.backgroundDefault,
                     borderColor: intraoperativeTransfusion
                       ? theme.link

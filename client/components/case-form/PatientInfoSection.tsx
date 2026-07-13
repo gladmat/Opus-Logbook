@@ -66,7 +66,7 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
             styles.planToggle,
             {
               backgroundColor: isPlanMode
-                ? theme.info + "20"
+                ? theme.infoSurface
                 : theme.backgroundDefault,
               borderColor: isPlanMode ? theme.info : theme.border,
             },

@@ -96,7 +96,7 @@ function CaptureStepCardInner({
                 borderStyle: "solid" as const,
               }
             : {
-                borderColor: theme.link + "40",
+                borderColor: theme.accentBorder,
                 borderWidth: 1,
                 borderStyle: "dashed" as const,
               },

@@ -148,7 +148,7 @@ export const PostBariatricContext = React.memo(function PostBariatricContext({
   ];
 
   return (
-    <View style={[styles.container, { borderColor: theme.info + "40" }]}>
+    <View style={[styles.container, { borderColor: theme.infoBorder }]}>
       <ThemedText style={[styles.title, { color: theme.info }]}>
         Post-Bariatric Context
       </ThemedText>
@@ -183,7 +183,10 @@ export const PostBariatricContext = React.memo(function PostBariatricContext({
             <View
               style={[
                 styles.badge,
-                { backgroundColor: theme.link + "1A", borderColor: theme.link },
+                {
+                  backgroundColor: theme.accentSurface,
+                  borderColor: theme.link,
+                },
               ]}
             >
               <ThemedText style={[styles.badgeText, { color: theme.link }]}>
@@ -196,7 +199,10 @@ export const PostBariatricContext = React.memo(function PostBariatricContext({
             <View
               style={[
                 styles.badge,
-                { backgroundColor: theme.link + "1A", borderColor: theme.link },
+                {
+                  backgroundColor: theme.accentSurface,
+                  borderColor: theme.link,
+                },
               ]}
             >
               <ThemedText style={[styles.badgeText, { color: theme.link }]}>
@@ -286,7 +292,7 @@ export const PostBariatricContext = React.memo(function PostBariatricContext({
             <View
               style={[
                 styles.scoreBadge,
-                { backgroundColor: theme.link + "1A" },
+                { backgroundColor: theme.accentSurface },
               ]}
             >
               <ThemedText

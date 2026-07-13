@@ -172,7 +172,7 @@ export const GraftDetailsSection = React.memo(function GraftDetailsSection({
                   styles.chip,
                   {
                     backgroundColor: selected
-                      ? theme.link + "20"
+                      ? theme.accentSurface
                       : theme.backgroundRoot,
                     borderColor: selected ? theme.link : theme.border,
                   },
@@ -211,7 +211,7 @@ export const GraftDetailsSection = React.memo(function GraftDetailsSection({
                   styles.chip,
                   {
                     backgroundColor: selected
-                      ? theme.link + "20"
+                      ? theme.accentSurface
                       : theme.backgroundRoot,
                     borderColor: selected ? theme.link : theme.border,
                   },
@@ -253,7 +253,7 @@ export const GraftDetailsSection = React.memo(function GraftDetailsSection({
                     styles.meshChip,
                     {
                       backgroundColor: selected
-                        ? theme.link + "20"
+                        ? theme.accentSurface
                         : theme.backgroundRoot,
                       borderColor: selected ? theme.link : theme.border,
                     },
@@ -313,7 +313,7 @@ export const GraftDetailsSection = React.memo(function GraftDetailsSection({
                       styles.chip,
                       {
                         backgroundColor: selected
-                          ? theme.link + "20"
+                          ? theme.accentSurface
                           : theme.backgroundRoot,
                         borderColor: selected ? theme.link : theme.border,
                       },
@@ -371,7 +371,7 @@ export const GraftDetailsSection = React.memo(function GraftDetailsSection({
                       styles.chip,
                       {
                         backgroundColor: selected
-                          ? theme.link + "20"
+                          ? theme.accentSurface
                           : theme.backgroundRoot,
                         borderColor: selected ? theme.link : theme.border,
                       },

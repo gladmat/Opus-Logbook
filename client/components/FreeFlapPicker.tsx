@@ -91,7 +91,7 @@ export function FreeFlapPicker({
               {
                 backgroundColor:
                   flapType === flap
-                    ? theme.link + "15"
+                    ? theme.accentSurface
                     : theme.backgroundDefault,
                 borderColor: flapType === flap ? theme.link : theme.border,
               },
