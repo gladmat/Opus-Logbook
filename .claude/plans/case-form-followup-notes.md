@@ -6,6 +6,13 @@
 
 When you start the next session: open this file first and pick a working set. Suggested cadence: one focused session per cluster, ~3–4 hours each.
 
+> **Status as of 2026-07-13** (branch `quality/session-2026-07-06`):
+> - Clusters 1, 3, 4 — DONE (2.7.0 / Phase 7.1, see CLAUDE.md).
+> - Cluster 2 (DiagnosisGroupEditor a11y sweep) — **DONE** (22 Pressables, roles + labels + states).
+> - Cluster 5 — **DONE, all of 5a–5i** (auto-save indicator, day-case badge, audit teaser, top add-group affordance, expanded-header reorder chevrons, reverse-mapping hint, TreatmentContext default-expand, summary mini sub-headers, bridge copy unification).
+> - Cluster 6: 6a concat sweep **DONE** (320 sites → baked tokens incl. new `*Border` set); 6c SlnbDisclosureGroup **DONE** (Reanimated + reduce-motion); 6e scroll-jump detector **REMOVED**. Remaining: 6b (buildCurrentDiagnosisGroup perf profile), 6d (skin-cancer chip grid → ProcedureSuggestions).
+> - Cluster 7 (Android picker parity, Dynamic Type, RTL) — still open. Note: surgery times now have a native picker on BOTH platforms (TimePickerField, 2026-07-13).
+
 ---
 
 ## Cluster 1 — OperativeSection 4-collapsible restructure (P3.1)
