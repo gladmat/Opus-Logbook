@@ -74,6 +74,7 @@ import {
   LYMPHOEDEMA_REGION_LABELS,
 } from "@/types/lymphatic";
 import { getLymphaticProcedureCategory } from "@/lib/lymphaticConfig";
+import { escapeCsvField } from "@/lib/csvUtils";
 
 export interface CsvExportOptions {
   includePatientId: boolean;
@@ -271,17 +272,6 @@ const CSV_HEADERS = [
   "pn_neuroma_aetiology",
   "pn_neuroma_technique",
 ] as const;
-
-function escapeCsvField(
-  value: string | number | boolean | undefined | null,
-): string {
-  if (value === undefined || value === null) return "";
-  const str = String(value);
-  if (str.includes(",") || str.includes('"') || str.includes("\n")) {
-    return `"${str.replace(/"/g, '""')}"`;
-  }
-  return str;
-}
 
 function formatStagingSelections(
   selections: Record<string, string> | undefined,

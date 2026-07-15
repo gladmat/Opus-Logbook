@@ -26,6 +26,7 @@ import EditProfileScreen from "@/screens/EditProfileScreen";
 import EpisodeDetailScreen from "@/screens/EpisodeDetailScreen";
 import ManageFacilitiesScreen from "@/screens/ManageFacilitiesScreen";
 import PersonalisationScreen from "@/screens/PersonalisationScreen";
+import ReportsScreen from "@/screens/ReportsScreen";
 import CaseSearchScreen from "@/screens/CaseSearchScreen";
 import AddHistologyScreen from "@/screens/AddHistologyScreen";
 import NeedsAttentionListScreen from "@/screens/NeedsAttentionListScreen";
@@ -234,6 +235,7 @@ export type RootStackParamList = {
   TeamContacts: undefined;
   AddEditTeamContact: { contactId?: string } | undefined;
   Personalisation: undefined;
+  Reports: { definitionId?: string } | undefined;
   CaseSearch: undefined;
   NeedsAttentionList: { selectedSpecialty?: Specialty | null };
   AddHistology: {
@@ -850,6 +852,13 @@ export default function RootStackNavigator() {
               component={PersonalisationScreen}
               options={{
                 headerTitle: "Personalisation",
+              }}
+            />
+            <Stack.Screen
+              name="Reports"
+              component={ReportsScreen}
+              options={{
+                headerTitle: "Reports",
               }}
             />
             <Stack.Screen

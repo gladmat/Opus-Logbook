@@ -822,6 +822,13 @@ export default function SettingsScreen() {
             ]}
           >
             <SettingsItem
+              icon="file-text"
+              label="Reports"
+              subtitle="Logbook & registry reports (MALT, eLogbook, audits)"
+              onPress={() => navigation.navigate("Reports")}
+              testID="settings.row-reports"
+            />
+            <SettingsItem
               icon="download"
               label="Export Cases"
               subtitle={caseCount !== null ? `${caseCount} cases` : undefined}
