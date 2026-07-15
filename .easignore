@@ -9,6 +9,13 @@ attached_assets/
 .local/
 .config/
 
+# Local native projects — EAS must prebuild fresh from app.json + plugins.
+# Anchored to repo root: modules/*/{ios,android} (Expo local modules) must
+# still upload. Root cause of the 2.5.0→2.8.0 version drift: a stale local
+# ios/Info.plist silently overrode app.json/remote versions in EAS builds.
+/ios
+/android
+
 # Documentation & config not needed in builds
 CLAUDE.md
 railway.toml
