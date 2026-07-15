@@ -27,6 +27,7 @@ import {
   HEAD_NECK_DIAGNOSES,
   getHeadNeckSubcategories,
   getHeadNeckDiagnosesForSubcategory,
+  searchHeadNeckDiagnoses,
 } from "@/lib/diagnosisPicklists/headNeckDiagnoses";
 import { findDiagnosisById } from "@/lib/diagnosisPicklists";
 import type { DiagnosisPicklistEntry } from "@/types/diagnosis";
@@ -85,15 +86,7 @@ function HeadNeckDiagnosisPickerInner({
   // Search results across all subcategories
   const searchResults = useMemo(() => {
     if (!isSearching) return [];
-    const q = searchQuery.toLowerCase();
-    return HEAD_NECK_DIAGNOSES.filter(
-      (d) =>
-        d.displayName.toLowerCase().includes(q) ||
-        (d.shortName && d.shortName.toLowerCase().includes(q)) ||
-        d.snomedCtCode.includes(q) ||
-        (d.searchSynonyms &&
-          d.searchSynonyms.some((s) => s.toLowerCase().includes(q))),
-    );
+    return searchHeadNeckDiagnoses(searchQuery);
   }, [searchQuery, isSearching]);
 
   // Diagnoses for current view (search or subcategory)

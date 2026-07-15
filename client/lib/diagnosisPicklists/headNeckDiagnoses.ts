@@ -2421,7 +2421,15 @@ const HN_DX_SOFT_TISSUE_TRAUMA: DiagnosisPicklistEntry[] = [
     subcategory: "Soft Tissue Trauma",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["tissue loss", "avulsion", "degloving", "facial defect"],
+    searchSynonyms: [
+      "tissue loss",
+      "avulsion",
+      "degloving",
+      "facial defect",
+      "soft tissue loss",
+      "facial injury",
+      "skin loss",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_trauma_facial_wound_exploration",
@@ -2434,6 +2442,12 @@ const HN_DX_SOFT_TISSUE_TRAUMA: DiagnosisPicklistEntry[] = [
         displayName: "Local flap reconstruction",
         isDefault: false,
         sortOrder: 2,
+      },
+      {
+        procedurePicklistId: "hn_local_rotation",
+        displayName: "Local rotation flap",
+        isDefault: false,
+        sortOrder: 3,
       },
     ],
     sortOrder: 8,
@@ -2448,7 +2462,15 @@ const HN_DX_SOFT_TISSUE_TRAUMA: DiagnosisPicklistEntry[] = [
     subcategory: "Soft Tissue Trauma",
     clinicalGroup: "trauma",
     hasStaging: false,
-    searchSynonyms: ["scalp avulsion", "scalp degloving", "scalp loss"],
+    searchSynonyms: [
+      "scalp avulsion",
+      "scalp degloving",
+      "scalp loss",
+      "scalp trauma",
+      "scalp injury",
+      "scalp wound",
+      "scalp defect",
+    ],
     suggestedProcedures: [
       {
         procedurePicklistId: "hn_trauma_facial_wound_exploration",
@@ -2474,8 +2496,81 @@ const HN_DX_SOFT_TISSUE_TRAUMA: DiagnosisPicklistEntry[] = [
         isDefault: false,
         sortOrder: 4,
       },
+      {
+        procedurePicklistId: "hn_local_rotation",
+        displayName: "Rotation flap — scalp",
+        isDefault: false,
+        sortOrder: 5,
+      },
+      {
+        procedurePicklistId: "hn_scalp_double_rotation",
+        displayName: "Double opposing rotation flaps (yin-yang)",
+        isDefault: false,
+        sortOrder: 6,
+      },
     ],
     sortOrder: 9,
+  },
+  {
+    id: "hn_dx_scalp_friction_burn",
+    displayName: "Friction burn / abrasion — scalp",
+    shortName: "Scalp friction burn",
+    snomedCtCode: "447150006",
+    snomedCtDisplay: "Friction burn of scalp (disorder)",
+    specialty: "head_neck",
+    subcategory: "Soft Tissue Trauma",
+    clinicalGroup: "trauma",
+    // The server's keyword staging fallback ("burn" in the name) attaches the
+    // burns Depth / TBSA% systems; depth grading of a friction burn is
+    // clinically apt outside the burns module, so this is declared, not
+    // suppressed.
+    hasStaging: true,
+    searchSynonyms: [
+      "friction burn",
+      "friction",
+      "burn",
+      "abrasion",
+      "graze",
+      "road rash",
+      "treadmill injury",
+      "scalp burn",
+      "scalp abrasion",
+      "scalp wound",
+      "scalp injury",
+    ],
+    suggestedProcedures: [
+      {
+        procedurePicklistId: "hn_trauma_facial_wound_exploration",
+        displayName: "Wound debridement",
+        isDefault: true,
+        sortOrder: 1,
+      },
+      {
+        procedurePicklistId: "hn_scalp_double_rotation",
+        displayName: "Double opposing rotation flaps (yin-yang)",
+        isDefault: false,
+        sortOrder: 2,
+      },
+      {
+        procedurePicklistId: "hn_local_rotation",
+        displayName: "Rotation flap — scalp",
+        isDefault: false,
+        sortOrder: 3,
+      },
+      {
+        procedurePicklistId: "hn_scalp_stsg",
+        displayName: "Split-thickness skin graft to scalp",
+        isDefault: false,
+        sortOrder: 4,
+      },
+      {
+        procedurePicklistId: "hn_scalp_ftsg",
+        displayName: "Full-thickness skin graft to scalp",
+        isDefault: false,
+        sortOrder: 5,
+      },
+    ],
+    sortOrder: 10,
   },
   {
     id: "hn_dx_complex_facial_wound",
@@ -2506,7 +2601,7 @@ const HN_DX_SOFT_TISSUE_TRAUMA: DiagnosisPicklistEntry[] = [
         sortOrder: 2,
       },
     ],
-    sortOrder: 10,
+    sortOrder: 11,
   },
 ];
 
@@ -3081,4 +3176,24 @@ export function getHeadNeckDiagnosesForSubcategory(
   subcategory: string,
 ): DiagnosisPicklistEntry[] {
   return HEAD_NECK_DIAGNOSES.filter((dx) => dx.subcategory === subcategory);
+}
+
+/**
+ * Text search across all H&N diagnoses — the exact matching the picker uses:
+ * displayName / shortName / SNOMED code / search synonyms. Queries shorter
+ * than 2 characters return nothing (mirrors the picker's search threshold).
+ */
+export function searchHeadNeckDiagnoses(
+  query: string,
+): DiagnosisPicklistEntry[] {
+  const q = query.trim().toLowerCase();
+  if (q.length < 2) return [];
+  return HEAD_NECK_DIAGNOSES.filter(
+    (d) =>
+      d.displayName.toLowerCase().includes(q) ||
+      (d.shortName && d.shortName.toLowerCase().includes(q)) ||
+      d.snomedCtCode.includes(q) ||
+      (d.searchSynonyms &&
+        d.searchSynonyms.some((s) => s.toLowerCase().includes(q))),
+  );
 }

@@ -3286,7 +3286,7 @@ const HEAD_NECK_FACIAL_SOFT_TISSUE_TRAUMA: ProcedurePicklistEntry[] = [
   },
   {
     id: "hn_trauma_facial_wound_exploration",
-    displayName: "Facial wound exploration + debridement",
+    displayName: "Facial / scalp wound exploration + debridement",
     snomedCtCode: "302438004",
     snomedCtDisplay: "Exploration of wound of skin (procedure)",
     specialties: ["head_neck"],
@@ -3718,6 +3718,16 @@ const HEAD_NECK_SCALP_RECON: ProcedurePicklistEntry[] = [
     subcategory: "Scalp Reconstruction",
     tags: ["elective"],
     sortOrder: 4,
+  },
+  {
+    id: "hn_scalp_double_rotation",
+    displayName: "Double opposing rotation flaps — scalp (yin-yang)",
+    snomedCtCode: "304102003",
+    snomedCtDisplay: "Local rotation flap (procedure)",
+    specialties: ["head_neck"],
+    subcategory: "Scalp Reconstruction",
+    tags: ["local_flap", "trauma", "oncological"],
+    sortOrder: 5,
   },
 ];
 
