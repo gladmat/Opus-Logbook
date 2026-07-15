@@ -471,7 +471,8 @@ export default function EditProfileScreen() {
                 setHasLocalEdits(true);
                 setDateOfBirth(v);
               }}
-              placeholder="Select date"
+              placeholder="DD/MM/YYYY"
+              manualEntry
               clearable
               minimumDate={dobFloor()}
               maximumDate={notFutureMax()}

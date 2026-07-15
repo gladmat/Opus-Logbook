@@ -9,6 +9,7 @@ import {
   FlatList,
   TouchableOpacity,
   InteractionManager,
+  Dimensions,
 } from "react-native";
 import Animated, {
   Easing,
@@ -42,6 +43,13 @@ import {
   formatTimeInput,
   timeStringToDate,
 } from "@/lib/timeInput";
+import {
+  describeDateInputError,
+  formatDateInput,
+  isoToMasked,
+  maskedToIso,
+  parseDateInput,
+} from "@/lib/dateInput";
 
 // ── Field-level deep-link primitives (Cluster 4) ────────────────────────────
 
@@ -825,13 +833,28 @@ interface DatePickerFieldProps {
   maximumDate?: Date;
   testID?: string;
   fieldId?: string;
+  /**
+   * Typed DD/MM/YYYY entry (progressive numeric mask) plus an inline spinner
+   * picker, instead of the read-only field with the inline calendar. Use for
+   * far-past dates like DOB, where the calendar's year navigation is hostile.
+   */
+  manualEntry?: boolean;
 }
 
 const INLINE_PICKER_HEIGHT = 380;
 const INLINE_ACTIONS_HEIGHT = 56;
 const INLINE_TOTAL_HEIGHT = INLINE_PICKER_HEIGHT + INLINE_ACTIONS_HEIGHT;
 
-export function DatePickerField({
+export function DatePickerField(props: DatePickerFieldProps) {
+  // Two dedicated components (not one branching render) so each keeps a
+  // stable hook order even if manualEntry ever changed at runtime.
+  if (props.manualEntry) {
+    return <ManualEntryDateField {...props} />;
+  }
+  return <InlineCalendarDateField {...props} />;
+}
+
+function InlineCalendarDateField({
   label,
   value,
   onChange,
@@ -886,6 +909,15 @@ export function DatePickerField({
     safeMaximumDate,
   );
   const [draftDate, setDraftDate] = useState<Date>(dateValue);
+  // The inline calendar needs its full intrinsic width or the trailing
+  // weekday columns (and the month/year wheel overlay) clip. When the field
+  // sits in a narrow column (e.g. the Procedure Date half-row), break the
+  // picker out to span the form's full width by offsetting against the
+  // field's measured window position. Full-width fields compute a no-op.
+  const [pickerBreakout, setPickerBreakout] = useState<{
+    marginLeft: number;
+    width: number;
+  } | null>(null);
 
   const handleDateChange = useCallback(
     (event: any, selectedDate?: Date) => {
@@ -934,13 +966,25 @@ export function DatePickerField({
     setDraftDate(dateValue);
     setShowPicker(true);
     if (Platform.OS === "ios") {
+      const node = fieldRef.current as unknown as {
+        measureInWindow?: (
+          fn: (x: number, y: number, w: number, h: number) => void,
+        ) => void;
+      } | null;
+      node?.measureInWindow?.((x) => {
+        const windowWidth = Dimensions.get("window").width;
+        setPickerBreakout({
+          marginLeft: Spacing.lg - x,
+          width: windowWidth - Spacing.lg * 2,
+        });
+      });
       setIsMounted(true);
       expandHeight.value = withTiming(INLINE_TOTAL_HEIGHT, {
         duration: reduceMotion ? 0 : 240,
         easing: Easing.out(Easing.cubic),
       });
     }
-  }, [dateValue, expandHeight, reduceMotion]);
+  }, [dateValue, expandHeight, fieldRef, reduceMotion]);
 
   // When the inline picker opens, ask the surrounding scroll context to keep
   // both the field and the expanded picker visible.
@@ -1070,6 +1114,7 @@ export function DatePickerField({
               backgroundColor: theme.backgroundElevated,
               borderColor: theme.border,
             },
+            pickerBreakout,
           ]}
           pointerEvents={showPicker ? "auto" : "none"}
         >
@@ -1130,6 +1175,451 @@ export function DatePickerField({
           mode="date"
           display="default"
           onChange={handleDateChange}
+          minimumDate={safeMinimumDate}
+          maximumDate={safeMaximumDate}
+        />
+      ) : null}
+      <PulseHalo fieldId={fieldId} />
+    </View>
+  );
+}
+
+// ── ManualEntryDateField (DatePickerField manualEntry variant) ───────────────
+
+const INLINE_DATE_SPINNER_HEIGHT = 216;
+const INLINE_DATE_SPINNER_TOTAL_HEIGHT =
+  INLINE_DATE_SPINNER_HEIGHT + INLINE_ACTIONS_HEIGHT;
+
+/**
+ * DD/MM/YYYY date entry with two coequal paths: direct numeric typing through
+ * a progressive mask (fast path — "15012003" → 15/01/2003) and a native date
+ * picker — inline spinner on iOS (wheels reach any year directly, unlike the
+ * inline calendar's year overlay, which the clipped container breaks), system
+ * dialog on Android.
+ *
+ * `onChange` only ever fires with "" or a complete, real, in-bounds ISO date —
+ * never partial text — so form state stays honest while the user types.
+ */
+function ManualEntryDateField({
+  label,
+  value,
+  onChange,
+  placeholder = "DD/MM/YYYY",
+  required = false,
+  error,
+  disabled = false,
+  clearable = false,
+  minimumDate,
+  maximumDate,
+  testID,
+  fieldId,
+}: DatePickerFieldProps) {
+  const { theme, isDark } = useTheme();
+  const reduceMotion = useReduceMotion();
+  const [displayText, setDisplayText] = useState(() => isoToMasked(value));
+  const [internalError, setInternalError] = useState<string | null>(null);
+  const [showPicker, setShowPicker] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const expandHeight = useSharedValue(0);
+  const inputRef = useRef<TextInput | null>(null);
+  const focusInput = useCallback(() => inputRef.current?.focus(), []);
+  const { fieldRef, handleLayout } = useFieldRegistration(fieldId, focusInput);
+  const scrollContext = useFormScrollContext();
+  const { minimumDate: safeMinimumDate, maximumDate: safeMaximumDate } =
+    sanitizeDateBounds(minimumDate, maximumDate);
+  // Echo guard: skips the external-value resync for our own onChange echoes
+  // so an in-progress edit is never clobbered by the parent re-render.
+  const lastEmittedIso = useRef(normalizeDateOnlyValue(value) ?? "");
+  // Synchronous mirror of displayText: rapid keystrokes (fast typing, paste,
+  // autofill, UI tests) deliver several onChangeText events before the next
+  // render, so a closure over the state would compute from stale text.
+  const displayTextRef = useRef(displayText);
+  const applyDisplayText = useCallback((next: string) => {
+    displayTextRef.current = next;
+    setDisplayText(next);
+  }, []);
+  const [draftDate, setDraftDate] = useState<Date>(() =>
+    clampDateToBounds(
+      parseDateOnlyValue(value) ?? new Date(),
+      safeMinimumDate,
+      safeMaximumDate,
+    ),
+  );
+  // The native date spinner needs its full intrinsic width or the year wheel
+  // clips off-screen. When the field sits in a narrow column (e.g. the DOB
+  // half-row), break the picker out to span the form's full width by
+  // offsetting against the field's measured window position.
+  const [pickerBreakout, setPickerBreakout] = useState<{
+    marginLeft: number;
+    width: number;
+  } | null>(null);
+
+  const emitIfChanged = useCallback(
+    (iso: string) => {
+      if (iso === lastEmittedIso.current) return;
+      lastEmittedIso.current = iso;
+      onChange(iso);
+    },
+    [onChange],
+  );
+
+  const handleChangeText = useCallback(
+    (text: string) => {
+      const previous = displayTextRef.current;
+      let next: string;
+      if (text.length < previous.length) {
+        const formatted = formatDateInput(text);
+        if (formatted === previous) {
+          // The deletion only removed a trailing separator, which
+          // reformatting would immediately restore — drop the preceding
+          // digit too so backspace makes progress ("15/01/" → "15/0").
+          const digits = text.replace(/\D/g, "");
+          next = formatDateInput(digits.slice(0, -1));
+        } else {
+          next = formatted;
+        }
+      } else {
+        next = formatDateInput(text);
+      }
+      applyDisplayText(next);
+
+      const result = parseDateInput(next, {
+        minimumDate: safeMinimumDate,
+        maximumDate: safeMaximumDate,
+      });
+      // Don't scold mid-entry: partial input clears the error (blur re-checks).
+      if (result.status === "empty" || result.status === "incomplete") {
+        setInternalError(null);
+      } else {
+        setInternalError(
+          describeDateInputError(result, {
+            minimumDate: safeMinimumDate,
+            maximumDate: safeMaximumDate,
+          }),
+        );
+      }
+      emitIfChanged(result.status === "valid" ? (result.iso ?? "") : "");
+    },
+    [applyDisplayText, emitIfChanged, safeMaximumDate, safeMinimumDate],
+  );
+
+  const handleBlur = useCallback(() => {
+    const result = parseDateInput(displayTextRef.current, {
+      minimumDate: safeMinimumDate,
+      maximumDate: safeMaximumDate,
+    });
+    setInternalError(
+      describeDateInputError(result, {
+        minimumDate: safeMinimumDate,
+        maximumDate: safeMaximumDate,
+      }),
+    );
+  }, [safeMaximumDate, safeMinimumDate]);
+
+  useEffect(() => {
+    const normalized = normalizeDateOnlyValue(value) ?? "";
+    if (normalized === lastEmittedIso.current) return;
+    // External change (draft restore, parent reset) — resync the entry text.
+    lastEmittedIso.current = normalized;
+    applyDisplayText(isoToMasked(value));
+    setInternalError(null);
+    // Intentionally only reacting to external `value` changes — local edits
+    // already keep displayText in sync via handleChangeText.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  const handleUnmount = useCallback(() => {
+    setIsMounted(false);
+  }, []);
+
+  const closeDatePicker = useCallback(() => {
+    setShowPicker(false);
+    if (Platform.OS === "ios") {
+      expandHeight.value = withTiming(
+        0,
+        { duration: reduceMotion ? 0 : 200, easing: Easing.out(Easing.cubic) },
+        (finished) => {
+          if (finished) {
+            runOnJS(handleUnmount)();
+          }
+        },
+      );
+    }
+  }, [expandHeight, handleUnmount, reduceMotion]);
+
+  const openDatePicker = useCallback(() => {
+    // Seed the spinner from the typed text when it's a real date, else the
+    // committed value, else today — clamped into bounds either way.
+    const typedIso = maskedToIso(displayTextRef.current);
+    const seed =
+      (typedIso ? parseDateOnlyValue(typedIso) : null) ??
+      parseDateOnlyValue(value) ??
+      new Date();
+    setDraftDate(clampDateToBounds(seed, safeMinimumDate, safeMaximumDate));
+    inputRef.current?.blur();
+    setShowPicker(true);
+    if (Platform.OS === "ios") {
+      const node = fieldRef.current as unknown as {
+        measureInWindow?: (
+          fn: (x: number, y: number, w: number, h: number) => void,
+        ) => void;
+      } | null;
+      node?.measureInWindow?.((x) => {
+        const windowWidth = Dimensions.get("window").width;
+        setPickerBreakout({
+          marginLeft: Spacing.lg - x,
+          width: windowWidth - Spacing.lg * 2,
+        });
+      });
+      setIsMounted(true);
+      expandHeight.value = withTiming(INLINE_DATE_SPINNER_TOTAL_HEIGHT, {
+        duration: reduceMotion ? 0 : 240,
+        easing: Easing.out(Easing.cubic),
+      });
+    }
+  }, [
+    expandHeight,
+    fieldRef,
+    reduceMotion,
+    safeMaximumDate,
+    safeMinimumDate,
+    value,
+  ]);
+
+  const handleNativeChange = useCallback(
+    (_event: unknown, selectedDate?: Date) => {
+      if (Platform.OS === "android") {
+        setShowPicker(false);
+        if (selectedDate) {
+          const iso = toIsoDateValue(
+            clampDateToBounds(selectedDate, safeMinimumDate, safeMaximumDate),
+          );
+          applyDisplayText(isoToMasked(iso));
+          setInternalError(null);
+          emitIfChanged(iso);
+        }
+        return;
+      }
+      if (selectedDate) {
+        setDraftDate(
+          clampDateToBounds(selectedDate, safeMinimumDate, safeMaximumDate),
+        );
+      }
+    },
+    [applyDisplayText, emitIfChanged, safeMaximumDate, safeMinimumDate],
+  );
+
+  const handleDone = useCallback(() => {
+    const iso = toIsoDateValue(
+      clampDateToBounds(draftDate, safeMinimumDate, safeMaximumDate),
+    );
+    closeDatePicker();
+    applyDisplayText(isoToMasked(iso));
+    setInternalError(null);
+    requestAnimationFrame(() => emitIfChanged(iso));
+  }, [
+    applyDisplayText,
+    closeDatePicker,
+    draftDate,
+    emitIfChanged,
+    safeMaximumDate,
+    safeMinimumDate,
+  ]);
+
+  const handleClear = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    applyDisplayText("");
+    setInternalError(null);
+    emitIfChanged("");
+  }, [applyDisplayText, emitIfChanged]);
+
+  // Keep the field plus the expanded spinner visible, mirroring the sibling
+  // pickers' self-positioning effect.
+  useEffect(() => {
+    if (!showPicker || Platform.OS !== "ios" || !scrollContext) return;
+    const handle = requestAnimationFrame(() => {
+      const node = fieldRef.current as unknown as {
+        measureInWindow?: (
+          fn: (x: number, y: number, w: number, h: number) => void,
+        ) => void;
+      } | null;
+      node?.measureInWindow?.((_x, y, _w, h) => {
+        scrollContext.ensureVisible(y, h + INLINE_DATE_SPINNER_TOTAL_HEIGHT, {
+          extraPadding: 32,
+        });
+      });
+    });
+    return () => cancelAnimationFrame(handle);
+  }, [showPicker, scrollContext, fieldRef]);
+
+  const animatedPickerStyle = useAnimatedStyle(() => ({
+    height: expandHeight.value,
+    overflow: "hidden" as const,
+  }));
+
+  const displayedError = internalError ?? error;
+
+  return (
+    <View
+      ref={fieldRef}
+      onLayout={handleLayout}
+      style={styles.container}
+      collapsable={false}
+    >
+      <View style={styles.labelRow}>
+        <ThemedText style={[styles.label, { color: theme.textSecondary }]}>
+          {label}
+        </ThemedText>
+        {required ? (
+          <ThemedText style={[styles.required, { color: theme.error }]}>
+            *
+          </ThemedText>
+        ) : null}
+      </View>
+
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <View
+          style={[
+            styles.inputContainer,
+            {
+              flex: 1,
+              backgroundColor: disabled
+                ? theme.backgroundDefault
+                : theme.backgroundRoot,
+              borderColor: displayedError
+                ? theme.error
+                : showPicker
+                  ? theme.link
+                  : theme.border,
+              minHeight: Spacing.inputHeight,
+              opacity: disabled ? 0.6 : 1,
+            },
+          ]}
+        >
+          <TextInput
+            ref={inputRef}
+            testID={testID}
+            value={displayText}
+            onChangeText={handleChangeText}
+            onBlur={handleBlur}
+            onFocus={showPicker ? closeDatePicker : undefined}
+            placeholder={placeholder}
+            placeholderTextColor={theme.textTertiary}
+            keyboardType="number-pad"
+            maxLength={10}
+            editable={!disabled}
+            style={[styles.input, { color: theme.text }]}
+            accessibilityLabel={`${label}: ${displayText || "not set"}`}
+          />
+          <Pressable
+            onPress={showPicker ? closeDatePicker : openDatePicker}
+            disabled={disabled}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel={
+              showPicker ? `Close ${label} picker` : `Open ${label} picker`
+            }
+            accessibilityState={{ disabled, expanded: showPicker }}
+            testID={testID ? `${testID}-toggle` : undefined}
+          >
+            <Feather
+              name={showPicker ? "chevron-up" : "calendar"}
+              size={20}
+              color={showPicker ? theme.link : theme.textSecondary}
+            />
+          </Pressable>
+        </View>
+        {clearable && displayText.length > 0 && !disabled ? (
+          <Pressable
+            onPress={handleClear}
+            hitSlop={{ top: 12, bottom: 12, left: 8, right: 12 }}
+            style={{ paddingLeft: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel={`Clear ${label}`}
+          >
+            <Feather name="x-circle" size={20} color={theme.textTertiary} />
+          </Pressable>
+        ) : null}
+      </View>
+
+      {displayedError ? (
+        <ThemedText
+          style={[styles.error, { color: theme.error, marginTop: 4 }]}
+        >
+          {displayedError}
+        </ThemedText>
+      ) : null}
+
+      {Platform.OS === "ios" && isMounted ? (
+        <Animated.View
+          style={[
+            animatedPickerStyle,
+            styles.inlinePickerWrapper,
+            {
+              backgroundColor: theme.backgroundElevated,
+              borderColor: theme.border,
+            },
+            pickerBreakout,
+          ]}
+          pointerEvents={showPicker ? "auto" : "none"}
+        >
+          <DateTimePicker
+            value={draftDate}
+            mode="date"
+            display="spinner"
+            onChange={handleNativeChange}
+            minimumDate={safeMinimumDate}
+            maximumDate={safeMaximumDate}
+            themeVariant={isDark ? "dark" : "light"}
+            accentColor={theme.link}
+            style={{ height: INLINE_DATE_SPINNER_HEIGHT }}
+          />
+          <View
+            style={[
+              styles.inlinePickerActions,
+              { borderTopColor: theme.border },
+            ]}
+          >
+            <TouchableOpacity
+              onPress={closeDatePicker}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel date selection"
+            >
+              <ThemedText
+                style={[
+                  styles.inlinePickerActionText,
+                  { color: theme.textSecondary },
+                ]}
+              >
+                Cancel
+              </ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleDone}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Confirm date selection"
+            >
+              <ThemedText
+                style={[
+                  styles.inlinePickerActionText,
+                  { color: theme.link, fontWeight: "600" },
+                ]}
+              >
+                Done
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      ) : null}
+
+      {Platform.OS === "android" && showPicker ? (
+        <DateTimePicker
+          value={draftDate}
+          mode="date"
+          display="default"
+          onChange={handleNativeChange}
           minimumDate={safeMinimumDate}
           maximumDate={safeMaximumDate}
         />

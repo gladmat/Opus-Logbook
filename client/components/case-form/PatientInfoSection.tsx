@@ -139,11 +139,13 @@ export const PatientInfoSection = React.memo(function PatientInfoSection() {
               dispatch(setField("patientDateOfBirth", v));
               onFieldBlur("patientDateOfBirth");
             }}
-            placeholder="DOB..."
+            placeholder="DD/MM/YYYY"
+            manualEntry
             minimumDate={dobFloor()}
             maximumDate={notFutureMax()}
             error={fieldErrors.patientDateOfBirth}
             testID="caseForm.patient.picker-dob"
+            fieldId="patientDateOfBirth"
           />
         </View>
       </View>
