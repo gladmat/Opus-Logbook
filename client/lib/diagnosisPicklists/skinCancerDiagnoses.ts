@@ -307,7 +307,11 @@ const SC_DX_RARE: DiagnosisPicklistEntry[] = [
     specialty: "skin_cancer",
     subcategory: "Rare / Other Malignant",
     clinicalGroup: "oncological",
-    hasStaging: true,
+    // No MCC staging config exists (Breslow is melanoma-only and the H&N
+    // AJCC TNM chips don't fit MCC); the skin cancer module owns the MCC
+    // pathway (SLNB auto-offer). A true flag here promised staging that
+    // never resolved.
+    hasStaging: false,
     hasEnhancedHistology: true,
     searchSynonyms: ["Merkel cell", "MCC", "neuroendocrine carcinoma skin"],
     suggestedProcedures: [

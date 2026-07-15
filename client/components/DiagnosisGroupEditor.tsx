@@ -48,6 +48,7 @@ import type { InfectionOverlay } from "@/types/infection";
 import { PickerField } from "@/components/FormField";
 import { SnomedSearchPicker } from "@/components/SnomedSearchPicker";
 import { getDiagnosisStaging, DiagnosisStagingConfig } from "@/lib/snomedApi";
+import { shouldFetchDiagnosisStaging } from "@/lib/diagnosisStagingGate";
 import { DiagnosisClinicalFields } from "@/components/DiagnosisClinicalFields";
 import { InlineStagingButtons } from "@/components/staging/InlineStagingButtons";
 import { ProcedureEntryCard } from "@/components/ProcedureEntryCard";
@@ -341,6 +342,13 @@ function DiagnosisGroupEditorInner({
   const [stagingValues, setStagingValues] = useState<Record<string, string>>(
     group.diagnosisStagingSelections || {},
   );
+  // Whether this group ARRIVED with persisted staging selections. Legacy
+  // cases saved before hasStaging gated the staging fetch may carry values
+  // on an opted-out entry — the gate keeps fetching for those so the stored
+  // selections stay visible and editable (see diagnosisStagingGate.ts).
+  const hadStoredStagingSelectionsRef = useRef(
+    Object.keys(group.diagnosisStagingSelections ?? {}).length > 0,
+  );
   const [diagnosisClinicalDetails, setDiagnosisClinicalDetails] =
     useState<DiagnosisClinicalDetails>(group.diagnosisClinicalDetails || {});
   const [selectedDiagnosis, setSelectedDiagnosis] =
@@ -572,12 +580,28 @@ function DiagnosisGroupEditorInner({
   }, [hasFractureSubcategory]);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchStaging = async () => {
       if (primaryDiagnosis) {
+        // Curated entries own their staging declaration: when the selected
+        // entry opts out (hasStaging: false), skip the server lookup — its
+        // keyword fallback would otherwise attach staging by name matching
+        // (e.g. burns Depth/TBSA% onto every "burn"-named diagnosis).
+        if (
+          !shouldFetchDiagnosisStaging({
+            selectedDiagnosis,
+            primaryDiagnosis,
+            hadStoredSelections: hadStoredStagingSelectionsRef.current,
+          })
+        ) {
+          setDiagnosisStaging(null);
+          return;
+        }
         const staging = await getDiagnosisStaging(
           primaryDiagnosis.conceptId,
           primaryDiagnosis.term,
         );
+        if (cancelled) return;
         setDiagnosisStaging(staging);
         if (!initializedRef.current) {
           setStagingValues({});
@@ -588,7 +612,10 @@ function DiagnosisGroupEditorInner({
       }
     };
     fetchStaging();
-  }, [primaryDiagnosis]);
+    return () => {
+      cancelled = true;
+    };
+  }, [primaryDiagnosis, selectedDiagnosis]);
 
   const buildCurrentDiagnosisGroup = useCallback((): DiagnosisGroup => {
     const isExcBiopsy = isExcisionBiopsyDiagnosis(selectedDiagnosis?.id);

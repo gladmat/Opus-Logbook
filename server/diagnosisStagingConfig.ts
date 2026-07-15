@@ -1024,6 +1024,18 @@ export const diagnosisStagingConfigs: DiagnosisStagingConfig[] = [
       "3839000", // Adenoid cystic carcinoma
       "53654007", // Acinic cell carcinoma
       "93871006", // Malignant neoplasm of submandibular gland
+      // Codes actually used by the head & neck diagnosis picklist entries
+      // (the list above predates the picklist's SNOMED audit and drifted —
+      // these hasStaging:true entries otherwise never resolve a config):
+      "363375006", // hn_dx_tongue_ca — Carcinoma of tongue
+      "363386008", // hn_dx_buccal_ca — Carcinoma of buccal mucosa
+      "448668007", // hn_dx_mandible_tumour — Mandibular tumour (primary)
+      "93888008", // hn_dx_maxilla_tumour — Maxillary tumour / carcinoma
+      "363425008", // hn_dx_maxillary_sinus_ca — Maxillary sinus carcinoma
+      "423793008", // hn_dx_parotid_mucoepidermoid — Mucoepidermoid ca of parotid
+      "422833009", // hn_dx_parotid_adenoid_cystic — Adenoid cystic ca of parotid
+      "126788000", // hn_dx_parotid_acinic_cell — Acinic cell ca of parotid
+      "363380002", // hn_dx_submandibular_malignant — Malignant neoplasm of submandibular gland
     ],
     keywords: [
       "oral cavity cancer",
