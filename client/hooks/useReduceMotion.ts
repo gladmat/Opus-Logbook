@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { AccessibilityInfo } from "react-native";
+import { useReducedMotion as useReducedMotionReanimated } from "react-native-reanimated";
 
 /**
  * Tracks the OS-level "Reduce Motion" accessibility preference.
@@ -16,12 +17,16 @@ import { AccessibilityInfo } from "react-native";
  *     duration: reduceMotion ? 0 : 250,
  *   });
  *
- * The initial value defaults to `false` and updates after the first event
- * loop tick. Subsequent OS changes (user toggles the setting while the app
- * is running) are picked up via the AccessibilityInfo change listener.
+ * The initial value is read synchronously from Reanimated, so first-render
+ * animation setup (mount `entering` props, shared-value initialisers) sees
+ * the correct value with no async flash. Subsequent OS changes (user
+ * toggles the setting while the app is running) are picked up via the
+ * AccessibilityInfo change listener.
  */
 export function useReduceMotion(): boolean {
-  const [reduceMotion, setReduceMotion] = useState(false);
+  // Reanimated reads the preference synchronously at first call — no flash.
+  const initialReduceMotion = useReducedMotionReanimated();
+  const [reduceMotion, setReduceMotion] = useState(initialReduceMotion);
 
   useEffect(() => {
     let mounted = true;

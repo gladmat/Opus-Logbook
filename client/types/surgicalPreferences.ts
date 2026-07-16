@@ -196,6 +196,7 @@ export interface PersonalizationPreferences {
   trainingProgramme?: string | null;
   trainingProgrammeAnswered?: boolean;
   hospitalAnswered?: boolean;
+  privacyAnswered?: boolean;
 }
 
 export interface BreastPreferences {

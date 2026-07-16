@@ -1,14 +1,18 @@
 // client/theme/tokens.ts
 // LOCKED — do not modify without design sign-off
+// (Reconciled 2026-07-16: background.primary aligned to the shipped
+// charcoal root; the commented-out accent surface/glow values promoted to
+// real tokens so components stop hardcoding the rgba strings.)
 // Opus onboarding brand token system. Every onboarding component references these names.
 // No hex values in component files — only token names.
 
 export const colors = {
   // Backgrounds
   background: {
-    primary: "#141414", // Root background for all onboarding screens
+    primary: "#0C0F14", // Root background for all onboarding screens (palette.charcoal[950])
     elevated: "#1C1C1E", // Cards, input field surfaces
     tertiary: "#2C2C2E", // Disabled states, subtle fills
+    pressed: "rgba(255, 255, 255, 0.06)", // Key/press feedback overlay on dark
   },
 
   // Amber accent — SACRED
@@ -17,8 +21,8 @@ export const colors = {
     primary: "#E5A00D",
     muted: "#B8820A", // Pressed/active state
     onAccent: "#1A1A1A", // Text placed ON amber backgrounds
-    // accent.surface = rgba(229, 160, 13, 0.08) — selected card background
-    // accent.glow    = rgba(229, 160, 13, 0.15) — logo glow on welcome screen only
+    surface: "rgba(229, 160, 13, 0.08)", // Selected card/chip background
+    glow: "rgba(229, 160, 13, 0.15)", // Logo glow on welcome screen only
   },
 
   // Text
@@ -38,6 +42,7 @@ export const colors = {
   icon: {
     default: "#AEAEB2",
     subtle: "#636366",
+    surface: "rgba(174, 174, 178, 0.08)", // Circular icon backdrop (privacy trust rows)
   },
 
   // Warning — DISTINCT from amber to prevent colour collision
