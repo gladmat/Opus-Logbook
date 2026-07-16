@@ -379,6 +379,18 @@ describe("New diagnosis metadata", () => {
       expect(term).not.toContain("forearm");
     }
   });
+
+  it("hand_dx_enchondroma uses the valid enchondroma-of-hand-bone SNOMED code", () => {
+    const dx = HAND_SURGERY_DIAGNOSES.find(
+      (d) => d.id === "hand_dx_enchondroma",
+    );
+    expect(dx).toBeDefined();
+    // Previous code 307592004 did not resolve against SNOMED (AU or Intl);
+    // 423421002 is the canonical "Enchondroma of hand bone" concept,
+    // Ontoserver-verified in both editions.
+    expect(dx!.snomedCtCode).toBe("423421002");
+    expect(dx!.snomedCtDisplay).toBe("Enchondroma of hand bone (disorder)");
+  });
 });
 
 // ═══════════════════════════════════════════════════════════

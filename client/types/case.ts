@@ -1757,6 +1757,8 @@ export interface CaseProcedure {
   saplDetails?: import("./lymphatic").SAPLOperativeDetails;
   /** Corrective osteotomy details (post-traumatic bone, elective hand) */
   osteotomyDetails?: import("./osteotomy").CorrectiveOsteotomyData;
+  /** Bone tumour curettage/graft details (which bone/digit, graft donor site) */
+  boneTumourDetails?: import("./boneTumour").BoneTumourData;
   notes?: string;
   /** Which specific digit this procedure targets (for multi-digit cases like trigger finger). */
   digitId?: DigitId;

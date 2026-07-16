@@ -123,6 +123,7 @@ import {
   formatImplantSize,
 } from "@/lib/jointImplant";
 import { getOsteotomySummary } from "@/types/osteotomy";
+import { getBoneTumourSummary } from "@/types/boneTumour";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import {
   generateDupuytrenSummaryText,
@@ -1459,6 +1460,21 @@ export default function CaseDetailScreen() {
                           <DetailRow
                             label="Osteotomy"
                             value={getOsteotomySummary(proc.osteotomyDetails)}
+                          />
+                        </View>
+                      ) : null}
+                      {/* Bone tumour site & graft details */}
+                      {proc.boneTumourDetails &&
+                      getBoneTumourSummary(proc.boneTumourDetails) ? (
+                        <View
+                          style={[
+                            styles.procedureClinicalDetails,
+                            { borderTopColor: theme.border },
+                          ]}
+                        >
+                          <DetailRow
+                            label="Tumour site & graft"
+                            value={getBoneTumourSummary(proc.boneTumourDetails)}
                           />
                         </View>
                       ) : null}

@@ -143,6 +143,12 @@ import {
   OSTEOTOMY_PROCEDURE_IDS,
   createEmptyOsteotomyData,
 } from "@/types/osteotomy";
+import { BoneTumourDetails } from "@/components/hand-elective/BoneTumourDetails";
+import {
+  BONE_TUMOUR_PROCEDURE_IDS,
+  createEmptyBoneTumourData,
+} from "@/types/boneTumour";
+import { stripStaleHandTraumaData } from "@/lib/handCaseTypeGuards";
 import { CraniofacialAssessment } from "@/components/craniofacial/CraniofacialAssessment";
 import { isCraniofacialDiagnosis } from "@/lib/craniofacialConfig";
 import type { CraniofacialAssessmentData } from "@/types/craniofacial";
@@ -622,6 +628,19 @@ function DiagnosisGroupEditorInner({
     // Strip transient handCaseTypeHint — it must not be persisted
     const { handCaseTypeHint: _hint, ...persistedGroup } =
       latestGroupRef.current;
+    // Stale-trauma guard (companion to the Orphan-blob prevention below):
+    // a handTrauma blob / fracture list must not persist on an explicitly
+    // non-trauma hand group, or the regenerated trauma title overrides the
+    // coded diagnosis everywhere the group is displayed.
+    const guardedTrauma = stripStaleHandTraumaData({
+      specialty: groupSpecialty,
+      handCaseType,
+      diagnosisClinicalDetails:
+        Object.keys(diagnosisClinicalDetails).length > 0
+          ? diagnosisClinicalDetails
+          : undefined,
+      fractures: fractures.length > 0 ? fractures : undefined,
+    });
     return {
       ...persistedGroup,
       specialty: groupSpecialty,
@@ -636,10 +655,7 @@ function DiagnosisGroupEditorInner({
       diagnosisPicklistId: selectedDiagnosis?.id || undefined,
       diagnosisStagingSelections:
         Object.keys(stagingValues).length > 0 ? stagingValues : undefined,
-      diagnosisClinicalDetails:
-        Object.keys(diagnosisClinicalDetails).length > 0
-          ? diagnosisClinicalDetails
-          : undefined,
+      diagnosisClinicalDetails: guardedTrauma.diagnosisClinicalDetails,
       procedureSuggestionSource: skinCancerProceduresAccepted
         ? "skinCancer"
         : acuteProceduresAccepted
@@ -647,7 +663,7 @@ function DiagnosisGroupEditorInner({
           : selectedDiagnosis
             ? "picklist"
             : "manual",
-      fractures: fractures.length > 0 ? fractures : undefined,
+      fractures: guardedTrauma.fractures,
       procedures,
       isMultiLesion,
       lesionInstances: isMultiLesion ? lesionInstances : undefined,
@@ -2920,6 +2936,16 @@ function DiagnosisGroupEditorInner({
                         setAoHints([]);
                         setAutoAppliedTraumaSuggestionIds(new Set());
                         setHandInfectionDetails(undefined);
+                        // Leaving trauma must not carry the trauma
+                        // assessment along — a stale handTrauma blob
+                        // regenerates the trauma diagnosis title over the
+                        // newly coded diagnosis. Laterality is preserved.
+                        setDiagnosisClinicalDetails((prev) => {
+                          if (!prev.handTrauma) return prev;
+                          const { handTrauma: _stripped, ...rest } = prev;
+                          return rest;
+                        });
+                        setFractures([]);
                         caseFormDispatch(
                           setField(
                             "admissionUrgency",
@@ -3292,6 +3318,37 @@ function DiagnosisGroupEditorInner({
                     onDigitsChange={setSelectedDigits}
                     onMultiDigitConfirm={handleMultiDigitConfirm}
                   />
+
+                  {/* Bone tumour site & graft card — the elective flow hides
+                      the full procedure list behind "Browse full procedure
+                      picker", so the card must render inline here (the full
+                      list has its own copy, gated off while it is hidden). */}
+                  {!showAllProcedures
+                    ? procedures
+                        .filter(
+                          (proc) =>
+                            proc.picklistEntryId &&
+                            (
+                              BONE_TUMOUR_PROCEDURE_IDS as readonly string[]
+                            ).includes(proc.picklistEntryId),
+                        )
+                        .map((proc) => (
+                          <BoneTumourDetails
+                            key={proc.id}
+                            value={
+                              proc.boneTumourDetails ??
+                              createEmptyBoneTumourData()
+                            }
+                            onChange={(details) =>
+                              updateProcedure({
+                                ...proc,
+                                boneTumourDetails: details,
+                                digitId: details.digit ?? undefined,
+                              })
+                            }
+                          />
+                        ))
+                    : null}
 
                   {/* Fast path: add another elective hand diagnosis */}
                   {(selectedDiagnosis || primaryDiagnosis) &&
@@ -4291,6 +4348,25 @@ function DiagnosisGroupEditorInner({
                                   updateProcedure({
                                     ...proc,
                                     osteotomyDetails: details,
+                                  })
+                                }
+                              />
+                            ) : null}
+                            {proc.picklistEntryId &&
+                            (
+                              BONE_TUMOUR_PROCEDURE_IDS as readonly string[]
+                            ).includes(proc.picklistEntryId) ? (
+                              <BoneTumourDetails
+                                value={
+                                  proc.boneTumourDetails ??
+                                  createEmptyBoneTumourData()
+                                }
+                                onChange={(details) =>
+                                  updateProcedure({
+                                    ...proc,
+                                    boneTumourDetails: details,
+                                    // digitId drives per-digit FHIR bodySite
+                                    digitId: details.digit ?? undefined,
                                   })
                                 }
                               />

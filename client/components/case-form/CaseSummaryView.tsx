@@ -28,6 +28,7 @@ import {
 } from "@/types/case";
 import { getDiagnosisGroupTitle } from "@/lib/caseDiagnosisSummary";
 import { DIGIT_LABELS } from "@/lib/diagnosisPicklists/multiDigitConfig";
+import { getBoneTumourSummary } from "@/types/boneTumour";
 import { Button } from "@/components/Button";
 import {
   validateRequiredFields,
@@ -435,6 +436,13 @@ export function CaseSummaryView({
                 />
                 {proc.clinicalDetails ? (
                   <ProcedureClinicalSummary details={proc.clinicalDetails} />
+                ) : null}
+                {proc.boneTumourDetails &&
+                getBoneTumourSummary(proc.boneTumourDetails) ? (
+                  <SummaryRow
+                    label="Tumour site & graft"
+                    value={getBoneTumourSummary(proc.boneTumourDetails)}
+                  />
                 ) : null}
               </View>
             ))}

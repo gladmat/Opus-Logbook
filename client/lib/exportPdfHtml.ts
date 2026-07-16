@@ -24,6 +24,7 @@ import {
   getOsteotomySummary,
   OSTEOTOMY_PROCEDURE_IDS,
 } from "@/types/osteotomy";
+import { getBoneTumourSummary } from "@/types/boneTumour";
 import {
   getImplantSummary as getBreastImplantSummary,
   getFlapSummary as getBreastFlapSummary,
@@ -358,6 +359,14 @@ export function buildPdfHtml(cases: Case[], options: PdfExportOptions): string {
       ? `Osteotomy: ${getOsteotomySummary(osteotomyProc.osteotomyDetails)}`
       : "";
 
+    // Bone tumour site & graft summary
+    const boneTumourProc = (c.diagnosisGroups ?? [])
+      .flatMap((g) => g.procedures ?? [])
+      .find((p) => p.boneTumourDetails?.bone);
+    const boneTumourSummary = boneTumourProc?.boneTumourDetails
+      ? `Tumour: ${getBoneTumourSummary(boneTumourProc.boneTumourDetails)}`
+      : "";
+
     const implantSummary = [jointImplantSummary, ...breastParts]
       .filter(Boolean)
       .join("; ");
@@ -414,6 +423,7 @@ export function buildPdfHtml(cases: Case[], options: PdfExportOptions): string {
           headNeckFlapSummary,
           dupuytrenSummary,
           osteotomySummary,
+          boneTumourSummary,
           craniofacialSummary,
           peripheralNerveSummary,
           lymphaticSummary,

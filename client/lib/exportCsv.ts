@@ -38,7 +38,10 @@ import {
   calculateDiathesisScore,
   getDominantPatternLabel,
 } from "@/lib/dupuytrenHelpers";
-import { formatAffectedDigits } from "@/lib/diagnosisPicklists/multiDigitConfig";
+import {
+  formatAffectedDigits,
+  DIGIT_LABELS,
+} from "@/lib/diagnosisPicklists/multiDigitConfig";
 import type {
   CleftCompleteness,
   LAHSHALClassification,
@@ -50,8 +53,13 @@ import {
   TECHNIQUE_LABELS as OSTEOTOMY_TECHNIQUE_LABELS,
   GRAFT_TYPE_LABELS as OSTEOTOMY_GRAFT_LABELS,
   FIXATION_LABELS as OSTEOTOMY_FIXATION_LABELS,
+  GRAFT_DONOR_SITE_LABELS as OSTEOTOMY_DONOR_SITE_LABELS,
   OSTEOTOMY_PROCEDURE_IDS,
 } from "@/types/osteotomy";
+import {
+  BONE_TUMOUR_BONE_LABELS,
+  BONE_TUMOUR_PROCEDURE_IDS,
+} from "@/types/boneTumour";
 import {
   NERVE_LABELS,
   MECHANISM_LABELS as PN_MECHANISM_LABELS,
@@ -164,6 +172,10 @@ const CSV_HEADERS = [
   "osteotomy_graft",
   "osteotomy_fixation",
   "osteotomy_3d_planning",
+  "bone_tumour_bone",
+  "bone_tumour_digit",
+  "bone_tumour_graft",
+  "bone_tumour_donor_site",
   "planned_date",
   // ── Breast module columns ──
   "breast_laterality",
@@ -349,6 +361,31 @@ function getCaseOsteotomyExportFields(c: Case) {
     graft: first.graftType ? OSTEOTOMY_GRAFT_LABELS[first.graftType] : "",
     fixation: first.fixation ? OSTEOTOMY_FIXATION_LABELS[first.fixation] : "",
     threeDPlanning: first.threeDPlanning ? "Yes" : "",
+  };
+}
+
+function getCaseBoneTumourExportFields(c: Case) {
+  const boneTumourProcedures = (c.diagnosisGroups ?? []).flatMap((group) =>
+    (group.procedures ?? []).filter(
+      (p) =>
+        p.picklistEntryId &&
+        (BONE_TUMOUR_PROCEDURE_IDS as readonly string[]).includes(
+          p.picklistEntryId,
+        ) &&
+        p.boneTumourDetails,
+    ),
+  );
+  if (boneTumourProcedures.length === 0) {
+    return { bone: "", digit: "", graft: "", donorSite: "" };
+  }
+  const first = boneTumourProcedures[0]!.boneTumourDetails!;
+  return {
+    bone: first.bone ? BONE_TUMOUR_BONE_LABELS[first.bone] : "",
+    digit: first.digit ? DIGIT_LABELS[first.digit] : "",
+    graft: first.graftType ? OSTEOTOMY_GRAFT_LABELS[first.graftType] : "",
+    donorSite: first.graftDonorSite
+      ? OSTEOTOMY_DONOR_SITE_LABELS[first.graftDonorSite]
+      : "",
   };
 }
 
@@ -673,6 +710,7 @@ function caseToRow(c: Case, options: CsvExportOptions): string {
 
   const implantFields = getCaseImplantExportFields(c);
   const osteotomyFields = getCaseOsteotomyExportFields(c);
+  const boneTumourFields = getCaseBoneTumourExportFields(c);
   const breastFields = extractBreastCsvFields(groups);
   const headNeckFields = extractHeadNeckCsvFields(c);
   const craniofacialFields = extractCraniofacialCsvFields(groups);
@@ -818,6 +856,10 @@ function caseToRow(c: Case, options: CsvExportOptions): string {
     osteotomyFields.graft,
     osteotomyFields.fixation,
     osteotomyFields.threeDPlanning,
+    boneTumourFields.bone,
+    boneTumourFields.digit,
+    boneTumourFields.graft,
+    boneTumourFields.donorSite,
     c.plannedDate ?? "",
     // ── Breast module ──
     ...breastFields,

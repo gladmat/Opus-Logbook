@@ -1447,6 +1447,9 @@ export function buildDuplicateState(
       osteotomyDetails: p.osteotomyDetails
         ? structuredClone(p.osteotomyDetails)
         : undefined,
+      boneTumourDetails: p.boneTumourDetails
+        ? structuredClone(p.boneTumourDetails)
+        : undefined,
       lvaOperativeDetails: p.lvaOperativeDetails
         ? structuredClone(p.lvaOperativeDetails)
         : undefined,
