@@ -297,6 +297,163 @@ describe("hand trauma mapping pairs", () => {
     expect(specialPair).toBeDefined();
   });
 
+  it("offers three single-select closure strategies for a laceration, exploration default", () => {
+    const result = resolveTraumaDiagnosis({
+      laterality: "left",
+      injuryMechanism: "saw_blade",
+      affectedDigits: ["I", "II"],
+      activeCategories: ["soft_tissue"],
+      softTissueDescriptors: [
+        {
+          type: "laceration",
+          digits: ["I", "II"],
+          zone: "web_space",
+          intactStructures: ["flexor_tendon", "nerve"],
+        },
+      ],
+    });
+
+    const lacerationPair = result?.pairs.find((pair) =>
+      pair.key.startsWith("soft_tissue:laceration:"),
+    );
+    expect(lacerationPair?.source).toBe("soft_tissue");
+    expect(lacerationPair?.selectionMode).toBe("single");
+    expect(
+      lacerationPair?.suggestedProcedures.map((p) => p.procedurePicklistId),
+    ).toEqual(
+      expect.arrayContaining([
+        "hand_trauma_wound_exploration_closure",
+        "hand_trauma_lac_direct_closure",
+        "hand_trauma_washout_delayed_closure",
+      ]),
+    );
+    expect(lacerationPair?.suggestedProcedures).toHaveLength(3);
+    const defaultProc = lacerationPair?.suggestedProcedures.find(
+      (p) => p.isDefault,
+    );
+    expect(defaultProc?.procedurePicklistId).toBe(
+      "hand_trauma_wound_exploration_closure",
+    );
+    expect(lacerationPair?.diagnosis.diagnosisPicklistId).toBe(
+      "hand_dx_hand_laceration",
+    );
+    expect(lacerationPair?.diagnosis.snomedCtCode).toBe("284549007");
+    expect(lacerationPair?.diagnosis.displayName).toContain(
+      "first web space laceration",
+    );
+  });
+
+  it("adds a muscle-repair pair when muscle involvement is flagged", () => {
+    const result = resolveTraumaDiagnosis({
+      laterality: "left",
+      affectedDigits: ["I", "II"],
+      activeCategories: ["soft_tissue"],
+      softTissueDescriptors: [
+        {
+          type: "laceration",
+          digits: ["I", "II"],
+          zone: "web_space",
+          muscleInvolved: true,
+        },
+      ],
+    });
+
+    const musclePair = result?.pairs.find((pair) =>
+      pair.key.startsWith("soft_tissue:laceration_muscle:"),
+    );
+    expect(musclePair?.selectionMode).toBe("single");
+    expect(musclePair?.suggestedProcedures).toHaveLength(1);
+    expect(musclePair?.suggestedProcedures[0]).toMatchObject({
+      procedurePicklistId: "hand_trauma_muscle_repair",
+      isDefault: true,
+    });
+
+    const withoutMuscle = resolveTraumaDiagnosis({
+      laterality: "left",
+      affectedDigits: ["I", "II"],
+      activeCategories: ["soft_tissue"],
+      softTissueDescriptors: [
+        { type: "laceration", digits: ["I", "II"], zone: "web_space" },
+      ],
+    });
+    expect(
+      withoutMuscle?.pairs.some((pair) =>
+        pair.key.startsWith("soft_tissue:laceration_muscle:"),
+      ),
+    ).toBe(false);
+  });
+
+  it("still offers all closure strategies for a laceration with no zone", () => {
+    const result = resolveTraumaDiagnosis({
+      laterality: "right",
+      affectedDigits: ["III"],
+      activeCategories: ["soft_tissue"],
+      softTissueDescriptors: [{ type: "laceration", digits: ["III"] }],
+    });
+
+    const lacerationPair = result?.pairs.find((pair) =>
+      pair.key.startsWith("soft_tissue:laceration:"),
+    );
+    expect(lacerationPair?.suggestedProcedures).toHaveLength(3);
+  });
+
+  it("keeps laceration and defect pairs independent on the same case", () => {
+    const result = resolveTraumaDiagnosis({
+      laterality: "right",
+      affectedDigits: ["II"],
+      activeCategories: ["soft_tissue"],
+      softTissueDescriptors: [
+        { type: "defect", surfaces: ["palmar"], zone: "fingertip" },
+        { type: "laceration", digits: ["II"], zone: "digit_shaft" },
+      ],
+    });
+
+    const coveragePair = result?.pairs.find((pair) =>
+      pair.key.startsWith("soft_tissue:defect:"),
+    );
+    const lacerationPair = result?.pairs.find((pair) =>
+      pair.key.startsWith("soft_tissue:laceration:"),
+    );
+
+    expect(coveragePair?.diagnosis.diagnosisPicklistId).toBe(
+      "hand_dx_hand_degloving",
+    );
+    expect(
+      coveragePair?.suggestedProcedures.map((p) => p.procedurePicklistId),
+    ).toContain("hand_cov_vy_advancement");
+
+    expect(lacerationPair?.diagnosis.diagnosisPicklistId).toBe(
+      "hand_dx_hand_laceration",
+    );
+    const lacerationIds = lacerationPair?.suggestedProcedures.map(
+      (p) => p.procedurePicklistId,
+    );
+    expect(lacerationIds).not.toContain("hand_cov_vy_advancement");
+    expect(lacerationIds).toContain("hand_trauma_wound_exploration_closure");
+  });
+
+  it("attaches coding references to laceration pairs", () => {
+    const result = resolveTraumaDiagnosis({
+      laterality: "left",
+      affectedDigits: ["II"],
+      activeCategories: ["soft_tissue"],
+      softTissueDescriptors: [
+        { type: "laceration", digits: ["II"], zone: "digit_shaft" },
+      ],
+    });
+
+    const lacerationPair = result?.pairs.find((pair) =>
+      pair.key.startsWith("soft_tissue:laceration:"),
+    );
+    expect(lacerationPair?.diagnosis.codes?.[0]).toMatchObject({
+      system: "SNOMED_CT",
+      code: "284549007",
+    });
+    expect(lacerationPair?.suggestedProcedures[0]?.codes?.[0]).toMatchObject({
+      system: "SNOMED_CT",
+    });
+  });
+
   it("attaches generic coding references to mapped diagnoses and procedures", () => {
     const result = resolveTraumaDiagnosis({
       laterality: "right",

@@ -338,6 +338,11 @@ const DIAGNOSIS_LOOKUP: Record<string, DiagnosisRef> = {
     displayName: "Nail bed injury",
     snomedCtCode: "446314003",
   },
+  hand_dx_hand_laceration: {
+    diagnosisPicklistId: "hand_dx_hand_laceration",
+    displayName: "Hand / wrist laceration",
+    snomedCtCode: "284549007",
+  },
   hand_dx_hand_degloving: {
     diagnosisPicklistId: "hand_dx_hand_degloving",
     displayName: "Hand / finger degloving injury",
@@ -1530,6 +1535,80 @@ function buildCoveragePairs(normalized: MachineSummary): TraumaDiagnosisPair[] {
   });
 }
 
+function buildLacerationPairs(
+  normalized: MachineSummary,
+): TraumaDiagnosisPair[] {
+  const injuries = normalized.softTissue.filter(
+    (injury) => injury.type === "laceration",
+  );
+
+  const pairs: TraumaDiagnosisPair[] = [];
+
+  injuries.forEach((injury, index) => {
+    const diagnosis = lookup("hand_dx_hand_laceration");
+    const displayName =
+      buildSoftTissueBullets([injury], "shorthand_english", "short")[0] ??
+      "Hand laceration";
+    const diagnosisRef = {
+      diagnosisPicklistId: diagnosis.diagnosisPicklistId,
+      displayName,
+      snomedCtCode: diagnosis.snomedCtCode,
+      codes: buildDiagnosisCodingReferences(diagnosis),
+    };
+
+    const closureSuggestions = [
+      createProcedureSuggestion(
+        "hand_trauma_wound_exploration_closure",
+        "Exploration to exclude deep-structure injury",
+        true,
+      ),
+      createProcedureSuggestion(
+        "hand_trauma_lac_direct_closure",
+        "Direct closure without formal exploration",
+        false,
+      ),
+      createProcedureSuggestion(
+        "hand_trauma_washout_delayed_closure",
+        "Contaminated wound — delayed closure",
+        false,
+      ),
+    ].filter(
+      (suggestion): suggestion is TraumaProcedureSuggestion =>
+        suggestion !== null,
+    );
+
+    pairs.push({
+      key: `soft_tissue:laceration:${index}`,
+      source: "soft_tissue" as const,
+      diagnosis: diagnosisRef,
+      selectionMode: "single" as const,
+      suggestedProcedures: normalizeSingleSelectSuggestions(closureSuggestions),
+    });
+
+    if (injury.muscleInvolved) {
+      const muscleSuggestion = createProcedureSuggestion(
+        "hand_trauma_muscle_repair",
+        "Muscle laceration flagged in soft-tissue assessment",
+        true,
+      );
+      pairs.push({
+        key: `soft_tissue:laceration_muscle:${index}`,
+        source: "soft_tissue" as const,
+        diagnosis: {
+          ...diagnosisRef,
+          displayName: "Muscle laceration",
+        },
+        selectionMode: "single" as const,
+        suggestedProcedures: muscleSuggestion
+          ? normalizeSingleSelectSuggestions([muscleSuggestion])
+          : [],
+      });
+    }
+  });
+
+  return pairs;
+}
+
 function buildLigamentPairs(normalized: MachineSummary): TraumaDiagnosisPair[] {
   const ligamentTypes = new Set(["ligament", "volar_plate"]);
   const injuries = normalized.softTissue.filter((i) =>
@@ -1710,6 +1789,7 @@ export function resolveTraumaDiagnosis(
     ...buildNervePairs(normalized),
     ...buildVesselPairs(normalized),
     ...buildCoveragePairs(normalized),
+    ...buildLacerationPairs(normalized),
     ...buildLigamentPairs(normalized),
     ...buildSpecialInjuryPairs(selection, normalized),
   ];

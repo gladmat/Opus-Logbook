@@ -699,6 +699,57 @@ const HAND_DX_NERVE_INJURIES: DiagnosisPicklistEntry[] = [
 
 const HAND_DX_SOFT_TISSUE: DiagnosisPicklistEntry[] = [
   {
+    id: "hand_dx_hand_laceration",
+    displayName: "Hand / wrist laceration",
+    shortName: "Laceration",
+    // Verified live against CSIRO Ontoserver (AU + International, 2026-07-18).
+    snomedCtCode: "284549007",
+    snomedCtDisplay: "Laceration of hand (disorder)",
+    specialty: "hand_wrist",
+    subcategory: "Soft Tissue Injuries",
+    clinicalGroup: "trauma",
+    hasStaging: false,
+    searchSynonyms: [
+      "laceration",
+      "simple laceration",
+      "stab",
+      "stab wound",
+      "knife",
+      "puncture",
+      "wound exploration",
+      "washout",
+      "skin closure",
+      "web space",
+    ],
+    suggestedProcedures: [
+      {
+        procedurePicklistId: "hand_trauma_wound_exploration_closure",
+        displayName: "Wound exploration + washout + direct closure",
+        isDefault: true,
+        sortOrder: 1,
+      },
+      {
+        procedurePicklistId: "hand_trauma_lac_direct_closure",
+        displayName: "Laceration repair — direct closure",
+        isDefault: false,
+        sortOrder: 2,
+      },
+      {
+        procedurePicklistId: "hand_trauma_washout_delayed_closure",
+        displayName: "Wound washout + delayed closure",
+        isDefault: false,
+        sortOrder: 3,
+      },
+      {
+        procedurePicklistId: "hand_trauma_muscle_repair",
+        displayName: "Muscle laceration repair",
+        isDefault: false,
+        sortOrder: 4,
+      },
+    ],
+    sortOrder: 0,
+  },
+  {
     id: "hand_dx_complex_laceration",
     displayName: "Complex hand / wrist laceration",
     shortName: "Complex laceration",

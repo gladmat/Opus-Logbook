@@ -613,3 +613,151 @@ describe("hand trauma diagnosis generation", () => {
     expect(result!.diagnosisTextLong).not.toContain("fingertip");
   });
 });
+
+describe("laceration rendering", () => {
+  const webSpaceSelection: HandTraumaDiagnosisSelection = {
+    laterality: "left",
+    injuryMechanism: "saw_blade",
+    affectedDigits: ["I", "II"],
+    softTissueDescriptors: [
+      {
+        type: "laceration",
+        digits: ["I", "II"],
+        zone: "web_space",
+        intactStructures: ["flexor_tendon", "nerve"],
+        muscleInvolved: true,
+      },
+    ],
+  };
+
+  it("renders the full stab-wound repro title with exploration findings", () => {
+    const result = generateHandTraumaDiagnosis(webSpaceSelection);
+    expect(result!.headerLine).toBe(
+      "Left hand saw/blade injury - first web space laceration with muscle involvement — explored: flexor tendons + nerves intact",
+    );
+  });
+
+  it("collapses flexor+extensor to 'tendons' in the intact suffix", () => {
+    const result = generateHandTraumaDiagnosis({
+      ...webSpaceSelection,
+      softTissueDescriptors: [
+        {
+          type: "laceration",
+          digits: ["I", "II"],
+          zone: "web_space",
+          intactStructures: ["flexor_tendon", "extensor_tendon", "nerve"],
+        },
+      ],
+    });
+    expect(result!.headerLine).toContain("explored: tendons + nerves intact");
+    expect(result!.headerLine).not.toContain("flexor");
+  });
+
+  it("maps adjacent digit pairs to web space ordinals", () => {
+    const ordinalByDigits: [
+      ["I", "II"] | ["II", "III"] | ["III", "IV"] | ["IV", "V"],
+      string,
+    ][] = [
+      [["I", "II"], "first web space"],
+      [["II", "III"], "second web space"],
+      [["III", "IV"], "third web space"],
+      [["IV", "V"], "fourth web space"],
+    ];
+    for (const [digits, label] of ordinalByDigits) {
+      const result = generateHandTraumaDiagnosis({
+        laterality: "left",
+        affectedDigits: digits,
+        softTissueDescriptors: [
+          { type: "laceration", digits, zone: "web_space" },
+        ],
+      });
+      expect(result!.headerLine).toContain(label);
+    }
+  });
+
+  it("falls back to plain zone + digits when the web ordinal does not apply", () => {
+    const result = generateHandTraumaDiagnosis({
+      laterality: "right",
+      affectedDigits: ["II"],
+      softTissueDescriptors: [
+        { type: "laceration", digits: ["II"], zone: "digit_shaft" },
+      ],
+    });
+    expect(result!.headerLine).toContain("digit laceration, Dig. II");
+  });
+
+  it("renders the Latin variant of the laceration title", () => {
+    const result = generateHandTraumaDiagnosis(
+      webSpaceSelection,
+      "latin_medical",
+    );
+    expect(result!.headerLine).toContain("Vulnus lacerum");
+    expect(result!.headerLine).toContain("spatii interdigitalis primi");
+    expect(result!.headerLine).toContain("cum laesione musculi");
+    expect(result!.headerLine).toContain(
+      "exploratio: tendines flexores et nervi integri",
+    );
+  });
+
+  it("keeps the topographic header for mixed laceration + structure injuries", () => {
+    const result = generateHandTraumaDiagnosis({
+      laterality: "left",
+      affectedDigits: ["II"],
+      softTissueDescriptors: [
+        { type: "laceration", digits: ["II"], zone: "digit_shaft" },
+      ],
+      injuredStructures: [
+        {
+          category: "flexor_tendon",
+          structureId: "FDP",
+          displayName: "FDP",
+          digit: "II",
+        },
+      ],
+    });
+    // A real structure injury means the laceration is no longer the substance
+    // of the case — the standard topographic header wins.
+    expect(result!.headerLine).not.toContain("explored");
+    expect(result!.diagnosisTextShort).toContain("laceration");
+  });
+
+  it("renders a legacy laceration descriptor without new fields cleanly", () => {
+    const result = generateHandTraumaDiagnosis({
+      laterality: "right",
+      affectedDigits: [],
+      softTissueDescriptors: [{ type: "laceration", zone: "palm" }],
+    });
+    expect(result!.headerLine).toBe("Right hand injury - palmar laceration");
+  });
+
+  it("stays deterministic regardless of intact-structure selection order", () => {
+    const a = generateHandTraumaDiagnosis({
+      laterality: "left",
+      affectedDigits: ["II"],
+      softTissueDescriptors: [
+        {
+          type: "laceration",
+          digits: ["II"],
+          zone: "digit_shaft",
+          intactStructures: ["vessel", "nerve", "flexor_tendon"],
+        },
+      ],
+    });
+    const b = generateHandTraumaDiagnosis({
+      laterality: "left",
+      affectedDigits: ["II"],
+      softTissueDescriptors: [
+        {
+          type: "laceration",
+          digits: ["II"],
+          zone: "digit_shaft",
+          intactStructures: ["flexor_tendon", "nerve", "vessel"],
+        },
+      ],
+    });
+    expect(a).toEqual(b);
+    expect(a!.headerLine).toContain(
+      "explored: flexor tendons + nerves + vessels intact",
+    );
+  });
+});

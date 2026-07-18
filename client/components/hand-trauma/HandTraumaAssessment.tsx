@@ -73,6 +73,10 @@ import {
   type SoftTissueState,
   type DefectLocation,
 } from "./SoftTissueSection";
+import {
+  deriveLacerationSites,
+  lacerationSitesToDescriptors,
+} from "@/lib/handTraumaSoftTissueState";
 import { DiagnosisProcedureSuggestionPanel } from "./DiagnosisProcedureSuggestionPanel";
 
 // Existing structure sections (reused from old picker)
@@ -743,11 +747,14 @@ export function HandTraumaAssessment({
           ? [{ digits: [], surfaces: [] as ("palmar" | "dorsal")[] }]
           : [];
 
+    const lacerationSites = deriveLacerationSites(descriptors);
+
     return {
       isHighPressureInjection: value.isHighPressureInjection ?? false,
       isFightBite: value.isFightBite ?? false,
       isCompartmentSyndrome: value.isCompartmentSyndrome ?? false,
       isRingAvulsion: value.isRingAvulsion ?? false,
+      hasLaceration: lacerationSites.length > 0,
       hasSoftTissueDefect: descriptors.some((e) => e.type === "defect"),
       hasSoftTissueLoss: descriptors.some((e) => e.type === "loss"),
       hasDegloving: descriptors.some((e) => e.type === "degloving"),
@@ -755,6 +762,7 @@ export function HandTraumaAssessment({
         (e) => e.type === "contamination",
       ),
       defectLocations,
+      lacerationSites,
     };
   }, [value]);
 
@@ -797,6 +805,12 @@ export function HandTraumaAssessment({
 
       if (state.hasGrossContamination) {
         descriptors.push({ type: "contamination", digits: defaultDigits });
+      }
+
+      if (state.hasLaceration) {
+        descriptors.push(
+          ...lacerationSitesToDescriptors(state.lacerationSites, defaultDigits),
+        );
       }
 
       onChange({

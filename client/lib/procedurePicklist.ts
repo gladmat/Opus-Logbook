@@ -1510,6 +1510,53 @@ const HAND_DUPUYTREN: ProcedurePicklistEntry[] = [
   },
 ];
 
+// SNOMED codes verified live against CSIRO Ontoserver (AU + International
+// editions, 2026-07-18). 302438004 / 302410007 / 225116006 are reused from
+// existing verified entries; 284023006 verified fresh (7614005 and 47289006
+// are inactive duplicates of the same concept).
+const HAND_SOFT_TISSUE_TRAUMA: ProcedurePicklistEntry[] = [
+  {
+    id: "hand_trauma_wound_exploration_closure",
+    displayName: "Wound exploration + washout + direct closure — hand",
+    snomedCtCode: "302438004",
+    snomedCtDisplay: "Exploration of wound of skin (procedure)",
+    specialties: ["hand_wrist"],
+    subcategory: "Soft Tissue Trauma",
+    tags: ["trauma"],
+    sortOrder: 1,
+  },
+  {
+    id: "hand_trauma_lac_direct_closure",
+    displayName: "Laceration repair — direct closure (hand)",
+    snomedCtCode: "302410007",
+    snomedCtDisplay: "Primary suture of skin (procedure)",
+    specialties: ["hand_wrist"],
+    subcategory: "Soft Tissue Trauma",
+    tags: ["trauma"],
+    sortOrder: 2,
+  },
+  {
+    id: "hand_trauma_washout_delayed_closure",
+    displayName: "Wound washout + delayed closure — hand",
+    snomedCtCode: "225116006",
+    snomedCtDisplay: "Irrigation of wound (procedure)",
+    specialties: ["hand_wrist"],
+    subcategory: "Soft Tissue Trauma",
+    tags: ["trauma"],
+    sortOrder: 3,
+  },
+  {
+    id: "hand_trauma_muscle_repair",
+    displayName: "Muscle laceration repair — hand",
+    snomedCtCode: "284023006",
+    snomedCtDisplay: "Repair of muscle of hand by suture (procedure)",
+    specialties: ["hand_wrist"],
+    subcategory: "Soft Tissue Trauma",
+    tags: ["trauma"],
+    sortOrder: 4,
+  },
+];
+
 const HAND_SOFT_TISSUE_COVERAGE: ProcedurePicklistEntry[] = [
   {
     id: "hand_cov_cross_finger",
@@ -9037,6 +9084,7 @@ export const PROCEDURE_PICKLIST: ProcedurePicklistEntry[] = [
   ...HAND_VASCULAR_PROCEDURES,
   ...HAND_COMPRESSION_NEUROPATHY,
   ...HAND_DUPUYTREN,
+  ...HAND_SOFT_TISSUE_TRAUMA,
   ...HAND_SOFT_TISSUE_COVERAGE,
   ...HAND_DISLOCATION_MANAGEMENT,
   ...HAND_AMPUTATION_REPLANTATION,

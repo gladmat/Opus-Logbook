@@ -8,6 +8,7 @@ import type {
   FractureEntry,
   HandTraumaCompleteness,
   HandTraumaStructure,
+  IntactStructureId,
   Laterality,
   PerfusionStatusEntry,
   SoftTissueDescriptor,
@@ -86,6 +87,7 @@ export interface SoftTissueInjury {
     | "loss"
     | "degloving"
     | "contamination"
+    | "laceration"
     | "nail_bed"
     | "volar_plate"
     | "ligament"
@@ -98,6 +100,8 @@ export interface SoftTissueInjury {
   structureId?: string;
   zone?: CoverageZone;
   size?: CoverageSize;
+  intactStructures?: IntactStructureId[];
+  muscleInvolved?: boolean;
 }
 
 export interface AmputationInjury {
@@ -592,6 +596,11 @@ function normalizeSoftTissue(
       digits: descriptor.digits,
       zone: descriptor.zone,
       size: descriptor.size,
+      intactStructures:
+        descriptor.intactStructures && descriptor.intactStructures.length > 0
+          ? [...descriptor.intactStructures].sort()
+          : undefined,
+      muscleInvolved: descriptor.muscleInvolved || undefined,
     });
   }
 
@@ -767,6 +776,37 @@ export function buildHeaderLine(
   const topographic = buildTopographicSummary(normalized, mode);
   const mechanism = normalized.mechanism;
   const amputation = normalized.amputations[0];
+
+  // Laceration-only cases (± contamination): the laceration bullet IS the
+  // clinical substance (site + negative exploration), so it replaces the bare
+  // topographic suffix in the title.
+  const lacerationInjuries = normalized.softTissue.filter(
+    (entry) => entry.type === "laceration",
+  );
+  const lacerationOnly =
+    lacerationInjuries.length > 0 &&
+    normalized.softTissue.every(
+      (entry) => entry.type === "laceration" || entry.type === "contamination",
+    ) &&
+    normalized.fractures.length === 0 &&
+    normalized.dislocations.length === 0 &&
+    normalized.tendons.length === 0 &&
+    normalized.nerves.length === 0 &&
+    normalized.vessels.length === 0 &&
+    normalized.amputations.length === 0;
+  if (lacerationOnly) {
+    const bullet = describeSoftTissueDescriptor(lacerationInjuries[0]!, mode);
+    if (mode === "latin_medical") {
+      const base = mechanism
+        ? `Manus ${side}, ${LATIN.injury} ${mechanism}`
+        : `Laesio manus ${sideGenitive}`;
+      return `${base} - ${bullet}`;
+    }
+    const base = mechanism
+      ? `${side} hand ${mechanism} injury`
+      : `${side} hand injury`;
+    return `${base} - ${bullet}`;
+  }
 
   if (mode === "latin_medical") {
     if (
@@ -1315,6 +1355,73 @@ const ZONE_LABELS_LATIN: Record<CoverageZone, string> = {
   wrist_forearm: "carpi et antebrachii",
 };
 
+const WEB_SPACE_ORDINALS: Record<string, { en: string; latin: string }> = {
+  "I-II": { en: "first web space", latin: "spatii interdigitalis primi" },
+  "II-III": { en: "second web space", latin: "spatii interdigitalis secundi" },
+  "III-IV": { en: "third web space", latin: "spatii interdigitalis tertii" },
+  "IV-V": { en: "fourth web space", latin: "spatii interdigitalis quarti" },
+};
+
+function webSpaceOrdinal(
+  injury: SoftTissueInjury,
+): { en: string; latin: string } | undefined {
+  if (injury.zone !== "web_space") return undefined;
+  const digits = injury.digits;
+  if (!digits || digits.length !== 2) return undefined;
+  const sorted = [...digits].sort((a, b) => DIGIT_INDEX[a] - DIGIT_INDEX[b]);
+  return WEB_SPACE_ORDINALS[`${sorted[0]}-${sorted[1]}`];
+}
+
+const INTACT_STRUCTURE_ORDER: IntactStructureId[] = [
+  "flexor_tendon",
+  "extensor_tendon",
+  "nerve",
+  "vessel",
+];
+
+const INTACT_LABELS_EN: Record<IntactStructureId, string> = {
+  flexor_tendon: "flexor tendons",
+  extensor_tendon: "extensor tendons",
+  nerve: "nerves",
+  vessel: "vessels",
+};
+
+const INTACT_LABELS_LATIN: Record<IntactStructureId, string> = {
+  flexor_tendon: "tendines flexores",
+  extensor_tendon: "tendines extensores",
+  nerve: "nervi",
+  vessel: "vasa",
+};
+
+function describeIntactStructures(
+  intact: IntactStructureId[] | undefined,
+  mode: DiagnosisRenderMode,
+): string {
+  if (!intact || intact.length === 0) return "";
+  const set = new Set(intact);
+  const collapseTendons =
+    set.has("flexor_tendon") && set.has("extensor_tendon");
+  const parts: string[] = [];
+  for (const id of INTACT_STRUCTURE_ORDER) {
+    if (!set.has(id)) continue;
+    if (collapseTendons && id === "flexor_tendon") {
+      parts.push(mode === "latin_medical" ? "tendines" : "tendons");
+      continue;
+    }
+    if (collapseTendons && id === "extensor_tendon") continue;
+    parts.push(
+      mode === "latin_medical" ? INTACT_LABELS_LATIN[id] : INTACT_LABELS_EN[id],
+    );
+  }
+  if (mode === "latin_medical") {
+    // "vasa" is neuter plural; any masculine noun in the list wins the adjective.
+    const adjective =
+      set.size === 1 && set.has("vessel") ? "integra" : "integri";
+    return `; exploratio: ${joinNatural(parts, "et")} ${adjective}`;
+  }
+  return ` — explored: ${parts.join(" + ")} intact`;
+}
+
 function describeSoftTissueDescriptor(
   injury: SoftTissueInjury,
   mode: DiagnosisRenderMode,
@@ -1358,6 +1465,36 @@ function describeSoftTissueDescriptor(
           : "";
       const zonePrefix = zoneEn ? `${zoneEn} ` : "";
       return `${surfacePrefix}${zonePrefix}soft-tissue ${injury.type}${digitsLabel}`;
+    }
+    case "laceration": {
+      const ordinal = webSpaceOrdinal(injury);
+      const digitsPart = ordinal ? "" : digitsLabel;
+      const intactPart = describeIntactStructures(
+        injury.intactStructures,
+        mode,
+      );
+      if (mode === "latin_medical") {
+        const zoneLatin =
+          ordinal?.latin ??
+          (injury.zone ? ZONE_LABELS_LATIN[injury.zone] : undefined);
+        const musclePart = injury.muscleInvolved ? " cum laesione musculi" : "";
+        return `Vulnus lacerum${zoneLatin ? ` ${zoneLatin}` : ""}${latinSurfaceLabel}${digitsPart}${musclePart}${intactPart}`;
+      }
+      const zoneEn =
+        ordinal?.en ?? (injury.zone ? ZONE_LABELS_EN[injury.zone] : undefined);
+      const surfacePrefix =
+        surfaces && surfaces.length > 0
+          ? `${surfaces
+              .map(
+                (surface) => `${surface[0]!.toUpperCase()}${surface.slice(1)}`,
+              )
+              .join("/")} `
+          : "";
+      const zonePrefix = zoneEn ? `${zoneEn} ` : "";
+      const musclePart = injury.muscleInvolved
+        ? " with muscle involvement"
+        : "";
+      return `${surfacePrefix}${zonePrefix}laceration${digitsPart}${musclePart}${intactPart}`;
     }
     case "degloving":
       return mode === "latin_medical"

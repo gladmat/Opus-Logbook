@@ -987,12 +987,22 @@ export type CoverageZone =
 
 export type CoverageSize = "small" | "medium" | "large";
 
+export type IntactStructureId =
+  | "flexor_tendon"
+  | "extensor_tendon"
+  | "nerve"
+  | "vessel";
+
 export interface SoftTissueDescriptor {
-  type: "defect" | "loss" | "degloving" | "contamination";
+  type: "defect" | "loss" | "degloving" | "contamination" | "laceration";
   surfaces?: ("palmar" | "dorsal")[];
   digits?: DigitId[];
   zone?: CoverageZone;
   size?: CoverageSize;
+  /** Laceration only: structures formally explored and confirmed intact. Kept sorted for signature stability. */
+  intactStructures?: IntactStructureId[];
+  /** Laceration only: muscle fibres divided — drives the muscle-repair suggestion. */
+  muscleInvolved?: boolean;
 }
 
 export interface HandTraumaStructure {

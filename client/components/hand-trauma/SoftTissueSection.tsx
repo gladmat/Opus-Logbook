@@ -13,7 +13,13 @@ import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
-import type { CoverageZone, CoverageSize, DigitId } from "@/types/case";
+import type {
+  CoverageZone,
+  CoverageSize,
+  DigitId,
+  IntactStructureId,
+} from "@/types/case";
+import type { LacerationSite } from "@/lib/handTraumaSoftTissueState";
 
 export interface DefectLocation {
   digits: DigitId[];
@@ -27,11 +33,13 @@ export interface SoftTissueState {
   isFightBite: boolean;
   isCompartmentSyndrome: boolean;
   isRingAvulsion: boolean;
+  hasLaceration: boolean;
   hasSoftTissueDefect: boolean;
   hasSoftTissueLoss: boolean;
   hasDegloving: boolean;
   hasGrossContamination: boolean;
   defectLocations: DefectLocation[];
+  lacerationSites: LacerationSite[];
 }
 
 interface SoftTissueSectionProps {
@@ -69,6 +77,16 @@ const ZONES_NEEDING_SURFACE: CoverageZone[] = [
   "fingertip",
   "digit_shaft",
   "wrist_forearm",
+];
+
+const INTACT_STRUCTURE_OPTIONS: {
+  key: IntactStructureId;
+  label: string;
+}[] = [
+  { key: "flexor_tendon", label: "Flexor tendons" },
+  { key: "extensor_tendon", label: "Extensor tendons" },
+  { key: "nerve", label: "Nerves" },
+  { key: "vessel", label: "Vessels" },
 ];
 
 const SPECIAL_INJURIES: {
@@ -119,6 +137,10 @@ function LocationCard({
   onUpdate,
   onRemove,
   theme,
+  titleLabel = "Location",
+  zoneLabel = "Defect zone",
+  showSize = true,
+  children,
 }: {
   location: DefectLocation;
   index: number;
@@ -127,6 +149,10 @@ function LocationCard({
   onUpdate: (loc: DefectLocation) => void;
   onRemove: () => void;
   theme: ReturnType<typeof useTheme>["theme"];
+  titleLabel?: string;
+  zoneLabel?: string;
+  showSize?: boolean;
+  children?: React.ReactNode;
 }) {
   const showHeader = totalLocations > 1;
   const showDigitPicker = selectedDigits.length > 1;
@@ -182,7 +208,7 @@ function LocationCard({
       {showHeader ? (
         <View style={styles.locationHeader}>
           <ThemedText style={[styles.locationTitle, { color: theme.text }]}>
-            Location {index + 1}
+            {titleLabel} {index + 1}
             {location.digits.length > 0
               ? ` (${location.digits.join(", ")})`
               : ""}
@@ -239,7 +265,7 @@ function LocationCard({
       {/* Zone picker */}
       <View style={styles.subRow}>
         <ThemedText style={[styles.hint, { color: theme.textTertiary }]}>
-          Defect zone
+          {zoneLabel}
         </ThemedText>
         <View style={styles.pillRow}>
           {ZONE_OPTIONS.map(({ key, label }) => {
@@ -311,40 +337,44 @@ function LocationCard({
       ) : null}
 
       {/* Size picker */}
-      <View style={styles.subRow}>
-        <ThemedText style={[styles.hint, { color: theme.textTertiary }]}>
-          Defect size
-        </ThemedText>
-        <View style={styles.pillRow}>
-          {SIZE_OPTIONS.map(({ key, label }) => {
-            const isSelected = location.size === key;
-            return (
-              <Pressable
-                key={key}
-                style={[
-                  styles.pill,
-                  {
-                    backgroundColor: isSelected
-                      ? theme.accentSurface
-                      : theme.backgroundDefault,
-                    borderColor: isSelected ? theme.link : theme.border,
-                  },
-                ]}
-                onPress={() => toggleSize(key)}
-              >
-                <ThemedText
+      {showSize ? (
+        <View style={styles.subRow}>
+          <ThemedText style={[styles.hint, { color: theme.textTertiary }]}>
+            Defect size
+          </ThemedText>
+          <View style={styles.pillRow}>
+            {SIZE_OPTIONS.map(({ key, label }) => {
+              const isSelected = location.size === key;
+              return (
+                <Pressable
+                  key={key}
                   style={[
-                    styles.pillText,
-                    { color: isSelected ? theme.link : theme.text },
+                    styles.pill,
+                    {
+                      backgroundColor: isSelected
+                        ? theme.accentSurface
+                        : theme.backgroundDefault,
+                      borderColor: isSelected ? theme.link : theme.border,
+                    },
                   ]}
+                  onPress={() => toggleSize(key)}
                 >
-                  {label}
-                </ThemedText>
-              </Pressable>
-            );
-          })}
+                  <ThemedText
+                    style={[
+                      styles.pillText,
+                      { color: isSelected ? theme.link : theme.text },
+                    ]}
+                  >
+                    {label}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
-      </View>
+      ) : null}
+
+      {children}
     </View>
   );
 }
@@ -360,6 +390,7 @@ export function SoftTissueDescriptorSection({
 
   const toggleDescriptor = (
     key:
+      | "hasLaceration"
       | "hasSoftTissueDefect"
       | "hasSoftTissueLoss"
       | "hasDegloving"
@@ -380,7 +411,76 @@ export function SoftTissueDescriptorSection({
         },
       ];
     }
+    if (key === "hasLaceration") {
+      next.lacerationSites = next.hasLaceration
+        ? next.lacerationSites.length > 0
+          ? next.lacerationSites
+          : [
+              {
+                digits: [...selectedDigits],
+                surfaces: [],
+                intactStructures: [],
+                muscleInvolved: false,
+              },
+            ]
+        : [];
+    }
     onChange(next);
+  };
+
+  const updateLacerationSite = (index: number, site: LacerationSite) => {
+    const next = [...value.lacerationSites];
+    next[index] = site;
+    onChange({ ...value, lacerationSites: next });
+  };
+
+  const removeLacerationSite = (index: number) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const next = value.lacerationSites.filter((_, i) => i !== index);
+    onChange({
+      ...value,
+      lacerationSites: next,
+      hasLaceration: next.length > 0,
+    });
+  };
+
+  const addLacerationSite = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onChange({
+      ...value,
+      lacerationSites: [
+        ...value.lacerationSites,
+        {
+          digits: [],
+          surfaces: [],
+          intactStructures: [],
+          muscleInvolved: false,
+        },
+      ],
+    });
+  };
+
+  const toggleIntactStructure = (
+    index: number,
+    structure: IntactStructureId,
+  ) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const site = value.lacerationSites[index];
+    if (!site) return;
+    const next = site.intactStructures.includes(structure)
+      ? site.intactStructures.filter((s) => s !== structure)
+      : [...site.intactStructures, structure];
+    updateLacerationSite(index, { ...site, intactStructures: next });
+  };
+
+  const toggleMuscleInvolved = (index: number) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const site = value.lacerationSites[index];
+    if (!site) return;
+    updateLacerationSite(index, {
+      ...site,
+      muscleInvolved: !site.muscleInvolved,
+    });
   };
 
   const hasCoverage =
@@ -424,6 +524,7 @@ export function SoftTissueDescriptorSection({
       </ThemedText>
       <View style={styles.pillRow}>
         {[
+          { key: "hasLaceration", label: "Laceration" },
           { key: "hasSoftTissueDefect", label: "Defect" },
           { key: "hasSoftTissueLoss", label: "Loss" },
           { key: "hasDegloving", label: "Degloving" },
@@ -433,6 +534,10 @@ export function SoftTissueDescriptorSection({
           return (
             <Pressable
               key={key}
+              accessibilityRole="button"
+              accessibilityLabel={label}
+              accessibilityState={{ selected: isSelected }}
+              testID={`caseForm.hand.softTissue.pill-${key}`}
               style={[
                 styles.pill,
                 {
@@ -445,6 +550,7 @@ export function SoftTissueDescriptorSection({
               onPress={() =>
                 toggleDescriptor(
                   key as
+                    | "hasLaceration"
                     | "hasSoftTissueDefect"
                     | "hasSoftTissueLoss"
                     | "hasDegloving"
@@ -464,6 +570,136 @@ export function SoftTissueDescriptorSection({
           );
         })}
       </View>
+
+      {value.hasLaceration ? (
+        <View style={styles.coverageDetails}>
+          {value.lacerationSites.map((site, i) => (
+            <LocationCard
+              key={i}
+              location={{
+                digits: site.digits,
+                zone: site.zone,
+                surfaces: site.surfaces,
+              }}
+              index={i}
+              totalLocations={value.lacerationSites.length}
+              selectedDigits={selectedDigits}
+              titleLabel="Laceration"
+              zoneLabel="Zone"
+              showSize={false}
+              onUpdate={(updated) =>
+                updateLacerationSite(i, {
+                  ...site,
+                  digits: updated.digits,
+                  zone: updated.zone,
+                  surfaces: updated.surfaces,
+                })
+              }
+              onRemove={() => removeLacerationSite(i)}
+              theme={theme}
+            >
+              <View style={styles.subRow}>
+                <ThemedText
+                  style={[styles.hint, { color: theme.textTertiary }]}
+                >
+                  Explored — confirmed intact
+                </ThemedText>
+                <View style={styles.pillRow}>
+                  {INTACT_STRUCTURE_OPTIONS.map(({ key, label }) => {
+                    const isSelected = site.intactStructures.includes(key);
+                    return (
+                      <Pressable
+                        key={key}
+                        accessibilityRole="checkbox"
+                        accessibilityLabel={`${label} explored and intact`}
+                        accessibilityState={{ checked: isSelected }}
+                        testID={`caseForm.hand.lac.site-${i}.intact-${key}`}
+                        style={[
+                          styles.pill,
+                          styles.intactPill,
+                          {
+                            backgroundColor: isSelected
+                              ? theme.accentSurface
+                              : theme.backgroundDefault,
+                            borderColor: isSelected ? theme.link : theme.border,
+                          },
+                        ]}
+                        onPress={() => toggleIntactStructure(i, key)}
+                      >
+                        <ThemedText
+                          style={[
+                            styles.pillText,
+                            { color: isSelected ? theme.link : theme.text },
+                          ]}
+                        >
+                          {label}
+                        </ThemedText>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <Pressable
+                accessibilityRole="checkbox"
+                accessibilityLabel="Muscle laceration"
+                accessibilityState={{ checked: site.muscleInvolved }}
+                testID={`caseForm.hand.lac.site-${i}.toggle-muscle`}
+                style={styles.muscleToggleRow}
+                onPress={() => toggleMuscleInvolved(i)}
+              >
+                <View
+                  style={[
+                    styles.checkbox,
+                    {
+                      borderColor: site.muscleInvolved
+                        ? theme.link
+                        : theme.textTertiary,
+                      backgroundColor: site.muscleInvolved
+                        ? theme.link
+                        : "transparent",
+                    },
+                  ]}
+                >
+                  {site.muscleInvolved ? (
+                    <Feather name="check" size={12} color={theme.buttonText} />
+                  ) : null}
+                </View>
+                <View style={styles.muscleToggleTextWrap}>
+                  <ThemedText
+                    style={[styles.specialLabel, { color: theme.text }]}
+                  >
+                    Muscle laceration
+                  </ThemedText>
+                  <ThemedText
+                    style={[styles.specialDesc, { color: theme.textTertiary }]}
+                  >
+                    Muscle fibres divided — repair suggested
+                  </ThemedText>
+                </View>
+              </Pressable>
+            </LocationCard>
+          ))}
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Add laceration site"
+            testID="caseForm.hand.lac.btn-addSite"
+            style={[
+              styles.addLocationButton,
+              { borderColor: theme.textTertiary },
+            ]}
+            onPress={addLacerationSite}
+          >
+            <Feather name="plus" size={16} color={theme.textTertiary} />
+            <ThemedText
+              style={[styles.addLocationText, { color: theme.textTertiary }]}
+            >
+              Add laceration site
+            </ThemedText>
+          </Pressable>
+        </View>
+      ) : null}
 
       {hasCoverage ? (
         <View style={styles.coverageDetails}>
@@ -698,6 +934,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
     textAlign: "center",
+  },
+  intactPill: {
+    minHeight: 44,
+  },
+  muscleToggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    minHeight: 44,
+    paddingVertical: Spacing.xs,
+  },
+  muscleToggleTextWrap: {
+    flex: 1,
+    gap: 2,
   },
   smallPill: {
     paddingVertical: 6,
