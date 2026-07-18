@@ -17,8 +17,10 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
+  FadeInUp,
 } from "react-native-reanimated";
 import { StepHeader } from "@/components/onboarding/StepHeader";
+import { useReduceMotion } from "@/hooks/useReduceMotion";
 import {
   getFacilityById,
   searchFacilities,
@@ -125,6 +127,7 @@ export function HospitalScreen({
   trainingProgramme,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const reduceMotion = useReduceMotion();
   const inputRef = useRef<TextInput>(null);
 
   const [query, setQuery] = useState("");
@@ -207,9 +210,9 @@ export function HospitalScreen({
   React.useEffect(() => {
     dropdownOpacity.value = withTiming(
       showDropdown && filteredHospitals.length > 0 ? 1 : 0,
-      { duration: 150, easing: Easing.out(Easing.ease) },
+      { duration: reduceMotion ? 0 : 150, easing: Easing.out(Easing.ease) },
     );
-  }, [dropdownOpacity, filteredHospitals.length, showDropdown]);
+  }, [dropdownOpacity, filteredHospitals.length, showDropdown, reduceMotion]);
 
   const dropdownStyle = useAnimatedStyle(() => ({
     opacity: dropdownOpacity.value,
@@ -270,8 +273,20 @@ export function HospitalScreen({
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
-          <Text style={styles.headline}>{c.headline}</Text>
-          <Text style={styles.subhead}>{c.subhead}</Text>
+          <Animated.Text
+            entering={reduceMotion ? undefined : FadeInUp.duration(350)}
+            style={styles.headline}
+          >
+            {c.headline}
+          </Animated.Text>
+          <Animated.Text
+            entering={
+              reduceMotion ? undefined : FadeInUp.delay(60).duration(350)
+            }
+            style={styles.subhead}
+          >
+            {c.subhead}
+          </Animated.Text>
           <Text style={styles.countryLabel}>Country</Text>
           <View style={styles.countryRow}>
             {SUPPORTED_COUNTRIES.map((country) => {
@@ -512,7 +527,7 @@ const styles = StyleSheet.create({
   },
   countryChipSelected: {
     borderColor: palette.amber[600],
-    backgroundColor: "rgba(229, 160, 13, 0.08)",
+    backgroundColor: onboardingColors.accent.surface,
   },
   countryChipText: {
     fontSize: 15,
@@ -601,7 +616,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   selectedBadge: {
-    backgroundColor: "rgba(229, 160, 13, 0.08)",
+    backgroundColor: onboardingColors.accent.surface,
     borderWidth: 1,
     borderColor: onboardingColors.border.focused,
     borderRadius: 12,

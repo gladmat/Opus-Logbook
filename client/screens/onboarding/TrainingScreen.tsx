@@ -7,6 +7,8 @@ import {
   ScrollView,
   StyleSheet,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
@@ -14,8 +16,11 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   Easing,
+  FadeInDown,
+  FadeInUp,
 } from "react-native-reanimated";
 import { StepHeader } from "@/components/onboarding/StepHeader";
+import { useReduceMotion } from "@/hooks/useReduceMotion";
 import { TRAINING_OPTIONS } from "@/constants/trainingProgrammes";
 import { palette, Colors } from "@/constants/theme";
 import { copy } from "@/constants/onboardingCopy";
@@ -27,15 +32,21 @@ const SIDE_PADDING = 24;
 
 // ── Radio Indicator ─────────────────────────────────────────────────────────
 
-function RadioIndicator({ selected }: { selected: boolean }) {
+function RadioIndicator({
+  selected,
+  reduceMotion,
+}: {
+  selected: boolean;
+  reduceMotion: boolean;
+}) {
   const progress = useSharedValue(selected ? 1 : 0);
 
   React.useEffect(() => {
     progress.value = withTiming(selected ? 1 : 0, {
-      duration: 200,
+      duration: reduceMotion ? 0 : 200,
       easing: Easing.out(Easing.ease),
     });
-  }, [progress, selected]);
+  }, [progress, selected, reduceMotion]);
 
   const innerStyle = useAnimatedStyle(() => ({
     transform: [{ scale: progress.value }],
@@ -68,6 +79,7 @@ export function TrainingScreen({
   onComplete,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const reduceMotion = useReduceMotion();
   const [selectedId, setSelectedId] = useState<string | null>(
     initialSelectionId,
   );
@@ -128,9 +140,10 @@ export function TrainingScreen({
   const c = copy.training;
 
   return (
-    <View
+    <KeyboardAvoidingView
       testID="screen-onboardingTraining"
       style={[styles.root, { paddingBottom: insets.bottom + 20 }]}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <StepHeader currentStep={2} onBack={onBack} />
 
@@ -143,13 +156,28 @@ export function TrainingScreen({
         keyboardShouldPersistTaps="handled"
       >
         {/* Headline */}
-        <Text style={styles.headline}>{c.headline}</Text>
+        <Animated.Text
+          entering={reduceMotion ? undefined : FadeInUp.duration(350)}
+          style={styles.headline}
+        >
+          {c.headline}
+        </Animated.Text>
 
         {/* Subhead */}
-        <Text style={styles.subhead}>{c.subhead}</Text>
+        <Animated.Text
+          entering={reduceMotion ? undefined : FadeInUp.delay(60).duration(350)}
+          style={styles.subhead}
+        >
+          {c.subhead}
+        </Animated.Text>
 
         {/* Options list */}
-        <View style={styles.list}>
+        <Animated.View
+          entering={
+            reduceMotion ? undefined : FadeInDown.delay(150).duration(400)
+          }
+          style={styles.list}
+        >
           {TRAINING_OPTIONS.map((option, index) => (
             <React.Fragment key={option.id}>
               <Pressable
@@ -181,7 +209,10 @@ export function TrainingScreen({
                     </Text>
                   )}
                 </View>
-                <RadioIndicator selected={selectedId === option.id} />
+                <RadioIndicator
+                  selected={selectedId === option.id}
+                  reduceMotion={reduceMotion}
+                />
               </Pressable>
 
               {/* "Other" inline text field */}
@@ -208,7 +239,7 @@ export function TrainingScreen({
               )}
             </React.Fragment>
           ))}
-        </View>
+        </Animated.View>
       </ScrollView>
 
       {/* Bottom actions */}
@@ -242,7 +273,7 @@ export function TrainingScreen({
           <Text style={styles.skipText}>{c.skip}</Text>
         </Pressable>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

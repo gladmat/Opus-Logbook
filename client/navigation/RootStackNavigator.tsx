@@ -53,6 +53,10 @@ import {
   getStoredSelectedSpecialties,
 } from "@/lib/personalization";
 import { consumeOnboardingRestartRequest } from "@/lib/onboarding";
+import {
+  getFirstIncompleteOnboardingStep,
+  type OnboardingStep,
+} from "@/lib/onboardingSteps";
 import { TRAINING_OPTIONS } from "@/constants/trainingProgrammes";
 import {
   Specialty,
@@ -68,12 +72,6 @@ import { useTheme } from "@/hooks/useTheme";
 
 const WELCOME_SEEN_KEY = "@opus_has_seen_welcome";
 const FEATURES_SEEN_KEY = "@opus_has_seen_features";
-type OnboardingStep =
-  | "categories"
-  | "training"
-  | "hospital"
-  | "privacy"
-  | "security";
 type ReplayIntroStep = "welcome" | "features";
 type OnboardingDraft = {
   selectedCategories: Specialty[];
@@ -102,29 +100,6 @@ function isSameHospitalSelection(
   }
 
   return normalizeHospitalName(left.name) === normalizeHospitalName(right.name);
-}
-
-function getFirstIncompleteOnboardingStep(
-  profile: ReturnType<typeof useAuth>["profile"],
-  facilities: ReturnType<typeof useAuth>["facilities"],
-): OnboardingStep {
-  const personalization = profile?.surgicalPreferences?.personalization;
-
-  if (!Array.isArray(personalization?.selectedSpecialties)) {
-    return "categories";
-  }
-
-  if (personalization?.trainingProgrammeAnswered !== true) {
-    return "training";
-  }
-
-  if (personalization?.hospitalAnswered !== true && facilities.length === 0) {
-    return "hospital";
-  }
-
-  // Privacy is informational — always shown before security.
-  // After privacy advances to security, the PIN setup screen handles completion.
-  return "privacy";
 }
 
 function buildOnboardingDraft(
@@ -317,7 +292,7 @@ export default function RootStackNavigator() {
     removeFacility,
     setFacilityPrimary,
   } = useAuth();
-  const { isLocked, isAppLockConfigured } = useAppLock();
+  const { isLocked, isAppLockConfigured, isLockStateReady } = useAppLock();
   const { theme: colors } = useTheme();
   const initializedOnboardingUserIdRef = useRef<string | null>(null);
 
@@ -534,6 +509,18 @@ export default function RootStackNavigator() {
     ],
   );
 
+  const handlePrivacyComplete = useCallback(async () => {
+    await updateProfile({
+      surgicalPreferences: buildSurgicalPreferencesUpdate(
+        profile?.surgicalPreferences,
+        {
+          privacyAnswered: true,
+        },
+      ),
+    });
+    setCurrentOnboardingStep("security");
+  }, [profile?.surgicalPreferences, updateProfile]);
+
   useEffect(() => {
     if (isAuthenticated) {
       setShowEmailAuth(false);
@@ -569,7 +556,7 @@ export default function RootStackNavigator() {
       setCurrentOnboardingStep(
         restartMode === "full" || restartMode === "resume"
           ? "categories"
-          : getFirstIncompleteOnboardingStep(profile, facilities),
+          : getFirstIncompleteOnboardingStep(profile, facilities.length),
       );
     };
 
@@ -582,9 +569,17 @@ export default function RootStackNavigator() {
 
   const activeOnboardingStep =
     currentOnboardingStep ??
-    getFirstIncompleteOnboardingStep(profile, facilities);
+    getFirstIncompleteOnboardingStep(profile, facilities.length);
 
-  if (isLoading || hasSeenWelcome === null || hasSeenFeatures === null) {
+  // isLockStateReady must gate the first paint: if a restored session has a
+  // configured app lock, the overlay must be mounted in the same commit as
+  // the first authenticated content (no unlocked frame).
+  if (
+    isLoading ||
+    !isLockStateReady ||
+    hasSeenWelcome === null ||
+    hasSeenFeatures === null
+  ) {
     return (
       <View
         style={[
@@ -649,7 +644,12 @@ export default function RootStackNavigator() {
             name="EmailSignup"
             options={{ headerShown: false }}
           >
-            {() => <EmailSignupScreen initialMode={emailAuthMode} />}
+            {() => (
+              <EmailSignupScreen
+                initialMode={emailAuthMode}
+                onBack={() => setShowEmailAuth(false)}
+              />
+            )}
           </Stack.Screen>
         ) : !isAuthenticated ? (
           <Stack.Screen key="auth" name="Auth" options={{ headerShown: false }}>
@@ -722,7 +722,7 @@ export default function RootStackNavigator() {
             {() => (
               <PrivacyScreen
                 onBack={() => setCurrentOnboardingStep("hospital")}
-                onComplete={() => setCurrentOnboardingStep("security")}
+                onComplete={handlePrivacyComplete}
               />
             )}
           </Stack.Screen>

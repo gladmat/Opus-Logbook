@@ -85,7 +85,10 @@ export function OnboardingAuthScreen({ onContinueWithEmail, onSignIn }: Props) {
   };
 
   return (
-    <View style={[styles.root, { paddingBottom: insets.bottom + 20 }]}>
+    <View
+      testID="screen-onboardingAuth"
+      style={[styles.root, { paddingBottom: insets.bottom + 20 }]}
+    >
       <View
         style={[
           styles.contentArea,
@@ -99,7 +102,10 @@ export function OnboardingAuthScreen({ onContinueWithEmail, onSignIn }: Props) {
         <View style={styles.buttonsArea}>
           {appleAuthAvailable && (
             <>
-              <View style={styles.appleButtonContainer}>
+              <View
+                style={styles.appleButtonContainer}
+                testID="onboarding.auth.btn-apple"
+              >
                 <AppleAuthentication.AppleAuthenticationButton
                   buttonType={
                     AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN
@@ -126,11 +132,23 @@ export function OnboardingAuthScreen({ onContinueWithEmail, onSignIn }: Props) {
             </>
           )}
 
-          <Pressable style={styles.primaryButton} onPress={onContinueWithEmail}>
+          <Pressable
+            style={styles.primaryButton}
+            onPress={onContinueWithEmail}
+            accessibilityRole="button"
+            accessibilityLabel={c.emailCta}
+            testID="onboarding.auth.btn-email"
+          >
             <Text style={styles.primaryButtonText}>{c.emailCta}</Text>
           </Pressable>
 
-          <Pressable style={styles.secondaryButton} onPress={onSignIn}>
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={onSignIn}
+            accessibilityRole="button"
+            accessibilityLabel={c.signInCta}
+            testID="onboarding.auth.btn-signIn"
+          >
             <Text style={styles.secondaryButtonText}>{c.signInCta}</Text>
           </Pressable>
         </View>
@@ -138,11 +156,21 @@ export function OnboardingAuthScreen({ onContinueWithEmail, onSignIn }: Props) {
 
       <Text style={styles.legalText}>
         {"By continuing you agree to our "}
-        <Text style={styles.legalLink} onPress={openTerms}>
+        <Text
+          style={styles.legalLink}
+          onPress={openTerms}
+          accessibilityRole="link"
+          testID="onboarding.auth.link-terms"
+        >
           {c.termsLabel}
         </Text>
         {" and "}
-        <Text style={styles.legalLink} onPress={openPrivacy}>
+        <Text
+          style={styles.legalLink}
+          onPress={openPrivacy}
+          accessibilityRole="link"
+          testID="onboarding.auth.link-privacy"
+        >
           {c.privacyLabel}
         </Text>
         {"."}

@@ -16,8 +16,11 @@ import Animated, {
   withTiming,
   interpolateColor,
   Easing,
+  FadeInDown,
+  FadeInUp,
 } from "react-native-reanimated";
 import { StepHeader } from "@/components/onboarding/StepHeader";
+import { useReduceMotion } from "@/hooks/useReduceMotion";
 import { PROCEDURE_CATEGORIES } from "@/constants/procedureCategories";
 import { palette, Colors } from "@/constants/theme";
 import { copy } from "@/constants/onboardingCopy";
@@ -37,28 +40,32 @@ function CategoryCard({
   selected,
   onToggle,
   width,
+  reduceMotion,
 }: {
   id: Specialty;
   label: string;
   selected: boolean;
   onToggle: () => void;
   width: number;
+  reduceMotion: boolean;
 }) {
   const scale = useSharedValue(1);
   const selectionProgress = useSharedValue(selected ? 1 : 0);
 
   React.useEffect(() => {
     selectionProgress.value = withTiming(selected ? 1 : 0, {
-      duration: 200,
+      duration: reduceMotion ? 0 : 200,
       easing: Easing.out(Easing.ease),
     });
-  }, [selected, selectionProgress]);
+  }, [selected, selectionProgress, reduceMotion]);
 
   const handlePress = () => {
     // Spring scale animation on tap
-    scale.value = withSpring(1.03, { damping: 12, stiffness: 300 }, () => {
-      scale.value = withSpring(1, { damping: 12, stiffness: 300 });
-    });
+    if (!reduceMotion) {
+      scale.value = withSpring(1.03, { damping: 12, stiffness: 300 }, () => {
+        scale.value = withSpring(1, { damping: 12, stiffness: 300 });
+      });
+    }
     onToggle();
   };
 
@@ -66,7 +73,7 @@ function CategoryCard({
     const bgColor = interpolateColor(
       selectionProgress.value,
       [0, 1],
-      [onboardingColors.background.elevated, "rgba(229, 160, 13, 0.08)"],
+      [onboardingColors.background.elevated, onboardingColors.accent.surface],
     );
     const borderColor = interpolateColor(
       selectionProgress.value,
@@ -118,6 +125,7 @@ export function CategoriesScreen({
 }: Props) {
   const { width: screenWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const reduceMotion = useReduceMotion();
   const [selected, setSelected] = useState<Set<Specialty>>(
     () => new Set(initialSelectedCategories),
   );
@@ -188,13 +196,28 @@ export function CategoriesScreen({
         bounces={false}
       >
         {/* Headline */}
-        <Text style={styles.headline}>{c.headline}</Text>
+        <Animated.Text
+          entering={reduceMotion ? undefined : FadeInUp.duration(350)}
+          style={styles.headline}
+        >
+          {c.headline}
+        </Animated.Text>
 
         {/* Subhead */}
-        <Text style={styles.subhead}>{c.subhead}</Text>
+        <Animated.Text
+          entering={reduceMotion ? undefined : FadeInUp.delay(60).duration(350)}
+          style={styles.subhead}
+        >
+          {c.subhead}
+        </Animated.Text>
 
         {/* Grid */}
-        <View style={styles.grid}>
+        <Animated.View
+          entering={
+            reduceMotion ? undefined : FadeInDown.delay(150).duration(400)
+          }
+          style={styles.grid}
+        >
           {PROCEDURE_CATEGORIES.map((cat) => (
             <CategoryCard
               key={cat.id}
@@ -203,9 +226,10 @@ export function CategoriesScreen({
               selected={selected.has(cat.id)}
               onToggle={() => toggleCategory(cat.id)}
               width={cardWidth}
+              reduceMotion={reduceMotion}
             />
           ))}
-        </View>
+        </Animated.View>
       </ScrollView>
 
       {/* Bottom actions */}

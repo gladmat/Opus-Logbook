@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-  AccessibilityInfo,
-} from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   useSharedValue,
@@ -17,6 +11,7 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import { OpusMark } from "@/components/brand";
+import { useReduceMotion } from "@/hooks/useReduceMotion";
 import { palette, Colors } from "@/constants/theme";
 import { copy } from "@/constants/onboardingCopy";
 import { colors as onboardingColors } from "@/theme/tokens";
@@ -36,17 +31,7 @@ export function WelcomeScreen({
   showSignIn = true,
 }: Props) {
   const insets = useSafeAreaInsets();
-  const [reduceMotion, setReduceMotion] = React.useState(false);
-
-  // Check Reduce Motion preference
-  React.useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
-    const sub = AccessibilityInfo.addEventListener(
-      "reduceMotionChanged",
-      setReduceMotion,
-    );
-    return () => sub.remove();
-  }, []);
+  const reduceMotion = useReduceMotion();
 
   // ── Animation shared values ──────────────────────────────────────────────────
 
@@ -245,6 +230,8 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
+    // Full-strength amber; the pulse only ever animates opacity to
+    // accent.glow-equivalent levels (0 → 0.15 → 0).
     backgroundColor: palette.amber[600],
     top: "38%",
     alignSelf: "center",

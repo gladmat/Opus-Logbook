@@ -19,6 +19,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FeatureSlide } from "./FeatureSlide";
+import { useReduceMotion } from "@/hooks/useReduceMotion";
 import { palette, Colors } from "@/constants/theme";
 import { copy } from "@/constants/onboardingCopy";
 import { colors as onboardingColors } from "@/theme/tokens";
@@ -112,15 +113,23 @@ const progressStyles = StyleSheet.create({
 
 const easeOut = Easing.out(Easing.ease);
 
+interface VisualProps {
+  isActive: boolean;
+  reduceMotion: boolean;
+}
+
 /** Slide 1 — Stylised case entry form with autocomplete highlight */
-function SpeedVisual({ isActive }: { isActive: boolean }) {
+function SpeedVisual({ isActive, reduceMotion }: VisualProps) {
   const opacity = useSharedValue(0);
 
   React.useEffect(() => {
     if (isActive) {
-      opacity.value = withTiming(1, { duration: 500, easing: easeOut });
+      opacity.value = withTiming(1, {
+        duration: reduceMotion ? 0 : 500,
+        easing: easeOut,
+      });
     }
-  }, [isActive, opacity]);
+  }, [isActive, opacity, reduceMotion]);
 
   const animStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
@@ -205,17 +214,17 @@ const speedStyles = StyleSheet.create({
 });
 
 /** Slide 2 — Team logging: case record branching to surgeon profiles */
-function TeamVisual({ isActive }: { isActive: boolean }) {
+function TeamVisual({ isActive, reduceMotion }: VisualProps) {
   const progress = useSharedValue(0);
 
   React.useEffect(() => {
     if (isActive) {
       progress.value = withTiming(5, {
-        duration: 1500,
+        duration: reduceMotion ? 0 : 1500,
         easing: easeOut,
       });
     }
-  }, [isActive, progress]);
+  }, [isActive, progress, reduceMotion]);
 
   const centralStyle = useAnimatedStyle(() => ({
     opacity: interpolate(progress.value, [0, 1], [0, 1], Extrapolation.CLAMP),
@@ -381,19 +390,21 @@ const teamStyles = StyleSheet.create({
 });
 
 /** Slide 3 — Data flow: Opus case → programme registry labels */
-const PROGRAMMES = ["ISCP", "FEBOPRAS", "BSSH", "RACS", "NMBRA"];
+// Mirrors the report formats the app actually ships (client/lib/reports):
+// UK ISCP eLogbook, RACS MALT/JDocs, ACGME, EBOPRAS, Swiss SIWF.
+const PROGRAMMES = ["ISCP", "RACS", "ACGME", "EBOPRAS", "SIWF"];
 
-function DataFlowVisual({ isActive }: { isActive: boolean }) {
+function DataFlowVisual({ isActive, reduceMotion }: VisualProps) {
   const progress = useSharedValue(0);
 
   React.useEffect(() => {
     if (isActive) {
       progress.value = withTiming(6, {
-        duration: 1800,
+        duration: reduceMotion ? 0 : 1800,
         easing: easeOut,
       });
     }
-  }, [isActive, progress]);
+  }, [isActive, progress, reduceMotion]);
 
   const centralStyle = useAnimatedStyle(() => ({
     opacity: interpolate(progress.value, [0, 1], [0, 1], Extrapolation.CLAMP),
@@ -524,7 +535,7 @@ const dataStyles = StyleSheet.create({
 
 // ── Visual Components Array ──────────────────────────────────────────────────
 
-const VISUALS: React.FC<{ isActive: boolean }>[] = [
+const VISUALS: React.FC<VisualProps>[] = [
   SpeedVisual,
   TeamVisual,
   DataFlowVisual,
@@ -535,6 +546,7 @@ const VISUALS: React.FC<{ isActive: boolean }>[] = [
 export function FeaturePager({ onComplete }: Props) {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const reduceMotion = useReduceMotion();
   const flatListRef = useRef<FlatList>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const scrollX = useSharedValue(0);
@@ -583,7 +595,12 @@ export function FeaturePager({ onComplete }: Props) {
           headline={item.headline}
           body={item.body}
           ctaLabel={item.cta}
-          visual={<Visual isActive={currentPage === index} />}
+          visual={
+            <Visual
+              isActive={currentPage === index}
+              reduceMotion={reduceMotion}
+            />
+          }
           onCta={() => handleCta(index)}
           onSkip={onComplete}
           width={screenWidth}
@@ -595,7 +612,15 @@ export function FeaturePager({ onComplete }: Props) {
         />
       );
     },
-    [currentPage, screenWidth, screenHeight, insets, handleCta, onComplete],
+    [
+      currentPage,
+      screenWidth,
+      screenHeight,
+      insets,
+      handleCta,
+      onComplete,
+      reduceMotion,
+    ],
   );
 
   return (
