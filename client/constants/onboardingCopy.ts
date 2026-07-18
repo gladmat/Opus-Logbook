@@ -31,8 +31,6 @@ export const copy = {
     subhead: "Your data is encrypted and never shared.",
     emailCta: "Continue with email",
     signInCta: "I already have an account",
-    legal:
-      "By continuing you agree to our Terms of Service and Privacy Policy.",
     termsLabel: "Terms of Service",
     privacyLabel: "Privacy Policy",
   },
@@ -43,8 +41,8 @@ export const copy = {
     emailPlaceholder: "Email address",
     passwordPlaceholder: "Password",
     cta: "Create Account",
+    signinCta: "Sign In",
     alreadyRegistered: "This email is already registered.",
-    signInInstead: "Sign in instead?",
     noAccountYet: "Need an account?",
     createAccountInstead: "Create one instead",
     haveAccountAlready: "Already have an account?",
@@ -52,7 +50,6 @@ export const copy = {
     networkError: "Unable to connect. Please check your connection.",
   },
   categories: {
-    step: "1 of 4",
     headline: "What do you operate on?",
     subhead:
       "We\u2019ll surface the right procedures first. You can change this any time.",
@@ -60,7 +57,6 @@ export const copy = {
     skip: "Use all categories for now",
   },
   training: {
-    step: "2 of 4",
     headline: "Are you in a training programme?",
     subhead:
       "We\u2019ll format your exports to match your portfolio requirements.",
@@ -68,7 +64,6 @@ export const copy = {
     skip: "Not in training \u2014 skip",
   },
   hospital: {
-    step: "3 of 4",
     headline: "Where do you work?",
     subhead: "This helps with regional coding and audit formats.",
     searchPlaceholder: "Search hospital or institution\u2026",
@@ -76,7 +71,6 @@ export const copy = {
     skip: "Skip for now",
   },
   privacy: {
-    step: "4 of 4",
     headline: "Your data, your control.",
     trustPoints: [
       {
@@ -106,5 +100,20 @@ export const copy = {
     finalLine:
       "Built by surgeons, for surgeons. Your operative record is your legacy \u2014 we treat it that way.",
     cta: "Continue",
+  },
+  security: {
+    headline: "Secure your logbook",
+    subhead: "Set a PIN to protect your cases and clinical photos.",
+    enterPrompt: "Enter a 6-digit PIN",
+    confirmPrompt: "Confirm your PIN",
+    mismatch: "PINs don\u2019t match. Try again.",
+    doneHeadline: "PIN set",
+    doneSubhead:
+      "Your logbook is now protected. You can also enable biometric unlock for quick access.",
+    biometricVerifyFailed:
+      "Couldn\u2019t verify \u2014 you can enable it later in Settings.",
+    expoGoNote:
+      "Face ID can\u2019t be tested in Expo Go. Use a development build or TestFlight to verify it.",
+    cta: "Start logging",
   },
 };

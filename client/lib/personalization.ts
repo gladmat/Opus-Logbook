@@ -62,6 +62,10 @@ export function hasAnsweredHospitalAffiliation(profile: ProfileLike) {
   return getPersonalizationPreferences(profile)?.hospitalAnswered === true;
 }
 
+export function hasAnsweredPrivacy(profile: ProfileLike) {
+  return getPersonalizationPreferences(profile)?.privacyAnswered === true;
+}
+
 export function buildSurgicalPreferencesUpdate(
   currentPreferences: SurgicalPreferences | undefined,
   updates: Partial<PersonalizationPreferences>,

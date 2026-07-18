@@ -21,7 +21,8 @@ import { isFaceIdUnsupportedInCurrentRuntime } from "@/lib/biometrics";
 import { clearDecryptedCache } from "@/components/EncryptedImage";
 import { clearEncryptionKeyCache } from "@/lib/encryption";
 import { clearUserCaches } from "@/lib/storage";
-import { getActiveUserIdOrNull } from "@/lib/activeUser";
+import { getActiveUserIdOrNull, onActiveUserChange } from "@/lib/activeUser";
+import { useAuth } from "@/contexts/AuthContext";
 
 export interface PinUnlockResult {
   ok: boolean;
@@ -34,6 +35,12 @@ export interface PinUnlockResult {
 interface AppLockContextType {
   isLocked: boolean;
   isAppLockConfigured: boolean;
+  /**
+   * True once the cold-start lock decision has been made. The root
+   * navigator holds its loading screen until this flips so protected
+   * content can never paint a frame before the lock overlay mounts.
+   */
+  isLockStateReady: boolean;
   unlockWithBiometrics: () => Promise<boolean>;
   unlockWithPin: (pin: string) => Promise<PinUnlockResult>;
   refreshLockState: () => Promise<void>;
@@ -42,10 +49,13 @@ interface AppLockContextType {
 const AppLockContext = createContext<AppLockContextType | undefined>(undefined);
 
 export function AppLockProvider({ children }: { children: ReactNode }) {
+  const { isLoading: isAuthLoading } = useAuth();
   const [isLocked, setIsLocked] = useState(false);
   const [isAppLockConfigured, setIsAppLockConfigured] = useState(false);
+  const [isLockStateReady, setIsLockStateReady] = useState(false);
   const backgroundTimestamp = useRef<number | null>(null);
   const hasInitialized = useRef(false);
+  const lastUserIdRef = useRef<string | null>(null);
 
   const checkIfConfigured = useCallback(async (): Promise<boolean> => {
     // Guard: app lock storage requires an active user for scoped keys
@@ -72,18 +82,71 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
     await checkIfConfigured();
   }, [checkIfConfigured]);
 
-  // Initial check — migrate old PIN state if needed, then lock if configured
+  // One-shot init, gated on auth restoration. AuthContext restores the
+  // storage identity (setActiveUserId) before flipping isLoading false, so
+  // waiting on isAuthLoading is what makes the cold-start lock decision
+  // deterministic — previously this ran before restoration, threw inside
+  // migratePinIfNeeded ("No active user"), and the app never locked again
+  // until a manual refreshLockState.
   useEffect(() => {
-    const init = async () => {
-      clearDecryptedCache();
-      await migratePinIfNeeded();
-      const configured = await checkIfConfigured();
-      if (configured && !hasInitialized.current) {
-        setIsLocked(true);
+    if (isAuthLoading || hasInitialized.current) return;
+    hasInitialized.current = true;
+
+    void (async () => {
+      try {
+        clearDecryptedCache();
+        const userId = getActiveUserIdOrNull();
+        lastUserIdRef.current = userId;
+        if (userId) {
+          // Migration needs scoped keys; never let a failure here skip the
+          // configured check (and never leave the ready gate closed).
+          await migratePinIfNeeded().catch(() => {});
+          const configured = await checkIfConfigured();
+          if (configured) {
+            // Restored session on a fresh process → require local re-auth.
+            setIsLocked(true);
+          }
+        } else {
+          setIsAppLockConfigured(false);
+        }
+      } finally {
+        // Must be reached on every path — the root navigator's loading
+        // gate waits on this and would otherwise deadlock.
+        setIsLockStateReady(true);
       }
-      hasInitialized.current = true;
-    };
-    init();
+    })();
+  }, [isAuthLoading, checkIfConfigured]);
+
+  // Track identity changes after init: interactive login/signup, logout,
+  // session expiry, account deletion. A restore-time event (before init has
+  // run) is ignored — the init effect reads the final identity itself.
+  useEffect(() => {
+    return onActiveUserChange((newId) => {
+      const prevId = lastUserIdRef.current;
+      lastUserIdRef.current = newId;
+      if (!hasInitialized.current) return;
+
+      if (newId === null) {
+        // Logout / session expired / account deleted.
+        setIsAppLockConfigured(false);
+        setIsLocked(false);
+        backgroundTimestamp.current = null;
+        return;
+      }
+
+      void (async () => {
+        await migratePinIfNeeded().catch(() => {});
+        const configured = await checkIfConfigured();
+        // null → id after init means the user just authenticated with
+        // credentials (login/signup/Apple), which is equivalent trust to a
+        // PIN — refresh configured state but don't lock. A direct id → id
+        // swap without a logout between is non-interactive (stale-token
+        // repair), so lock defensively.
+        if (configured && prevId !== null && prevId !== newId) {
+          setIsLocked(true);
+        }
+      })();
+    });
   }, [checkIfConfigured]);
 
   // Listen to AppState changes
@@ -105,10 +168,12 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
 
       if (!isAppLockConfigured) return;
 
-      if (nextState === "background" || nextState === "inactive") {
-        // Only record background time when the app is actually unlocked.
-        // While locked, the biometric prompt causes inactive→active transitions
-        // that would otherwise create an immediate re-lock loop.
+      if (nextState === "background") {
+        // Only real backgrounding starts the auto-lock clock. Transient
+        // "inactive" blips — share sheets, notification centre, permission
+        // dialogs, the Face ID prompt itself — must not re-lock the app
+        // mid-workflow (with the default "Immediately" timeout they would
+        // re-lock on every share-sheet dismissal).
         if (!isLocked) {
           backgroundTimestamp.current = Date.now();
         }
@@ -151,7 +216,6 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
 
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: "Unlock Opus",
-        fallbackLabel: "Use PIN",
         disableDeviceFallback: true,
         cancelLabel: "Cancel",
       });
@@ -191,6 +255,7 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
       value={{
         isLocked,
         isAppLockConfigured,
+        isLockStateReady,
         unlockWithBiometrics,
         unlockWithPin,
         refreshLockState,

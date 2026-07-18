@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { palette, Colors } from "@/constants/theme";
+import { copy } from "@/constants/onboardingCopy";
 import { colors as onboardingColors } from "@/theme/tokens";
 
 const dark = Colors.dark;
@@ -55,8 +56,9 @@ export function FeatureSlide({
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         accessibilityLabel="Skip feature tour"
         accessibilityRole="link"
+        testID="onboarding.features.btn-skip"
       >
-        <Text style={styles.skipText}>Skip</Text>
+        <Text style={styles.skipText}>{copy.features.skip}</Text>
       </Pressable>
 
       {/* Content column */}
@@ -92,7 +94,13 @@ export function FeatureSlide({
         <View style={styles.spacer} />
 
         {/* CTA button */}
-        <Pressable style={styles.ctaBtn} onPress={onCta}>
+        <Pressable
+          style={styles.ctaBtn}
+          onPress={onCta}
+          accessibilityRole="button"
+          accessibilityLabel={ctaLabel}
+          testID={`onboarding.features.btn-cta-${slideIndex}`}
+        >
           <Text style={styles.ctaText}>{ctaLabel}</Text>
         </Pressable>
       </View>

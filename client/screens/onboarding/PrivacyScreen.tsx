@@ -1,8 +1,16 @@
-import React from "react";
-import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import {
+  Alert,
+  View,
+  Text,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { StepHeader } from "@/components/onboarding/StepHeader";
+import { useReduceMotion } from "@/hooks/useReduceMotion";
 import FeatherIcon from "@/components/FeatherIcon";
 import { palette, Colors } from "@/constants/theme";
 import { copy } from "@/constants/onboardingCopy";
@@ -19,10 +27,22 @@ interface TrustPoint {
   detail: string;
 }
 
-function TrustPointRow({ point, index }: { point: TrustPoint; index: number }) {
+function TrustPointRow({
+  point,
+  index,
+  reduceMotion,
+}: {
+  point: TrustPoint;
+  index: number;
+  reduceMotion: boolean;
+}) {
   return (
     <Animated.View
-      entering={FadeInDown.delay(150 + index * 100).duration(400)}
+      entering={
+        reduceMotion
+          ? undefined
+          : FadeInDown.delay(150 + index * 100).duration(400)
+      }
       style={styles.trustRow}
       accessible
       accessibilityLabel={`${point.title}. ${point.detail}`}
@@ -50,17 +70,30 @@ function TrustPointRow({ point, index }: { point: TrustPoint; index: number }) {
 // ── Privacy Screen ──────────────────────────────────────────────────────────
 
 interface Props {
-  onComplete: () => void;
+  onComplete: () => void | Promise<void>;
   onBack?: () => void;
 }
 
 export function PrivacyScreen({ onComplete, onBack }: Props) {
   const insets = useSafeAreaInsets();
+  const reduceMotion = useReduceMotion();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const c = copy.privacy;
 
-  const handleContinue = () => {
-    onComplete();
+  const handleContinue = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await onComplete();
+    } catch (error: any) {
+      Alert.alert(
+        "Unable to save progress",
+        error?.message || "Please try again.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -79,7 +112,7 @@ export function PrivacyScreen({ onComplete, onBack }: Props) {
       >
         {/* Headline */}
         <Animated.Text
-          entering={FadeInUp.duration(400)}
+          entering={reduceMotion ? undefined : FadeInUp.duration(400)}
           style={styles.headline}
         >
           {c.headline}
@@ -88,13 +121,20 @@ export function PrivacyScreen({ onComplete, onBack }: Props) {
         {/* Trust points */}
         <View style={styles.trustList}>
           {c.trustPoints.map((point, index) => (
-            <TrustPointRow key={point.icon} point={point} index={index} />
+            <TrustPointRow
+              key={point.icon}
+              point={point}
+              index={index}
+              reduceMotion={reduceMotion}
+            />
           ))}
         </View>
 
         {/* Final line — italic */}
         <Animated.Text
-          entering={FadeInDown.delay(600).duration(400)}
+          entering={
+            reduceMotion ? undefined : FadeInDown.delay(600).duration(400)
+          }
           style={styles.finalLine}
         >
           {c.finalLine}
@@ -106,11 +146,15 @@ export function PrivacyScreen({ onComplete, onBack }: Props) {
         <Pressable
           style={styles.ctaButton}
           onPress={handleContinue}
+          disabled={isSubmitting}
           accessibilityRole="button"
           accessibilityLabel={c.cta}
+          accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
           testID="onboarding.privacy.btn-continue"
         >
-          <Text style={styles.ctaText}>{c.cta}</Text>
+          <Text style={styles.ctaText}>
+            {isSubmitting ? "Saving..." : c.cta}
+          </Text>
         </Pressable>
       </View>
     </View>
@@ -147,7 +191,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(174, 174, 178, 0.08)",
+    backgroundColor: onboardingColors.icon.surface,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 2,

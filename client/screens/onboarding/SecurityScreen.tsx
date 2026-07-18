@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -9,27 +9,28 @@ import {
   Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Reanimated, {
-  FadeInDown,
-  useSharedValue,
-  useAnimatedStyle,
-  withSequence,
-  withTiming,
-} from "react-native-reanimated";
+import Reanimated, { FadeInDown } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import * as LocalAuthentication from "expo-local-authentication";
 import { StepHeader } from "@/components/onboarding/StepHeader";
-import FeatherIcon, { Feather } from "@/components/FeatherIcon";
+import FeatherIcon from "@/components/FeatherIcon";
+import { PinPad, type PinPadHandle } from "@/components/PinPad";
 import {
   savePin,
   setAppLockEnabled,
   setBiometricPreference,
+  isPinSet,
+  isBiometricPreferenceEnabled,
 } from "@/lib/appLockStorage";
-import { isFaceIdUnsupportedInCurrentRuntime } from "@/lib/biometrics";
+import {
+  useBiometricCapability,
+  verifyBiometricsBeforeEnable,
+} from "@/hooks/useBiometricCapability";
+import { useReduceMotion } from "@/hooks/useReduceMotion";
 import { useAppLock } from "@/contexts/AppLockContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { palette, Colors, Spacing, BorderRadius } from "@/constants/theme";
 import { colors as onboardingColors } from "@/theme/tokens";
+import { copy } from "@/constants/onboardingCopy";
 
 const dark = Colors.dark;
 const PIN_LENGTH = 6;
@@ -44,99 +45,96 @@ interface Props {
 
 export function SecurityScreen({ onComplete, onBack }: Props) {
   const insets = useSafeAreaInsets();
+  const reduceMotion = useReduceMotion();
   const { refreshLockState } = useAppLock();
   const { updateProfile } = useAuth();
+  const c = copy.security;
 
-  // PIN state
-  const [step, setStep] = useState<PinStep>("enter_new");
+  // null while resolving whether a PIN already exists (force-quit at the
+  // done step, or replaying onboarding with app lock already configured).
+  const [step, setStep] = useState<PinStep | null>(null);
   const [pin, setPin] = useState("");
   const [firstPin, setFirstPin] = useState("");
   const [pinError, setPinError] = useState("");
-  const shakeOffset = useSharedValue(0);
-  const shakeStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: shakeOffset.value }],
-  }));
+  const padRef = useRef<PinPadHandle>(null);
 
-  // Biometric state
-  const [biometricAvailable, setBiometricAvailable] = useState(false);
-  const [biometricLabel, setBiometricLabel] = useState("Biometrics");
+  const biometric = useBiometricCapability();
   const [biometricEnabled, setBiometricEnabled] = useState(false);
-  const [biometricBlockedReason, setBiometricBlockedReason] = useState<
-    string | null
-  >(null);
+  const [biometricBusy, setBiometricBusy] = useState(false);
+  const [biometricNote, setBiometricNote] = useState<string | null>(null);
 
-  // Completion state
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Detect biometric hardware on mount
   useEffect(() => {
-    const detect = async () => {
-      const hasHardware = await LocalAuthentication.hasHardwareAsync();
-      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
-      const available = hasHardware && isEnrolled;
-      setBiometricAvailable(available);
-
-      if (available) {
-        const types =
-          await LocalAuthentication.supportedAuthenticationTypesAsync();
-        if (
-          types.includes(
-            LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION,
-          )
-        ) {
-          setBiometricLabel("Face ID");
-        } else if (
-          types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)
-        ) {
-          setBiometricLabel("Touch ID");
+    let mounted = true;
+    const resolveInitialStep = async () => {
+      try {
+        const [pinExists, bioPref] = await Promise.all([
+          isPinSet(),
+          isBiometricPreferenceEnabled(),
+        ]);
+        if (!mounted) return;
+        if (pinExists) {
+          setBiometricEnabled(bioPref);
+          setStep("done");
+        } else {
+          setStep("enter_new");
         }
-
-        if (isFaceIdUnsupportedInCurrentRuntime(types)) {
-          setBiometricAvailable(false);
-          setBiometricBlockedReason(
-            "Face ID can't be tested in Expo Go. Use a development build or TestFlight to verify it.",
-          );
-        }
+      } catch {
+        if (mounted) setStep("enter_new");
       }
     };
-    detect();
+    void resolveInitialStep();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const triggerShake = useCallback(() => {
-    shakeOffset.value = withSequence(
-      withTiming(10, { duration: 50 }),
-      withTiming(-10, { duration: 50 }),
-      withTiming(10, { duration: 50 }),
-      withTiming(-10, { duration: 50 }),
-      withTiming(0, { duration: 50 }),
-    );
-  }, [shakeOffset]);
+  const handleConfirmedPin = useCallback(
+    async (confirmedPin: string) => {
+      await savePin(confirmedPin);
+      await setAppLockEnabled(true);
+      await refreshLockState();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setPin("");
+      setStep("done");
+    },
+    [refreshLockState],
+  );
 
-  const handlePinDigit = useCallback(
-    async (digit: string) => {
-      const newPin = pin + digit;
-      setPin(newPin);
-      setPinError("");
+  // Functional update: rapid key presses can land within one JS frame, and
+  // `pin + digit` from a captured closure would drop all but the last one.
+  const handlePinDigit = useCallback((digit: string) => {
+    setPinError("");
+    setPin((prev) => (prev.length >= PIN_LENGTH ? prev : prev + digit));
+  }, []);
 
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  // Submit as an effect on the 6th digit so it runs exactly once per
+  // completed buffer regardless of input speed.
+  const pinSubmitInFlightRef = useRef(false);
+  useEffect(() => {
+    if (
+      pin.length !== PIN_LENGTH ||
+      step === null ||
+      step === "done" ||
+      pinSubmitInFlightRef.current
+    ) {
+      return;
+    }
+    pinSubmitInFlightRef.current = true;
 
-      if (newPin.length < PIN_LENGTH) return;
-
+    const submit = async () => {
       if (step === "enter_new") {
-        setFirstPin(newPin);
+        setFirstPin(pin);
         setPin("");
         setStep("confirm_new");
       } else if (step === "confirm_new") {
-        if (newPin === firstPin) {
-          await savePin(newPin);
-          await setAppLockEnabled(true);
-          await refreshLockState();
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          setStep("done");
+        if (pin === firstPin) {
+          await handleConfirmedPin(pin);
         } else {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-          triggerShake();
-          setPinError("PINs don't match. Try again.");
+          padRef.current?.shake();
+          setPinError(c.mismatch);
           setPin("");
           setFirstPin("");
           setTimeout(() => {
@@ -145,22 +143,47 @@ export function SecurityScreen({ onComplete, onBack }: Props) {
           }, 1500);
         }
       }
-    },
-    [pin, step, firstPin, triggerShake, refreshLockState],
-  );
+    };
+    void submit().finally(() => {
+      pinSubmitInFlightRef.current = false;
+    });
+  }, [pin, step, firstPin, handleConfirmedPin, c.mismatch]);
 
   const handlePinBackspace = useCallback(() => {
-    if (pin.length > 0) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      setPin((prev) => prev.slice(0, -1));
-    }
-  }, [pin]);
-
-  const handleToggleBiometric = useCallback(async (value: boolean) => {
-    await setBiometricPreference(value);
-    setBiometricEnabled(value);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setPin((prev) => prev.slice(0, -1));
   }, []);
+
+  const handleToggleBiometric = useCallback(
+    async (value: boolean) => {
+      if (biometricBusy) return;
+
+      if (!value) {
+        await setBiometricPreference(false);
+        setBiometricEnabled(false);
+        setBiometricNote(null);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        return;
+      }
+
+      // Prove the biometric actually works before persisting the preference,
+      // so the first lock screen isn't the first time it's exercised.
+      setBiometricBusy(true);
+      try {
+        const verified = await verifyBiometricsBeforeEnable(biometric.label);
+        if (verified) {
+          await setBiometricPreference(true);
+          setBiometricEnabled(true);
+          setBiometricNote(null);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } else {
+          setBiometricNote(c.biometricVerifyFailed);
+        }
+      } finally {
+        setBiometricBusy(false);
+      }
+    },
+    [biometric.label, biometricBusy, c.biometricVerifyFailed],
+  );
 
   const handleComplete = async () => {
     setIsSubmitting(true);
@@ -177,12 +200,13 @@ export function SecurityScreen({ onComplete, onBack }: Props) {
     }
   };
 
-  const prompt =
-    step === "enter_new"
-      ? "Enter a 6-digit PIN"
-      : step === "confirm_new"
-        ? "Confirm your PIN"
-        : "";
+  // ── Resolving initial state ────────────────────────────────────────────────
+
+  if (step === null) {
+    return (
+      <View testID="screen-onboardingSecurityLoading" style={styles.root} />
+    );
+  }
 
   // ── PIN entry flow ─────────────────────────────────────────────────────────
 
@@ -200,82 +224,25 @@ export function SecurityScreen({ onComplete, onBack }: Props) {
         <View style={styles.pinContent}>
           {step === "enter_new" ? (
             <>
-              <Text style={styles.headline}>Secure your logbook</Text>
-              <Text style={styles.subhead}>
-                Set a PIN to protect your cases and clinical photos.
-              </Text>
+              <Text style={styles.headline}>{c.headline}</Text>
+              <Text style={styles.subhead}>{c.subhead}</Text>
             </>
           ) : null}
 
-          <Text style={styles.pinPrompt}>{prompt}</Text>
+          <Text style={styles.pinPrompt}>
+            {step === "enter_new" ? c.enterPrompt : c.confirmPrompt}
+          </Text>
 
-          <Reanimated.View style={[styles.dotsRow, shakeStyle]}>
-            {Array.from({ length: PIN_LENGTH }).map((_, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.dot,
-                  {
-                    backgroundColor:
-                      i < pin.length ? palette.amber[600] : "transparent",
-                    borderColor:
-                      i < pin.length
-                        ? palette.amber[600]
-                        : onboardingColors.border.default,
-                  },
-                ]}
-              />
-            ))}
-          </Reanimated.View>
-
-          <View style={styles.errorContainer}>
-            {pinError ? <Text style={styles.errorText}>{pinError}</Text> : null}
-          </View>
-
-          <View style={styles.keypad}>
-            {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => (
-              <Pressable
-                key={d}
-                onPress={() => handlePinDigit(d)}
-                style={({ pressed }) => [
-                  styles.key,
-                  pressed && styles.keyPressed,
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel={d}
-                testID={`onboarding.security.key-${d}`}
-              >
-                <Text style={styles.keyText}>{d}</Text>
-              </Pressable>
-            ))}
-            <View style={styles.key} />
-            <Pressable
-              onPress={() => handlePinDigit("0")}
-              style={({ pressed }) => [
-                styles.key,
-                pressed && styles.keyPressed,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="0"
-              testID="onboarding.security.key-0"
-            >
-              <Text style={styles.keyText}>0</Text>
-            </Pressable>
-            <Pressable
-              onPress={handlePinBackspace}
-              disabled={pin.length === 0}
-              style={[styles.key, styles.iconKey]}
-              accessibilityRole="button"
-              accessibilityLabel="Backspace"
-              accessibilityState={{ disabled: pin.length === 0 }}
-              testID="onboarding.security.key-backspace"
-            >
-              <Feather
-                name="delete"
-                size={24}
-                color={pin.length > 0 ? dark.text : dark.textTertiary}
-              />
-            </Pressable>
+          <View style={styles.padArea}>
+            <PinPad
+              ref={padRef}
+              value={pin}
+              onDigit={handlePinDigit}
+              onBackspace={handlePinBackspace}
+              error={pinError || null}
+              variant="onboarding"
+              testIDPrefix="onboarding.security"
+            />
           </View>
         </View>
       </View>
@@ -292,7 +259,9 @@ export function SecurityScreen({ onComplete, onBack }: Props) {
       <StepHeader currentStep={5} />
 
       <View style={styles.doneContent}>
-        <Reanimated.View entering={FadeInDown.duration(400)}>
+        <Reanimated.View
+          entering={reduceMotion ? undefined : FadeInDown.duration(400)}
+        >
           <View style={styles.successIcon}>
             <FeatherIcon
               name="check-circle"
@@ -301,44 +270,55 @@ export function SecurityScreen({ onComplete, onBack }: Props) {
             />
           </View>
 
-          <Text style={styles.headline}>PIN set</Text>
-          <Text style={styles.doneSubhead}>
-            Your logbook is now protected. You can also enable biometric unlock
-            for quick access.
-          </Text>
+          <Text style={styles.headline}>{c.doneHeadline}</Text>
+          <Text style={styles.doneSubhead}>{c.doneSubhead}</Text>
         </Reanimated.View>
 
         {/* Biometric toggle */}
-        {biometricAvailable ? (
+        {biometric.available ? (
           <Reanimated.View
-            entering={FadeInDown.delay(150).duration(400)}
-            style={styles.biometricRow}
+            entering={
+              reduceMotion ? undefined : FadeInDown.delay(150).duration(400)
+            }
           >
-            <View style={styles.biometricInfo}>
-              <FeatherIcon
-                name={biometricLabel === "Face ID" ? "smile" : "smartphone"}
-                size={22}
-                color={onboardingColors.text.secondary}
+            <View style={styles.biometricRow}>
+              <View style={styles.biometricInfo}>
+                <FeatherIcon
+                  name={biometric.icon}
+                  size={22}
+                  color={onboardingColors.text.secondary}
+                />
+                <Text style={styles.biometricLabel}>
+                  Enable {biometric.label}
+                </Text>
+              </View>
+              <Switch
+                value={biometricEnabled}
+                onValueChange={handleToggleBiometric}
+                disabled={biometricBusy}
+                trackColor={{
+                  false: onboardingColors.border.default,
+                  true: palette.amber[600],
+                }}
+                thumbColor={palette.white}
+                accessibilityRole="switch"
+                accessibilityLabel={`Enable ${biometric.label}`}
+                accessibilityState={{
+                  checked: biometricEnabled,
+                  busy: biometricBusy,
+                }}
+                testID="onboarding.security.toggle-biometric"
               />
-              <Text style={styles.biometricLabel}>Enable {biometricLabel}</Text>
             </View>
-            <Switch
-              value={biometricEnabled}
-              onValueChange={handleToggleBiometric}
-              trackColor={{
-                false: onboardingColors.border.default,
-                true: palette.amber[600],
-              }}
-              thumbColor={palette.white}
-              accessibilityRole="switch"
-              accessibilityLabel={`Enable ${biometricLabel}`}
-              accessibilityState={{ checked: biometricEnabled }}
-              testID="onboarding.security.toggle-biometric"
-            />
+            {biometricNote ? (
+              <Text style={styles.biometricNoteInline}>{biometricNote}</Text>
+            ) : null}
           </Reanimated.View>
-        ) : biometricBlockedReason ? (
+        ) : biometric.expoGoFaceIdBlocked ? (
           <Reanimated.View
-            entering={FadeInDown.delay(150).duration(400)}
+            entering={
+              reduceMotion ? undefined : FadeInDown.delay(150).duration(400)
+            }
             style={styles.biometricNote}
           >
             <FeatherIcon
@@ -346,9 +326,7 @@ export function SecurityScreen({ onComplete, onBack }: Props) {
               size={16}
               color={onboardingColors.text.secondary}
             />
-            <Text style={styles.biometricNoteText}>
-              {biometricBlockedReason}
-            </Text>
+            <Text style={styles.biometricNoteText}>{c.expoGoNote}</Text>
           </Reanimated.View>
         ) : null}
       </View>
@@ -360,14 +338,14 @@ export function SecurityScreen({ onComplete, onBack }: Props) {
           onPress={handleComplete}
           disabled={isSubmitting}
           accessibilityRole="button"
-          accessibilityLabel="Start logging"
+          accessibilityLabel={c.cta}
           accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
           testID="onboarding.security.btn-complete"
         >
           {isSubmitting ? (
             <ActivityIndicator color={dark.buttonText} />
           ) : (
-            <Text style={styles.ctaText}>Start logging</Text>
+            <Text style={styles.ctaText}>{c.cta}</Text>
           )}
         </Pressable>
       </View>
@@ -410,53 +388,8 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: Spacing["2xl"],
   },
-  dotsRow: {
-    flexDirection: "row",
-    gap: Spacing.lg,
+  padArea: {
     marginTop: Spacing["2xl"],
-  },
-  dot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 2,
-  },
-  errorContainer: {
-    height: 24,
-    justifyContent: "center",
-    marginTop: Spacing.md,
-  },
-  errorText: {
-    fontSize: 14,
-    color: dark.error,
-    textAlign: "center",
-  },
-  keypad: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    width: 280,
-    marginTop: Spacing["2xl"],
-    justifyContent: "center",
-  },
-  key: {
-    width: 80,
-    height: 80,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: BorderRadius["2xl"],
-    margin: 4,
-  },
-  keyPressed: {
-    backgroundColor: "rgba(255,255,255,0.06)",
-  },
-  keyText: {
-    fontSize: 28,
-    fontWeight: "300",
-    color: dark.text,
-  },
-  iconKey: {
-    justifyContent: "center",
-    alignItems: "center",
   },
 
   // ── Done state ─────────────────────────────────────────────────────────────
@@ -509,6 +442,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: onboardingColors.text.secondary,
     lineHeight: 18,
+  },
+  biometricNoteInline: {
+    fontSize: 13,
+    color: onboardingColors.text.secondary,
+    lineHeight: 18,
+    marginTop: 8,
+    paddingHorizontal: 4,
   },
 
   // ── Bottom CTA ─────────────────────────────────────────────────────────────

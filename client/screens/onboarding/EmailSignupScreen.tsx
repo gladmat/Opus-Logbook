@@ -21,6 +21,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { OpusMark } from "@/components/brand";
 import { useAuth } from "@/contexts/AuthContext";
+import { useReduceMotion } from "@/hooks/useReduceMotion";
 import { palette, Colors } from "@/constants/theme";
 import { copy } from "@/constants/onboardingCopy";
 import { colors as onboardingColors } from "@/theme/tokens";
@@ -33,12 +34,16 @@ const HEADER_TOP_OFFSET = 32;
 
 export interface EmailSignupScreenProps {
   initialMode?: "signup" | "signin";
+  /** Returns to the Apple/email auth chooser. */
+  onBack?: () => void;
 }
 
 export function EmailSignupScreen({
   initialMode = "signup",
+  onBack,
 }: EmailSignupScreenProps) {
   const insets = useSafeAreaInsets();
+  const reduceMotion = useReduceMotion();
   const { signup, login } = useAuth();
 
   const [mode, setMode] = useState<"signup" | "signin">(initialMode);
@@ -70,16 +75,18 @@ export function EmailSignupScreen({
   React.useEffect(() => {
     const progress = Math.min(password.length / MIN_PASSWORD_LENGTH, 1);
     progressWidth.value = withTiming(progress, {
-      duration: 200,
+      duration: reduceMotion ? 0 : 200,
       easing: easeOut,
     });
-  }, [password, progressWidth]);
+  }, [password, progressWidth, reduceMotion]);
 
   const progressStyle = useAnimatedStyle(() => ({
     width: `${progressWidth.value * 100}%`,
   }));
 
   const progressColor = useAnimatedStyle(() => ({
+    // dark.success / palette.amber[600] — literal rgb() so the worklet
+    // doesn't capture theme objects.
     backgroundColor:
       progressWidth.value >= 1 ? "rgb(46, 160, 67)" : "rgb(229, 160, 13)",
   }));
@@ -187,6 +194,19 @@ export function EmailSignupScreen({
           },
         ]}
       >
+        {onBack ? (
+          <Pressable
+            onPress={onBack}
+            style={[styles.backButton, { top: Math.max(insets.top, 44) - 4 }]}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            testID="onboarding.emailSignup.btn-back"
+          >
+            <Feather name="arrow-left" size={18} color={palette.amber[600]} />
+            <Text style={styles.backText}>Back</Text>
+          </Pressable>
+        ) : null}
+
         <View style={styles.header}>
           <OpusMark size={32} />
           <Text style={styles.headline}>
@@ -244,13 +264,15 @@ export function EmailSignupScreen({
               onFocus={() => setPasswordFocused(true)}
               onBlur={() => setPasswordFocused(false)}
               secureTextEntry
-              // Only declare `newPassword` for actual signups. In signin mode
-              // leave textContentType undefined so iOS doesn't fall back to
-              // the Strong-Password generator when no saved credential matches
-              // — which hijacked the typed value and stranded users on a
-              // perpetually wrong-password error in practice.
-              textContentType={isSignup ? "newPassword" : undefined}
-              passwordRules={isSignup ? undefined : "minlength: 1;"}
+              // Signup declares `newPassword` (Strong-Password sheet is
+              // legitimate there). Signin must declare `password` — the
+              // EXISTING-password content type — so iOS never classifies the
+              // field as new-password. The previous workaround (undefined +
+              // passwordRules) backfired on iOS 26: passwordRules is a
+              // password-GENERATION hint, so the Strong-Password cover
+              // hijacked the signin field and stranded users on a perpetual
+              // wrong-password error.
+              textContentType={isSignup ? "newPassword" : "password"}
               autoCapitalize="none"
               autoCorrect={false}
               returnKeyType="done"
@@ -292,7 +314,7 @@ export function EmailSignupScreen({
               <ActivityIndicator color={palette.charcoal[950]} />
             ) : (
               <Text style={styles.submitText}>
-                {isSignup ? c.cta : "Sign In"}
+                {isSignup ? c.cta : c.signinCta}
               </Text>
             )}
           </Pressable>
@@ -384,6 +406,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 24,
+  },
+  backButton: {
+    position: "absolute",
+    left: 24,
+    zIndex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 6,
+  },
+  backText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: dark.text,
   },
   header: {
     alignItems: "center",

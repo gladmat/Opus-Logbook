@@ -1,5 +1,13 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { View, useWindowDimensions, StyleSheet } from "react-native";
+import Animated, {
+  Easing,
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
+import { useReduceMotion } from "@/hooks/useReduceMotion";
 import { palette } from "@/constants/theme";
 
 const TOTAL_STEPS = 5;
@@ -12,12 +20,50 @@ interface StepIndicatorProps {
   currentStep: number;
 }
 
+function Segment({
+  width,
+  active,
+  isNewest,
+  reduceMotion,
+}: {
+  width: number;
+  active: boolean;
+  /** The segment that just became active — the only one that animates. */
+  isNewest: boolean;
+  reduceMotion: boolean;
+}) {
+  const animate = active && isNewest && !reduceMotion;
+  const progress = useSharedValue(animate ? 0 : active ? 1 : 0);
+
+  useEffect(() => {
+    if (animate) {
+      progress.value = withTiming(1, {
+        duration: 300,
+        easing: Easing.out(Easing.ease),
+      });
+    }
+  }, [animate, progress]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+      progress.value,
+      [0, 1],
+      [palette.charcoal[800], palette.amber[600]],
+    ),
+  }));
+
+  return <Animated.View style={[styles.segment, { width }, animatedStyle]} />;
+}
+
 /**
  * Reusable 5-segment step indicator for onboarding screens.
- * Active segments are amber; inactive are charcoal.
+ * Active segments are amber; inactive are charcoal. Each screen mounts a
+ * fresh indicator, so the newly-active segment plays a short fill-in on
+ * mount (skipped under Reduce Motion).
  */
 export function StepIndicator({ currentStep }: StepIndicatorProps) {
   const { width: screenWidth } = useWindowDimensions();
+  const reduceMotion = useReduceMotion();
   const segmentWidth = (screenWidth - SIDE_PADDING - TOTAL_GAPS) / TOTAL_STEPS;
 
   return (
@@ -33,13 +79,12 @@ export function StepIndicator({ currentStep }: StepIndicatorProps) {
       }}
     >
       {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-        <View
+        <Segment
           key={i}
-          style={[
-            styles.segment,
-            { width: segmentWidth },
-            i < currentStep ? styles.active : styles.inactive,
-          ]}
+          width={segmentWidth}
+          active={i < currentStep}
+          isNewest={i === currentStep - 1}
+          reduceMotion={reduceMotion}
         />
       ))}
     </View>
@@ -55,11 +100,5 @@ const styles = StyleSheet.create({
   segment: {
     height: 3,
     borderRadius: 2,
-  },
-  active: {
-    backgroundColor: palette.amber[600],
-  },
-  inactive: {
-    backgroundColor: palette.charcoal[800],
   },
 });

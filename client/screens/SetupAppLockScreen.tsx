@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -8,19 +8,18 @@ import {
   Alert,
   ScrollView,
 } from "react-native";
-import Reanimated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSequence,
-  withTiming,
-} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
-import * as LocalAuthentication from "expo-local-authentication";
 import { ThemedText } from "@/components/ThemedText";
+import { PinPad, type PinPadHandle } from "@/components/PinPad";
 import { useTheme } from "@/hooks/useTheme";
 import { useAppLock } from "@/contexts/AppLockContext";
+import {
+  useBiometricCapability,
+  verifyBiometricsBeforeEnable,
+} from "@/hooks/useBiometricCapability";
+import { useLockoutCountdown } from "@/hooks/useLockoutCountdown";
 import {
   savePin,
   verifyPin,
@@ -32,7 +31,6 @@ import {
   setAppLockEnabled,
   clearAllAppLockData,
 } from "@/lib/appLockStorage";
-import { isFaceIdUnsupportedInCurrentRuntime } from "@/lib/biometrics";
 import {
   Spacing,
   BorderRadius,
@@ -56,15 +54,12 @@ export default function SetupAppLockScreen() {
   const { theme: colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { refreshLockState } = useAppLock();
+  const biometric = useBiometricCapability();
 
   const [hasPinSet, setHasPinSet] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
-  const [biometricAvailable, setBiometricAvailable] = useState(false);
-  const [biometricLabel, setBiometricLabel] = useState("Biometrics");
-  const [biometricBlockedReason, setBiometricBlockedReason] = useState<
-    string | null
-  >(null);
-  const [timeout, setTimeout_] = useState(0);
+  const [biometricBusy, setBiometricBusy] = useState(false);
+  const [autoLockSeconds, setAutoLockSeconds] = useState(0);
 
   // PIN setup state
   const [setupStep, setSetupStep] = useState<SetupStep>("idle");
@@ -74,10 +69,14 @@ export default function SetupAppLockScreen() {
   const [pinAction, setPinAction] = useState<
     "setup" | "change" | "disable" | null
   >(null);
-  const shakeOffset = useSharedValue(0);
-  const shakeStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: shakeOffset.value }],
-  }));
+  const padRef = useRef<PinPadHandle>(null);
+
+  // Lockout only guards verifyPin, so it is active only while the current
+  // PIN is being checked. Seeding from storage on activation surfaces a
+  // lockout that survived a process kill.
+  const { lockoutSeconds, lockoutMessage, startLockout } = useLockoutCountdown(
+    setupStep === "enter_current",
+  );
 
   useEffect(() => {
     const loadState = async () => {
@@ -88,48 +87,14 @@ export default function SetupAppLockScreen() {
       ]);
       setHasPinSet(pinExists);
       setBiometricEnabled(bioPref);
-      setTimeout_(currentTimeout);
-      setBiometricBlockedReason(null);
-
-      const hasHardware = await LocalAuthentication.hasHardwareAsync();
-      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
-      setBiometricAvailable(hasHardware && isEnrolled);
-
-      if (hasHardware && isEnrolled) {
-        const types =
-          await LocalAuthentication.supportedAuthenticationTypesAsync();
-        if (
-          types.includes(
-            LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION,
-          )
-        ) {
-          setBiometricLabel("Face ID");
-        } else if (
-          types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)
-        ) {
-          setBiometricLabel("Touch ID");
-        }
-
-        if (isFaceIdUnsupportedInCurrentRuntime(types)) {
-          setBiometricAvailable(false);
-          setBiometricBlockedReason(
-            "Face ID can't be tested in Expo Go. Use a development build or TestFlight to verify it.",
-          );
-        }
-      }
+      setAutoLockSeconds(currentTimeout);
     };
     loadState();
   }, []);
 
-  const triggerShake = useCallback(() => {
-    shakeOffset.value = withSequence(
-      withTiming(10, { duration: 50 }),
-      withTiming(-10, { duration: 50 }),
-      withTiming(10, { duration: 50 }),
-      withTiming(-10, { duration: 50 }),
-      withTiming(0, { duration: 50 }),
-    );
-  }, [shakeOffset]);
+  const biometricBlockedReason = biometric.expoGoFaceIdBlocked
+    ? "Face ID can't be tested in Expo Go. Use a development build or TestFlight to verify it."
+    : null;
 
   const resetPinFlow = useCallback(() => {
     setSetupStep("idle");
@@ -139,19 +104,22 @@ export default function SetupAppLockScreen() {
     setPinAction(null);
   }, []);
 
+  // Functional update: rapid key presses can land within one JS frame, and
+  // `pin + digit` from a captured closure would drop all but the last one.
   const handlePinDigit = useCallback(
-    async (digit: string) => {
-      const newPin = pin + digit;
-      setPin(newPin);
+    (digit: string) => {
+      if (lockoutSeconds > 0) return;
       setPinError("");
+      setPin((prev) => (prev.length >= PIN_LENGTH ? prev : prev + digit));
+    },
+    [lockoutSeconds],
+  );
 
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-      if (newPin.length < PIN_LENGTH) return;
-
+  const handleCompletedPin = useCallback(
+    async (enteredPin: string) => {
       if (setupStep === "enter_current") {
         // Verifying current PIN before change or disable
-        const outcome = await verifyPin(newPin);
+        const outcome = await verifyPin(enteredPin);
         if (outcome.ok) {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           if (pinAction === "disable") {
@@ -168,24 +136,22 @@ export default function SetupAppLockScreen() {
           }
         } else {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-          triggerShake();
+          padRef.current?.shake();
           if (outcome.lockoutSecondsRemaining > 0) {
-            setPinError(
-              `Too many attempts — try again in ${outcome.lockoutSecondsRemaining}s`,
-            );
+            startLockout(outcome.lockoutSecondsRemaining);
           } else {
             setPinError("Incorrect PIN");
+            setTimeout(() => setPinError(""), 3000);
           }
           setPin("");
-          setTimeout(() => setPinError(""), 3000);
         }
       } else if (setupStep === "enter_new") {
-        setFirstPin(newPin);
+        setFirstPin(enteredPin);
         setPin("");
         setSetupStep("confirm_new");
       } else if (setupStep === "confirm_new") {
-        if (newPin === firstPin) {
-          await savePin(newPin);
+        if (enteredPin === firstPin) {
+          await savePin(enteredPin);
           await setAppLockEnabled(true);
           setHasPinSet(true);
           await refreshLockState();
@@ -194,7 +160,7 @@ export default function SetupAppLockScreen() {
           resetPinFlow();
         } else {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-          triggerShake();
+          padRef.current?.shake();
           setPinError("PINs don't match. Try again.");
           setPin("");
           setFirstPin("");
@@ -206,38 +172,74 @@ export default function SetupAppLockScreen() {
       }
     },
     [
-      pin,
       setupStep,
       pinAction,
       firstPin,
-      triggerShake,
       resetPinFlow,
       refreshLockState,
+      startLockout,
     ],
   );
 
-  const handlePinBackspace = useCallback(() => {
-    if (pin.length > 0) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      setPin((prev) => prev.slice(0, -1));
+  // Submit as an effect on the 6th digit so it runs exactly once per
+  // completed buffer regardless of input speed.
+  const pinSubmitInFlightRef = useRef(false);
+  useEffect(() => {
+    if (
+      pin.length !== PIN_LENGTH ||
+      setupStep === "idle" ||
+      pinSubmitInFlightRef.current
+    ) {
+      return;
     }
-  }, [pin]);
+    pinSubmitInFlightRef.current = true;
+    void handleCompletedPin(pin).finally(() => {
+      pinSubmitInFlightRef.current = false;
+    });
+  }, [pin, setupStep, handleCompletedPin]);
+
+  const handlePinBackspace = useCallback(() => {
+    setPin((prev) => prev.slice(0, -1));
+  }, []);
 
   const handleToggleBiometric = useCallback(
     async (value: boolean) => {
-      if (!biometricAvailable && value) {
+      if (biometricBusy) return;
+
+      if (!value) {
+        await setBiometricPreference(false);
+        setBiometricEnabled(false);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         return;
       }
-      await setBiometricPreference(value);
-      setBiometricEnabled(value);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      if (!biometric.available) return;
+
+      // Prove the biometric works before persisting the preference.
+      setBiometricBusy(true);
+      try {
+        const verified = await verifyBiometricsBeforeEnable(biometric.label);
+        if (verified) {
+          await setBiometricPreference(true);
+          setBiometricEnabled(true);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } else {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          Alert.alert(
+            `Couldn't verify ${biometric.label}`,
+            `${biometric.label} wasn't enabled. Try again when you're ready.`,
+          );
+        }
+      } finally {
+        setBiometricBusy(false);
+      }
     },
-    [biometricAvailable],
+    [biometric.available, biometric.label, biometricBusy],
   );
 
   const handleSetTimeout = useCallback(async (seconds: number) => {
     await setAutoLockTimeout(seconds);
-    setTimeout_(seconds);
+    setAutoLockSeconds(seconds);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
@@ -289,7 +291,13 @@ export default function SetupAppLockScreen() {
         ]}
       >
         <View style={styles.pinFlowHeader}>
-          <Pressable onPress={resetPinFlow} style={styles.cancelButton}>
+          <Pressable
+            onPress={resetPinFlow}
+            style={styles.cancelButton}
+            accessibilityRole="button"
+            accessibilityLabel="Cancel"
+            testID="setupAppLock.btn-cancelPinFlow"
+          >
             <ThemedText style={{ color: colors.link }}>Cancel</ThemedText>
           </Pressable>
         </View>
@@ -301,79 +309,16 @@ export default function SetupAppLockScreen() {
             {getPinPrompt()}
           </Text>
 
-          <Reanimated.View style={[styles.dotsRow, shakeStyle]}>
-            {Array.from({ length: PIN_LENGTH }).map((_, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.dot,
-                  {
-                    backgroundColor:
-                      i < pin.length ? colors.link : "transparent",
-                    borderColor: i < pin.length ? colors.link : colors.border,
-                  },
-                ]}
-              />
-            ))}
-          </Reanimated.View>
-
-          <View style={styles.errorContainer}>
-            {pinError ? (
-              <Text
-                style={[
-                  Typography.small,
-                  { color: colors.error, textAlign: "center" },
-                ]}
-              >
-                {pinError}
-              </Text>
-            ) : null}
-          </View>
-
-          <View style={styles.keypad}>
-            {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => (
-              <Pressable
-                key={d}
-                onPress={() => handlePinDigit(d)}
-                style={({ pressed }) => [
-                  styles.key,
-                  {
-                    backgroundColor: pressed
-                      ? colors.backgroundTertiary
-                      : "transparent",
-                  },
-                ]}
-              >
-                <Text style={[styles.keyText, { color: colors.text }]}>
-                  {d}
-                </Text>
-              </Pressable>
-            ))}
-            <View style={styles.key} />
-            <Pressable
-              onPress={() => handlePinDigit("0")}
-              style={({ pressed }) => [
-                styles.key,
-                {
-                  backgroundColor: pressed
-                    ? colors.backgroundTertiary
-                    : "transparent",
-                },
-              ]}
-            >
-              <Text style={[styles.keyText, { color: colors.text }]}>0</Text>
-            </Pressable>
-            <Pressable
-              onPress={handlePinBackspace}
-              disabled={pin.length === 0}
-              style={[styles.key, styles.iconKey]}
-            >
-              <Feather
-                name="delete"
-                size={24}
-                color={pin.length > 0 ? colors.text : colors.textTertiary}
-              />
-            </Pressable>
+          <View style={styles.padArea}>
+            <PinPad
+              ref={padRef}
+              value={pin}
+              onDigit={handlePinDigit}
+              onBackspace={handlePinBackspace}
+              disabled={lockoutSeconds > 0}
+              error={lockoutMessage ?? (pinError || null)}
+              testIDPrefix="setupAppLock"
+            />
           </View>
         </View>
       </View>
@@ -419,7 +364,7 @@ export default function SetupAppLockScreen() {
               <View
                 style={[
                   styles.iconContainer,
-                  { backgroundColor: colors.link + "15" },
+                  { backgroundColor: colors.accentSurface },
                 ]}
               >
                 <Feather name="lock" size={20} color={colors.link} />
@@ -449,7 +394,7 @@ export default function SetupAppLockScreen() {
               <View
                 style={[
                   styles.iconContainer,
-                  { backgroundColor: colors.link + "15" },
+                  { backgroundColor: colors.accentSurface },
                 ]}
               >
                 <Feather name="lock" size={20} color={colors.link} />
@@ -473,7 +418,7 @@ export default function SetupAppLockScreen() {
       </View>
 
       {/* Biometrics Section — only visible when PIN is set and hardware available */}
-      {hasPinSet && (biometricAvailable || biometricBlockedReason) && (
+      {hasPinSet && (biometric.available || biometricBlockedReason) && (
         <View style={styles.section}>
           <ThemedText
             style={[styles.sectionTitle, { color: colors.textSecondary }]}
@@ -490,35 +435,35 @@ export default function SetupAppLockScreen() {
               <View
                 style={[
                   styles.iconContainer,
-                  { backgroundColor: colors.link + "15" },
+                  { backgroundColor: colors.accentSurface },
                 ]}
               >
-                <Feather
-                  name={biometricLabel === "Face ID" ? "smile" : "smartphone"}
-                  size={20}
-                  color={colors.link}
-                />
+                <Feather name={biometric.icon} size={20} color={colors.link} />
               </View>
               <View style={styles.rowContent}>
                 <ThemedText style={styles.rowLabel}>
-                  {biometricLabel}
+                  {biometric.label}
                 </ThemedText>
                 <ThemedText
                   style={[styles.rowSubtitle, { color: colors.textSecondary }]}
                 >
                   {biometricBlockedReason ||
-                    `Use ${biometricLabel} to unlock the app`}
+                    `Use ${biometric.label} to unlock the app`}
                 </ThemedText>
               </View>
               <Switch
                 value={biometricEnabled}
                 onValueChange={handleToggleBiometric}
-                disabled={!biometricAvailable && !biometricEnabled}
+                disabled={
+                  biometricBusy || (!biometric.available && !biometricEnabled)
+                }
                 trackColor={{
                   false: colors.backgroundTertiary,
                   true: colors.link,
                 }}
                 thumbColor={palette.white}
+                accessibilityLabel={`Use ${biometric.label} to unlock`}
+                testID="setupAppLock.toggle-biometric"
               />
             </View>
           </View>
@@ -552,11 +497,16 @@ export default function SetupAppLockScreen() {
                     styles.settingsRow,
                     { opacity: pressed ? 0.7 : 1 },
                   ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={option.label}
+                  accessibilityState={{
+                    selected: autoLockSeconds === option.value,
+                  }}
                 >
                   <ThemedText style={styles.rowLabel}>
                     {option.label}
                   </ThemedText>
-                  {timeout === option.value && (
+                  {autoLockSeconds === option.value && (
                     <Feather name="check" size={20} color={colors.link} />
                   )}
                 </Pressable>
@@ -590,7 +540,7 @@ export default function SetupAppLockScreen() {
               <View
                 style={[
                   styles.iconContainer,
-                  { backgroundColor: colors.error + "15" },
+                  { backgroundColor: colors.errorSurface },
                 ]}
               >
                 <Feather name="unlock" size={20} color={colors.error} />
@@ -644,44 +594,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: Spacing["3xl"],
   },
-  dotsRow: {
-    flexDirection: "row",
-    gap: Spacing.lg,
+  padArea: {
     marginTop: Spacing["3xl"],
-  },
-  dot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 2,
-  },
-  errorContainer: {
-    height: 24,
-    justifyContent: "center",
-    marginTop: Spacing.md,
-  },
-  keypad: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    width: 280,
-    marginTop: Spacing["2xl"],
-    justifyContent: "center",
-  },
-  key: {
-    width: 80,
-    height: 80,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: BorderRadius["2xl"],
-    margin: 4,
-  },
-  keyText: {
-    fontSize: 28,
-    fontWeight: "300",
-  },
-  iconKey: {
-    justifyContent: "center",
-    alignItems: "center",
   },
   section: {
     marginBottom: Spacing.xl,

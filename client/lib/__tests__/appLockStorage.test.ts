@@ -43,7 +43,13 @@ vi.mock("../activeUser", () => ({
 }));
 
 const mod = await import("../appLockStorage");
-const { savePin, verifyPin, isPinSet, clearAllAppLockData } = mod;
+const {
+  savePin,
+  verifyPin,
+  isPinSet,
+  clearAllAppLockData,
+  getLockoutSecondsRemaining,
+} = mod;
 
 async function resetStore(): Promise<void> {
   const ss = (await import("expo-secure-store")) as unknown as {
@@ -131,6 +137,29 @@ describe("appLockStorage scrypt PIN", () => {
     expect(outcome.ok).toBe(true);
     expect(outcome.attempts).toBe(0);
     expect(outcome.lockoutSecondsRemaining).toBe(0);
+  });
+
+  it("getLockoutSecondsRemaining surfaces a persisted lockout", async () => {
+    await savePin("1234");
+    expect(await getLockoutSecondsRemaining()).toBe(0);
+
+    for (let i = 0; i < 5; i++) await verifyPin("9999");
+
+    // The persisted attempt state outlives the verify call — this is what
+    // LockScreen / SetupAppLockScreen read on mount so a lockout survives
+    // an app kill and disables the keypad immediately.
+    const remaining = await getLockoutSecondsRemaining();
+    expect(remaining).toBeGreaterThan(0);
+    expect(remaining).toBeLessThanOrEqual(30);
+  });
+
+  it("getLockoutSecondsRemaining resets after savePin", async () => {
+    await savePin("1234");
+    for (let i = 0; i < 5; i++) await verifyPin("9999");
+    expect(await getLockoutSecondsRemaining()).toBeGreaterThan(0);
+
+    await savePin("5678");
+    expect(await getLockoutSecondsRemaining()).toBe(0);
   });
 
   it(
