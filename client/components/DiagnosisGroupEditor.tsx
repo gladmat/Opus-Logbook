@@ -148,6 +148,8 @@ import {
   BONE_TUMOUR_PROCEDURE_IDS,
   createEmptyBoneTumourData,
 } from "@/types/boneTumour";
+import { FixationHardwareDetails } from "@/components/FixationHardwareDetails";
+import { isFixationHardwareProcedure } from "@/types/fixationHardware";
 import { stripStaleHandTraumaData } from "@/lib/handCaseTypeGuards";
 import { CraniofacialAssessment } from "@/components/craniofacial/CraniofacialAssessment";
 import { isCraniofacialDiagnosis } from "@/lib/craniofacialConfig";
@@ -3114,6 +3116,28 @@ function DiagnosisGroupEditorInner({
               onReviewProcedures={handleTraumaProcedureReview}
             />
 
+            {/* Fixation hardware — the trauma flow collapses to the accepted-
+                mapping summary and hides the full procedure editor, so the
+                hardware cards must render inline here (the full list has its
+                own copy, gated off while it is hidden). */}
+            {showTraumaProcedureSummary
+              ? procedures
+                  .filter((proc) =>
+                    isFixationHardwareProcedure(proc.picklistEntryId),
+                  )
+                  .map((proc) => (
+                    <FixationHardwareDetails
+                      key={proc.id}
+                      procedureId={proc.picklistEntryId}
+                      procedureName={proc.procedureName}
+                      value={proc.fixationHardware}
+                      onChange={(details) =>
+                        updateProcedure({ ...proc, fixationHardware: details })
+                      }
+                    />
+                  ))
+              : null}
+
             {/* Cross-flow bridge: trauma → elective */}
             {procedures.some((p) => p.procedureName.trim()) &&
               onAddElectiveHandGroup && (
@@ -3344,6 +3368,32 @@ function DiagnosisGroupEditorInner({
                                 ...proc,
                                 boneTumourDetails: details,
                                 digitId: details.digit ?? undefined,
+                              })
+                            }
+                          />
+                        ))
+                    : null}
+
+                  {/* Fixation hardware card — same inline reasoning as the
+                      bone tumour card above. */}
+                  {!showAllProcedures
+                    ? procedures
+                        .filter((proc) =>
+                          isFixationHardwareProcedure(proc.picklistEntryId),
+                        )
+                        .map((proc) => (
+                          <FixationHardwareDetails
+                            key={proc.id}
+                            procedureId={proc.picklistEntryId}
+                            procedureName={proc.procedureName}
+                            osteotomyFixation={
+                              proc.osteotomyDetails?.fixation ?? null
+                            }
+                            value={proc.fixationHardware}
+                            onChange={(details) =>
+                              updateProcedure({
+                                ...proc,
+                                fixationHardware: details,
                               })
                             }
                           />
@@ -4367,6 +4417,23 @@ function DiagnosisGroupEditorInner({
                                     boneTumourDetails: details,
                                     // digitId drives per-digit FHIR bodySite
                                     digitId: details.digit ?? undefined,
+                                  })
+                                }
+                              />
+                            ) : null}
+                            {isFixationHardwareProcedure(
+                              proc.picklistEntryId,
+                            ) ? (
+                              <FixationHardwareDetails
+                                procedureId={proc.picklistEntryId}
+                                osteotomyFixation={
+                                  proc.osteotomyDetails?.fixation ?? null
+                                }
+                                value={proc.fixationHardware}
+                                onChange={(details) =>
+                                  updateProcedure({
+                                    ...proc,
+                                    fixationHardware: details,
                                   })
                                 }
                               />

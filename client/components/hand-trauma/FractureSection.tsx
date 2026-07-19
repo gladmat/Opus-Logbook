@@ -97,6 +97,10 @@ export function FractureSection({
   >([]);
   const [openStatus, setOpenStatus] = useState<"" | "open" | "closed">("");
   const [isComminuted, setIsComminuted] = useState(false);
+  // Surgeon-selected named pattern — only offered for distal phalanx (AO
+  // can't distinguish dorsal mallet avulsion from volar FDP avulsion, so
+  // this is never auto-derived from the code).
+  const [isBonyMallet, setIsBonyMallet] = useState(false);
 
   // Auto-select finger if only one digit is selected
   const firstDigit = selectedDigits[0];
@@ -133,15 +137,18 @@ export function FractureSection({
       setSelectedQualifications([]);
       setOpenStatus("");
       setIsComminuted(false);
+      setIsBonyMallet(false);
     } else if (field === "bone" || field === "finger") {
       setSelectedPhalanx("");
       setSelectedSegment("");
       setSelectedType("");
       setSelectedQualifications([]);
+      setIsBonyMallet(false);
     } else if (field === "phalanx") {
       setSelectedSegment("");
       setSelectedType("");
       setSelectedQualifications([]);
+      setIsBonyMallet(false);
     } else if (field === "segment") {
       setSelectedType("");
       setSelectedQualifications([]);
@@ -315,6 +322,10 @@ export function FractureSection({
         segment: selectedSegment || undefined,
         openStatus: openStatus || undefined,
         isComminuted: isComminuted || undefined,
+        pattern:
+          boneCategory === "phalanx" && selectedPhalanx === "3" && isBonyMallet
+            ? "bony_mallet"
+            : undefined,
         qualifications:
           selectedQualifications.length > 0
             ? selectedQualifications
@@ -413,7 +424,9 @@ export function FractureSection({
                   style={[styles.fractureName, { color: theme.text }]}
                   numberOfLines={1}
                 >
-                  {f.boneName}
+                  {f.details.pattern === "bony_mallet"
+                    ? `${f.boneName} — bony mallet`
+                    : f.boneName}
                 </ThemedText>
               </View>
               <Pressable
@@ -521,6 +534,42 @@ export function FractureSection({
               Comminuted
             </ThemedText>
           </Pressable>
+          {boneCategory === "phalanx" && selectedPhalanx === "3" ? (
+            <Pressable
+              testID="caseForm.hand.fx.pill-bonyMallet"
+              accessibilityRole="button"
+              accessibilityLabel="Bony mallet, dorsal base avulsion"
+              accessibilityState={{ selected: isBonyMallet }}
+              style={[
+                styles.pill,
+                {
+                  backgroundColor: isBonyMallet
+                    ? theme.accentSurface
+                    : theme.backgroundTertiary,
+                  // Pre-highlight when the typed AO code (78.x.3.1B) is the
+                  // classic dorsal base avulsion pattern
+                  borderColor: isBonyMallet
+                    ? theme.link
+                    : selectedSegment === "1" && selectedType === "B"
+                      ? theme.accentBorder
+                      : theme.border,
+                },
+              ]}
+              onPress={() => {
+                Haptics.selectionAsync();
+                setIsBonyMallet((prev) => !prev);
+              }}
+            >
+              <ThemedText
+                style={[
+                  styles.pillText,
+                  { color: isBonyMallet ? theme.link : theme.text },
+                ]}
+              >
+                Bony mallet
+              </ThemedText>
+            </Pressable>
+          ) : null}
         </View>
       </View>
 
@@ -551,6 +600,9 @@ export function FractureSection({
           ].map(({ key, label, sub }) => (
             <Pressable
               key={key}
+              testID={`caseForm.hand.fx.region-${key}`}
+              accessibilityRole="button"
+              accessibilityLabel={label}
               style={[
                 styles.regionButton,
                 {
@@ -610,6 +662,7 @@ export function FractureSection({
             {CARPAL_BONES.map((bone) => (
               <Pressable
                 key={bone.id}
+                testID={`caseForm.hand.fx.carpal-${bone.id}`}
                 style={[
                   styles.carpalButton,
                   {
@@ -685,6 +738,7 @@ export function FractureSection({
               resetFrom("finger");
             },
             theme,
+            "caseForm.hand.fx.finger",
           )}
         </View>
       ) : null}
@@ -741,6 +795,7 @@ export function FractureSection({
               resetFrom("phalanx");
             },
             theme,
+            "caseForm.hand.fx.phalanx",
           )}
         </View>
       ) : null}
@@ -763,6 +818,7 @@ export function FractureSection({
               resetFrom("segment");
             },
             theme,
+            "caseForm.hand.fx.segment",
           )}
         </View>
       ) : null}
@@ -784,6 +840,7 @@ export function FractureSection({
               setSelectedType(key);
             },
             theme,
+            "caseForm.hand.fx.type",
           )}
         </View>
       ) : null}
@@ -841,6 +898,9 @@ export function FractureSection({
       {/* Add fracture button */}
       {canSubmit ? (
         <Pressable
+          testID="caseForm.hand.fx.btn-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add fracture"
           style={[styles.addButton, { backgroundColor: theme.link }]}
           onPress={handleAddFracture}
         >
@@ -861,6 +921,7 @@ function renderPills(
   selected: string,
   onSelect: (key: string) => void,
   theme: any,
+  testIDPrefix?: string,
 ) {
   return (
     <View style={styles.pillRow}>
@@ -869,6 +930,10 @@ function renderPills(
         return (
           <Pressable
             key={opt.key}
+            testID={testIDPrefix ? `${testIDPrefix}-${opt.key}` : undefined}
+            accessibilityRole="button"
+            accessibilityLabel={opt.label}
+            accessibilityState={{ selected: isSelected }}
             style={[
               styles.pill,
               {

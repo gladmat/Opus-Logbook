@@ -124,6 +124,7 @@ import {
 } from "@/lib/jointImplant";
 import { getOsteotomySummary } from "@/types/osteotomy";
 import { getBoneTumourSummary } from "@/types/boneTumour";
+import { getFixationHardwareSummary } from "@/types/fixationHardware";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import {
   generateDupuytrenSummaryText,
@@ -1475,6 +1476,23 @@ export default function CaseDetailScreen() {
                           <DetailRow
                             label="Tumour site & graft"
                             value={getBoneTumourSummary(proc.boneTumourDetails)}
+                          />
+                        </View>
+                      ) : null}
+                      {/* Fixation hardware details */}
+                      {proc.fixationHardware &&
+                      getFixationHardwareSummary(proc.fixationHardware) ? (
+                        <View
+                          style={[
+                            styles.procedureClinicalDetails,
+                            { borderTopColor: theme.border },
+                          ]}
+                        >
+                          <DetailRow
+                            label="Fixation hardware"
+                            value={getFixationHardwareSummary(
+                              proc.fixationHardware,
+                            )}
                           />
                         </View>
                       ) : null}

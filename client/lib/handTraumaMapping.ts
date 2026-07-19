@@ -1041,6 +1041,7 @@ function buildFracturePairs(normalized: MachineSummary): TraumaDiagnosisPair[] {
       fracture.openStatus ?? "",
       fracture.isComminuted ? "1" : "0",
       fracture.digit ?? "",
+      fracture.pattern ?? "",
     ].join("|");
     const current = groups.get(key);
     if (current) {
@@ -1058,6 +1059,29 @@ function buildFracturePairs(normalized: MachineSummary): TraumaDiagnosisPair[] {
     let representative: DiagnosisRef | undefined;
 
     for (const fracture of fractures) {
+      // Surgeon-selected bony mallet pattern overrides the generic AO
+      // resolution — the named diagnosis carries the specific SNOMED code
+      // and the Ishiguro-led procedure set.
+      if (fracture.pattern === "bony_mallet") {
+        const malletDiagnosis = findDiagnosisById("hand_dx_bony_mallet");
+        if (malletDiagnosis) {
+          representative = representative ?? {
+            diagnosisPicklistId: malletDiagnosis.id,
+            displayName: malletDiagnosis.displayName,
+            snomedCtCode: malletDiagnosis.snomedCtCode,
+          };
+          for (const suggestion of evaluateSuggestions(malletDiagnosis)) {
+            procedureSuggestions.push({
+              procedurePicklistId: suggestion.procedurePicklistId,
+              displayName:
+                suggestion.displayName ?? suggestion.procedurePicklistId,
+              isDefault: suggestion.isDefault,
+              reason: "Bony mallet pattern",
+            });
+          }
+          continue;
+        }
+      }
       const aoResult = resolveAOToDiagnosis({
         familyCode: fracture.familyCode,
         finger: fracture.ray ? String(DIGIT_INDEX[fracture.ray]) : undefined,

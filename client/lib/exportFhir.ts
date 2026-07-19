@@ -1093,6 +1093,81 @@ function buildProcedure(
     }
   }
 
+  // Fixation hardware details extension (lightweight — deliberately not a
+  // Device resource; no catalogue/lot/UDI is captured for fracture hardware)
+  if (proc.fixationHardware) {
+    const fh = proc.fixationHardware;
+    const hardwareExts: { url: string; valueString?: string }[] = [];
+    if (fh.kwires?.gaugeMm) {
+      hardwareExts.push({
+        url: "kwireGaugeMm",
+        valueString: fh.kwires.gaugeMm,
+      });
+    }
+    if (fh.kwires?.count != null) {
+      hardwareExts.push({
+        url: "kwireCount",
+        valueString: String(fh.kwires.count),
+      });
+    }
+    if (fh.screws?.system) {
+      hardwareExts.push({
+        url: "screwSystem",
+        valueString:
+          fh.screws.system === "other"
+            ? fh.screws.systemOther?.trim() || "other"
+            : fh.screws.system,
+      });
+    }
+    if (fh.screws?.diameterMm) {
+      hardwareExts.push({
+        url: "screwDiameterMm",
+        valueString: fh.screws.diameterMm,
+      });
+    }
+    if (fh.screws?.lengthMm != null) {
+      hardwareExts.push({
+        url: "screwLengthMm",
+        valueString: String(fh.screws.lengthMm),
+      });
+    }
+    if (fh.screws?.count != null) {
+      hardwareExts.push({
+        url: "screwCount",
+        valueString: String(fh.screws.count),
+      });
+    }
+    if (fh.plate?.system) {
+      hardwareExts.push({
+        url: "plateSystem",
+        valueString:
+          fh.plate.system === "other"
+            ? fh.plate.systemOther?.trim() || "other"
+            : fh.plate.system,
+      });
+    }
+    if (fh.plate?.plateType) {
+      hardwareExts.push({ url: "plateType", valueString: fh.plate.plateType });
+    }
+    if (fh.plate?.profileMm) {
+      hardwareExts.push({
+        url: "plateProfileMm",
+        valueString: fh.plate.profileMm,
+      });
+    }
+    if (hardwareExts.length > 0) {
+      const ext = {
+        url: "urn:opus:fixation-hardware",
+        extension: hardwareExts,
+      };
+      if (procedure.extension) {
+        procedure.extension.push(ext);
+      } else {
+        procedure.extension = [ext];
+      }
+    }
+  }
+
   // bodySite with procedure/implant-aware laterality and digit context
   const laterality = (proc.laterality ??
     proc.implantDetails?.laterality ??

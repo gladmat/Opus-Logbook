@@ -29,6 +29,7 @@ import {
 import { getDiagnosisGroupTitle } from "@/lib/caseDiagnosisSummary";
 import { DIGIT_LABELS } from "@/lib/diagnosisPicklists/multiDigitConfig";
 import { getBoneTumourSummary } from "@/types/boneTumour";
+import { getFixationHardwareSummary } from "@/types/fixationHardware";
 import { Button } from "@/components/Button";
 import {
   validateRequiredFields,
@@ -442,6 +443,13 @@ export function CaseSummaryView({
                   <SummaryRow
                     label="Tumour site & graft"
                     value={getBoneTumourSummary(proc.boneTumourDetails)}
+                  />
+                ) : null}
+                {proc.fixationHardware &&
+                getFixationHardwareSummary(proc.fixationHardware) ? (
+                  <SummaryRow
+                    label="Fixation hardware"
+                    value={getFixationHardwareSummary(proc.fixationHardware)}
                   />
                 ) : null}
               </View>

@@ -51,6 +51,7 @@ export interface FractureInjury {
   segment?: string;
   openStatus?: "open" | "closed";
   isComminuted?: boolean;
+  pattern?: import("@/types/case").FracturePattern;
 }
 
 export interface JointInjury {
@@ -465,6 +466,7 @@ function normalizeFractures(fractures: FractureEntry[] = []): FractureInjury[] {
       segment: fracture.details.segment,
       openStatus: fracture.details.openStatus,
       isComminuted: fracture.details.isComminuted,
+      pattern: fracture.details.pattern,
     }))
     .sort((a, b) => {
       if (a.familyCode !== b.familyCode)
@@ -925,6 +927,20 @@ function phalanxLabel(
   return `${PHALANX_NAMES[phalanx] ?? "Phalanx"}, Dig. ${digit} ${segment}`;
 }
 
+// Carpal bones (AO families 71–76) fall through the generic bullet branch,
+// which would otherwise render the raw capitalised picker name ("fracture of
+// Trapezium" / "Fractura Trapezium"). Keyed by lowercase boneName.
+const CARPAL_BONE_LABELS: Record<string, { english: string; latin: string }> = {
+  scaphoid: { english: "scaphoid", latin: "ossis scaphoidei" },
+  lunate: { english: "lunate", latin: "ossis lunati" },
+  triquetrum: { english: "triquetrum", latin: "ossis triquetri" },
+  pisiform: { english: "pisiform", latin: "ossis pisiformis" },
+  trapezium: { english: "trapezium", latin: "ossis trapezii" },
+  trapezoid: { english: "trapezoid", latin: "ossis trapezoidei" },
+  capitate: { english: "capitate", latin: "ossis capitati" },
+  hamate: { english: "hamate", latin: "ossis hamati" },
+};
+
 export function buildFractureBullets(
   fractures: FractureInjury[],
   mode: DiagnosisRenderMode,
@@ -948,6 +964,7 @@ export function buildFractureBullets(
             fracture.openStatus ?? "",
             fracture.isComminuted ? "1" : "0",
             fracture.digit ?? "",
+            fracture.pattern ?? "",
           ].join("|");
 
     const current = grouped.get(groupingKey);
@@ -966,6 +983,32 @@ export function buildFractureBullets(
     const qualifierText =
       qualifiers.length > 0 ? `${qualifiers.join(" ")} ` : "";
     const aoCodes = entry.map((fracture) => fracture.aoCode);
+
+    // Bony mallet pattern (surgeon-selected) — named-entity wording wins
+    // over the topographic distal-phalanx label.
+    if (sample.pattern === "bony_mallet") {
+      const digit = sample.digit;
+      if (mode === "latin_medical") {
+        bullets.push(
+          `${LATIN.fracture} ${qualifierText}phalangis distalis${
+            digit ? ` digiti ${digit}` : ""
+          } (mallet osseum) ${aoLabel(aoCodes)}`.trim(),
+        );
+      } else if (mode === "full_english") {
+        bullets.push(
+          `${qualifierText}bony mallet fracture (dorsal base avulsion) of distal phalanx${
+            digit ? ` of Dig. ${digit}` : ""
+          } ${aoLabel(aoCodes)}`.trim(),
+        );
+      } else {
+        bullets.push(
+          `${qualifierText}bony mallet fracture${
+            digit ? `, Dig. ${digit}` : ""
+          } ${aoLabel(aoCodes)}`.trim(),
+        );
+      }
+      continue;
+    }
 
     if (sample.familyCode === "77" && entry.every((fracture) => fracture.ray)) {
       const rays = entry
@@ -998,12 +1041,17 @@ export function buildFractureBullets(
       continue;
     }
 
+    const carpalLabels = CARPAL_BONE_LABELS[sample.boneName.toLowerCase()];
     const label =
       sample.familyCode === "78"
         ? phalanxLabel(sample, mode)
         : sample.familyCode === "77"
           ? metacarpalLabel(sample, mode)
-          : sample.boneName;
+          : carpalLabels
+            ? mode === "latin_medical"
+              ? carpalLabels.latin
+              : carpalLabels.english
+            : sample.boneName;
 
     if (mode === "latin_medical") {
       bullets.push(

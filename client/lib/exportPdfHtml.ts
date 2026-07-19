@@ -25,6 +25,7 @@ import {
   OSTEOTOMY_PROCEDURE_IDS,
 } from "@/types/osteotomy";
 import { getBoneTumourSummary } from "@/types/boneTumour";
+import { getFixationHardwareSummary } from "@/types/fixationHardware";
 import {
   getImplantSummary as getBreastImplantSummary,
   getFlapSummary as getBreastFlapSummary,
@@ -367,6 +368,14 @@ export function buildPdfHtml(cases: Case[], options: PdfExportOptions): string {
       ? `Tumour: ${getBoneTumourSummary(boneTumourProc.boneTumourDetails)}`
       : "";
 
+    // Fixation hardware summary (first procedure with data)
+    const fixationProc = (c.diagnosisGroups ?? [])
+      .flatMap((g) => g.procedures ?? [])
+      .find((p) => getFixationHardwareSummary(p.fixationHardware));
+    const fixationSummary = fixationProc
+      ? `Fixation: ${getFixationHardwareSummary(fixationProc.fixationHardware)}`
+      : "";
+
     const implantSummary = [jointImplantSummary, ...breastParts]
       .filter(Boolean)
       .join("; ");
@@ -424,6 +433,7 @@ export function buildPdfHtml(cases: Case[], options: PdfExportOptions): string {
           dupuytrenSummary,
           osteotomySummary,
           boneTumourSummary,
+          fixationSummary,
           craniofacialSummary,
           peripheralNerveSummary,
           lymphaticSummary,

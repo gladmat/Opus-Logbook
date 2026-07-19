@@ -61,6 +61,12 @@ import {
   BONE_TUMOUR_PROCEDURE_IDS,
 } from "@/types/boneTumour";
 import {
+  SCREW_SYSTEM_LABELS,
+  PLATE_SYSTEM_LABELS,
+  PLATE_TYPE_LABELS,
+  type FixationHardwareData,
+} from "@/types/fixationHardware";
+import {
   NERVE_LABELS,
   MECHANISM_LABELS as PN_MECHANISM_LABELS,
   TIMING_LABELS as PN_TIMING_LABELS,
@@ -176,6 +182,15 @@ const CSV_HEADERS = [
   "bone_tumour_digit",
   "bone_tumour_graft",
   "bone_tumour_donor_site",
+  "fixation_kwire_gauge_mm",
+  "fixation_kwire_count",
+  "fixation_screw_system",
+  "fixation_screw_diameter_mm",
+  "fixation_screw_length_mm",
+  "fixation_screw_count",
+  "fixation_plate_system",
+  "fixation_plate_type",
+  "fixation_plate_profile_mm",
   "planned_date",
   // ── Breast module columns ──
   "breast_laterality",
@@ -386,6 +401,81 @@ function getCaseBoneTumourExportFields(c: Case) {
     donorSite: first.graftDonorSite
       ? OSTEOTOMY_DONOR_SITE_LABELS[first.graftDonorSite]
       : "",
+  };
+}
+
+function getCaseFixationHardwareExportFields(c: Case) {
+  // Gate on data presence (not procedure ID) so stored hardware exports
+  // regardless of how the procedure was created.
+  const hardwareProcedures = (c.diagnosisGroups ?? []).flatMap((group) =>
+    (group.procedures ?? []).filter((p) => p.fixationHardware),
+  );
+  if (hardwareProcedures.length === 0) {
+    return {
+      kwireGauge: "",
+      kwireCount: "",
+      screwSystem: "",
+      screwDiameter: "",
+      screwLength: "",
+      screwCount: "",
+      plateSystem: "",
+      plateType: "",
+      plateProfile: "",
+    };
+  }
+
+  const entries = hardwareProcedures.map((p) => p.fixationHardware!);
+  const joinField = (extract: (d: FixationHardwareData) => string) =>
+    entries.map((d) => extract(d) || "-").join("; ");
+
+  return {
+    kwireGauge: joinField((d) =>
+      d.kwires?.gaugeMm
+        ? d.kwires.gaugeMm === "other"
+          ? "Other"
+          : d.kwires.gaugeMm
+        : "",
+    ),
+    kwireCount: joinField((d) =>
+      d.kwires?.count != null ? String(d.kwires.count) : "",
+    ),
+    screwSystem: joinField((d) =>
+      d.screws?.system
+        ? d.screws.system === "other"
+          ? d.screws.systemOther?.trim() || "Other"
+          : SCREW_SYSTEM_LABELS[d.screws.system]
+        : "",
+    ),
+    screwDiameter: joinField((d) =>
+      d.screws?.diameterMm
+        ? d.screws.diameterMm === "other"
+          ? "Other"
+          : d.screws.diameterMm
+        : "",
+    ),
+    screwLength: joinField((d) =>
+      d.screws?.lengthMm != null ? String(d.screws.lengthMm) : "",
+    ),
+    screwCount: joinField((d) =>
+      d.screws?.count != null ? String(d.screws.count) : "",
+    ),
+    plateSystem: joinField((d) =>
+      d.plate?.system
+        ? d.plate.system === "other"
+          ? d.plate.systemOther?.trim() || "Other"
+          : PLATE_SYSTEM_LABELS[d.plate.system]
+        : "",
+    ),
+    plateType: joinField((d) =>
+      d.plate?.plateType ? PLATE_TYPE_LABELS[d.plate.plateType] : "",
+    ),
+    plateProfile: joinField((d) =>
+      d.plate?.profileMm
+        ? d.plate.profileMm === "other"
+          ? "Other"
+          : d.plate.profileMm
+        : "",
+    ),
   };
 }
 
@@ -711,6 +801,7 @@ function caseToRow(c: Case, options: CsvExportOptions): string {
   const implantFields = getCaseImplantExportFields(c);
   const osteotomyFields = getCaseOsteotomyExportFields(c);
   const boneTumourFields = getCaseBoneTumourExportFields(c);
+  const fixationHardwareFields = getCaseFixationHardwareExportFields(c);
   const breastFields = extractBreastCsvFields(groups);
   const headNeckFields = extractHeadNeckCsvFields(c);
   const craniofacialFields = extractCraniofacialCsvFields(groups);
@@ -860,6 +951,15 @@ function caseToRow(c: Case, options: CsvExportOptions): string {
     boneTumourFields.digit,
     boneTumourFields.graft,
     boneTumourFields.donorSite,
+    fixationHardwareFields.kwireGauge,
+    fixationHardwareFields.kwireCount,
+    fixationHardwareFields.screwSystem,
+    fixationHardwareFields.screwDiameter,
+    fixationHardwareFields.screwLength,
+    fixationHardwareFields.screwCount,
+    fixationHardwareFields.plateSystem,
+    fixationHardwareFields.plateType,
+    fixationHardwareFields.plateProfile,
     c.plannedDate ?? "",
     // ── Breast module ──
     ...breastFields,

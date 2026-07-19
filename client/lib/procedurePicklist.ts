@@ -734,6 +734,17 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
     sortOrder: 13,
   },
   {
+    id: "hand_fx_carpal_crif_ccs",
+    displayName: "Carpal fracture CRIF (headless compression screw)",
+    snomedCtCode: "781311000168103",
+    snomedCtDisplay:
+      "Closed reduction of fracture of carpal bone with internal fixation (procedure)",
+    specialties: ["hand_wrist"],
+    subcategory: "Fracture & Joint Fixation",
+    tags: ["trauma"],
+    sortOrder: 13,
+  },
+  {
     id: "hand_fx_scaphoid_nonunion_graft",
     displayName: "Scaphoid non-union bone graft",
     snomedCtCode: "256651005",
@@ -742,6 +753,21 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
     subcategory: "Fracture & Joint Fixation",
     tags: ["revision"],
     sortOrder: 14,
+  },
+  {
+    // Ishiguro extension-block pinning at the DIP joint (bony mallet).
+    // Distinct from hand_disloc_pip_extension_block_kwire, which is the PIP
+    // fracture-dislocation variant and carries a dislocation SNOMED concept.
+    // Code verified active in AU (20260630) + Intl (20260601) editions.
+    id: "hand_fx_mallet_extension_block",
+    displayName: "Extension block K-wire fixation — bony mallet (Ishiguro)",
+    snomedCtCode: "439323003",
+    snomedCtDisplay:
+      "Percutaneous skeletal fixation of distal phalangeal fracture of finger (procedure)",
+    specialties: ["hand_wrist"],
+    subcategory: "Fracture & Joint Fixation",
+    tags: ["trauma"],
+    sortOrder: 15,
   },
 ];
 

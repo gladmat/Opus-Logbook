@@ -1571,6 +1571,14 @@ export interface FreeFlapDetails {
   flapOutcome?: FreeFlapOutcomeDetails;
 }
 
+/**
+ * Named fracture pattern refinement, explicitly chosen by the surgeon.
+ * NOT auto-derived from AO coding — AO cannot distinguish e.g. a dorsal
+ * distal-phalanx base fragment (bony mallet) from a volar one (bony
+ * jersey / FDP avulsion). Extensible union (e.g. "seymour" later).
+ */
+export type FracturePattern = "bony_mallet";
+
 // AO/OTA fracture classification entry
 export interface FractureEntry {
   id: string;
@@ -1587,6 +1595,8 @@ export interface FractureEntry {
     openStatus?: "open" | "closed";
     isComminuted?: boolean;
     qualifications?: string[];
+    /** Named pattern refinement (surgeon-selected, see FracturePattern) */
+    pattern?: FracturePattern;
   };
 }
 
@@ -1769,6 +1779,8 @@ export interface CaseProcedure {
   osteotomyDetails?: import("./osteotomy").CorrectiveOsteotomyData;
   /** Bone tumour curettage/graft details (which bone/digit, graft donor site) */
   boneTumourDetails?: import("./boneTumour").BoneTumourData;
+  /** Fracture-fixation hardware (K-wires / screws / plate) for removal planning & series audit */
+  fixationHardware?: import("./fixationHardware").FixationHardwareData;
   notes?: string;
   /** Which specific digit this procedure targets (for multi-digit cases like trigger finger). */
   digitId?: DigitId;

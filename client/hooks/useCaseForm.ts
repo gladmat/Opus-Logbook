@@ -1450,6 +1450,9 @@ export function buildDuplicateState(
       boneTumourDetails: p.boneTumourDetails
         ? structuredClone(p.boneTumourDetails)
         : undefined,
+      fixationHardware: p.fixationHardware
+        ? structuredClone(p.fixationHardware)
+        : undefined,
       lvaOperativeDetails: p.lvaOperativeDetails
         ? structuredClone(p.lvaOperativeDetails)
         : undefined,
