@@ -583,6 +583,17 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
     sortOrder: 4,
   },
   {
+    id: "hand_fx_metacarpal_orif_ccs",
+    displayName: "Metacarpal fracture ORIF (headless compression screw)",
+    snomedCtCode: "608784006",
+    snomedCtDisplay:
+      "Open reduction of fracture of metacarpal bone with internal fixation (procedure)",
+    specialties: ["hand_wrist"],
+    subcategory: "Fracture & Joint Fixation",
+    tags: ["trauma"],
+    sortOrder: 4,
+  },
+  {
     id: "hand_fx_metacarpal_crif",
     displayName: "Metacarpal fracture CRIF (K-wires)",
     snomedCtCode: "781341000168104",
@@ -605,6 +616,17 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
     sortOrder: 6,
   },
   {
+    id: "hand_fx_phalanx_orif_ccs",
+    displayName: "Phalangeal fracture ORIF (headless compression screw)",
+    snomedCtCode: "847251000168106",
+    snomedCtDisplay:
+      "Open reduction of fracture of proximal phalanx of finger with internal fixation (procedure)",
+    specialties: ["hand_wrist"],
+    subcategory: "Fracture & Joint Fixation",
+    tags: ["trauma"],
+    sortOrder: 6,
+  },
+  {
     id: "hand_fx_phalanx_crif",
     displayName: "Phalangeal fracture CRIF (K-wires)",
     snomedCtCode: "179168007",
@@ -617,9 +639,9 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
   {
     id: "hand_fx_scaphoid_orif",
     displayName: "Scaphoid fracture ORIF (headless screw)",
-    snomedCtCode: "608784006",
+    snomedCtCode: "608783000",
     snomedCtDisplay:
-      "Open reduction of fracture with internal fixation (procedure)",
+      "Open reduction of fracture of carpal bone with internal fixation (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -661,9 +683,9 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
   {
     id: "hand_fx_carpal_other",
     displayName: "Carpal fracture fixation — other",
-    snomedCtCode: "608784006",
+    snomedCtCode: "608783000",
     snomedCtDisplay:
-      "Open reduction of fracture with internal fixation (procedure)",
+      "Open reduction of fracture of carpal bone with internal fixation (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],
@@ -714,9 +736,20 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
   {
     id: "hand_fx_carpal_orif",
     displayName: "Carpal fracture ORIF",
-    snomedCtCode: "608784006",
+    snomedCtCode: "608783000",
     snomedCtDisplay:
-      "Open reduction of fracture with internal fixation (procedure)",
+      "Open reduction of fracture of carpal bone with internal fixation (procedure)",
+    specialties: ["hand_wrist"],
+    subcategory: "Fracture & Joint Fixation",
+    tags: ["trauma"],
+    sortOrder: 12,
+  },
+  {
+    id: "hand_fx_carpal_orif_ccs",
+    displayName: "Carpal fracture ORIF (headless compression screw)",
+    snomedCtCode: "608783000",
+    snomedCtDisplay:
+      "Open reduction of fracture of carpal bone with internal fixation (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Fracture & Joint Fixation",
     tags: ["trauma"],

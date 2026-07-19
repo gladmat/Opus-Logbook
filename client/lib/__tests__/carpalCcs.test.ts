@@ -53,6 +53,7 @@ describe("carpal CRIF CCS picklist entry", () => {
     const suggestions = diagnosis?.suggestedProcedures ?? [];
     expect(suggestions.map((s) => s.procedurePicklistId)).toEqual([
       "hand_fx_carpal_orif",
+      "hand_fx_carpal_orif_ccs",
       "hand_fx_carpal_crif",
       "hand_fx_carpal_crif_ccs",
     ]);

@@ -46,14 +46,17 @@ const RENDER_OPTIONS: {
 
 const COMPACT_PROCEDURE_LABELS: Record<string, string> = {
   hand_fx_metacarpal_orif: "ORIF",
+  hand_fx_metacarpal_orif_ccs: "ORIF + CCS",
   hand_fx_metacarpal_crif: "CRIF + K-wire",
   hand_fx_metacarpal_crif_ccs: "CRIF + CCS",
   hand_fx_metacarpal_exfix: "CRIF + Ex-Fix",
   hand_fx_phalanx_orif: "ORIF",
+  hand_fx_phalanx_orif_ccs: "ORIF + CCS",
   hand_fx_phalanx_crif: "CRIF + K-wire",
   hand_fx_phalanx_crif_ccs: "CRIF + CCS",
   hand_fx_phalanx_exfix: "CRIF + Ex-Fix",
   hand_fx_carpal_orif: "ORIF",
+  hand_fx_carpal_orif_ccs: "ORIF + CCS",
   hand_fx_carpal_crif: "CRIF + K-wire",
   hand_fx_carpal_crif_ccs: "CRIF + CCS",
   hand_lig_ucl_repair: "Repair",
