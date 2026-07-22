@@ -263,7 +263,10 @@ describe("hand trauma mapping pairs", () => {
     ).toContain("hand_cov_free_flap");
   });
 
-  it("returns empty procedure suggestions when no zone is selected", () => {
+  it("offers only the staged dermal matrix option when no zone is selected", () => {
+    // Zone-specific graft/flap suggestions need a zone, but a degloving
+    // injury without one still gets the dermal matrix (BTM / Integra)
+    // staged-coverage option rather than an empty pair.
     const result = resolveTraumaDiagnosis({
       laterality: "right",
       affectedDigits: ["III"],
@@ -279,7 +282,9 @@ describe("hand trauma mapping pairs", () => {
     const coveragePair = result?.pairs.find((pair) =>
       pair.key.startsWith("soft_tissue:degloving:"),
     );
-    expect(coveragePair?.suggestedProcedures).toHaveLength(0);
+    expect(
+      coveragePair?.suggestedProcedures.map((p) => p.procedurePicklistId),
+    ).toEqual(["hand_cov_dermal_substitute"]);
   });
 
   it("routes special injuries to source 'special' with correct key prefix", () => {

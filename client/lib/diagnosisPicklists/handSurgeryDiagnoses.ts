@@ -313,6 +313,53 @@ const HAND_DX_FRACTURES: DiagnosisPicklistEntry[] = [
     sortOrder: 9,
   },
   {
+    // Hook-specific entry so AO 74A ("Hook fracture") routes to fragment
+    // excision rather than the generic carpal fixation set. SNOMED has no
+    // open/closed-neutral "fracture of hook of hamate" concept (208369005 /
+    // 208379007 are the closed/open pair), so the neutral whole-bone code is
+    // used and the hook specificity lives in the display name + AO code.
+    // 85922006 verified active in AU + Intl editions 2026-07-23.
+    id: "hand_dx_hook_of_hamate_fracture",
+    displayName: "Hook of hamate fracture",
+    shortName: "Hamate hook #",
+    snomedCtCode: "85922006",
+    snomedCtDisplay: "Fracture of hamate bone of wrist (disorder)",
+    specialty: "hand_wrist",
+    subcategory: "Fractures",
+    clinicalGroup: "trauma",
+    hasStaging: false,
+    searchSynonyms: [
+      "hook of hamate",
+      "hamate hook",
+      "hamulus",
+      "hamulus ossis hamati",
+      "hypothenar hammer",
+      "golf club",
+      "bat injury",
+    ],
+    suggestedProcedures: [
+      {
+        procedurePicklistId: "hand_fx_hamate_hook_excision",
+        displayName: "Hook of hamate excision",
+        isDefault: true,
+        sortOrder: 1,
+      },
+      {
+        procedurePicklistId: "hand_fx_carpal_orif",
+        displayName: "Carpal fracture ORIF",
+        isDefault: false,
+        sortOrder: 2,
+      },
+      {
+        procedurePicklistId: "hand_fx_carpal_orif_ccs",
+        displayName: "Carpal fracture ORIF (headless compression screw)",
+        isDefault: false,
+        sortOrder: 3,
+      },
+    ],
+    sortOrder: 10,
+  },
+  {
     id: "hand_dx_crush_injury",
     displayName: "Crush injury of hand",
     shortName: "Hand crush",
@@ -933,6 +980,12 @@ const HAND_DX_SOFT_TISSUE: DiagnosisPicklistEntry[] = [
         displayName: "Homodigital island flap",
         isDefault: false,
         sortOrder: 3,
+      },
+      {
+        procedurePicklistId: "hand_cov_dermal_substitute",
+        displayName: "Dermal matrix application (BTM / Integra / Matriderm)",
+        isDefault: false,
+        sortOrder: 4,
       },
     ],
     sortOrder: 4,

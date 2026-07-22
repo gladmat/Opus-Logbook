@@ -930,6 +930,17 @@ function phalanxLabel(
 // Carpal bones (AO families 71–76) fall through the generic bullet branch,
 // which would otherwise render the raw capitalised picker name ("fracture of
 // Trapezium" / "Fractura Trapezium"). Keyed by lowercase boneName.
+// AO 74A is the surgeon-selected "Hook fracture" subtype for the hamate —
+// the only carpal sub-site the AO hand classification names directly.
+// Consumed by both the bullet renderer (hook-specific wording) and the
+// trauma mapping (routes 74A to the hook diagnosis + excision-led pairs).
+export function isHamateHookFracture(fracture: {
+  familyCode: string;
+  aoCode: string;
+}): boolean {
+  return fracture.familyCode === "74" && fracture.aoCode.includes("A");
+}
+
 const CARPAL_BONE_LABELS: Record<string, { english: string; latin: string }> = {
   scaphoid: { english: "scaphoid", latin: "ossis scaphoidei" },
   lunate: { english: "lunate", latin: "ossis lunati" },
@@ -965,6 +976,7 @@ export function buildFractureBullets(
             fracture.isComminuted ? "1" : "0",
             fracture.digit ?? "",
             fracture.pattern ?? "",
+            isHamateHookFracture(fracture) ? "hook" : "",
           ].join("|");
 
     const current = grouped.get(groupingKey);
@@ -1047,11 +1059,15 @@ export function buildFractureBullets(
         ? phalanxLabel(sample, mode)
         : sample.familyCode === "77"
           ? metacarpalLabel(sample, mode)
-          : carpalLabels
+          : isHamateHookFracture(sample)
             ? mode === "latin_medical"
-              ? carpalLabels.latin
-              : carpalLabels.english
-            : sample.boneName;
+              ? "hamuli ossis hamati"
+              : "hook of hamate"
+            : carpalLabels
+              ? mode === "latin_medical"
+                ? carpalLabels.latin
+                : carpalLabels.english
+              : sample.boneName;
 
     if (mode === "latin_medical") {
       bullets.push(

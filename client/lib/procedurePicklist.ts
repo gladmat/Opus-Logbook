@@ -802,6 +802,20 @@ const HAND_FRACTURE_FIXATION: ProcedurePicklistEntry[] = [
     tags: ["trauma"],
     sortOrder: 15,
   },
+  {
+    // Hook fragment excision — the workhorse operation for symptomatic hook
+    // of hamate fractures / nonunions. No hook-specific SNOMED procedure
+    // concept exists; 449363000 is the nearest exact parent (the hook is
+    // part of the hamate). Verified active in AU + Intl editions 2026-07-23.
+    id: "hand_fx_hamate_hook_excision",
+    displayName: "Hook of hamate excision",
+    snomedCtCode: "449363000",
+    snomedCtDisplay: "Excision of part of carpal bone (procedure)",
+    specialties: ["hand_wrist"],
+    subcategory: "Fracture & Joint Fixation",
+    tags: ["trauma"],
+    sortOrder: 16,
+  },
 ];
 
 const HAND_TENDON_SURGERY: ProcedurePicklistEntry[] = [
@@ -1768,6 +1782,19 @@ const HAND_SOFT_TISSUE_COVERAGE: ProcedurePicklistEntry[] = [
     subcategory: "Soft Tissue Coverage",
     tags: ["elective"],
     sortOrder: 15,
+  },
+  {
+    // Staged coverage for degloving / large defects where immediate graft or
+    // flap isn't appropriate. Same AU-extension concept as the burns module's
+    // dermal substitute entries (no specific Intl concept exists).
+    id: "hand_cov_dermal_substitute",
+    displayName: "Dermal matrix application (BTM / Integra / Matriderm)",
+    snomedCtCode: "1084841000168109", // INTL fallback: 304040003
+    snomedCtDisplay: "Application of skin substitute (procedure)",
+    specialties: ["hand_wrist"],
+    subcategory: "Soft Tissue Coverage",
+    tags: ["skin_graft", "complex_wound", "trauma"],
+    sortOrder: 16,
   },
 ];
 

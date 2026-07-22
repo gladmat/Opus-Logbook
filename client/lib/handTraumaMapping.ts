@@ -30,6 +30,7 @@ import {
   buildTendonBullets,
   buildVesselBullets,
   generateHandTraumaDiagnosis,
+  isHamateHookFracture,
   normalizeSelection,
   type HandTraumaDiagnosisSelection,
   type MachineSummary,
@@ -1042,6 +1043,7 @@ function buildFracturePairs(normalized: MachineSummary): TraumaDiagnosisPair[] {
       fracture.isComminuted ? "1" : "0",
       fracture.digit ?? "",
       fracture.pattern ?? "",
+      isHamateHookFracture(fracture) ? "hook" : "",
     ].join("|");
     const current = groups.get(key);
     if (current) {
@@ -1077,6 +1079,31 @@ function buildFracturePairs(normalized: MachineSummary): TraumaDiagnosisPair[] {
                 suggestion.displayName ?? suggestion.procedurePicklistId,
               isDefault: suggestion.isDefault,
               reason: "Bony mallet pattern",
+            });
+          }
+          continue;
+        }
+      }
+      // Hook of hamate (AO 74A) — the surgeon explicitly picked the "Hook
+      // fracture" subtype, so route to the named diagnosis whose procedure
+      // set leads with fragment excision instead of generic carpal fixation.
+      if (isHamateHookFracture(fracture)) {
+        const hookDiagnosis = findDiagnosisById(
+          "hand_dx_hook_of_hamate_fracture",
+        );
+        if (hookDiagnosis) {
+          representative = representative ?? {
+            diagnosisPicklistId: hookDiagnosis.id,
+            displayName: hookDiagnosis.displayName,
+            snomedCtCode: hookDiagnosis.snomedCtCode,
+          };
+          for (const suggestion of evaluateSuggestions(hookDiagnosis)) {
+            procedureSuggestions.push({
+              procedurePicklistId: suggestion.procedurePicklistId,
+              displayName:
+                suggestion.displayName ?? suggestion.procedurePicklistId,
+              isDefault: suggestion.isDefault,
+              reason: "Hook of hamate fracture",
             });
           }
           continue;
@@ -1538,6 +1565,20 @@ function buildCoveragePairs(normalized: MachineSummary): TraumaDiagnosisPair[] {
       injury.surfaces,
       injury.size,
     );
+
+    // Dermal matrix (BTM / Integra / Matriderm) is a staged-coverage option
+    // for any open defect — degloving especially — alongside the
+    // zone-specific graft/flap choices.
+    if (injury.zone || injury.type === "degloving") {
+      const dermalMatrix = createProcedureSuggestion(
+        "hand_cov_dermal_substitute",
+        injury.type === "degloving"
+          ? "Degloving — staged dermal matrix coverage"
+          : "Staged dermal matrix coverage option",
+        false,
+      );
+      if (dermalMatrix) coverageSuggestions.push(dermalMatrix);
+    }
 
     return {
       key: `soft_tissue:${injury.type}:${index}`,

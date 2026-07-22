@@ -274,6 +274,12 @@ const ORTH_DX_TRAUMA: DiagnosisPicklistEntry[] = [
         isDefault: false,
         sortOrder: 3,
       },
+      {
+        procedurePicklistId: "hand_cov_dermal_substitute",
+        displayName: "Dermal matrix application (BTM / Integra / Matriderm)",
+        isDefault: false,
+        sortOrder: 4,
+      },
     ],
     sortOrder: 4,
   },
