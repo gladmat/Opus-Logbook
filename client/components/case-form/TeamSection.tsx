@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { View, Pressable, StyleSheet } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
 import * as Haptics from "expo-haptics";
@@ -52,42 +52,47 @@ function TeamSectionInner() {
     return found?.facilityName ?? facility;
   }, [facility, facilities]);
 
-  // Load contacts when facility changes
-  useEffect(() => {
-    if (!facility) {
-      setContacts([]);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      try {
-        const all = await getTeamContacts();
-        if (cancelled) return;
-        // Filter contacts for the current facility
-        const facilityId = facilities.find(
-          (f) => f.facilityName === facility,
-        )?.id;
-        if (facilityId) {
-          setContacts(
-            all.filter(
-              (c) =>
-                !c.facilityIds ||
-                (c.facilityIds as string[]).length === 0 ||
-                (c.facilityIds as string[]).includes(facilityId),
-            ),
-          );
-        } else {
-          // No matching facility ID — show all contacts
-          setContacts(all);
-        }
-      } catch {
-        setContacts([]);
+  const loadContacts = useCallback(async (): Promise<TeamContact[]> => {
+    try {
+      const all = await getTeamContacts();
+      // Filter contacts for the current facility
+      const facilityId = facilities.find(
+        (f) => f.facilityName === facility,
+      )?.id;
+      if (facilityId) {
+        return all.filter(
+          (c) =>
+            !c.facilityIds ||
+            (c.facilityIds as string[]).length === 0 ||
+            (c.facilityIds as string[]).includes(facilityId),
+        );
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
+      // No matching facility ID — show all contacts
+      return all;
+    } catch {
+      return [];
+    }
   }, [facility, facilities]);
+
+  // Load on facility change AND on screen focus — a contact quick-added or
+  // linked while this form was in the background must appear (and show the
+  // right link state) on return. useFocusEffect re-runs when the callback
+  // identity changes, so it covers the facility-change case too.
+  useFocusEffect(
+    useCallback(() => {
+      if (!facility) {
+        setContacts([]);
+        return;
+      }
+      let cancelled = false;
+      void loadContacts().then((list) => {
+        if (!cancelled) setContacts(list);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, [facility, loadContacts]),
+  );
 
   const selectedIds = useMemo(
     () => new Set(operativeTeam.map((m) => m.contactId)),
@@ -95,6 +100,17 @@ function TeamSectionInner() {
   );
 
   const selectedCount = operativeTeam.length;
+
+  // Live contact link-state wins; the stored snapshot is the fallback for
+  // members whose contact was deleted after tagging.
+  const linkedSelectedCount = useMemo(
+    () =>
+      operativeTeam.filter((m) => {
+        const contact = contacts.find((c) => c.id === m.contactId);
+        return contact ? !!contact.linkedUserId : !!m.linkedUserId;
+      }).length,
+    [operativeTeam, contacts],
+  );
 
   const handleToggle = useCallback(
     (contact: TeamContact) => {
@@ -199,20 +215,30 @@ function TeamSectionInner() {
                 onPress={() => handleToggle(contact)}
                 testID={`caseForm.team.chip-${contact.id}`}
                 accessibilityRole="checkbox"
-                accessibilityLabel={`${contact.firstName} ${contact.lastName}`}
+                accessibilityLabel={`${contact.firstName} ${contact.lastName}${contact.linkedUserId ? ", on Opus" : ""}`}
                 accessibilityState={{ checked: isSelected }}
               >
-                <ThemedText
-                  style={[
-                    styles.chipText,
-                    {
-                      color: isSelected ? theme.link : theme.textSecondary,
-                    },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {abbreviateName(contact.firstName, contact.lastName)}
-                </ThemedText>
+                <View style={styles.chipContent}>
+                  {contact.linkedUserId ? (
+                    <View
+                      style={[
+                        styles.linkedDot,
+                        { backgroundColor: theme.success },
+                      ]}
+                    />
+                  ) : null}
+                  <ThemedText
+                    style={[
+                      styles.chipText,
+                      {
+                        color: isSelected ? theme.link : theme.textSecondary,
+                      },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {abbreviateName(contact.firstName, contact.lastName)}
+                  </ThemedText>
+                </View>
               </Pressable>
 
               {/* Role badge below selected chip */}
@@ -319,6 +345,26 @@ function TeamSectionInner() {
           </Pressable>
         </View>
       </View>
+
+      {/* Who will actually receive this case via E2EE sharing */}
+      {selectedCount > 0 ? (
+        <View style={styles.shareFooter} testID="caseForm.team.shareFooter">
+          <ThemedText
+            style={[styles.shareFooterText, { color: theme.textTertiary }]}
+          >
+            {linkedSelectedCount} of {selectedCount} tagged member
+            {selectedCount === 1 ? "" : "s"} will receive this case.
+          </ThemedText>
+          {linkedSelectedCount < selectedCount ? (
+            <ThemedText
+              style={[styles.shareFooterText, { color: theme.textTertiary }]}
+            >
+              Unlinked members won&apos;t receive it — link them in Team
+              Contacts.
+            </ThemedText>
+          ) : null}
+        </View>
+      ) : null}
     </CollapsibleFormSection>
   );
 }
@@ -366,6 +412,23 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 14,
     fontWeight: "500",
+  },
+  chipContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  linkedDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  shareFooter: {
+    marginTop: Spacing.xs,
+    gap: 2,
+  },
+  shareFooterText: {
+    fontSize: 12,
   },
   roleBadge: {
     marginTop: 4,
