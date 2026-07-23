@@ -1,7 +1,7 @@
 # Team Sharing — Contact Linking Failure Analysis & Improvement Plan
 
 **Date:** 2026-07-23
-**Status:** ANALYSIS COMPLETE — implementation not started (awaiting Mateusz's sign-off on phasing)
+**Status:** IMPLEMENTED IN FULL 2026-07-23 (all 9 items, Phases 1–3, plus the edit-reshare unique-index bug discovered during implementation planning) — branch `feature/team-sharing-linking`, shipped with 2.13.0. See the CLAUDE.md "Team Sharing Linking Overhaul" bullet for what landed.
 **Trigger:** Real-world failure. Mateusz's colleague installed Opus and created an account. Mateusz then added the colleague's email to his existing saved team contact, tagged him on a case, and saved. The case was never shared.
 
 ---
