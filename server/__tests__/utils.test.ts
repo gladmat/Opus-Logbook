@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { normalizeEmail, SNOMED_CONCEPT_ID_RE } from "../utils";
+import {
+  isSyntheticAppleEmail,
+  normalizeEmail,
+  SNOMED_CONCEPT_ID_RE,
+} from "../utils";
 
 describe("normalizeEmail", () => {
   it("lowercases uppercase input", () => {
@@ -45,5 +49,21 @@ describe("SNOMED_CONCEPT_ID_RE", () => {
   it("rejects empty or overlong input", () => {
     expect(SNOMED_CONCEPT_ID_RE.test("")).toBe(false);
     expect(SNOMED_CONCEPT_ID_RE.test("1".repeat(19))).toBe(false);
+  });
+});
+
+describe("isSyntheticAppleEmail", () => {
+  it("matches the private-relay placeholder domain", () => {
+    expect(isSyntheticAppleEmail("apple_abc123@private.opus.local")).toBe(true);
+    expect(isSyntheticAppleEmail("  APPLE_X@PRIVATE.OPUS.LOCAL ")).toBe(true);
+  });
+
+  it("rejects real emails", () => {
+    expect(isSyntheticAppleEmail("surgeon@hospital.org")).toBe(false);
+    expect(isSyntheticAppleEmail("relay@privaterelay.appleid.com")).toBe(false);
+  });
+
+  it("rejects empty input", () => {
+    expect(isSyntheticAppleEmail("")).toBe(false);
   });
 });

@@ -29,6 +29,7 @@ import {
   removeDiscoveryMatch,
 } from "@/lib/discoveryService";
 import { offerRetroShareForContact } from "@/lib/linkingPrompts";
+import { searchUserByEmail } from "@/lib/sharingApi";
 import type { DiscoverMatch } from "@/lib/teamContactsApi";
 
 type Section = { title: string; data: TeamContact[] };
@@ -80,6 +81,41 @@ export default function TeamContactsScreen() {
           {
             contactId: contact.id,
             linkedUserId: match.userId,
+            displayName: contact.displayName,
+          },
+          {
+            successTitle: "Contact Linked",
+            successMessage: `${contact.displayName} will now receive cases you tag them on.`,
+          },
+        );
+      } catch (error) {
+        Alert.alert(
+          "Link Failed",
+          error instanceof Error ? error.message : "Failed to link contact.",
+        );
+      }
+    },
+    [loadContacts],
+  );
+
+  const handleLinkInvited = useCallback(
+    async (contact: TeamContact) => {
+      if (!contact.email) return;
+      try {
+        const user = await searchUserByEmail(contact.email);
+        if (!user) {
+          Alert.alert(
+            "Can't link yet",
+            "They've joined Opus but haven't enabled discovery. Ask them to turn on Discoverable in Settings.",
+          );
+          return;
+        }
+        await linkContact(contact.id, user.id);
+        loadContacts();
+        await offerRetroShareForContact(
+          {
+            contactId: contact.id,
+            linkedUserId: user.id,
             displayName: contact.displayName,
           },
           {
@@ -270,6 +306,15 @@ export default function TeamContactsScreen() {
                     {getCareerStageLabel(item.careerStage)}
                   </ThemedText>
                 )}
+                {!item.linkedUserId &&
+                  item.invitationSentAt &&
+                  item.invitationAcceptedAt && (
+                    <ThemedText
+                      style={[styles.contactDetail, { color: theme.success }]}
+                    >
+                      Accepted your invite
+                    </ThemedText>
+                  )}
               </View>
               {/* Discovery "Link" button for matched unlinked contacts */}
               {!item.linkedUserId && matchByContactId.has(item.id) && (
@@ -289,6 +334,33 @@ export default function TeamContactsScreen() {
                   </ThemedText>
                 </Pressable>
               )}
+              {/* Invited contacts who accepted (signup email matching) can be
+                  linked directly by email — no discovery round needed. Only
+                  rows the owner explicitly invited get this, so the only
+                  disclosure is "your invitee accepted your invitation". */}
+              {!item.linkedUserId &&
+                !matchByContactId.has(item.id) &&
+                !!item.invitationSentAt &&
+                !!item.invitationAcceptedAt &&
+                !!item.email && (
+                  <Pressable
+                    style={[styles.linkButton, { backgroundColor: theme.link }]}
+                    onPress={(e) => {
+                      e.stopPropagation?.();
+                      handleLinkInvited(item);
+                    }}
+                    testID={`teamContacts.btn-linkInvited-${item.id}`}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.linkButtonText,
+                        { color: theme.buttonText },
+                      ]}
+                    >
+                      Link
+                    </ThemedText>
+                  </Pressable>
+                )}
               {item.defaultRole && (
                 <View
                   style={[

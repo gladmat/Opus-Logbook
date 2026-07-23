@@ -16,3 +16,12 @@ export function normalizeEmail(raw: string): string {
  * Reject anything else before interpolating into an external URL.
  */
 export const SNOMED_CONCEPT_ID_RE = /^\d{1,18}$/;
+
+/**
+ * Apple Sign In users who hide (or don't disclose) their email get a
+ * synthetic `apple_<sub>@private.opus.local` placeholder. It can never match
+ * a real contact email, so invitation matching must skip it.
+ */
+export function isSyntheticAppleEmail(email: string): boolean {
+  return normalizeEmail(email).endsWith("@private.opus.local");
+}

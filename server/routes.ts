@@ -15,7 +15,11 @@ import {
   getAllStagingConfigs,
 } from "./diagnosisStagingConfig";
 import { sendPasswordResetEmail, sendInvitationEmail } from "./email";
-import { normalizeEmail, SNOMED_CONCEPT_ID_RE } from "./utils";
+import {
+  isSyntheticAppleEmail,
+  normalizeEmail,
+  SNOMED_CONCEPT_ID_RE,
+} from "./utils";
 import {
   generateEphemeralOprfKey,
   evaluateBlindedPoint,
@@ -763,6 +767,18 @@ export async function registerRoutes(app: Express): Promise<void> {
           userId: user.id,
           tokenVersion: user.tokenVersion ?? 0,
         });
+
+        // Parity with email signup (see /api/auth/signup): match the new
+        // user's email against pending team_contacts invitations — but never
+        // against the synthetic private-relay placeholder, which can't
+        // correspond to a real invited address.
+        if (!isSyntheticAppleEmail(userEmail)) {
+          void storage
+            .matchInvitationsByEmail(userEmail)
+            .catch((e: unknown) =>
+              log.warn({ err: e }, "invitation matching failed (apple)"),
+            );
+        }
 
         res.json({
           token,
