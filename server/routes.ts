@@ -161,6 +161,10 @@ const profileUpdateSchema = insertProfileSchema
     careerStage: true,
     onboardingComplete: true,
     surgicalPreferences: true,
+    // Privacy: lets users opt out of colleague search/discovery/linking.
+    // The search, discover, discover-psi and team-contact link endpoints
+    // all gate on profiles.discoverable === false.
+    discoverable: true,
   })
   .partial();
 

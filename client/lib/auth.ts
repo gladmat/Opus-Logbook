@@ -30,6 +30,8 @@ export interface UserProfile {
   careerStage: string | null;
   surgicalPreferences?: SurgicalPreferences;
   onboardingComplete: boolean;
+  /** Colleagues can find/link this account by email or phone. Server default true. */
+  discoverable?: boolean;
 }
 
 export interface UserFacility {

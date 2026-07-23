@@ -9,6 +9,7 @@ import {
   Linking,
   TextInput,
   ActivityIndicator,
+  Switch,
 } from "react-native";
 import { AuthenticatedAvatar } from "@/components/AuthenticatedAvatar";
 import { useNavigation } from "@react-navigation/native";
@@ -151,6 +152,18 @@ export default function SettingsScreen() {
     useAuth();
 
   const [caseCount, setCaseCount] = useState<number | null>(null);
+
+  const handleToggleDiscoverable = async (value: boolean) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      await updateProfile({ discoverable: value });
+    } catch {
+      Alert.alert(
+        "Couldn't update",
+        "Your discoverability setting wasn't saved. Check your connection and try again.",
+      );
+    }
+  };
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -639,6 +652,38 @@ export default function SettingsScreen() {
               onPress={() => navigation.navigate("KeyVerification")}
               testID="settings.row-keyVerification"
             />
+            <View style={[styles.divider, { backgroundColor: theme.border }]} />
+            <View
+              style={styles.settingsItem}
+              testID="settings.row-discoverable"
+            >
+              <View
+                style={[
+                  styles.iconContainer,
+                  { backgroundColor: theme.accentSurface },
+                ]}
+              >
+                <Feather name="eye" size={20} color={theme.link} />
+              </View>
+              <View style={styles.itemContent}>
+                <ThemedText style={[styles.itemLabel, { color: theme.text }]}>
+                  Discoverable
+                </ThemedText>
+                <ThemedText
+                  style={[styles.itemSubtitle, { color: theme.textSecondary }]}
+                >
+                  Let colleagues find and link you by email or phone
+                </ThemedText>
+              </View>
+              <Switch
+                value={profile?.discoverable !== false}
+                onValueChange={handleToggleDiscoverable}
+                trackColor={{ false: theme.border, true: theme.link }}
+                thumbColor={theme.buttonText}
+                accessibilityLabel="Discoverable to colleagues"
+                testID="settings.toggle-discoverable"
+              />
+            </View>
             <View style={[styles.divider, { backgroundColor: theme.border }]} />
             <SettingsItem
               icon="lock"

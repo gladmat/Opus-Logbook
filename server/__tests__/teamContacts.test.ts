@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
+import { insertProfileSchema } from "@shared/schema";
 
 // Inline the schemas here to test validation logic without importing from routes
 // (routes.ts doesn't export schemas)
@@ -176,5 +177,45 @@ describe("displayName derivation", () => {
   it("handles single-word names", () => {
     const displayName = `${"Madonna"} ${""}`.trim();
     expect(displayName).toBe("Madonna");
+  });
+});
+
+describe("profileUpdateSchema (discoverable privacy opt-out)", () => {
+  // Mirrors the pick list in server/routes.ts (routes doesn't export its
+  // schemas) but is built from the REAL insertProfileSchema, so the
+  // drizzle-zod field type is exercised. Keep the pick list in sync.
+  const profileUpdateSchema = insertProfileSchema
+    .pick({
+      fullName: true,
+      firstName: true,
+      lastName: true,
+      dateOfBirth: true,
+      sex: true,
+      countryOfPractice: true,
+      medicalCouncilNumber: true,
+      professionalRegistrations: true,
+      careerStage: true,
+      onboardingComplete: true,
+      surgicalPreferences: true,
+      discoverable: true,
+    })
+    .partial();
+
+  it("accepts discoverable=false and preserves it", () => {
+    const result = profileUpdateSchema.safeParse({ discoverable: false });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.discoverable).toBe(false);
+  });
+
+  it("accepts discoverable=true", () => {
+    const result = profileUpdateSchema.safeParse({ discoverable: true });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.discoverable).toBe(true);
+  });
+
+  it("rejects a non-boolean discoverable", () => {
+    expect(profileUpdateSchema.safeParse({ discoverable: "yes" }).success).toBe(
+      false,
+    );
   });
 });
