@@ -24,6 +24,7 @@ import {
   deleteTeamContact,
   sendInvitation,
 } from "@/lib/teamContactsApi";
+import { promptLinkContactByEmail } from "@/lib/linkingPrompts";
 import { getCareerStagesForCountry } from "@shared/careerStages";
 import {
   TEAM_MEMBER_ROLE_LABELS,
@@ -57,6 +58,8 @@ export default function AddEditTeamContactScreen() {
   const [linkedUserId, setLinkedUserId] = useState<string | null>(null);
   const [invitationSentAt, setInvitationSentAt] = useState<string | null>(null);
   const [sendingInvite, setSendingInvite] = useState(false);
+  /** Email as originally loaded — the link prompt re-offers only when it changes. */
+  const [initialEmail, setInitialEmail] = useState("");
 
   const careerStages = useMemo(
     () => getCareerStagesForCountry(profile?.countryOfPractice ?? null),
@@ -74,6 +77,7 @@ export default function AddEditTeamContactScreen() {
         setFirstName(contact.firstName);
         setLastName(contact.lastName);
         setEmail(contact.email ?? "");
+        setInitialEmail(contact.email ?? "");
         setPhone(contact.phone ?? "");
         setCareerStage(contact.careerStage ?? null);
         setDefaultRole(
@@ -112,12 +116,23 @@ export default function AddEditTeamContactScreen() {
         notes: notes.trim() || null,
         facilityIds: selectedFacilityIds,
       };
-      if (isEdit && contactId) {
-        await updateTeamContact(contactId, data);
-      } else {
-        await createTeamContact(data);
-      }
+      const saved =
+        isEdit && contactId
+          ? await updateTeamContact(contactId, data)
+          : await createTeamContact(data);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // The user just typed a colleague's email — look them up on Opus and
+      // offer a one-tap link. Only on create or when the email changed, so
+      // a declined offer isn't re-nagged on unrelated edits.
+      const newEmail = (saved.email ?? "").trim().toLowerCase();
+      const emailChanged = newEmail !== initialEmail.trim().toLowerCase();
+      if (newEmail && !saved.linkedUserId && (emailChanged || !isEdit)) {
+        try {
+          await promptLinkContactByEmail(saved, profile?.userId);
+        } catch {
+          // The link prompt must never block leaving the screen.
+        }
+      }
       navigation.goBack();
     } catch (err) {
       Alert.alert(
@@ -139,6 +154,8 @@ export default function AddEditTeamContactScreen() {
     isEdit,
     contactId,
     navigation,
+    initialEmail,
+    profile?.userId,
   ]);
 
   const handleDelete = useCallback(() => {
