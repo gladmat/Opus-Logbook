@@ -106,7 +106,7 @@ export default function TeamContactsScreen() {
         if (!user) {
           Alert.alert(
             "Can't link yet",
-            "They've joined Opus but haven't enabled discovery. Ask them to turn on Discoverable in Settings.",
+            "No Opus account matches this contact's email right now. They may have signed up with a different address — check the email on this contact.",
           );
           return;
         }
