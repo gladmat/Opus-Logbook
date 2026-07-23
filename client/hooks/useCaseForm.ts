@@ -108,15 +108,7 @@ import {
   buildBreastEpisodeUpdatePlan,
   getBreastEpisodeLinkedId,
 } from "@/lib/breastEpisodeHelpers";
-import { buildShareableBlob } from "@/lib/buildShareableBlob";
-import { shareCase, getSharedOutbox, revokeSharedCase } from "@/lib/sharingApi";
-import { verifyAndPinRecipientKeys } from "@/lib/keyPinningStore";
-import { getUserDeviceKeys } from "@/lib/teamContactsApi";
-import {
-  generateCaseKeyHex,
-  encryptPayloadWithCaseKey,
-  wrapCaseKeyForRecipient,
-} from "@/lib/e2ee";
+import { shareCaseWithTeam, type TeamShareOutcome } from "@/lib/caseSharing";
 import { deriveEpaAssessments } from "@/lib/epaDerivation";
 import { saveEpaTargets } from "@/lib/assessmentStorage";
 
@@ -2520,184 +2512,51 @@ export function useCaseForm({
           }
         }
 
-        // Share with tagged team members + linked operative team (non-blocking)
-        {
-          // Collect shareable members: old email-tagged + linked operative team
-          const shareableMembers: {
-            userId: string;
-            displayName: string;
-            role: string;
-            publicKeys: { deviceId: string; publicKey: string }[];
-          }[] = [...state.teamMembers];
-
-          // Add linked operativeTeam members (fetch their device keys).
-          // Every fetched-from-server public key set goes through TOFU
-          // pinning — on first observation we pin, on subsequent shares
-          // we assert the key matches. If the server swapped a key
-          // (malicious operator, MITM on an older TLS config, etc.) the
-          // mismatch surfaces as a warning and we skip that recipient.
-          const tofuMismatchedRecipients: {
-            userId: string;
-            displayName: string;
-            mismatches: {
-              deviceId: string;
-              storedPublicKey: string;
-              receivedPublicKey: string;
-            }[];
-          }[] = [];
-          const linkedOpMembers = state.operativeTeam.filter(
-            (m) => m.linkedUserId,
-          );
-          for (const member of linkedOpMembers) {
-            // Skip if already in shareableMembers (avoid double-share)
-            if (
-              shareableMembers.some((m) => m.userId === member.linkedUserId)
-            ) {
-              continue;
-            }
-            try {
-              const keys = await getUserDeviceKeys(member.linkedUserId!);
-              if (keys.length > 0) {
-                const verification = await verifyAndPinRecipientKeys(
-                  member.linkedUserId!,
-                  keys,
-                );
-                if (verification.kind === "mismatch") {
-                  tofuMismatchedRecipients.push({
-                    userId: member.linkedUserId!,
-                    displayName: member.displayName,
-                    mismatches: verification.mismatches,
-                  });
-                  if (__DEV__)
-                    console.warn(
-                      "[useCaseForm] TOFU mismatch for",
-                      member.displayName,
-                      verification.mismatches,
-                    );
-                  continue;
-                }
-                shareableMembers.push({
-                  userId: member.linkedUserId!,
-                  displayName: member.displayName,
-                  role: member.operativeRole,
-                  publicKeys: verification.keys,
-                });
-              }
-            } catch {
-              // Skip — user may have no device keys registered
-            }
+        // Share with tagged team members + linked operative team
+        // (non-blocking). The pipeline — device-key fetch, TOFU pinning,
+        // edit-mode revoke/re-share, encrypt + POST — lives in
+        // client/lib/caseSharing.ts; only the Alerts stay in this hook.
+        let shareOutcome: TeamShareOutcome | null = null;
+        if (
+          state.teamMembers.length > 0 ||
+          state.operativeTeam.length > 0 ||
+          (isEditMode && existingCase)
+        ) {
+          try {
+            shareOutcome = await shareCaseWithTeam({
+              savedCase,
+              operativeTeam: state.operativeTeam,
+              isEdit: isEditMode && !!existingCase,
+              preResolved: state.teamMembers,
+            });
+          } catch (sharingError) {
+            // shareCaseWithTeam is designed not to throw — belt and braces.
+            console.warn("Sharing failed:", sharingError);
           }
-          if (tofuMismatchedRecipients.length > 0) {
-            const names = tofuMismatchedRecipients
-              .map((r) => r.displayName)
-              .join(", ");
-            Alert.alert(
-              "Sharing skipped for some recipients",
-              `The stored device key for ${names} doesn't match what the server returned. The case was not shared with them. Verify the device change with them directly, then accept the new key and retry.`,
-              [
-                { text: "Later", style: "cancel" },
-                {
-                  text: "Review keys",
-                  onPress: () => {
-                    if (navigationRef.isReady()) {
-                      navigationRef.navigate("KeyVerification", {
-                        userId: tofuMismatchedRecipients[0]?.userId,
-                        pendingRotations: tofuMismatchedRecipients,
-                      });
-                    }
-                  },
-                },
-              ],
-            );
-          }
-
-          // Edit-mode revocation: if this case was previously shared with
-          // someone who is now NO longer in the team set, revoke the old
-          // share so they lose access. Without this, removing a member from
-          // `operativeTeam` on edit left them with permanent read access
-          // via the prior `shared_cases` row.
-          if (isEditMode && existingCase) {
-            try {
-              const outbox = await getSharedOutbox();
-              const existingSharesForCase = outbox.filter(
-                (s) => s.caseId === savedCase.id,
-              );
-              const newRecipientIds = new Set(
-                shareableMembers.map((m) => m.userId),
-              );
-              for (const share of existingSharesForCase) {
-                // Defensive check: outbox entries carry recipientUserId;
-                // if missing (shouldn't happen), skip to avoid revoking
-                // something we can't classify.
-                if (!share.recipientUserId) continue;
-                if (!newRecipientIds.has(share.recipientUserId)) {
-                  try {
-                    await revokeSharedCase(share.id);
-                  } catch (revokeErr) {
-                    console.warn(
-                      "[useCaseForm] Failed to revoke stale share",
-                      share.id,
-                      revokeErr,
-                    );
+        }
+        if (shareOutcome && shareOutcome.tofuMismatches.length > 0) {
+          const tofuMismatchedRecipients = shareOutcome.tofuMismatches;
+          const names = tofuMismatchedRecipients
+            .map((r) => r.displayName)
+            .join(", ");
+          Alert.alert(
+            "Sharing skipped for some recipients",
+            `The stored device key for ${names} doesn't match what the server returned. The case was not shared with them. Verify the device change with them directly, then accept the new key and retry.`,
+            [
+              { text: "Later", style: "cancel" },
+              {
+                text: "Review keys",
+                onPress: () => {
+                  if (navigationRef.isReady()) {
+                    navigationRef.navigate("KeyVerification", {
+                      userId: tofuMismatchedRecipients[0]?.userId,
+                      pendingRotations: tofuMismatchedRecipients,
+                    });
                   }
-                }
-              }
-            } catch (outboxError) {
-              // Couldn't enumerate — leave existing shares in place. The
-              // subsequent `shareCase()` call still creates new rows for
-              // current recipients, so this is a degraded state, not
-              // broken.
-              console.warn(
-                "[useCaseForm] Could not read outbox for revocation check:",
-                outboxError,
-              );
-            }
-          }
-
-          if (shareableMembers.length > 0) {
-            try {
-              const caseKeyHex = await generateCaseKeyHex();
-              const teamRoles = shareableMembers.map((m) => ({
-                userId: m.userId,
-                displayName: m.displayName,
-                role: m.role,
-              }));
-              const blob = buildShareableBlob(savedCase, teamRoles);
-              const encryptedBlob = await encryptPayloadWithCaseKey(
-                JSON.stringify(blob),
-                caseKeyHex,
-              );
-
-              const recipients = [];
-              for (const member of shareableMembers) {
-                const keyEnvelopes = [];
-                for (const pk of member.publicKeys) {
-                  const envelope = await wrapCaseKeyForRecipient(
-                    caseKeyHex,
-                    pk.publicKey,
-                  );
-                  keyEnvelopes.push({
-                    deviceId: pk.deviceId,
-                    envelopeJson: JSON.stringify(envelope),
-                  });
-                }
-                recipients.push({
-                  userId: member.userId,
-                  role: member.role,
-                  keyEnvelopes,
-                });
-              }
-
-              await shareCase({
-                caseId: savedCase.id,
-                encryptedShareableBlob: encryptedBlob,
-                recipients,
-              });
-            } catch (sharingError) {
-              console.warn("Sharing failed:", sharingError);
-              // Case saved successfully — sharing will need manual retry
-            }
-          }
+                },
+              },
+            ],
+          );
         }
 
         // Derive EPA assessment targets (non-blocking)

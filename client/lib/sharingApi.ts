@@ -53,7 +53,7 @@ export interface ShareCaseParams {
 
 export async function shareCase(
   params: ShareCaseParams,
-): Promise<{ sharedCaseIds: string[] }> {
+): Promise<{ sharedCases: { id: string; recipientUserId: string }[] }> {
   const res = await sharingFetch("/api/share", {
     method: "POST",
     body: JSON.stringify(params),
