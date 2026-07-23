@@ -108,7 +108,12 @@ import {
   buildBreastEpisodeUpdatePlan,
   getBreastEpisodeLinkedId,
 } from "@/lib/breastEpisodeHelpers";
-import { shareCaseWithTeam, type TeamShareOutcome } from "@/lib/caseSharing";
+import {
+  rehydrateTeamSnapshots,
+  shareCaseWithTeam,
+  type TeamShareOutcome,
+} from "@/lib/caseSharing";
+import { getTeamContacts } from "@/lib/teamContactsApi";
 import { deriveEpaAssessments } from "@/lib/epaDerivation";
 import { saveEpaTargets } from "@/lib/assessmentStorage";
 
@@ -2330,6 +2335,27 @@ export function useCaseForm({
           diagnosisGroupsWithFlapOutcomeDefaults,
         );
 
+        // Refresh operativeTeam snapshots from the live contacts list so a
+        // contact linked AFTER tagging still shares on this save (and on
+        // every later edit + re-save). The type's contract is "snapshot at
+        // save time" — tag-time staleness was the root cause of cases never
+        // reaching colleagues who linked late. Offline → stored snapshots,
+        // exactly the old behaviour. `liveContacts` is reused below by the
+        // post-save rescue prompt.
+        let liveContacts: TeamContact[] | null = null;
+        let operativeTeamForSave = state.operativeTeam;
+        if (state.operativeTeam.length > 0) {
+          try {
+            liveContacts = await getTeamContacts();
+            operativeTeamForSave = rehydrateTeamSnapshots(
+              state.operativeTeam,
+              liveContacts,
+            ).team;
+          } catch {
+            // Offline / API failure — keep the stored snapshots.
+          }
+        }
+
         const casePayload: Case = {
           id: isEditMode && existingCase ? existingCase.id : uuidv4(),
           patientIdentifier: state.patientIdentifier.trim(),
@@ -2453,7 +2479,7 @@ export function useCaseForm({
                   })),
                 ],
           operativeTeam:
-            state.operativeTeam.length > 0 ? state.operativeTeam : undefined,
+            operativeTeamForSave.length > 0 ? operativeTeamForSave : undefined,
           ownerId: isEditMode && existingCase ? existingCase.ownerId : userId,
           formOpenedAt: formOpenedAt || undefined,
           formSavedAt,
@@ -2519,13 +2545,13 @@ export function useCaseForm({
         let shareOutcome: TeamShareOutcome | null = null;
         if (
           state.teamMembers.length > 0 ||
-          state.operativeTeam.length > 0 ||
+          operativeTeamForSave.length > 0 ||
           (isEditMode && existingCase)
         ) {
           try {
             shareOutcome = await shareCaseWithTeam({
               savedCase,
-              operativeTeam: state.operativeTeam,
+              operativeTeam: operativeTeamForSave,
               isEdit: isEditMode && !!existingCase,
               preResolved: state.teamMembers,
             });
@@ -2559,8 +2585,10 @@ export function useCaseForm({
           );
         }
 
-        // Derive EPA assessment targets (non-blocking)
-        if (state.operativeTeam.length > 0 && profile?.careerStage) {
+        // Derive EPA assessment targets (non-blocking). Uses the rehydrated
+        // team so a careerStage filled from the live contact improves the
+        // derived targets.
+        if (operativeTeamForSave.length > 0 && profile?.careerStage) {
           try {
             const allProcs = savedCase.diagnosisGroups.flatMap(
               (g: DiagnosisGroup) => g.procedures,
@@ -2573,7 +2601,7 @@ export function useCaseForm({
               profile.userId,
               profile.careerStage,
               profile.userId,
-              state.operativeTeam,
+              operativeTeamForSave,
               epaProcs,
             );
             if (targets.length > 0) {
@@ -2589,17 +2617,41 @@ export function useCaseForm({
         // Surface silent team-sharing / EPA limitations. Sharing and EPA both
         // filter the operativeTeam to linked Opus users with careerStage set;
         // members failing either check are dropped with no visible feedback.
-        if (state.operativeTeam.length > 0) {
+        // Counts come from the REHYDRATED team so a just-linked contact isn't
+        // reported as unlinked.
+        if (operativeTeamForSave.length > 0) {
           const issues: string[] = [];
-          const unlinkedCount = state.operativeTeam.filter(
+          const unlinkedCount = operativeTeamForSave.filter(
             (m) => !m.linkedUserId,
           ).length;
-          const linkedMissingStage = state.operativeTeam.filter(
+          const linkedMissingStage = operativeTeamForSave.filter(
             (m) => m.linkedUserId && !m.careerStage,
           ).length;
           if (unlinkedCount > 0) {
             issues.push(
               `• ${unlinkedCount} tagged member${unlinkedCount === 1 ? " isn't" : "s aren't"} linked to an Opus account yet, so they won't receive this case.`,
+            );
+          }
+          const zeroKeyRecipients = shareOutcome?.zeroKeyRecipients ?? [];
+          if (zeroKeyRecipients.length > 0) {
+            const names = zeroKeyRecipients.map((r) => r.displayName);
+            issues.push(
+              names.length <= 2
+                ? `• ${names.join(" and ")} ${names.length === 1 ? "hasn't" : "haven't"} signed in to Opus on a device yet, so the case couldn't be shared with them. Re-save it after they sign in.`
+                : `• ${names.length} linked members haven't signed in to Opus on a device yet, so the case couldn't be shared with them. Re-save it after they sign in.`,
+            );
+          }
+          const shareErrors = shareOutcome?.errors ?? [];
+          if (shareErrors.length > 0) {
+            const namedFailures = new Set(
+              shareErrors
+                .map((e) => e.userId)
+                .filter((id): id is string => !!id),
+            ).size;
+            issues.push(
+              namedFailures > 0
+                ? `• Sharing failed for ${namedFailures} member${namedFailures === 1 ? "" : "s"} — check your connection and re-save to retry.`
+                : "• Sharing failed — check your connection and re-save to retry.",
             );
           }
           if (!profile?.careerStage) {
