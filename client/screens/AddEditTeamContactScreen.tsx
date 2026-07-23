@@ -25,6 +25,7 @@ import {
   sendInvitation,
 } from "@/lib/teamContactsApi";
 import { promptLinkContactByEmail } from "@/lib/linkingPrompts";
+import { markDiscoveryStale } from "@/lib/discoveryService";
 import { getCareerStagesForCountry } from "@shared/careerStages";
 import {
   TEAM_MEMBER_ROLE_LABELS,
@@ -60,6 +61,8 @@ export default function AddEditTeamContactScreen() {
   const [sendingInvite, setSendingInvite] = useState(false);
   /** Email as originally loaded — the link prompt re-offers only when it changes. */
   const [initialEmail, setInitialEmail] = useState("");
+  /** Phone as originally loaded — identifier changes reset the discovery throttle. */
+  const [initialPhone, setInitialPhone] = useState("");
 
   const careerStages = useMemo(
     () => getCareerStagesForCountry(profile?.countryOfPractice ?? null),
@@ -79,6 +82,7 @@ export default function AddEditTeamContactScreen() {
         setEmail(contact.email ?? "");
         setInitialEmail(contact.email ?? "");
         setPhone(contact.phone ?? "");
+        setInitialPhone(contact.phone ?? "");
         setCareerStage(contact.careerStage ?? null);
         setDefaultRole(
           (contact.defaultRole as TeamMemberOperativeRole) ?? null,
@@ -126,6 +130,13 @@ export default function AddEditTeamContactScreen() {
       // a declined offer isn't re-nagged on unrelated edits.
       const newEmail = (saved.email ?? "").trim().toLowerCase();
       const emailChanged = newEmail !== initialEmail.trim().toLowerCase();
+      const phoneChanged = (saved.phone ?? "").trim() !== initialPhone.trim();
+      // Backstop for the background discovery job: a new/changed identifier
+      // on an unlinked contact resets the 24h throttle — even when the link
+      // prompt below is declined or never fires.
+      if (!saved.linkedUserId && (emailChanged || phoneChanged)) {
+        void markDiscoveryStale();
+      }
       if (newEmail && !saved.linkedUserId && (emailChanged || !isEdit)) {
         try {
           await promptLinkContactByEmail(saved, profile?.userId);
@@ -155,6 +166,7 @@ export default function AddEditTeamContactScreen() {
     contactId,
     navigation,
     initialEmail,
+    initialPhone,
     profile?.userId,
   ]);
 

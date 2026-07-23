@@ -24,6 +24,7 @@ import {
   type TeamMemberOperativeRole,
 } from "@/types/teamContacts";
 import {
+  discoverUnlinkedContacts,
   getDiscoveryMatches,
   removeDiscoveryMatch,
 } from "@/lib/discoveryService";
@@ -100,6 +101,12 @@ export default function TeamContactsScreen() {
     useCallback(() => {
       setLoading(true);
       loadContacts();
+      // Actually run discovery on focus (still 24h-throttled unless a
+      // contact edit marked it stale) instead of only reading yesterday's
+      // cached matches — then refresh so new Link buttons appear.
+      void discoverUnlinkedContacts().then((found) => {
+        if (found > 0) loadContacts();
+      });
     }, [loadContacts]),
   );
 

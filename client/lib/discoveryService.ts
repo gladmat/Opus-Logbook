@@ -60,8 +60,11 @@ export async function discoverUnlinkedContacts(): Promise<number> {
       (c) => !c.linkedUserId && (c.email || c.phone || c.registrationNumber),
     );
 
+    // Deliberately NOT stamping lastRun here: a zero-unlinked round costs
+    // one contacts fetch and nothing else, and stamping it used to consume
+    // the 24h window right before the user added an email to a contact.
+    // Cost-bearing rounds (PSI ran) stamp below.
     if (unlinked.length === 0) {
-      await AsyncStorage.setItem(lastRunKey(), String(Date.now()));
       return 0;
     }
 
@@ -160,6 +163,20 @@ async function psiPreFilter(
     }
   }
   return matched;
+}
+
+/**
+ * Drop the 24h throttle stamp so the next `discoverUnlinkedContacts()` runs
+ * immediately. Called when a contact gains/changes an identifier — the
+ * moment discovery is most likely to find something new. Cached matches
+ * stay valid. Best-effort, never throws.
+ */
+export async function markDiscoveryStale(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(lastRunKey());
+  } catch {
+    // Non-fatal — the regular 24h cycle still applies.
+  }
 }
 
 /**
