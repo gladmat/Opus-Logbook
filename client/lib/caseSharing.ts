@@ -450,6 +450,8 @@ export async function linkAndShareCaseWithHit(params: {
   savedCase: Case;
   hit: Pick<RescueHit, "contactId" | "displayName" | "user">;
 }): Promise<{
+  /** linkContact succeeded — false only when the link call itself failed. */
+  linked: boolean;
   shared: boolean;
   zeroKeys: boolean;
   tofuBlocked: boolean;
@@ -460,6 +462,7 @@ export async function linkAndShareCaseWithHit(params: {
     await linkContact(hit.contactId, hit.user.id);
   } catch (error) {
     return {
+      linked: false,
       shared: false,
       zeroKeys: false,
       tofuBlocked: false,
@@ -476,12 +479,22 @@ export async function linkAndShareCaseWithHit(params: {
     const keys = await getUserDeviceKeys(hit.user.id);
     if (keys.length === 0) {
       await markSnapshotLinked(savedCase.id, hit.contactId, hit.user.id);
-      return { shared: false, zeroKeys: true, tofuBlocked: false };
+      return {
+        linked: true,
+        shared: false,
+        zeroKeys: true,
+        tofuBlocked: false,
+      };
     }
     const verification = await verifyAndPinRecipientKeys(hit.user.id, keys);
     if (verification.kind === "mismatch") {
       await markSnapshotLinked(savedCase.id, hit.contactId, hit.user.id);
-      return { shared: false, zeroKeys: false, tofuBlocked: true };
+      return {
+        linked: true,
+        shared: false,
+        zeroKeys: false,
+        tofuBlocked: true,
+      };
     }
     await encryptAndShareCase(savedCase, [
       {
@@ -492,9 +505,10 @@ export async function linkAndShareCaseWithHit(params: {
       },
     ]);
     await markSnapshotLinked(savedCase.id, hit.contactId, hit.user.id);
-    return { shared: true, zeroKeys: false, tofuBlocked: false };
+    return { linked: true, shared: true, zeroKeys: false, tofuBlocked: false };
   } catch (error) {
     return {
+      linked: true,
       shared: false,
       zeroKeys: false,
       tofuBlocked: false,

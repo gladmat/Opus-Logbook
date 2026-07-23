@@ -461,6 +461,7 @@ describe("linkAndShareCaseWithHit", () => {
     expect(linkContact).toHaveBeenCalledWith("contact-1", "user-9");
     expect(shareCase).toHaveBeenCalledTimes(1);
     expect(result).toEqual({
+      linked: true,
       shared: true,
       zeroKeys: false,
       tofuBlocked: false,
@@ -487,6 +488,7 @@ describe("linkAndShareCaseWithHit", () => {
     });
     expect(shareCase).not.toHaveBeenCalled();
     expect(result.zeroKeys).toBe(true);
+    expect(result.linked).toBe(true);
     expect(updateCase).toHaveBeenCalledTimes(1);
   });
 
@@ -499,6 +501,7 @@ describe("linkAndShareCaseWithHit", () => {
       hit,
     });
     expect(result.shared).toBe(false);
+    expect(result.linked).toBe(true);
     expect(result.error).toBe("share 500");
     expect(updateCase).not.toHaveBeenCalled();
   });

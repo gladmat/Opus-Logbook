@@ -109,10 +109,12 @@ import {
   getBreastEpisodeLinkedId,
 } from "@/lib/breastEpisodeHelpers";
 import {
+  listUnlinkedTaggedMembers,
   rehydrateTeamSnapshots,
   shareCaseWithTeam,
   type TeamShareOutcome,
 } from "@/lib/caseSharing";
+import { runPostSaveTeamPrompt } from "@/lib/linkingPrompts";
 import { getTeamContacts } from "@/lib/teamContactsApi";
 import { deriveEpaAssessments } from "@/lib/epaDerivation";
 import { saveEpaTargets } from "@/lib/assessmentStorage";
@@ -2663,12 +2665,20 @@ export function useCaseForm({
               `• ${linkedMissingStage} linked member${linkedMissingStage === 1 ? " is" : "s are"} missing a career stage, so no assessment targets will be generated for them.`,
             );
           }
-          if (issues.length > 0) {
-            Alert.alert(
-              "Case saved — team features limited",
-              issues.join("\n"),
-            );
-          }
+          // Fire-and-forget (matches the old non-blocking Alert): when
+          // unlinked members' emails resolve to Opus accounts this becomes
+          // an actionable "Link & Share" prompt; otherwise it degrades to
+          // the informational alert (with an Invite option when possible).
+          void runPostSaveTeamPrompt({
+            savedCase,
+            issues,
+            unlinked: listUnlinkedTaggedMembers(
+              operativeTeamForSave,
+              liveContacts,
+            ),
+            liveContacts,
+            ownUserId: profile?.userId,
+          });
         }
 
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
