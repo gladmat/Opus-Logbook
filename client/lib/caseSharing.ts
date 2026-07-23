@@ -496,7 +496,15 @@ export async function linkAndShareCaseWithHit(params: {
         tofuBlocked: true,
       };
     }
-    await encryptAndShareCase(savedCase, [
+    // Patch the just-created link into the blob's team snapshot so the
+    // receiver sees themselves as linked, not "Not on Opus".
+    const blobSource: Case = {
+      ...savedCase,
+      operativeTeam: savedCase.operativeTeam?.map((m) =>
+        m.contactId === hit.contactId ? { ...m, linkedUserId: hit.user.id } : m,
+      ),
+    };
+    await encryptAndShareCase(blobSource, [
       {
         userId: hit.user.id,
         displayName: hit.displayName,

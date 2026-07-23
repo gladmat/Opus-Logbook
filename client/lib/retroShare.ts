@@ -148,8 +148,18 @@ export async function retroShareCasesForContact(
       ...baseRecipient,
       role: member?.operativeRole ?? baseRecipient.role,
     };
+    // The stored snapshot predates the link — patch it into the blob so the
+    // receiver's Team card shows themselves as linked, not "Not on Opus".
+    const blobSource: Case = {
+      ...candidate,
+      operativeTeam: candidate.operativeTeam?.map((m) =>
+        m.contactId === contact.contactId
+          ? { ...m, linkedUserId: contact.linkedUserId }
+          : m,
+      ),
+    };
     try {
-      await encryptAndShareCase(candidate, [recipient]);
+      await encryptAndShareCase(blobSource, [recipient]);
       result.shared += 1;
       try {
         await markSnapshotLinked(
