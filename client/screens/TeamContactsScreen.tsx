@@ -27,6 +27,7 @@ import {
   getDiscoveryMatches,
   removeDiscoveryMatch,
 } from "@/lib/discoveryService";
+import { offerRetroShareForContact } from "@/lib/linkingPrompts";
 import type { DiscoverMatch } from "@/lib/teamContactsApi";
 
 type Section = { title: string; data: TeamContact[] };
@@ -74,9 +75,16 @@ export default function TeamContactsScreen() {
         await removeDiscoveryMatch(contact.id);
         // Refresh list to show updated linked state
         loadContacts();
-        Alert.alert(
-          "Contact Linked",
-          `${contact.displayName} is now linked to their Opus account.`,
+        await offerRetroShareForContact(
+          {
+            contactId: contact.id,
+            linkedUserId: match.userId,
+            displayName: contact.displayName,
+          },
+          {
+            successTitle: "Contact Linked",
+            successMessage: `${contact.displayName} will now receive cases you tag them on.`,
+          },
         );
       } catch (error) {
         Alert.alert(
