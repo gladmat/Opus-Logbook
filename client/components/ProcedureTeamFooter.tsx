@@ -19,6 +19,8 @@ import {
   type CaseTeamMember,
   type TeamMemberOperativeRole,
 } from "@/types/teamContacts";
+import type { OperativeStep } from "@/types/operativeSteps";
+import { buildStepTeamRows } from "@/lib/teamAttribution";
 
 const ROLE_OPTIONS: TeamMemberOperativeRole[] = ["PS", "FA", "SS", "US", "SA"];
 
@@ -27,12 +29,19 @@ interface ProcedureTeamFooterProps {
   /** Title line above the summary — for render sites without a procedure
    *  card directly above (filtered-suggestions and compact-list branches). */
   procedureName?: string;
+  /** When the procedure carries operative steps, step teams are the
+   *  source of truth: the footer renders a read-only per-step breakdown
+   *  and an "Edit steps" link instead of the flat presence/role editor. */
+  steps?: OperativeStep[];
+  onEditSteps?: () => void;
   testID?: string;
 }
 
 export const ProcedureTeamFooter = React.memo(function ProcedureTeamFooter({
   procedureIndex,
   procedureName,
+  steps,
+  onEditSteps,
   testID,
 }: ProcedureTeamFooterProps) {
   const { theme } = useTheme();
@@ -89,6 +98,116 @@ export const ProcedureTeamFooter = React.memo(function ProcedureTeamFooter({
   );
 
   if (!operativeTeam || operativeTeam.length === 0) return null;
+
+  // Steps present → step teams are authoritative: read-only breakdown
+  // plus an "Edit steps" link; the flat presence/role editor is hidden
+  // so the two representations can't contradict each other.
+  if (steps && steps.length > 0) {
+    const stepRows = buildStepTeamRows(steps, operativeTeam, "You");
+    return (
+      <View
+        style={[styles.container, { borderTopColor: theme.border }]}
+        testID={testID ?? `caseForm.team.footer-${procedureIndex}`}
+      >
+        {procedureName ? (
+          <ThemedText
+            style={[styles.procedureTitle, { color: theme.textSecondary }]}
+            numberOfLines={1}
+          >
+            {procedureName}
+          </ThemedText>
+        ) : null}
+        <Pressable
+          style={styles.summaryRow}
+          onPress={handleToggleExpand}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={`Team by step for ${procedureName ?? `procedure ${procedureIndex + 1}`}`}
+          accessibilityState={{ expanded }}
+        >
+          <Feather
+            name="layers"
+            size={12}
+            color={theme.textTertiary}
+            style={styles.icon}
+          />
+          <ThemedText
+            style={[styles.summaryText, { color: theme.textTertiary }]}
+            numberOfLines={1}
+          >
+            Team by step — {steps.length} step{steps.length === 1 ? "" : "s"}
+          </ThemedText>
+          <Feather
+            name={expanded ? "chevron-up" : "chevron-down"}
+            size={14}
+            color={theme.textTertiary}
+          />
+        </Pressable>
+        {expanded ? (
+          <View style={styles.expandedContent}>
+            {stepRows.map((row) => (
+              <View key={row.stepId} style={styles.stepRow}>
+                <View style={styles.stepLabelRow}>
+                  {row.concurrentWithPrevious ? (
+                    <View
+                      style={[
+                        styles.concurrentBadge,
+                        { backgroundColor: theme.accentSurface },
+                      ]}
+                    >
+                      <ThemedText
+                        style={[
+                          styles.concurrentBadgeText,
+                          { color: theme.link },
+                        ]}
+                      >
+                        ∥
+                      </ThemedText>
+                    </View>
+                  ) : null}
+                  <ThemedText
+                    style={[styles.stepLabel, { color: theme.text }]}
+                    numberOfLines={1}
+                  >
+                    {row.label}
+                  </ThemedText>
+                </View>
+                <ThemedText
+                  style={[styles.stepMembers, { color: theme.textSecondary }]}
+                >
+                  {row.members.length > 0
+                    ? row.members
+                        .map(
+                          (m) =>
+                            `${m.label} (${TEAM_MEMBER_ROLE_SHORT[m.role]})`,
+                        )
+                        .join(" · ")
+                    : "No one assigned"}
+                </ThemedText>
+              </View>
+            ))}
+            {onEditSteps ? (
+              <Pressable
+                onPress={onEditSteps}
+                style={styles.editStepsLink}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Edit steps"
+                testID={`caseForm.team.footer-${procedureIndex}.btn-editSteps`}
+              >
+                <Feather name="edit-2" size={12} color={theme.link} />
+                <ThemedText
+                  style={[styles.editStepsText, { color: theme.link }]}
+                >
+                  Edit steps
+                </ThemedText>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
+      </View>
+    );
+  }
 
   // Compact summary line
   const summaryParts = presentMembers.map((m) => {
@@ -299,6 +418,42 @@ const styles = StyleSheet.create({
   },
   roleChipText: {
     fontSize: 12,
+    fontWeight: "600",
+  },
+  stepRow: {
+    paddingVertical: Spacing.xs,
+  },
+  stepLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+  },
+  concurrentBadge: {
+    paddingHorizontal: 5,
+    borderRadius: BorderRadius.xs,
+  },
+  concurrentBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  stepLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    flexShrink: 1,
+  },
+  stepMembers: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  editStepsLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    minHeight: 44,
+  },
+  editStepsText: {
+    fontSize: 13,
     fontWeight: "600",
   },
 });

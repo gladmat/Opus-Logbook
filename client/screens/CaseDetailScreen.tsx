@@ -34,6 +34,7 @@ import {
 } from "@/types/teamContacts";
 import {
   teamHasPerProcedureData,
+  caseHasStepData,
   buildPerProcedureTeamRows,
 } from "@/lib/teamAttribution";
 import {
@@ -2292,7 +2293,8 @@ export default function CaseDetailScreen() {
                   </ThemedText>
                 </View>
               ))}
-              {teamHasPerProcedureData(caseData.operativeTeam) ? (
+              {teamHasPerProcedureData(caseData.operativeTeam) ||
+              caseHasStepData(caseData.diagnosisGroups) ? (
                 <View style={styles.perProcedureBlock}>
                   <ThemedText
                     style={[
@@ -2316,21 +2318,53 @@ export default function CaseDetailScreen() {
                       >
                         {row.procedureName}
                       </ThemedText>
-                      <ThemedText
-                        style={[
-                          styles.perProcedureMembers,
-                          { color: theme.text },
-                        ]}
-                      >
-                        {row.members.length > 0
-                          ? row.members
-                              .map(
-                                (m) =>
-                                  `${m.abbreviatedName} (${TEAM_MEMBER_ROLE_SHORT[m.role]})`,
-                              )
-                              .join(" · ")
-                          : "No team members present"}
-                      </ThemedText>
+                      {row.steps ? (
+                        row.steps.map((step) => (
+                          <View key={step.stepId} style={styles.stepAttrRow}>
+                            <ThemedText
+                              style={[
+                                styles.stepAttrLabel,
+                                { color: theme.text },
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {step.concurrentWithPrevious ? "∥ " : ""}
+                              {step.label}
+                            </ThemedText>
+                            <ThemedText
+                              style={[
+                                styles.stepAttrMembers,
+                                { color: theme.textSecondary },
+                              ]}
+                            >
+                              {step.members.length > 0
+                                ? step.members
+                                    .map(
+                                      (m) =>
+                                        `${m.label} (${TEAM_MEMBER_ROLE_SHORT[m.role]})`,
+                                    )
+                                    .join(" · ")
+                                : "No one assigned"}
+                            </ThemedText>
+                          </View>
+                        ))
+                      ) : (
+                        <ThemedText
+                          style={[
+                            styles.perProcedureMembers,
+                            { color: theme.text },
+                          ]}
+                        >
+                          {row.members.length > 0
+                            ? row.members
+                                .map(
+                                  (m) =>
+                                    `${m.abbreviatedName} (${TEAM_MEMBER_ROLE_SHORT[m.role]})`,
+                                )
+                                .join(" · ")
+                            : "No team members present"}
+                        </ThemedText>
+                      )}
                     </View>
                   ))}
                 </View>
@@ -3466,6 +3500,18 @@ const styles = StyleSheet.create({
   perProcedureMembers: {
     fontSize: 13,
     marginTop: 2,
+  },
+  stepAttrRow: {
+    marginTop: 4,
+    paddingLeft: Spacing.sm,
+  },
+  stepAttrLabel: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  stepAttrMembers: {
+    fontSize: 13,
+    marginTop: 1,
   },
   diagnosisItem: {
     paddingVertical: Spacing.sm,

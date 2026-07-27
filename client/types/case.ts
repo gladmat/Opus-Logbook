@@ -1781,6 +1781,14 @@ export interface CaseProcedure {
   boneTumourDetails?: import("./boneTumour").BoneTumourData;
   /** Fracture-fixation hardware (K-wires / screws / plate) for removal planning & series audit */
   fixationHardware?: import("./fixationHardware").FixationHardwareData;
+  /**
+   * Optional operative-step layer (free flap harvest / recipient prep /
+   * micro + inset) with per-step team + concurrency. When present, step
+   * teams are the source of truth for this procedure's team attribution
+   * (the flat procedureRoleOverrides / presentForProcedures maps on
+   * CaseTeamMember are ignored for it). See types/operativeSteps.ts.
+   */
+  operativeSteps?: import("./operativeSteps").OperativeStep[];
   notes?: string;
   /** Which specific digit this procedure targets (for multi-digit cases like trigger finger). */
   digitId?: DigitId;

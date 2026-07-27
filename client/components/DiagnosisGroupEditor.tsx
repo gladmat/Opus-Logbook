@@ -92,6 +92,8 @@ import {
 import { ProcedureTeamFooter } from "@/components/ProcedureTeamFooter";
 import { DetailModuleRow } from "@/components/detail-sheets/DetailModuleRow";
 import { FreeFlapSheet } from "@/components/detail-sheets/FreeFlapSheet";
+import { OperativeStepsSheet } from "@/components/detail-sheets/OperativeStepsSheet";
+import { getStepsSummary } from "@/types/operativeSteps";
 import { FlapOutcomeSheet } from "@/components/detail-sheets/FlapOutcomeSheet";
 import {
   HandTraumaAssessment,
@@ -445,6 +447,8 @@ function DiagnosisGroupEditorInner({
     string | null
   >(null);
   const [activeFlapOutcomeProcedureId, setActiveFlapOutcomeProcedureId] =
+    useState<string | null>(null);
+  const [activeStepsSheetProcedureId, setActiveStepsSheetProcedureId] =
     useState<string | null>(null);
   const [showInfectionSheet, setShowInfectionSheet] = useState(false);
   const [showWoundSheet, setShowWoundSheet] = useState(false);
@@ -1655,6 +1659,29 @@ function DiagnosisGroupEditorInner({
     [activeFlapOutcomeProcedureId, freeFlapProcedures],
   );
 
+  // Steps sheet targets ANY procedure (steps are creatable on flap
+  // procedures, but a non-flap procedure carrying existing steps stays
+  // editable).
+  const activeStepsSheetProcedure = useMemo(
+    () =>
+      activeStepsSheetProcedureId
+        ? procedures.find((p) => p.id === activeStepsSheetProcedureId) || null
+        : null,
+    [activeStepsSheetProcedureId, procedures],
+  );
+
+  // Procedures that get an "Operative steps & team" hub row: free flaps
+  // (creation path) plus anything already carrying steps (edit path).
+  const stepsEligibleProcedures = useMemo(
+    () =>
+      procedures.filter(
+        (p) =>
+          (moduleVisibility.flapDetails && procedureHasFreeFlap(p)) ||
+          (p.operativeSteps?.length ?? 0) > 0,
+      ),
+    [procedures, moduleVisibility.flapDetails],
+  );
+
   // Compute breast context for FreeFlapSheet — per-procedure to support bilateral
   const getBreastFlapContext = useCallback(
     (procedure: CaseProcedure): BreastFlapContext | undefined => {
@@ -1713,10 +1740,19 @@ function DiagnosisGroupEditorInner({
     ) {
       setActiveFlapOutcomeProcedureId(null);
     }
+
+    if (
+      activeStepsSheetProcedureId &&
+      !procedures.some((p) => p.id === activeStepsSheetProcedureId)
+    ) {
+      setActiveStepsSheetProcedureId(null);
+    }
   }, [
     activeFlapOutcomeProcedureId,
     activeFlapSheetProcedureId,
+    activeStepsSheetProcedureId,
     freeFlapProcedures,
+    procedures,
   ]);
 
   useEffect(() => {
@@ -1805,7 +1841,8 @@ function DiagnosisGroupEditorInner({
   const hasAnyModule =
     moduleVisibility.flapDetails ||
     moduleVisibility.infection ||
-    moduleVisibility.woundAssessment;
+    moduleVisibility.woundAssessment ||
+    stepsEligibleProcedures.length > 0;
 
   const showTraumaDiagnosisEditor =
     !isInlineHandTraumaFlow || showManualTraumaDiagnosisPicker;
@@ -4228,6 +4265,10 @@ function DiagnosisGroupEditorInner({
                               key={`team-${proc.id}`}
                               procedureIndex={procedureGlobalOffset + idx}
                               procedureName={proc.procedureName}
+                              steps={proc.operativeSteps}
+                              onEditSteps={() =>
+                                setActiveStepsSheetProcedureId(proc.id)
+                              }
                             />
                           ) : null,
                         )
@@ -4278,6 +4319,10 @@ function DiagnosisGroupEditorInner({
                           renderItemFooter={(proc, idx) => (
                             <ProcedureTeamFooter
                               procedureIndex={procedureGlobalOffset + idx}
+                              steps={proc.operativeSteps}
+                              onEditSteps={() =>
+                                setActiveStepsSheetProcedureId(proc.id)
+                              }
                             />
                           )}
                         />
@@ -4392,6 +4437,10 @@ function DiagnosisGroupEditorInner({
                             />
                             <ProcedureTeamFooter
                               procedureIndex={procedureGlobalOffset + idx}
+                              steps={proc.operativeSteps}
+                              onEditSteps={() =>
+                                setActiveStepsSheetProcedureId(proc.id)
+                              }
                             />
                             {proc.picklistEntryId &&
                             procedureHasImplant(proc) ? (
@@ -4664,6 +4713,25 @@ function DiagnosisGroupEditorInner({
                   );
                 })
               : null}
+            {stepsEligibleProcedures.map((procedure, stepsIdx) => {
+              const stepsSummary = getStepsSummary(procedure);
+              const title =
+                stepsEligibleProcedures.length === 1
+                  ? "Operative Steps & Team"
+                  : `${
+                      procedure.procedureName || `Procedure ${stepsIdx + 1}`
+                    } — Steps & Team`;
+              return (
+                <DetailModuleRow
+                  key={`op-steps-${procedure.id}`}
+                  title={title}
+                  summary={stepsSummary}
+                  isComplete={stepsSummary !== null}
+                  onPress={() => setActiveStepsSheetProcedureId(procedure.id)}
+                  icon="layers"
+                />
+              );
+            })}
             {moduleVisibility.infection ? (
               <DetailModuleRow
                 title="Infection Details"
@@ -4741,6 +4809,23 @@ function DiagnosisGroupEditorInner({
             initialOutcome={getFlapOutcomeForProcedure(
               activeFlapOutcomeProcedure,
             )}
+          />
+        ) : null}
+
+        {activeStepsSheetProcedure ? (
+          <OperativeStepsSheet
+            visible
+            procedureName={activeStepsSheetProcedure.procedureName}
+            isFreeFlap={procedureHasFreeFlap(activeStepsSheetProcedure)}
+            initialSteps={activeStepsSheetProcedure.operativeSteps}
+            onClose={() => setActiveStepsSheetProcedureId(null)}
+            onSave={(steps) => {
+              updateProcedure({
+                ...activeStepsSheetProcedure,
+                operativeSteps: steps.length > 0 ? steps : undefined,
+              });
+              setActiveStepsSheetProcedureId(null);
+            }}
           />
         ) : null}
 

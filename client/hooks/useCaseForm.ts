@@ -87,6 +87,7 @@ import type {
   TeamContact,
 } from "@/types/teamContacts";
 import { abbreviateName } from "@/types/teamContacts";
+import { stripParticipantsFromGroups } from "@/types/operativeSteps";
 import {
   restoreDraftDateOnlyValue,
   restoreDraftOperativeMedia,
@@ -1117,6 +1118,10 @@ function caseFormReducer(
         state.operativeTeam.length > 0
       ) {
         next.operativeTeam = [];
+        next.diagnosisGroups = stripParticipantsFromGroups(
+          next.diagnosisGroups,
+          "all-contacts",
+        );
       }
 
       return next;
@@ -1196,6 +1201,10 @@ function caseFormReducer(
           operativeTeam: state.operativeTeam.filter(
             (m) => m.contactId !== contact.id,
           ),
+          diagnosisGroups: stripParticipantsFromGroups(
+            state.diagnosisGroups,
+            new Set([contact.id]),
+          ),
         };
       }
       const newMember: CaseTeamMember = {
@@ -1227,9 +1236,20 @@ function caseFormReducer(
         operativeTeam: state.operativeTeam.filter(
           (m) => m.contactId !== action.contactId,
         ),
+        diagnosisGroups: stripParticipantsFromGroups(
+          state.diagnosisGroups,
+          new Set([action.contactId]),
+        ),
       };
     case "CLEAR_OPERATIVE_TEAM":
-      return { ...state, operativeTeam: [] };
+      return {
+        ...state,
+        operativeTeam: [],
+        diagnosisGroups: stripParticipantsFromGroups(
+          state.diagnosisGroups,
+          "all-contacts",
+        ),
+      };
     case "SET_PROCEDURE_ROLE_OVERRIDE":
       return {
         ...state,

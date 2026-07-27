@@ -4,10 +4,15 @@ import {
   isMemberPresentForProcedure,
   resolveMemberRoleForProcedure,
   teamHasPerProcedureData,
+  caseHasStepData,
   buildPerProcedureTeamRows,
 } from "../teamAttribution";
 import type { CaseTeamMember } from "@/types/teamContacts";
 import type { DiagnosisGroup, CaseProcedure } from "@/types/case";
+import {
+  SELF_PARTICIPANT_ID,
+  type OperativeStep,
+} from "@/types/operativeSteps";
 
 function makeMember(
   overrides: Partial<CaseTeamMember> & { contactId: string },
@@ -197,5 +202,109 @@ describe("buildPerProcedureTeamRows", () => {
     ];
     const rows = buildPerProcedureTeamRows(groups, team);
     expect(rows[0]?.members[0]?.hasOverride).toBe(false);
+  });
+});
+
+describe("steps-authoritative attribution", () => {
+  function makeOpStep(
+    id: string,
+    label: string,
+    team: { participantId: string; role: CaseTeamMember["operativeRole"] }[],
+    overrides: Partial<OperativeStep> = {},
+  ): OperativeStep {
+    return { id, kind: "custom", label, sequence: 0, team, ...overrides };
+  }
+
+  it("caseHasStepData gates on any procedure carrying steps", () => {
+    expect(caseHasStepData(undefined)).toBe(false);
+    expect(
+      caseHasStepData([makeGroup("g1", [makeProcedure("p0", "Flap")])]),
+    ).toBe(false);
+    expect(
+      caseHasStepData([
+        makeGroup("g1", [
+          makeProcedure("p0", "Flap", {
+            operativeSteps: [makeOpStep("s1", "Harvest", [])],
+          }),
+        ]),
+      ]),
+    ).toBe(true);
+  });
+
+  it("a procedure with steps yields step rows and IGNORES flat overrides", () => {
+    const groups = [
+      makeGroup("g1", [
+        makeProcedure("p0", "Free ALT flap", {
+          operativeSteps: [
+            makeOpStep(
+              "s-harvest",
+              "Harvest",
+              [{ participantId: "c1", role: "PS" }],
+              { sequence: 1 },
+            ),
+            makeOpStep(
+              "s-prep",
+              "Recipient prep",
+              [
+                { participantId: SELF_PARTICIPANT_ID, role: "PS" },
+                { participantId: "c2", role: "FA" },
+              ],
+              { sequence: 0, concurrentWithPrevious: true },
+            ),
+          ],
+        }),
+      ]),
+    ];
+    const team = [
+      // Flat data says c1 absent everywhere — steps must win.
+      makeMember({
+        contactId: "c1",
+        presentForProcedures: [],
+        procedureRoleOverrides: { 0: "SA" },
+      }),
+      makeMember({ contactId: "c2", displayName: "Dr Two" }),
+    ];
+    const rows = buildPerProcedureTeamRows(groups, team, "You");
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.members).toHaveLength(0);
+    const steps = rows[0]?.steps;
+    expect(steps).toBeDefined();
+    // Ordered by sequence, not array order.
+    expect(steps?.map((s) => s.stepId)).toEqual(["s-prep", "s-harvest"]);
+    expect(steps?.[0]?.concurrentWithPrevious).toBe(true);
+    // Owner renders with the supplied label; c1's step role is PS despite
+    // the flat SA override.
+    expect(steps?.[0]?.members.map((m) => m.label)).toEqual([
+      "You",
+      "Charlotte L.",
+    ]);
+    expect(steps?.[1]?.members[0]?.role).toBe("PS");
+  });
+
+  it("drops step assignments for participants no longer on the team", () => {
+    const groups = [
+      makeGroup("g1", [
+        makeProcedure("p0", "Flap", {
+          operativeSteps: [
+            makeOpStep("s1", "Harvest", [
+              { participantId: "ghost", role: "FA" },
+              { participantId: SELF_PARTICIPANT_ID, role: "PS" },
+            ]),
+          ],
+        }),
+      ]),
+    ];
+    const rows = buildPerProcedureTeamRows(
+      groups,
+      [makeMember({ contactId: "c1" })],
+      "Dr Owner",
+    );
+    expect(rows[0]?.steps?.[0]?.members).toEqual([
+      {
+        participantId: SELF_PARTICIPANT_ID,
+        label: "Dr Owner",
+        role: "PS",
+      },
+    ]);
   });
 });

@@ -67,6 +67,40 @@ describe("buildShareableBlob — patient identity", () => {
 });
 
 describe("buildShareableBlob — clinical record", () => {
+  it("carries operativeSteps inside diagnosisGroups (additive blob field)", () => {
+    // Steps ride the whole-array pass-through; old clients JSON.parse and
+    // ignore the unknown key. A regression here silently strips per-step
+    // team attribution from every share.
+    const groups = [
+      {
+        id: "g1",
+        specialty: "orthoplastic",
+        procedures: [
+          {
+            id: "p1",
+            procedureName: "Free ALT flap",
+            operativeSteps: [
+              {
+                id: "s1",
+                kind: "flap_harvest",
+                label: "Free flap harvest",
+                sequence: 0,
+                team: [{ participantId: "self", role: "PS" }],
+              },
+            ],
+          },
+        ],
+      },
+    ] as unknown as Case["diagnosisGroups"];
+    const blob = buildShareableBlob(
+      minimalCase({ diagnosisGroups: groups }),
+      [],
+    );
+    expect(
+      blob.diagnosisGroups?.[0]?.procedures?.[0]?.operativeSteps?.[0]?.id,
+    ).toBe("s1");
+  });
+
   it("passes through procedureDate, facility, and diagnosisGroups by reference", () => {
     const groups = [
       { id: "g1", procedures: [], specialty: "hand_wrist" },
