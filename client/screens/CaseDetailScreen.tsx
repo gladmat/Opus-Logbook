@@ -29,8 +29,13 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, Shadows, palette } from "@/constants/theme";
 import {
   TEAM_MEMBER_ROLE_LABELS,
+  TEAM_MEMBER_ROLE_SHORT,
   type TeamMemberOperativeRole,
 } from "@/types/teamContacts";
+import {
+  teamHasPerProcedureData,
+  buildPerProcedureTeamRows,
+} from "@/lib/teamAttribution";
 import {
   Case,
   TimelineEvent,
@@ -2287,6 +2292,49 @@ export default function CaseDetailScreen() {
                   </ThemedText>
                 </View>
               ))}
+              {teamHasPerProcedureData(caseData.operativeTeam) ? (
+                <View style={styles.perProcedureBlock}>
+                  <ThemedText
+                    style={[
+                      styles.perProcedureHeading,
+                      { color: theme.textTertiary },
+                    ]}
+                  >
+                    By procedure
+                  </ThemedText>
+                  {buildPerProcedureTeamRows(
+                    caseData.diagnosisGroups,
+                    caseData.operativeTeam,
+                  ).map((row) => (
+                    <View key={row.procedureId} style={styles.perProcedureRow}>
+                      <ThemedText
+                        style={[
+                          styles.perProcedureName,
+                          { color: theme.textSecondary },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {row.procedureName}
+                      </ThemedText>
+                      <ThemedText
+                        style={[
+                          styles.perProcedureMembers,
+                          { color: theme.text },
+                        ]}
+                      >
+                        {row.members.length > 0
+                          ? row.members
+                              .map(
+                                (m) =>
+                                  `${m.abbreviatedName} (${TEAM_MEMBER_ROLE_SHORT[m.role]})`,
+                              )
+                              .join(" · ")
+                          : "No team members present"}
+                      </ThemedText>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
             </View>
           </>
         ) : null}
@@ -3396,6 +3444,28 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     flex: 1,
     textAlign: "right",
+  },
+  perProcedureBlock: {
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.sm,
+  },
+  perProcedureHeading: {
+    fontSize: 12,
+    fontWeight: "500",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: Spacing.xs,
+  },
+  perProcedureRow: {
+    paddingVertical: Spacing.xs,
+  },
+  perProcedureName: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  perProcedureMembers: {
+    fontSize: 13,
+    marginTop: 2,
   },
   diagnosisItem: {
     paddingVertical: Spacing.sm,

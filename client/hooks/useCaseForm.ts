@@ -118,6 +118,8 @@ import { runPostSaveTeamPrompt } from "@/lib/linkingPrompts";
 import { getTeamContacts } from "@/lib/teamContactsApi";
 import { deriveEpaAssessments } from "@/lib/epaDerivation";
 import { saveEpaTargets } from "@/lib/assessmentStorage";
+import { getSeniorityTier } from "@/lib/seniorityTier";
+import { captureClientException } from "@/lib/sentry";
 
 // ─── Default Donor Vessels ──────────────────────────────────────────────────
 
@@ -2589,30 +2591,38 @@ export function useCaseForm({
 
         // Derive EPA assessment targets (non-blocking). Uses the rehydrated
         // team so a careerStage filled from the live contact improves the
-        // derived targets.
-        if (operativeTeamForSave.length > 0 && profile?.careerStage) {
+        // derived targets. Runs on every edit-save even with an empty team
+        // so stale targets from a previous derivation are cleared
+        // (saveEpaTargets removes the key when the list is empty).
+        if (operativeTeamForSave.length > 0 || (isEditMode && existingCase)) {
           try {
-            const allProcs = savedCase.diagnosisGroups.flatMap(
-              (g: DiagnosisGroup) => g.procedures,
-            );
-            const epaProcs = allProcs.map((p) => ({
-              procedureName: p.procedureName,
-              snomedCtCode: p.snomedCtCode,
-            }));
-            const targets = deriveEpaAssessments(
-              profile.userId,
-              profile.careerStage,
-              profile.userId,
-              operativeTeamForSave,
-              epaProcs,
-            );
-            if (targets.length > 0) {
-              saveEpaTargets(savedCase.id, targets).catch(() => {
-                // Non-critical — EPA storage failure doesn't block save
-              });
+            let targets: ReturnType<typeof deriveEpaAssessments> = [];
+            if (operativeTeamForSave.length > 0 && profile?.careerStage) {
+              const allProcs = savedCase.diagnosisGroups.flatMap(
+                (g: DiagnosisGroup) => g.procedures ?? [],
+              );
+              const epaProcs = allProcs.map((p) => ({
+                procedureName: p.procedureName,
+                snomedCtCode: p.snomedCtCode,
+              }));
+              targets = deriveEpaAssessments(
+                profile.userId,
+                profile.careerStage,
+                profile.userId,
+                operativeTeamForSave,
+                epaProcs,
+              );
             }
-          } catch {
-            // Non-critical — EPA derivation failure doesn't block save
+            saveEpaTargets(savedCase.id, targets).catch((err) => {
+              // Non-critical — EPA storage failure doesn't block save
+              if (__DEV__) console.warn("[opus:epa] target save failed", err);
+              captureClientException(err, { context: "epaTargetSave" });
+            });
+          } catch (err) {
+            // Non-critical — EPA derivation failure doesn't block save,
+            // but it must not vanish silently either.
+            if (__DEV__) console.warn("[opus:epa] derivation failed", err);
+            captureClientException(err, { context: "epaDerivation" });
           }
         }
 
@@ -2656,13 +2666,38 @@ export function useCaseForm({
                 : "• Sharing failed — check your connection and re-save to retry.",
             );
           }
+          // Independent (NOT else-if): both can apply at once, and hiding
+          // the member bullet behind the logger bullet meant fixing your
+          // own profile revealed a second surprise on the next save.
           if (!profile?.careerStage) {
             issues.push(
               "• Your own career stage isn't set, so no assessment targets will be generated. Set it in Edit Profile.",
             );
-          } else if (linkedMissingStage > 0) {
+          }
+          if (linkedMissingStage > 0) {
             issues.push(
               `• ${linkedMissingStage} linked member${linkedMissingStage === 1 ? " is" : "s are"} missing a career stage, so no assessment targets will be generated for them.`,
+            );
+          }
+          // Same-tier teams silently derive zero EPA pairs — say so instead
+          // of leaving the surgeon wondering why nothing was generated.
+          const knownTiers = new Set<number>();
+          let tieredParticipants = 0;
+          const selfTier = getSeniorityTier(profile?.careerStage);
+          if (selfTier !== null) {
+            knownTiers.add(selfTier);
+            tieredParticipants += 1;
+          }
+          for (const m of operativeTeamForSave) {
+            if (!m.linkedUserId || !m.careerStage) continue;
+            const tier = getSeniorityTier(m.careerStage);
+            if (tier === null) continue;
+            knownTiers.add(tier);
+            tieredParticipants += 1;
+          }
+          if (tieredParticipants >= 2 && knownTiers.size === 1) {
+            issues.push(
+              "• Everyone on this case is at the same seniority level, so there is no supervisor–trainee pair to assess.",
             );
           }
           // Fire-and-forget (matches the old non-blocking Alert): when

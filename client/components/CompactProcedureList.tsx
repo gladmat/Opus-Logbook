@@ -27,6 +27,13 @@ interface CompactProcedureListProps {
   hideSnomedCodes?: boolean;
   title?: string;
   testID?: string;
+  /** Rendered as a sibling directly below each row (e.g. ProcedureTeamFooter).
+   *  `index` is the position within the `procedures` array passed in — callers
+   *  must pass the group's UNFILTERED procedure array for index-keyed data. */
+  renderItemFooter?: (
+    procedure: CaseProcedure,
+    index: number,
+  ) => React.ReactNode;
 }
 
 export const CompactProcedureList = React.memo(function CompactProcedureList({
@@ -37,6 +44,7 @@ export const CompactProcedureList = React.memo(function CompactProcedureList({
   hideSnomedCodes = false,
   title = "Selected Procedures",
   testID,
+  renderItemFooter,
 }: CompactProcedureListProps) {
   const { theme, isDark } = useTheme();
 
@@ -48,18 +56,20 @@ export const CompactProcedureList = React.memo(function CompactProcedureList({
         {title}
       </ThemedText>
       {procedures.map((proc, idx) => (
-        <CompactProcedureRow
-          key={proc.id}
-          procedure={proc}
-          index={idx}
-          total={procedures.length}
-          onRemove={onRemove}
-          onMoveUp={onMoveUp}
-          onMoveDown={onMoveDown}
-          hideSnomedCodes={hideSnomedCodes}
-          theme={theme}
-          isDark={isDark}
-        />
+        <React.Fragment key={proc.id}>
+          <CompactProcedureRow
+            procedure={proc}
+            index={idx}
+            total={procedures.length}
+            onRemove={onRemove}
+            onMoveUp={onMoveUp}
+            onMoveDown={onMoveDown}
+            hideSnomedCodes={hideSnomedCodes}
+            theme={theme}
+            isDark={isDark}
+          />
+          {renderItemFooter?.(proc, idx)}
+        </React.Fragment>
       ))}
     </View>
   );

@@ -24,10 +24,16 @@ const ROLE_OPTIONS: TeamMemberOperativeRole[] = ["PS", "FA", "SS", "US", "SA"];
 
 interface ProcedureTeamFooterProps {
   procedureIndex: number;
+  /** Title line above the summary — for render sites without a procedure
+   *  card directly above (filtered-suggestions and compact-list branches). */
+  procedureName?: string;
+  testID?: string;
 }
 
 export const ProcedureTeamFooter = React.memo(function ProcedureTeamFooter({
   procedureIndex,
+  procedureName,
+  testID,
 }: ProcedureTeamFooterProps) {
   const { theme } = useTheme();
   const operativeTeam = useCaseFormField("operativeTeam");
@@ -92,11 +98,25 @@ export const ProcedureTeamFooter = React.memo(function ProcedureTeamFooter({
   const absentCount = operativeTeam.length - presentMembers.length;
 
   return (
-    <View style={[styles.container, { borderTopColor: theme.border }]}>
+    <View
+      style={[styles.container, { borderTopColor: theme.border }]}
+      testID={testID ?? `caseForm.team.footer-${procedureIndex}`}
+    >
+      {procedureName ? (
+        <ThemedText
+          style={[styles.procedureTitle, { color: theme.textSecondary }]}
+          numberOfLines={1}
+        >
+          {procedureName}
+        </ThemedText>
+      ) : null}
       <Pressable
         style={styles.summaryRow}
         onPress={handleToggleExpand}
         hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={`Team for ${procedureName ?? `procedure ${procedureIndex + 1}`}`}
+        accessibilityState={{ expanded }}
       >
         <Feather
           name="users"
@@ -221,6 +241,11 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
+  },
+  procedureTitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    marginTop: Spacing.xs,
   },
   summaryRow: {
     flexDirection: "row",

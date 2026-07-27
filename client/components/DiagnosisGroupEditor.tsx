@@ -4212,6 +4212,27 @@ function DiagnosisGroupEditorInner({
                       />
                     ) : null}
 
+                    {/* Filtered mode renders suggestion chips but no procedure
+                        cards — without this block the per-procedure team
+                        footer (and with it the SET_PROCEDURE_ROLE_OVERRIDE /
+                        TOGGLE_MEMBER_PROCEDURE_PRESENCE actions) is
+                        unreachable for every suggestion-driven specialty
+                        (orthoplastic free flaps being the reported case).
+                        Mirrors the BoneTumourDetails second-render-site
+                        precedent. Index math must stay on the UNFILTERED
+                        array so flat override keys align. */}
+                    {showFiltered && procedures.length > 0
+                      ? procedures.map((proc, idx) =>
+                          proc.procedureName.trim() ? (
+                            <ProcedureTeamFooter
+                              key={`team-${proc.id}`}
+                              procedureIndex={procedureGlobalOffset + idx}
+                              procedureName={proc.procedureName}
+                            />
+                          ) : null,
+                        )
+                      : null}
+
                     {showFiltered ? (
                       <Pressable
                         style={styles.showAllProceduresLink}
@@ -4254,6 +4275,11 @@ function DiagnosisGroupEditorInner({
                           }}
                           onMoveUp={moveProcedureUp}
                           onMoveDown={moveProcedureDown}
+                          renderItemFooter={(proc, idx) => (
+                            <ProcedureTeamFooter
+                              procedureIndex={procedureGlobalOffset + idx}
+                            />
+                          )}
                         />
 
                         {showCustomProcedureEntry ? (

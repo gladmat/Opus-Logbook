@@ -925,12 +925,23 @@ export class DatabaseStorage implements IStorage {
     ownerUserId: string,
     linkedUserId: string,
   ): Promise<TeamContactRow | undefined> {
+    // Fill-gap copy of the linked user's career stage: linking used to set
+    // only linkedUserId, leaving careerStage NULL — which silently disabled
+    // EPA target derivation for the contact (the client's seniority-tier
+    // gate drops members without a stage). COALESCE keeps a stage the owner
+    // typed by hand; only a NULL is filled from the profile.
+    const linkedProfile = await this.getProfile(linkedUserId);
     const [updated] = await db
       .update(teamContacts)
       .set({
         linkedUserId,
         linkConfirmedAt: new Date(),
         updatedAt: new Date(),
+        ...(linkedProfile?.careerStage
+          ? {
+              careerStage: sql`COALESCE(${teamContacts.careerStage}, ${linkedProfile.careerStage})`,
+            }
+          : {}),
       })
       .where(
         and(eq(teamContacts.id, id), eq(teamContacts.ownerUserId, ownerUserId)),

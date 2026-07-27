@@ -28,8 +28,13 @@ import {
 } from "@/types/operativeRole";
 import {
   TEAM_MEMBER_ROLE_LABELS,
+  TEAM_MEMBER_ROLE_SHORT,
   type CaseTeamMember,
 } from "@/types/teamContacts";
+import {
+  teamHasPerProcedureData,
+  buildPerProcedureTeamRows,
+} from "@/lib/teamAttribution";
 import {
   SPECIALTY_LABELS,
   ADMISSION_URGENCY_LABELS,
@@ -586,18 +591,68 @@ export default function SharedCaseDetailScreen() {
           {(() => {
             const operativeTeam = caseData.operativeTeam ?? [];
             if (operativeTeam.length > 0) {
-              return operativeTeam.map((member, idx) => (
-                <TeamMemberRow
-                  key={`${member.contactId}-${idx}`}
-                  member={member}
-                  themeColors={{
-                    text: theme.text,
-                    accent: theme.accent,
-                    textSecondary: theme.textSecondary,
-                    border: theme.border,
-                  }}
-                />
-              ));
+              return (
+                <>
+                  {operativeTeam.map((member, idx) => (
+                    <TeamMemberRow
+                      key={`${member.contactId}-${idx}`}
+                      member={member}
+                      themeColors={{
+                        text: theme.text,
+                        accent: theme.accent,
+                        textSecondary: theme.textSecondary,
+                        border: theme.border,
+                      }}
+                    />
+                  ))}
+                  {teamHasPerProcedureData(operativeTeam) ? (
+                    <View style={styles.perProcedureBlock}>
+                      <ThemedText
+                        style={[
+                          styles.perProcedureHeading,
+                          { color: theme.textTertiary },
+                        ]}
+                      >
+                        By procedure
+                      </ThemedText>
+                      {buildPerProcedureTeamRows(
+                        caseData.diagnosisGroups,
+                        operativeTeam,
+                      ).map((row) => (
+                        <View
+                          key={row.procedureId}
+                          style={styles.perProcedureRow}
+                        >
+                          <ThemedText
+                            style={[
+                              styles.perProcedureName,
+                              { color: theme.textSecondary },
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {row.procedureName}
+                          </ThemedText>
+                          <ThemedText
+                            style={[
+                              styles.perProcedureMembers,
+                              { color: theme.text },
+                            ]}
+                          >
+                            {row.members.length > 0
+                              ? row.members
+                                  .map(
+                                    (m) =>
+                                      `${m.abbreviatedName} (${TEAM_MEMBER_ROLE_SHORT[m.role]})`,
+                                  )
+                                  .join(" · ")
+                              : "No team members present"}
+                          </ThemedText>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+                </>
+              );
             }
 
             const teamRoles = caseData.teamRoles ?? [];
@@ -1041,6 +1096,28 @@ const styles = StyleSheet.create({
   teamRoleText: {
     fontSize: 12,
     fontWeight: "600",
+  },
+  perProcedureBlock: {
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.sm,
+  },
+  perProcedureHeading: {
+    fontSize: 12,
+    fontWeight: "500",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: Spacing.xs,
+  },
+  perProcedureRow: {
+    paddingVertical: Spacing.xs,
+  },
+  perProcedureName: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  perProcedureMembers: {
+    fontSize: 13,
+    marginTop: 2,
   },
 
   // Verification

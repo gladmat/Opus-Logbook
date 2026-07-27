@@ -185,23 +185,49 @@ function epaTargetsKey(caseId: string): string {
   return userScopedAsyncKey(`${ASSESSMENT_KEYS.EPA_TARGETS_PREFIX}${caseId}`);
 }
 
-/** Save derived EPA assessment targets for a case. */
+/**
+ * Save derived EPA assessment targets for a case (encrypted with K_user,
+ * like every other blob in this module — targets carry display names and
+ * linked user IDs). An empty list REMOVES the stored key so stale targets
+ * from a previous derivation don't linger after an edit-save that drops
+ * the team.
+ */
 export async function saveEpaTargets(
   caseId: string,
   targets: EpaAssessmentTarget[],
 ): Promise<void> {
-  await AsyncStorage.setItem(epaTargetsKey(caseId), JSON.stringify(targets));
+  if (targets.length === 0) {
+    await AsyncStorage.removeItem(epaTargetsKey(caseId));
+    return;
+  }
+  const encrypted = await encryptData(JSON.stringify(targets));
+  await AsyncStorage.setItem(epaTargetsKey(caseId), encrypted);
 }
 
-/** Load EPA assessment targets for a case. */
+/** Remove stored EPA targets for a case. Best-effort. */
+export async function clearEpaTargets(caseId: string): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(epaTargetsKey(caseId));
+  } catch {
+    // Best-effort.
+  }
+}
+
+/**
+ * Load EPA assessment targets for a case. Legacy plaintext records (written
+ * before targets were encrypted) fail decryption and are dropped — they
+ * regenerate on the next save of the case.
+ */
 export async function getEpaTargets(
   caseId: string,
 ): Promise<EpaAssessmentTarget[]> {
   const raw = await AsyncStorage.getItem(epaTargetsKey(caseId));
   if (!raw) return [];
   try {
-    return JSON.parse(raw) as EpaAssessmentTarget[];
+    const plaintext = await decryptData(raw);
+    return JSON.parse(plaintext) as EpaAssessmentTarget[];
   } catch {
+    void clearEpaTargets(caseId);
     return [];
   }
 }
