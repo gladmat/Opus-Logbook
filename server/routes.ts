@@ -323,6 +323,17 @@ const verifySchema = z.object({
 const updateBlobSchema = z.object({
   encryptedShareableBlob: z.string().min(1),
   blobVersion: z.number().int().positive(),
+  // Fresh per-save case key → the recipient needs fresh wrapped copies.
+  // Envelopes are replaced atomically with the blob so the row never
+  // carries a blob its stored envelopes can't unwrap.
+  keyEnvelopes: z
+    .array(
+      z.object({
+        deviceId: z.string().min(1),
+        envelopeJson: z.string().min(1),
+      }),
+    )
+    .min(1),
 });
 
 const assessmentSchema = z.object({
@@ -2158,6 +2169,7 @@ export async function registerRoutes(app: Express): Promise<void> {
           req.userId!,
           parseResult.data.encryptedShareableBlob,
           parseResult.data.blobVersion,
+          parseResult.data.keyEnvelopes,
         );
 
         if (!updated) {
@@ -2176,7 +2188,7 @@ export async function registerRoutes(app: Express): Promise<void> {
           sendPushNotification(
             updated.recipientUserId,
             "Case Updated",
-            `Dr ${ownerName} updated a shared case`,
+            `Dr ${ownerName} updated a shared case — verify the changes`,
             { type: "shared_case_update", sharedCaseId: req.params.id! },
           ).catch(() => {});
         } catch (pushErr) {

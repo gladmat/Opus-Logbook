@@ -81,7 +81,6 @@ export default function DashboardScreen() {
   const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(
     null,
   );
-  const [sharedInboxCount, setSharedInboxCount] = useState(0);
   const [sharedPendingCount, setSharedPendingCount] = useState(0);
   const [isFilterSticky, setIsFilterSticky] = useState(false);
 
@@ -114,7 +113,6 @@ export default function DashboardScreen() {
   const loadSharedInboxCounts = useCallback(async () => {
     try {
       const index = await getSharedInboxIndex();
-      setSharedInboxCount(index.length);
       setSharedPendingCount(
         index.filter((e) => e.verificationStatus === "pending").length,
       );
@@ -137,7 +135,6 @@ export default function DashboardScreen() {
     try {
       const data = await getSharedInbox();
       await updateSharedInboxIndex(data);
-      setSharedInboxCount(data.length);
       setSharedPendingCount(
         data.filter((e) => e.verificationStatus === "pending").length,
       );
@@ -437,8 +434,12 @@ export default function DashboardScreen() {
           totalCaseCount={personalizedCases.length}
         />
 
-        {/* Zone 2.5 — Shared Cases */}
-        {sharedInboxCount > 0 ? (
+        {/* Zone 2.5 — Shared-case verifications. Most cases in a team are
+            shared, so a standing "N shared cases" row would be permanent
+            chrome; the row exists ONLY while something needs action
+            (presence/absence IS the notification). Browsing lives in
+            Settings → Shared with me. */}
+        {sharedPendingCount > 0 ? (
           <Pressable
             testID="dashboard.btn-sharedCases"
             onPress={() => navigation.navigate("SharedInbox")}
@@ -446,8 +447,7 @@ export default function DashboardScreen() {
               styles.sharedCasesCard,
               {
                 backgroundColor: theme.backgroundElevated,
-                borderColor:
-                  sharedPendingCount > 0 ? theme.accent : theme.border,
+                borderColor: theme.accent,
                 opacity: pressed ? 0.7 : 1,
               },
               Shadows.card,
@@ -466,19 +466,9 @@ export default function DashboardScreen() {
                 <ThemedText
                   style={[styles.sharedCasesTitle, { color: theme.text }]}
                 >
-                  {sharedInboxCount} shared case
-                  {sharedInboxCount !== 1 ? "s" : ""}
+                  {sharedPendingCount} shared case
+                  {sharedPendingCount !== 1 ? "s" : ""} awaiting verification
                 </ThemedText>
-                {sharedPendingCount > 0 ? (
-                  <ThemedText
-                    style={[
-                      styles.sharedCasesSubtitle,
-                      { color: theme.accent },
-                    ]}
-                  >
-                    {sharedPendingCount} pending verification
-                  </ThemedText>
-                ) : null}
               </View>
               <Feather
                 name="chevron-right"
@@ -668,11 +658,6 @@ const styles = StyleSheet.create({
   sharedCasesTitle: {
     fontSize: 15,
     fontWeight: "600",
-  },
-  sharedCasesSubtitle: {
-    fontSize: 13,
-    fontWeight: "500",
-    marginTop: 1,
   },
   dischargeModalOverlay: {
     flex: 1,

@@ -114,6 +114,7 @@ export interface IStorage {
     ownerUserId: string,
     blob: string,
     version: number,
+    keyEnvelopes: { deviceId: string; envelopeJson: string }[],
   ): Promise<SharedCase | undefined>;
   deleteSharedCase(id: string, ownerUserId: string): Promise<boolean>;
 
@@ -608,24 +609,51 @@ export class DatabaseStorage implements IStorage {
     ownerUserId: string,
     blob: string,
     version: number,
+    keyEnvelopes: { deviceId: string; envelopeJson: string }[],
   ): Promise<SharedCase | undefined> {
-    // Optimistic locking: only update if new version > current version
-    const [updated] = await db
-      .update(sharedCases)
-      .set({
-        encryptedShareableBlob: blob,
-        blobVersion: version,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(sharedCases.id, id),
-          eq(sharedCases.ownerUserId, ownerUserId),
-          lt(sharedCases.blobVersion, version),
-        ),
-      )
-      .returning();
-    return updated || undefined;
+    // Content changed → verification resets to pending so the recipient
+    // re-confirms their involvement against the updated case. Assessments
+    // deliberately survive (the row — and its case_assessments — persists;
+    // this is the whole point of updating in place instead of
+    // revoke-and-reshare). Envelopes are replaced in the same transaction:
+    // the new blob is encrypted under a fresh case key, so the old wrapped
+    // keys can no longer open it.
+    return db.transaction(async (tx) => {
+      // Optimistic locking: only update if new version > current version
+      const [updated] = await tx
+        .update(sharedCases)
+        .set({
+          encryptedShareableBlob: blob,
+          blobVersion: version,
+          verificationStatus: "pending",
+          verificationNote: null,
+          verifiedAt: null,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(sharedCases.id, id),
+            eq(sharedCases.ownerUserId, ownerUserId),
+            lt(sharedCases.blobVersion, version),
+          ),
+        )
+        .returning();
+      if (!updated) return undefined;
+
+      await tx
+        .delete(caseKeyEnvelopes)
+        .where(eq(caseKeyEnvelopes.sharedCaseId, id));
+      await tx.insert(caseKeyEnvelopes).values(
+        keyEnvelopes.map((ke) => ({
+          sharedCaseId: id,
+          recipientUserId: updated.recipientUserId,
+          recipientDeviceId: ke.deviceId,
+          envelopeJson: ke.envelopeJson,
+        })),
+      );
+
+      return updated;
+    });
   }
 
   async deleteSharedCase(id: string, ownerUserId: string): Promise<boolean> {

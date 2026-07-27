@@ -9,12 +9,12 @@
  *   and the post-save limitations alert from it).
  * - `shared_cases` has UNIQUE(caseId, recipientUserId) server-side and
  *   POST /api/share is a plain insert — re-sharing to a recipient who
- *   already holds a row throws 23505 → 500. Because every save generates a
- *   fresh case key, delivering updated content to a still-present recipient
- *   requires revoke-then-reshare (key envelopes cascade-delete with the
- *   row). `shareCaseWithTeam` does exactly that on the edit path; before
- *   this module existed the re-POST 500 was swallowed and edited case
- *   content never reached existing recipients.
+ *   already holds a row throws 23505 → 500. Delivering updated content to a
+ *   still-present recipient therefore goes through PUT /api/shared/:id/blob
+ *   (update-in-place: fresh blob + replaced envelopes, verification reset
+ *   to pending, share id — and its assessments — preserved), with
+ *   revoke-then-reshare kept only as the per-recipient fallback when the
+ *   update fails.
  */
 
 import type { Case } from "@/types/case";
@@ -32,6 +32,7 @@ import {
   revokeSharedCase,
   searchUserByEmail,
   shareCase,
+  updateSharedCaseBlobApi,
 } from "./sharingApi";
 import { getUserDeviceKeys, linkContact } from "./teamContactsApi";
 import { getCase, updateCase } from "./storage";
@@ -65,7 +66,7 @@ export interface NamedUser {
 }
 
 export interface ShareFlowError {
-  stage: "collect" | "revoke" | "share";
+  stage: "collect" | "revoke" | "share" | "update";
   userId?: string;
   message: string;
 }
@@ -239,14 +240,28 @@ export async function collectShareRecipients(
 
 // ── Encrypt + POST ───────────────────────────────────────────────────────────
 
+interface PreparedShareMaterial {
+  blob: ReturnType<typeof buildShareableBlob>;
+  encryptedBlob: string;
+  /** userId → payload for POST /api/share or PUT /api/shared/:id/blob. */
+  perRecipient: Map<
+    string,
+    {
+      role: string;
+      keyEnvelopes: { deviceId: string; envelopeJson: string }[];
+    }
+  >;
+}
+
 /**
- * Encrypt one case under a fresh case key and POST it to the given
- * recipients. Throws on failure — callers record the error.
+ * One fresh case key per save: build the blob once, encrypt it once, and
+ * wrap the key to every recipient's current devices. Shared by the create
+ * (POST) and update-in-place (PUT) paths so both deliver the same content.
  */
-export async function encryptAndShareCase(
+async function prepareShareMaterial(
   caseData: Case,
   recipients: ShareRecipient[],
-): Promise<{ sharedCases: { id: string; recipientUserId: string }[] }> {
+): Promise<PreparedShareMaterial> {
   const caseKeyHex = await generateCaseKeyHex();
   const teamRoles = recipients.map((m) => ({
     userId: m.userId,
@@ -259,7 +274,7 @@ export async function encryptAndShareCase(
     caseKeyHex,
   );
 
-  const recipientPayloads = [];
+  const perRecipient: PreparedShareMaterial["perRecipient"] = new Map();
   for (const member of recipients) {
     const keyEnvelopes = [];
     for (const pk of member.publicKeys) {
@@ -269,16 +284,34 @@ export async function encryptAndShareCase(
         envelopeJson: JSON.stringify(envelope),
       });
     }
-    recipientPayloads.push({
-      userId: member.userId,
-      role: member.role,
-      keyEnvelopes,
-    });
+    perRecipient.set(member.userId, { role: member.role, keyEnvelopes });
   }
+
+  return { blob, encryptedBlob, perRecipient };
+}
+
+/**
+ * Encrypt one case under a fresh case key and POST it to the given
+ * recipients. Throws on failure — callers record the error.
+ */
+export async function encryptAndShareCase(
+  caseData: Case,
+  recipients: ShareRecipient[],
+): Promise<{ sharedCases: { id: string; recipientUserId: string }[] }> {
+  const material = await prepareShareMaterial(caseData, recipients);
+
+  const recipientPayloads = recipients.map((member) => {
+    const prepared = material.perRecipient.get(member.userId)!;
+    return {
+      userId: member.userId,
+      role: prepared.role,
+      keyEnvelopes: prepared.keyEnvelopes,
+    };
+  });
 
   const result = await shareCase({
     caseId: caseData.id,
-    encryptedShareableBlob: encryptedBlob,
+    encryptedShareableBlob: material.encryptedBlob,
     recipients: recipientPayloads,
   });
 
@@ -289,7 +322,9 @@ export async function encryptAndShareCase(
   // Assessment / AssessmentReveal) with zero server or crypto changes.
   // Best-effort: a cache write failure must not fail the share.
   await Promise.allSettled(
-    result.sharedCases.map((row) => saveDecryptedSharedCase(row.id, blob)),
+    result.sharedCases.map((row) =>
+      saveDecryptedSharedCase(row.id, material.blob, 1),
+    ),
   );
 
   return result;
@@ -310,11 +345,15 @@ export interface ShareCaseWithTeamParams {
  * The save-time share pipeline. Never throws — a successful case save must
  * never be blocked by sharing; every failure lands in `outcome.errors`.
  *
- * Edit path: every existing share row for this case is revoked. Recipients
- * no longer tagged simply lose access (existing behaviour); still-present
- * recipients are revoked FIRST and then included in the fresh POST
- * (revoke-then-reshare) so they receive the updated blob — re-POSTing over
- * a live row would 23505 on the server's UNIQUE(caseId, recipientUserId).
+ * Edit path: still-present recipients get their existing share row UPDATED
+ * IN PLACE (PUT /api/shared/:id/blob — new blob + replaced envelopes;
+ * verification resets to pending server-side and the recipient gets a
+ * "Case Updated — verify the changes" push). The share id stays stable so
+ * any attached assessments survive the edit — the old revoke-then-reshare
+ * pattern cascade-deleted in-flight and completed case_assessments rows.
+ * Newly-tagged recipients get a fresh POST; recipients no longer tagged are
+ * revoked and lose access. If an in-place update fails (version conflict /
+ * row gone), the recipient falls back to revoke-then-reshare.
  */
 export async function shareCaseWithTeam(
   params: ShareCaseWithTeamParams,
@@ -330,47 +369,59 @@ export async function shareCaseWithTeam(
     errors: [...collect.errors],
   };
 
-  let recipients = collect.recipients;
+  const recipients = collect.recipients;
+  const updateTargets: {
+    recipient: ShareRecipient;
+    shareId: string;
+    currentVersion: number;
+  }[] = [];
+  let createRecipients: ShareRecipient[] = [];
   const previouslySharedUserIds = new Set<string>();
 
   if (isEdit) {
     try {
       const outbox = await getSharedOutbox();
-      const existingSharesForCase = outbox.filter(
-        (s) => s.caseId === savedCase.id,
+      const rowsForCase = outbox.filter((s) => s.caseId === savedCase.id);
+      // Defensive: outbox entries carry recipientUserId; rows without one
+      // can't be classified — leave them untouched.
+      const rowByUserId = new Map(
+        rowsForCase
+          .filter((s) => s.recipientUserId)
+          .map((s) => [s.recipientUserId!, s] as const),
       );
+
+      for (const recipient of recipients) {
+        const row = rowByUserId.get(recipient.userId);
+        if (row) {
+          updateTargets.push({
+            recipient,
+            shareId: row.id,
+            currentVersion: row.blobVersion,
+          });
+          previouslySharedUserIds.add(recipient.userId);
+        } else {
+          createRecipients.push(recipient);
+        }
+      }
+
+      // Recipients no longer tagged lose access.
       const currentIds = new Set(recipients.map((r) => r.userId));
-      const reshareRevokeFailed = new Set<string>();
-      for (const share of existingSharesForCase) {
-        // Defensive: outbox entries carry recipientUserId; if missing, skip
-        // rather than revoke something we can't classify.
-        if (!share.recipientUserId) continue;
-        const stillPresent = currentIds.has(share.recipientUserId);
+      for (const row of rowsForCase) {
+        if (!row.recipientUserId) continue;
+        if (currentIds.has(row.recipientUserId)) continue;
         try {
-          await revokeSharedCase(share.id);
-          outcome.revokedShareIds.push(share.id);
+          await revokeSharedCase(row.id);
+          outcome.revokedShareIds.push(row.id);
           // Drop the owner-side cached blob for the dead row so
-          // @opus_shared_case_* entries don't accumulate across edits.
-          void removeDecryptedSharedCase(share.id);
-          if (stillPresent) {
-            previouslySharedUserIds.add(share.recipientUserId);
-          }
+          // @opus_shared_case_* entries don't accumulate.
+          void removeDecryptedSharedCase(row.id);
         } catch (revokeError) {
           outcome.errors.push({
             stage: "revoke",
-            userId: share.recipientUserId,
+            userId: row.recipientUserId,
             message: errorMessage(revokeError),
           });
-          if (stillPresent) reshareRevokeFailed.add(share.recipientUserId);
         }
-      }
-      // A still-present recipient whose old row couldn't be revoked would
-      // 23505 the whole POST and poison the batch for everyone — exclude
-      // them; they keep the previous version of the case.
-      if (reshareRevokeFailed.size > 0) {
-        recipients = recipients.filter(
-          (r) => !reshareRevokeFailed.has(r.userId),
-        );
       }
     } catch (outboxError) {
       // Couldn't enumerate existing shares — leave them in place and still
@@ -379,13 +430,85 @@ export async function shareCaseWithTeam(
         stage: "revoke",
         message: errorMessage(outboxError),
       });
+      createRecipients = recipients;
+    }
+  } else {
+    createRecipients = recipients;
+  }
+
+  if (updateTargets.length + createRecipients.length === 0) return outcome;
+
+  // One case key + one blob for everyone in this save, regardless of
+  // whether their row is updated or freshly created.
+  let material: PreparedShareMaterial;
+  try {
+    material = await prepareShareMaterial(savedCase, recipients);
+  } catch (prepError) {
+    outcome.errors.push({ stage: "share", message: errorMessage(prepError) });
+    return outcome;
+  }
+
+  for (const target of updateTargets) {
+    const prepared = material.perRecipient.get(target.recipient.userId);
+    if (!prepared) continue;
+    const named = {
+      userId: target.recipient.userId,
+      displayName: target.recipient.displayName,
+    };
+    try {
+      await updateSharedCaseBlobApi(target.shareId, {
+        encryptedShareableBlob: material.encryptedBlob,
+        blobVersion: target.currentVersion + 1,
+        keyEnvelopes: prepared.keyEnvelopes,
+      });
+      void saveDecryptedSharedCase(
+        target.shareId,
+        material.blob,
+        target.currentVersion + 1,
+      );
+      outcome.shared.push(named);
+      outcome.resharedOnEdit.push(named);
+    } catch (updateError) {
+      // Fallback: revoke-then-reshare (pre-update behaviour). Costs the
+      // row's assessments, but the recipient still gets current content.
+      try {
+        await revokeSharedCase(target.shareId);
+        outcome.revokedShareIds.push(target.shareId);
+        void removeDecryptedSharedCase(target.shareId);
+        createRecipients.push(target.recipient);
+      } catch {
+        // Neither update nor revoke worked — they keep the previous
+        // version; record the original update failure.
+        outcome.errors.push({
+          stage: "update",
+          userId: target.recipient.userId,
+          message: errorMessage(updateError),
+        });
+      }
     }
   }
 
-  if (recipients.length > 0) {
+  if (createRecipients.length > 0) {
     try {
-      await encryptAndShareCase(savedCase, recipients);
-      for (const recipient of recipients) {
+      const payloads = createRecipients.map((r) => {
+        const prepared = material.perRecipient.get(r.userId)!;
+        return {
+          userId: r.userId,
+          role: prepared.role,
+          keyEnvelopes: prepared.keyEnvelopes,
+        };
+      });
+      const result = await shareCase({
+        caseId: savedCase.id,
+        encryptedShareableBlob: material.encryptedBlob,
+        recipients: payloads,
+      });
+      await Promise.allSettled(
+        result.sharedCases.map((row) =>
+          saveDecryptedSharedCase(row.id, material.blob, 1),
+        ),
+      );
+      for (const recipient of createRecipients) {
         const named = {
           userId: recipient.userId,
           displayName: recipient.displayName,

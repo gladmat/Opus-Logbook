@@ -2,10 +2,13 @@
  * caseSharing — the extracted save-time share pipeline (2A), snapshot
  * rehydration helpers (1B), and the save-time rescue helpers (1C).
  *
- * Key regression: `shared_cases` has UNIQUE(caseId, recipientUserId) and the
- * server does a plain insert, so an edit-save must revoke a still-present
- * recipient's row BEFORE re-POSTing (revoke-then-reshare) — previously the
- * re-POST 500 was swallowed and edited content never reached them.
+ * Key regressions:
+ * - `shared_cases` has UNIQUE(caseId, recipientUserId) and the server does a
+ *   plain insert, so an edit-save must never re-POST over a live row.
+ * - Edit-saves UPDATE a still-present recipient's row in place
+ *   (PUT /api/shared/:id/blob) so the share id — and its attached
+ *   case_assessments — survives; revoke-then-reshare (which cascade-deletes
+ *   assessments) is only the per-recipient fallback when the update fails.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -23,11 +26,14 @@ const shareCase = vi.fn();
 const getSharedOutbox = vi.fn();
 const revokeSharedCase = vi.fn();
 const searchUserByEmail = vi.fn();
+const updateSharedCaseBlobApi = vi.fn();
 vi.mock("../sharingApi", () => ({
   shareCase: (...args: unknown[]) => shareCase(...args),
   getSharedOutbox: (...args: unknown[]) => getSharedOutbox(...args),
   revokeSharedCase: (...args: unknown[]) => revokeSharedCase(...args),
   searchUserByEmail: (...args: unknown[]) => searchUserByEmail(...args),
+  updateSharedCaseBlobApi: (...args: unknown[]) =>
+    updateSharedCaseBlobApi(...args),
 }));
 
 const verifyAndPinRecipientKeys = vi.fn();
@@ -119,6 +125,7 @@ beforeEach(() => {
   shareCase.mockResolvedValue({ sharedCases: [] });
   getSharedOutbox.mockResolvedValue([]);
   revokeSharedCase.mockResolvedValue(undefined);
+  updateSharedCaseBlobApi.mockResolvedValue(undefined);
 });
 
 describe("rehydrateTeamSnapshots", () => {
@@ -328,18 +335,68 @@ describe("shareCaseWithTeam", () => {
     expect(outcome.resharedOnEdit).toHaveLength(0);
   });
 
-  it("edit: revokes a still-present recipient BEFORE re-sharing them (unique-index bug fix)", async () => {
+  it("edit: updates a still-present recipient's row IN PLACE — no revoke, no POST, same share id", async () => {
     getUserDeviceKeys.mockResolvedValue(DEVICE_KEYS);
     getSharedOutbox.mockResolvedValue([
-      { id: "share-live", caseId: "case-1", recipientUserId: "user-9" },
-      { id: "share-other-case", caseId: "case-2", recipientUserId: "user-9" },
+      {
+        id: "share-live",
+        caseId: "case-1",
+        recipientUserId: "user-9",
+        blobVersion: 3,
+      },
+      {
+        id: "share-other-case",
+        caseId: "case-2",
+        recipientUserId: "user-9",
+        blobVersion: 1,
+      },
     ]);
     const outcome = await shareCaseWithTeam({
       savedCase: makeCase(),
       operativeTeam: [makeMember({ linkedUserId: "user-9" })],
       isEdit: true,
     });
-    expect(revokeSharedCase).toHaveBeenCalledTimes(1);
+    expect(revokeSharedCase).not.toHaveBeenCalled();
+    expect(shareCase).not.toHaveBeenCalled();
+    expect(updateSharedCaseBlobApi).toHaveBeenCalledTimes(1);
+    const [shareId, params] = updateSharedCaseBlobApi.mock.calls[0] as [
+      string,
+      { blobVersion: number; keyEnvelopes: unknown[] },
+    ];
+    expect(shareId).toBe("share-live");
+    expect(params.blobVersion).toBe(4);
+    expect(params.keyEnvelopes).toHaveLength(2);
+    // Owner cache re-seeded under the SAME share id with the new version.
+    expect(saveDecryptedSharedCase).toHaveBeenCalledWith(
+      "share-live",
+      expect.anything(),
+      4,
+    );
+    expect(outcome.shared).toEqual([
+      { userId: "user-9", displayName: "Jane Doe" },
+    ]);
+    expect(outcome.resharedOnEdit).toEqual([
+      { userId: "user-9", displayName: "Jane Doe" },
+    ]);
+    expect(outcome.revokedShareIds).toHaveLength(0);
+  });
+
+  it("edit: a failed in-place update falls back to revoke-then-reshare", async () => {
+    getUserDeviceKeys.mockResolvedValue(DEVICE_KEYS);
+    getSharedOutbox.mockResolvedValue([
+      {
+        id: "share-live",
+        caseId: "case-1",
+        recipientUserId: "user-9",
+        blobVersion: 2,
+      },
+    ]);
+    updateSharedCaseBlobApi.mockRejectedValue(new Error("conflict 409"));
+    const outcome = await shareCaseWithTeam({
+      savedCase: makeCase(),
+      operativeTeam: [makeMember({ linkedUserId: "user-9" })],
+      isEdit: true,
+    });
     expect(revokeSharedCase).toHaveBeenCalledWith("share-live");
     expect(shareCase).toHaveBeenCalledTimes(1);
     const revokeOrder = revokeSharedCase.mock.invocationCallOrder[0]!;
@@ -351,13 +408,20 @@ describe("shareCaseWithTeam", () => {
     expect(outcome.resharedOnEdit).toEqual([
       { userId: "user-9", displayName: "Jane Doe" },
     ]);
+    expect(outcome.revokedShareIds).toEqual(["share-live"]);
   });
 
-  it("edit: excludes a still-present recipient from the POST when their revoke fails", async () => {
+  it("edit: records an update error when both the update and the fallback revoke fail", async () => {
     getUserDeviceKeys.mockResolvedValue(DEVICE_KEYS);
     getSharedOutbox.mockResolvedValue([
-      { id: "share-live", caseId: "case-1", recipientUserId: "user-9" },
+      {
+        id: "share-live",
+        caseId: "case-1",
+        recipientUserId: "user-9",
+        blobVersion: 2,
+      },
     ]);
+    updateSharedCaseBlobApi.mockRejectedValue(new Error("update 500"));
     revokeSharedCase.mockRejectedValue(new Error("revoke 500"));
     const outcome = await shareCaseWithTeam({
       savedCase: makeCase(),
@@ -366,9 +430,44 @@ describe("shareCaseWithTeam", () => {
     });
     expect(shareCase).not.toHaveBeenCalled();
     expect(outcome.errors).toEqual([
-      { stage: "revoke", userId: "user-9", message: "revoke 500" },
+      { stage: "update", userId: "user-9", message: "update 500" },
     ]);
     expect(outcome.shared).toHaveLength(0);
+  });
+
+  it("edit: mixes in-place updates with fresh POSTs for newly-tagged recipients", async () => {
+    getUserDeviceKeys.mockResolvedValue(DEVICE_KEYS);
+    getSharedOutbox.mockResolvedValue([
+      {
+        id: "share-live",
+        caseId: "case-1",
+        recipientUserId: "user-9",
+        blobVersion: 1,
+      },
+    ]);
+    const outcome = await shareCaseWithTeam({
+      savedCase: makeCase(),
+      operativeTeam: [
+        makeMember({ linkedUserId: "user-9" }),
+        makeMember({
+          contactId: "contact-2",
+          linkedUserId: "user-10",
+          displayName: "New Colleague",
+        }),
+      ],
+      isEdit: true,
+    });
+    expect(updateSharedCaseBlobApi).toHaveBeenCalledTimes(1);
+    expect(shareCase).toHaveBeenCalledTimes(1);
+    const payload = shareCase.mock.calls[0]?.[0] as {
+      recipients: { userId: string }[];
+    };
+    expect(payload.recipients.map((r) => r.userId)).toEqual(["user-10"]);
+    expect(outcome.shared.map((s) => s.userId).sort()).toEqual([
+      "user-10",
+      "user-9",
+    ]);
+    expect(outcome.resharedOnEdit.map((s) => s.userId)).toEqual(["user-9"]);
   });
 
   it("edit: an outbox failure degrades to a recorded error but the POST still runs", async () => {
@@ -584,14 +683,22 @@ describe("owner-side share cache seeding (Phase 3)", () => {
     expect(outcome.shared.map((s) => s.userId)).toEqual(["user-1"]);
   });
 
-  it("drops the cached blob for revoked rows on edit-save", async () => {
+  it("edit-save: drops the cache for removed recipients, re-seeds in place for kept ones", async () => {
     getUserDeviceKeys.mockResolvedValue(DEVICE_KEYS);
     getSharedOutbox.mockResolvedValue([
-      { id: "share-old", caseId: "case-1", recipientUserId: "user-1" },
+      {
+        id: "share-old",
+        caseId: "case-1",
+        recipientUserId: "user-gone",
+        blobVersion: 1,
+      },
+      {
+        id: "share-live",
+        caseId: "case-1",
+        recipientUserId: "user-1",
+        blobVersion: 2,
+      },
     ]);
-    shareCase.mockResolvedValue({
-      sharedCases: [{ id: "share-new", recipientUserId: "user-1" }],
-    });
 
     await shareCaseWithTeam({
       savedCase: makeCase(),
@@ -599,10 +706,12 @@ describe("owner-side share cache seeding (Phase 3)", () => {
       isEdit: true,
     });
 
+    expect(revokeSharedCase).toHaveBeenCalledWith("share-old");
     expect(removeDecryptedSharedCase).toHaveBeenCalledWith("share-old");
     expect(saveDecryptedSharedCase).toHaveBeenCalledWith(
-      "share-new",
+      "share-live",
       expect.objectContaining({ facility: "Waikato Hospital" }),
+      3,
     );
   });
 });

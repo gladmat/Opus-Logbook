@@ -42,26 +42,62 @@ export async function updateSharedInboxIndex(
 
 // ── Shared case data (encrypted with K_user) ────────────────────────────────
 
+// Cache records are stored as { __blobVersion, data } so a share row updated
+// in place (same id, bumped blobVersion) invalidates the cached decrypt.
+// Legacy records are the bare SharedCaseData object — read as version null
+// (treated as stale whenever the server reports a version, forcing one
+// refetch that upgrades the record).
+interface VersionedSharedCaseRecord {
+  __blobVersion: number;
+  data: SharedCaseData;
+}
+
+function isVersionedRecord(
+  parsed: unknown,
+): parsed is VersionedSharedCaseRecord {
+  return (
+    typeof parsed === "object" &&
+    parsed !== null &&
+    "__blobVersion" in parsed &&
+    "data" in parsed
+  );
+}
+
 export async function saveDecryptedSharedCase(
   id: string,
   data: SharedCaseData,
+  blobVersion?: number,
 ): Promise<void> {
-  const plaintext = JSON.stringify(data);
+  const record: VersionedSharedCaseRecord | SharedCaseData =
+    blobVersion != null ? { __blobVersion: blobVersion, data } : data;
+  const plaintext = JSON.stringify(record);
   const encrypted = await encryptData(plaintext);
   await AsyncStorage.setItem(sharedCaseDataKey(id), encrypted);
+}
+
+export async function getDecryptedSharedCaseWithVersion(id: string): Promise<{
+  data: SharedCaseData;
+  blobVersion: number | null;
+} | null> {
+  const encrypted = await AsyncStorage.getItem(sharedCaseDataKey(id));
+  if (!encrypted) return null;
+  try {
+    const plaintext = await decryptData(encrypted);
+    const parsed = JSON.parse(plaintext) as unknown;
+    if (isVersionedRecord(parsed)) {
+      return { data: parsed.data, blobVersion: parsed.__blobVersion };
+    }
+    return { data: parsed as SharedCaseData, blobVersion: null };
+  } catch {
+    return null;
+  }
 }
 
 export async function getDecryptedSharedCase(
   id: string,
 ): Promise<SharedCaseData | null> {
-  const encrypted = await AsyncStorage.getItem(sharedCaseDataKey(id));
-  if (!encrypted) return null;
-  try {
-    const plaintext = await decryptData(encrypted);
-    return JSON.parse(plaintext) as SharedCaseData;
-  } catch {
-    return null;
-  }
+  const record = await getDecryptedSharedCaseWithVersion(id);
+  return record?.data ?? null;
 }
 
 /** Drop a cached decrypted blob (revoked/stale share rows). Best-effort. */

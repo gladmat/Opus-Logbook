@@ -120,6 +120,37 @@ export async function getSharedOutbox(): Promise<SharedCaseInboxEntry[]> {
   return res.json();
 }
 
+// ── Blob update (edit-reshare) ───────────────────────────────────────────────
+
+export interface UpdateSharedCaseBlobParams {
+  encryptedShareableBlob: string;
+  /** Must be strictly greater than the row's current blobVersion. */
+  blobVersion: number;
+  /** Fresh wrapped case keys for the recipient's current devices. */
+  keyEnvelopes: { deviceId: string; envelopeJson: string }[];
+}
+
+/**
+ * Update an existing share row in place: new blob + replaced envelopes,
+ * verification reset to pending server-side. Keeps the share id stable so
+ * attached assessments survive the edit. 409 = version conflict or row gone.
+ */
+export async function updateSharedCaseBlobApi(
+  id: string,
+  params: UpdateSharedCaseBlobParams,
+): Promise<void> {
+  const res = await sharingFetch(`/api/shared/${id}/blob`, {
+    method: "PUT",
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(
+      (err as { error?: string }).error || `Blob update failed (${res.status})`,
+    );
+  }
+}
+
 // ── Verification ─────────────────────────────────────────────────────────────
 
 export async function verifySharedCase(

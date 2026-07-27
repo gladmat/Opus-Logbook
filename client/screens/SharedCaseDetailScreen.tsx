@@ -50,7 +50,7 @@ import {
 import { getDiagnosisGroupTitle } from "@/lib/caseDiagnosisSummary";
 import { getSharedCaseDetail, verifySharedCase } from "@/lib/sharingApi";
 import {
-  getDecryptedSharedCase,
+  getDecryptedSharedCaseWithVersion,
   saveDecryptedSharedCase,
   saveCaseKey,
 } from "@/lib/sharingStorage";
@@ -216,30 +216,43 @@ export default function SharedCaseDetailScreen() {
     setError(null);
 
     try {
-      // 1. Check local cache first
-      const cached = await getDecryptedSharedCase(sharedCaseId);
+      // 1. Check local cache, then fetch metadata (verification status +
+      // blobVersion). An edit-save updates the share row IN PLACE (same id,
+      // bumped blobVersion), so a version ahead of the cached record means
+      // the cached decrypt is stale and must be refetched. Legacy cache
+      // records carry no version — treated as stale once the server is
+      // reachable so they self-upgrade.
+      const cached = await getDecryptedSharedCaseWithVersion(sharedCaseId);
+      let detail: Awaited<ReturnType<typeof getSharedCaseDetail>> | null = null;
+      try {
+        detail = await getSharedCaseDetail(sharedCaseId);
+      } catch {
+        // Offline — or the viewer is the case OWNER (the inbox endpoint
+        // 404s for them); the seeded owner cache is authoritative there.
+      }
+      if (detail) {
+        setVerificationStatus(
+          detail.verificationStatus as "pending" | "verified" | "disputed",
+        );
+        setRecipientRole(detail.recipientRole);
+      }
       if (cached) {
-        setCaseData(cached);
-        setLoading(false);
-        // Still fetch metadata for verification status
-        try {
-          const detail = await getSharedCaseDetail(sharedCaseId);
-          setVerificationStatus(
-            detail.verificationStatus as "pending" | "verified" | "disputed",
-          );
-          setRecipientRole(detail.recipientRole);
-        } catch {
-          // Offline — use cached data, keep whatever status we have
+        const cacheIsCurrent =
+          !detail ||
+          (cached.blobVersion != null &&
+            cached.blobVersion >= detail.blobVersion);
+        if (cacheIsCurrent) {
+          setCaseData(cached.data);
+          setLoading(false);
+          return;
         }
+      }
+      if (!detail) {
+        // No cache and no server — nothing to render.
+        setError("Failed to load this case. Please try again.");
+        setLoading(false);
         return;
       }
-
-      // 2. Fetch encrypted data from server
-      const detail = await getSharedCaseDetail(sharedCaseId);
-      setVerificationStatus(
-        detail.verificationStatus as "pending" | "verified" | "disputed",
-      );
-      setRecipientRole(detail.recipientRole);
 
       // 3. Get device identity to find matching envelope
       const { deviceId } = await getOrCreateDeviceIdentity();
@@ -267,9 +280,13 @@ export default function SharedCaseDetailScreen() {
       );
       const decrypted: SharedCaseData = JSON.parse(plaintext);
 
-      // 7. Cache locally
+      // 7. Cache locally (version-stamped so in-place updates invalidate)
       await saveCaseKey(sharedCaseId, caseKeyHex);
-      await saveDecryptedSharedCase(sharedCaseId, decrypted);
+      await saveDecryptedSharedCase(
+        sharedCaseId,
+        decrypted,
+        detail.blobVersion,
+      );
 
       setCaseData(decrypted);
     } catch (err) {
