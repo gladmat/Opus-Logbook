@@ -19,6 +19,7 @@ import {
   type RevealedPairWithContext,
   type EpaTargetsWithCase,
 } from "@/lib/assessmentStorage";
+import { getSharedOutbox } from "@/lib/sharingApi";
 import { ENTRUSTMENT_LABELS, TEACHING_QUALITY_LABELS } from "@/types/sharing";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
 
@@ -163,9 +164,14 @@ export default function AssessmentHistoryScreen() {
       const task = InteractionManager.runAfterInteractions(async () => {
         setLoading(true);
         try {
-          const [data, pendingTargets] = await Promise.all([
+          const [data, pendingTargets, outbox] = await Promise.all([
             getAllRevealedPairs(),
             getAllEpaTargets().catch(() => []),
+            // Offline → empty outbox → nothing drains this round; the
+            // next online focus reconciles.
+            getSharedOutbox().catch(
+              () => [] as Awaited<ReturnType<typeof getSharedOutbox>>,
+            ),
           ]);
           // Sort by revealedAt descending
           data.sort(
@@ -174,12 +180,30 @@ export default function AssessmentHistoryScreen() {
               new Date(a.revealedAt).getTime(),
           );
           setPairs(data);
-          // Pending = derived targets for cases without a revealed pair
-          // yet. Per-target commit status lives on the case's own
-          // Assessments card — this list is the aggregate entry point.
-          const revealedCaseIds = new Set(data.map((p) => p.sharedCaseId));
+          // Pending = derived targets whose counterpart's share row has no
+          // revealed pair yet. Revealed pairs are keyed by sharedCaseId,
+          // targets by local caseId — the outbox joins the two id spaces
+          // per counterpart. Per-target commit status lives on the case's
+          // own Assessments card — this list is the aggregate entry point.
+          const revealedShareIds = new Set(data.map((p) => p.sharedCaseId));
           setPending(
-            pendingTargets.filter((e) => !revealedCaseIds.has(e.caseId)),
+            pendingTargets
+              .map((e) => ({
+                ...e,
+                targets: e.targets.filter((t) => {
+                  const counterpartUserId =
+                    t.supervisorContactId === "self"
+                      ? t.traineeLinkedUserId
+                      : t.supervisorLinkedUserId;
+                  return !outbox.some(
+                    (s) =>
+                      s.caseId === e.caseId &&
+                      s.recipientUserId === counterpartUserId &&
+                      revealedShareIds.has(s.id),
+                  );
+                }),
+              }))
+              .filter((e) => e.targets.length > 0),
           );
         } catch (error) {
           console.error("Error loading assessment history:", error);
