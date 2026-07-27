@@ -57,6 +57,15 @@ vi.mock("../storage", () => ({
   updateCase: (...args: unknown[]) => updateCase(...args),
 }));
 
+const saveDecryptedSharedCase = vi.fn(async () => undefined);
+const removeDecryptedSharedCase = vi.fn(async () => undefined);
+vi.mock("../sharingStorage", () => ({
+  saveDecryptedSharedCase: (...args: unknown[]) =>
+    saveDecryptedSharedCase(...args),
+  removeDecryptedSharedCase: (...args: unknown[]) =>
+    removeDecryptedSharedCase(...args),
+}));
+
 const {
   rehydrateTeamSnapshots,
   listUnlinkedTaggedMembers,
@@ -520,5 +529,80 @@ describe("markSnapshotLinked", () => {
     getCase.mockResolvedValueOnce(null);
     await markSnapshotLinked("case-missing", "contact-1", "user-9");
     expect(updateCase).not.toHaveBeenCalled();
+  });
+});
+
+describe("owner-side share cache seeding (Phase 3)", () => {
+  const linkedMember = () =>
+    makeMember({
+      contactId: "c-1",
+      linkedUserId: "user-1",
+      displayName: "Dr Recipient",
+    });
+
+  it("seeds the decrypted-share cache for every created share row", async () => {
+    getUserDeviceKeys.mockResolvedValue(DEVICE_KEYS);
+    shareCase.mockResolvedValue({
+      sharedCases: [
+        { id: "share-1", recipientUserId: "user-1" },
+        { id: "share-2", recipientUserId: "user-2" },
+      ],
+    });
+
+    await shareCaseWithTeam({
+      savedCase: makeCase(),
+      operativeTeam: [linkedMember()],
+      isEdit: false,
+    });
+
+    expect(saveDecryptedSharedCase).toHaveBeenCalledTimes(2);
+    const [firstId, firstBlob] = saveDecryptedSharedCase.mock.calls[0] as [
+      string,
+      { facility: string },
+    ];
+    expect(firstId).toBe("share-1");
+    // The seeded blob is the plaintext SharedCaseData for THIS case.
+    expect(firstBlob.facility).toBe("Waikato Hospital");
+    expect(
+      (saveDecryptedSharedCase.mock.calls[1] as [string, unknown])[0],
+    ).toBe("share-2");
+  });
+
+  it("a cache write failure does not fail the share", async () => {
+    getUserDeviceKeys.mockResolvedValue(DEVICE_KEYS);
+    shareCase.mockResolvedValue({
+      sharedCases: [{ id: "share-1", recipientUserId: "user-1" }],
+    });
+    saveDecryptedSharedCase.mockRejectedValueOnce(new Error("disk full"));
+
+    const outcome = await shareCaseWithTeam({
+      savedCase: makeCase(),
+      operativeTeam: [linkedMember()],
+      isEdit: false,
+    });
+    expect(outcome.errors).toHaveLength(0);
+    expect(outcome.shared.map((s) => s.userId)).toEqual(["user-1"]);
+  });
+
+  it("drops the cached blob for revoked rows on edit-save", async () => {
+    getUserDeviceKeys.mockResolvedValue(DEVICE_KEYS);
+    getSharedOutbox.mockResolvedValue([
+      { id: "share-old", caseId: "case-1", recipientUserId: "user-1" },
+    ]);
+    shareCase.mockResolvedValue({
+      sharedCases: [{ id: "share-new", recipientUserId: "user-1" }],
+    });
+
+    await shareCaseWithTeam({
+      savedCase: makeCase(),
+      operativeTeam: [linkedMember()],
+      isEdit: true,
+    });
+
+    expect(removeDecryptedSharedCase).toHaveBeenCalledWith("share-old");
+    expect(saveDecryptedSharedCase).toHaveBeenCalledWith(
+      "share-new",
+      expect.objectContaining({ facility: "Waikato Hospital" }),
+    );
   });
 });

@@ -244,14 +244,20 @@ export default function AssessmentScreen() {
       const entry = inboxIndex.find((e) => e.id === sharedCaseId);
       if (entry) setOwnerDisplayName(entry.ownerDisplayName || "");
 
-      // Auto-detect role
-      const detectedRole = determineAssessorRole(
-        user.id,
-        assessmentStatus.ownerUserId,
-        assessmentStatus.recipientUserId,
-        sharedCase,
-      );
-      setRole(detectedRole);
+      // Role: an explicit suggestion from the owner's EPA card (derived
+      // from who actually supervised whom) beats the blob heuristics.
+      const suggestedRole = route.params.suggestedRole;
+      if (suggestedRole) {
+        setRole(suggestedRole);
+      } else {
+        const detectedRole = determineAssessorRole(
+          user.id,
+          assessmentStatus.ownerUserId,
+          assessmentStatus.recipientUserId,
+          sharedCase,
+        );
+        setRole(detectedRole);
+      }
 
       // If already revealed, navigate to reveal screen
       if (

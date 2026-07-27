@@ -38,28 +38,42 @@ vi.mock("../activeUser", () => ({
 const AsyncStorage = (await import("@react-native-async-storage/async-storage"))
   .default as unknown as { __store: Map<string, string> };
 
-const { saveEpaTargets, getEpaTargets, clearEpaTargets } = await import(
-  "../assessmentStorage"
-);
+const {
+  saveEpaTargets,
+  getEpaTargets,
+  clearEpaTargets,
+  getEpaTargetCaseIds,
+  getAllEpaTargets,
+} = await import("../assessmentStorage");
 
 const CASE_ID = "case-1";
 const KEY = "user-test:@opus_epa_targets_case-1";
+const INDEX_KEY = "user-test:@opus_epa_targets_index";
 
 function makeTarget(
   overrides: Partial<EpaAssessmentTarget> = {},
 ): EpaAssessmentTarget {
   return {
-    procedureIndex: 0,
-    procedureSnomedCode: "771225007",
-    procedureDisplayName: "Free flap reconstruction",
-    supervisorContactId: "c-sup",
-    supervisorDisplayName: "Dr Senior",
-    supervisorLinkedUserId: "u-sup",
-    supervisorOperativeRole: "SS",
+    version: 2,
+    supervisorContactId: "self",
+    supervisorDisplayName: "You",
+    supervisorLinkedUserId: "u-self",
+    supervisorTier: 5 as EpaAssessmentTarget["supervisorTier"],
     traineeContactId: "c-tr",
     traineeDisplayName: "Dr Junior",
     traineeLinkedUserId: "u-tr",
-    traineeOperativeRole: "PS",
+    traineeTier: 2 as EpaAssessmentTarget["traineeTier"],
+    units: [
+      {
+        procedureId: "p1",
+        procedureSnomedCode: "771225007",
+        procedureDisplayName: "Free flap reconstruction",
+        stepId: "s-prep",
+        stepLabel: "Recipient vessel prep",
+        supervisorRole: "PS",
+        traineeRole: "FA",
+      },
+    ],
     ...overrides,
   };
 }
@@ -69,7 +83,7 @@ describe("EPA targets storage", () => {
     AsyncStorage.__store.clear();
   });
 
-  it("round-trips targets through encryption", async () => {
+  it("round-trips v2 targets through encryption and maintains the index", async () => {
     const targets = [makeTarget()];
     await saveEpaTargets(CASE_ID, targets);
 
@@ -77,37 +91,57 @@ describe("EPA targets storage", () => {
     expect(stored).toBeDefined();
     expect(stored!.startsWith("enc:test:")).toBe(true);
 
-    const loaded = await getEpaTargets(CASE_ID);
-    expect(loaded).toEqual(targets);
+    expect(await getEpaTargets(CASE_ID)).toEqual(targets);
+    expect(await getEpaTargetCaseIds()).toEqual([CASE_ID]);
   });
 
-  it("saving an empty list removes the stored key", async () => {
+  it("saving an empty list removes the key and the index entry", async () => {
     await saveEpaTargets(CASE_ID, [makeTarget()]);
     expect(AsyncStorage.__store.has(KEY)).toBe(true);
 
     await saveEpaTargets(CASE_ID, []);
     expect(AsyncStorage.__store.has(KEY)).toBe(false);
+    expect(await getEpaTargetCaseIds()).toEqual([]);
   });
 
   it("drops legacy plaintext records and clears the key", async () => {
-    // Pre-encryption format: plain JSON straight into AsyncStorage.
     AsyncStorage.__store.set(KEY, JSON.stringify([makeTarget()]));
 
     const loaded = await getEpaTargets(CASE_ID);
     expect(loaded).toEqual([]);
-    // Best-effort removal is async fire-and-forget; flush microtasks.
     await new Promise((r) => setTimeout(r, 0));
     expect(AsyncStorage.__store.has(KEY)).toBe(false);
+  });
+
+  it("drops encrypted v1 records (no version field)", async () => {
+    const v1 = { procedureIndex: 0, supervisorContactId: "a" };
+    AsyncStorage.__store.set(KEY, `enc:test:${JSON.stringify([v1])}`);
+    AsyncStorage.__store.set(INDEX_KEY, JSON.stringify([CASE_ID]));
+
+    expect(await getEpaTargets(CASE_ID)).toEqual([]);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(AsyncStorage.__store.has(KEY)).toBe(false);
+    expect(await getEpaTargetCaseIds()).toEqual([]);
   });
 
   it("returns [] for a missing key", async () => {
     expect(await getEpaTargets("nonexistent")).toEqual([]);
   });
 
-  it("clearEpaTargets removes the key", async () => {
+  it("clearEpaTargets removes key + index entry", async () => {
     await saveEpaTargets(CASE_ID, [makeTarget()]);
     await clearEpaTargets(CASE_ID);
     expect(AsyncStorage.__store.has(KEY)).toBe(false);
-    expect(await getEpaTargets(CASE_ID)).toEqual([]);
+    expect(await getEpaTargetCaseIds()).toEqual([]);
+  });
+
+  it("getAllEpaTargets batch-loads every indexed case", async () => {
+    await saveEpaTargets("case-1", [makeTarget()]);
+    await saveEpaTargets("case-2", [
+      makeTarget({ traineeContactId: "c-other" }),
+    ]);
+    const all = await getAllEpaTargets();
+    expect(all.map((e) => e.caseId).sort()).toEqual(["case-1", "case-2"]);
+    expect(all.every((e) => e.targets.length === 1)).toBe(true);
   });
 });

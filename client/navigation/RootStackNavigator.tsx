@@ -271,7 +271,11 @@ export type RootStackParamList = {
   };
   SharedInbox: undefined;
   SharedCaseDetail: { sharedCaseId: string };
-  Assessment: { sharedCaseId: string };
+  Assessment: {
+    sharedCaseId: string;
+    /** From the owner's EPA card — overrides assessor-role auto-detection. */
+    suggestedRole?: "supervisor" | "trainee";
+  };
   AssessmentReveal: { sharedCaseId: string };
   AssessmentHistory: undefined;
 };

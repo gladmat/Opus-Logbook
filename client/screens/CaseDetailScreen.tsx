@@ -37,6 +37,7 @@ import {
   caseHasStepData,
   buildPerProcedureTeamRows,
 } from "@/lib/teamAttribution";
+import { EpaAssessmentsCard } from "@/components/EpaAssessmentsCard";
 import {
   Case,
   TimelineEvent,
@@ -2372,6 +2373,9 @@ export default function CaseDetailScreen() {
             </View>
           </>
         ) : null}
+
+        {/* EPA assessments (owner-facing; renders null without targets) */}
+        <EpaAssessmentsCard caseId={caseData.id} />
 
         {/* Joint Case Context */}
         {caseData.jointCaseContext?.isJointCase ? (

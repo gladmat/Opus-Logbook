@@ -64,6 +64,15 @@ export async function getDecryptedSharedCase(
   }
 }
 
+/** Drop a cached decrypted blob (revoked/stale share rows). Best-effort. */
+export async function removeDecryptedSharedCase(id: string): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(sharedCaseDataKey(id));
+  } catch {
+    // Best-effort.
+  }
+}
+
 // ── Case keys (SecureStore) ──────────────────────────────────────────────────
 
 export async function saveCaseKey(

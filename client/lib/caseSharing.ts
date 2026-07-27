@@ -35,6 +35,10 @@ import {
 } from "./sharingApi";
 import { getUserDeviceKeys, linkContact } from "./teamContactsApi";
 import { getCase, updateCase } from "./storage";
+import {
+  saveDecryptedSharedCase,
+  removeDecryptedSharedCase,
+} from "./sharingStorage";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -272,11 +276,23 @@ export async function encryptAndShareCase(
     });
   }
 
-  return shareCase({
+  const result = await shareCase({
     caseId: caseData.id,
     encryptedShareableBlob: encryptedBlob,
     recipients: recipientPayloads,
   });
+
+  // Owner-side cache seeding: the owner can't decrypt their own blob (the
+  // case key is wrapped only to recipient devices), but they BUILT it in
+  // plaintext right here — seeding the local decrypted-share cache gives
+  // the owner the full recipient-side UI stack (SharedCaseDetail /
+  // Assessment / AssessmentReveal) with zero server or crypto changes.
+  // Best-effort: a cache write failure must not fail the share.
+  await Promise.allSettled(
+    result.sharedCases.map((row) => saveDecryptedSharedCase(row.id, blob)),
+  );
+
+  return result;
 }
 
 // ── Save-time orchestration ──────────────────────────────────────────────────
@@ -333,6 +349,9 @@ export async function shareCaseWithTeam(
         try {
           await revokeSharedCase(share.id);
           outcome.revokedShareIds.push(share.id);
+          // Drop the owner-side cached blob for the dead row so
+          // @opus_shared_case_* entries don't accumulate across edits.
+          void removeDecryptedSharedCase(share.id);
           if (stillPresent) {
             previouslySharedUserIds.add(share.recipientUserId);
           }

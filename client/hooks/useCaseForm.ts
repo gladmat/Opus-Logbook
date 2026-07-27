@@ -79,7 +79,10 @@ import {
   type ValidationError,
 } from "@/lib/caseFormDateChecks";
 import type { OperativeRole, SupervisionLevel } from "@/types/operativeRole";
-import { toNearestLegacyRole } from "@/types/operativeRole";
+import {
+  toNearestLegacyRole,
+  resolveOperativeRole,
+} from "@/types/operativeRole";
 import { suggestRoleDefaults, isConsultantLevel } from "@/lib/roleDefaults";
 import type {
   CaseTeamMember,
@@ -87,7 +90,10 @@ import type {
   TeamContact,
 } from "@/types/teamContacts";
 import { abbreviateName } from "@/types/teamContacts";
-import { stripParticipantsFromGroups } from "@/types/operativeSteps";
+import {
+  stripParticipantsFromGroups,
+  ownerOperativeRoleToTeamRole,
+} from "@/types/operativeSteps";
 import {
   restoreDraftDateOnlyValue,
   restoreDraftOperativeMedia,
@@ -117,9 +123,11 @@ import {
 } from "@/lib/caseSharing";
 import { runPostSaveTeamPrompt } from "@/lib/linkingPrompts";
 import { getTeamContacts } from "@/lib/teamContactsApi";
-import { deriveEpaAssessments } from "@/lib/epaDerivation";
+import {
+  deriveEpaAssessments,
+  type EpaDerivationDiagnostics,
+} from "@/lib/epaDerivation";
 import { saveEpaTargets } from "@/lib/assessmentStorage";
-import { getSeniorityTier } from "@/lib/seniorityTier";
 import { captureClientException } from "@/lib/sentry";
 
 // ─── Default Donor Vessels ──────────────────────────────────────────────────
@@ -2611,27 +2619,45 @@ export function useCaseForm({
 
         // Derive EPA assessment targets (non-blocking). Uses the rehydrated
         // team so a careerStage filled from the live contact improves the
-        // derived targets. Runs on every edit-save even with an empty team
-        // so stale targets from a previous derivation are cleared
-        // (saveEpaTargets removes the key when the list is empty).
+        // derived targets. Units come from steps when a procedure carries
+        // them (authoritative), else the whole procedure with the owner's
+        // RESOLVED role — and team-only pairs derive even when the
+        // logger's own stage is unset. Runs on every edit-save even with
+        // an empty team so stale targets clear (saveEpaTargets removes
+        // the key when the list is empty).
+        let epaDiagnostics: EpaDerivationDiagnostics | null = null;
         if (operativeTeamForSave.length > 0 || (isEditMode && existingCase)) {
           try {
-            let targets: ReturnType<typeof deriveEpaAssessments> = [];
-            if (operativeTeamForSave.length > 0 && profile?.careerStage) {
-              const allProcs = savedCase.diagnosisGroups.flatMap(
-                (g: DiagnosisGroup) => g.procedures ?? [],
+            let targets: import("@/lib/epaDerivation").EpaAssessmentTarget[] =
+              [];
+            if (operativeTeamForSave.length > 0 && profile) {
+              let flatIndex = 0;
+              const units = savedCase.diagnosisGroups.flatMap(
+                (g: DiagnosisGroup) =>
+                  (g.procedures ?? []).map((p) => ({
+                    procedureId: p.id,
+                    procedureName: p.procedureName,
+                    snomedCtCode: p.snomedCtCode,
+                    flatIndex: flatIndex++,
+                    steps: p.operativeSteps,
+                    ownerRole: ownerOperativeRoleToTeamRole(
+                      resolveOperativeRole(
+                        p.operativeRoleOverride,
+                        savedCase.defaultOperativeRole,
+                      ),
+                    ),
+                  })),
               );
-              const epaProcs = allProcs.map((p) => ({
-                procedureName: p.procedureName,
-                snomedCtCode: p.snomedCtCode,
-              }));
-              targets = deriveEpaAssessments(
-                profile.userId,
-                profile.careerStage,
-                profile.userId,
-                operativeTeamForSave,
-                epaProcs,
-              );
+              const derivation = deriveEpaAssessments({
+                self: {
+                  linkedUserId: profile.userId,
+                  careerStage: profile.careerStage,
+                },
+                teamMembers: operativeTeamForSave,
+                units,
+              });
+              targets = derivation.targets;
+              epaDiagnostics = derivation.diagnostics;
             }
             saveEpaTargets(savedCase.id, targets).catch((err) => {
               // Non-critical — EPA storage failure doesn't block save
@@ -2691,7 +2717,7 @@ export function useCaseForm({
           // own profile revealed a second surprise on the next save.
           if (!profile?.careerStage) {
             issues.push(
-              "• Your own career stage isn't set, so no assessment targets will be generated. Set it in Edit Profile.",
+              "• Your own career stage isn't set, so assessment targets can't include you. Set it in Edit Profile.",
             );
           }
           if (linkedMissingStage > 0) {
@@ -2701,21 +2727,8 @@ export function useCaseForm({
           }
           // Same-tier teams silently derive zero EPA pairs — say so instead
           // of leaving the surgeon wondering why nothing was generated.
-          const knownTiers = new Set<number>();
-          let tieredParticipants = 0;
-          const selfTier = getSeniorityTier(profile?.careerStage);
-          if (selfTier !== null) {
-            knownTiers.add(selfTier);
-            tieredParticipants += 1;
-          }
-          for (const m of operativeTeamForSave) {
-            if (!m.linkedUserId || !m.careerStage) continue;
-            const tier = getSeniorityTier(m.careerStage);
-            if (tier === null) continue;
-            knownTiers.add(tier);
-            tieredParticipants += 1;
-          }
-          if (tieredParticipants >= 2 && knownTiers.size === 1) {
+          // Authoritative signal from the derivation itself.
+          if (epaDiagnostics?.allSameTier) {
             issues.push(
               "• Everyone on this case is at the same seniority level, so there is no supervisor–trainee pair to assess.",
             );

@@ -48,6 +48,14 @@ vi.mock("../storage", () => ({
   updateCase: (...args: unknown[]) => updateCase(...args),
 }));
 
+// caseSharing (imported transitively) now seeds the owner-side decrypted
+// share cache; stub the storage module so the native crypto chain never
+// loads under vitest.
+vi.mock("../sharingStorage", () => ({
+  saveDecryptedSharedCase: vi.fn(async () => undefined),
+  removeDecryptedSharedCase: vi.fn(async () => undefined),
+}));
+
 const { findRetroShareCandidates, retroShareCasesForContact, RETRO_SHARE_CAP } =
   await import("../retroShare");
 

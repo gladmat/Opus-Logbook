@@ -15,6 +15,7 @@ const ASSESSMENT_KEYS = {
   REVEALED_PREFIX: "@opus_assessment_revealed_",
   REVEALED_INDEX: "@opus_assessment_revealed_index",
   EPA_TARGETS_PREFIX: "@opus_epa_targets_",
+  EPA_TARGETS_INDEX: "@opus_epa_targets_index",
   PENDING_COMMIT_PREFIX: "@opus_assessment_pending_",
 } as const;
 
@@ -184,13 +185,44 @@ export async function getAllRevealedPairs(): Promise<
 function epaTargetsKey(caseId: string): string {
   return userScopedAsyncKey(`${ASSESSMENT_KEYS.EPA_TARGETS_PREFIX}${caseId}`);
 }
+function epaTargetsIndexKey(): string {
+  return userScopedAsyncKey(ASSESSMENT_KEYS.EPA_TARGETS_INDEX);
+}
+
+/** CaseIds with stored EPA targets (no PHI — mirrors REVEALED_INDEX). */
+export async function getEpaTargetCaseIds(): Promise<string[]> {
+  const raw = await AsyncStorage.getItem(epaTargetsIndexKey());
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw) as string[];
+  } catch {
+    return [];
+  }
+}
+
+async function updateEpaTargetsIndex(
+  caseId: string,
+  present: boolean,
+): Promise<void> {
+  const ids = await getEpaTargetCaseIds();
+  const has = ids.includes(caseId);
+  if (present && !has) {
+    ids.push(caseId);
+    await AsyncStorage.setItem(epaTargetsIndexKey(), JSON.stringify(ids));
+  } else if (!present && has) {
+    await AsyncStorage.setItem(
+      epaTargetsIndexKey(),
+      JSON.stringify(ids.filter((id) => id !== caseId)),
+    );
+  }
+}
 
 /**
  * Save derived EPA assessment targets for a case (encrypted with K_user,
  * like every other blob in this module — targets carry display names and
  * linked user IDs). An empty list REMOVES the stored key so stale targets
  * from a previous derivation don't linger after an edit-save that drops
- * the team.
+ * the team. Maintains the case-id index for getAllEpaTargets.
  */
 export async function saveEpaTargets(
   caseId: string,
@@ -198,25 +230,28 @@ export async function saveEpaTargets(
 ): Promise<void> {
   if (targets.length === 0) {
     await AsyncStorage.removeItem(epaTargetsKey(caseId));
+    await updateEpaTargetsIndex(caseId, false);
     return;
   }
   const encrypted = await encryptData(JSON.stringify(targets));
   await AsyncStorage.setItem(epaTargetsKey(caseId), encrypted);
+  await updateEpaTargetsIndex(caseId, true);
 }
 
 /** Remove stored EPA targets for a case. Best-effort. */
 export async function clearEpaTargets(caseId: string): Promise<void> {
   try {
     await AsyncStorage.removeItem(epaTargetsKey(caseId));
+    await updateEpaTargetsIndex(caseId, false);
   } catch {
     // Best-effort.
   }
 }
 
 /**
- * Load EPA assessment targets for a case. Legacy plaintext records (written
- * before targets were encrypted) fail decryption and are dropped — they
- * regenerate on the next save of the case.
+ * Load EPA assessment targets for a case. Only version-2 records are
+ * returned: v1 records (pre-rewrite, per-procedure cartesian pairs) and
+ * legacy plaintext both drop and regenerate on the next save.
  */
 export async function getEpaTargets(
   caseId: string,
@@ -225,9 +260,39 @@ export async function getEpaTargets(
   if (!raw) return [];
   try {
     const plaintext = await decryptData(raw);
-    return JSON.parse(plaintext) as EpaAssessmentTarget[];
+    const parsed = JSON.parse(plaintext) as EpaAssessmentTarget[];
+    if (!Array.isArray(parsed) || parsed.some((t) => t.version !== 2)) {
+      void clearEpaTargets(caseId);
+      return [];
+    }
+    return parsed;
   } catch {
     void clearEpaTargets(caseId);
     return [];
   }
+}
+
+/** Targets for a case, with the caseId attached. */
+export interface EpaTargetsWithCase {
+  caseId: string;
+  targets: EpaAssessmentTarget[];
+}
+
+/** Batch-load every stored EPA target set (pending-assessments surfaces). */
+export async function getAllEpaTargets(): Promise<EpaTargetsWithCase[]> {
+  const ids = await getEpaTargetCaseIds();
+  if (ids.length === 0) return [];
+  const results = await Promise.allSettled(
+    ids.map(async (caseId) => {
+      const targets = await getEpaTargets(caseId);
+      return targets.length > 0 ? { caseId, targets } : null;
+    }),
+  );
+  return results
+    .filter(
+      (r): r is PromiseFulfilledResult<EpaTargetsWithCase | null> =>
+        r.status === "fulfilled",
+    )
+    .map((r) => r.value)
+    .filter((v): v is EpaTargetsWithCase => v != null);
 }

@@ -2,20 +2,25 @@ import React, { useState, useCallback } from "react";
 import {
   View,
   FlatList,
+  Pressable,
   StyleSheet,
   ActivityIndicator,
   InteractionManager,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@/components/FeatherIcon";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import {
   getAllRevealedPairs,
+  getAllEpaTargets,
   type RevealedPairWithContext,
+  type EpaTargetsWithCase,
 } from "@/lib/assessmentStorage";
 import { ENTRUSTMENT_LABELS, TEACHING_QUALITY_LABELS } from "@/types/sharing";
+import type { RootStackParamList } from "@/navigation/RootStackNavigator";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -147,7 +152,10 @@ const AssessmentRow = React.memo(function AssessmentRow({
 
 export default function AssessmentHistoryScreen() {
   const { theme } = useTheme();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [pairs, setPairs] = useState<RevealedPairWithContext[]>([]);
+  const [pending, setPending] = useState<EpaTargetsWithCase[]>([]);
   const [loading, setLoading] = useState(true);
 
   useFocusEffect(
@@ -155,7 +163,10 @@ export default function AssessmentHistoryScreen() {
       const task = InteractionManager.runAfterInteractions(async () => {
         setLoading(true);
         try {
-          const data = await getAllRevealedPairs();
+          const [data, pendingTargets] = await Promise.all([
+            getAllRevealedPairs(),
+            getAllEpaTargets().catch(() => []),
+          ]);
           // Sort by revealedAt descending
           data.sort(
             (a, b) =>
@@ -163,6 +174,13 @@ export default function AssessmentHistoryScreen() {
               new Date(a.revealedAt).getTime(),
           );
           setPairs(data);
+          // Pending = derived targets for cases without a revealed pair
+          // yet. Per-target commit status lives on the case's own
+          // Assessments card — this list is the aggregate entry point.
+          const revealedCaseIds = new Set(data.map((p) => p.sharedCaseId));
+          setPending(
+            pendingTargets.filter((e) => !revealedCaseIds.has(e.caseId)),
+          );
         } catch (error) {
           console.error("Error loading assessment history:", error);
         } finally {
@@ -184,7 +202,7 @@ export default function AssessmentHistoryScreen() {
     );
   }
 
-  if (pairs.length === 0) {
+  if (pairs.length === 0 && pending.length === 0) {
     return (
       <View
         testID="screen-assessmentHistory"
@@ -203,6 +221,75 @@ export default function AssessmentHistoryScreen() {
     );
   }
 
+  const pendingHeader =
+    pending.length > 0 ? (
+      <View style={styles.pendingSection}>
+        <ThemedText
+          style={[styles.pendingHeading, { color: theme.textTertiary }]}
+        >
+          Pending
+        </ThemedText>
+        {pending.map((entry) =>
+          entry.targets.map((t) => {
+            const iAmSupervisor = t.supervisorContactId === "self";
+            const counterpart = iAmSupervisor
+              ? t.traineeDisplayName
+              : t.supervisorDisplayName;
+            return (
+              <Pressable
+                key={`${entry.caseId}-${t.supervisorLinkedUserId}-${t.traineeLinkedUserId}`}
+                style={[
+                  styles.pendingRow,
+                  {
+                    backgroundColor: theme.backgroundElevated,
+                    borderColor: theme.border,
+                  },
+                ]}
+                onPress={() =>
+                  navigation.navigate("CaseDetail", { caseId: entry.caseId })
+                }
+                accessibilityRole="button"
+                accessibilityLabel={`Open pending assessment with ${counterpart}`}
+                testID={`assessmentHistory.pending-${entry.caseId}`}
+              >
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <ThemedText
+                    style={[styles.pendingDirection, { color: theme.text }]}
+                  >
+                    {iAmSupervisor
+                      ? `You assess ${counterpart}`
+                      : `${counterpart} assesses you`}
+                  </ThemedText>
+                  <ThemedText
+                    style={[
+                      styles.pendingScope,
+                      { color: theme.textSecondary },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {t.units[0]?.procedureDisplayName ?? "Case"}
+                    {t.units.length > 1 ? ` +${t.units.length - 1}` : ""}
+                  </ThemedText>
+                </View>
+                <Feather
+                  name="chevron-right"
+                  size={16}
+                  color={theme.textTertiary}
+                />
+              </Pressable>
+            );
+          }),
+        )}
+        {pairs.length > 0 ? (
+          <ThemedText
+            style={[styles.pendingHeading, { color: theme.textTertiary }]}
+          >
+            Revealed
+          </ThemedText>
+        ) : null}
+      </View>
+    ) : null;
+
   return (
     <View
       testID="screen-assessmentHistory"
@@ -212,6 +299,7 @@ export default function AssessmentHistoryScreen() {
         data={pairs}
         keyExtractor={(item) => item.sharedCaseId}
         renderItem={({ item }) => <AssessmentRow pair={item} />}
+        ListHeaderComponent={pendingHeader}
         contentContainerStyle={styles.listContent}
       />
     </View>
@@ -230,6 +318,36 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: Spacing.xl,
     gap: Spacing.md,
+  },
+  pendingSection: {
+    marginBottom: Spacing.sm,
+  },
+  pendingHeading: {
+    fontSize: 12,
+    fontWeight: "500",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  pendingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.sm,
+    minHeight: 48,
+  },
+  pendingDirection: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  pendingScope: {
+    fontSize: 13,
+    marginTop: 1,
   },
   listContent: {
     paddingHorizontal: Spacing.md,

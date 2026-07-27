@@ -1,398 +1,382 @@
 import { describe, it, expect } from "vitest";
-import { deriveEpaAssessments, type EpaProcedureInput } from "../epaDerivation";
-import type { CaseTeamMember } from "@/types/teamContacts";
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+import { deriveEpaAssessments, type EpaUnitInput } from "../epaDerivation";
+import type { CaseTeamMember } from "@/types/teamContacts";
+import type { OperativeStep } from "@/types/operativeSteps";
+
+// ── Fixtures ─────────────────────────────────────────────────────────────────
+// Stages resolve through the real seniority map; the tests only rely on
+// their relative ordering: nz_consultant > nz_fellow > nz_set_trainee.
+
+const SELF = {
+  linkedUserId: "u-self",
+  careerStage: "nz_consultant",
+  displayName: "You",
+};
 
 function makeMember(
   overrides: Partial<CaseTeamMember> & { contactId: string },
 ): CaseTeamMember {
   return {
-    displayName: `Member ${overrides.contactId}`,
-    abbreviatedName: `M ${overrides.contactId.charAt(0)}.`,
+    displayName: "Dr Member",
+    abbreviatedName: "Member D.",
     operativeRole: "FA",
+    linkedUserId: `u-${overrides.contactId}`,
+    careerStage: "nz_fellow",
     ...overrides,
   };
 }
 
-const proc: EpaProcedureInput = {
-  procedureName: "Free flap - ALT",
-  snomedCtCode: "234001",
-};
+function makeUnit(
+  overrides: Partial<EpaUnitInput> & { procedureId: string },
+): EpaUnitInput {
+  return {
+    procedureName: "Free ALT flap",
+    snomedCtCode: "771225007",
+    flatIndex: 0,
+    ownerRole: "PS",
+    ...overrides,
+  };
+}
 
-const proc2: EpaProcedureInput = {
-  procedureName: "Nerve repair",
-  snomedCtCode: "567002",
-};
+function makeStep(
+  id: string,
+  label: string,
+  team: OperativeStep["team"],
+  sequence = 0,
+): OperativeStep {
+  return { id, kind: "custom", label, sequence, team };
+}
 
-// Logger defaults
-const selfId = "self";
-const selfUserId = "user-self";
+// ── The reported case ────────────────────────────────────────────────────────
 
-// ── Tests ────────────────────────────────────────────────────────────────────
+describe("deriveEpaAssessments — the two-team free flap case", () => {
+  it("pairs from who actually shared each step", () => {
+    // Consultant + fellow raised the flap; the logging consultant +
+    // trainee prepped recipient vessels; trainee + fellow did the micro.
+    const consultant = makeMember({
+      contactId: "c-cons",
+      displayName: "Dr Consultant",
+      careerStage: "nz_consultant",
+    });
+    const fellow = makeMember({
+      contactId: "c-fell",
+      displayName: "Dr Fellow",
+      careerStage: "nz_fellow",
+    });
+    const trainee = makeMember({
+      contactId: "c-trn",
+      displayName: "Dr Trainee",
+      careerStage: "nz_set_trainee",
+    });
 
-describe("deriveEpaAssessments", () => {
-  it("consultant (FA) + fellow (PS) → 1 pair: consultant supervises fellow", () => {
-    const members: CaseTeamMember[] = [
-      makeMember({
-        contactId: "charlotte",
-        linkedUserId: "user-charlotte",
-        careerStage: "nz_fellow",
-        operativeRole: "PS",
-        displayName: "Charlotte L.",
-      }),
-    ];
+    const result = deriveEpaAssessments({
+      self: SELF,
+      teamMembers: [consultant, fellow, trainee],
+      units: [
+        makeUnit({
+          procedureId: "p-flap",
+          steps: [
+            makeStep(
+              "s-harvest",
+              "Free flap harvest",
+              [
+                { participantId: "c-cons", role: "SS" },
+                { participantId: "c-fell", role: "PS" },
+              ],
+              0,
+            ),
+            makeStep(
+              "s-prep",
+              "Recipient vessel prep",
+              [
+                { participantId: "self", role: "PS" },
+                { participantId: "c-trn", role: "FA" },
+              ],
+              1,
+            ),
+            makeStep(
+              "s-micro",
+              "Microsurgery & inset",
+              [
+                { participantId: "c-fell", role: "SS" },
+                { participantId: "c-trn", role: "PS" },
+              ],
+              2,
+            ),
+          ],
+        }),
+      ],
+    });
 
-    const targets = deriveEpaAssessments(
-      selfId,
-      "nz_consultant", // tier 5
-      selfUserId,
-      members,
-      [proc],
+    const byPair = new Map(
+      result.targets.map((t) => [
+        `${t.supervisorContactId}>${t.traineeContactId}`,
+        t,
+      ]),
     );
+    // Harvest: consultant supervised the fellow.
+    expect(byPair.get("c-cons>c-fell")?.units[0]?.stepId).toBe("s-harvest");
+    // Prep: the logging consultant supervised the trainee.
+    expect(byPair.get("self>c-trn")?.units[0]?.stepId).toBe("s-prep");
+    // Micro: the fellow supervised the trainee.
+    expect(byPair.get("c-fell>c-trn")?.units[0]?.stepId).toBe("s-micro");
+    expect(result.targets).toHaveLength(3);
+    // NOT produced: consultant→trainee (never shared a step),
+    // self→fellow (never shared a step).
+    expect(byPair.has("c-cons>c-trn")).toBe(false);
+    expect(byPair.has("self>c-fell")).toBe(false);
+    // Roles held on the unit are recorded.
+    expect(byPair.get("c-fell>c-trn")?.units[0]?.supervisorRole).toBe("SS");
+    expect(byPair.get("c-fell>c-trn")?.units[0]?.traineeRole).toBe("PS");
+  });
+});
 
-    expect(targets).toHaveLength(1);
-    expect(targets[0]!.supervisorContactId).toBe(selfId);
-    expect(targets[0]!.supervisorDisplayName).toBe("You");
-    expect(targets[0]!.traineeContactId).toBe("charlotte");
-    expect(targets[0]!.traineeDisplayName).toBe("Charlotte L.");
-    expect(targets[0]!.procedureIndex).toBe(0);
-    expect(targets[0]!.procedureSnomedCode).toBe("234001");
+// ── Procedure-level fallback ─────────────────────────────────────────────────
+
+describe("deriveEpaAssessments — procedure fallback (no steps)", () => {
+  it("uses flat presence/override maps and the owner's resolved role", () => {
+    const fellow = makeMember({
+      contactId: "c-f",
+      procedureRoleOverrides: { 1: "PS" },
+    });
+    const result = deriveEpaAssessments({
+      self: SELF,
+      teamMembers: [fellow],
+      units: [
+        makeUnit({ procedureId: "p0", flatIndex: 0, ownerRole: "PS" }),
+        makeUnit({ procedureId: "p1", flatIndex: 1, ownerRole: "SS" }),
+      ],
+    });
+    expect(result.targets).toHaveLength(1);
+    const t = result.targets[0]!;
+    expect(t.supervisorContactId).toBe("self");
+    expect(t.traineeContactId).toBe("c-f");
+    expect(t.units).toHaveLength(2);
+    expect(t.units[0]?.supervisorRole).toBe("PS");
+    expect(t.units[0]?.traineeRole).toBe("FA");
+    expect(t.units[1]?.supervisorRole).toBe("SS");
+    expect(t.units[1]?.traineeRole).toBe("PS");
   });
 
-  it("consultant (US) + fellow (PS) + registrar (FA) → 2 pairs", () => {
-    const members: CaseTeamMember[] = [
-      makeMember({
-        contactId: "charlotte",
-        linkedUserId: "user-charlotte",
-        careerStage: "nz_fellow", // tier 4
-        operativeRole: "PS",
-        displayName: "Charlotte L.",
-      }),
-      makeMember({
-        contactId: "michael",
-        linkedUserId: "user-michael",
-        careerStage: "nz_registrar_non_training", // tier 2
-        operativeRole: "FA",
-        displayName: "Michael W.",
-      }),
-    ];
-
-    const targets = deriveEpaAssessments(
-      selfId,
-      "nz_consultant", // tier 5
-      selfUserId,
-      members,
-      [proc],
-    );
-
-    expect(targets).toHaveLength(2);
-
-    // Pair 1: consultant (tier 5) → fellow (tier 4)
-    const pair1 = targets.find((t) => t.traineeContactId === "charlotte");
-    expect(pair1).toBeDefined();
-    expect(pair1!.supervisorContactId).toBe(selfId);
-
-    // Pair 2: fellow (tier 4) → registrar (tier 2)
-    const pair2 = targets.find((t) => t.traineeContactId === "michael");
-    expect(pair2).toBeDefined();
-    expect(pair2!.supervisorContactId).toBe("charlotte");
+  it("presentForProcedures [] excludes a member from every fallback unit", () => {
+    const fellow = makeMember({
+      contactId: "c-f",
+      presentForProcedures: [],
+    });
+    const result = deriveEpaAssessments({
+      self: SELF,
+      teamMembers: [fellow],
+      units: [makeUnit({ procedureId: "p0" })],
+    });
+    expect(result.targets).toHaveLength(0);
   });
 
-  it("consultant (PS) + consultant (FA) → 0 pairs (equal tier)", () => {
-    const members: CaseTeamMember[] = [
-      makeMember({
-        contactId: "other-consultant",
-        linkedUserId: "user-other",
-        careerStage: "nz_consultant", // tier 5, same as self
-        operativeRole: "FA",
-      }),
-    ];
+  it("steps are authoritative: flat maps ignored for stepped procedures", () => {
+    // Flat data says the fellow is present everywhere — but the step team
+    // omits them, so no pair derives.
+    const fellow = makeMember({ contactId: "c-f" });
+    const result = deriveEpaAssessments({
+      self: SELF,
+      teamMembers: [fellow],
+      units: [
+        makeUnit({
+          procedureId: "p0",
+          steps: [
+            makeStep("s1", "Solo step", [
+              { participantId: "self", role: "PS" },
+            ]),
+          ],
+        }),
+      ],
+    });
+    expect(result.targets).toHaveLength(0);
+  });
+});
 
-    const targets = deriveEpaAssessments(
-      selfId,
-      "nz_consultant", // tier 5
-      selfUserId,
-      members,
-      [proc],
-    );
+// ── Pairing rules ────────────────────────────────────────────────────────────
 
-    expect(targets).toHaveLength(0);
+describe("deriveEpaAssessments — pairing rules", () => {
+  it("pairs with the MOST SENIOR other participant, not adjacent tiers", () => {
+    // Consultant + trainee share a unit with no fellow between them —
+    // the old adjacency chain missed this pair entirely.
+    const trainee = makeMember({
+      contactId: "c-t",
+      careerStage: "nz_set_trainee",
+    });
+    const result = deriveEpaAssessments({
+      self: SELF,
+      teamMembers: [trainee],
+      units: [makeUnit({ procedureId: "p0" })],
+    });
+    expect(result.targets).toHaveLength(1);
+    expect(result.targets[0]?.supervisorContactId).toBe("self");
+    expect(result.targets[0]?.traineeContactId).toBe("c-t");
   });
 
-  it("fellow (PS) + registrar (FA), self not consultant → 1 pair: fellow supervises registrar", () => {
-    const members: CaseTeamMember[] = [
-      makeMember({
-        contactId: "registrar",
-        linkedUserId: "user-registrar",
-        careerStage: "nz_registrar_non_training", // tier 2
-        operativeRole: "FA",
-        displayName: "Registrar R.",
-      }),
-    ];
-
-    const targets = deriveEpaAssessments(
-      selfId,
-      "nz_fellow", // tier 4 (self is fellow)
-      selfUserId,
-      members,
-      [proc],
-    );
-
-    expect(targets).toHaveLength(1);
-    expect(targets[0]!.supervisorContactId).toBe(selfId);
-    expect(targets[0]!.traineeContactId).toBe("registrar");
+  it("skips a senior with a missing stage and uses the next senior present", () => {
+    const consultantNoStage = makeMember({
+      contactId: "c-cons",
+      careerStage: null,
+    });
+    const fellow = makeMember({ contactId: "c-f" });
+    const trainee = makeMember({
+      contactId: "c-t",
+      careerStage: "nz_set_trainee",
+    });
+    const result = deriveEpaAssessments({
+      self: { linkedUserId: "u-self", careerStage: null },
+      teamMembers: [consultantNoStage, fellow, trainee],
+      units: [makeUnit({ procedureId: "p0" })],
+    });
+    expect(result.targets).toHaveLength(1);
+    expect(result.targets[0]?.supervisorContactId).toBe("c-f");
+    expect(result.targets[0]?.traineeContactId).toBe("c-t");
+    expect(result.diagnostics.missingStageSkipped).toBe(1);
   });
 
-  it("missing careerStage on team member → excluded from EPA", () => {
-    const members: CaseTeamMember[] = [
-      makeMember({
-        contactId: "no-stage",
-        linkedUserId: "user-no-stage",
-        careerStage: null, // missing
-        operativeRole: "FA",
-      }),
-    ];
-
-    const targets = deriveEpaAssessments(
-      selfId,
-      "nz_consultant",
-      selfUserId,
-      members,
-      [proc],
-    );
-
-    expect(targets).toHaveLength(0);
+  it("a tie at the top tier produces one pair per senior", () => {
+    const fellowA = makeMember({ contactId: "c-a", displayName: "Dr A" });
+    const fellowB = makeMember({ contactId: "c-b", displayName: "Dr B" });
+    const trainee = makeMember({
+      contactId: "c-t",
+      careerStage: "nz_set_trainee",
+    });
+    const result = deriveEpaAssessments({
+      self: { linkedUserId: "u-self", careerStage: null },
+      teamMembers: [fellowA, fellowB, trainee],
+      units: [makeUnit({ procedureId: "p0" })],
+    });
+    const supervisors = result.targets.map((t) => t.supervisorContactId);
+    expect(supervisors.sort()).toEqual(["c-a", "c-b"]);
   });
 
-  it("missing linkedUserId on team member → excluded from EPA", () => {
-    const members: CaseTeamMember[] = [
-      makeMember({
-        contactId: "no-link",
-        linkedUserId: null, // not linked to Opus user
-        careerStage: "nz_fellow",
-        operativeRole: "PS",
-      }),
-    ];
-
-    const targets = deriveEpaAssessments(
-      selfId,
-      "nz_consultant",
-      selfUserId,
-      members,
-      [proc],
-    );
-
-    expect(targets).toHaveLength(0);
+  it("aggregates the same pair across units into one target", () => {
+    const fellow = makeMember({ contactId: "c-f" });
+    const result = deriveEpaAssessments({
+      self: SELF,
+      teamMembers: [fellow],
+      units: [
+        makeUnit({ procedureId: "p0", flatIndex: 0 }),
+        makeUnit({
+          procedureId: "p1",
+          flatIndex: 1,
+          procedureName: "Washout",
+        }),
+      ],
+    });
+    expect(result.targets).toHaveLength(1);
+    expect(result.targets[0]?.units.map((u) => u.procedureId)).toEqual([
+      "p0",
+      "p1",
+    ]);
   });
 
-  it("missing logger careerStage → logger excluded, team-only pairs still derived", () => {
-    const members: CaseTeamMember[] = [
-      makeMember({
-        contactId: "consultant",
-        linkedUserId: "user-consultant",
-        careerStage: "nz_consultant", // tier 5
-        operativeRole: "US",
-      }),
-      makeMember({
-        contactId: "fellow",
-        linkedUserId: "user-fellow",
-        careerStage: "nz_fellow", // tier 4
-        operativeRole: "PS",
-      }),
-    ];
-
-    const targets = deriveEpaAssessments(
-      selfId,
-      null, // logger has no career stage
-      selfUserId,
-      members,
-      [proc],
-    );
-
-    // Still generates pair between consultant and fellow
-    expect(targets).toHaveLength(1);
-    expect(targets[0]!.supervisorContactId).toBe("consultant");
-    expect(targets[0]!.traineeContactId).toBe("fellow");
+  it("dedups two roster contacts linked to the same user", () => {
+    const fellowContact1 = makeMember({
+      contactId: "c-f1",
+      linkedUserId: "u-shared",
+    });
+    const fellowContact2 = makeMember({
+      contactId: "c-f2",
+      linkedUserId: "u-shared",
+    });
+    const result = deriveEpaAssessments({
+      self: SELF,
+      teamMembers: [fellowContact1, fellowContact2],
+      units: [makeUnit({ procedureId: "p0" })],
+    });
+    // One USER pair, not two contact pairs.
+    expect(result.targets).toHaveLength(1);
+    expect(result.targets[0]?.traineeLinkedUserId).toBe("u-shared");
   });
 
-  it("multi-procedure with different role overrides → correct per-procedure pairs", () => {
-    const members: CaseTeamMember[] = [
-      makeMember({
-        contactId: "charlotte",
-        linkedUserId: "user-charlotte",
-        careerStage: "nz_fellow", // tier 4
-        operativeRole: "PS",
-        displayName: "Charlotte L.",
-        // Override: FA on procedure 1
-        procedureRoleOverrides: { 1: "FA" },
-      }),
-    ];
+  it("never pairs a participant with themselves (self tagged as contact)", () => {
+    const selfAsContact = makeMember({
+      contactId: "c-me",
+      linkedUserId: "u-self",
+      careerStage: "nz_consultant",
+    });
+    const result = deriveEpaAssessments({
+      self: SELF,
+      teamMembers: [selfAsContact],
+      units: [makeUnit({ procedureId: "p0" })],
+    });
+    expect(result.targets).toHaveLength(0);
+  });
+});
 
-    const targets = deriveEpaAssessments(
-      selfId,
-      "nz_consultant", // tier 5
-      selfUserId,
-      members,
-      [proc, proc2],
-    );
+// ── Eligibility & diagnostics ────────────────────────────────────────────────
 
-    // Both procedures generate 1 pair each (consultant → fellow)
-    expect(targets).toHaveLength(2);
-
-    const p0 = targets.find((t) => t.procedureIndex === 0);
-    expect(p0!.traineeOperativeRole).toBe("PS"); // case default
-
-    const p1 = targets.find((t) => t.procedureIndex === 1);
-    expect(p1!.traineeOperativeRole).toBe("FA"); // overridden
+describe("deriveEpaAssessments — eligibility & diagnostics", () => {
+  it("derives team-only pairs when the logger has no stage", () => {
+    const fellow = makeMember({ contactId: "c-f" });
+    const trainee = makeMember({
+      contactId: "c-t",
+      careerStage: "nz_set_trainee",
+    });
+    const result = deriveEpaAssessments({
+      self: { linkedUserId: "u-self", careerStage: null },
+      teamMembers: [fellow, trainee],
+      units: [makeUnit({ procedureId: "p0" })],
+    });
+    expect(result.targets).toHaveLength(1);
+    expect(result.targets[0]?.supervisorContactId).toBe("c-f");
   });
 
-  it("presentForProcedures filters members per procedure", () => {
-    const members: CaseTeamMember[] = [
-      makeMember({
-        contactId: "charlotte",
-        linkedUserId: "user-charlotte",
-        careerStage: "nz_fellow", // tier 4
-        operativeRole: "PS",
-        presentForProcedures: [0], // only present for procedure 0
-      }),
-    ];
-
-    const targets = deriveEpaAssessments(
-      selfId,
-      "nz_consultant", // tier 5
-      selfUserId,
-      members,
-      [proc, proc2],
-    );
-
-    // Only procedure 0 generates a pair (charlotte not present for proc 1)
-    expect(targets).toHaveLength(1);
-    expect(targets[0]!.procedureIndex).toBe(0);
+  it("unlinked members are skipped and counted", () => {
+    const unlinked = makeMember({ contactId: "c-u", linkedUserId: null });
+    const result = deriveEpaAssessments({
+      self: SELF,
+      teamMembers: [unlinked],
+      units: [makeUnit({ procedureId: "p0" })],
+    });
+    expect(result.targets).toHaveLength(0);
+    expect(result.diagnostics.unlinkedSkipped).toBe(1);
+    expect(result.diagnostics.participantsConsidered).toBe(2);
   });
 
-  it("non-adjacent tiers: tier 5 + tier 2 (no tier 3/4) → 1 pair (they are adjacent in the sorted chain)", () => {
-    // When only two tiers exist in the group, they ARE adjacent in the sorted
-    // list even if the tier numbers aren't consecutive. The algorithm generates
-    // pairs between consecutive entries in the sorted tier list.
-    const members: CaseTeamMember[] = [
-      makeMember({
-        contactId: "registrar",
-        linkedUserId: "user-registrar",
-        careerStage: "nz_registrar_non_training", // tier 2
-        operativeRole: "FA",
-      }),
-    ];
-
-    const targets = deriveEpaAssessments(
-      selfId,
-      "nz_consultant", // tier 5
-      selfUserId,
-      members,
-      [proc],
-    );
-
-    // These are the only two tiers present → they are adjacent in the chain
-    expect(targets).toHaveLength(1);
-    expect(targets[0]!.supervisorContactId).toBe(selfId);
-    expect(targets[0]!.traineeContactId).toBe("registrar");
+  it("flags allSameTier when peers-only yields zero targets", () => {
+    const peer = makeMember({
+      contactId: "c-p",
+      careerStage: "nz_consultant",
+    });
+    const result = deriveEpaAssessments({
+      self: SELF,
+      teamMembers: [peer],
+      units: [makeUnit({ procedureId: "p0" })],
+    });
+    expect(result.targets).toHaveLength(0);
+    expect(result.diagnostics.allSameTier).toBe(true);
   });
 
-  it("3-person chain: tier 5 + tier 4 + tier 2 → 2 pairs (5→4, 4→2)", () => {
-    const members: CaseTeamMember[] = [
-      makeMember({
-        contactId: "fellow",
-        linkedUserId: "user-fellow",
-        careerStage: "nz_fellow", // tier 4
-        operativeRole: "PS",
-      }),
-      makeMember({
-        contactId: "registrar",
-        linkedUserId: "user-registrar",
-        careerStage: "nz_registrar_non_training", // tier 2
-        operativeRole: "FA",
-      }),
-    ];
-
-    const targets = deriveEpaAssessments(
-      selfId,
-      "nz_consultant", // tier 5
-      selfUserId,
-      members,
-      [proc],
-    );
-
-    expect(targets).toHaveLength(2);
-
-    // 5→4
-    expect(targets.find((t) => t.traineeContactId === "fellow")).toBeDefined();
-    // 4→2
-    expect(
-      targets.find(
-        (t) =>
-          t.supervisorContactId === "fellow" &&
-          t.traineeContactId === "registrar",
-      ),
-    ).toBeDefined();
+  it("does not flag allSameTier when pairs exist or tiers differ", () => {
+    const fellow = makeMember({ contactId: "c-f" });
+    const withPairs = deriveEpaAssessments({
+      self: SELF,
+      teamMembers: [fellow],
+      units: [makeUnit({ procedureId: "p0" })],
+    });
+    expect(withPairs.diagnostics.allSameTier).toBe(false);
   });
 
-  it("empty team members → 0 pairs", () => {
-    const targets = deriveEpaAssessments(
-      selfId,
-      "nz_consultant",
-      selfUserId,
-      [],
-      [proc],
-    );
-    expect(targets).toHaveLength(0);
+  it("empty team and no self-tier yields empty output", () => {
+    const result = deriveEpaAssessments({
+      self: { linkedUserId: "u-self", careerStage: null },
+      teamMembers: [],
+      units: [makeUnit({ procedureId: "p0" })],
+    });
+    expect(result.targets).toHaveLength(0);
+    expect(result.diagnostics.allSameTier).toBe(false);
   });
 
-  it("empty procedures → 0 pairs", () => {
-    const members: CaseTeamMember[] = [
-      makeMember({
-        contactId: "charlotte",
-        linkedUserId: "user-charlotte",
-        careerStage: "nz_fellow",
-        operativeRole: "PS",
-      }),
-    ];
-
-    const targets = deriveEpaAssessments(
-      selfId,
-      "nz_consultant",
-      selfUserId,
-      members,
-      [],
-    );
-    expect(targets).toHaveLength(0);
-  });
-
-  it("multiple people at same tier → no pairs among them", () => {
-    const members: CaseTeamMember[] = [
-      makeMember({
-        contactId: "fellow1",
-        linkedUserId: "user-fellow1",
-        careerStage: "nz_fellow", // tier 4
-        operativeRole: "PS",
-      }),
-      makeMember({
-        contactId: "fellow2",
-        linkedUserId: "user-fellow2",
-        careerStage: "uk_post_cct_fellow", // also tier 4
-        operativeRole: "FA",
-      }),
-    ];
-
-    const targets = deriveEpaAssessments(
-      selfId,
-      "nz_consultant", // tier 5
-      selfUserId,
-      members,
-      [proc],
-    );
-
-    // consultant (5) → each fellow (4) = 2 pairs. No fellow→fellow pair.
-    expect(targets).toHaveLength(2);
-    expect(targets.every((t) => t.supervisorContactId === selfId)).toBe(true);
+  it("no units yields empty output even with a full team", () => {
+    const fellow = makeMember({ contactId: "c-f" });
+    const result = deriveEpaAssessments({
+      self: SELF,
+      teamMembers: [fellow],
+      units: [],
+    });
+    expect(result.targets).toHaveLength(0);
   });
 });
