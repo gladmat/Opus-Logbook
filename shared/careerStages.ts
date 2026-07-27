@@ -445,6 +445,52 @@ export function getCareerStagesForCountry(
 }
 
 /**
+ * Legacy career stage values from pre-internationalisation profiles.
+ * These no longer appear in CAREER_STAGE_OPTIONS but still exist on stored
+ * profiles and team-contact snapshots — tier resolution must keep covering
+ * them or downstream consumers (e.g. the server-side share-time EPA push)
+ * silently under-fire for legacy-profile users.
+ */
+export const LEGACY_CAREER_STAGE_TIERS: Record<string, SeniorityTier> = {
+  junior_house_officer: 1,
+  registrar_non_training: 2,
+  set_trainee: 3,
+  fellow: 4,
+  moss: 4,
+  consultant_specialist: 5,
+};
+
+let stageTierMap: Record<string, SeniorityTier> | null = null;
+
+/**
+ * Complete stage → tier map: every CAREER_STAGE_OPTIONS value plus the
+ * legacy aliases above. Built once, lazily.
+ */
+export function getCareerStageTierMap(): Record<string, SeniorityTier> {
+  if (!stageTierMap) {
+    const map: Record<string, SeniorityTier> = {
+      ...LEGACY_CAREER_STAGE_TIERS,
+    };
+    for (const option of CAREER_STAGE_OPTIONS) {
+      map[option.value] = option.seniorityTier;
+    }
+    stageTierMap = map;
+  }
+  return stageTierMap;
+}
+
+/**
+ * Returns the seniority tier for any career stage value (current or legacy).
+ * Returns null for unknown, null, or undefined values.
+ */
+export function getSeniorityTierForStage(
+  careerStage: string | null | undefined,
+): SeniorityTier | null {
+  if (!careerStage) return null;
+  return getCareerStageTierMap()[careerStage] ?? null;
+}
+
+/**
  * Look up the display label for any career stage value (including legacy).
  * Returns the raw value if not found.
  */

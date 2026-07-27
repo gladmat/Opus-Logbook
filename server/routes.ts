@@ -43,6 +43,7 @@ import {
   getProfessionalRegistrations,
   professionalRegistrationsSchema,
 } from "@shared/professionalRegistrations";
+import { getSeniorityTierForStage } from "@shared/careerStages";
 import { sendPushNotification } from "./push";
 import { env } from "./env";
 import { logger } from "./logger";
@@ -1857,9 +1858,18 @@ export async function registerRoutes(app: Express): Promise<void> {
         const { caseId, encryptedShareableBlob, recipients } = parseResult.data;
         const ownerUserId = req.userId!;
 
+        // Share-time EPA nudge precondition: owner's seniority tier. When
+        // owner and recipient sit at different tiers, an assessable EPA
+        // pair exists for this case — worth a second push to the recipient.
+        const ownerProfile = await storage.getProfile(ownerUserId);
+        const ownerTier = getSeniorityTierForStage(ownerProfile?.careerStage);
+
         const sharedCases: { id: string; recipientUserId: string }[] = [];
-        const pushQueue: { recipientUserId: string; sharedCaseId: string }[] =
-          [];
+        const pushQueue: {
+          recipientUserId: string;
+          sharedCaseId: string;
+          epaEligible: boolean;
+        }[] = [];
 
         for (const recipient of recipients) {
           // Owner cannot share with themselves
@@ -1901,9 +1911,19 @@ export async function registerRoutes(app: Express): Promise<void> {
             recipientUserId: recipient.userId,
           });
 
+          let epaEligible = false;
+          if (ownerTier !== null) {
+            const recipientProfile = await storage.getProfile(recipient.userId);
+            const recipientTier = getSeniorityTierForStage(
+              recipientProfile?.careerStage,
+            );
+            epaEligible = recipientTier !== null && recipientTier !== ownerTier;
+          }
+
           pushQueue.push({
             recipientUserId: recipient.userId,
             sharedCaseId: sharedCase.id,
+            epaEligible,
           });
         }
 
@@ -1918,6 +1938,15 @@ export async function registerRoutes(app: Express): Promise<void> {
             "A colleague has shared a case with you",
             { type: "case_shared", sharedCaseId: p.sharedCaseId },
           ).catch((err) => log.warn("Share push failed:", err));
+
+          if (p.epaEligible) {
+            sendPushNotification(
+              p.recipientUserId,
+              "EPA Assessment",
+              "EPA assessment available — verify and assess this case",
+              { type: "assessment_pending", sharedCaseId: p.sharedCaseId },
+            ).catch((err) => log.warn("EPA share push failed:", err));
+          }
         }
         return;
       } catch (error) {
@@ -2761,6 +2790,11 @@ export async function registerRoutes(app: Express): Promise<void> {
         // instant-submit row counts as committed (its content is already up).
         const all = await storage.getCaseAssessments(sharedCaseId);
         const bothCommitted = all.length >= 2;
+
+        // Respond first; fire pushes afterwards so response latency stays
+        // decoupled from push-provider latency.
+        res.status(201).json({ id: assessment.id, bothCommitted });
+
         if (bothCommitted) {
           for (const a of all) {
             sendPushNotification(
@@ -2770,9 +2804,21 @@ export async function registerRoutes(app: Express): Promise<void> {
               { type: "assessment_ready_to_reveal", sharedCaseId },
             ).catch(() => {});
           }
+        } else {
+          // First commitment for this shared case — nudge the other party
+          // to verify the case and submit their own blinded assessment.
+          const counterpartUserId =
+            sharedCase.ownerUserId === req.userId!
+              ? sharedCase.recipientUserId
+              : sharedCase.ownerUserId;
+          sendPushNotification(
+            counterpartUserId,
+            "Assessment Waiting",
+            "A colleague has submitted a blinded assessment — add yours to reveal both",
+            { type: "assessment_pending", sharedCaseId },
+          ).catch(() => {});
         }
-
-        res.status(201).json({ id: assessment.id, bothCommitted });
+        return;
       } catch (error) {
         log.error(
           { err: error instanceof Error ? error.message : "Unknown error" },
