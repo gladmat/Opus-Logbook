@@ -1,4 +1,10 @@
-import React, { useState, useMemo, useEffect, useLayoutEffect } from "react";
+import React, {
+  useState,
+  useMemo,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+} from "react";
 import { View, StyleSheet, Alert, Pressable } from "react-native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -43,9 +49,11 @@ import {
 } from "@/lib/storage";
 import {
   normalizeDateOnlyValue,
+  parseDateOnlyValue,
   toIsoDateValue,
   toUtcNoonIsoTimestamp,
 } from "@/lib/dateValues";
+import { deriveFollowUpInterval } from "@/lib/timelineEventHelpers";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 
 type RouteParams = RouteProp<RootStackParamList, "AddTimelineEvent">;
@@ -90,6 +98,10 @@ export default function AddTimelineEventScreen() {
 
   const isEditMode = !!editEventId;
 
+  // Procedure date: prefer the explicit param, fall back to the media
+  // context every caller already provides.
+  const effectiveProcedureDate = procedureDate ?? mediaContext?.procedureDate;
+
   const [saving, setSaving] = useState(false);
   const [eventType, setEventType] = useState<TimelineEventType | "">(
     initialEventType || "",
@@ -121,11 +133,12 @@ export default function AddTimelineEventScreen() {
   // Nerve outcome state — shown for follow_up_visit when case has peripheral nerve assessment
   const [nerveOutcome, setNerveOutcome] = useState<NerveOutcomeAssessment>(
     () => {
+      const procDate = parseDateOnlyValue(effectiveProcedureDate);
+      const evtDate = parseDateOnlyValue(eventDate);
       const monthsSince =
-        procedureDate && eventDate
+        procDate && evtDate
           ? Math.round(
-              (new Date(eventDate).getTime() -
-                new Date(procedureDate).getTime()) /
+              (evtDate.getTime() - procDate.getTime()) /
                 (1000 * 60 * 60 * 24 * 30.44),
             )
           : 0;
@@ -135,6 +148,10 @@ export default function AddTimelineEventScreen() {
       };
     },
   );
+
+  // Follow-up interval auto-derivation: sticky once the user picks manually
+  // (or when editing an existing event — never clobber a stored interval).
+  const intervalTouchedRef = useRef(false);
 
   // Set dynamic header title
   useLayoutEffect(() => {
@@ -151,6 +168,7 @@ export default function AddTimelineEventScreen() {
         const events = await getTimelineEvents(caseId);
         const existing = events.find((e) => e.id === editEventId);
         if (!existing) return;
+        intervalTouchedRef.current = true;
         setEditingEvent(existing);
         setEventType(existing.eventType);
         setEventDate(
@@ -182,6 +200,16 @@ export default function AddTimelineEventScreen() {
       }
     })();
   }, [editEventId, caseId]);
+
+  // Auto-derive the follow-up interval from (event date − procedure date).
+  // Re-derives when the event date changes; stops once the user overrides.
+  useEffect(() => {
+    if (isEditMode) return;
+    if (eventType !== "follow_up_visit") return;
+    if (intervalTouchedRef.current) return;
+    const derived = deriveFollowUpInterval(effectiveProcedureDate, eventDate);
+    if (derived) setFollowUpInterval(derived);
+  }, [isEditMode, eventType, eventDate, effectiveProcedureDate]);
 
   const isDischargeDay = useMemo(() => {
     if (!caseDischargeDate) return false;
@@ -284,7 +312,8 @@ export default function AddTimelineEventScreen() {
       if (
         eventType === "photo" ||
         eventType === "imaging" ||
-        eventType === "discharge_photo"
+        eventType === "discharge_photo" ||
+        eventType === "follow_up_visit"
       ) {
         updates.mediaAttachments = mediaAttachments;
       }
@@ -562,7 +591,10 @@ export default function AddTimelineEventScreen() {
             label="Follow-up Interval"
             value={followUpInterval}
             options={FOLLOW_UP_INTERVALS}
-            onSelect={(value) => setFollowUpInterval(value as FollowUpInterval)}
+            onSelect={(value) => {
+              intervalTouchedRef.current = true;
+              setFollowUpInterval(value as FollowUpInterval);
+            }}
             required
           />
           <MediaCapture

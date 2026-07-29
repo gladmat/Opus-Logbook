@@ -27,6 +27,7 @@ import { useMediaCallback } from "@/contexts/MediaCallbackContext";
 import { MediaTagBadge } from "@/components/media";
 import { resolveMediaTag } from "@/lib/mediaTagHelpers";
 import { buildDefaultMediaAttachment } from "@/lib/mediaAttachmentDefaults";
+import { offerGalleryCleanup } from "@/lib/galleryCleanup";
 import type { MediaContext } from "@/lib/mediaContext";
 
 interface MediaCaptureProps {
@@ -164,6 +165,7 @@ export function MediaCapture({
           onAttachmentsChange([...startingAttachments, ...importedAttachments]);
         });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        void offerGalleryCleanup(result.assets.map((asset) => asset.assetId));
       }
     } catch (error) {
       console.error("Error picking image:", error);

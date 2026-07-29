@@ -42,6 +42,7 @@ import { MediaTagPicker, MediaGalleryViewer } from "@/components/media";
 import { MEDIA_TAG_REGISTRY } from "@/types/media";
 import { resolveMediaTag } from "@/lib/mediaTagHelpers";
 import { buildDefaultMediaAttachment } from "@/lib/mediaAttachmentDefaults";
+import { offerGalleryCleanup } from "@/lib/galleryCleanup";
 import type { MediaTag } from "@/types/media";
 
 type MediaManagementRouteProp = RouteProp<
@@ -83,6 +84,10 @@ export default function MediaManagementScreen() {
     ImagePicker.useCameraPermissions();
   const allowCloseRef = useRef(false);
   const addedUrisRef = useRef<Set<string>>(new Set());
+  // Camera Roll asset id per staged gallery import (keyed by encrypted
+  // localUri) — the delete-originals offer fires only on save, and only for
+  // imports that survive until then. Discard keeps originals untouched.
+  const galleryAssetIdsByUriRef = useRef<Map<string, string>>(new Map());
   const canAddMore = attachments.length < maxAttachments;
   const isDirty = useMemo(
     () => JSON.stringify(attachments) !== JSON.stringify(initialAttachments),
@@ -191,7 +196,7 @@ export default function MediaManagementScreen() {
       if (!result.canceled && result.assets.length > 0) {
         const startingAttachments = [...attachments];
         const importedAttachments: MediaAttachment[] = [];
-        await importMediaAssets(result.assets, (savedAsset) => {
+        await importMediaAssets(result.assets, (savedAsset, index) => {
           const newAttachment = buildDefaultMediaAttachment({
             savedMedia: savedAsset,
             createdAt: new Date().toISOString(),
@@ -200,6 +205,13 @@ export default function MediaManagementScreen() {
             mediaDate: defaultMediaDate,
           });
           addedUrisRef.current.add(newAttachment.localUri);
+          const sourceAssetId = result.assets[index]?.assetId;
+          if (sourceAssetId) {
+            galleryAssetIdsByUriRef.current.set(
+              newAttachment.localUri,
+              sourceAssetId,
+            );
+          }
           importedAttachments.push(newAttachment);
           setAttachments([...startingAttachments, ...importedAttachments]);
           setSelectedId((prev) => prev ?? newAttachment.id);
@@ -264,6 +276,15 @@ export default function MediaManagementScreen() {
         executeCallback(callbackId, attachments);
       }
       await finalizeRemovedMedia();
+      const savedUris = new Set(
+        attachments.map((attachment) => attachment.localUri),
+      );
+      const savedGalleryAssetIds = Array.from(
+        galleryAssetIdsByUriRef.current.entries(),
+      )
+        .filter(([uri]) => savedUris.has(uri))
+        .map(([, assetId]) => assetId);
+      void offerGalleryCleanup(savedGalleryAssetIds);
       allowCloseRef.current = true;
       navigation.goBack();
     } catch (error) {

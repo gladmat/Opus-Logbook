@@ -204,6 +204,7 @@ function GuidedCaptureFlowInner({
             callbackId,
             existingTag: tag,
             mediaContext,
+            sourceAssetId: asset.assetId ?? undefined,
           });
         }
       } catch (error) {

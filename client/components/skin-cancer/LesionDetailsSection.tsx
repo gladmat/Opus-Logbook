@@ -25,6 +25,7 @@ import {
   saveEncryptedMediaFromUri,
   deleteEncryptedMedia,
 } from "@/lib/mediaStorage";
+import { offerGalleryCleanup } from "@/lib/galleryCleanup";
 import { getSkinCancerPrimaryHistology } from "@/lib/skinCancerConfig";
 import type {
   SkinCancerLesionAssessment,
@@ -231,6 +232,7 @@ export function LesionDetailsSection({
         });
         onPhotoAdded?.(photo);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        void offerGalleryCleanup([asset.assetId]);
       }
     } catch (error: any) {
       console.error("Error picking lesion photo:", error);

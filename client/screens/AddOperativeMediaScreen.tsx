@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   StyleSheet,
@@ -43,6 +43,7 @@ import {
   isPersistedMediaUriValue,
   resolveOperativeMediaSavePlan,
 } from "@/lib/operativeMediaForm";
+import { offerGalleryCleanup } from "@/lib/galleryCleanup";
 
 type AddOperativeMediaRouteProp = RouteProp<
   RootStackParamList,
@@ -71,6 +72,7 @@ export default function AddOperativeMediaScreen() {
     existingTimestamp,
     existingCreatedAt,
     mediaContext,
+    sourceAssetId,
   } = route.params;
 
   // Resolve initial tag from existingTag or suggest from context
@@ -91,6 +93,10 @@ export default function AddOperativeMediaScreen() {
   const [currentUri, setCurrentUri] = useState(imageUri);
   const [currentMimeType, setCurrentMimeType] = useState(mimeType);
   const [saving, setSaving] = useState(false);
+  // Camera Roll asset id of the CURRENT image when it came from the gallery.
+  // The delete-originals offer fires only after the encrypted copy commits;
+  // cancelling this screen must never touch the original.
+  const galleryAssetIdRef = useRef<string | null>(sourceAssetId ?? null);
 
   const handleRetakeCamera = async () => {
     if (!cameraPermission?.granted) {
@@ -134,6 +140,7 @@ export default function AddOperativeMediaScreen() {
         const mime = asset.mimeType || "image/jpeg";
         setCurrentUri(asset.uri);
         setCurrentMimeType(mime);
+        galleryAssetIdRef.current = null;
       }
     } catch {
       Alert.alert("Error", "Failed to capture image.");
@@ -152,6 +159,7 @@ export default function AddOperativeMediaScreen() {
         const mime = asset.mimeType || "image/jpeg";
         setCurrentUri(asset.uri);
         setCurrentMimeType(mime);
+        galleryAssetIdRef.current = asset.assetId ?? null;
       }
     } catch {
       Alert.alert("Error", "Failed to select image.");
@@ -217,6 +225,9 @@ export default function AddOperativeMediaScreen() {
 
       if (committed && savePlan.uriToDeleteAfterCommit) {
         await deleteEncryptedMedia(savePlan.uriToDeleteAfterCommit);
+      }
+      if (galleryAssetIdRef.current) {
+        void offerGalleryCleanup([galleryAssetIdRef.current]);
       }
       navigation.goBack();
     } catch (error: any) {

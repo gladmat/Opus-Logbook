@@ -187,6 +187,8 @@ export type RootStackParamList = {
     existingTimestamp?: string;
     existingCreatedAt?: string;
     mediaContext?: MediaContext;
+    /** Camera Roll asset id of a gallery-picked source image; enables the delete-originals offer after commit. */
+    sourceAssetId?: string;
   };
   EpisodeDetail: { episodeId: string };
   SetupAppLock: undefined;
