@@ -21,13 +21,18 @@ import { EncryptedImage } from "@/components/EncryptedImage";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
-import { MediaAttachment, TimelineEventType } from "@/types/case";
+import {
+  MediaAttachment,
+  OperativeMediaItem,
+  TimelineEventType,
+} from "@/types/case";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useMediaCallback } from "@/contexts/MediaCallbackContext";
 import { MediaTagBadge } from "@/components/media";
-import { resolveMediaTag } from "@/lib/mediaTagHelpers";
+import { resolveMediaTag, suggestDefaultMediaTag } from "@/lib/mediaTagHelpers";
 import { buildDefaultMediaAttachment } from "@/lib/mediaAttachmentDefaults";
 import { offerGalleryCleanup } from "@/lib/galleryCleanup";
+import { operativeMediaToAttachments } from "@/lib/operativeMedia";
 import type { MediaContext } from "@/lib/mediaContext";
 
 interface MediaCaptureProps {
@@ -52,9 +57,41 @@ export function MediaCapture({
   const { theme } = useTheme();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { registerCallback } = useMediaCallback();
+  const { registerCallback, registerGenericCallback } = useMediaCallback();
   const [cameraPermission, requestCameraPermission] =
     ImagePicker.useCameraPermissions();
+
+  /**
+   * Imaging captures (X-ray/scan photos) route through the Add Media
+   * preview screen instead of encrypt-on-the-spot: the tag is known before
+   * encryption there, so auto-enhancement (deskew + contrast) can run with
+   * the Enhanced/Original toggle and crop adjust before anything commits.
+   */
+  const routeImagingThroughPreview = (asset: {
+    uri: string;
+    mimeType?: string | null;
+    assetId?: string | null;
+  }) => {
+    const callbackId = registerGenericCallback((item: OperativeMediaItem) => {
+      onAttachmentsChange([
+        ...attachments,
+        ...operativeMediaToAttachments([item]),
+      ]);
+    });
+    navigation.navigate("AddOperativeMedia", {
+      imageUri: asset.uri,
+      mimeType: asset.mimeType || "image/jpeg",
+      callbackId,
+      existingTag: suggestDefaultMediaTag({
+        eventType,
+        procedureDate: mediaContext?.procedureDate,
+        mediaDate: defaultMediaDate,
+      }),
+      existingTimestamp: defaultMediaDate,
+      mediaContext,
+      sourceAssetId: asset.assetId ?? undefined,
+    });
+  };
 
   const buildDefaultAttachment = useCallback(
     (
@@ -128,6 +165,10 @@ export function MediaCapture({
       if (!result.canceled && result.assets.length > 0) {
         const asset = result.assets[0];
         if (!asset) return;
+        if (mediaType === "imaging") {
+          routeImagingThroughPreview(asset);
+          return;
+        }
         const savedMedia = await saveEncryptedMediaFromUri(
           asset.uri,
           asset.mimeType || "image/jpeg",
@@ -156,6 +197,15 @@ export function MediaCapture({
       });
 
       if (!result.canceled && result.assets.length > 0) {
+        // A single imaging pick gets the preview + enhancement flow (the
+        // gallery-cleanup offer then fires from that screen after commit);
+        // multi-selects keep the fast bulk import.
+        const singleAsset =
+          result.assets.length === 1 ? result.assets[0] : null;
+        if (mediaType === "imaging" && singleAsset) {
+          routeImagingThroughPreview(singleAsset);
+          return;
+        }
         const startingAttachments = [...attachments];
         const importedAttachments: MediaAttachment[] = [];
         await importMediaAssets(result.assets, (savedAsset) => {
@@ -171,10 +221,14 @@ export function MediaCapture({
       console.error("Error picking image:", error);
       Alert.alert("Error", "Failed to select image. Please try again.");
     }
+    // routeImagingThroughPreview is stable per render and closes over the
+    // same props this callback already lists.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     attachments,
     buildDefaultAttachment,
     maxAttachments,
+    mediaType,
     onAttachmentsChange,
   ]);
 
