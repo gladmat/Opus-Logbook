@@ -1538,6 +1538,13 @@ export interface FreeFlapDetails {
   skinIsland?: boolean;
   recipientSite?: string;
   recipientSiteRegion?: AnatomicalRegion;
+  /**
+   * Multi-region recipient site for reconstructions crossing regions
+   * (e.g. dorsum of hand + forearm). Additive: [0] is always the primary
+   * and mirrors recipientSiteRegion / the SNOMED pair above, so all
+   * single-region readers keep working. Absent on records predating this.
+   */
+  recipientSiteRegions?: AnatomicalRegion[];
   recipientSiteSnomedCode?: string;
   recipientSiteSnomedDisplay?: string;
   ischemiaTimeMinutes?: number;
