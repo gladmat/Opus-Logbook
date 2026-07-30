@@ -9,6 +9,7 @@ import {
   View,
   StyleSheet,
   Pressable,
+  ActivityIndicator,
   Alert,
   Platform,
   ScrollView,
@@ -43,6 +44,12 @@ import { MEDIA_TAG_REGISTRY } from "@/types/media";
 import { resolveMediaTag } from "@/lib/mediaTagHelpers";
 import { buildDefaultMediaAttachment } from "@/lib/mediaAttachmentDefaults";
 import { offerGalleryCleanup } from "@/lib/galleryCleanup";
+import {
+  enhancePersistedMedia,
+  isImageEnhanceAvailable,
+  isImagingTag,
+} from "@/lib/imageEnhance";
+import { isPersistedMediaUriValue } from "@/lib/operativeMediaForm";
 import type { MediaTag } from "@/types/media";
 
 type MediaManagementRouteProp = RouteProp<
@@ -88,6 +95,12 @@ export default function MediaManagementScreen() {
   // localUri) — the delete-originals offer fires only on save, and only for
   // imports that survive until then. Discard keeps originals untouched.
   const galleryAssetIdsByUriRef = useRef<Map<string, string>>(new Map());
+  const [enhancingId, setEnhancingId] = useState<string | null>(null);
+  const declinedEnhanceRef = useRef<Set<string>>(new Set());
+  // Encrypted URIs of COMMITTED media replaced by an enhanced variant this
+  // session — deleted only on save; discard leaves them untouched because
+  // the case still references them until the callback commits.
+  const replacedUrisRef = useRef<Set<string>>(new Set());
   const canAddMore = attachments.length < maxAttachments;
   const isDirty = useMemo(
     () => JSON.stringify(attachments) !== JSON.stringify(initialAttachments),
@@ -113,7 +126,11 @@ export default function MediaManagementScreen() {
     const removedNewUris = Array.from(addedUrisRef.current).filter(
       (uri) => !currentUris.has(uri),
     );
-    const urisToDelete = [...removedExistingUris, ...removedNewUris];
+    const urisToDelete = [
+      ...removedExistingUris,
+      ...removedNewUris,
+      ...Array.from(replacedUrisRef.current),
+    ];
 
     if (urisToDelete.length > 0) {
       await deleteMultipleEncryptedMedia(urisToDelete);
@@ -235,9 +252,102 @@ export default function MediaManagementScreen() {
   const handleSetTag = (id: string, tag: MediaTag) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setLastSelectedTag(tag);
+    const target = attachments.find((a) => a.id === id);
+    const previousTag = target ? resolveMediaTag(target) : undefined;
     setAttachments((prev) =>
       prev.map((a) => (a.id === id ? { ...a, tag } : a)),
     );
+    if (target) maybeOfferEnhancement(target, tag, previousTag);
+  };
+
+  /**
+   * Re-tagging into the imaging group offers to enhance the (already
+   * encrypted) photo: decrypt → deskew/level → re-encrypt as new media,
+   * swapping the reference. Never automatic — replacing committed clinical
+   * media requires explicit intent.
+   */
+  const maybeOfferEnhancement = (
+    attachment: MediaAttachment,
+    tag: MediaTag,
+    previousTag: MediaTag | undefined,
+  ) => {
+    if (!isImageEnhanceAvailable()) return;
+    if (!isImagingTag(tag) || isImagingTag(previousTag)) return;
+    if (attachment.enhanced) return;
+    if (enhancingId) return;
+    if (declinedEnhanceRef.current.has(attachment.id)) return;
+    if (!isPersistedMediaUriValue(attachment.localUri)) return;
+    Alert.alert(
+      "Enhance imaging photo?",
+      "Straighten the perspective and improve contrast for this photo of an X-ray or scan. The stored photo is replaced when you save.",
+      [
+        {
+          text: "Not Now",
+          style: "cancel",
+          onPress: () => declinedEnhanceRef.current.add(attachment.id),
+        },
+        {
+          text: "Enhance",
+          onPress: () =>
+            void runRetagEnhancement(attachment.id, attachment.localUri, tag),
+        },
+      ],
+    );
+  };
+
+  const runRetagEnhancement = async (
+    id: string,
+    oldUri: string,
+    tag: MediaTag,
+  ) => {
+    setEnhancingId(id);
+    try {
+      const saved = await enhancePersistedMedia(oldUri, tag);
+      if (!saved) {
+        Alert.alert(
+          "Enhancement unavailable",
+          "Couldn't enhance this photo — it was left unchanged.",
+        );
+        return;
+      }
+      addedUrisRef.current.add(saved.localUri);
+      if (addedUrisRef.current.has(oldUri)) {
+        // Session-added original: replace outright — discard cleanup only
+        // needs to know about the new variant.
+        addedUrisRef.current.delete(oldUri);
+        await deleteMultipleEncryptedMedia([oldUri]);
+        const assetId = galleryAssetIdsByUriRef.current.get(oldUri);
+        if (assetId) {
+          galleryAssetIdsByUriRef.current.delete(oldUri);
+          galleryAssetIdsByUriRef.current.set(saved.localUri, assetId);
+        }
+      } else {
+        // Committed original: delete only once the swap is actually saved.
+        replacedUrisRef.current.add(oldUri);
+      }
+      setAttachments((prev) =>
+        prev.map((a) =>
+          a.id === id
+            ? {
+                ...a,
+                localUri: saved.localUri,
+                mimeType: saved.mimeType,
+                thumbnailUri: undefined,
+                enhanced: true,
+              }
+            : a,
+        ),
+      );
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      console.error("Error enhancing media:", error);
+      Alert.alert(
+        "Error",
+        "Failed to enhance this photo — it was left unchanged.",
+      );
+    } finally {
+      setEnhancingId(null);
+    }
   };
 
   const handleTagAll = () => {
@@ -526,6 +636,21 @@ export default function MediaManagementScreen() {
                 style={styles.previewImage}
                 resizeMode="contain"
               />
+              {enhancingId === selectedAttachment.id ? (
+                <View
+                  style={[
+                    styles.enhancingOverlay,
+                    { backgroundColor: theme.scrim },
+                  ]}
+                >
+                  <ActivityIndicator size="small" color={theme.accent} />
+                  <ThemedText
+                    style={[styles.enhancingText, { color: theme.text }]}
+                  >
+                    Enhancing…
+                  </ThemedText>
+                </View>
+              ) : null}
             </Pressable>
 
             <TextInput
@@ -779,6 +904,16 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     overflow: "hidden",
     marginBottom: Spacing.lg,
+  },
+  enhancingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
+  },
+  enhancingText: {
+    fontSize: 13,
+    fontWeight: "500",
   },
   previewImage: {
     width: "100%",
