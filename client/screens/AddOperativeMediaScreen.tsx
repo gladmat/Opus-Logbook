@@ -50,9 +50,13 @@ import {
   deleteEnhancedTemp,
   getEnhanceDefaultsForTag,
   isImagingTag,
+  prepareEnhancementSource,
   runXrayEnhancement,
   shouldAutoEnhance,
+  type DetectedQuadCorners,
 } from "@/lib/imageEnhance";
+import { defaultQuad } from "@/lib/quadAdjust";
+import { QuadCropModal } from "@/components/media/QuadCropModal";
 
 type AddOperativeMediaRouteProp = RouteProp<
   RootStackParamList,
@@ -109,19 +113,40 @@ export default function AddOperativeMediaScreen() {
   const galleryAssetIdRef = useRef<string | null>(sourceAssetId ?? null);
 
   // X-ray enhancement: enhancedUri is a cache-dir temp rendered by the
-  // native module for the CURRENT source + tag defaults; enhancedKeyRef
-  // tracks which (source uri, grayscale) pair it belongs to so retake /
-  // replace / rotate / a tag flip to a colour modality re-runs it.
+  // native module for the CURRENT source + tag defaults + optional manual
+  // quad; enhancedKeyRef tracks which combination it belongs to so retake /
+  // replace / rotate / a tag flip to a colour modality / a crop adjustment
+  // re-runs it. For persisted (edit-mode) media the source is a decrypted
+  // temp tracked in sourceRef, and the preview defaults to Original so
+  // committed bytes are only replaced by explicit opt-in.
   const [enhancedUri, setEnhancedUri] = useState<string | null>(null);
   const [enhancing, setEnhancing] = useState(false);
   const [showEnhanced, setShowEnhanced] = useState(true);
+  const [manualQuad, setManualQuad] = useState<DetectedQuadCorners | null>(
+    null,
+  );
+  const [cropVisible, setCropVisible] = useState(false);
   const enhancedKeyRef = useRef<string | null>(null);
   const enhancedUriRef = useRef<string | null>(null);
   enhancedUriRef.current = enhancedUri;
+  const detectedCornersRef = useRef<DetectedQuadCorners | null>(null);
+  const userToggledRef = useRef(false);
+  const sourceRef = useRef<{
+    uri: string;
+    isDecryptedTemp: boolean;
+    forUri: string;
+  } | null>(null);
 
   const resetEnhancement = () => {
     enhancedKeyRef.current = null;
+    detectedCornersRef.current = null;
+    userToggledRef.current = false;
+    setManualQuad(null);
     setShowEnhanced(true);
+    if (sourceRef.current?.isDecryptedTemp) {
+      deleteEnhancedTemp(sourceRef.current.uri);
+    }
+    sourceRef.current = null;
     setEnhancedUri((prev) => {
       deleteEnhancedTemp(prev);
       return null;
@@ -129,13 +154,39 @@ export default function AddOperativeMediaScreen() {
   };
 
   useEffect(() => {
-    if (!shouldAutoEnhance({ tag: selectedTag, uri: currentUri })) return;
-    const key = `${currentUri}::${getEnhanceDefaultsForTag(selectedTag).grayscale}`;
+    if (!currentUri || !isImagingTag(selectedTag)) return;
+    // Committed bytes that are already the enhanced variant: nothing to
+    // offer — Retake/Replace is the path to a redo.
+    if (isPersistedMediaUriValue(currentUri) && existingEnhanced) return;
+    const key = `${currentUri}::${getEnhanceDefaultsForTag(selectedTag).grayscale}::${
+      manualQuad ? JSON.stringify(manualQuad) : "auto"
+    }`;
     if (enhancedKeyRef.current === key) return;
 
     let cancelled = false;
     setEnhancing(true);
-    void runXrayEnhancement(currentUri, selectedTag).then((result) => {
+    void (async () => {
+      let source = sourceRef.current;
+      if (!source || source.forUri !== currentUri) {
+        if (source?.isDecryptedTemp) deleteEnhancedTemp(source.uri);
+        sourceRef.current = null;
+        const prepared = await prepareEnhancementSource(currentUri);
+        if (cancelled) {
+          if (prepared?.isDecryptedTemp) deleteEnhancedTemp(prepared.uri);
+          return;
+        }
+        if (!prepared) {
+          setEnhancing(false);
+          return;
+        }
+        source = { ...prepared, forUri: currentUri };
+        sourceRef.current = source;
+      }
+      const result = await runXrayEnhancement(
+        source.uri,
+        selectedTag,
+        manualQuad ? { quadOverride: manualQuad } : undefined,
+      );
       if (cancelled) {
         deleteEnhancedTemp(result?.uri);
         return;
@@ -143,24 +194,39 @@ export default function AddOperativeMediaScreen() {
       setEnhancing(false);
       if (result) {
         enhancedKeyRef.current = key;
-        setShowEnhanced(true);
+        if (result.detectedCorners) {
+          detectedCornersRef.current = result.detectedCorners;
+        }
+        if (!userToggledRef.current) {
+          // Fresh captures preview the enhanced variant; persisted media
+          // stays on Original until the user opts in.
+          setShowEnhanced(
+            shouldAutoEnhance({ tag: selectedTag, uri: currentUri }),
+          );
+        }
         setEnhancedUri((prev) => {
           deleteEnhancedTemp(prev);
           return result.uri;
         });
       }
-    });
+    })();
     return () => {
       cancelled = true;
       setEnhancing(false);
     };
-  }, [selectedTag, currentUri]);
+  }, [selectedTag, currentUri, manualQuad, existingEnhanced]);
 
-  // The enhanced temp is only an intermediate: after a successful save the
-  // bytes live in the encrypted store, and on cancel it's abandoned — either
-  // way it can go when the screen unmounts.
+  // The enhanced temp (and any decrypted source temp) is only an
+  // intermediate: after a successful save the bytes live in the encrypted
+  // store, and on cancel it's abandoned — either way it can go when the
+  // screen unmounts.
   useEffect(() => {
-    return () => deleteEnhancedTemp(enhancedUriRef.current);
+    return () => {
+      deleteEnhancedTemp(enhancedUriRef.current);
+      if (sourceRef.current?.isDecryptedTemp) {
+        deleteEnhancedTemp(sourceRef.current.uri);
+      }
+    };
   }, []);
 
   // Enhancement only applies while an imaging tag is selected — switching to
@@ -431,7 +497,10 @@ export default function AddOperativeMediaScreen() {
             <View style={styles.enhanceToggleRow}>
               <Pressable
                 testID="media.add.chip-enhanced"
-                onPress={() => setShowEnhanced(true)}
+                onPress={() => {
+                  userToggledRef.current = true;
+                  setShowEnhanced(true);
+                }}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: displayEnhanced }}
                 style={[
@@ -463,7 +532,10 @@ export default function AddOperativeMediaScreen() {
               </Pressable>
               <Pressable
                 testID="media.add.chip-original"
-                onPress={() => setShowEnhanced(false)}
+                onPress={() => {
+                  userToggledRef.current = true;
+                  setShowEnhanced(false);
+                }}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: !displayEnhanced }}
                 style={[
@@ -488,6 +560,29 @@ export default function AddOperativeMediaScreen() {
                   ]}
                 >
                   Original
+                </ThemedText>
+              </Pressable>
+              <Pressable
+                testID="media.add.chip-adjustCrop"
+                onPress={() => setCropVisible(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Adjust crop corners"
+                style={[
+                  styles.enhanceChip,
+                  {
+                    backgroundColor: theme.backgroundElevated,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
+                <Feather name="crop" size={14} color={theme.textSecondary} />
+                <ThemedText
+                  style={[
+                    styles.enhanceChipText,
+                    { color: theme.textSecondary },
+                  ]}
+                >
+                  Adjust
                 </ThemedText>
               </Pressable>
             </View>
@@ -586,6 +681,22 @@ export default function AddOperativeMediaScreen() {
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
+      {sourceRef.current ? (
+        <QuadCropModal
+          visible={cropVisible}
+          imageUri={sourceRef.current.uri}
+          initialQuad={
+            manualQuad ?? detectedCornersRef.current ?? defaultQuad()
+          }
+          onApply={(quad) => {
+            setCropVisible(false);
+            userToggledRef.current = true;
+            setShowEnhanced(true);
+            setManualQuad(quad);
+          }}
+          onClose={() => setCropVisible(false)}
+        />
+      ) : null}
     </ThemedView>
   );
 }
