@@ -115,6 +115,7 @@ export function OperativeMediaSection({
       existingCaption: item.caption,
       existingTimestamp: item.timestamp,
       existingCreatedAt: item.createdAt,
+      existingEnhanced: item.enhanced,
       mediaContext,
     });
   };

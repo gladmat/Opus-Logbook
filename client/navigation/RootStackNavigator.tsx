@@ -186,6 +186,8 @@ export type RootStackParamList = {
     existingCaption?: string;
     existingTimestamp?: string;
     existingCreatedAt?: string;
+    /** Whether the existing media bytes are the auto-enhanced variant (edit mode). */
+    existingEnhanced?: boolean;
     mediaContext?: MediaContext;
     /** Camera Roll asset id of a gallery-picked source image; enables the delete-originals offer after commit. */
     sourceAssetId?: string;

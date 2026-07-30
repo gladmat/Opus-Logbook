@@ -1,9 +1,10 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   StyleSheet,
   Pressable,
   Image,
+  ActivityIndicator,
   Alert,
   Platform,
   ScrollView,
@@ -44,6 +45,14 @@ import {
   resolveOperativeMediaSavePlan,
 } from "@/lib/operativeMediaForm";
 import { offerGalleryCleanup } from "@/lib/galleryCleanup";
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
+import {
+  deleteEnhancedTemp,
+  getEnhanceDefaultsForTag,
+  isImagingTag,
+  runXrayEnhancement,
+  shouldAutoEnhance,
+} from "@/lib/imageEnhance";
 
 type AddOperativeMediaRouteProp = RouteProp<
   RootStackParamList,
@@ -71,6 +80,7 @@ export default function AddOperativeMediaScreen() {
     existingCaption,
     existingTimestamp,
     existingCreatedAt,
+    existingEnhanced,
     mediaContext,
     sourceAssetId,
   } = route.params;
@@ -97,6 +107,66 @@ export default function AddOperativeMediaScreen() {
   // The delete-originals offer fires only after the encrypted copy commits;
   // cancelling this screen must never touch the original.
   const galleryAssetIdRef = useRef<string | null>(sourceAssetId ?? null);
+
+  // X-ray enhancement: enhancedUri is a cache-dir temp rendered by the
+  // native module for the CURRENT source + tag defaults; enhancedKeyRef
+  // tracks which (source uri, grayscale) pair it belongs to so retake /
+  // replace / rotate / a tag flip to a colour modality re-runs it.
+  const [enhancedUri, setEnhancedUri] = useState<string | null>(null);
+  const [enhancing, setEnhancing] = useState(false);
+  const [showEnhanced, setShowEnhanced] = useState(true);
+  const enhancedKeyRef = useRef<string | null>(null);
+  const enhancedUriRef = useRef<string | null>(null);
+  enhancedUriRef.current = enhancedUri;
+
+  const resetEnhancement = () => {
+    enhancedKeyRef.current = null;
+    setShowEnhanced(true);
+    setEnhancedUri((prev) => {
+      deleteEnhancedTemp(prev);
+      return null;
+    });
+  };
+
+  useEffect(() => {
+    if (!shouldAutoEnhance({ tag: selectedTag, uri: currentUri })) return;
+    const key = `${currentUri}::${getEnhanceDefaultsForTag(selectedTag).grayscale}`;
+    if (enhancedKeyRef.current === key) return;
+
+    let cancelled = false;
+    setEnhancing(true);
+    void runXrayEnhancement(currentUri, selectedTag).then((result) => {
+      if (cancelled) {
+        deleteEnhancedTemp(result?.uri);
+        return;
+      }
+      setEnhancing(false);
+      if (result) {
+        enhancedKeyRef.current = key;
+        setShowEnhanced(true);
+        setEnhancedUri((prev) => {
+          deleteEnhancedTemp(prev);
+          return result.uri;
+        });
+      }
+    });
+    return () => {
+      cancelled = true;
+      setEnhancing(false);
+    };
+  }, [selectedTag, currentUri]);
+
+  // The enhanced temp is only an intermediate: after a successful save the
+  // bytes live in the encrypted store, and on cancel it's abandoned — either
+  // way it can go when the screen unmounts.
+  useEffect(() => {
+    return () => deleteEnhancedTemp(enhancedUriRef.current);
+  }, []);
+
+  // Enhancement only applies while an imaging tag is selected — switching to
+  // a non-imaging tag reverts the preview and the save to the original.
+  const enhancementActive = enhancedUri != null && isImagingTag(selectedTag);
+  const displayEnhanced = enhancementActive && showEnhanced;
 
   const handleRetakeCamera = async () => {
     if (!cameraPermission?.granted) {
@@ -141,6 +211,7 @@ export default function AddOperativeMediaScreen() {
         setCurrentUri(asset.uri);
         setCurrentMimeType(mime);
         galleryAssetIdRef.current = null;
+        resetEnhancement();
       }
     } catch {
       Alert.alert("Error", "Failed to capture image.");
@@ -160,9 +231,33 @@ export default function AddOperativeMediaScreen() {
         setCurrentUri(asset.uri);
         setCurrentMimeType(mime);
         galleryAssetIdRef.current = asset.assetId ?? null;
+        resetEnhancement();
       }
     } catch {
       Alert.alert("Error", "Failed to select image.");
+    }
+  };
+
+  // Plaintext sources only — an opus-media: URI (edit mode, image unchanged)
+  // is committed encrypted media; Retake/Replace is the path to new bytes.
+  const canRotate = !isPersistedMediaUriValue(currentUri);
+
+  const handleRotate = async () => {
+    if (!canRotate) return;
+    try {
+      const context = ImageManipulator.manipulate(currentUri);
+      context.rotate(90);
+      const image = await context.renderAsync();
+      const result = await image.saveAsync({
+        format: SaveFormat.JPEG,
+        compress: 0.9,
+        base64: false,
+      });
+      setCurrentUri(result.uri);
+      setCurrentMimeType("image/jpeg");
+      resetEnhancement();
+    } catch {
+      Alert.alert("Error", "Failed to rotate image.");
     }
   };
 
@@ -171,19 +266,25 @@ export default function AddOperativeMediaScreen() {
     setSaving(true);
 
     try {
+      // Save whichever variant is being previewed; the enhanced variant only
+      // counts while an imaging tag is still selected.
+      const saveEnhanced = displayEnhanced && enhancedUri != null;
+      const uriToSave = saveEnhanced ? enhancedUri : currentUri;
+      const mimeToSave = saveEnhanced ? "image/jpeg" : currentMimeType;
+
       const savePlan = resolveOperativeMediaSavePlan({
         editMode,
         originalUri: imageUri,
-        currentUri,
+        currentUri: uriToSave,
       });
 
-      let finalUri = currentUri;
-      let finalMimeType = currentMimeType;
+      let finalUri = uriToSave;
+      let finalMimeType = mimeToSave;
       let savedReplacementUri: string | undefined;
       if (!savePlan.reuseExistingUri) {
         const savedMedia = await saveEncryptedMediaFromUri(
-          currentUri,
-          currentMimeType,
+          uriToSave,
+          mimeToSave,
         );
         finalUri = savedMedia.localUri;
         finalMimeType = savedMedia.mimeType;
@@ -208,6 +309,9 @@ export default function AddOperativeMediaScreen() {
           editMode && existingCreatedAt
             ? existingCreatedAt
             : new Date().toISOString(),
+        // Metadata-only edit keeps the stored bytes' provenance; new bytes
+        // carry the flag only when the enhanced variant was saved.
+        enhanced: savePlan.reuseExistingUri ? existingEnhanced : saveEnhanced,
       });
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -287,7 +391,13 @@ export default function AddOperativeMediaScreen() {
               { backgroundColor: theme.backgroundRoot },
             ]}
           >
-            {isPersistedMediaUriValue(currentUri) ? (
+            {displayEnhanced && enhancedUri ? (
+              <Image
+                source={{ uri: enhancedUri }}
+                style={styles.previewImage}
+                resizeMode="contain"
+              />
+            ) : isPersistedMediaUriValue(currentUri) ? (
               <EncryptedImage
                 uri={currentUri}
                 style={styles.previewImage}
@@ -300,7 +410,88 @@ export default function AddOperativeMediaScreen() {
                 resizeMode="contain"
               />
             )}
+            {enhancing ? (
+              <View
+                style={[
+                  styles.enhancingOverlay,
+                  { backgroundColor: theme.scrim },
+                ]}
+              >
+                <ActivityIndicator size="small" color={theme.accent} />
+                <ThemedText
+                  style={[styles.enhancingText, { color: theme.text }]}
+                >
+                  Enhancing…
+                </ThemedText>
+              </View>
+            ) : null}
           </View>
+
+          {enhancementActive ? (
+            <View style={styles.enhanceToggleRow}>
+              <Pressable
+                testID="media.add.chip-enhanced"
+                onPress={() => setShowEnhanced(true)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: displayEnhanced }}
+                style={[
+                  styles.enhanceChip,
+                  {
+                    backgroundColor: displayEnhanced
+                      ? theme.accentSurface
+                      : theme.backgroundElevated,
+                    borderColor: displayEnhanced ? theme.link : theme.border,
+                  },
+                ]}
+              >
+                <Feather
+                  name="zap"
+                  size={14}
+                  color={displayEnhanced ? theme.link : theme.textSecondary}
+                />
+                <ThemedText
+                  style={[
+                    styles.enhanceChipText,
+                    {
+                      color: displayEnhanced ? theme.link : theme.textSecondary,
+                      fontWeight: displayEnhanced ? "600" : "400",
+                    },
+                  ]}
+                >
+                  Enhanced
+                </ThemedText>
+              </Pressable>
+              <Pressable
+                testID="media.add.chip-original"
+                onPress={() => setShowEnhanced(false)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: !displayEnhanced }}
+                style={[
+                  styles.enhanceChip,
+                  {
+                    backgroundColor: !displayEnhanced
+                      ? theme.accentSurface
+                      : theme.backgroundElevated,
+                    borderColor: !displayEnhanced ? theme.link : theme.border,
+                  },
+                ]}
+              >
+                <ThemedText
+                  style={[
+                    styles.enhanceChipText,
+                    {
+                      color: !displayEnhanced
+                        ? theme.link
+                        : theme.textSecondary,
+                      fontWeight: !displayEnhanced ? "600" : "400",
+                    },
+                  ]}
+                >
+                  Original
+                </ThemedText>
+              </Pressable>
+            </View>
+          ) : null}
 
           <View style={styles.replaceRow}>
             <Pressable
@@ -323,6 +514,19 @@ export default function AddOperativeMediaScreen() {
               <Feather name="image" size={16} color={theme.text} />
               <ThemedText style={styles.replaceText}>Replace</ThemedText>
             </Pressable>
+            {canRotate ? (
+              <Pressable
+                testID="media.add.btn-rotate"
+                onPress={handleRotate}
+                style={[
+                  styles.replaceButton,
+                  { backgroundColor: theme.backgroundElevated },
+                ]}
+              >
+                <Feather name="rotate-cw" size={16} color={theme.text} />
+                <ThemedText style={styles.replaceText}>Rotate</ThemedText>
+              </Pressable>
+            ) : null}
           </View>
 
           <MediaTagPicker
@@ -426,6 +630,34 @@ const styles = StyleSheet.create({
   previewImage: {
     width: "100%",
     height: "100%",
+  },
+  enhancingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
+  },
+  enhancingText: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  enhanceToggleRow: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  enhanceChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    minHeight: 44,
+  },
+  enhanceChipText: {
+    fontSize: 13,
   },
   replaceRow: {
     flexDirection: "row",
