@@ -47,7 +47,6 @@ import {
   type DonorSiteClosureMethod,
   INDICATION_LABELS,
   FLAP_SNOMED_MAP,
-  RECIPIENT_SITE_SNOMED_MAP,
   FREE_FLAP_LABELS,
   ELEVATION_PLANE_LABELS,
   SLNB_BASIN_LABELS,
@@ -72,6 +71,11 @@ import {
   normalizeVesselName,
   resolveConcomitantVeinName,
 } from "@/data/autoFillMappings";
+import {
+  getRecipientRegions,
+  toggleRecipientRegion,
+  buildRecipientRegionPatch,
+} from "@/lib/recipientRegions";
 import type { BreastFlapExtensionData } from "@/types/breast";
 import { BreastFlapExtensionSection } from "@/components/breast/BreastFlapExtensionSection";
 
@@ -118,10 +122,10 @@ export function FreeFlapClinicalFields({
   const flapIsLocked = !!presetFlapType;
 
   const anastomoses = clinicalDetails.anastomoses || [];
-  // Auto-set recipient site for breast context
-  const recipientSiteRegion = breastContext
-    ? ("breast_chest" as const)
-    : clinicalDetails.recipientSiteRegion;
+  // Auto-set recipient site for breast context; [0] is the primary region
+  const recipientRegions: AnatomicalRegion[] = breastContext
+    ? ["breast_chest"]
+    : getRecipientRegions(clinicalDetails);
   const recipientVesselQuality =
     getLegacyRecipientVesselQuality(clinicalDetails);
   const veinGraftUsed = clinicalDetails.veinGraftUsed;
@@ -355,13 +359,12 @@ export function FreeFlapClinicalFields({
     onUpdate({ ...clinicalDetails, ...updates } as FreeFlapDetails);
   };
 
-  const handleRecipientSiteChange = (region: AnatomicalRegion) => {
-    const snomedEntry = RECIPIENT_SITE_SNOMED_MAP[region];
+  const handleRecipientSiteToggle = (region: AnatomicalRegion) => {
     onUpdate({
       ...clinicalDetails,
-      recipientSiteRegion: region,
-      recipientSiteSnomedCode: snomedEntry?.code,
-      recipientSiteSnomedDisplay: snomedEntry?.display,
+      ...buildRecipientRegionPatch(
+        toggleRecipientRegion(getRecipientRegions(clinicalDetails), region),
+      ),
     });
   };
 
@@ -467,8 +470,8 @@ export function FreeFlapClinicalFields({
         </View>
       ) : (
         <RecipientSiteSelector
-          value={clinicalDetails.recipientSiteRegion}
-          onSelect={handleRecipientSiteChange}
+          values={recipientRegions}
+          onToggle={handleRecipientSiteToggle}
           required
         />
       )}
@@ -496,7 +499,7 @@ export function FreeFlapClinicalFields({
             key={entry.id}
             entry={entry}
             index={index}
-            recipientRegion={recipientSiteRegion}
+            recipientRegions={recipientRegions}
             defaultDonorVessel={defaultDonorVessel}
             onUpdate={updateAnastomosis}
             onDelete={() => removeAnastomosis(entry.id)}
@@ -726,7 +729,7 @@ export function FreeFlapClinicalFields({
         </View>
       </View>
 
-      {recipientSiteRegion === "head_neck" && priorRadiotherapy ? (
+      {recipientRegions.includes("head_neck") && priorRadiotherapy ? (
         <CollapsibleFormSection
           title="Irradiated Neck Vessel Assessment"
           defaultExpanded={false}

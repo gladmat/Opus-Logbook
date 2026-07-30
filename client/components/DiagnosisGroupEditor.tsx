@@ -2450,6 +2450,9 @@ function DiagnosisGroupEditorInner({
         flapSnomedDisplay: sourceDetails.flapSnomedDisplay,
         indication: sourceDetails.indication,
         recipientSiteRegion: sourceDetails.recipientSiteRegion,
+        recipientSiteRegions: sourceDetails.recipientSiteRegions
+          ? [...sourceDetails.recipientSiteRegions]
+          : undefined,
         recipientSiteSnomedCode: sourceDetails.recipientSiteSnomedCode,
         recipientSiteSnomedDisplay: sourceDetails.recipientSiteSnomedDisplay,
       };

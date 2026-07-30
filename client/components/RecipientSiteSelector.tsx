@@ -6,8 +6,9 @@ import { BorderRadius, Spacing } from "@/constants/theme";
 import { type AnatomicalRegion, ANATOMICAL_REGION_LABELS } from "@/types/case";
 
 interface RecipientSiteSelectorProps {
-  value?: AnatomicalRegion;
-  onSelect: (region: AnatomicalRegion) => void;
+  /** Selected regions in selection order — [0] is the primary. */
+  values: AnatomicalRegion[];
+  onToggle: (region: AnatomicalRegion) => void;
   label?: string;
   required?: boolean;
 }
@@ -26,12 +27,13 @@ const REGION_ORDER: AnatomicalRegion[] = [
 ];
 
 export function RecipientSiteSelector({
-  value,
-  onSelect,
+  values,
+  onToggle,
   label = "Recipient Site Region",
   required = false,
 }: RecipientSiteSelectorProps) {
   const { theme } = useTheme();
+  const primary = values.length > 1 ? values[0] : undefined;
 
   return (
     <View style={styles.container}>
@@ -46,36 +48,55 @@ export function RecipientSiteSelector({
         ) : null}
       </View>
       <View style={styles.optionsGrid}>
-        {REGION_ORDER.map((region) => (
-          <Pressable
-            key={region}
-            onPress={() => onSelect(region)}
-            style={[
-              styles.regionButton,
-              {
-                backgroundColor:
-                  value === region
+        {REGION_ORDER.map((region) => {
+          const selected = values.includes(region);
+          return (
+            <Pressable
+              key={region}
+              onPress={() => onToggle(region)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: selected }}
+              accessibilityLabel={`${ANATOMICAL_REGION_LABELS[region]}${
+                region === primary ? ", primary region" : ""
+              }`}
+              style={[
+                styles.regionButton,
+                {
+                  backgroundColor: selected
                     ? theme.accentSurface
                     : theme.backgroundDefault,
-                borderColor: value === region ? theme.link : theme.border,
-              },
-            ]}
-            testID={`caseForm.freeFlap.chip-recipientSite-${region}`}
-          >
-            <ThemedText
-              style={[
-                styles.regionText,
-                {
-                  color: value === region ? theme.link : theme.text,
-                  fontWeight: value === region ? "600" : "400",
+                  borderColor: selected ? theme.link : theme.border,
                 },
               ]}
+              testID={`caseForm.freeFlap.chip-recipientSite-${region}`}
             >
-              {ANATOMICAL_REGION_LABELS[region]}
-            </ThemedText>
-          </Pressable>
-        ))}
+              <ThemedText
+                style={[
+                  styles.regionText,
+                  {
+                    color: selected ? theme.link : theme.text,
+                    fontWeight: selected ? "600" : "400",
+                  },
+                ]}
+              >
+                {ANATOMICAL_REGION_LABELS[region]}
+              </ThemedText>
+              {region === primary ? (
+                <ThemedText
+                  style={[styles.primaryBadge, { color: theme.textSecondary }]}
+                >
+                  Primary
+                </ThemedText>
+              ) : null}
+            </Pressable>
+          );
+        })}
       </View>
+      {values.length > 1 ? (
+        <ThemedText style={[styles.multiHint, { color: theme.textSecondary }]}>
+          Crosses {values.length} regions — first selected is primary
+        </ThemedText>
+      ) : null}
     </View>
   );
 }
@@ -111,5 +132,16 @@ const styles = StyleSheet.create({
   },
   regionText: {
     fontSize: 14,
+  },
+  primaryBadge: {
+    fontSize: 11,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginTop: 2,
+  },
+  multiHint: {
+    fontSize: 12,
+    marginTop: Spacing.sm,
   },
 });

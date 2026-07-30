@@ -19,12 +19,17 @@ import {
   fetchVesselsByRegion,
   getRecipientVesselPresets,
 } from "@/lib/snomedApi";
+import {
+  unionVesselOptions,
+  type RegionVesselOption,
+} from "@/lib/recipientRegions";
 import { REGION_ARTERIAL_CONFIGURATION } from "@/data/autoFillMappings";
 
 interface AnastomosisEntryCardProps {
   entry: AnastomosisEntry;
   index: number;
-  recipientRegion?: AnatomicalRegion;
+  /** Selected recipient regions in selection order — [0] is the primary. */
+  recipientRegions?: AnatomicalRegion[];
   defaultDonorVessel?: string;
   onUpdate: (entry: AnastomosisEntry) => void;
   onDelete: () => void;
@@ -48,18 +53,62 @@ export interface ArterySelectionPayload {
   defaultArterialConfiguration?: AnastomosisType;
 }
 
+/** Wrap a local preset vessel name in the SnomedRefItem shape (synthetic code). */
+function presetToItem(name: string): SnomedRefItem {
+  return {
+    snomedCtCode: name.toLowerCase().replace(/\s+/g, "_"),
+    displayName: name,
+    commonName: name,
+  } as SnomedRefItem;
+}
+
+/**
+ * Load artery + vein options for one region: head & neck uses curated local
+ * presets directly (no API round-trip); other regions fetch from the server
+ * and fall back to local presets on empty result or error.
+ */
+async function loadRegionVessels(region: AnatomicalRegion): Promise<{
+  region: AnatomicalRegion;
+  arteries: SnomedRefItem[];
+  veins: SnomedRefItem[];
+}> {
+  const localArteries = () =>
+    getRecipientVesselPresets(region, "artery").map(presetToItem);
+  const localVeins = () =>
+    getRecipientVesselPresets(region, "vein").map(presetToItem);
+
+  if (region === "head_neck") {
+    return { region, arteries: localArteries(), veins: localVeins() };
+  }
+
+  try {
+    const [arteriesData, veinsData] = await Promise.all([
+      fetchVesselsByRegion(region, "artery"),
+      fetchVesselsByRegion(region, "vein"),
+    ]);
+    return {
+      region,
+      arteries: arteriesData.length > 0 ? arteriesData : localArteries(),
+      veins: veinsData.length > 0 ? veinsData : localVeins(),
+    };
+  } catch (err) {
+    console.error("Error fetching vessels:", err);
+    return { region, arteries: localArteries(), veins: localVeins() };
+  }
+}
+
 export function AnastomosisEntryCard({
   entry,
   index,
-  recipientRegion,
+  recipientRegions,
   defaultDonorVessel,
   onUpdate,
   onDelete,
   onArterySelected,
 }: AnastomosisEntryCardProps) {
   const { theme } = useTheme();
-  const [arteries, setArteries] = useState<SnomedRefItem[]>([]);
-  const [veins, setVeins] = useState<SnomedRefItem[]>([]);
+  const [arteries, setArteries] = useState<RegionVesselOption[]>([]);
+  const [veins, setVeins] = useState<RegionVesselOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -71,90 +120,43 @@ export function AnastomosisEntryCard({
     }
   }, [entry, onUpdate]);
 
+  // Stable key: the parent recreates the array every render, so depending on
+  // array identity would re-fire the fetch on every keystroke elsewhere.
+  const regionsKey = (recipientRegions ?? []).join(",");
+
   useEffect(() => {
-    if (!recipientRegion) return;
+    const regions = regionsKey
+      ? (regionsKey.split(",") as AnatomicalRegion[])
+      : [];
+    if (regions.length === 0) return;
 
-    const applyLocalPresets = () => {
-      const localArteries = getRecipientVesselPresets(
-        recipientRegion,
-        "artery",
-      );
-      const localVeins = getRecipientVesselPresets(recipientRegion, "vein");
-      setArteries(
-        localArteries.map(
-          (name) =>
-            ({
-              snomedCtCode: name.toLowerCase().replace(/\s+/g, "_"),
-              displayName: name,
-              commonName: name,
-            }) as SnomedRefItem,
-        ),
-      );
-      setVeins(
-        localVeins.map(
-          (name) =>
-            ({
-              snomedCtCode: name.toLowerCase().replace(/\s+/g, "_"),
-              displayName: name,
-              commonName: name,
-            }) as SnomedRefItem,
-        ),
-      );
-    };
-
-    // Head & neck: use curated local presets directly (no API round-trip)
-    if (recipientRegion === "head_neck") {
-      applyLocalPresets();
-      return;
+    let cancelled = false;
+    if (regions.some((r) => r !== "head_neck")) {
+      setIsLoading(true);
     }
 
-    setIsLoading(true);
-    Promise.all([
-      fetchVesselsByRegion(recipientRegion, "artery"),
-      fetchVesselsByRegion(recipientRegion, "vein"),
-    ])
-      .then(([arteriesData, veinsData]) => {
-        if (arteriesData.length > 0) {
-          setArteries(arteriesData);
-        } else {
-          const localArteries = getRecipientVesselPresets(
-            recipientRegion,
-            "artery",
-          );
-          setArteries(
-            localArteries.map(
-              (name) =>
-                ({
-                  snomedCtCode: name.toLowerCase().replace(/\s+/g, "_"),
-                  displayName: name,
-                  commonName: name,
-                }) as SnomedRefItem,
-            ),
-          );
-        }
+    Promise.all(regions.map(loadRegionVessels))
+      .then((results) => {
+        if (cancelled) return;
+        setArteries(
+          unionVesselOptions(
+            results.map(({ region, arteries: items }) => ({ region, items })),
+          ),
+        );
+        setVeins(
+          unionVesselOptions(
+            results.map(({ region, veins: items }) => ({ region, items })),
+          ),
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
 
-        if (veinsData.length > 0) {
-          setVeins(veinsData);
-        } else {
-          const localVeins = getRecipientVesselPresets(recipientRegion, "vein");
-          setVeins(
-            localVeins.map(
-              (name) =>
-                ({
-                  snomedCtCode: name.toLowerCase().replace(/\s+/g, "_"),
-                  displayName: name,
-                  commonName: name,
-                }) as SnomedRefItem,
-            ),
-          );
-        }
-      })
-      .catch((err) => {
-        console.error("Error fetching vessels:", err);
-        applyLocalPresets();
-      })
-      .finally(() => setIsLoading(false));
-  }, [recipientRegion]);
+    return () => {
+      cancelled = true;
+    };
+  }, [regionsKey]);
 
   const vesselOptions =
     entry.vesselType === "artery"
@@ -185,9 +187,12 @@ export function AnastomosisEntryCard({
     const vesselName = vessel?.displayName || vessel?.commonName || "";
 
     if (entry.vesselType === "artery") {
-      // Auto-set arterial configuration based on region
-      const defaultConfig = recipientRegion
-        ? REGION_ARTERIAL_CONFIGURATION[recipientRegion]
+      // Auto-set arterial configuration based on the selected vessel's own
+      // source region (matters when selected regions differ in default
+      // configuration); fall back to the primary region.
+      const configRegion = vessel?.sourceRegion ?? recipientRegions?.[0];
+      const defaultConfig = configRegion
+        ? REGION_ARTERIAL_CONFIGURATION[configRegion]
         : undefined;
       const updatedArteryEntry: AnastomosisEntry = {
         ...entry,
@@ -205,7 +210,7 @@ export function AnastomosisEntryCard({
           arteryDisplayName: vesselName,
           arteryCommonName: vessel?.commonName || undefined,
           arterySnomedCtCode: snomedCode,
-          recipientRegion,
+          recipientRegion: configRegion,
           availableVeinOptions: veins.map((v) => ({
             snomedCtCode: v.snomedCtCode,
             displayName: v.displayName,
@@ -257,7 +262,7 @@ export function AnastomosisEntryCard({
         required
       />
 
-      {recipientRegion ? (
+      {recipientRegions && recipientRegions.length > 0 ? (
         isLoading ? (
           <ThemedText
             style={{ color: theme.textSecondary, marginBottom: Spacing.md }}
