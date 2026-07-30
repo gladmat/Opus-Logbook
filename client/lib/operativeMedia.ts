@@ -16,6 +16,7 @@ export function operativeMediaToAttachments(
       createdAt: item.createdAt,
       tag,
       timestamp: item.timestamp,
+      enhanced: item.enhanced,
     };
   });
 }
@@ -32,5 +33,6 @@ export function attachmentsToOperativeMedia(
     createdAt: attachment.createdAt,
     timestamp: attachment.timestamp,
     tag: resolveMediaTag(attachment),
+    enhanced: attachment.enhanced,
   }));
 }

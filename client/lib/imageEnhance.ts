@@ -18,10 +18,21 @@ import { MEDIA_TAG_REGISTRY, type MediaTag } from "@/types/media";
 import {
   detectDisplayQuad,
   enhanceXrayImage,
+  isImageEnhanceAvailable,
   type DetectedQuadCorners,
+  type QuadPoint,
   type RectangleDetectionResult,
 } from "../../modules/opus-image-enhance";
 import { isPersistedMediaUriValue } from "./operativeMediaForm";
+import { getMasterKeyBytes } from "./encryption";
+import {
+  decryptMediaVariantToFile,
+  opusMediaIdFromUri,
+} from "./mediaFileStorage";
+import { saveEncryptedMediaFromUri } from "./mediaStorage";
+
+export { isImageEnhanceAvailable };
+export type { DetectedQuadCorners, QuadPoint };
 
 const ENHANCE_DIR_NAME = "opus-enhance";
 
@@ -102,26 +113,47 @@ export function shouldAutoEnhance(args: {
 export interface XrayEnhancementResult {
   /** file:// URI of the enhanced JPEG in the cache directory. */
   uri: string;
-  /** True when a detected quad drove perspective correction. */
+  /** True when a quad (detected or manual) drove perspective correction. */
   perspectiveApplied: boolean;
+  /**
+   * The quad Vision detected (top-left origin, normalized) — present even
+   * when it failed the acceptance gate, so a manual-adjust editor can seed
+   * from it. Absent when a quadOverride skipped detection entirely.
+   */
+  detectedCorners?: DetectedQuadCorners;
 }
 
 /**
  * Detect the display rectangle and render the enhanced variant to a temp
  * file. Grayscale/auto-levels always apply per tag defaults; perspective
- * correction only with an accepted quad. Returns null where the native
- * module is absent or anything fails — enhancement is best-effort and must
- * never block adding media.
+ * correction only with an accepted quad — unless `quadOverride` is given
+ * (manual corner adjustment), which skips detection and always applies.
+ * Returns null where the native module is absent or anything fails —
+ * enhancement is best-effort and must never block adding media.
  */
 export async function runXrayEnhancement(
   srcUri: string,
   tag: MediaTag,
+  opts: { quadOverride?: DetectedQuadCorners } = {},
 ): Promise<XrayEnhancementResult | null> {
   try {
-    const detection = await detectDisplayQuad(srcUri);
-    if (detection === null) return null; // native module absent
+    let quad: number[] | undefined;
+    let perspectiveApplied = false;
+    let detectedCorners: DetectedQuadCorners | undefined;
 
-    const useQuad = quadAcceptable(detection);
+    if (opts.quadOverride) {
+      quad = quadToArray(opts.quadOverride);
+      perspectiveApplied = true;
+    } else {
+      const detection = await detectDisplayQuad(srcUri);
+      if (detection === null) return null; // native module absent
+      detectedCorners = detection.corners;
+      if (quadAcceptable(detection) && detection.corners) {
+        quad = quadToArray(detection.corners);
+        perspectiveApplied = true;
+      }
+    }
+
     const { grayscale, autoLevels } = getEnhanceDefaultsForTag(tag);
 
     const dir = new Directory(Paths.cache, ENHANCE_DIR_NAME);
@@ -129,19 +161,81 @@ export async function runXrayEnhancement(
     const dstFile = new File(dir, `${uuidv4()}.jpg`);
 
     const enhanced = await enhanceXrayImage(srcUri, dstFile.uri, {
-      quad:
-        useQuad && detection.corners
-          ? quadToArray(detection.corners)
-          : undefined,
+      quad,
       grayscale,
       autoLevels,
     });
     if (enhanced === null) return null;
 
-    return { uri: dstFile.uri, perspectiveApplied: useQuad };
+    return { uri: dstFile.uri, perspectiveApplied, detectedCorners };
   } catch (error) {
     if (__DEV__) console.warn("[opus:image-enhance] failed:", error);
     return null;
+  }
+}
+
+export interface EnhancementSource {
+  /** Plaintext file:// URI usable as enhancement/crop input. */
+  uri: string;
+  /** True when this is a decrypted temp the caller must clean up. */
+  isDecryptedTemp: boolean;
+}
+
+/**
+ * Resolves a plaintext enhancement source for any media URI: plaintext URIs
+ * pass through; persisted `opus-media:` URIs are decrypted (full variant) to
+ * a cache temp. Returns null when the native module is absent (no point
+ * decrypting) or decryption fails.
+ */
+export async function prepareEnhancementSource(
+  uri: string,
+): Promise<EnhancementSource | null> {
+  if (!isPersistedMediaUriValue(uri)) {
+    return { uri, isDecryptedTemp: false };
+  }
+  if (!isImageEnhanceAvailable()) return null;
+  try {
+    const masterKey = await getMasterKeyBytes();
+    const mediaId = opusMediaIdFromUri(uri);
+    const dir = new Directory(Paths.cache, ENHANCE_DIR_NAME);
+    if (!dir.exists) dir.create({ idempotent: true, intermediates: true });
+    const dstFile = new File(dir, `src-${uuidv4()}.jpg`);
+    await decryptMediaVariantToFile(mediaId, masterKey, "full", dstFile.uri);
+    return { uri: dstFile.uri, isDecryptedTemp: true };
+  } catch (error) {
+    if (__DEV__) {
+      console.warn("[opus:image-enhance] source decrypt failed:", error);
+    }
+    return null;
+  }
+}
+
+/**
+ * Re-enhances an already-encrypted media item (re-tag flow): decrypt →
+ * detect/enhance → encrypt the enhanced variant as NEW media. The caller
+ * owns swapping references and deleting the old media — this never touches
+ * the original. Null when the module is absent or any step fails.
+ */
+export async function enhancePersistedMedia(
+  opusUri: string,
+  tag: MediaTag,
+): Promise<{ localUri: string; mimeType: string } | null> {
+  if (!isPersistedMediaUriValue(opusUri)) return null;
+  const source = await prepareEnhancementSource(opusUri);
+  if (!source) return null;
+  try {
+    const enhanced = await runXrayEnhancement(source.uri, tag);
+    if (!enhanced) return null;
+    try {
+      return await saveEncryptedMediaFromUri(enhanced.uri, "image/jpeg");
+    } finally {
+      deleteEnhancedTemp(enhanced.uri);
+    }
+  } catch (error) {
+    if (__DEV__) console.warn("[opus:image-enhance] re-enhance failed:", error);
+    return null;
+  } finally {
+    deleteEnhancedTemp(source.uri);
   }
 }
 

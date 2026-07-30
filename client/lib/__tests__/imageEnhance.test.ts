@@ -8,6 +8,8 @@ import {
   quadToArray,
   shouldAutoEnhance,
   runXrayEnhancement,
+  prepareEnhancementSource,
+  enhancePersistedMedia,
 } from "../imageEnhance";
 import { buildOperativeMediaItemRecord } from "../operativeMediaForm";
 import type { MediaTag } from "@/types/media";
@@ -16,7 +18,26 @@ import type {
   RectangleDetectionResult,
 } from "../../../modules/opus-image-enhance";
 
+vi.mock("expo-modules-core", () => ({
+  requireOptionalNativeModule: vi.fn(() => null),
+}));
+vi.mock("expo-image-manipulator", () => ({
+  ImageManipulator: { manipulate: vi.fn() },
+  SaveFormat: { JPEG: "jpeg", PNG: "png" },
+}));
 vi.mock("expo-file-system", () => createExpoFileSystemMock());
+vi.mock("expo-crypto", () => ({
+  getRandomBytes: (length: number) => {
+    const bytes = new Uint8Array(length);
+    globalThis.crypto.getRandomValues(bytes);
+    return bytes;
+  },
+  getRandomBytesAsync: async (length: number) => {
+    const bytes = new Uint8Array(length);
+    globalThis.crypto.getRandomValues(bytes);
+    return bytes;
+  },
+}));
 
 const IMAGING_TAGS: MediaTag[] = [
   "xray_preop",
@@ -173,6 +194,44 @@ describe("runXrayEnhancement", () => {
       "xray_postop",
     );
     expect(result).toBeNull();
+  });
+
+  it("quadOverride path also degrades to null without the native module", async () => {
+    const result = await runXrayEnhancement(
+      "file:///tmp/photo.jpg",
+      "xray_postop",
+      { quadOverride: CORNERS },
+    );
+    expect(result).toBeNull();
+  });
+});
+
+describe("prepareEnhancementSource", () => {
+  it("passes plaintext URIs through without decryption", async () => {
+    const source = await prepareEnhancementSource("file:///tmp/photo.jpg");
+    expect(source).toEqual({
+      uri: "file:///tmp/photo.jpg",
+      isDecryptedTemp: false,
+    });
+  });
+
+  it("returns null for persisted media when the native module is absent", async () => {
+    const source = await prepareEnhancementSource("opus-media:abc-123");
+    expect(source).toBeNull();
+  });
+});
+
+describe("enhancePersistedMedia", () => {
+  it("rejects plaintext input", async () => {
+    expect(
+      await enhancePersistedMedia("file:///tmp/photo.jpg", "xray_postop"),
+    ).toBeNull();
+  });
+
+  it("returns null for persisted media when the native module is absent", async () => {
+    expect(
+      await enhancePersistedMedia("opus-media:abc-123", "xray_postop"),
+    ).toBeNull();
   });
 });
 

@@ -278,6 +278,21 @@ describe("roundtrip mapping", () => {
     );
     expect(roundtripped).toEqual([]);
   });
+
+  it("carries the enhanced provenance flag both directions", () => {
+    const item: OperativeMediaItem = {
+      id: "media-enhanced",
+      localUri: "opus-media:enhanced",
+      mimeType: "image/jpeg",
+      createdAt: "2026-07-30T00:00:00Z",
+      tag: "xray_postop",
+      enhanced: true,
+    };
+    const attachment = operativeMediaToAttachments([item])[0];
+    expect(attachment?.enhanced).toBe(true);
+    const back = attachmentsToOperativeMedia([attachment!])[0];
+    expect(back?.enhanced).toBe(true);
+  });
 });
 
 describe("resolved display tag behaviour", () => {
