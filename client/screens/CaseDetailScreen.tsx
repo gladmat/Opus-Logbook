@@ -77,6 +77,7 @@ import {
   VEIN_GRAFT_SOURCE_LABELS,
 } from "@/types/case";
 import { getCasePrimaryTitle } from "@/lib/caseDiagnosisSummary";
+import { formatRecipientRegions } from "@/lib/recipientRegions";
 import { parseIsoDateValue, resolveEventDisplayDate } from "@/lib/dateValues";
 import {
   generateHandInfectionSummary,
@@ -978,9 +979,9 @@ export default function CaseDetailScreen() {
                                 .recipientSiteRegion ? (
                                 <DetailRow
                                   label="Recipient Site"
-                                  value={(
-                                    proc.clinicalDetails as FreeFlapDetails
-                                  ).recipientSiteRegion?.replace(/_/g, " ")}
+                                  value={formatRecipientRegions(
+                                    proc.clinicalDetails as FreeFlapDetails,
+                                  )}
                                 />
                               ) : null}
                               {getRecipientVesselQualityLabel(

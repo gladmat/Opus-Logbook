@@ -274,4 +274,38 @@ describe("free flap audit report", () => {
     expect(cell(result, "donor_site_complications")).toBe("Seroma; Infection");
     expect(cell(result, "operative_role")).toBe("Surgeon");
   });
+
+  it("renders single-region recipient_region via the canonical label", () => {
+    const result = buildReportRows(freeFlapAuditReport, [flapCase()], null, {
+      includePatientId: true,
+    });
+    expect(cell(result, "recipient_region")).toBe("Lower Leg");
+  });
+
+  it("joins multi-region recipient_region with ' + ', primary first", () => {
+    const multiDetails: Partial<FreeFlapDetails> = {
+      ...flapDetails,
+      recipientSiteRegion: "hand",
+      recipientSiteRegions: ["hand", "forearm"],
+    };
+    const multiCase = makeCase({
+      specialty: "orthoplastic",
+      diagnosisGroups: [
+        makeGroup({
+          specialty: "orthoplastic",
+          procedures: [
+            makeProcedure({
+              procedureName: "Free ALT flap",
+              tags: ["free_flap"],
+              clinicalDetails: multiDetails as FreeFlapDetails,
+            }),
+          ],
+        }),
+      ],
+    });
+    const result = buildReportRows(freeFlapAuditReport, [multiCase], null, {
+      includePatientId: true,
+    });
+    expect(cell(result, "recipient_region")).toBe("Hand + Forearm");
+  });
 });

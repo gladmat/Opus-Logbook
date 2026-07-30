@@ -1,5 +1,4 @@
 import {
-  ANATOMICAL_REGION_LABELS,
   type CaseProcedure,
   DONOR_SITE_COMPLICATION_LABELS,
   FLAP_SURVIVAL_LABELS,
@@ -13,6 +12,7 @@ import {
   VEIN_GRAFT_SOURCE_LABELS,
 } from "@/types/case";
 import { OPERATIVE_ROLE_LABELS } from "@/types/operativeRole";
+import { formatRecipientRegions } from "@/lib/recipientRegions";
 import {
   ANTICOAGULATION_PROTOCOLS,
   FLAP_MONITORING_PROTOCOLS,
@@ -106,9 +106,7 @@ export const freeFlapAuditReport: ProcedureReportDefinition = {
       (d) => d.recipientSite ?? "",
     ),
     flapColumn("recipient_region", "Recipient Region", (d) =>
-      d.recipientSiteRegion
-        ? (ANATOMICAL_REGION_LABELS[d.recipientSiteRegion] ?? "")
-        : "",
+      formatRecipientRegions(d),
     ),
     flapColumn(
       "ischaemia_minutes",
