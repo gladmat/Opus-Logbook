@@ -6,6 +6,7 @@ import {
   normalizeDateOnlyValue,
   normalizeIsoTimestampValue,
   parseIsoDateValue,
+  resolveEventDisplayDate,
   sanitizeDateBounds,
   toIsoDateValue,
   toUtcNoonIsoTimestamp,
@@ -102,5 +103,53 @@ describe("dateValues", () => {
     );
 
     expect(toIsoDateValue(clamped)).toBe("1987-04-12");
+  });
+
+  describe("resolveEventDisplayDate", () => {
+    it("maps UTC-noon date anchors to their UTC calendar date in every timezone", () => {
+      // toUtcNoonIsoTimestamp("2026-07-20") stores 2026-07-20T12:00:00.000Z.
+      // In UTC+12/+13 (NZ) that instant is local midnight of 21 July, so
+      // formatting the raw Date shows the NEXT day. The resolver must return
+      // a local-noon Date whose calendar components read 20 July regardless
+      // of the host timezone (these assertions are TZ-invariant; on a
+      // Pacific/Auckland host they exercise the exact reported regression).
+      const anchor = toUtcNoonIsoTimestamp("2026-07-20");
+      expect(anchor).toBe("2026-07-20T12:00:00.000Z");
+
+      const resolved = resolveEventDisplayDate(anchor);
+      expect(resolved).not.toBeNull();
+      expect(resolved?.getFullYear()).toBe(2026);
+      expect(resolved?.getMonth()).toBe(6);
+      expect(resolved?.getDate()).toBe(20);
+      // Local noon — never within DST/offset reach of a date boundary.
+      expect(resolved?.getHours()).toBe(12);
+    });
+
+    it("normalizes offset-form UTC-noon anchors too", () => {
+      const resolved = resolveEventDisplayDate("2026-07-21T00:00:00+12:00");
+      expect(resolved?.getDate()).toBe(20);
+      expect(resolved?.getMonth()).toBe(6);
+      expect(resolved?.getHours()).toBe(12);
+    });
+
+    it("preserves real wall-clock timestamps exactly", () => {
+      const instant = "2026-03-15T09:30:00.000Z";
+      const resolved = resolveEventDisplayDate(instant);
+      expect(resolved?.getTime()).toBe(Date.parse(instant));
+    });
+
+    it("resolves bare date-only values to local noon", () => {
+      const resolved = resolveEventDisplayDate("2026-07-20");
+      expect(resolved?.getDate()).toBe(20);
+      expect(resolved?.getMonth()).toBe(6);
+      expect(resolved?.getHours()).toBe(12);
+    });
+
+    it("returns null for missing or unparseable input", () => {
+      expect(resolveEventDisplayDate(undefined)).toBeNull();
+      expect(resolveEventDisplayDate(null)).toBeNull();
+      expect(resolveEventDisplayDate("")).toBeNull();
+      expect(resolveEventDisplayDate("not-a-date")).toBeNull();
+    });
   });
 });

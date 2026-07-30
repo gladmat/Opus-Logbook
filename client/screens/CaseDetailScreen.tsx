@@ -77,7 +77,7 @@ import {
   VEIN_GRAFT_SOURCE_LABELS,
 } from "@/types/case";
 import { getCasePrimaryTitle } from "@/lib/caseDiagnosisSummary";
-import { parseIsoDateValue } from "@/lib/dateValues";
+import { parseIsoDateValue, resolveEventDisplayDate } from "@/lib/dateValues";
 import {
   generateHandInfectionSummary,
   HAND_ANTIBIOTIC_LABELS,
@@ -3335,7 +3335,9 @@ export default function CaseDetailScreen() {
                     <ThemedText
                       style={[styles.eventDate, { color: theme.textTertiary }]}
                     >
-                      {new Date(event.createdAt).toLocaleDateString()}
+                      {resolveEventDisplayDate(
+                        event.createdAt,
+                      )?.toLocaleDateString() ?? ""}
                       {event.updatedAt ? " (edited)" : ""}
                     </ThemedText>
                   </View>

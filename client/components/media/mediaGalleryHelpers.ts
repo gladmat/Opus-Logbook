@@ -1,3 +1,5 @@
+import { resolveEventDisplayDate } from "@/lib/dateValues";
+
 export function clampIndex(i: number, total: number): number {
   if (!Number.isFinite(i) || total <= 0) return 0;
   if (i < 0) return 0;
@@ -12,8 +14,10 @@ export function formatCounter(index: number, total: number): string {
 
 export function formatMediaDate(value?: string): string | null {
   if (!value) return null;
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return null;
+  // Backdated media timestamps are UTC-noon date anchors — resolve through
+  // the shared helper so they don't render as the next day in UTC+12/+13.
+  const d = resolveEventDisplayDate(value);
+  if (!d) return null;
   return d.toLocaleDateString(undefined, {
     year: "numeric",
     month: "short",

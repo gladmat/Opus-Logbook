@@ -146,6 +146,35 @@ export function isValidDateInstance(value: unknown): value is Date {
   return value instanceof Date && Number.isFinite(value.getTime());
 }
 
+/**
+ * Resolves the calendar date a stored event value should DISPLAY as.
+ *
+ * Timestamps at exactly UTC noon are date-only anchors produced by
+ * `toUtcNoonIsoTimestamp` — their UTC date is the intended calendar date.
+ * Formatting them with local-timezone date logic renders the NEXT day in
+ * UTC+12/+13 (UTC noon = local midnight of the following day in NZ), so
+ * anchors are remapped to a local-noon Date of their UTC calendar date.
+ * Any other timestamp is a real wall-clock instant and keeps local-date
+ * semantics; bare date-only strings resolve to local noon directly.
+ *
+ * Returns a Date safe to pass to `toLocaleDateString`, or null when the
+ * value is missing or unparseable.
+ */
+export function resolveEventDisplayDate(
+  value?: string | number | null,
+): Date | null {
+  const dateOnly = parseIsoDateValue(value);
+  if (dateOnly) return dateOnly;
+
+  const normalized = normalizeIsoTimestampValue(value);
+  if (!normalized) return null;
+
+  if (normalized.endsWith("T12:00:00.000Z")) {
+    return parseIsoDateValue(normalized.slice(0, 10));
+  }
+  return new Date(normalized);
+}
+
 export function sanitizeDateBounds(
   minimumDate?: Date,
   maximumDate?: Date,

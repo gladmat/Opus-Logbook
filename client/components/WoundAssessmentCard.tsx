@@ -4,6 +4,7 @@ import { Feather } from "@/components/FeatherIcon";
 import { useTheme } from "@/hooks/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius } from "@/constants/theme";
+import { resolveEventDisplayDate } from "@/lib/dateValues";
 import {
   WoundAssessment,
   WOUND_BED_TISSUE_LABELS,
@@ -77,7 +78,7 @@ export function WoundAssessmentCard({
           <ThemedText
             style={[styles.headerDate, { color: theme.textTertiary }]}
           >
-            {new Date(createdAt).toLocaleDateString()}
+            {resolveEventDisplayDate(createdAt)?.toLocaleDateString() ?? ""}
           </ThemedText>
         </View>
       </View>
@@ -222,7 +223,10 @@ export function WoundAssessmentCard({
           <ThemedText
             style={[styles.reviewText, { color: theme.textTertiary }]}
           >
-            Next review: {new Date(data.nextReviewDate).toLocaleDateString()}
+            Next review:{" "}
+            {resolveEventDisplayDate(
+              data.nextReviewDate,
+            )?.toLocaleDateString() ?? data.nextReviewDate}
           </ThemedText>
         </View>
       ) : null}

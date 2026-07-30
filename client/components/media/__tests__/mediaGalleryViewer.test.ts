@@ -64,5 +64,14 @@ describe("MediaGalleryViewer helpers", () => {
       expect(result).not.toBeNull();
       expect(typeof result).toBe("string");
     });
+
+    it("renders UTC-noon date anchors as their UTC calendar day in every timezone", () => {
+      // Backdated media store toUtcNoonIsoTimestamp values; in UTC+12/+13
+      // raw local formatting would render the NEXT day (21st).
+      const result = formatMediaDate("2026-07-20T12:00:00.000Z");
+      expect(result).toContain("20");
+      expect(result).toContain("2026");
+      expect(result).not.toContain("21");
+    });
   });
 });
