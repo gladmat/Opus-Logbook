@@ -2076,6 +2076,8 @@ export interface MediaAttachment {
   createdAt: string;
   tag?: MediaTag;
   timestamp?: string; // User-selected date for the media (e.g. pre-op X-ray date)
+  /** True when the saved bytes are the auto-enhanced (deskewed/levelled) variant. */
+  enhanced?: boolean;
 }
 
 export interface OperativeMediaItem {
@@ -2087,6 +2089,8 @@ export interface OperativeMediaItem {
   caption?: string;
   timestamp?: string;
   createdAt: string;
+  /** True when the saved bytes are the auto-enhanced (deskewed/levelled) variant. */
+  enhanced?: boolean;
   templateId?: string; // Opus Camera protocol ID
   templateStepIndex?: number; // Protocol step index at capture time
   /**

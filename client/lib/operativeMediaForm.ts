@@ -42,6 +42,7 @@ export function buildOperativeMediaItemRecord(args: {
   caption?: string;
   timestamp?: string;
   createdAt: string;
+  enhanced?: boolean;
 }): OperativeMediaItem {
   const trimmedCaption = args.caption?.trim();
 
@@ -53,5 +54,6 @@ export function buildOperativeMediaItemRecord(args: {
     caption: trimmedCaption ? trimmedCaption : undefined,
     timestamp: args.timestamp,
     createdAt: args.createdAt,
+    enhanced: args.enhanced || undefined,
   };
 }
