@@ -437,9 +437,12 @@ describe("Nerve compression reclassification", () => {
     expect(ids).toContain("hand_dx_trigger_digit");
   });
 
-  it("Guyon's canal exists in peripheral nerve diagnoses", () => {
+  it("CTS, cubital tunnel and Guyon's exist in peripheral nerve diagnoses", () => {
     const pnIds = PERIPHERAL_NERVE_DIAGNOSES.map((d) => d.id);
-    // CTS and cubital tunnel stay in hand_wrist as primary home; Guyon's has a peripheral nerve entry
+    // Primary home is Peripheral Nerve → Compression Neuropathies; the hand
+    // elective picker surfaces them as cross-references (search + chip).
+    expect(pnIds).toContain("pn_dx_carpal_tunnel");
+    expect(pnIds).toContain("pn_dx_cubital_tunnel");
     expect(pnIds).toContain("pn_dx_guyon_canal_syndrome");
   });
 

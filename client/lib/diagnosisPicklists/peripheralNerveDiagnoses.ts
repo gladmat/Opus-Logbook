@@ -339,13 +339,88 @@ const PN_DX_BRACHIAL_PLEXUS: DiagnosisPicklistEntry[] = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 4C: COMPRESSION NEUROPATHIES — 10 entries
+// 4C: COMPRESSION NEUROPATHIES — 12 entries
 // Moved from Upper Extremity (7) and Lower Extremity (2) + new CPN compression.
+// CTS + cubital tunnel added 2026-07-31 — primary home here, cross-referenced
+// into the Hand Elective picker via PN_HAND_CROSS_REF_IDS.
 // These are elective compressions, not trauma injuries. Keep peripheralNerveModule
 // true for lightweight assessment (ENG/EMG + ultrasound).
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const PN_DX_COMPRESSION: DiagnosisPicklistEntry[] = [
+  {
+    id: "pn_dx_carpal_tunnel",
+    displayName: "Carpal tunnel syndrome",
+    shortName: "Carpal tunnel",
+    snomedCtCode: "57406009",
+    snomedCtDisplay: "Carpal tunnel syndrome (disorder)",
+    specialty: "peripheral_nerve",
+    subcategory: "Compression Neuropathies",
+    clinicalGroup: "elective",
+    // A Severity + EMG Grade staging config exists server-side (keyed 57406009)
+    // but staging is deliberately off: the module render gate is diagnosis-
+    // metadata driven (peripheralNerveModule), so the compression-lightweight
+    // assessment (severity + electrodiagnostics) renders even when this entry
+    // is selected via the hand elective cross-reference — staging chips would
+    // duplicate it.
+    hasStaging: false,
+    peripheralNerveModule: true,
+    searchSynonyms: [
+      "CTS",
+      "carpal tunnel",
+      "median nerve compression",
+      "thenar wasting",
+      "nocturnal paraesthesia",
+    ],
+    suggestedProcedures: [
+      {
+        procedurePicklistId: "hand_comp_ctr_open",
+        displayName: "Carpal tunnel release — open",
+        isDefault: true,
+        sortOrder: 1,
+      },
+      {
+        procedurePicklistId: "hand_comp_ctr_endoscopic",
+        displayName: "Carpal tunnel release — endoscopic",
+        isDefault: false,
+        sortOrder: 2,
+      },
+    ],
+    sortOrder: 1,
+  },
+  {
+    id: "pn_dx_cubital_tunnel",
+    displayName: "Cubital tunnel syndrome",
+    shortName: "Cubital tunnel",
+    snomedCtCode: "230631009",
+    snomedCtDisplay: "Ulnar nerve entrapment at elbow (disorder)",
+    specialty: "peripheral_nerve",
+    subcategory: "Compression Neuropathies",
+    clinicalGroup: "elective",
+    hasStaging: false,
+    peripheralNerveModule: true,
+    searchSynonyms: [
+      "cubital tunnel",
+      "ulnar nerve elbow",
+      "ulnar neuritis",
+      "McGowan",
+    ],
+    suggestedProcedures: [
+      {
+        procedurePicklistId: "hand_comp_cubital_insitu",
+        displayName: "Cubital tunnel decompression — in situ",
+        isDefault: true,
+        sortOrder: 1,
+      },
+      {
+        procedurePicklistId: "hand_comp_cubital_transposition",
+        displayName: "Cubital tunnel — anterior transposition",
+        isDefault: false,
+        sortOrder: 2,
+      },
+    ],
+    sortOrder: 2,
+  },
   {
     id: "pn_dx_ain_syndrome",
     displayName: "Anterior interosseous syndrome (AIN)",
@@ -371,7 +446,7 @@ const PN_DX_COMPRESSION: DiagnosisPicklistEntry[] = [
         sortOrder: 1,
       },
     ],
-    sortOrder: 1,
+    sortOrder: 3,
   },
   {
     id: "pn_dx_pin_syndrome",
@@ -398,7 +473,7 @@ const PN_DX_COMPRESSION: DiagnosisPicklistEntry[] = [
         sortOrder: 1,
       },
     ],
-    sortOrder: 2,
+    sortOrder: 4,
   },
   {
     id: "pn_dx_radial_tunnel_syndrome",
@@ -424,7 +499,7 @@ const PN_DX_COMPRESSION: DiagnosisPicklistEntry[] = [
         sortOrder: 1,
       },
     ],
-    sortOrder: 3,
+    sortOrder: 5,
   },
   {
     id: "pn_dx_pronator_syndrome",
@@ -450,7 +525,7 @@ const PN_DX_COMPRESSION: DiagnosisPicklistEntry[] = [
         sortOrder: 1,
       },
     ],
-    sortOrder: 4,
+    sortOrder: 6,
   },
   {
     id: "pn_dx_guyon_canal_syndrome",
@@ -471,13 +546,13 @@ const PN_DX_COMPRESSION: DiagnosisPicklistEntry[] = [
     ],
     suggestedProcedures: [
       {
-        procedurePicklistId: "pn_guyon_canal_release",
-        displayName: "Guyon canal release",
+        procedurePicklistId: "hand_comp_guyon",
+        displayName: "Guyon's canal release",
         isDefault: true,
         sortOrder: 1,
       },
     ],
-    sortOrder: 5,
+    sortOrder: 7,
   },
   {
     id: "pn_dx_thoracic_outlet_syndrome",
@@ -505,7 +580,7 @@ const PN_DX_COMPRESSION: DiagnosisPicklistEntry[] = [
         sortOrder: 1,
       },
     ],
-    sortOrder: 6,
+    sortOrder: 8,
   },
   {
     id: "pn_dx_suprascapular_neuropathy",
@@ -532,7 +607,7 @@ const PN_DX_COMPRESSION: DiagnosisPicklistEntry[] = [
         sortOrder: 1,
       },
     ],
-    sortOrder: 7,
+    sortOrder: 9,
   },
   {
     id: "pn_dx_common_peroneal_compression",
@@ -559,7 +634,7 @@ const PN_DX_COMPRESSION: DiagnosisPicklistEntry[] = [
         sortOrder: 1,
       },
     ],
-    sortOrder: 8,
+    sortOrder: 10,
   },
   {
     id: "pn_dx_tarsal_tunnel",
@@ -585,7 +660,7 @@ const PN_DX_COMPRESSION: DiagnosisPicklistEntry[] = [
         sortOrder: 1,
       },
     ],
-    sortOrder: 9,
+    sortOrder: 11,
   },
   {
     id: "pn_dx_meralgia_paresthetica",
@@ -618,7 +693,7 @@ const PN_DX_COMPRESSION: DiagnosisPicklistEntry[] = [
         sortOrder: 2,
       },
     ],
-    sortOrder: 10,
+    sortOrder: 12,
   },
 ];
 
@@ -1084,3 +1159,12 @@ export const PERIPHERAL_NERVE_DIAGNOSES: DiagnosisPicklistEntry[] = [
   ...PN_DX_NEUROMA,
   ...PN_DX_TUMOUR,
 ];
+
+// Compression neuropathies whose primary home is Peripheral Nerve but which
+// hand surgeons expect to find in the Hand Elective picker. Surfaced there as
+// cross-references (search results + "Nerve Compression" chip).
+export const PN_HAND_CROSS_REF_IDS = [
+  "pn_dx_carpal_tunnel",
+  "pn_dx_cubital_tunnel",
+  "pn_dx_guyon_canal_syndrome",
+] as const;

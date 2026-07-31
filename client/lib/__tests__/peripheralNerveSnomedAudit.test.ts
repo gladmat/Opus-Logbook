@@ -14,7 +14,10 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { PERIPHERAL_NERVE_DIAGNOSES } from "@/lib/diagnosisPicklists/peripheralNerveDiagnoses";
+import {
+  PERIPHERAL_NERVE_DIAGNOSES,
+  PN_HAND_CROSS_REF_IDS,
+} from "@/lib/diagnosisPicklists/peripheralNerveDiagnoses";
 import { PROCEDURE_PICKLIST } from "@/lib/procedurePicklist";
 import { findDiagnosisById } from "@/lib/diagnosisPicklists";
 import {
@@ -119,11 +122,44 @@ describe("Peripheral nerve SNOMED CT audit", () => {
     }
   });
 
-  it("compression neuropathy subcategory exists with entries", () => {
+  it("compression neuropathy subcategory has 12 entries", () => {
     const compressionDx = PERIPHERAL_NERVE_DIAGNOSES.filter(
       (d) => d.subcategory === "Compression Neuropathies",
     );
-    expect(compressionDx.length).toBeGreaterThanOrEqual(7);
+    expect(compressionDx.length).toBe(12);
+  });
+
+  it("CTS and cubital tunnel exist with frozen SNOMED codes (Ontoserver-verified 2026-07-31)", () => {
+    const cts = PERIPHERAL_NERVE_DIAGNOSES.find(
+      (d) => d.id === "pn_dx_carpal_tunnel",
+    );
+    expect(cts?.snomedCtCode).toBe("57406009");
+    expect(cts?.subcategory).toBe("Compression Neuropathies");
+    expect(cts?.clinicalGroup).toBe("elective");
+    expect(cts?.peripheralNerveModule).toBe(true);
+    expect(
+      cts?.suggestedProcedures?.find((p) => p.isDefault)?.procedurePicklistId,
+    ).toBe("hand_comp_ctr_open");
+
+    const cubital = PERIPHERAL_NERVE_DIAGNOSES.find(
+      (d) => d.id === "pn_dx_cubital_tunnel",
+    );
+    expect(cubital?.snomedCtCode).toBe("230631009");
+    expect(cubital?.subcategory).toBe("Compression Neuropathies");
+    expect(cubital?.peripheralNerveModule).toBe(true);
+    expect(
+      cubital?.suggestedProcedures?.find((p) => p.isDefault)
+        ?.procedurePicklistId,
+    ).toBe("hand_comp_cubital_insitu");
+  });
+
+  it("every hand elective cross-reference ID resolves to a real PN diagnosis", () => {
+    // Regression guard: these IDs previously pointed at non-existent entries,
+    // so the HandElectivePicker cross-reference list was silently empty.
+    const pnIds = new Set(PERIPHERAL_NERVE_DIAGNOSES.map((d) => d.id));
+    for (const id of PN_HAND_CROSS_REF_IDS) {
+      expect(pnIds.has(id), `${id} should exist in PN diagnoses`).toBe(true);
+    }
   });
 
   it("facial nerve cross-references have crossReferenceFrom marker", () => {

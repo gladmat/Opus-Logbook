@@ -4,7 +4,8 @@
  * Two-step subcategory-browse → diagnosis-list picker for elective hand cases.
  * Rendered inline in DiagnosisGroupEditor when handCaseType === "elective".
  *
- * Step 1: 8 subcategory cards in a 2-column grid + search bar
+ * Step 1: 9 subcategory cards in a 2-column grid + search bar
+ * (incl. "Nerve Compression" — cross-references into Peripheral Nerve)
  * Step 2: Flat diagnosis list within selected subcategory
  *
  * Replaces the generic DiagnosisPicker for elective hand, providing a curated
@@ -26,7 +27,10 @@ import { useTheme } from "@/hooks/useTheme";
 import { SnomedSearchPicker } from "@/components/SnomedSearchPicker";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { HAND_SURGERY_DIAGNOSES } from "@/lib/diagnosisPicklists/handSurgeryDiagnoses";
-import { PERIPHERAL_NERVE_DIAGNOSES } from "@/lib/diagnosisPicklists/peripheralNerveDiagnoses";
+import {
+  PERIPHERAL_NERVE_DIAGNOSES,
+  PN_HAND_CROSS_REF_IDS,
+} from "@/lib/diagnosisPicklists/peripheralNerveDiagnoses";
 import type { DiagnosisPicklistEntry } from "@/types/diagnosis";
 
 // ═══════════════════════════════════════════════════════════════
@@ -54,15 +58,21 @@ const ELECTIVE_SUBCATEGORIES: {
     label: "Tumours & Soft Tissue Masses",
   },
   { key: "Congenital", icon: "star", label: "Congenital" },
+  {
+    key: "Nerve Compression",
+    icon: "git-branch",
+    label: "Nerve Compression",
+  },
 ];
 
-// IDs of nerve compression diagnoses moved to Peripheral Nerve — shown as
-// cross-references in search results so hand surgeons can still find them.
-const PN_CROSS_REF_IDS = new Set([
-  "pn_dx_carpal_tunnel",
-  "pn_dx_cubital_tunnel",
-  "pn_dx_guyon_canal",
-]);
+// Pseudo-subcategory backed by Peripheral Nerve cross-references, not by
+// hand_wrist diagnoses — special-cased in counts + visibleDiagnoses below.
+const NERVE_COMPRESSION_KEY = "Nerve Compression";
+
+// Nerve compression diagnoses whose primary home is Peripheral Nerve — shown
+// as cross-references (search results + the chip above) so hand surgeons can
+// still find them.
+const PN_CROSS_REF_IDS = new Set<string>(PN_HAND_CROSS_REF_IDS);
 
 const PN_CROSS_REFS = PERIPHERAL_NERVE_DIAGNOSES.filter((d) =>
   PN_CROSS_REF_IDS.has(d.id),
@@ -106,6 +116,7 @@ function HandElectivePickerImpl({
     for (const dx of allElective) {
       counts.set(dx.subcategory, (counts.get(dx.subcategory) ?? 0) + 1);
     }
+    counts.set(NERVE_COMPRESSION_KEY, PN_CROSS_REFS.length);
     return counts;
   }, [allElective]);
 
@@ -125,6 +136,9 @@ function HandElectivePickerImpl({
       const handResults = allElective.filter(matchFn);
       const crossRefResults = PN_CROSS_REFS.filter(matchFn);
       return [...handResults, ...crossRefResults];
+    }
+    if (selectedSubcategory === NERVE_COMPRESSION_KEY) {
+      return PN_CROSS_REFS;
     }
     if (selectedSubcategory) {
       return allElective.filter((d) => d.subcategory === selectedSubcategory);
@@ -281,7 +295,7 @@ function HandElectivePickerImpl({
                 >
                   {dx.displayName}
                 </ThemedText>
-                {isSearching && crossRefIdSet.has(dx.id) ? (
+                {crossRefIdSet.has(dx.id) ? (
                   <View style={styles.crossRefRow}>
                     <ThemedText
                       style={[

@@ -111,6 +111,8 @@ export const DIAGNOSIS_TO_NERVE: Partial<Record<string, NerveIdentifier>> = {
   pn_dx_pudendal_neuropathy: "pudendal",
 
   // Compression neuropathies
+  pn_dx_carpal_tunnel: "median",
+  pn_dx_cubital_tunnel: "ulnar",
   pn_dx_ain_syndrome: "anterior_interosseous",
   pn_dx_pin_syndrome: "posterior_interosseous",
   pn_dx_radial_tunnel_syndrome: "radial",
