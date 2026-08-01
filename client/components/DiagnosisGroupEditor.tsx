@@ -153,6 +153,7 @@ import {
 import { FixationHardwareDetails } from "@/components/FixationHardwareDetails";
 import { isFixationHardwareProcedure } from "@/types/fixationHardware";
 import { stripStaleHandTraumaData } from "@/lib/handCaseTypeGuards";
+import { HAND_ACUTE_COMPARTMENT_CROSS_REF_IDS } from "@/lib/diagnosisPicklists/handSurgeryDiagnoses";
 import { CraniofacialAssessment } from "@/components/craniofacial/CraniofacialAssessment";
 import { isCraniofacialDiagnosis } from "@/lib/craniofacialConfig";
 import type { CraniofacialAssessmentData } from "@/types/craniofacial";
@@ -510,14 +511,27 @@ function DiagnosisGroupEditorInner({
           .filter(Boolean) as string[];
         setSelectedSuggestionIds(new Set(procIds));
 
-        // Infer hand case type from loaded diagnosis
+        // Infer hand case type from loaded diagnosis. Compartment syndrome
+        // cross-refs are trauma-tagged but selectable from the acute flow —
+        // when the flow is already acute (mid-entry selection or a case
+        // accepted through the acute flow), don't eject into trauma.
         if (group.specialty === "hand_wrist") {
-          setHandCaseType(
-            dx.clinicalGroup === "trauma"
-              ? "trauma"
-              : dx.clinicalGroup === "acute"
-                ? "acute"
-                : "elective",
+          const inferred =
+            group.procedureSuggestionSource === "acuteHand"
+              ? "acute"
+              : dx.clinicalGroup === "trauma"
+                ? "trauma"
+                : dx.clinicalGroup === "acute"
+                  ? "acute"
+                  : "elective";
+          setHandCaseType((prev) =>
+            inferred === "trauma" &&
+            prev === "acute" &&
+            (
+              HAND_ACUTE_COMPARTMENT_CROSS_REF_IDS as readonly string[]
+            ).includes(dx.id)
+              ? prev
+              : inferred,
           );
         }
 
@@ -564,12 +578,23 @@ function DiagnosisGroupEditorInner({
     }
 
     if (selectedDiagnosis?.clinicalGroup) {
-      setHandCaseType(
+      const target =
         selectedDiagnosis.clinicalGroup === "trauma"
           ? "trauma"
           : selectedDiagnosis.clinicalGroup === "acute"
             ? "acute"
-            : "elective",
+            : "elective";
+      // Compartment syndrome cross-refs are trauma-tagged but selectable from
+      // the acute flow — selecting one there must not eject the surgeon into
+      // the trauma assessment.
+      setHandCaseType((prev) =>
+        target === "trauma" &&
+        prev === "acute" &&
+        (HAND_ACUTE_COMPARTMENT_CROSS_REF_IDS as readonly string[]).includes(
+          selectedDiagnosis.id,
+        )
+          ? prev
+          : target,
       );
       return;
     }
@@ -886,13 +911,25 @@ function DiagnosisGroupEditorInner({
       setIsDiagnosisPickerCollapsed(true);
       setShowAllProcedures(false);
 
+      // Compartment syndrome cross-refs are trauma-tagged but selectable from
+      // the acute flow — keep the surgeon in the acute flow (accept-mapping
+      // path) instead of ejecting into the trauma assessment.
+      const stayAcute =
+        groupSpecialty === "hand_wrist" &&
+        handCaseType === "acute" &&
+        (HAND_ACUTE_COMPARTMENT_CROSS_REF_IDS as readonly string[]).includes(
+          dx.id,
+        );
+
       if (groupSpecialty === "hand_wrist" && dx.clinicalGroup) {
         setHandCaseType(
-          dx.clinicalGroup === "trauma"
-            ? "trauma"
-            : dx.clinicalGroup === "acute"
-              ? "acute"
-              : "elective",
+          stayAcute
+            ? "acute"
+            : dx.clinicalGroup === "trauma"
+              ? "trauma"
+              : dx.clinicalGroup === "acute"
+                ? "acute"
+                : "elective",
         );
       }
 
@@ -931,7 +968,8 @@ function DiagnosisGroupEditorInner({
 
       // Acute hand flow: procedures come from accept-mapping, not auto-population
       const isAcute =
-        groupSpecialty === "hand_wrist" && dx.clinicalGroup === "acute";
+        (groupSpecialty === "hand_wrist" && dx.clinicalGroup === "acute") ||
+        stayAcute;
       if (isAcute) {
         // Reset procedures and accepted state — accept-mapping will set them
         setProcedures(buildDefaultProcedures());
@@ -992,7 +1030,12 @@ function DiagnosisGroupEditorInner({
         setSkinCancerAssessment(initialAssessment);
       }
     },
-    [groupSpecialty, buildDefaultProcedures, buildFreeFlapClinicalDetails],
+    [
+      groupSpecialty,
+      handCaseType,
+      buildDefaultProcedures,
+      buildFreeFlapClinicalDetails,
+    ],
   );
 
   const handleElectiveSnomedSelect = useCallback(
