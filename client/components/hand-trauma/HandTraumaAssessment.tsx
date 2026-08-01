@@ -172,6 +172,7 @@ function buildSelectionSignature({
   isHighPressureInjection,
   isFightBite,
   isCompartmentSyndrome,
+  compartmentSites,
   isRingAvulsion,
   digitAmputations,
 }: {
@@ -187,6 +188,7 @@ function buildSelectionSignature({
   isHighPressureInjection?: boolean;
   isFightBite?: boolean;
   isCompartmentSyndrome?: boolean;
+  compartmentSites?: ("hand" | "forearm")[];
   isRingAvulsion?: boolean;
   digitAmputations?: import("@/types/case").DigitAmputation[];
 }) {
@@ -278,6 +280,10 @@ function buildSelectionSignature({
       isCompartmentSyndrome,
       isRingAvulsion,
     },
+    // Only present when the forearm is involved (undefined is dropped by
+    // JSON.stringify), so pre-existing accepted-mapping signatures for
+    // hand-only cases stay byte-identical.
+    compartmentSites,
     digitAmputations,
   });
 }
@@ -753,6 +759,9 @@ export function HandTraumaAssessment({
       isHighPressureInjection: value.isHighPressureInjection ?? false,
       isFightBite: value.isFightBite ?? false,
       isCompartmentSyndrome: value.isCompartmentSyndrome ?? false,
+      compartmentSites: value.isCompartmentSyndrome
+        ? (value.compartmentSites ?? ["hand"])
+        : [],
       isRingAvulsion: value.isRingAvulsion ?? false,
       hasLaceration: lacerationSites.length > 0,
       hasSoftTissueDefect: descriptors.some((e) => e.type === "defect"),
@@ -818,6 +827,13 @@ export function HandTraumaAssessment({
         isHighPressureInjection: state.isHighPressureInjection || undefined,
         isFightBite: state.isFightBite || undefined,
         isCompartmentSyndrome: state.isCompartmentSyndrome || undefined,
+        // Persist sites only when the forearm is involved — hand-only cases
+        // keep the legacy shape (flag alone) so stored records don't churn.
+        compartmentSites:
+          state.isCompartmentSyndrome &&
+          state.compartmentSites.includes("forearm")
+            ? state.compartmentSites
+            : undefined,
         isRingAvulsion: state.isRingAvulsion || undefined,
         softTissueDescriptors: descriptors.length > 0 ? descriptors : undefined,
       });
@@ -871,6 +887,7 @@ export function HandTraumaAssessment({
       isHighPressureInjection: value.isHighPressureInjection,
       isFightBite: value.isFightBite,
       isCompartmentSyndrome: value.isCompartmentSyndrome,
+      compartmentSites: value.compartmentSites,
       isRingAvulsion: value.isRingAvulsion,
       digitAmputations: value.digitAmputations,
     };
@@ -890,6 +907,7 @@ export function HandTraumaAssessment({
     softTissueDescriptors,
     value.digitAmputations,
     value.isCompartmentSyndrome,
+    value.compartmentSites,
     value.isFightBite,
     value.isHighPressureInjection,
     value.isRingAvulsion,
@@ -939,6 +957,7 @@ export function HandTraumaAssessment({
         isHighPressureInjection: value.isHighPressureInjection,
         isFightBite: value.isFightBite,
         isCompartmentSyndrome: value.isCompartmentSyndrome,
+        compartmentSites: value.compartmentSites,
         isRingAvulsion: value.isRingAvulsion,
         digitAmputations: value.digitAmputations,
       }),
@@ -954,6 +973,7 @@ export function HandTraumaAssessment({
       softTissueDescriptors,
       value.digitAmputations,
       value.isCompartmentSyndrome,
+      value.compartmentSites,
       value.isFightBite,
       value.isHighPressureInjection,
       value.isRingAvulsion,

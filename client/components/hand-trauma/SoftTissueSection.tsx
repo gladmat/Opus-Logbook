@@ -28,10 +28,14 @@ export interface DefectLocation {
   size?: CoverageSize;
 }
 
+export type CompartmentSite = "hand" | "forearm";
+
 export interface SoftTissueState {
   isHighPressureInjection: boolean;
   isFightBite: boolean;
   isCompartmentSyndrome: boolean;
+  /** Sites for compartment syndrome; only meaningful while the toggle is on */
+  compartmentSites: CompartmentSite[];
   isRingAvulsion: boolean;
   hasLaceration: boolean;
   hasSoftTissueDefect: boolean;
@@ -756,7 +760,27 @@ export function SoftTissueSpecialInjurySection({
     >,
   ) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (key === "isCompartmentSyndrome") {
+      const next = !value.isCompartmentSyndrome;
+      onChange({
+        ...value,
+        isCompartmentSyndrome: next,
+        compartmentSites: next ? ["hand"] : [],
+      });
+      return;
+    }
     onChange({ ...value, [key]: !value[key] });
+  };
+
+  const toggleCompartmentSite = (site: CompartmentSite) => {
+    const current = value.compartmentSites;
+    const next = current.includes(site)
+      ? current.filter((s) => s !== site)
+      : [...current, site];
+    // At least one site stays selected while the toggle is on
+    if (next.length === 0) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onChange({ ...value, compartmentSites: next });
   };
 
   return (
@@ -817,6 +841,53 @@ export function SoftTissueSpecialInjurySection({
           );
         })}
       </View>
+
+      {/* Compartment site sub-picker — shown while the toggle is on */}
+      {value.isCompartmentSyndrome ? (
+        <View style={styles.subRow}>
+          <ThemedText style={[styles.hint, { color: theme.textTertiary }]}>
+            Compartment site
+          </ThemedText>
+          <View style={styles.pillRow}>
+            {(
+              [
+                { key: "hand", label: "Hand" },
+                { key: "forearm", label: "Forearm" },
+              ] as const
+            ).map(({ key, label }) => {
+              const isSelected = value.compartmentSites.includes(key);
+              return (
+                <Pressable
+                  key={key}
+                  testID={`caseForm.hand.softTissue.compartmentSite-${key}`}
+                  accessibilityRole="checkbox"
+                  accessibilityLabel={`Compartment site: ${label}`}
+                  accessibilityState={{ checked: isSelected }}
+                  style={[
+                    styles.pill,
+                    {
+                      backgroundColor: isSelected
+                        ? theme.accentSurface
+                        : theme.backgroundDefault,
+                      borderColor: isSelected ? theme.link : theme.border,
+                    },
+                  ]}
+                  onPress={() => toggleCompartmentSite(key)}
+                >
+                  <ThemedText
+                    style={[
+                      styles.pillText,
+                      { color: isSelected ? theme.link : theme.text },
+                    ]}
+                  >
+                    {label}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }

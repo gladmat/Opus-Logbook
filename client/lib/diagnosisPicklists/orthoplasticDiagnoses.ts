@@ -129,6 +129,12 @@ const ORTH_DX_TRAUMA: DiagnosisPicklistEntry[] = [
         },
         sortOrder: 8,
       },
+      {
+        procedurePicklistId: "orth_fasciotomy_lower_leg",
+        displayName: "Fasciotomy — four-compartment release",
+        isDefault: false,
+        sortOrder: 9,
+      },
     ],
     sortOrder: 1,
   },
@@ -282,6 +288,65 @@ const ORTH_DX_TRAUMA: DiagnosisPicklistEntry[] = [
       },
     ],
     sortOrder: 4,
+  },
+  {
+    id: "orth_dx_compartment_syndrome_lower_limb",
+    displayName: "Compartment syndrome — lower limb",
+    shortName: "Lower limb compartment syndrome",
+    // Verified live against CSIRO Ontoserver (AU + Intl, 2026-08-01).
+    // Lower-leg concept carries the entry (the dominant presentation); thigh /
+    // foot cases are findable via synonyms and stay codable via SNOMED search.
+    snomedCtCode: "263269000",
+    snomedCtDisplay:
+      "Compartment syndrome of lower leg due to traumatic injury (disorder)",
+    specialty: "orthoplastic",
+    subcategory: "Trauma / Open Fractures",
+    clinicalGroup: "trauma",
+    hasStaging: false,
+    searchSynonyms: [
+      "compartment syndrome",
+      "fasciotomy",
+      "four compartment",
+      "calf",
+      "leg compartment",
+      "thigh compartment",
+      "foot compartment",
+      "crush injury",
+      "reperfusion",
+    ],
+    suggestedProcedures: [
+      {
+        procedurePicklistId: "orth_fasciotomy_lower_leg",
+        displayName: "Fasciotomy — lower leg (four-compartment release)",
+        isDefault: true,
+        sortOrder: 1,
+      },
+      {
+        procedurePicklistId: "orth_fasciotomy_limb_single",
+        displayName: "Fasciotomy — single compartment",
+        isDefault: false,
+        sortOrder: 2,
+      },
+      {
+        procedurePicklistId: "orth_debride_surgical",
+        displayName: "Surgical debridement",
+        isDefault: false,
+        sortOrder: 3,
+      },
+      {
+        procedurePicklistId: "orth_wound_closure_delayed",
+        displayName: "Delayed wound closure (fasciotomy wounds)",
+        isDefault: false,
+        sortOrder: 4,
+      },
+      {
+        procedurePicklistId: "orth_ssg_meshed",
+        displayName: "STSG — meshed (fasciotomy wound)",
+        isDefault: false,
+        sortOrder: 5,
+      },
+    ],
+    sortOrder: 5,
   },
 ];
 

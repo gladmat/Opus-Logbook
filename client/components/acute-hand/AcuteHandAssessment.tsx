@@ -8,8 +8,9 @@
  * for the acute hand flow.
  *
  * Layout:
- *   SectionWrapper "1. Diagnosis"  ← curated chips (13 acute diagnoses)
- *     └ 2 groups: HAND INFECTIONS (10), ACUTE NON-INFECTION (3)
+ *   SectionWrapper "1. Diagnosis"  ← curated chips
+ *     └ 2 groups: HAND INFECTIONS, ACUTE NON-INFECTION (incl. compartment
+ *       syndrome cross-refs from the trauma-tagged soft tissue picklist)
  *     └ ▸ Search all diagnoses (collapsed SNOMED fallback)
  *
  *   SectionWrapper "2. Infection Details"  ← infection diagnoses only
@@ -30,7 +31,11 @@ import { HandInfectionCard } from "@/components/hand-infection/HandInfectionCard
 import { AcuteHandSummaryPanel } from "./AcuteHandSummaryPanel";
 import { DiagnosisPicker } from "@/components/DiagnosisPicker";
 import { Feather } from "@/components/FeatherIcon";
-import { HAND_DX_ACUTE } from "@/lib/diagnosisPicklists/handSurgeryDiagnoses";
+import {
+  HAND_DX_ACUTE,
+  HAND_SURGERY_DIAGNOSES,
+  HAND_ACUTE_COMPARTMENT_CROSS_REF_IDS,
+} from "@/lib/diagnosisPicklists/handSurgeryDiagnoses";
 import type { DiagnosisPicklistEntry } from "@/types/diagnosis";
 import type { HandInfectionDetails } from "@/types/handInfection";
 import {
@@ -70,9 +75,20 @@ interface AcuteHandAssessmentProps {
 const INFECTION_DIAGNOSES = HAND_DX_ACUTE.filter(
   (dx) => dx.subcategory === "Hand Infections",
 );
-const NON_INFECTION_DIAGNOSES = HAND_DX_ACUTE.filter(
-  (dx) => dx.subcategory !== "Hand Infections",
-);
+// Compartment syndrome entries stay clinicalGroup "trauma" (trauma machine
+// title depends on it) but must be reachable when a patient presents acutely —
+// cross-referenced here by ID.
+const COMPARTMENT_CROSS_REFS = HAND_ACUTE_COMPARTMENT_CROSS_REF_IDS.map((id) =>
+  HAND_SURGERY_DIAGNOSES.find((dx) => dx.id === id),
+).filter((dx): dx is DiagnosisPicklistEntry => dx !== undefined);
+const NON_INFECTION_DIAGNOSES = [
+  ...HAND_DX_ACUTE.filter((dx) => dx.subcategory !== "Hand Infections"),
+  ...COMPARTMENT_CROSS_REFS,
+];
+// Search pool for the collapsed SNOMED fallback — the acute picklist plus the
+// cross-referenced compartment entries (a plain clinicalGroup filter would
+// exclude them).
+const ACUTE_SEARCH_POOL = [...HAND_DX_ACUTE, ...COMPARTMENT_CROSS_REFS];
 
 // ═══════════════════════════════════════════════════════════════
 // Component
@@ -304,7 +320,7 @@ export function AcuteHandAssessment({
             specialty="hand_wrist"
             selectedDiagnosisId={selectedDiagnosis?.id}
             onSelect={handleSnomedFallbackSelect}
-            clinicalGroupFilter="acute"
+            filteredDiagnoses={ACUTE_SEARCH_POOL}
           />
         ) : null}
       </SectionWrapper>
