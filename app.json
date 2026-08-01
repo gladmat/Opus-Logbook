@@ -2,7 +2,7 @@
   "expo": {
     "name": "Opus",
     "slug": "surgical-logbook",
-    "version": "2.18.0",
+    "version": "2.19.0",
     "orientation": "portrait",
     "icon": "./client/assets/icons/app/opus-icon-1024.png",
     "scheme": "opus",

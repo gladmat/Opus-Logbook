@@ -78,6 +78,8 @@ export interface HandTraumaSelection {
   isHighPressureInjection?: boolean;
   isFightBite?: boolean;
   isCompartmentSyndrome?: boolean;
+  // Compartment syndrome sites; absent/undefined = hand (legacy default)
+  compartmentSites?: ("hand" | "forearm")[];
   isRingAvulsion?: boolean;
 
   // Per-digit amputations
@@ -252,7 +254,14 @@ const DIAGNOSIS_LOOKUP: Record<string, DiagnosisRef> = {
   hand_dx_compartment_syndrome_hand: {
     diagnosisPicklistId: "hand_dx_compartment_syndrome_hand",
     displayName: "Compartment syndrome of hand",
-    snomedCtCode: "111254007",
+    // Was 111254007 — that code is "Osteitis deformans without bone neoplasm"
+    // (Paget's disease). Corrected 2026-08-01; matches the picklist entry.
+    snomedCtCode: "212382003",
+  },
+  hand_dx_compartment_syndrome_forearm: {
+    diagnosisPicklistId: "hand_dx_compartment_syndrome_forearm",
+    displayName: "Compartment syndrome of forearm",
+    snomedCtCode: "212381005",
   },
   hand_dx_digital_amputation: {
     diagnosisPicklistId: "hand_dx_digital_amputation",
@@ -375,6 +384,7 @@ function toDiagnosisSelection(
     isHighPressureInjection: selection.isHighPressureInjection,
     isFightBite: selection.isFightBite,
     isCompartmentSyndrome: selection.isCompartmentSyndrome,
+    compartmentSites: selection.compartmentSites,
     isRingAvulsion: selection.isRingAvulsion,
     digitAmputations: selection.digitAmputations,
   };
@@ -711,7 +721,7 @@ const SPECIAL_INJURY_MAP = {
       },
       {
         id: "hand_other_fasciotomy",
-        displayName: "Fasciotomy",
+        displayName: "Fasciotomy — forearm",
         isDefault: false,
       },
     ],
@@ -726,7 +736,7 @@ const SPECIAL_INJURY_MAP = {
       },
     ],
   },
-  compartmentSyndrome: {
+  compartmentSyndromeHand: {
     diagnosisId: "hand_dx_compartment_syndrome_hand",
     procedures: [
       {
@@ -736,8 +746,23 @@ const SPECIAL_INJURY_MAP = {
       },
       {
         id: "hand_other_fasciotomy",
-        displayName: "Fasciotomy — forearm / hand",
+        displayName: "Fasciotomy — forearm",
+        isDefault: false,
+      },
+    ],
+  },
+  compartmentSyndromeForearm: {
+    diagnosisId: "hand_dx_compartment_syndrome_forearm",
+    procedures: [
+      {
+        id: "hand_other_fasciotomy",
+        displayName: "Fasciotomy — forearm",
         isDefault: true,
+      },
+      {
+        id: "hand_other_hand_compartment_release",
+        displayName: "Hand compartment release",
+        isDefault: false,
       },
     ],
   },
@@ -957,49 +982,49 @@ function resolveDislocationDiagnosis(
 
 // ─── Special Injury Resolution ───────────────────────────────────────────────
 
-function resolveSpecialInjury(
-  selection: HandTraumaSelection,
-): LegacyTraumaResult | null {
-  if (selection.isHighPressureInjection) {
-    const m = SPECIAL_INJURY_MAP.highPressureInjection;
-    return {
-      primaryDiagnosis: lookup(m.diagnosisId),
-      suggestedProcedures: m.procedures.map((p) => ({
-        procedurePicklistId: p.id,
-        displayName: p.displayName,
-        isDefault: p.isDefault,
-        reason: "High-pressure injection injury",
-      })),
-    };
-  }
+type SpecialInjuryKind =
+  | "hpi"
+  | "fight_bite"
+  | "compartment_hand"
+  | "compartment_forearm";
 
-  if (selection.isFightBite) {
-    const m = SPECIAL_INJURY_MAP.fightBite;
-    return {
-      primaryDiagnosis: lookup(m.diagnosisId),
-      suggestedProcedures: m.procedures.map((p) => ({
-        procedurePicklistId: p.id,
-        displayName: p.displayName,
-        isDefault: p.isDefault,
-        reason: "Fight bite",
-      })),
-    };
+const SPECIAL_INJURY_KIND_CONFIG: Record<
+  SpecialInjuryKind,
+  {
+    map: (typeof SPECIAL_INJURY_MAP)[keyof typeof SPECIAL_INJURY_MAP];
+    reason: string;
   }
+> = {
+  hpi: {
+    map: SPECIAL_INJURY_MAP.highPressureInjection,
+    reason: "High-pressure injection injury",
+  },
+  fight_bite: { map: SPECIAL_INJURY_MAP.fightBite, reason: "Fight bite" },
+  compartment_hand: {
+    map: SPECIAL_INJURY_MAP.compartmentSyndromeHand,
+    reason: "Compartment syndrome",
+  },
+  compartment_forearm: {
+    map: SPECIAL_INJURY_MAP.compartmentSyndromeForearm,
+    reason: "Compartment syndrome",
+  },
+};
 
-  if (selection.isCompartmentSyndrome) {
-    const m = SPECIAL_INJURY_MAP.compartmentSyndrome;
-    return {
-      primaryDiagnosis: lookup(m.diagnosisId),
-      suggestedProcedures: m.procedures.map((p) => ({
-        procedurePicklistId: p.id,
-        displayName: p.displayName,
-        isDefault: p.isDefault,
-        reason: "Compartment syndrome",
-      })),
-    };
-  }
-
-  return null;
+// Takes an explicit kind (not the selection flags) so that cases carrying
+// several special injuries at once resolve each pair independently — the old
+// flag-priority early-return made an HPI + compartment case emit the HPI
+// diagnosis on the compartment pair.
+function resolveSpecialInjury(kind: SpecialInjuryKind): LegacyTraumaResult {
+  const { map, reason } = SPECIAL_INJURY_KIND_CONFIG[kind];
+  return {
+    primaryDiagnosis: lookup(map.diagnosisId),
+    suggestedProcedures: map.procedures.map((p) => ({
+      procedurePicklistId: p.id,
+      displayName: p.displayName,
+      isDefault: p.isDefault,
+      reason,
+    })),
+  };
 }
 
 // ─── Main Mapping Function ───────────────────────────────────────────────────
@@ -1769,7 +1794,7 @@ function buildSpecialInjuryPairs(
         `special:hpi:${index}`,
         "special",
         displayName,
-        resolveSpecialInjury({ ...selection, isHighPressureInjection: true })!,
+        resolveSpecialInjury("hpi"),
         "multiple",
       );
     }
@@ -1778,7 +1803,7 @@ function buildSpecialInjuryPairs(
         `special:fight_bite:${index}`,
         "special",
         displayName,
-        resolveSpecialInjury({ ...selection, isFightBite: true })!,
+        resolveSpecialInjury("fight_bite"),
         "single",
       );
     }
@@ -1787,7 +1812,11 @@ function buildSpecialInjuryPairs(
         `special:compartment:${index}`,
         "special",
         displayName,
-        resolveSpecialInjury({ ...selection, isCompartmentSyndrome: true })!,
+        resolveSpecialInjury(
+          injury.zone === "wrist_forearm"
+            ? "compartment_forearm"
+            : "compartment_hand",
+        ),
         "multiple",
       );
     }

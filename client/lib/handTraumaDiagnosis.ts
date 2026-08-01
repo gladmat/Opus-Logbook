@@ -35,6 +35,8 @@ export interface HandTraumaDiagnosisSelection {
   isHighPressureInjection?: boolean;
   isFightBite?: boolean;
   isCompartmentSyndrome?: boolean;
+  // Compartment syndrome sites; absent/undefined = hand (legacy default)
+  compartmentSites?: ("hand" | "forearm")[];
   isRingAvulsion?: boolean;
   digitAmputations?: import("@/types/case").DigitAmputation[];
 }
@@ -654,7 +656,19 @@ function normalizeSoftTissue(
     injuries.push({ type: "fight_bite" });
   }
   if (selection.isCompartmentSyndrome) {
-    injuries.push({ type: "compartment_syndrome" });
+    // One injury per site; hand keeps the legacy zone-less shape so stored
+    // cases and hand-only selections normalize identically.
+    const sites =
+      selection.compartmentSites && selection.compartmentSites.length > 0
+        ? selection.compartmentSites
+        : ["hand" as const];
+    for (const site of sites) {
+      injuries.push(
+        site === "forearm"
+          ? { type: "compartment_syndrome", zone: "wrist_forearm" }
+          : { type: "compartment_syndrome" },
+      );
+    }
   }
   if (selection.isRingAvulsion) {
     injuries.push({
@@ -804,6 +818,53 @@ export function buildHeaderLine(
         : `Laesio manus ${sideGenitive}`;
       return `${base} - ${bullet}`;
     }
+    const base = mechanism
+      ? `${side} hand ${mechanism} injury`
+      : `${side} hand injury`;
+    return `${base} - ${bullet}`;
+  }
+
+  // Compartment-syndrome-only cases: the diagnosis IS the clinical substance,
+  // so promote it into the title (same rationale as the laceration rule).
+  const compartmentInjuries = normalized.softTissue.filter(
+    (entry) => entry.type === "compartment_syndrome",
+  );
+  const compartmentOnly =
+    compartmentInjuries.length > 0 &&
+    normalized.softTissue.every(
+      (entry) => entry.type === "compartment_syndrome",
+    ) &&
+    normalized.fractures.length === 0 &&
+    normalized.dislocations.length === 0 &&
+    normalized.tendons.length === 0 &&
+    normalized.nerves.length === 0 &&
+    normalized.vessels.length === 0 &&
+    normalized.amputations.length === 0;
+  if (compartmentOnly) {
+    const hasForearm = compartmentInjuries.some(
+      (entry) => entry.zone === "wrist_forearm",
+    );
+    const hasHand = compartmentInjuries.some(
+      (entry) => entry.zone !== "wrist_forearm",
+    );
+    if (mode === "latin_medical") {
+      const bullet =
+        hasHand && hasForearm
+          ? "Syndroma compartmenti manus et antebrachii"
+          : hasForearm
+            ? "Syndroma compartmenti antebrachii"
+            : "Syndroma compartmenti manus";
+      const base = mechanism
+        ? `Manus ${side}, ${LATIN.injury} ${mechanism}`
+        : `Laesio manus ${sideGenitive}`;
+      return `${base} - ${bullet}`;
+    }
+    const bullet =
+      hasHand && hasForearm
+        ? "Compartment syndrome of hand and forearm"
+        : hasForearm
+          ? "Compartment syndrome of forearm"
+          : "Compartment syndrome of hand";
     const base = mechanism
       ? `${side} hand ${mechanism} injury`
       : `${side} hand injury`;
@@ -1599,6 +1660,11 @@ function describeSoftTissueDescriptor(
         ? "Vulnus morsu hominis super articulationem metacarpophalangeam"
         : "Fight bite";
     case "compartment_syndrome":
+      if (injury.zone === "wrist_forearm") {
+        return mode === "latin_medical"
+          ? "Syndroma compartmenti antebrachii"
+          : "Compartment syndrome of forearm";
+      }
       return mode === "latin_medical"
         ? "Syndroma compartmenti manus"
         : "Compartment syndrome of hand";
@@ -1759,6 +1825,7 @@ export function buildSelectionFromGroup(
     isHighPressureInjection: handTrauma.isHighPressureInjection,
     isFightBite: handTrauma.isFightBite,
     isCompartmentSyndrome: handTrauma.isCompartmentSyndrome,
+    compartmentSites: handTrauma.compartmentSites,
     isRingAvulsion: handTrauma.isRingAvulsion,
     digitAmputations: handTrauma.digitAmputations,
   };

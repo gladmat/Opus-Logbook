@@ -489,6 +489,30 @@ const ORTHOPLASTIC_LIMB_SALVAGE: ProcedurePicklistEntry[] = [
     tags: ["revision"],
     sortOrder: 5,
   },
+  {
+    id: "orth_fasciotomy_lower_leg",
+    displayName: "Fasciotomy — lower leg (four-compartment release)",
+    // Verified live against CSIRO Ontoserver (AU + Intl, 2026-08-01).
+    snomedCtCode: "1304090006",
+    snomedCtDisplay:
+      "Decompression fasciotomy of four compartments of lower leg (procedure)",
+    specialties: ["orthoplastic"],
+    subcategory: "Limb Salvage",
+    tags: ["trauma"],
+    sortOrder: 6,
+  },
+  {
+    id: "orth_fasciotomy_limb_single",
+    displayName: "Fasciotomy — single compartment (lower limb)",
+    // Verified live against CSIRO Ontoserver (AU + Intl, 2026-08-01).
+    snomedCtCode: "281785005",
+    snomedCtDisplay:
+      "Decompression fasciotomy of compartment of lower limb (procedure)",
+    specialties: ["orthoplastic"],
+    subcategory: "Limb Salvage",
+    tags: ["trauma"],
+    sortOrder: 7,
+  },
 ];
 
 const ORTHOPLASTIC_COMPLEX_RECONSTRUCTION: ProcedurePicklistEntry[] = [
@@ -2139,9 +2163,11 @@ const HAND_OTHER: ProcedurePicklistEntry[] = [
   },
   {
     id: "hand_other_fasciotomy",
-    displayName: "Fasciotomy — forearm / hand (compartment syndrome)",
-    snomedCtCode: "397737001",
-    snomedCtDisplay: "Fasciotomy (procedure)",
+    displayName: "Fasciotomy — forearm (compartment release)",
+    // Verified live against CSIRO Ontoserver (AU + Intl, 2026-08-01).
+    // Was 397737001, whose real FSN is "Fasciotomy of hand" — a forearm release miscoded as hand.
+    snomedCtCode: "178071007",
+    snomedCtDisplay: "Fasciotomy forearm (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Other Hand",
     tags: ["acute", "trauma"],
@@ -2209,12 +2235,13 @@ const HAND_OTHER: ProcedurePicklistEntry[] = [
   },
   {
     id: "hand_other_hand_compartment_release",
-    displayName: "Hand compartment release (fasciotomy — hand specific)",
-    snomedCtCode: "397737001",
-    snomedCtDisplay: "Fasciotomy of hand (procedure)",
+    displayName: "Hand compartment release (decompressive fasciotomy)",
+    // Verified live against CSIRO Ontoserver (AU + Intl, 2026-08-01).
+    snomedCtCode: "53259005",
+    snomedCtDisplay: "Decompressive fasciotomy of hand (procedure)",
     specialties: ["hand_wrist"],
     subcategory: "Other Hand",
-    tags: ["trauma"],
+    tags: ["acute", "trauma"],
     sortOrder: 14,
   },
   {
@@ -5499,8 +5526,10 @@ const BURNS_ACUTE: ProcedurePicklistEntry[] = [
   {
     id: "burns_acute_fasciotomy",
     displayName: "Fasciotomy — burns",
-    snomedCtCode: "397737001",
-    snomedCtDisplay: "Fasciotomy (procedure)",
+    // Verified live against CSIRO Ontoserver (AU + Intl, 2026-08-01).
+    // Was 397737001, whose real FSN is "Fasciotomy of hand" — burns fasciotomy is limb/trunk.
+    snomedCtCode: "363051003",
+    snomedCtDisplay: "Decompressive fasciotomy (procedure)",
     specialties: ["burns"],
     subcategory: "Acute Burns Management",
     tags: ["trauma"],

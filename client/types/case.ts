@@ -1058,6 +1058,12 @@ export interface HandTraumaDetails {
   isHighPressureInjection?: boolean;
   isFightBite?: boolean;
   isCompartmentSyndrome?: boolean;
+  /**
+   * Compartment syndrome sites. Absent = hand (legacy default) — only
+   * persisted when the forearm is involved, so legacy records and hand-only
+   * selections serialize identically.
+   */
+  compartmentSites?: ("hand" | "forearm")[];
   isRingAvulsion?: boolean;
   /** Per-digit amputation data */
   digitAmputations?: DigitAmputation[];

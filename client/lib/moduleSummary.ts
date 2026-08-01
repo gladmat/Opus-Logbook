@@ -137,7 +137,18 @@ export function generateHandTraumaAssessmentSummary(
   // Special injuries
   if (details?.isHighPressureInjection) parts.push("HPI");
   if (details?.isFightBite) parts.push("Fight bite");
-  if (details?.isCompartmentSyndrome) parts.push("Compartment syndrome");
+  if (details?.isCompartmentSyndrome) {
+    const sites = details.compartmentSites;
+    if (sites?.includes("forearm")) {
+      parts.push(
+        sites.includes("hand")
+          ? "Compartment syndrome (hand + forearm)"
+          : "Compartment syndrome (forearm)",
+      );
+    } else {
+      parts.push("Compartment syndrome");
+    }
+  }
   if (details?.isRingAvulsion) parts.push("Ring avulsion");
 
   // Amputation

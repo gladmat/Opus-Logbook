@@ -1166,6 +1166,7 @@ const HAND_DX_SOFT_TISSUE: DiagnosisPicklistEntry[] = [
     id: "hand_dx_compartment_syndrome_hand",
     displayName: "Compartment syndrome of hand",
     shortName: "Hand compartment syndrome",
+    // Verified live against CSIRO Ontoserver (AU + Intl, 2026-08-01).
     snomedCtCode: "212382003",
     snomedCtDisplay:
       "Compartment syndrome of hand due to traumatic injury (disorder)",
@@ -1188,12 +1189,48 @@ const HAND_DX_SOFT_TISSUE: DiagnosisPicklistEntry[] = [
       },
       {
         procedurePicklistId: "hand_other_fasciotomy",
-        displayName: "Fasciotomy — forearm / hand",
-        isDefault: true,
+        displayName: "Fasciotomy — forearm",
+        isDefault: false,
         sortOrder: 2,
       },
     ],
     sortOrder: 12,
+  },
+  {
+    id: "hand_dx_compartment_syndrome_forearm",
+    displayName: "Compartment syndrome of forearm",
+    shortName: "Forearm compartment syndrome",
+    // Verified live against CSIRO Ontoserver (AU + Intl, 2026-08-01).
+    snomedCtCode: "212381005",
+    snomedCtDisplay:
+      "Compartment syndrome of forearm due to traumatic injury (disorder)",
+    specialty: "hand_wrist",
+    subcategory: "Soft Tissue Injuries",
+    clinicalGroup: "trauma",
+    hasStaging: false,
+    searchSynonyms: [
+      "compartment syndrome",
+      "forearm compartment",
+      "volar compartment",
+      "Volkmann",
+      "fasciotomy",
+      "crush forearm",
+    ],
+    suggestedProcedures: [
+      {
+        procedurePicklistId: "hand_other_fasciotomy",
+        displayName: "Fasciotomy — forearm",
+        isDefault: true,
+        sortOrder: 1,
+      },
+      {
+        procedurePicklistId: "hand_other_hand_compartment_release",
+        displayName: "Hand compartment release",
+        isDefault: false,
+        sortOrder: 2,
+      },
+    ],
+    sortOrder: 13,
   },
 ];
 
@@ -3291,8 +3328,9 @@ export const HAND_DX_ACUTE: DiagnosisPicklistEntry[] = [
         sortOrder: 1,
       },
       {
-        procedurePicklistId: "hand_other_fasciotomy",
-        displayName: "Fasciotomy",
+        // Cross-specialty reference — NSTI decompression, not a limb compartment release.
+        procedurePicklistId: "gen_nsti_fasciotomy",
+        displayName: "Fasciotomy — NSTI",
         isDefault: true,
         sortOrder: 2,
       },
@@ -3407,7 +3445,7 @@ export const HAND_DX_ACUTE: DiagnosisPicklistEntry[] = [
       },
       {
         procedurePicklistId: "hand_other_fasciotomy",
-        displayName: "Fasciotomy",
+        displayName: "Fasciotomy — forearm",
         isDefault: false,
         sortOrder: 2,
       },
@@ -3471,6 +3509,18 @@ export const HAND_DX_ACUTE: DiagnosisPicklistEntry[] = [
     sortOrder: 21,
   },
 ];
+
+/**
+ * Compartment syndrome diagnoses surfaced as cross-reference chips in the
+ * ACUTE hand flow (AcuteHandAssessment). The canonical entries stay
+ * clinicalGroup "trauma" (re-tagging them "acute" would strip the trauma
+ * machine title via caseDiagnosisSummary's non-trauma-picklist rule), so the
+ * acute flow references them by ID instead. Precedent: PN_HAND_CROSS_REF_IDS.
+ */
+export const HAND_ACUTE_COMPARTMENT_CROSS_REF_IDS = [
+  "hand_dx_compartment_syndrome_hand",
+  "hand_dx_compartment_syndrome_forearm",
+] as const;
 
 export const HAND_SURGERY_DIAGNOSES: DiagnosisPicklistEntry[] = [
   ...HAND_DX_FRACTURES,
