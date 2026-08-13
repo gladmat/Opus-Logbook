@@ -3528,10 +3528,41 @@ function DiagnosisGroupEditorInner({
                     onMultiDigitConfirm={handleMultiDigitConfirm}
                   />
 
-                  {/* Bone tumour site & graft card — the elective flow hides
-                      the full procedure list behind "Browse full procedure
+                  {/* Corrective osteotomy card — the elective flow hides the
+                      full procedure list behind "Browse full procedure
                       picker", so the card must render inline here (the full
-                      list has its own copy, gated off while it is hidden). */}
+                      list has its own copy, gated off while it is hidden).
+                      Closes the latent gap where osteotomy fields were
+                      unreachable without opening the full picker. */}
+                  {!showAllProcedures
+                    ? procedures
+                        .filter(
+                          (proc) =>
+                            proc.picklistEntryId &&
+                            (
+                              OSTEOTOMY_PROCEDURE_IDS as readonly string[]
+                            ).includes(proc.picklistEntryId),
+                        )
+                        .map((proc) => (
+                          <CorrectiveOsteotomyDetails
+                            key={proc.id}
+                            procedureId={proc.picklistEntryId ?? ""}
+                            value={
+                              proc.osteotomyDetails ??
+                              createEmptyOsteotomyData()
+                            }
+                            onChange={(details) =>
+                              updateProcedure({
+                                ...proc,
+                                osteotomyDetails: details,
+                              })
+                            }
+                          />
+                        ))
+                    : null}
+
+                  {/* Bone tumour site & graft card — same inline reasoning as
+                      the osteotomy card above. */}
                   {!showAllProcedures
                     ? procedures
                         .filter(
