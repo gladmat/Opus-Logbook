@@ -611,7 +611,7 @@ export function getPathwayBadge(
 // SKIN CANCER CASE BADGE (dashboard card display)
 // ═══════════════════════════════════════════════════════════
 
-const CATEGORY_SHORT_LABELS: Record<string, string> = {
+export const CATEGORY_SHORT_LABELS: Record<string, string> = {
   bcc: "BCC",
   scc: "SCC",
   melanoma: "Melanoma",

@@ -26,6 +26,7 @@ import {
 } from "@/types/osteotomy";
 import { getBoneTumourSummary } from "@/types/boneTumour";
 import { getFixationHardwareSummary } from "@/types/fixationHardware";
+import { getTenolysisSummary } from "@/types/tenolysis";
 import {
   getImplantSummary as getBreastImplantSummary,
   getFlapSummary as getBreastFlapSummary,
@@ -376,6 +377,14 @@ export function buildPdfHtml(cases: Case[], options: PdfExportOptions): string {
       ? `Fixation: ${getFixationHardwareSummary(fixationProc.fixationHardware)}`
       : "";
 
+    // Tenolysis summary (first procedure with data)
+    const tenolysisProc = (c.diagnosisGroups ?? [])
+      .flatMap((g) => g.procedures ?? [])
+      .find((p) => getTenolysisSummary(p.tenolysisDetails));
+    const tenolysisSummary = tenolysisProc
+      ? `Tenolysis: ${getTenolysisSummary(tenolysisProc.tenolysisDetails)}`
+      : "";
+
     const implantSummary = [jointImplantSummary, ...breastParts]
       .filter(Boolean)
       .join("; ");
@@ -434,6 +443,7 @@ export function buildPdfHtml(cases: Case[], options: PdfExportOptions): string {
           osteotomySummary,
           boneTumourSummary,
           fixationSummary,
+          tenolysisSummary,
           craniofacialSummary,
           peripheralNerveSummary,
           lymphaticSummary,

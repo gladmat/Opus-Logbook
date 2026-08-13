@@ -66,6 +66,7 @@ import {
   PLATE_TYPE_LABELS,
   type FixationHardwareData,
 } from "@/types/fixationHardware";
+import type { TenolysisData, TenolysisSideData } from "@/types/tenolysis";
 import {
   NERVE_LABELS,
   MECHANISM_LABELS as PN_MECHANISM_LABELS,
@@ -191,6 +192,10 @@ const CSV_HEADERS = [
   "fixation_plate_system",
   "fixation_plate_type",
   "fixation_plate_profile_mm",
+  "tenolysis_flexor_tendons",
+  "tenolysis_flexor_zones",
+  "tenolysis_extensor_tendons",
+  "tenolysis_extensor_zones",
   "planned_date",
   // ── Breast module columns ──
   "breast_laterality",
@@ -476,6 +481,39 @@ function getCaseFixationHardwareExportFields(c: Case) {
           : d.plate.profileMm
         : "",
     ),
+  };
+}
+
+function getCaseTenolysisExportFields(c: Case) {
+  // Gate on data presence (not procedure ID) so stored tenolysis details
+  // export regardless of how the procedure was created.
+  const tenolysisProcedures = (c.diagnosisGroups ?? []).flatMap((group) =>
+    (group.procedures ?? []).filter((p) => p.tenolysisDetails),
+  );
+  if (tenolysisProcedures.length === 0) {
+    return {
+      flexorTendons: "",
+      flexorZones: "",
+      extensorTendons: "",
+      extensorZones: "",
+    };
+  }
+
+  const entries = tenolysisProcedures.map((p) => p.tenolysisDetails!);
+  const joinField = (extract: (d: TenolysisData) => string) =>
+    entries.map((d) => extract(d) || "-").join("; ");
+  const sideTendons = (side: TenolysisSideData | null) =>
+    (side?.selections ?? [])
+      .map((s) => `${s.tendon} (Dig. ${s.digit})`)
+      .join(", ");
+  const sideZones = (side: TenolysisSideData | null) =>
+    (side?.zones ?? []).join(", ");
+
+  return {
+    flexorTendons: joinField((d) => sideTendons(d.flexor)),
+    flexorZones: joinField((d) => sideZones(d.flexor)),
+    extensorTendons: joinField((d) => sideTendons(d.extensor)),
+    extensorZones: joinField((d) => sideZones(d.extensor)),
   };
 }
 
@@ -802,6 +840,7 @@ function caseToRow(c: Case, options: CsvExportOptions): string {
   const osteotomyFields = getCaseOsteotomyExportFields(c);
   const boneTumourFields = getCaseBoneTumourExportFields(c);
   const fixationHardwareFields = getCaseFixationHardwareExportFields(c);
+  const tenolysisFields = getCaseTenolysisExportFields(c);
   const breastFields = extractBreastCsvFields(groups);
   const headNeckFields = extractHeadNeckCsvFields(c);
   const craniofacialFields = extractCraniofacialCsvFields(groups);
@@ -960,6 +999,10 @@ function caseToRow(c: Case, options: CsvExportOptions): string {
     fixationHardwareFields.plateSystem,
     fixationHardwareFields.plateType,
     fixationHardwareFields.plateProfile,
+    tenolysisFields.flexorTendons,
+    tenolysisFields.flexorZones,
+    tenolysisFields.extensorTendons,
+    tenolysisFields.extensorZones,
     c.plannedDate ?? "",
     // ── Breast module ──
     ...breastFields,

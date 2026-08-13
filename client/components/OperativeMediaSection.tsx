@@ -8,6 +8,7 @@ import { EncryptedImage } from "@/components/EncryptedImage";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
+import { MAX_CASE_MEDIA_ITEMS } from "@/constants/media";
 import { OperativeMediaItem, MediaAttachment } from "@/types/case";
 import { MEDIA_TAG_REGISTRY } from "@/types/media";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
@@ -32,7 +33,7 @@ interface OperativeMediaSectionProps {
 export function OperativeMediaSection({
   media,
   onMediaChange,
-  maxItems = 15,
+  maxItems = MAX_CASE_MEDIA_ITEMS,
   mediaContext,
 }: OperativeMediaSectionProps) {
   const { theme } = useTheme();

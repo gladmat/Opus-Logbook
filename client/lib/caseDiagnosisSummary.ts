@@ -3,6 +3,7 @@ import { getHandTraumaCaseTitle } from "@/lib/handTraumaDiagnosis";
 import { generateHandInfectionSummary } from "@/types/handInfection";
 import { findDiagnosisById } from "@/lib/diagnosisPicklists";
 import { getBoneTumourTitleSuffix } from "@/types/boneTumour";
+import { getTenolysisTitleSuffix } from "@/types/tenolysis";
 
 /**
  * A stale `diagnosisClinicalDetails.handTrauma` blob can survive a hand
@@ -38,6 +39,31 @@ function withBoneTumourSite(
   return title;
 }
 
+/**
+ * Append the tenolysis digits/zone to a diagnosis title when recorded,
+ * e.g. "Flexor tendon adhesion / stiffness — Dig. III, zone II".
+ */
+function withTenolysisSite(
+  group: DiagnosisGroup,
+  title: string | undefined,
+): string | undefined {
+  if (!title) return title;
+  for (const proc of group.procedures ?? []) {
+    if (proc.tenolysisDetails) {
+      const suffix = getTenolysisTitleSuffix(proc.tenolysisDetails);
+      if (suffix) return `${title} — ${suffix}`;
+    }
+  }
+  return title;
+}
+
+function withProcedureSiteSuffix(
+  group: DiagnosisGroup,
+  title: string | undefined,
+): string | undefined {
+  return withTenolysisSite(group, withBoneTumourSite(group, title));
+}
+
 export function getDiagnosisGroupTitle(
   group: DiagnosisGroup | undefined,
 ): string | undefined {
@@ -45,10 +71,13 @@ export function getDiagnosisGroupTitle(
   const traumaTitle = getHandTraumaCaseTitle(group);
   if (traumaTitle && hasNonTraumaPicklistDiagnosis(group)) {
     return (
-      withBoneTumourSite(group, group.diagnosis?.displayName) ?? traumaTitle
+      withProcedureSiteSuffix(group, group.diagnosis?.displayName) ??
+      traumaTitle
     );
   }
-  return traumaTitle ?? withBoneTumourSite(group, group.diagnosis?.displayName);
+  return (
+    traumaTitle ?? withProcedureSiteSuffix(group, group.diagnosis?.displayName)
+  );
 }
 
 /**

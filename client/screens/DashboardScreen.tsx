@@ -21,6 +21,7 @@ import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, Shadows } from "@/constants/theme";
+import { MAX_CASE_MEDIA_ITEMS } from "@/constants/media";
 import {
   Case,
   Specialty,
@@ -579,7 +580,7 @@ export default function DashboardScreen() {
                   <MediaCapture
                     attachments={dischargePhotos}
                     onAttachmentsChange={setDischargePhotos}
-                    maxAttachments={15}
+                    maxAttachments={MAX_CASE_MEDIA_ITEMS}
                     mediaType="photo"
                     eventType="discharge_photo"
                     defaultMediaDate={dischargeDate}

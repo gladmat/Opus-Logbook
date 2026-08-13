@@ -1794,6 +1794,8 @@ export interface CaseProcedure {
   boneTumourDetails?: import("./boneTumour").BoneTumourData;
   /** Fracture-fixation hardware (K-wires / screws / plate) for removal planning & series audit */
   fixationHardware?: import("./fixationHardware").FixationHardwareData;
+  /** Tenolysis details — which tendons at which zone(s), per flexor/extensor side */
+  tenolysisDetails?: import("./tenolysis").TenolysisData;
   /**
    * Optional operative-step layer (free flap harvest / recipient prep /
    * micro + inset) with per-step team + concurrency. When present, step

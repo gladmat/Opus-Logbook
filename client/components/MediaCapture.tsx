@@ -21,6 +21,7 @@ import { EncryptedImage } from "@/components/EncryptedImage";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
+import { MAX_CASE_MEDIA_ITEMS } from "@/constants/media";
 import {
   MediaAttachment,
   OperativeMediaItem,
@@ -48,7 +49,7 @@ interface MediaCaptureProps {
 export function MediaCapture({
   attachments,
   onAttachmentsChange,
-  maxAttachments = 15,
+  maxAttachments = MAX_CASE_MEDIA_ITEMS,
   mediaType = "all",
   eventType,
   defaultMediaDate,

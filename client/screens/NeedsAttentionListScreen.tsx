@@ -23,6 +23,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { MediaCapture } from "@/components/MediaCapture";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
+import { MAX_CASE_MEDIA_ITEMS } from "@/constants/media";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import {
   getCase,
@@ -593,7 +594,7 @@ export default function NeedsAttentionListScreen() {
               <MediaCapture
                 attachments={dischargePhotos}
                 onAttachmentsChange={setDischargePhotos}
-                maxAttachments={15}
+                maxAttachments={MAX_CASE_MEDIA_ITEMS}
                 mediaType="photo"
                 eventType="discharge_photo"
                 defaultMediaDate={dischargeDate}
