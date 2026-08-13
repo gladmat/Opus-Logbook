@@ -125,6 +125,12 @@ describe("inboxItemToOperativeMediaSmart", () => {
     expect(result.createdAt).toBe("2025-01-01T00:00:00.000Z");
   });
 
+  it("carries the real capture instant on timestamp so it survives edits", () => {
+    const item = makeInboxItem({ capturedAt: "2025-01-01T00:00:00.000Z" });
+    const result = inboxItemToOperativeMediaSmart(item, "intraop");
+    expect(result.timestamp).toBe("2025-01-01T00:00:00.000Z");
+  });
+
   it("sets tag to other when provided other", () => {
     const item = makeInboxItem();
     const result = inboxItemToOperativeMediaSmart(item, "other");

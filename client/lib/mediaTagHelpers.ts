@@ -1,7 +1,11 @@
 import type { MediaTag } from "@/types/media";
 import type { TimelineEventType } from "@/types/case";
 import { MEDIA_TAG_REGISTRY } from "@/types/media";
-import { parseDateOnlyValue, toIsoDateValue } from "@/lib/dateValues";
+import {
+  normalizeDateOnlyValue,
+  parseDateOnlyValue,
+  toIsoDateValue,
+} from "@/lib/dateValues";
 
 /**
  * Resolves the effective MediaTag for a media item.
@@ -75,6 +79,54 @@ export function suggestTemporalTag(
   if (diffDays <= 270) return "followup_6m";
   if (diffDays <= 450) return "followup_12m";
   return "followup_late";
+}
+
+/**
+ * Tags that by clinical definition are captured on the day of surgery.
+ * Selecting one of these can safely snap the media date to the procedure
+ * date. Band tags (postop_early = days 1–7, followups) and pre-op tags are
+ * deliberately excluded — their true date is ambiguous, and photos OF
+ * pre-op imaging carry the photograph date, not the study date.
+ */
+export const DAY_OF_SURGERY_TAGS: ReadonlySet<MediaTag> = new Set<MediaTag>([
+  // Temporal
+  "day_of_surgery",
+  "intraop",
+  "immediate_postop",
+  // Imaging (intra-op only — never pre-op, see note above)
+  "xray_intraop",
+  // Flap surgery intraoperative stages
+  "flap_design",
+  "flap_harvest",
+  "donor_site",
+  "donor_closure",
+  "recipient_prep",
+  "anastomosis",
+  "flap_inset",
+  "flap_perfusion",
+  // Skin cancer intraoperative stages
+  "margin_marking",
+  "excision_defect",
+  "specimen",
+  "reconstruction_intraop",
+]);
+
+/**
+ * Derives the media date implied by a temporal tag: day-of-surgery tags
+ * map to the procedure date; every other tag is ambiguous and returns null
+ * (leave the date alone). Also returns null when the procedure date is
+ * missing/unparseable or lies in the future (a planned case must not snap
+ * the date picker past its not-in-the-future cap).
+ */
+export function deriveDateForTemporalTag(
+  procedureDate: string | undefined,
+  tag: MediaTag,
+): string | null {
+  if (!DAY_OF_SURGERY_TAGS.has(tag)) return null;
+  const normalized = normalizeDateOnlyValue(procedureDate);
+  if (!normalized) return null;
+  if (normalized > toIsoDateValue(new Date())) return null;
+  return normalized;
 }
 
 export function suggestDefaultMediaTag(args: {

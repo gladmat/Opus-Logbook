@@ -114,7 +114,10 @@ export function OperativeMediaSection({
       existingMediaId: item.id,
       existingTag: item.tag,
       existingCaption: item.caption,
-      existingTimestamp: item.timestamp,
+      // Legacy/inbox items may lack a timestamp — createdAt then holds the
+      // real capture instant; passing it prevents the editor from silently
+      // resetting the date to today on a metadata-only edit.
+      existingTimestamp: item.timestamp ?? item.createdAt,
       existingCreatedAt: item.createdAt,
       existingEnhanced: item.enhanced,
       mediaContext,

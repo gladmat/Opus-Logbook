@@ -63,6 +63,7 @@ export function inboxItemToOperativeMediaSmart(
     localUri: item.localUri,
     mimeType: item.mimeType,
     tag,
+    timestamp: item.capturedAt,
     createdAt: item.capturedAt,
     templateId: item.templateId,
     templateStepIndex: item.templateStepIndex,

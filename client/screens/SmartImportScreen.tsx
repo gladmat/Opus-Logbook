@@ -35,6 +35,8 @@ import {
   setPendingInboxSelection,
 } from "@/lib/inboxStorage";
 import { buildCapturedOperativeMediaItem } from "@/lib/inboxCapture";
+import { resolveAssetCapturedAt } from "@/lib/mediaAssetDates";
+import { toUtcNoonIsoTimestamp } from "@/lib/dateValues";
 import {
   deleteMultipleEncryptedMedia,
   saveEncryptedMediaFromUri,
@@ -52,25 +54,6 @@ type NavProp = NativeStackNavigationProp<RootStackParamList, "SmartImport">;
 type Route = RouteProp<RootStackParamList, "SmartImport">;
 
 type ImportPhase = "picking" | "encrypting" | "prompting" | "deleting";
-
-async function resolveCapturedAt(
-  assetId?: string | null,
-): Promise<string | undefined> {
-  if (!assetId) {
-    return undefined;
-  }
-
-  try {
-    const info = await MediaLibrary.getAssetInfoAsync(assetId);
-    if (typeof info.creationTime === "number" && info.creationTime > 0) {
-      return new Date(info.creationTime).toISOString();
-    }
-  } catch (error) {
-    console.warn("[SmartImport] Could not resolve asset timestamp:", error);
-  }
-
-  return undefined;
-}
 
 export default function SmartImportScreen() {
   const { theme } = useTheme();
@@ -216,7 +199,7 @@ export default function SmartImportScreen() {
                   mimeType: asset.mimeType,
                   assetId: asset.assetId,
                   capturedAt:
-                    (await resolveCapturedAt(asset.assetId)) ?? undefined,
+                    (await resolveAssetCapturedAt(asset.assetId)) ?? undefined,
                   width: asset.width,
                   height: asset.height,
                 })),
@@ -242,8 +225,13 @@ export default function SmartImportScreen() {
                 const asset = result.assets[index];
                 if (!asset) continue;
 
+                // When the library has no capture date, the case's procedure
+                // date beats "now" for a surgical photo import.
                 const capturedAt =
-                  (await resolveCapturedAt(asset.assetId)) ??
+                  (await resolveAssetCapturedAt(asset.assetId)) ??
+                  (params.procedureDate
+                    ? toUtcNoonIsoTimestamp(params.procedureDate)
+                    : undefined) ??
                   new Date().toISOString();
                 const saved = await saveEncryptedMediaFromUri(
                   asset.uri,

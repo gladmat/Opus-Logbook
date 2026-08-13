@@ -55,6 +55,17 @@ describe("buildDefaultMediaAttachment", () => {
     expect(attachment.timestamp).toBe(toUtcNoonIsoTimestamp("2026-04-15"));
   });
 
+  it("leaves timestamp undefined when no media date is known (display falls back to createdAt)", () => {
+    const attachment = buildDefaultMediaAttachment({
+      id: "fresh-1",
+      savedMedia,
+      createdAt: "2026-03-10T08:00:00.000Z",
+      procedureDate: "2026-03-01",
+    });
+
+    expect(attachment.timestamp).toBeUndefined();
+  });
+
   it("falls back to temporal photo defaults when no event type is supplied", () => {
     const attachment = buildDefaultMediaAttachment({
       id: "photo-1",

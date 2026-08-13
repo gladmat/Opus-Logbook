@@ -4,7 +4,7 @@
  * Captures: survival status, re-exploration events, donor/recipient complications.
  */
 
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback, useRef } from "react";
 import { View, Pressable, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -41,10 +41,13 @@ import {
   normalizeDateOnlyValue,
   toUtcNoonIsoTimestamp,
 } from "@/lib/dateValues";
+import { deriveAssessedDaysPostOp } from "@/lib/flapOutcomeDefaults";
 
 interface FlapOutcomeSectionProps {
   outcome: FreeFlapOutcomeDetails;
   onUpdate: (outcome: FreeFlapOutcomeDetails) => void;
+  /** Case procedure date (YYYY-MM-DD) — derives days-post-op from the assessment date. */
+  procedureDate?: string;
 }
 
 // ── Survival Status Segmented Control ─────────────────────────────────────
@@ -369,9 +372,14 @@ function ReExplorationCard({
 export function FlapOutcomeSection({
   outcome,
   onUpdate,
+  procedureDate,
 }: FlapOutcomeSectionProps) {
   const { theme } = useTheme();
   const assessedDate = normalizeDateOnlyValue(outcome.assessedAt) ?? "";
+  // Days-post-op auto-derives from the assessment date until the user
+  // edits it manually (deriveFollowUpInterval sticky pattern); existing
+  // stored values start touched so edits never clobber them.
+  const daysTouchedRef = useRef(outcome.assessedDaysPostOp != null);
 
   const handleAssessedDateChange = useCallback(
     (date: string) => {
@@ -381,16 +389,22 @@ export function FlapOutcomeSection({
         onUpdate(next);
         return;
       }
-      onUpdate({
+      const next: FreeFlapOutcomeDetails = {
         ...outcome,
         assessedAt: toUtcNoonIsoTimestamp(date) ?? new Date().toISOString(),
-      });
+      };
+      if (!daysTouchedRef.current) {
+        const derived = deriveAssessedDaysPostOp(procedureDate, date);
+        if (derived != null) next.assessedDaysPostOp = derived;
+      }
+      onUpdate(next);
     },
-    [outcome, onUpdate],
+    [outcome, onUpdate, procedureDate],
   );
 
   const handleAssessedDaysChange = useCallback(
     (value: string) => {
+      daysTouchedRef.current = true;
       const parsed = Number.parseInt(value, 10);
       if (!value.trim() || Number.isNaN(parsed) || parsed < 0) {
         const next = { ...outcome };

@@ -36,6 +36,14 @@ import { Feather } from "@/components/FeatherIcon";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { getCase, updateCase } from "@/lib/storage";
+import { DatePickerField } from "@/components/FormField";
+import { notFutureMax } from "@/lib/dateBounds";
+import {
+  parseDateOnlyValue,
+  resolveEventDisplayDate,
+  toIsoDateValue,
+  toUtcNoonIsoTimestamp,
+} from "@/lib/dateValues";
 import { HistologySection } from "@/components/skin-cancer/HistologySection";
 import type { SkinCancerHistology } from "@/types/skinCancer";
 import type {
@@ -260,6 +268,11 @@ export default function AddHistologyScreen() {
   // General histology state
   const [generalResult, setGeneralResult] =
     useState<GeneralHistologyResult>(EMPTY_GENERAL_RESULT);
+  // Report date backing reviewedAt — defaults to today, editable so a
+  // result entered late carries the date the report was actually issued.
+  const [reportDate, setReportDate] = useState(() =>
+    toIsoDateValue(new Date()),
+  );
 
   const isSkinCancerRef = useRef(false);
 
@@ -313,6 +326,12 @@ export default function AddHistologyScreen() {
           isSkinCancerRef.current = false;
           if (group.histologyResult) {
             setGeneralResult(group.histologyResult);
+            const existingReviewed = resolveEventDisplayDate(
+              group.histologyResult.reviewedAt,
+            );
+            if (existingReviewed) {
+              setReportDate(toIsoDateValue(existingReviewed));
+            }
           }
         }
       } catch {
@@ -370,12 +389,17 @@ export default function AddHistologyScreen() {
           };
         }
       } else {
-        // General histology
+        // General histology — today keeps the wall-clock instant, a
+        // backdated report date stores the noon anchor.
+        const reviewedAt =
+          reportDate === toIsoDateValue(new Date())
+            ? new Date().toISOString()
+            : (toUtcNoonIsoTimestamp(reportDate) ?? new Date().toISOString());
         updatedGroups[diagnosisGroupIndex] = {
           ...group,
           histologyResult: {
             ...generalResult,
-            reviewedAt: new Date().toISOString(),
+            reviewedAt,
           },
           diagnosisCertainty: "histological",
         };
@@ -397,6 +421,7 @@ export default function AddHistologyScreen() {
     lesionIndex,
     skinCancerHistology,
     generalResult,
+    reportDate,
     navigation,
   ]);
 
@@ -533,10 +558,24 @@ export default function AddHistologyScreen() {
               hideSource
             />
           ) : (
-            <GeneralHistologyForm
-              result={generalResult}
-              onChange={setGeneralResult}
-            />
+            <>
+              <GeneralHistologyForm
+                result={generalResult}
+                onChange={setGeneralResult}
+              />
+              <DatePickerField
+                label="Report Date"
+                value={reportDate}
+                onChange={(v) => {
+                  if (v) setReportDate(v);
+                }}
+                placeholder="Select date..."
+                minimumDate={
+                  parseDateOnlyValue(caseData.procedureDate) ?? undefined
+                }
+                maximumDate={notFutureMax()}
+              />
+            </>
           )}
         </View>
       </ScrollView>

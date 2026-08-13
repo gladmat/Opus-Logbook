@@ -3,7 +3,17 @@ import { View, StyleSheet, Pressable } from "react-native";
 import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
-import { FormField, SelectField } from "@/components/FormField";
+import {
+  DatePickerField,
+  FormField,
+  SelectField,
+} from "@/components/FormField";
+import { notFutureMax } from "@/lib/dateBounds";
+import {
+  resolveEventDisplayDate,
+  toIsoDateValue,
+  toUtcNoonIsoTimestamp,
+} from "@/lib/dateValues";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, palette } from "@/constants/theme";
 import {
@@ -99,19 +109,28 @@ export function InfectionEpisodeCard({
   );
   const showAmputation = episode.intents?.includes("amputation");
 
+  // resolveEventDisplayDate keeps noon-anchored (user-picked) dates on
+  // their intended calendar day in UTC+12/13; date-only display since the
+  // time of day was never user-entered.
   const formatDate = (dateStr: string) => {
-    try {
-      const date = new Date(dateStr);
-      return date.toLocaleDateString("en-AU", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch {
-      return dateStr;
-    }
+    const resolved = resolveEventDisplayDate(dateStr);
+    if (!resolved) return dateStr;
+    return resolved.toLocaleDateString("en-AU", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const episodeDateValue = (() => {
+    const resolved = resolveEventDisplayDate(episode.episodeDatetime);
+    return resolved ? toIsoDateValue(resolved) : "";
+  })();
+
+  const handleEpisodeDateChange = (value: string) => {
+    if (!value || value === episodeDateValue) return;
+    const anchored = toUtcNoonIsoTimestamp(value);
+    if (anchored) updateEpisode({ episodeDatetime: anchored });
   };
 
   const getIntentSummary = () => {
@@ -159,6 +178,14 @@ export function InfectionEpisodeCard({
 
       {isExpanded ? (
         <View style={styles.content}>
+          <DatePickerField
+            label="Episode Date"
+            value={episodeDateValue}
+            onChange={handleEpisodeDateChange}
+            placeholder="Select date..."
+            maximumDate={notFutureMax()}
+          />
+
           <ThemedText
             style={[styles.sectionLabel, { color: theme.textSecondary }]}
           >
