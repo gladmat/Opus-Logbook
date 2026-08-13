@@ -82,9 +82,12 @@ describe("Fixation hardware CSV export", () => {
     expect(header).toContain(
       "fixation_kwire_gauge_mm,fixation_kwire_count,fixation_screw_system,fixation_screw_diameter_mm,fixation_screw_length_mm,fixation_screw_count,fixation_plate_system,fixation_plate_type,fixation_plate_profile_mm",
     );
-    // Positional lockstep: fixation block sits between bone tumour and planned_date
+    // Positional lockstep: fixation block sits between bone tumour and tenolysis
     expect(header).toContain("bone_tumour_donor_site,fixation_kwire_gauge_mm");
-    expect(header).toContain("fixation_plate_profile_mm,planned_date");
+    expect(header).toContain(
+      "fixation_plate_profile_mm,tenolysis_flexor_tendons",
+    );
+    expect(header).toContain("tenolysis_extensor_zones,planned_date");
   });
 
   it("emits screw values for the scaphoid fixture", () => {

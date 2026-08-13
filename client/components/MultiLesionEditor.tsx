@@ -58,6 +58,9 @@ import type {
   SkinCancerLesionAssessment,
   SkinCancerPathologyCategory,
 } from "@/types/skinCancer";
+import { MultiLesionSummaryPanel } from "@/components/skin-cancer/MultiLesionSummaryPanel";
+import type { MultiLesionSuggestionItem } from "@/lib/multiLesionMapping";
+import type { AcceptedMappingProcedureRow } from "@/components/case-form/AcceptedMappingCard";
 
 // ─── Common anatomical sites for quick-pick ────────────────────────────────
 
@@ -178,6 +181,19 @@ interface MultiLesionEditorProps {
   isSkinCancer?: boolean;
   /** Picklist diagnosis ID — threads to per-lesion SkinCancerAssessment for auto-config */
   diagnosisId?: string;
+  /**
+   * Group-level accept-mapping flow (skin cancer only). When provided, a
+   * MultiLesionSummaryPanel renders below the lesion rows aggregating every
+   * lesion's suggested procedures — accepting materialises the group's
+   * procedures and satisfies the save-time accept-mapping guard.
+   */
+  onAcceptMapping?: (selections: MultiLesionSuggestionItem[]) => void;
+  /** Whether the group's mapping has been accepted */
+  isAccepted?: boolean;
+  /** Post-accept "Edit mapping" handler */
+  onEditMapping?: () => void;
+  /** Current group procedures, shown in the panel's post-accept list */
+  acceptedProcedureRows?: AcceptedMappingProcedureRow[];
 }
 
 // ─── Single lesion row ─────────────────────────────────────────────────────
@@ -733,6 +749,10 @@ export function MultiLesionEditor({
   defaultPathologyType,
   isSkinCancer,
   diagnosisId,
+  onAcceptMapping,
+  isAccepted,
+  onEditMapping,
+  acceptedProcedureRows,
 }: MultiLesionEditorProps) {
   const { theme } = useTheme();
   const [expandedIds, setExpandedIds] = useState<Set<string>>(
@@ -982,6 +1002,18 @@ export function MultiLesionEditor({
           Add lesion
         </ThemedText>
       </Pressable>
+
+      {/* Group-level accept-mapping panel — the multi-lesion counterpart of
+          the single-lesion SkinCancerSummaryPanel */}
+      {isSkinCancer && onAcceptMapping ? (
+        <MultiLesionSummaryPanel
+          lesions={lesions}
+          isAccepted={isAccepted ?? false}
+          acceptedProcedures={acceptedProcedureRows ?? []}
+          onAccept={onAcceptMapping}
+          onEditMapping={onEditMapping}
+        />
+      ) : null}
 
       {/* Training log note */}
       <ThemedText style={[styles.trainingNote, { color: theme.textTertiary }]}>

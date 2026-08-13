@@ -133,6 +133,7 @@ import {
 import { getOsteotomySummary } from "@/types/osteotomy";
 import { getBoneTumourSummary } from "@/types/boneTumour";
 import { getFixationHardwareSummary } from "@/types/fixationHardware";
+import { getTenolysisSummary } from "@/types/tenolysis";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import {
   generateDupuytrenSummaryText,
@@ -1501,6 +1502,21 @@ export default function CaseDetailScreen() {
                             value={getFixationHardwareSummary(
                               proc.fixationHardware,
                             )}
+                          />
+                        </View>
+                      ) : null}
+                      {/* Tenolysis tendons & level details */}
+                      {proc.tenolysisDetails &&
+                      getTenolysisSummary(proc.tenolysisDetails) ? (
+                        <View
+                          style={[
+                            styles.procedureClinicalDetails,
+                            { borderTopColor: theme.border },
+                          ]}
+                        >
+                          <DetailRow
+                            label="Tenolysis"
+                            value={getTenolysisSummary(proc.tenolysisDetails)}
                           />
                         </View>
                       ) : null}

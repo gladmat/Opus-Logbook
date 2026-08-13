@@ -944,6 +944,30 @@ const HAND_TENDON_SURGERY: ProcedurePicklistEntry[] = [
     sortOrder: 10,
   },
   {
+    // Side-specific tenolysis entries: SNOMED CT-AU extension codes (not in the
+    // International edition — same AU-only precedent as the dermal substitute and
+    // carpal CRIF entries). The generic hand_tend_tenolysis above stays for browse
+    // and combined flexor+extensor cases.
+    id: "hand_tend_tenolysis_flexor",
+    displayName: "Flexor tenolysis — hand",
+    snomedCtCode: "5061000032107",
+    snomedCtDisplay: "Tenolysis of flexor tendon of hand (procedure)",
+    specialties: ["hand_wrist"],
+    subcategory: "Tendon Surgery",
+    tags: ["tendon_repair", "revision"],
+    sortOrder: 11,
+  },
+  {
+    id: "hand_tend_tenolysis_extensor",
+    displayName: "Extensor tenolysis — hand",
+    snomedCtCode: "5051000032109",
+    snomedCtDisplay: "Tenolysis of extensor tendon of hand (procedure)",
+    specialties: ["hand_wrist"],
+    subcategory: "Tendon Surgery",
+    tags: ["tendon_repair", "revision"],
+    sortOrder: 12,
+  },
+  {
     id: "hand_tend_fpl_repair",
     displayName: "FPL tendon repair",
     snomedCtCode: "709291000",
@@ -951,7 +975,7 @@ const HAND_TENDON_SURGERY: ProcedurePicklistEntry[] = [
     specialties: ["hand_wrist"],
     subcategory: "Tendon Surgery",
     tags: ["tendon_repair", "trauma"],
-    sortOrder: 11,
+    sortOrder: 13,
   },
   {
     id: "hand_tend_epl_rupture_repair",
@@ -961,7 +985,7 @@ const HAND_TENDON_SURGERY: ProcedurePicklistEntry[] = [
     specialties: ["hand_wrist"],
     subcategory: "Tendon Surgery",
     tags: ["tendon_repair"],
-    sortOrder: 12,
+    sortOrder: 14,
   },
   {
     id: "hand_tend_central_slip_repair",
@@ -971,7 +995,7 @@ const HAND_TENDON_SURGERY: ProcedurePicklistEntry[] = [
     specialties: ["hand_wrist"],
     subcategory: "Tendon Surgery",
     tags: ["trauma", "tendon_repair"],
-    sortOrder: 13,
+    sortOrder: 15,
   },
   {
     id: "hand_tend_sagittal_band_repair",
@@ -981,7 +1005,7 @@ const HAND_TENDON_SURGERY: ProcedurePicklistEntry[] = [
     specialties: ["hand_wrist"],
     subcategory: "Tendon Surgery",
     tags: ["trauma", "tendon_repair"],
-    sortOrder: 14,
+    sortOrder: 16,
   },
   {
     id: "hand_tend_fdp_avulsion_repair",
@@ -991,7 +1015,7 @@ const HAND_TENDON_SURGERY: ProcedurePicklistEntry[] = [
     specialties: ["hand_wrist"],
     subcategory: "Tendon Surgery",
     tags: ["trauma", "tendon_repair"],
-    sortOrder: 15,
+    sortOrder: 17,
   },
   {
     id: "hand_tend_staged_reconstruction",
@@ -1001,7 +1025,7 @@ const HAND_TENDON_SURGERY: ProcedurePicklistEntry[] = [
     specialties: ["hand_wrist"],
     subcategory: "Tendon Surgery",
     tags: ["revision", "tendon_repair"],
-    sortOrder: 16,
+    sortOrder: 18,
   },
 ];
 

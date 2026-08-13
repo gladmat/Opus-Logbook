@@ -2280,7 +2280,7 @@ const HAND_DX_ELECTIVE_TENDON: DiagnosisPicklistEntry[] = [
         sortOrder: 1,
       },
       {
-        procedurePicklistId: "hand_tend_tenolysis",
+        procedurePicklistId: "hand_tend_tenolysis_extensor",
         displayName: "Tenolysis (extensor)",
         isDefault: false,
         sortOrder: 2,
@@ -2412,7 +2412,7 @@ const HAND_DX_ELECTIVE_TENDON: DiagnosisPicklistEntry[] = [
     ],
     suggestedProcedures: [
       {
-        procedurePicklistId: "hand_tend_tenolysis",
+        procedurePicklistId: "hand_tend_tenolysis_flexor",
         displayName: "Flexor tenolysis",
         isDefault: true,
         sortOrder: 1,
@@ -2438,7 +2438,7 @@ const HAND_DX_ELECTIVE_TENDON: DiagnosisPicklistEntry[] = [
     ],
     suggestedProcedures: [
       {
-        procedurePicklistId: "hand_tend_tenolysis",
+        procedurePicklistId: "hand_tend_tenolysis_extensor",
         displayName: "Extensor tenolysis",
         isDefault: true,
         sortOrder: 1,

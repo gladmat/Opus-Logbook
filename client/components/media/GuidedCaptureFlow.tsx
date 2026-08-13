@@ -14,6 +14,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing } from "@/constants/theme";
+import { MAX_CASE_MEDIA_ITEMS } from "@/constants/media";
 import { CaptureStepCard } from "./CaptureStepCard";
 import type {
   CaptureProtocol,
@@ -49,7 +50,7 @@ function GuidedCaptureFlowInner({
   protocols,
   existingMedia,
   onMediaChange,
-  maxItems = 15,
+  maxItems = MAX_CASE_MEDIA_ITEMS,
   mediaContext,
 }: GuidedCaptureFlowProps) {
   const { theme } = useTheme();

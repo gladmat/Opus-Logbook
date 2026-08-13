@@ -35,6 +35,7 @@ import { DatePickerField } from "@/components/FormField";
 import { notFutureMax } from "@/lib/dateBounds";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
+import { MAX_CASE_MEDIA_ITEMS } from "@/constants/media";
 import { toUtcNoonIsoTimestamp } from "@/lib/dateValues";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useMediaCallback } from "@/contexts/MediaCallbackContext";
@@ -71,7 +72,7 @@ export default function MediaManagementScreen() {
   const {
     existingAttachments,
     callbackId,
-    maxAttachments = 15,
+    maxAttachments = MAX_CASE_MEDIA_ITEMS,
     eventType,
     mediaContext,
     defaultMediaDate,

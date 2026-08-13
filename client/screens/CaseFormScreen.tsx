@@ -24,6 +24,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing } from "@/constants/theme";
+import { MAX_CASE_MEDIA_ITEMS } from "@/constants/media";
 import { SPECIALTY_LABELS, isPlannedCase } from "@/types/case";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Button } from "@/components/Button";
@@ -945,7 +946,7 @@ export default function CaseFormScreen() {
                     onMediaChange={(media) =>
                       form.dispatch(setField("operativeMedia", media))
                     }
-                    maxItems={15}
+                    maxItems={MAX_CASE_MEDIA_ITEMS}
                     mediaContext={mediaContext}
                   />
                 </SectionWrapper>

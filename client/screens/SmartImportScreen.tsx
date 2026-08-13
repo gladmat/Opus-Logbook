@@ -29,6 +29,7 @@ import { ThemedView } from "@/components/ThemedView";
 import { Feather } from "@/components/FeatherIcon";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
+import { MAX_CASE_MEDIA_ITEMS } from "@/constants/media";
 import {
   addMultipleToInbox,
   setPendingInboxSelection,
@@ -183,7 +184,7 @@ export default function SmartImportScreen() {
               mediaTypes: ["images"],
               quality: 0.7,
               allowsMultipleSelection: true,
-              selectionLimit: params.selectionLimit ?? 50,
+              selectionLimit: params.selectionLimit ?? MAX_CASE_MEDIA_ITEMS,
               orderedSelection: true,
             });
 

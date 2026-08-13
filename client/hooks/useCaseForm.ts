@@ -108,6 +108,7 @@ import {
   buildSkinCancerEpisodeLinkPlan,
   buildSkinCancerEpisodeUpdatePlan,
 } from "@/lib/skinCancerEpisodeHelpers";
+import { getAcceptMappingErrors } from "@/lib/acceptMappingGuard";
 import { normalizeBreastAssessment } from "@/lib/breastState";
 import {
   applyBreastEpisodeLinkToCase,
@@ -886,49 +887,8 @@ export function validateRequiredFields(state: CaseFormState): {
 
     // Accept-Mapping guard: a populated skin-cancer or acute-hand assessment
     // must have its `procedureSuggestionSource` set to the matching module.
-    // Otherwise the surgeon did the assessment but never tapped "Accept
-    // mapping" — and procedures default to whatever was seeded at specialty
-    // change (clinically wrong). See `case-form-ux-audit.md` B1.1.
-    state.diagnosisGroups.forEach((g, idx) => {
-      const groupLabel =
-        state.diagnosisGroups.length > 1 ? `Group ${idx + 1}` : "Diagnosis";
-
-      // Skin cancer: treat the assessment as "touched" once the surgeon has
-      // committed to a pathway, recorded site/histology, or captured lesion
-      // photos. The default-shape blob isn't touched.
-      const sca = g.skinCancerAssessment;
-      const hasSkinCancerWork =
-        sca != null &&
-        (Boolean(sca.pathwayStage) ||
-          Boolean(sca.site) ||
-          Boolean(sca.currentHistology) ||
-          Boolean(sca.priorHistology) ||
-          Boolean(sca.clinicalSuspicion));
-      // The guard explicitly rejects `procedureSuggestionSource === "manual"`
-      // because "manual" IS the corruption mode: `handleSpecialtyChange`
-      // seeds a placeholder procedure with the wrong name when no Accept
-      // Mapping has fired. The only legitimate exit from a substantive
-      // skin-cancer assessment is Accept Mapping, which sets source to
-      // "skinCancer". Same for acute hand.
-      if (hasSkinCancerWork && g.procedureSuggestionSource !== "skinCancer") {
-        errors.push({
-          field: "diagnosisGroups",
-          sectionId: "case",
-          message: `${groupLabel}: tap "Accept mapping" in the skin cancer assessment before saving.`,
-        });
-      }
-
-      // Acute hand: persisted signal is `handInfectionDetails` (only set
-      // when the form is in acute hand mode).
-      const hasAcuteHandWork = g.handInfectionDetails != null;
-      if (hasAcuteHandWork && g.procedureSuggestionSource !== "acuteHand") {
-        errors.push({
-          field: "diagnosisGroups",
-          sectionId: "case",
-          message: `${groupLabel}: tap "Accept mapping" in the acute hand assessment before saving.`,
-        });
-      }
-    });
+    // See `client/lib/acceptMappingGuard.ts` (extracted pure, B1.1).
+    errors.push(...getAcceptMappingErrors(state.diagnosisGroups));
 
     // Cross-field date consistency (physically-impossible combinations only).
     errors.push(...getDateHardBlockErrors(state));
@@ -1481,6 +1441,9 @@ export function buildDuplicateState(
         : undefined,
       fixationHardware: p.fixationHardware
         ? structuredClone(p.fixationHardware)
+        : undefined,
+      tenolysisDetails: p.tenolysisDetails
+        ? structuredClone(p.tenolysisDetails)
         : undefined,
       lvaOperativeDetails: p.lvaOperativeDetails
         ? structuredClone(p.lvaOperativeDetails)

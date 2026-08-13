@@ -1168,6 +1168,44 @@ function buildProcedure(
     }
   }
 
+  // Tenolysis details extension — which tendons at which zone(s), per side
+  // (SNOMED has no per-tendon/per-zone tenolysis concepts)
+  if (proc.tenolysisDetails) {
+    const tenolysisExts: { url: string; valueString?: string }[] = [];
+    const sides = [
+      ["flexor", proc.tenolysisDetails.flexor],
+      ["extensor", proc.tenolysisDetails.extensor],
+    ] as const;
+    for (const [side, sideData] of sides) {
+      if (!sideData) continue;
+      if (sideData.selections.length > 0) {
+        tenolysisExts.push({
+          url: `${side}Tendons`,
+          valueString: sideData.selections
+            .map((s) => `${s.tendon} (Dig. ${s.digit})`)
+            .join(", "),
+        });
+      }
+      if (sideData.zones.length > 0) {
+        tenolysisExts.push({
+          url: `${side}Zones`,
+          valueString: sideData.zones.join(", "),
+        });
+      }
+    }
+    if (tenolysisExts.length > 0) {
+      const ext = {
+        url: "urn:opus:tenolysis",
+        extension: tenolysisExts,
+      };
+      if (procedure.extension) {
+        procedure.extension.push(ext);
+      } else {
+        procedure.extension = [ext];
+      }
+    }
+  }
+
   // bodySite with procedure/implant-aware laterality and digit context
   const laterality = (proc.laterality ??
     proc.implantDetails?.laterality ??

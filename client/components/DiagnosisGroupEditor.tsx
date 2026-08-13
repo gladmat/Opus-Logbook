@@ -152,6 +152,15 @@ import {
 } from "@/types/boneTumour";
 import { FixationHardwareDetails } from "@/components/FixationHardwareDetails";
 import { isFixationHardwareProcedure } from "@/types/fixationHardware";
+import { TenolysisDetails } from "@/components/hand-elective/TenolysisDetails";
+import {
+  isTenolysisProcedure,
+  getTenolysisSingleDigit,
+} from "@/types/tenolysis";
+import {
+  resolvePrimaryMultiLesionDiagnosis,
+  type MultiLesionSuggestionItem,
+} from "@/lib/multiLesionMapping";
 import { stripStaleHandTraumaData } from "@/lib/handCaseTypeGuards";
 import { HAND_ACUTE_COMPARTMENT_CROSS_REF_IDS } from "@/lib/diagnosisPicklists/handSurgeryDiagnoses";
 import { CraniofacialAssessment } from "@/components/craniofacial/CraniofacialAssessment";
@@ -701,10 +710,14 @@ function DiagnosisGroupEditorInner({
       diagnosisCertainty:
         isExcBiopsy || histologyPending ? "clinical" : undefined,
       clinicalSuspicion: isExcBiopsy ? clinicalSuspicion : undefined,
-      skinCancerAssessment:
-        groupSpecialty === "skin_cancer" ||
-        shouldActivateSkinCancerModule(selectedDiagnosis) ||
-        !!skinCancerAssessment
+      // Multi-lesion mode: per-lesion assessments supersede the group-level
+      // blob — emitting a stale group assessment alongside lesionInstances
+      // would re-trigger the accept-mapping guard with no matching UI.
+      skinCancerAssessment: isMultiLesion
+        ? undefined
+        : groupSpecialty === "skin_cancer" ||
+            shouldActivateSkinCancerModule(selectedDiagnosis) ||
+            !!skinCancerAssessment
           ? skinCancerAssessment
           : undefined,
       handInfectionDetails:
@@ -2335,6 +2348,90 @@ function DiagnosisGroupEditorInner({
     [groupSpecialty],
   );
 
+  // Multi-lesion accept-mapping — materialises one procedure per selected
+  // (lesion, procedure) pair and resolves the group diagnosis from the
+  // primary lesion. The multi-lesion counterpart of
+  // handleSkinCancerAcceptMapping; without it, multi-lesion groups could
+  // never satisfy the save-time accept-mapping guard.
+  const handleMultiLesionAcceptMapping = useCallback(
+    (selections: MultiLesionSuggestionItem[]) => {
+      if (selections.length === 0) return;
+
+      // The inline flow has no diagnosis picker, so the group diagnosis must
+      // come from the primary lesion's resolution; the non-inline flow keeps
+      // the surgeon's explicitly-picked diagnosis unless none exists.
+      if (isSkinCancerInlineFlow || !selectedDiagnosis) {
+        const resolved = resolvePrimaryMultiLesionDiagnosis(lesionInstances);
+        if (resolved) {
+          const dxEntry = resolved.diagnosisPicklistId
+            ? findDiagnosisById(resolved.diagnosisPicklistId)
+            : null;
+          setSelectedDiagnosis(dxEntry ?? null);
+          if (resolved.snomedCtCode) {
+            setPrimaryDiagnosis({
+              conceptId: resolved.snomedCtCode,
+              term: resolved.displayName,
+            });
+          } else {
+            setPrimaryDiagnosis(null);
+          }
+          setDiagnosis(resolved.displayName);
+          setIsDiagnosisPickerCollapsed(true);
+        }
+      }
+
+      const newProcedures: CaseProcedure[] = selections
+        .map((sel, idx) => {
+          const entry = findPicklistEntry(sel.procedurePicklistId);
+          if (!entry) return null;
+          return {
+            id: uuidv4(),
+            sequenceOrder: idx + 1,
+            // Lesion-labelled name (e.g. "Excision of skin lesion — Nose")
+            procedureName: sel.displayName,
+            specialty: groupSpecialty,
+            surgeonRole: "PS",
+            picklistEntryId: sel.procedurePicklistId,
+            snomedCtCode: entry.snomedCtCode,
+            snomedCtDisplay: entry.snomedCtDisplay,
+            subcategory: entry.subcategory,
+            tags: entry.tags,
+          };
+        })
+        .filter(Boolean) as CaseProcedure[];
+      setProcedures(newProcedures);
+      setSkinCancerProceduresAccepted(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    },
+    [
+      isSkinCancerInlineFlow,
+      selectedDiagnosis,
+      lesionInstances,
+      groupSpecialty,
+    ],
+  );
+
+  // Any lesion edit invalidates a previously-accepted mapping (mirrors the
+  // single-lesion onAssessmentChange reset).
+  const handleLesionInstancesChange = useCallback((next: LesionInstance[]) => {
+    setLesionInstances(next);
+    setSkinCancerProceduresAccepted(false);
+  }, []);
+
+  // Post-accept rows for the multi-lesion panel — the group's live
+  // procedures are the truthful accepted list (edit mode included).
+  const multiLesionAcceptedRows = useMemo(
+    () =>
+      procedures
+        .filter((p) => p.procedureName.trim())
+        .map((p) => ({
+          id: p.id,
+          name: p.procedureName,
+          snomedCtCode: p.snomedCtCode,
+        })),
+    [procedures],
+  );
+
   // Skin cancer inline flow — add another lesion (transitions to multi-lesion)
   const handleAddSkinCancerLesion = useCallback(() => {
     if (!skinCancerAssessment) return;
@@ -3257,9 +3354,14 @@ function DiagnosisGroupEditorInner({
         {isSkinCancerInlineFlow && isMultiLesion ? (
           <MultiLesionEditor
             lesions={lesionInstances}
-            onChange={setLesionInstances}
+            onChange={handleLesionInstancesChange}
             defaultPathologyType="other"
             isSkinCancer
+            diagnosisId={selectedDiagnosis?.id}
+            onAcceptMapping={handleMultiLesionAcceptMapping}
+            isAccepted={skinCancerProceduresAccepted}
+            onEditMapping={() => setSkinCancerProceduresAccepted(false)}
+            acceptedProcedureRows={multiLesionAcceptedRows}
           />
         ) : null}
 
@@ -3426,10 +3528,41 @@ function DiagnosisGroupEditorInner({
                     onMultiDigitConfirm={handleMultiDigitConfirm}
                   />
 
-                  {/* Bone tumour site & graft card — the elective flow hides
-                      the full procedure list behind "Browse full procedure
+                  {/* Corrective osteotomy card — the elective flow hides the
+                      full procedure list behind "Browse full procedure
                       picker", so the card must render inline here (the full
-                      list has its own copy, gated off while it is hidden). */}
+                      list has its own copy, gated off while it is hidden).
+                      Closes the latent gap where osteotomy fields were
+                      unreachable without opening the full picker. */}
+                  {!showAllProcedures
+                    ? procedures
+                        .filter(
+                          (proc) =>
+                            proc.picklistEntryId &&
+                            (
+                              OSTEOTOMY_PROCEDURE_IDS as readonly string[]
+                            ).includes(proc.picklistEntryId),
+                        )
+                        .map((proc) => (
+                          <CorrectiveOsteotomyDetails
+                            key={proc.id}
+                            procedureId={proc.picklistEntryId ?? ""}
+                            value={
+                              proc.osteotomyDetails ??
+                              createEmptyOsteotomyData()
+                            }
+                            onChange={(details) =>
+                              updateProcedure({
+                                ...proc,
+                                osteotomyDetails: details,
+                              })
+                            }
+                          />
+                        ))
+                    : null}
+
+                  {/* Bone tumour site & graft card — same inline reasoning as
+                      the osteotomy card above. */}
                   {!showAllProcedures
                     ? procedures
                         .filter(
@@ -3477,6 +3610,30 @@ function DiagnosisGroupEditorInner({
                               updateProcedure({
                                 ...proc,
                                 fixationHardware: details,
+                              })
+                            }
+                          />
+                        ))
+                    : null}
+
+                  {/* Tenolysis tendons & level card — same inline reasoning
+                      as the bone tumour card above. */}
+                  {!showAllProcedures
+                    ? procedures
+                        .filter((proc) =>
+                          isTenolysisProcedure(proc.picklistEntryId),
+                        )
+                        .map((proc) => (
+                          <TenolysisDetails
+                            key={proc.id}
+                            procedureId={proc.picklistEntryId ?? ""}
+                            procedureName={proc.procedureName}
+                            value={proc.tenolysisDetails}
+                            onChange={(details) =>
+                              updateProcedure({
+                                ...proc,
+                                tenolysisDetails: details,
+                                digitId: getTenolysisSingleDigit(details),
                               })
                             }
                           />
@@ -4130,13 +4287,21 @@ function DiagnosisGroupEditorInner({
                   onPress={() => {
                     const newValue = !isMultiLesion;
                     setIsMultiLesion(newValue);
+                    // Switching modes changes what the procedures represent —
+                    // require a fresh Accept Mapping either way.
+                    setSkinCancerProceduresAccepted(false);
                     if (newValue && lesionInstances.length === 0) {
                       setLesionInstances([
                         {
                           id: uuidv4(),
-                          site: "",
+                          site: skinCancerAssessment?.site ?? "",
                           pathologyType:
                             deriveDefaultPathologyType(selectedDiagnosis),
+                          // Carry any already-entered group assessment into
+                          // lesion 1 so toggling never discards entered work.
+                          skinCancerAssessment: skinCancerAssessment
+                            ? structuredClone(skinCancerAssessment)
+                            : undefined,
                           reconstruction: "primary_closure",
                           marginStatus: "pending",
                           histologyConfirmed: false,
@@ -4190,12 +4355,20 @@ function DiagnosisGroupEditorInner({
             {isMultiLesion && !isSkinCancerInlineFlow ? (
               <MultiLesionEditor
                 lesions={lesionInstances}
-                onChange={setLesionInstances}
+                onChange={handleLesionInstancesChange}
                 defaultPathologyType={deriveDefaultPathologyType(
                   selectedDiagnosis,
                 )}
                 isSkinCancer={isSkinCancerModule}
                 diagnosisId={selectedDiagnosis?.id}
+                onAcceptMapping={
+                  isSkinCancerModule
+                    ? handleMultiLesionAcceptMapping
+                    : undefined
+                }
+                isAccepted={skinCancerProceduresAccepted}
+                onEditMapping={() => setSkinCancerProceduresAccepted(false)}
+                acceptedProcedureRows={multiLesionAcceptedRows}
               />
             ) : !isMultiLesion ? (
               (() => {
@@ -4555,6 +4728,20 @@ function DiagnosisGroupEditorInner({
                                   updateProcedure({
                                     ...proc,
                                     fixationHardware: details,
+                                  })
+                                }
+                              />
+                            ) : null}
+                            {isTenolysisProcedure(proc.picklistEntryId) ? (
+                              <TenolysisDetails
+                                procedureId={proc.picklistEntryId ?? ""}
+                                value={proc.tenolysisDetails}
+                                onChange={(details) =>
+                                  updateProcedure({
+                                    ...proc,
+                                    tenolysisDetails: details,
+                                    // digitId drives per-digit FHIR bodySite
+                                    digitId: getTenolysisSingleDigit(details),
                                   })
                                 }
                               />
