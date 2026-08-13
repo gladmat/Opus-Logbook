@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  DAY_OF_SURGERY_TAGS,
+  deriveDateForTemporalTag,
   resolveMediaTag,
   suggestTemporalTag,
   suggestDefaultMediaTag,
@@ -358,5 +360,94 @@ describe("getPreferredMediaTagGroup", () => {
 
   it('falls back to "temporal" when no groups are provided', () => {
     expect(getPreferredMediaTagGroup(undefined, [])).toBe("temporal");
+  });
+});
+
+// ===============================================================
+// deriveDateForTemporalTag (tag → date, day-of-surgery snapping)
+// ===============================================================
+
+describe("deriveDateForTemporalTag", () => {
+  const SNAPPING_TAGS: MediaTag[] = [
+    "day_of_surgery",
+    "intraop",
+    "immediate_postop",
+    "xray_intraop",
+    "flap_design",
+    "flap_harvest",
+    "donor_site",
+    "donor_closure",
+    "recipient_prep",
+    "anastomosis",
+    "flap_inset",
+    "flap_perfusion",
+    "margin_marking",
+    "excision_defect",
+    "specimen",
+    "reconstruction_intraop",
+  ];
+
+  it("snaps every day-of-surgery tag to the procedure date", () => {
+    for (const tag of SNAPPING_TAGS) {
+      expect(deriveDateForTemporalTag("2026-08-01", tag)).toBe("2026-08-01");
+    }
+  });
+
+  it("matches the exported DAY_OF_SURGERY_TAGS set exactly", () => {
+    expect(new Set(SNAPPING_TAGS)).toEqual(new Set(DAY_OF_SURGERY_TAGS));
+  });
+
+  it("every day-of-surgery tag exists in the registry", () => {
+    for (const tag of DAY_OF_SURGERY_TAGS) {
+      expect(MEDIA_TAG_REGISTRY[tag]).toBeDefined();
+    }
+  });
+
+  it("returns null for ambiguous band and pre-op tags", () => {
+    const nonSnapping: MediaTag[] = [
+      "preop_clinical",
+      "postop_early",
+      "postop_mid",
+      "followup_3m",
+      "followup_late",
+      "discharge",
+      "xray_preop",
+      "xray_postop",
+      "flap_planning",
+      "flap_monitoring",
+      "lesion_overview",
+      "wound_postop",
+      "scar_followup",
+      "aesthetic_frontal",
+      "hand_dorsal",
+      "other",
+    ];
+    for (const tag of nonSnapping) {
+      expect(deriveDateForTemporalTag("2026-08-01", tag)).toBeNull();
+    }
+  });
+
+  it("returns null when the procedure date is missing or unparseable", () => {
+    expect(deriveDateForTemporalTag(undefined, "intraop")).toBeNull();
+    expect(deriveDateForTemporalTag("", "intraop")).toBeNull();
+    expect(deriveDateForTemporalTag("not-a-date", "intraop")).toBeNull();
+    expect(deriveDateForTemporalTag("2026-13-40", "intraop")).toBeNull();
+  });
+
+  it("returns null for a future procedure date (planned case)", () => {
+    const future = new Date();
+    future.setDate(future.getDate() + 30);
+    const yyyy = future.getFullYear();
+    const mm = `${future.getMonth() + 1}`.padStart(2, "0");
+    const dd = `${future.getDate()}`.padStart(2, "0");
+    expect(
+      deriveDateForTemporalTag(`${yyyy}-${mm}-${dd}`, "intraop"),
+    ).toBeNull();
+  });
+
+  it("normalizes full-ISO timestamp input to the date-only value", () => {
+    expect(
+      deriveDateForTemporalTag("2026-08-01T03:15:00.000Z", "intraop"),
+    ).toBe("2026-08-01");
   });
 });

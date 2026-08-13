@@ -37,6 +37,8 @@ interface InfectionOverlayFormProps {
   onChange: (overlay: InfectionOverlay | undefined) => void;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
+  /** Case procedure date (YYYY-MM-DD) — seeds the first episode's date. */
+  procedureDate?: string;
 }
 
 const SYNDROME_OPTIONS = Object.entries(INFECTION_SYNDROME_LABELS).map(
@@ -125,6 +127,7 @@ export function InfectionOverlayForm({
   onChange,
   collapsed = false,
   onToggleCollapse,
+  procedureDate,
 }: InfectionOverlayFormProps) {
   const { theme } = useTheme();
   const [showMicrobiology, setShowMicrobiology] = useState(
@@ -485,6 +488,7 @@ export function InfectionOverlayForm({
           <InfectionEpisodeTimeline
             overlay={value}
             onOverlayChange={onChange}
+            procedureDate={procedureDate}
           />
         </View>
       ) : null}

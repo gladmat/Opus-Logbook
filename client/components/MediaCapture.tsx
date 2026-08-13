@@ -98,13 +98,17 @@ export function MediaCapture({
     (
       savedMedia: { localUri: string; mimeType: string },
       createdAt: string,
+      capturedAt?: string,
     ): MediaAttachment =>
       buildDefaultMediaAttachment({
         savedMedia,
         createdAt,
         eventType,
         procedureDate: mediaContext?.procedureDate,
-        mediaDate: defaultMediaDate,
+        // Explicit event date wins; else the photo library's real capture
+        // instant (as a Date so it resolves to the LOCAL calendar date).
+        mediaDate:
+          defaultMediaDate ?? (capturedAt ? new Date(capturedAt) : undefined),
       }),
     [defaultMediaDate, eventType, mediaContext?.procedureDate],
   );
@@ -211,7 +215,11 @@ export function MediaCapture({
         const importedAttachments: MediaAttachment[] = [];
         await importMediaAssets(result.assets, (savedAsset) => {
           importedAttachments.push(
-            buildDefaultAttachment(savedAsset, new Date().toISOString()),
+            buildDefaultAttachment(
+              savedAsset,
+              new Date().toISOString(),
+              savedAsset.capturedAt,
+            ),
           );
           onAttachmentsChange([...startingAttachments, ...importedAttachments]);
         });

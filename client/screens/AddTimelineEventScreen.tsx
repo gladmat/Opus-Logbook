@@ -211,10 +211,12 @@ export default function AddTimelineEventScreen() {
     if (derived) setFollowUpInterval(derived);
   }, [isEditMode, eventType, eventDate, effectiveProcedureDate]);
 
+  // Keyed off the EVENT date, not today — a backdated event on the
+  // discharge day still earns the discharge context.
   const isDischargeDay = useMemo(() => {
     if (!caseDischargeDate) return false;
-    return toIsoDateValue(new Date()) === caseDischargeDate;
-  }, [caseDischargeDate]);
+    return eventDate === normalizeDateOnlyValue(caseDischargeDate);
+  }, [caseDischargeDate, eventDate]);
 
   const getSubtitle = () => {
     switch (eventType) {
@@ -327,9 +329,13 @@ export default function AddTimelineEventScreen() {
           id: editingEvent?.complicationData?.id || uuidv4(),
           description: complicationDescription.trim(),
           clavienDindoGrade: complicationGrade,
+          // New complications are identified on the (possibly backdated)
+          // event date, not the day the form was filled in.
           dateIdentified:
-            editingEvent?.complicationData?.dateIdentified ||
-            new Date().toISOString(),
+            editingEvent?.complicationData?.dateIdentified ??
+            (eventDate === toIsoDateValue(new Date())
+              ? new Date().toISOString()
+              : (toUtcNoonIsoTimestamp(eventDate) ?? new Date().toISOString())),
           managementNotes: complicationManagement.trim() || undefined,
           resolved: editingEvent?.complicationData?.resolved ?? false,
         };

@@ -357,6 +357,7 @@ export const OutcomesSection = React.memo(function OutcomesSection({
             onChange={onInfectionChange}
             collapsed={infectionCollapsed}
             onToggleCollapse={onInfectionToggle}
+            procedureDate={procedureDate}
           />
         </>
       ) : null}

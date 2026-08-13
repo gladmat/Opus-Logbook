@@ -11,6 +11,7 @@ import {
   hasMediaV2,
   clearAllMediaV2,
 } from "./mediaFileStorage";
+import { resolveAssetCapturedAt } from "./mediaAssetDates";
 import {
   prepareImageForEncryption,
   generateThumbnailFile,
@@ -21,12 +22,16 @@ export { isOpusMediaUri, OPUS_MEDIA_PREFIX };
 export interface MediaImportAsset {
   uri: string;
   mimeType?: string | null;
+  /** Photo-library asset id (ImagePicker provides it for gallery picks). */
+  assetId?: string | null;
 }
 
 export interface ImportedMediaAsset {
   localUri: string;
   mimeType: string;
   sourceUri: string;
+  /** Real capture instant from the photo library, when resolvable. */
+  capturedAt?: string;
 }
 
 export interface ResolvedMediaStorage {
@@ -170,6 +175,7 @@ export async function importMediaAssets(
     const asset = assets[index];
     if (!asset) continue;
 
+    const capturedAt = await resolveAssetCapturedAt(asset.assetId);
     const saved = await saveEncryptedMediaFromUri(
       asset.uri,
       asset.mimeType || "image/jpeg",
@@ -179,6 +185,7 @@ export async function importMediaAssets(
         localUri: saved.localUri,
         mimeType: saved.mimeType,
         sourceUri: asset.uri,
+        capturedAt,
       },
       index,
     );

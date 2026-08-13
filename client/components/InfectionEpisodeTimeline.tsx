@@ -8,15 +8,19 @@ import { InfectionEpisodeCard } from "@/components/InfectionEpisodeCard";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { InfectionEpisode, InfectionOverlay } from "@/types/infection";
+import { toUtcNoonIsoTimestamp } from "@/lib/dateValues";
 
 interface InfectionEpisodeTimelineProps {
   overlay: InfectionOverlay;
   onOverlayChange: (overlay: InfectionOverlay) => void;
+  /** Case procedure date (YYYY-MM-DD) — seeds the first episode's date. */
+  procedureDate?: string;
 }
 
 export function InfectionEpisodeTimeline({
   overlay,
   onOverlayChange,
+  procedureDate,
 }: InfectionEpisodeTimelineProps) {
   const { theme } = useTheme();
   const [expandedEpisodeId, setExpandedEpisodeId] = useState<string | null>(
@@ -28,9 +32,16 @@ export function InfectionEpisodeTimeline({
   const handleAddEpisode = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const now = new Date().toISOString();
+    // Episode #1 is almost always the index procedure — seed its date from
+    // the case's procedure date; later episodes default to today. The date
+    // is editable on the card either way.
+    const seededDatetime =
+      episodes.length === 0 && procedureDate
+        ? (toUtcNoonIsoTimestamp(procedureDate) ?? now)
+        : now;
     const newEpisode: InfectionEpisode = {
       id: uuidv4(),
-      episodeDatetime: now,
+      episodeDatetime: seededDatetime,
       episodeNumber: episodes.length + 1,
       intents: [],
       createdAt: now,

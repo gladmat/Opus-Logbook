@@ -5042,6 +5042,7 @@ function DiagnosisGroupEditorInner({
             initialOutcome={getFlapOutcomeForProcedure(
               activeFlapOutcomeProcedure,
             )}
+            procedureDate={procedureDate || undefined}
           />
         ) : null}
 

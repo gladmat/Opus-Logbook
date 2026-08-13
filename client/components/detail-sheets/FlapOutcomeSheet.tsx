@@ -14,6 +14,8 @@ interface FlapOutcomeSheetProps {
   onClose: () => void;
   onSave: (outcome: FreeFlapOutcomeDetails) => void;
   initialOutcome: FreeFlapOutcomeDetails;
+  /** Case procedure date (YYYY-MM-DD) — enables days-post-op derivation. */
+  procedureDate?: string;
 }
 
 export function FlapOutcomeSheet({
@@ -21,6 +23,7 @@ export function FlapOutcomeSheet({
   onClose,
   onSave,
   initialOutcome,
+  procedureDate,
 }: FlapOutcomeSheetProps) {
   const [localOutcome, setLocalOutcome] =
     useState<FreeFlapOutcomeDetails>(initialOutcome);
@@ -45,7 +48,11 @@ export function FlapOutcomeSheet({
       onSave={handleSave}
       onCancel={onClose}
     >
-      <FlapOutcomeSection outcome={localOutcome} onUpdate={setLocalOutcome} />
+      <FlapOutcomeSection
+        outcome={localOutcome}
+        onUpdate={setLocalOutcome}
+        procedureDate={procedureDate}
+      />
     </DetailModuleSheet>
   );
 }

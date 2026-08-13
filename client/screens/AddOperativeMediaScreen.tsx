@@ -32,12 +32,15 @@ import { DatePickerField } from "@/components/FormField";
 import { notFutureMax } from "@/lib/dateBounds";
 import { useMediaCallback } from "@/contexts/MediaCallbackContext";
 import {
-  normalizeDateOnlyValue,
+  resolveEventDisplayDate,
   toIsoDateValue,
   toUtcNoonIsoTimestamp,
 } from "@/lib/dateValues";
 import { MediaTagPicker } from "@/components/media";
-import { suggestDefaultMediaTag } from "@/lib/mediaTagHelpers";
+import {
+  deriveDateForTemporalTag,
+  suggestDefaultMediaTag,
+} from "@/lib/mediaTagHelpers";
 import type { MediaTag } from "@/types/media";
 import {
   buildOperativeMediaItemRecord,
@@ -89,19 +92,56 @@ export default function AddOperativeMediaScreen() {
     sourceAssetId,
   } = route.params;
 
-  // Resolve initial tag from existingTag or suggest from context
+  // A route-provided timestamp may be date-only, a UTC-noon anchor, or a
+  // real wall-clock instant — resolveEventDisplayDate maps all three to the
+  // intended LOCAL calendar date (bare normalization would take the UTC
+  // prefix, off by one in UTC+12/13 for evening captures).
+  const existingDisplayDate =
+    existingTimestamp != null
+      ? resolveEventDisplayDate(existingTimestamp)
+      : null;
+  const existingDateOnly = existingDisplayDate
+    ? toIsoDateValue(existingDisplayDate)
+    : undefined;
+
+  // Resolve initial tag from existingTag or suggest from context; a known
+  // media date beats "today" as the reference so backdated media suggests
+  // the right temporal band.
   const initialTag: MediaTag = existingTag
     ? existingTag
     : suggestDefaultMediaTag({
         procedureDate: mediaContext?.procedureDate,
+        mediaDate: existingDateOnly,
       });
 
   const [selectedTag, setSelectedTag] = useState<MediaTag>(initialTag);
   const [captionInput, setCaptionInput] = useState(existingCaption || "");
+  // Day-of-surgery tags (intraop etc.) imply the procedure date; anything
+  // else defaults to today. Once the user picks a date manually the tag
+  // stops moving it (dateTouchedRef), mirroring deriveFollowUpInterval.
   const [mediaDate, setMediaDate] = useState(
     () =>
-      normalizeDateOnlyValue(existingTimestamp) ?? toIsoDateValue(new Date()),
+      existingDateOnly ??
+      deriveDateForTemporalTag(mediaContext?.procedureDate, initialTag) ??
+      toIsoDateValue(new Date()),
   );
+  const dateTouchedRef = useRef(existingTimestamp != null || editMode);
+
+  const handleSelectTag = (tag: MediaTag) => {
+    setSelectedTag(tag);
+    if (!dateTouchedRef.current) {
+      const snapped = deriveDateForTemporalTag(
+        mediaContext?.procedureDate,
+        tag,
+      );
+      if (snapped) setMediaDate(snapped);
+    }
+  };
+
+  const handleDateChange = (value: string) => {
+    dateTouchedRef.current = true;
+    setMediaDate(value);
+  };
   const [cameraPermission, requestCameraPermission] =
     ImagePicker.useCameraPermissions();
   const [currentUri, setCurrentUri] = useState(imageUri);
@@ -357,12 +397,16 @@ export default function AddOperativeMediaScreen() {
         savedReplacementUri = savedMedia.localUri;
       }
 
-      // Build timestamp from selected date
+      // Build timestamp from selected date. An unchanged existing timestamp
+      // is kept verbatim so metadata-only edits don't degrade a real capture
+      // instant into a noon anchor.
       const today = toIsoDateValue(new Date());
       const timestamp =
-        mediaDate === today
-          ? new Date().toISOString()
-          : (toUtcNoonIsoTimestamp(mediaDate) ?? new Date().toISOString());
+        existingTimestamp != null && mediaDate === existingDateOnly
+          ? existingTimestamp
+          : mediaDate === today
+            ? new Date().toISOString()
+            : (toUtcNoonIsoTimestamp(mediaDate) ?? new Date().toISOString());
 
       const mediaData = buildOperativeMediaItemRecord({
         id: editMode && existingMediaId ? existingMediaId : uuidv4(),
@@ -626,7 +670,7 @@ export default function AddOperativeMediaScreen() {
 
           <MediaTagPicker
             selectedTag={selectedTag}
-            onSelectTag={setSelectedTag}
+            onSelectTag={handleSelectTag}
             specialty={mediaContext?.specialty}
             procedureTags={mediaContext?.procedureTags}
             hasSkinCancerAssessment={mediaContext?.hasSkinCancerAssessment}
@@ -635,7 +679,7 @@ export default function AddOperativeMediaScreen() {
           <DatePickerField
             label="Date"
             value={mediaDate}
-            onChange={setMediaDate}
+            onChange={handleDateChange}
             placeholder="Select date..."
             maximumDate={notFutureMax()}
           />

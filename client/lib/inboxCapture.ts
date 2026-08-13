@@ -53,6 +53,10 @@ export function buildOperativeMediaItemFromInboxItem(
     localUri: item.localUri,
     mimeType: item.mimeType,
     tag,
+    // capturedAt is a real wall-clock instant — carried on timestamp so the
+    // clinical date survives later metadata edits (createdAt alone is only
+    // a display fallback and gets lost on edit round-trips).
+    timestamp: item.capturedAt,
     createdAt: item.capturedAt,
     templateId: item.templateId,
     templateStepIndex: item.templateStepIndex,
@@ -81,6 +85,7 @@ export function buildCapturedOperativeMediaItem(args: {
     localUri: args.localUri,
     mimeType: args.mimeType,
     tag,
+    timestamp: args.capturedAt,
     createdAt: args.capturedAt,
     templateId: args.templateId,
     templateStepIndex: args.templateStepIndex,

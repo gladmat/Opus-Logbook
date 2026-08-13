@@ -220,7 +220,13 @@ export default function MediaManagementScreen() {
             createdAt: new Date().toISOString(),
             eventType,
             procedureDate: mediaContext?.procedureDate,
-            mediaDate: defaultMediaDate,
+            // Explicit event date wins; else the photo library's real
+            // capture instant (as a Date → local calendar date).
+            mediaDate:
+              defaultMediaDate ??
+              (savedAsset.capturedAt
+                ? new Date(savedAsset.capturedAt)
+                : undefined),
           });
           addedUrisRef.current.add(newAttachment.localUri);
           const sourceAssetId = result.assets[index]?.assetId;
