@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   View,
   ScrollView,
@@ -64,6 +64,8 @@ import {
   getAssessmentStatus,
   type AssessmentStatusResponse,
 } from "@/lib/assessmentApi";
+import { deriveEpaFromSharedBlob } from "@/lib/epaFromBlob";
+import { useAuth } from "@/contexts/AuthContext";
 
 type RouteProps = RouteProp<RootStackParamList, "SharedCaseDetail">;
 type NavProps = NativeStackNavigationProp<
@@ -191,6 +193,7 @@ export default function SharedCaseDetailScreen() {
   const { theme } = useTheme();
   const navigation = useNavigation<NavProps>();
   const route = useRoute<RouteProps>();
+  const { user } = useAuth();
   const { sharedCaseId } = route.params;
 
   const [caseData, setCaseData] = useState<SharedCaseData | null>(null);
@@ -235,6 +238,20 @@ export default function SharedCaseDetailScreen() {
           detail.verificationStatus as "pending" | "verified" | "disputed",
         );
         setRecipientRole(detail.recipientRole);
+      } else {
+        // Server unreachable — seed from the local inbox index so a
+        // previously verified case doesn't regress to the Verify prompt.
+        // The fresh server value always wins when it arrives (above);
+        // this is deliberately NOT a standing effect, so a stale index
+        // can never clobber a newer server-derived status.
+        try {
+          const { getSharedInboxIndex } = await import("@/lib/sharingStorage");
+          const index = await getSharedInboxIndex();
+          const entry = index.find((e) => e.id === sharedCaseId);
+          if (entry) setVerificationStatus(entry.verificationStatus);
+        } catch {
+          // Non-critical
+        }
       }
       if (cached) {
         const cacheIsCurrent =
@@ -301,7 +318,10 @@ export default function SharedCaseDetailScreen() {
     loadCase();
   }, [loadCase]);
 
-  // Fetch owner display name from inbox index metadata
+  // Fetch owner display name from inbox index metadata. Verification
+  // status is deliberately NOT set here — loadCase owns it (server value
+  // first, index only as offline fallback); this effect used to race and
+  // clobber a fresh "verified" with a stale cached "pending".
   useEffect(() => {
     (async () => {
       try {
@@ -310,7 +330,6 @@ export default function SharedCaseDetailScreen() {
         const entry = index.find((e) => e.id === sharedCaseId);
         if (entry) {
           setOwnerDisplayName(entry.ownerDisplayName || "");
-          setVerificationStatus(entry.verificationStatus);
         }
       } catch {
         // Non-critical
@@ -318,10 +337,12 @@ export default function SharedCaseDetailScreen() {
     })();
   }, [sharedCaseId]);
 
-  // Fetch assessment status when verified (on mount + each focus)
+  // Fetch assessment status on mount + each focus. Unconditional: the
+  // server authorizes both parties, and the response tells us whether the
+  // viewer is the case OWNER (whom the inbox endpoint rejects) and whether
+  // an assessment is already committed — both needed BEFORE verification.
   useFocusEffect(
     useCallback(() => {
-      if (verificationStatus !== "verified") return;
       let cancelled = false;
       (async () => {
         try {
@@ -334,8 +355,32 @@ export default function SharedCaseDetailScreen() {
       return () => {
         cancelled = true;
       };
-    }, [sharedCaseId, verificationStatus]),
+    }, [sharedCaseId]),
   );
+
+  // The inbox endpoint 403s for the case OWNER, but the assessment-status
+  // endpoint authorizes both parties — its ownerUserId identifies the
+  // viewer's side. Owners reach this screen via assessment push deep-links
+  // and must not be shown Verify/Dispute (the verify endpoint rejects them).
+  const viewerIsOwner =
+    assessmentStatus != null &&
+    user != null &&
+    assessmentStatus.ownerUserId === user.id;
+
+  // Recipient-side EPA derivation from the decrypted blob (same engine as
+  // the owner's save-time derivation). Drives the pre-verification hint
+  // and the suggested assessor role.
+  const epaView = useMemo(() => {
+    if (!caseData || !user) return null;
+    return deriveEpaFromSharedBlob({
+      blob: caseData,
+      viewerUserId: user.id,
+      ownerUserId:
+        assessmentStatus?.ownerUserId ??
+        caseData.ownerParticipant?.userId ??
+        "",
+    });
+  }, [caseData, user, assessmentStatus?.ownerUserId]);
 
   const handleVerify = async () => {
     setSubmitting(true);
@@ -745,155 +790,204 @@ export default function SharedCaseDetailScreen() {
           })()}
         </DetailCard>
 
-        {/* Verification section */}
-        <View style={styles.verificationSection}>
-          {verificationStatus === "pending" ? (
-            <>
-              <ThemedText
-                style={[styles.verificationPrompt, { color: theme.text }]}
-              >
-                Verify your involvement in this case
-              </ThemedText>
+        {/* Verification section — recipients only. The owner reaches this
+            screen via assessment deep-links; the verify endpoint rejects
+            them, so the buttons must not render. */}
+        {viewerIsOwner ? null : (
+          <View style={styles.verificationSection}>
+            {verificationStatus === "pending" ? (
+              <>
+                <ThemedText
+                  style={[styles.verificationPrompt, { color: theme.text }]}
+                >
+                  {assessmentStatus?.myAssessment
+                    ? "This case was updated — please re-verify your involvement"
+                    : "Verify your involvement in this case"}
+                </ThemedText>
 
-              {showDisputeInput ? (
-                <View style={styles.disputeInputContainer}>
-                  <TextInput
-                    value={disputeNote}
-                    onChangeText={setDisputeNote}
-                    placeholder="Reason for dispute..."
-                    placeholderTextColor={theme.textTertiary}
-                    multiline
-                    style={[
-                      styles.disputeInput,
-                      {
-                        backgroundColor: theme.backgroundElevated,
-                        borderColor: theme.border,
-                        color: theme.text,
-                      },
-                    ]}
-                  />
-                  <View style={styles.disputeActions}>
-                    <Pressable
-                      onPress={() => {
-                        setShowDisputeInput(false);
-                        setDisputeNote("");
-                      }}
+                {showDisputeInput ? (
+                  <View style={styles.disputeInputContainer}>
+                    <TextInput
+                      value={disputeNote}
+                      onChangeText={setDisputeNote}
+                      placeholder="Reason for dispute..."
+                      placeholderTextColor={theme.textTertiary}
+                      multiline
                       style={[
-                        styles.actionButton,
-                        { borderColor: theme.border, borderWidth: 1 },
+                        styles.disputeInput,
+                        {
+                          backgroundColor: theme.backgroundElevated,
+                          borderColor: theme.border,
+                          color: theme.text,
+                        },
                       ]}
-                    >
-                      <ThemedText style={{ color: theme.textSecondary }}>
-                        Cancel
-                      </ThemedText>
-                    </Pressable>
+                    />
+                    <View style={styles.disputeActions}>
+                      <Pressable
+                        onPress={() => {
+                          setShowDisputeInput(false);
+                          setDisputeNote("");
+                        }}
+                        style={[
+                          styles.actionButton,
+                          { borderColor: theme.border, borderWidth: 1 },
+                        ]}
+                      >
+                        <ThemedText style={{ color: theme.textSecondary }}>
+                          Cancel
+                        </ThemedText>
+                      </Pressable>
+                      <Pressable
+                        onPress={handleDispute}
+                        disabled={submitting}
+                        style={[
+                          styles.actionButton,
+                          { backgroundColor: theme.warning },
+                        ]}
+                      >
+                        <ThemedText
+                          style={{ color: palette.white, fontWeight: "600" }}
+                        >
+                          {submitting ? "Submitting..." : "Submit Dispute"}
+                        </ThemedText>
+                      </Pressable>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.verificationButtons}>
                     <Pressable
-                      onPress={handleDispute}
+                      testID="sharedCaseDetail.btn-verify"
+                      onPress={handleVerify}
                       disabled={submitting}
                       style={[
-                        styles.actionButton,
-                        { backgroundColor: theme.warning },
+                        styles.verifyButton,
+                        { backgroundColor: theme.success },
                       ]}
                     >
+                      <Feather name="check" size={18} color={palette.white} />
+                      <ThemedText style={styles.verifyButtonText}>
+                        {submitting ? "Verifying..." : "Verify"}
+                      </ThemedText>
+                    </Pressable>
+
+                    <Pressable
+                      testID="sharedCaseDetail.btn-dispute"
+                      onPress={() => setShowDisputeInput(true)}
+                      disabled={submitting}
+                      style={[
+                        styles.disputeButton,
+                        { borderColor: theme.warning },
+                      ]}
+                    >
+                      <Feather
+                        name="alert-triangle"
+                        size={18}
+                        color={theme.warning}
+                      />
                       <ThemedText
-                        style={{ color: palette.white, fontWeight: "600" }}
+                        style={[
+                          styles.disputeButtonText,
+                          { color: theme.warning },
+                        ]}
                       >
-                        {submitting ? "Submitting..." : "Submit Dispute"}
+                        Dispute
                       </ThemedText>
                     </Pressable>
                   </View>
-                </View>
-              ) : (
-                <View style={styles.verificationButtons}>
-                  <Pressable
-                    testID="sharedCaseDetail.btn-verify"
-                    onPress={handleVerify}
-                    disabled={submitting}
-                    style={[
-                      styles.verifyButton,
-                      { backgroundColor: theme.success },
-                    ]}
-                  >
-                    <Feather name="check" size={18} color={palette.white} />
-                    <ThemedText style={styles.verifyButtonText}>
-                      {submitting ? "Verifying..." : "Verify"}
-                    </ThemedText>
-                  </Pressable>
+                )}
 
-                  <Pressable
-                    testID="sharedCaseDetail.btn-dispute"
-                    onPress={() => setShowDisputeInput(true)}
-                    disabled={submitting}
+                {/* Pre-verification EPA hint — discoverability must not
+                  depend on having verified. The assessment itself stays
+                  gated behind verification. */}
+                {epaView?.myTarget && !assessmentStatus?.myAssessment ? (
+                  <View
+                    testID="sharedCaseDetail.epa-locked"
                     style={[
-                      styles.disputeButton,
-                      { borderColor: theme.warning },
+                      styles.assessmentCard,
+                      {
+                        backgroundColor: theme.backgroundElevated,
+                        borderColor: theme.border,
+                      },
+                      Shadows.card,
                     ]}
                   >
-                    <Feather
-                      name="alert-triangle"
-                      size={18}
-                      color={theme.warning}
-                    />
+                    <Feather name="lock" size={20} color={theme.accent} />
+                    <View style={styles.assessmentCardText}>
+                      <ThemedText
+                        style={[styles.assessmentTitle, { color: theme.text }]}
+                      >
+                        EPA assessment available
+                      </ThemedText>
+                      <ThemedText
+                        style={[
+                          styles.assessmentSubtitle,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
+                        Verify your involvement above to unlock
+                      </ThemedText>
+                    </View>
+                  </View>
+                ) : null}
+              </>
+            ) : verificationStatus === "verified" ? (
+              <View
+                style={[
+                  styles.statusBanner,
+                  { backgroundColor: theme.successSurface },
+                ]}
+              >
+                <Feather name="check-circle" size={20} color={theme.success} />
+                <ThemedText
+                  style={[styles.statusText, { color: theme.success }]}
+                >
+                  Verified
+                  {verifiedAt
+                    ? ` on ${new Date(verifiedAt).toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}`
+                    : ""}
+                </ThemedText>
+              </View>
+            ) : (
+              <View
+                style={[
+                  styles.statusBanner,
+                  { backgroundColor: theme.errorSurface },
+                ]}
+              >
+                <Feather name="alert-triangle" size={20} color={theme.error} />
+                <View style={{ flex: 1, marginLeft: Spacing.sm }}>
+                  <ThemedText
+                    style={[styles.statusText, { color: theme.error }]}
+                  >
+                    Disputed
+                  </ThemedText>
+                  {verificationNote ? (
                     <ThemedText
                       style={[
-                        styles.disputeButtonText,
-                        { color: theme.warning },
+                        styles.disputeNoteText,
+                        { color: theme.textSecondary },
                       ]}
                     >
-                      Dispute
+                      {verificationNote}
                     </ThemedText>
-                  </Pressable>
+                  ) : null}
                 </View>
-              )}
-            </>
-          ) : verificationStatus === "verified" ? (
-            <View
-              style={[
-                styles.statusBanner,
-                { backgroundColor: theme.successSurface },
-              ]}
-            >
-              <Feather name="check-circle" size={20} color={theme.success} />
-              <ThemedText style={[styles.statusText, { color: theme.success }]}>
-                Verified
-                {verifiedAt
-                  ? ` on ${new Date(verifiedAt).toLocaleDateString("en-GB", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}`
-                  : ""}
-              </ThemedText>
-            </View>
-          ) : (
-            <View
-              style={[
-                styles.statusBanner,
-                { backgroundColor: theme.errorSurface },
-              ]}
-            >
-              <Feather name="alert-triangle" size={20} color={theme.error} />
-              <View style={{ flex: 1, marginLeft: Spacing.sm }}>
-                <ThemedText style={[styles.statusText, { color: theme.error }]}>
-                  Disputed
-                </ThemedText>
-                {verificationNote ? (
-                  <ThemedText
-                    style={[
-                      styles.disputeNoteText,
-                      { color: theme.textSecondary },
-                    ]}
-                  >
-                    {verificationNote}
-                  </ThemedText>
-                ) : null}
               </View>
-            </View>
-          )}
-        </View>
+            )}
+          </View>
+        )}
 
-        {/* Assessment card */}
-        {verificationStatus === "verified"
+        {/* Assessment card. Visible when verified, when the viewer is the
+            owner (they never verify), or when the viewer's own assessment
+            is already committed — an owner edit-save resets verification
+            to pending, and that must never hide committed work. */}
+        {verificationStatus === "verified" ||
+        viewerIsOwner ||
+        assessmentStatus?.myAssessment != null
           ? (() => {
               const my = assessmentStatus?.myAssessment;
               const other = assessmentStatus?.otherAssessment;
@@ -947,10 +1041,16 @@ export default function SharedCaseDetailScreen() {
                 );
               }
 
-              // Submitted, waiting for other party
+              // Submitted, waiting for other party. Opening the Assessment
+              // screen also uploads any pending reveal — without this CTA
+              // the reveal flow depended entirely on push notifications.
               if (my && !my.revealedAt) {
                 return (
-                  <View
+                  <Pressable
+                    testID="sharedCaseDetail.btn-openAssessment"
+                    onPress={() =>
+                      navigation.navigate("Assessment", { sharedCaseId })
+                    }
                     style={[
                       styles.assessmentCard,
                       {
@@ -973,10 +1073,15 @@ export default function SharedCaseDetailScreen() {
                           { color: theme.textSecondary },
                         ]}
                       >
-                        Waiting for the other party to submit
+                        Waiting for the other party — tap to open
                       </ThemedText>
                     </View>
-                  </View>
+                    <Feather
+                      name="chevron-right"
+                      size={18}
+                      color={theme.accent}
+                    />
+                  </Pressable>
                 );
               }
 
@@ -984,7 +1089,10 @@ export default function SharedCaseDetailScreen() {
               return (
                 <Pressable
                   onPress={() =>
-                    navigation.navigate("Assessment", { sharedCaseId })
+                    navigation.navigate("Assessment", {
+                      sharedCaseId,
+                      suggestedRole: epaView?.myRole ?? undefined,
+                    })
                   }
                   style={[
                     styles.assessmentCard,
