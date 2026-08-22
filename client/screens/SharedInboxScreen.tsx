@@ -22,6 +22,7 @@ import {
 } from "@/lib/sharingStorage";
 import { getMyAssessment, getRevealedPair } from "@/lib/assessmentStorage";
 import { deriveEpaFromSharedBlob } from "@/lib/epaFromBlob";
+import { ensurePushPermissionsWithPrompt } from "@/lib/pushPermissions";
 import { useAuth } from "@/contexts/AuthContext";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -204,6 +205,11 @@ export default function SharedInboxScreen() {
       );
       setEntries(data);
       await updateSharedInboxIndex(data);
+      // Colleagues are sharing with this user — the moment push value is
+      // self-evident. One-shot contextual permission pre-prompt.
+      if (data.length > 0) {
+        void ensurePushPermissionsWithPrompt("shared-inbox");
+      }
     } catch (error) {
       console.error("Error loading shared inbox:", error);
     } finally {

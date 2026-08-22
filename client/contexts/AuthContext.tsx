@@ -54,8 +54,7 @@ import { migrateUnscopedStorage } from "@/lib/storageMigration";
 import { initializeInboxStorage } from "@/lib/inboxStorage";
 import { clearAllEpisodes } from "@/lib/episodeStorage";
 import * as Notifications from "expo-notifications";
-import Constants from "expo-constants";
-import { registerPushTokenOnServer } from "@/lib/sharingApi";
+import { registerPushToken } from "@/lib/pushRegistration";
 import {
   discoverUnlinkedContacts,
   clearDiscoveryState,
@@ -175,16 +174,13 @@ async function registerDeviceAndPushToken(): Promise<void> {
   const { deviceId, publicKey } = await getOrCreateDeviceIdentity();
   await registerDeviceKey(deviceId, publicKey, Platform.OS);
 
-  // Register push token if permissions already granted (non-blocking)
+  // Register push token if permissions already granted (non-blocking).
+  // The contextual permission prompt lives in lib/pushPermissions.ts —
+  // this boot path never prompts.
   try {
     const { status } = await Notifications.getPermissionsAsync();
     if (status === "granted") {
-      const projectId =
-        Constants.expoConfig?.extra?.eas?.projectId ?? undefined;
-      const tokenData = await Notifications.getExpoPushTokenAsync({
-        projectId,
-      });
-      await registerPushTokenOnServer(tokenData.data, deviceId);
+      await registerPushToken(deviceId);
     }
   } catch (pushError) {
     console.warn("Push token registration failed:", pushError);

@@ -117,6 +117,7 @@ import {
   type TeamShareOutcome,
 } from "@/lib/caseSharing";
 import { runPostSaveTeamPrompt } from "@/lib/linkingPrompts";
+import { ensurePushPermissionsWithPrompt } from "@/lib/pushPermissions";
 import { getTeamContacts } from "@/lib/teamContactsApi";
 import {
   deriveEpaAssessments,
@@ -2733,6 +2734,13 @@ export function useCaseForm({
             liveContacts,
             ownUserId: profile?.userId,
           });
+        }
+
+        // First successful share to a colleague is the moment push value is
+        // self-evident — contextual one-shot permission pre-prompt. Without
+        // a token every "case shared" / "assessment waiting" push no-ops.
+        if (shareOutcome && shareOutcome.shared.length > 0) {
+          void ensurePushPermissionsWithPrompt("first-share");
         }
 
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
