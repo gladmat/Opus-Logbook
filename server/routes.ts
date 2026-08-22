@@ -1955,7 +1955,13 @@ export async function registerRoutes(app: Express): Promise<void> {
               p.recipientUserId,
               "EPA Assessment",
               "EPA assessment available — verify and assess this case",
-              { type: "assessment_pending", sharedCaseId: p.sharedCaseId },
+              {
+                type: "assessment_pending",
+                sharedCaseId: p.sharedCaseId,
+                // Share-time pushes always target the recipient; the client
+                // routes owners (commit-time pushes) elsewhere.
+                party: "recipient",
+              },
             ).catch((err) => log.warn("EPA share push failed:", err));
           }
         }
@@ -2790,13 +2796,40 @@ export async function registerRoutes(app: Express): Promise<void> {
           });
           return;
         }
+        // The channel is UNIQUE(sharedCaseId, assessorRole) — a second
+        // commit under the same ROLE (both parties picked "supervisor")
+        // used to surface as a raw 500 from the index. 409 with guidance.
+        if (existing.some((a) => a.assessorRole === assessorRole)) {
+          res.status(409).json({
+            error:
+              "An assessment for this role already exists on this case — you may be assessing under the wrong role.",
+          });
+          return;
+        }
 
-        const assessment = await storage.createAssessmentCommitment({
-          sharedCaseId,
-          assessorUserId: req.userId!,
-          assessorRole,
-          commitment,
-        });
+        let assessment;
+        try {
+          assessment = await storage.createAssessmentCommitment({
+            sharedCaseId,
+            assessorUserId: req.userId!,
+            assessorRole,
+            commitment,
+          });
+        } catch (err) {
+          // Unique-index race (both parties committed the same role
+          // simultaneously) → same 409 as the pre-check above.
+          if (
+            err instanceof Error &&
+            /unique|duplicate/i.test(err.message ?? "")
+          ) {
+            res.status(409).json({
+              error:
+                "An assessment for this role already exists on this case — you may be assessing under the wrong role.",
+            });
+            return;
+          }
+          throw err;
+        }
 
         // Second commitment in → both parties may now reveal. A legacy
         // instant-submit row counts as committed (its content is already up).
@@ -2827,7 +2860,16 @@ export async function registerRoutes(app: Express): Promise<void> {
             counterpartUserId,
             "Assessment Waiting",
             "A colleague has submitted a blinded assessment — add yours to reveal both",
-            { type: "assessment_pending", sharedCaseId },
+            {
+              type: "assessment_pending",
+              sharedCaseId,
+              // Tells the client which screen fits the tap target: the
+              // case OWNER can't use SharedCaseDetail's inbox endpoint.
+              party:
+                counterpartUserId === sharedCase.ownerUserId
+                  ? "owner"
+                  : "recipient",
+            },
           ).catch(() => {});
         }
         return;

@@ -29,6 +29,7 @@ import { MediaCallbackProvider } from "@/contexts/MediaCallbackContext";
 import { ThemeProvider, useTheme } from "@/hooks/useTheme";
 import { palette } from "@/constants/theme";
 import { initClientSentry, captureClientException } from "@/lib/sentry";
+import { resolveNotificationTarget } from "@/lib/notificationRouting";
 import { initAnalytics, track } from "@/lib/analytics";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
 import {
@@ -48,30 +49,17 @@ Notifications.setNotificationHandler({
 });
 
 function handleNotificationNavigation(data: Record<string, unknown>) {
-  const type = data.type as string | undefined;
-  const sharedCaseId = data.sharedCaseId as string | undefined;
-
-  if (!sharedCaseId || !navigationRef.isReady()) return;
-
-  switch (type) {
-    case "case_shared":
-    case "shared_case_update":
-      navigationRef.navigate("SharedCaseDetail", { sharedCaseId });
-      break;
-    case "verification":
+  if (!navigationRef.isReady()) return;
+  const target = resolveNotificationTarget(data);
+  if (!target) return;
+  switch (target.screen) {
+    case "SharedInbox":
       navigationRef.navigate("SharedInbox");
       break;
-    case "assessments_revealed":
-      navigationRef.navigate("AssessmentReveal", { sharedCaseId });
-      break;
-    case "assessment_pending":
-      navigationRef.navigate("SharedCaseDetail", { sharedCaseId });
-      break;
-    case "assessment_ready_to_reveal":
-      // Opening the Assessment screen triggers the pending reveal upload.
-      navigationRef.navigate("Assessment", { sharedCaseId });
-      break;
-    default:
+    case "SharedCaseDetail":
+    case "Assessment":
+    case "AssessmentReveal":
+      navigationRef.navigate(target.screen, target.params!);
       break;
   }
 }
