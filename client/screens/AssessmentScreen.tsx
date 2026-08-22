@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
-  ScrollView,
   Pressable,
   TextInput,
   ActivityIndicator,
   Alert,
   StyleSheet,
 } from "react-native";
+import { KeyboardToolbar } from "react-native-keyboard-controller";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import {
   useNavigation,
   useRoute,
@@ -192,6 +194,7 @@ export default function AssessmentScreen() {
   const { theme } = useTheme();
   const navigation = useNavigation<NavProps>();
   const route = useRoute<RouteProps>();
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { sharedCaseId } = route.params;
 
@@ -518,9 +521,11 @@ export default function AssessmentScreen() {
       testID="screen-assessment"
       style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+      <KeyboardAwareScrollViewCompat
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: insets.bottom + Spacing["3xl"] },
+        ]}
       >
         {/* Procedure context */}
         <View
@@ -775,7 +780,8 @@ export default function AssessmentScreen() {
             </ThemedText>
           )}
         </Pressable>
-      </ScrollView>
+      </KeyboardAwareScrollViewCompat>
+      <KeyboardToolbar />
     </View>
   );
 }
@@ -806,7 +812,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: Spacing.md,
     paddingTop: Spacing.md,
-    paddingBottom: Spacing["3xl"],
   },
   // Procedure header
   procedureHeader: {

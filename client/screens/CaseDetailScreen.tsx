@@ -18,6 +18,7 @@ import {
 } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { Feather } from "@/components/FeatherIcon";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
@@ -717,7 +718,7 @@ export default function CaseDetailScreen() {
       testID="screen-caseDetail"
       style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
     >
-      <ScrollView
+      <KeyboardAwareScrollViewCompat
         contentContainerStyle={[
           styles.content,
           {
@@ -3376,7 +3377,7 @@ export default function CaseDetailScreen() {
             </ThemedText>
           </Pressable>
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollViewCompat>
 
       <Pressable
         onPress={handleAddEvent}
