@@ -3,6 +3,7 @@ import {
   filterPendingEpaTargets,
   countPendingEpaTargets,
   epaTargetCounterpartUserId,
+  epaEligibleRecipientIds,
 } from "../pendingEpa";
 import type { EpaAssessmentTarget } from "../epaDerivation";
 import type { EpaTargetsWithCase } from "../assessmentStorage";
@@ -11,7 +12,7 @@ function makeTarget(
   overrides: Partial<EpaAssessmentTarget> = {},
 ): EpaAssessmentTarget {
   return {
-    version: 2,
+    version: 3,
     supervisorContactId: "self",
     supervisorDisplayName: "You",
     supervisorLinkedUserId: "user-owner",
@@ -150,5 +151,34 @@ describe("filterPendingEpaTargets", () => {
       revealedSharedCaseIds: new Set(["share-9"]),
     });
     expect(result).toEqual([]);
+  });
+});
+
+// ── epaEligibleRecipientIds (share-time push hint) ───────────────────────────
+
+describe("epaEligibleRecipientIds", () => {
+  const pair = (sup: string, trn: string) => ({
+    supervisorLinkedUserId: sup,
+    traineeLinkedUserId: trn,
+  });
+
+  it("collects the other party of every target involving the owner", () => {
+    const ids = epaEligibleRecipientIds(
+      [pair("u-owner", "u-trainee"), pair("u-boss", "u-owner")],
+      "u-owner",
+    );
+    expect([...ids].sort()).toEqual(["u-boss", "u-trainee"]);
+  });
+
+  it("ignores team↔team pairs that don't involve the owner (no channel)", () => {
+    const ids = epaEligibleRecipientIds(
+      [pair("u-fellow", "u-trainee")],
+      "u-owner",
+    );
+    expect(ids.size).toBe(0);
+  });
+
+  it("exposure-only derivation (no targets) yields an empty set", () => {
+    expect(epaEligibleRecipientIds([], "u-owner").size).toBe(0);
   });
 });

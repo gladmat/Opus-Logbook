@@ -6,6 +6,7 @@ import { isConsultantLevel } from "@/lib/roleDefaults";
 import {
   getAllRevealedPairs,
   getAllEpaTargets,
+  getAllEpaExposures,
   type RevealedPairWithContext,
 } from "@/lib/assessmentStorage";
 import { getSharedOutbox } from "@/lib/sharingApi";
@@ -19,10 +20,13 @@ import {
   computeCalibrationScore,
   computeTrainingOverview,
   computeEntrustmentDistribution,
+  computeAutonomyGap,
+  fullPairsOnly,
   type ProcedureLearningCurve,
   type TeachingAggregate,
   type CalibrationScore,
   type TrainingOverviewStats,
+  type AutonomyGapStats,
 } from "@/lib/assessmentAnalytics";
 
 export interface UseTrainingStatisticsReturn {
@@ -31,11 +35,17 @@ export interface UseTrainingStatisticsReturn {
   isConsultant: boolean;
   /** Derived EPA targets not yet revealed — drives the pending-assessments entry link. */
   pendingCount: number;
+  /** Cases the viewer logged where they ASSISTED under a tagged senior
+   *  (exposure records with participant "self") — logged, not assessed. */
+  exposureCaseCount: number;
   learningCurves: ProcedureLearningCurve[];
   teachingAggregate: TeachingAggregate | null;
   calibrationScore: CalibrationScore | null;
+  /** Trainee-facing granted-autonomy gap (instrument v2 pairs). */
+  autonomyGap: AutonomyGapStats | null;
   trainingOverview: TrainingOverviewStats | null;
   entrustmentDistribution: { level: number; count: number }[];
+  /** Full (non-partial) pairs — what every analytic above is computed from. */
   allPairs: RevealedPairWithContext[];
 }
 
@@ -43,6 +53,7 @@ export function useTrainingStatistics(): UseTrainingStatisticsReturn {
   const { profile } = useAuth();
   const [pairs, setPairs] = useState<RevealedPairWithContext[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
+  const [exposureCaseCount, setExposureCaseCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   const isConsultant = isConsultantLevel(profile?.careerStage);
@@ -52,15 +63,17 @@ export function useTrainingStatistics(): UseTrainingStatisticsReturn {
       const task = InteractionManager.runAfterInteractions(async () => {
         setIsLoading(true);
         try {
-          const [data, pendingTargets, outbox] = await Promise.all([
+          const [data, pendingTargets, outbox, exposures] = await Promise.all([
             getAllRevealedPairs(),
             getAllEpaTargets().catch(() => []),
             // Offline → empty outbox → nothing drains this round.
             getSharedOutbox().catch(
               () => [] as Awaited<ReturnType<typeof getSharedOutbox>>,
             ),
+            getAllEpaExposures().catch(() => []),
           ]);
-          setPairs(data);
+          // Phase C: partial (72h) reveals are excluded from every analytic.
+          setPairs(fullPairsOnly(data));
           setPendingCount(
             countPendingEpaTargets(
               filterPendingEpaTargets({
@@ -69,6 +82,11 @@ export function useTrainingStatistics(): UseTrainingStatisticsReturn {
                 revealedSharedCaseIds: new Set(data.map((p) => p.sharedCaseId)),
               }),
             ),
+          );
+          setExposureCaseCount(
+            exposures.filter((e) =>
+              e.exposures.some((x) => x.participantContactId === "self"),
+            ).length,
           );
         } catch (error) {
           console.error("Error loading assessment pairs:", error);
@@ -97,6 +115,11 @@ export function useTrainingStatistics(): UseTrainingStatisticsReturn {
     [pairs, isEmpty],
   );
 
+  const autonomyGap = useMemo<AutonomyGapStats | null>(
+    () => (isEmpty ? null : computeAutonomyGap(pairs, "trainee")),
+    [pairs, isEmpty],
+  );
+
   const trainingOverview = useMemo<TrainingOverviewStats | null>(
     () => (isEmpty ? null : computeTrainingOverview(pairs)),
     [pairs, isEmpty],
@@ -112,9 +135,11 @@ export function useTrainingStatistics(): UseTrainingStatisticsReturn {
     isEmpty,
     isConsultant,
     pendingCount,
+    exposureCaseCount,
     learningCurves,
     teachingAggregate,
     calibrationScore,
+    autonomyGap,
     trainingOverview,
     entrustmentDistribution,
     allPairs: pairs,

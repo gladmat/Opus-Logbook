@@ -715,3 +715,40 @@ describe("owner-side share cache seeding (Phase 3)", () => {
     );
   });
 });
+
+// ── epaEligible share-time hint (PS role gate) ───────────────────────────────
+
+describe("shareCaseWithTeam — epaEligible hint", () => {
+  it("stamps epaEligible per recipient from epaEligibleUserIds", async () => {
+    getUserDeviceKeys.mockResolvedValue(DEVICE_KEYS);
+    await shareCaseWithTeam({
+      savedCase: makeCase(),
+      operativeTeam: [
+        makeMember({ contactId: "c-1", linkedUserId: "user-9" }),
+        makeMember({ contactId: "c-2", linkedUserId: "user-10" }),
+      ],
+      isEdit: false,
+      epaEligibleUserIds: new Set(["user-9"]),
+    });
+    expect(shareCase).toHaveBeenCalledTimes(1);
+    const payload = shareCase.mock.calls[0]?.[0] as {
+      recipients: { userId: string; epaEligible?: boolean }[];
+    };
+    const byUser = new Map(payload.recipients.map((r) => [r.userId, r]));
+    expect(byUser.get("user-9")?.epaEligible).toBe(true);
+    expect(byUser.get("user-10")?.epaEligible).toBe(false);
+  });
+
+  it("omits epaEligible entirely when no set is provided (server tier fallback)", async () => {
+    getUserDeviceKeys.mockResolvedValue(DEVICE_KEYS);
+    await shareCaseWithTeam({
+      savedCase: makeCase(),
+      operativeTeam: [makeMember({ linkedUserId: "user-9" })],
+      isEdit: false,
+    });
+    const payload = shareCase.mock.calls[0]?.[0] as {
+      recipients: Record<string, unknown>[];
+    };
+    expect("epaEligible" in payload.recipients[0]!).toBe(false);
+  });
+});

@@ -13,6 +13,7 @@ Opus's strategic differentiator is a **bidirectional double-blind operative entr
 - **Double-blind:** neither party sees the other's rating until both have committed. Enforced cryptographically (commit-reveal + E2EE), not by UI politeness.
 - **The procedure IS the activity:** the SNOMED CT procedure code is the EPA identifier. There is no separate EPA catalog to author, license, or maintain — every one of the app's procedures is automatically an assessable activity, and learning curves group by SNOMED code.
 - **Seniority, not scrub role, defines the teaching axis.** Operative role and supervision hierarchy are fully independent dimensions: a consultant scrubbing as First Assistant is still the supervisor.
+- **The entrustment instrument fires only when the trainee performed (2.23.0+).** The O-SCORE/Zwisch-style anchors ("I had to do it" → "I did not need to be there") measure how much the supervisor had to help the *performing* trainee; no validated entrustment scale exists for the assisting role. So a junior paired with a senior on a unit yields an entrustment TARGET only when the junior's role on that unit is Primary Surgeon (PS); First Assistant yields an *assist* exposure record and SA/SS/US an *exposure* record — logged participation with no instrument, never entering commit-reveal and never counted as pending. The supervisor's own role is never gated. Both directions fire on the same trigger, preserving the one-supervisor-one-trainee commit-reveal pairing.
 - **Adjacent links only:** assessments follow adjacent links in the seniority chain (each pair = one teacher + one learner), mapped through the universal 6-tier career-stage model. A consultant (tier 5) does not formally assess an intern (tier 1) on the same case; the chain decomposes into adjacent teacher–learner pairs.
 
 **Academic framing (durable):** the "scarce resource" thesis — 1–2 trainees learn from an operation versus ~30 from a ward round — is the central argument of the EPA papers. The double-blind mechanism is what makes the collected ratings publishable: it removes the social-desirability contamination that plagues conventional workplace-based assessment, and the commit-reveal protocol makes that removal *auditable*. SNOMED CT as EPA identifier is presented as pragmatic engineering, not educational innovation.
@@ -65,16 +66,16 @@ The logger's own role uses the separate two-dimension system in `client/types/op
 
 ### 3.3 Derivation engine
 
-`deriveEpaAssessments()` (`client/lib/epaDerivation.ts`) turns a saved case into `EpaAssessmentTarget[]`. Verified rules:
+`deriveEpaAssessments({ self, teamMembers, units })` (`client/lib/epaDerivation.ts`, v3 as of 2.23.0) turns a saved case into `{ targets: EpaAssessmentTarget[], exposures: EpaExposureRecord[], diagnostics }`. Verified rules:
 
-- **Per procedure:** each procedure in the case's diagnosis groups generates its own pairs; membership respects `presentForProcedures` and `procedureRoleOverrides`.
-- **Eligibility:** a participant needs *both* `linkedUserId` *and* a `careerStage` that resolves to a tier. The logger is always a participant (added with role `PS`).
-- **Adjacent tiers only** — and adjacency is computed over the tiers *present in this case*, not the absolute scale: tiers present are sorted descending and pairs are generated between consecutive groups. A tier-5 consultant and tier-3 registrar alone in theatre DO pair (5 and 3 are adjacent *in that case*); add a tier-4 fellow and the chain becomes 5→4 and 4→3.
-- **Equal tiers never pair** (peers don't assess each other).
-- **Seniority beats scrub role:** the pair carries `supervisorOperativeRole` / `traineeOperativeRole` as metadata only; who assesses whom is decided purely by tier (file header: "A consultant (tier 5) holding a retractor as First Assistant still supervises the fellow (tier 4) who is Primary Surgeon").
-- Each target carries `procedureIndex`, `procedureSnomedCode`, `procedureDisplayName` — the procedure-is-the-activity principle in code.
+- **Per UNIT, not per case:** `buildEpaUnitsFromDiagnosisGroups()` flattens every procedure into a unit (flat index = the key space of the legacy `presentForProcedures` / `procedureRoleOverrides` maps). A procedure with `operativeSteps` yields one unit per step and the step team is AUTHORITATIVE; otherwise the whole procedure is one unit whose participants come from the flat maps plus the owner at their resolved procedure role (`ownerOperativeRoleToTeamRole(resolveOperativeRole(override, default))`).
+- **Eligibility:** a participant needs *both* `linkedUserId` *and* a `careerStage` that resolves to a tier (`unlinkedSkipped` / `missingStageSkipped` diagnostics). The logger is identified by `linkedUserId` + the `"self"` contactId sentinel.
+- **Most-senior pairing:** on each unit every participant is paired with the most-senior OTHER participant(s) — ties at the top tier produce one pair per senior; same-tier-only units produce nothing (`allSameTier` diagnostic); a participant never pairs with themselves (self tagged as a roster contact).
+- **PS role gate (v3):** `classifyTraineeParticipation(role)` — PS → `"entrustment"` (recordPair), FA → `"assist"`, SA/SS/US → `"exposure"` (both recordExposure). Only the JUNIOR's role is gated; the supervisor's role is metadata (`supervisorRole` on the unit ref). The owner's `SECOND_ASST`/`OBSERVER` collapse to SA/US and therefore land in exposure as intended. Diagnostics: `roleGatedUnits`, `exposureOnly` (≥1 gated unit and zero targets — drives the save-time alert bullet).
+- **Aggregation:** one target per supervisor–trainee USER pair per case (two roster contacts linked to one account collapse), listing every PS unit shared (`units: EpaUnitRef[]` with `procedureId`/`procedureSnomedCode`/`procedureDisplayName`/`stepId?`/`stepLabel?`/roles); one exposure record per participant USER (`units: EpaExposureUnitRef[]` with `role` ≠ PS and `seniorDisplayNames`).
+- `EpaAssessmentTarget.version: 3`. Stored v2 records (pre-gate) are **migrated on read** (`client/lib/epaTargetMigration.ts`: units filtered to PS-trainee units, empty targets dropped, written back) so old cases' CaseDetail cards don't blank until re-save; v1/plaintext still purge.
 
-Invocation: `useCaseForm.ts` (save path, ~line 2602) derives targets after every save with a tagged team and a logger `careerStage`, and persists them via `saveEpaTargets(caseId, targets)` to user-scoped AsyncStorage (`@opus_epa_targets_<caseId>`).
+Invocation: `useCaseForm.ts` derives BEFORE sharing (so the share POST can carry the `epaEligible` hint per recipient — `pendingEpa.epaEligibleRecipientIds`), persists `saveEpaTargets(caseId, targets, exposures)` as a single v3 envelope `{ v: 3, targets, exposures }` under `@opus_epa_targets_<caseId>`, and runs on every edit-save even with an empty team so stale records clear. The recipient side runs the SAME engine over the decrypted blob (`client/lib/epaFromBlob.ts` — `deriveEpaFromSharedBlob({ blob, viewerUserId, ownerUserId, counterpartUserId? })` → `{ targets, exposures, myTarget, myRole, myExposure, reason }`); `client/lib/epaGate.ts` `resolveEpaEntryState()` turns that into the one entry state (`assess` / `exposure-only` / `legacy-fallback` / `none`) shared by SharedCaseDetail, the inbox badge and AssessmentScreen.
 
 ### 3.4 Server schema (relay layer)
 
@@ -93,13 +94,19 @@ A fully assessed shared case therefore consists of three ciphertext blobs the se
 
 ### 3.6 Rating instruments
 
-`client/types/sharing.ts`, verified:
+`client/types/sharing.ts`, verified (instrument v2 as of 2.23.0):
 
-- `EntrustmentLevel` 1–5 — labels are the classic entrustment anchors: "I had to do it" → "I did not need to be there".
-- `TeachingQualityLevel` 1–5 — "Took over / minimal teaching" → "Outstanding — changed my practice".
-- `SupervisorAssessment { entrustmentRating, caseComplexity? (routine|moderate|complex), narrativeFeedback? }`
-- `TraineeAssessment { selfEntrustmentRating, teachingQualityRating, teachingNarrative?, reflectiveNotes? }` — `reflectiveNotes` are stripped before the shareable JSON is built (`AssessmentScreen.tsx` `handleSubmit`: "Strip reflective notes from shareable — they NEVER leave device").
-- `RevealedAssessmentPair` — the on-device merged record: both entrustment ratings, teaching quality, supervisor narrative, complexity, `procedureCode` + `procedureDisplayName`, `revealedAt`.
+- **Top-down (supervisor) — unchanged:** `EntrustmentLevel` 1–5, the classic ad hoc entrustment–supervision anchors "I had to do it" → "I did not need to be there" (ten Cate ES scale / O-SCORE / Zwisch lineage). `SupervisorAssessment { entrustmentRating, caseComplexity? (routine|moderate|complex — the SIMPL tercile), narrativeFeedback?, procedure?, traineeOperativeRole? }`.
+- **Bottom-up (trainee) — v2 redesign.** The v1 teaching global's top anchor ("Outstanding — changed my practice") was an aspirational lifetime event, not a per-case outcome, so the two 5-point scales were not parallel constructs and teaching ratings ceiling-compressed. `TraineeAssessmentV2 { instrumentVersion: 2, selfEntrustmentRating, autonomyMatch, bid, teachingQualityRating, teachingNarrative?, reflectiveNotes?, procedure?, traineeOperativeRole? }`:
+  - *Self-entrustment* (kept, same anchors) — feeds the supervisor-vs-self calibration score.
+  - *Part A — granted-autonomy match* `AutonomyMatchLevel` 1–5: "Held back" / "Slightly under" / "Well matched" / "Slightly over" / "Beyond me" (`AUTONOMY_MATCH_LABELS` + `_DESCRIPTIONS`). A calibration construct whose ideal is the CENTRE, so it has no ceiling asymmetry and is the true mirror of entrustment — the basis of the entrustment–autonomy-gap analytic (incl. its equity dimension).
+  - *Part B — BID behaviour items* `BidBehaviours = Record<"briefing"|"intraop"|"debrief", 0|1|2>` ("Not this case" / "Somewhat" / "Yes, clearly"; prompts in `BID_ITEM_PROMPTS`) — Roberts' Briefing/Intraoperative/Debriefing frequency construct, per-case attainable.
+  - *Part C — per-case global* `teachingQualityRating` 1–5 with per-case anchors Poor / Adequate / Good / Very good / Outstanding (`TEACHING_QUALITY_LABELS`; the v1 map survives as `TEACHING_QUALITY_LABELS_V1`, selected by `teachingQualityLabel(level, instrumentVersion)`). Field NAME kept so legacy readers keep working; `TraineeAssessment = TraineeAssessmentV1 | TraineeAssessmentV2`, `isTraineeAssessmentV2()`.
+  - `reflectiveNotes` are still stripped before the shareable JSON is built (`AssessmentScreen.tsx` `handleSubmit`).
+- **Attribution inside the committed payload:** both payloads carry `procedure: AssessmentProcedureRef { procedureSnomedCode, procedureDisplayName, procedureId? }` — the first PS unit of the derived target (`client/lib/assessmentProcedure.ts` `resolveAssessmentProcedure`) — plus `traineeOperativeRole: "PS"` when target-derived. This closes the old "first procedure of the first diagnosis group" guess without waiting for Phase A's pairKey.
+- `RevealedAssessmentPair` — the on-device merged record, now built by ONE pure helper (`client/lib/revealedPair.ts` `buildRevealedPair`): both entrustment ratings, teaching global, supervisor narrative, complexity, `procedureCode` + `procedureDisplayName`, `revealedAt`, plus `partial?` (Phase C), `teachingNarrative?` (Phase C — finally shown to the supervisor), `instrumentVersion?`, `autonomyMatch?`, `bid?`, `traineeOperativeRole?`. `isFullRevealedPair()` treats legacy unflagged records as full unless a side was zero-filled.
+
+The commitment hashes the exact serialized string, so the instrument redesign needed no change to `assessmentCommitment.ts`, the reveal payload, or the (content-blind) server.
 
 ## 4. The double-blind protocol (verified end-to-end)
 
@@ -117,11 +124,13 @@ Role determination at assessment time (`assessmentRoles.ts` `determineAssessorRo
 
 ## 5. Analytics layer (on-device, verified)
 
-`client/lib/assessmentAnalytics.ts`, computed from `getAllRevealedPairs()`:
+`client/lib/assessmentAnalytics.ts`, computed from `getAllRevealedPairs()` — **full pairs only** (`fullPairsOnly` / `isFullRevealedPair`; Phase C: 72h partial reveals are excluded from every analytic instead of injecting a zero-filled side). Thresholds are named constants: `SUPERVISOR_AGGREGATE_MIN_ASSESSMENTS = 5`, `SUPERVISOR_AGGREGATE_MIN_UNIQUE_CASES = 3`, `CALIBRATION_MIN_PAIRS = 3`.
 
-- **Learning curves** per SNOMED procedure code: sequential case numbers, supervisor vs self rating per point — the procedure-is-the-activity payoff.
-- **Teaching aggregate** (supervisor-facing) with a privacy threshold: returns `null` below 5 assessments *and* 3 unique shared cases ("identification-prevention threshold"). Unique-trainee count is approximated by `sharedCaseId` cardinality because `RevealedAssessmentPair` deliberately stores no counterpart userId.
-- **Calibration score:** mean |supervisor − self| gap; <0.5 excellent, ≤1.0 good, else needs-attention; signed mean ±0.25 classifies over-/under-estimation. This is the publishable self-assessment-calibration metric.
+- **Learning curves** per SNOMED procedure code, built from **Primary-Surgeon entrustment only** (pairs carrying a `traineeOperativeRole` other than PS — possible from an older counterpart app — are dropped; legacy records without a role are kept): sequential case numbers, supervisor vs self rating per point — the procedure-is-the-activity payoff.
+- **Calibration score** (trainee-facing): mean |supervisor − self| gap; <0.5 excellent, ≤1.0 good, else needs-attention; signed mean ±0.25 classifies over-/under-estimation. The self-assessment-calibration metric.
+- **Entrustment–autonomy gap** (`computeAutonomyGap(pairs, audience)`, instrument v2 only): mean(autonomyMatch − 3) signed around the centre ideal, held-back / matched / over-extended rates, distribution, `byEntrustment` (mean match per supervisor entrustment level — the per-procedure competence–autonomy gap), monthly trend; direction ±0.25. Trainee audience needs ≥3 pairs; supervisor audience ("how trainees experienced the autonomy I granted") sits behind the 5/3 identification threshold. This is the second pre-registered analytic and the one that carries the equity dimension.
+- **Teaching aggregate** (supervisor-facing) behind the 5/3 threshold: mean per-case global (`legacyScaleCount` flags pairs rated on the v1 anchors — both scales are monotone 1–5 and are pooled), `behaviours` = `computeBidFrequencies` (per-item counts / clear-rate / mean over v2 pairs, same threshold), `autonomy` = the supervisor-audience gap above. Unique-trainee count is approximated by `sharedCaseId` cardinality because `RevealedAssessmentPair` deliberately stores no counterpart userId.
+- **Exposure count** (`useTrainingStatistics.exposureCaseCount`): cases the viewer logged where they assisted under a tagged senior — shown as "Assisted (exposure)", never pooled with entrustment.
 - Entrustment distribution, training overview, monthly trends.
 
 ## 6. Verified gaps between design intent and implementation
@@ -130,11 +139,13 @@ These are findings from the 2026-07-24 code verification, ordered by architectur
 
 1. **The derivation engine is write-only.** `deriveEpaAssessments()` runs on every save and `saveEpaTargets()` persists the targets — but `getEpaTargets()` has **no consumer anywhere in the UI** (verified by grep across `client/`). Assessments are initiated from the shared-case surfaces using `determineAssessorRole()` heuristics; the carefully derived per-procedure, per-pair targets never drive anything. The flagship algorithm currently feeds a dead-end store.
 2. **Granularity mismatch: per-case channel vs per-procedure design.** `case_assessments` is keyed `UNIQUE(sharedCaseId, assessorRole)` — one supervisor + one trainee assessment per shared case — while derivation produces one target per procedure per pair. A multi-procedure case (routine in hand trauma) can carry only a single assessment pair.
-3. **Procedure attribution is hardcoded to the first procedure.** `AssessmentRevealScreen.tsx` builds the revealed pair with `diagnosisGroups[0].procedures[0]` for both code and display name. For multi-procedure cases the learning-curve data point may be attributed to the wrong procedure — a data-integrity issue for the publication dataset, not just cosmetics.
+3. ~~**Procedure attribution is hardcoded to the first procedure.**~~ **CLOSED 2.23.0** — both committed payloads carry `procedure` (first PS unit of the derived target); `buildRevealedPair` prefers supervisor → trainee payload → fallback. (Original finding: `AssessmentRevealScreen.tsx` built the revealed pair with `diagnosisGroups[0].procedures[0]`.)
 4. **Chain pairs that don't include the case owner have no channel.** `shared_cases` rows are strictly owner↔recipient. If a tier-3 logger tags a tier-5 consultant and a tier-4 fellow, derivation correctly produces 5→4 — but no shared-case row exists *between the consultant and the fellow*, so that pair has nowhere to commit. Adjacent-chain assessment currently works only for pairs involving the logger.
-5. **Partial (72h) reveals pollute analytics.** The partial pair zero-fills the missing side (`0 as EntrustmentLevel`) and is saved into the same store the analytics read. A supervisor-only partial injects `traineeSelfEntrustment: 0` into calibration gaps and curve points; `RevealedAssessmentPair` carries no flag distinguishing partial from full pairs.
+5. ~~**Partial (72h) reveals pollute analytics.**~~ **CLOSED 2.23.0 (Phase C)** — `RevealedAssessmentPair.partial` is set by `buildRevealedPair`; `fullPairsOnly` gates every analytic; legacy zero-filled records are retro-detected by `isFullRevealedPair`; a cached partial upgrades to full on the reveal screen once the counterpart reveals.
 6. **The assessor role is self-declared at commit.** The server stores whatever `assessorRole` the client sends (party membership is checked; role plausibility is not). The tier logic that *should* decide who is the teacher lives client-side in `determineAssessorRole()` + the unread EPA targets. Acceptable at current scale between colleagues who know each other; it becomes a data-quality question for the papers.
-7. **`teachingNarrative` is collected but dropped at reveal.** It is part of `TraineeAssessment` and travels in the shareable JSON, but `RevealedAssessmentPair` has no field for it and the reveal screen never surfaces it to the supervisor — bottom-up narrative feedback is silently discarded on the receiving side.
+7. ~~**`teachingNarrative` is collected but dropped at reveal.**~~ **CLOSED 2.23.0 (Phase C)** — carried on `RevealedAssessmentPair.teachingNarrative` and rendered as "Trainee feedback on teaching" on the reveal screen.
+
+8. **Version skew across the role gate (transitional, 2.23.0).** An older counterpart app still derives pre-gate (e.g. FA-trainee) pairs and may commit under one. The new side shows the exposure-only notice unless the counterpart has already committed (`resolveEpaEntryState` rescue → "assess"), and any such revealed pair carries a non-PS `traineeOperativeRole` so learning curves exclude it. Not solved — resolves as clients update.
 
 ## 7. Target architecture
 
@@ -165,9 +176,9 @@ When either side is below the threshold, the flow degrades to the legacy single-
 - Replace the `determineAssessorRole()` heuristic with target lookup wherever a target exists; keep the heuristic solely as fallback for cases with no derivable targets (unlinked members, missing stages). This closes Gaps 1 and 6 together: the role is no longer self-declared where a target dictates it.
 - Surface targets as explicit prompts: post-save "2 EPA assessments available" on the owner side, per-target rows on `SharedCaseDetailScreen`, inbox badge counts. One target = one commit-reveal flow.
 
-### Phase C — Analytics integrity
+### Phase C — Analytics integrity — **SHIPPED 2.23.0**
 
-- Add `partial: boolean` (and optionally `teachingNarrative`) to `RevealedAssessmentPair`; exclude partial pairs from calibration and curve computations, or render them as gaps. Fixes Gaps 5 and 7. Local-storage-only change; old records without the flag are treated as full pairs (matching today's behaviour) unless a rating is 0, which is retro-detectable.
+- `partial: boolean` + `teachingNarrative` on `RevealedAssessmentPair` (`client/lib/revealedPair.ts`); every analytic runs over `fullPairsOnly`; legacy unflagged records are full unless a rating is 0 (retro-detected). Gaps 5 and 7 closed. Shipped together with the PS role gate and trainee instrument v2 (§§1, 3.3, 3.6, 5) and with attribution-in-payload (Gap 3) — delivered without Phase A's pairKey, which remains the route to per-procedure channels.
 
 ### Phase D — Chain completion (recipient↔recipient pairs; separable, ship last)
 
@@ -229,3 +240,17 @@ Added at review round 1 (2026-07-24):
 | Account deletion cascades all shares the user is party to → all assessments on them, both directions | `shared/schema.ts` `users` FK cascades (`sharedCases`, `caseAssessments`, envelope tables) |
 | Counterparts' local revealed pairs survive deletion (device-local, decrypted) | `client/lib/assessmentStorage.ts` `saveRevealedPair` / AsyncStorage |
 | No assessment edit/retraction endpoint post-reveal | `server/routes.ts` (commit / reveal / status / history only) |
+
+Added 2026-08-23 (2.23.0 — PS role gate + instrument v2 + Phase C):
+
+| Claim | Source verified |
+|---|---|
+| Pairing per unit, most-senior rule, PS role gate, exposure records, `version: 3`, diagnostics `roleGatedUnits`/`exposureOnly` | `client/lib/epaDerivation.ts` (`classifyTraineeParticipation`, `pairUnit`); `client/lib/__tests__/epaDerivation.test.ts` |
+| Owner/recipient identity covers targets AND exposures; `counterpartUserId` preference | `client/lib/epaFromBlob.ts`; `epaFromBlob.test.ts` |
+| v2 → v3 migrate-on-read, single v3 envelope `{v, targets, exposures}` | `client/lib/epaTargetMigration.ts`; `client/lib/assessmentStorage.ts` (`getEpaTargetsRecord`); `assessmentStorage.test.ts` |
+| One entry state shared by SharedCaseDetail / inbox badge / AssessmentScreen, counterpart-committed rescue | `client/lib/epaGate.ts`; `epaGate.test.ts` |
+| Trainee instrument v2 (self-entrustment + autonomy match + BID + per-case global), v1 labels kept for display | `client/types/sharing.ts`; `client/screens/AssessmentScreen.tsx`; `assessment.test.ts` |
+| Attribution inside both committed payloads; `buildRevealedPair` precedence; `partial` flag; narrative carried | `client/lib/revealedPair.ts`, `client/lib/assessmentProcedure.ts`; `revealedPair.test.ts`, `assessmentProcedure.test.ts` |
+| Full-pairs-only analytics, PS-only curves, autonomy gap, BID frequencies, named thresholds | `client/lib/assessmentAnalytics.ts`; `assessmentAnalytics.test.ts` |
+| Share-time EPA push respects the gate via client `epaEligible` hint (server tier heuristic as fallback) | `client/lib/caseSharing.ts`, `client/lib/pendingEpa.ts` (`epaEligibleRecipientIds`), `server/routes.ts` share handler |
+| Derivation runs BEFORE share in the save pipeline; exposure-only save-time alert bullet | `client/hooks/useCaseForm.ts` |

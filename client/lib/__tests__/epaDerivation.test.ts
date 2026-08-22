@@ -1,12 +1,19 @@
 import { describe, it, expect } from "vitest";
 
-import { deriveEpaAssessments, type EpaUnitInput } from "../epaDerivation";
+import {
+  deriveEpaAssessments,
+  classifyTraineeParticipation,
+  type EpaUnitInput,
+} from "../epaDerivation";
+import { migrateLegacyEpaTargets } from "../epaTargetMigration";
 import type { CaseTeamMember } from "@/types/teamContacts";
 import type { OperativeStep } from "@/types/operativeSteps";
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 // Stages resolve through the real seniority map; the tests only rely on
 // their relative ordering: nz_consultant > nz_fellow > nz_set_trainee.
+// Members default to PS (the role the entrustment pair fires for); tests
+// that exercise the role gate set FA / SA / SS / US explicitly.
 
 const SELF = {
   linkedUserId: "u-self",
@@ -20,7 +27,7 @@ function makeMember(
   return {
     displayName: "Dr Member",
     abbreviatedName: "Member D.",
-    operativeRole: "FA",
+    operativeRole: "PS",
     linkedUserId: `u-${overrides.contactId}`,
     careerStage: "nz_fellow",
     ...overrides,
@@ -34,7 +41,7 @@ function makeUnit(
     procedureName: "Free ALT flap",
     snomedCtCode: "771225007",
     flatIndex: 0,
-    ownerRole: "PS",
+    ownerRole: "SS",
     ...overrides,
   };
 }
@@ -51,9 +58,10 @@ function makeStep(
 // ── The reported case ────────────────────────────────────────────────────────
 
 describe("deriveEpaAssessments — the two-team free flap case", () => {
-  it("pairs from who actually shared each step", () => {
-    // Consultant + fellow raised the flap; the logging consultant +
-    // trainee prepped recipient vessels; trainee + fellow did the micro.
+  it("pairs from who actually shared each step, gated on the junior being PS", () => {
+    // Consultant + fellow raised the flap (fellow PS); the logging
+    // consultant + trainee prepped recipient vessels (trainee FA → exposure
+    // only); trainee + fellow did the micro (trainee PS).
     const consultant = makeMember({
       contactId: "c-cons",
       displayName: "Dr Consultant",
@@ -115,20 +123,195 @@ describe("deriveEpaAssessments — the two-team free flap case", () => {
         t,
       ]),
     );
-    // Harvest: consultant supervised the fellow.
+    // Harvest: consultant supervised the fellow (fellow PS).
     expect(byPair.get("c-cons>c-fell")?.units[0]?.stepId).toBe("s-harvest");
-    // Prep: the logging consultant supervised the trainee.
-    expect(byPair.get("self>c-trn")?.units[0]?.stepId).toBe("s-prep");
-    // Micro: the fellow supervised the trainee.
+    // Micro: the fellow supervised the trainee (trainee PS).
     expect(byPair.get("c-fell>c-trn")?.units[0]?.stepId).toBe("s-micro");
-    expect(result.targets).toHaveLength(3);
+    // Prep: the trainee only ASSISTED — no entrustment pair, exposure record.
+    expect(byPair.has("self>c-trn")).toBe(false);
+    expect(result.targets).toHaveLength(2);
     // NOT produced: consultant→trainee (never shared a step),
     // self→fellow (never shared a step).
     expect(byPair.has("c-cons>c-trn")).toBe(false);
     expect(byPair.has("self>c-fell")).toBe(false);
-    // Roles held on the unit are recorded.
+    // Roles held on the unit are recorded; v3 targets are PS-only.
     expect(byPair.get("c-fell>c-trn")?.units[0]?.supervisorRole).toBe("SS");
     expect(byPair.get("c-fell>c-trn")?.units[0]?.traineeRole).toBe("PS");
+    expect(result.targets.every((t) => t.version === 3)).toBe(true);
+
+    // Exposure: trainee assisted the logger on prep.
+    expect(result.exposures).toHaveLength(1);
+    const exposure = result.exposures[0]!;
+    expect(exposure.participantContactId).toBe("c-trn");
+    expect(exposure.units).toHaveLength(1);
+    expect(exposure.units[0]?.stepId).toBe("s-prep");
+    expect(exposure.units[0]?.role).toBe("FA");
+    expect(exposure.units[0]?.seniorDisplayNames).toEqual(["You"]);
+    expect(result.diagnostics.roleGatedUnits).toBe(1);
+    expect(result.diagnostics.exposureOnly).toBe(false);
+  });
+});
+
+// ── Role gate ────────────────────────────────────────────────────────────────
+
+describe("deriveEpaAssessments — PS role gate", () => {
+  it("classifies trainee participation: PS entrustment, FA assist, rest exposure", () => {
+    expect(classifyTraineeParticipation("PS")).toBe("entrustment");
+    expect(classifyTraineeParticipation("FA")).toBe("assist");
+    expect(classifyTraineeParticipation("SA")).toBe("exposure");
+    expect(classifyTraineeParticipation("SS")).toBe("exposure");
+    expect(classifyTraineeParticipation("US")).toBe("exposure");
+  });
+
+  it.each(["FA", "SA", "SS", "US"] as const)(
+    "junior as %s under a senior → exposure record, no target",
+    (role) => {
+      const junior = makeMember({ contactId: "c-j", operativeRole: role });
+      const result = deriveEpaAssessments({
+        self: SELF,
+        teamMembers: [junior],
+        units: [makeUnit({ procedureId: "p0", ownerRole: "PS" })],
+      });
+      expect(result.targets).toHaveLength(0);
+      expect(result.exposures).toHaveLength(1);
+      expect(result.exposures[0]?.participantContactId).toBe("c-j");
+      expect(result.exposures[0]?.participantLinkedUserId).toBe("u-c-j");
+      expect(result.exposures[0]?.units[0]?.role).toBe(role);
+      expect(result.exposures[0]?.version).toBe(3);
+      expect(result.diagnostics.roleGatedUnits).toBe(1);
+      expect(result.diagnostics.exposureOnly).toBe(true);
+    },
+  );
+
+  it("junior as PS under a senior → entrustment target, no exposure", () => {
+    const junior = makeMember({ contactId: "c-j", operativeRole: "PS" });
+    const result = deriveEpaAssessments({
+      self: SELF,
+      teamMembers: [junior],
+      units: [makeUnit({ procedureId: "p0", ownerRole: "FA" })],
+    });
+    expect(result.targets).toHaveLength(1);
+    expect(result.exposures).toHaveLength(0);
+    expect(result.diagnostics.roleGatedUnits).toBe(0);
+    expect(result.diagnostics.exposureOnly).toBe(false);
+  });
+
+  it("the SUPERVISOR's own role is never gated — a consultant holding a retractor still supervises a PS fellow", () => {
+    const fellow = makeMember({ contactId: "c-f", operativeRole: "PS" });
+    for (const ownerRole of ["FA", "SA", "SS", "US", "PS"] as const) {
+      const result = deriveEpaAssessments({
+        self: SELF,
+        teamMembers: [fellow],
+        units: [makeUnit({ procedureId: "p0", ownerRole })],
+      });
+      expect(result.targets).toHaveLength(1);
+      expect(result.targets[0]?.units[0]?.supervisorRole).toBe(ownerRole);
+    }
+  });
+
+  it("junior PS with no senior present → nothing (neither target nor exposure)", () => {
+    const peer = makeMember({
+      contactId: "c-p",
+      careerStage: "nz_consultant",
+      operativeRole: "FA",
+    });
+    const result = deriveEpaAssessments({
+      self: SELF,
+      teamMembers: [peer],
+      units: [makeUnit({ procedureId: "p0", ownerRole: "PS" })],
+    });
+    expect(result.targets).toHaveLength(0);
+    expect(result.exposures).toHaveLength(0);
+    expect(result.diagnostics.roleGatedUnits).toBe(0);
+    expect(result.diagnostics.allSameTier).toBe(true);
+  });
+
+  it("the LOGGER as a junior FA under a tagged senior → exposure with participant 'self'", () => {
+    const consultant = makeMember({
+      contactId: "c-cons",
+      displayName: "Dr Consultant",
+      careerStage: "nz_consultant",
+      operativeRole: "PS",
+    });
+    const result = deriveEpaAssessments({
+      self: { linkedUserId: "u-self", careerStage: "nz_set_trainee" },
+      teamMembers: [consultant],
+      units: [makeUnit({ procedureId: "p0", ownerRole: "FA" })],
+    });
+    expect(result.targets).toHaveLength(0);
+    expect(result.exposures).toHaveLength(1);
+    expect(result.exposures[0]?.participantContactId).toBe("self");
+    expect(result.exposures[0]?.participantLinkedUserId).toBe("u-self");
+    expect(result.exposures[0]?.units[0]?.seniorDisplayNames).toEqual([
+      "Dr Consultant",
+    ]);
+  });
+
+  it("mixed units: PS on one procedure, FA on another → target units [PS] + exposure [FA]", () => {
+    const fellow = makeMember({
+      contactId: "c-f",
+      operativeRole: "FA",
+      procedureRoleOverrides: { 1: "PS" },
+    });
+    const result = deriveEpaAssessments({
+      self: SELF,
+      teamMembers: [fellow],
+      units: [
+        makeUnit({ procedureId: "p0", flatIndex: 0, ownerRole: "PS" }),
+        makeUnit({ procedureId: "p1", flatIndex: 1, ownerRole: "SS" }),
+      ],
+    });
+    expect(result.targets).toHaveLength(1);
+    expect(result.targets[0]?.units.map((u) => u.procedureId)).toEqual(["p1"]);
+    expect(result.exposures).toHaveLength(1);
+    expect(result.exposures[0]?.units.map((u) => u.procedureId)).toEqual([
+      "p0",
+    ]);
+    expect(result.diagnostics.exposureOnly).toBe(false);
+  });
+
+  it("exposure records aggregate per participant USER across units and collapse shared accounts", () => {
+    const c1 = makeMember({
+      contactId: "c-f1",
+      linkedUserId: "u-shared",
+      operativeRole: "FA",
+    });
+    const c2 = makeMember({
+      contactId: "c-f2",
+      linkedUserId: "u-shared",
+      operativeRole: "SA",
+    });
+    const result = deriveEpaAssessments({
+      self: SELF,
+      teamMembers: [c1, c2],
+      units: [
+        makeUnit({ procedureId: "p0", flatIndex: 0, ownerRole: "PS" }),
+        makeUnit({ procedureId: "p1", flatIndex: 1, ownerRole: "PS" }),
+      ],
+    });
+    expect(result.exposures).toHaveLength(1);
+    expect(result.exposures[0]?.participantLinkedUserId).toBe("u-shared");
+    // Both contacts × both units, all recorded on the one user record.
+    expect(result.exposures[0]?.units).toHaveLength(4);
+  });
+
+  it("exposure seniors are the TOP-tier others on the unit (ties → both)", () => {
+    const fellowA = makeMember({ contactId: "c-a", displayName: "Dr A" });
+    const fellowB = makeMember({ contactId: "c-b", displayName: "Dr B" });
+    const trainee = makeMember({
+      contactId: "c-t",
+      careerStage: "nz_set_trainee",
+      operativeRole: "FA",
+    });
+    const result = deriveEpaAssessments({
+      self: { linkedUserId: "u-self", careerStage: null },
+      teamMembers: [fellowA, fellowB, trainee],
+      units: [makeUnit({ procedureId: "p0" })],
+    });
+    expect(result.exposures[0]?.units[0]?.seniorDisplayNames.sort()).toEqual([
+      "Dr A",
+      "Dr B",
+    ]);
   });
 });
 
@@ -154,7 +337,7 @@ describe("deriveEpaAssessments — procedure fallback (no steps)", () => {
     expect(t.traineeContactId).toBe("c-f");
     expect(t.units).toHaveLength(2);
     expect(t.units[0]?.supervisorRole).toBe("PS");
-    expect(t.units[0]?.traineeRole).toBe("FA");
+    expect(t.units[0]?.traineeRole).toBe("PS");
     expect(t.units[1]?.supervisorRole).toBe("SS");
     expect(t.units[1]?.traineeRole).toBe("PS");
   });
@@ -170,6 +353,7 @@ describe("deriveEpaAssessments — procedure fallback (no steps)", () => {
       units: [makeUnit({ procedureId: "p0" })],
     });
     expect(result.targets).toHaveLength(0);
+    expect(result.exposures).toHaveLength(0);
   });
 
   it("steps are authoritative: flat maps ignored for stepped procedures", () => {
@@ -348,6 +532,7 @@ describe("deriveEpaAssessments — eligibility & diagnostics", () => {
     });
     expect(result.targets).toHaveLength(0);
     expect(result.diagnostics.allSameTier).toBe(true);
+    expect(result.diagnostics.exposureOnly).toBe(false);
   });
 
   it("does not flag allSameTier when pairs exist or tiers differ", () => {
@@ -367,6 +552,7 @@ describe("deriveEpaAssessments — eligibility & diagnostics", () => {
       units: [makeUnit({ procedureId: "p0" })],
     });
     expect(result.targets).toHaveLength(0);
+    expect(result.exposures).toHaveLength(0);
     expect(result.diagnostics.allSameTier).toBe(false);
   });
 
@@ -378,5 +564,63 @@ describe("deriveEpaAssessments — eligibility & diagnostics", () => {
       units: [],
     });
     expect(result.targets).toHaveLength(0);
+  });
+});
+
+// ── Migrate-on-read (v2 → v3) ────────────────────────────────────────────────
+
+describe("migrateLegacyEpaTargets", () => {
+  const v2Target = (units: { procedureId: string; traineeRole: string }[]) => ({
+    version: 2,
+    supervisorContactId: "self",
+    supervisorDisplayName: "You",
+    supervisorLinkedUserId: "u-self",
+    supervisorTier: 5,
+    traineeContactId: "c-t",
+    traineeDisplayName: "Dr T",
+    traineeLinkedUserId: "u-t",
+    traineeTier: 3,
+    units: units.map((u) => ({
+      procedureId: u.procedureId,
+      procedureSnomedCode: "1",
+      procedureDisplayName: "Proc",
+      supervisorRole: "SS",
+      traineeRole: u.traineeRole,
+    })),
+  });
+
+  it("filters v2 units to PS-trainee units and stamps version 3", () => {
+    const r = migrateLegacyEpaTargets([
+      v2Target([
+        { procedureId: "p0", traineeRole: "FA" },
+        { procedureId: "p1", traineeRole: "PS" },
+      ]),
+    ]);
+    expect(r.changed).toBe(true);
+    expect(r.targets).toHaveLength(1);
+    expect(r.targets[0]?.version).toBe(3);
+    expect(r.targets[0]?.units.map((u) => u.procedureId)).toEqual(["p1"]);
+  });
+
+  it("drops a v2 target left with no PS units", () => {
+    const r = migrateLegacyEpaTargets([
+      v2Target([{ procedureId: "p0", traineeRole: "FA" }]),
+    ]);
+    expect(r.changed).toBe(true);
+    expect(r.targets).toHaveLength(0);
+  });
+
+  it("passes v3 targets through unchanged", () => {
+    const v3 = { ...v2Target([{ procedureId: "p0", traineeRole: "PS" }]) };
+    v3.version = 3;
+    const r = migrateLegacyEpaTargets([v3]);
+    expect(r.changed).toBe(false);
+    expect(r.targets).toEqual([v3]);
+  });
+
+  it("discards v1 / garbage input", () => {
+    expect(migrateLegacyEpaTargets([{ version: 1 }]).targets).toEqual([]);
+    expect(migrateLegacyEpaTargets("nope").targets).toEqual([]);
+    expect(migrateLegacyEpaTargets(null).changed).toBe(true);
   });
 });

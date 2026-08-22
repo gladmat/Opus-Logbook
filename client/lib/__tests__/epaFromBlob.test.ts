@@ -30,7 +30,7 @@ function makeMember(
   return {
     displayName: "Dr Member",
     abbreviatedName: "Member D.",
-    operativeRole: "FA",
+    operativeRole: "PS",
     linkedUserId: `u-${overrides.contactId}`,
     careerStage: "nz_fellow",
     ...overrides,
@@ -132,7 +132,43 @@ describe("deriveEpaFromSharedBlob — identity with owner-side derivation", () =
     });
 
     expect(recipientSide.targets).toEqual(ownerSide.targets);
+    expect(recipientSide.exposures).toEqual(ownerSide.exposures);
     expect(ownerSide.targets.length).toBeGreaterThan(0);
+  });
+
+  it("derives exactly the exposures the owner derived (FA junior)", () => {
+    const team = [
+      makeMember({
+        contactId: "c-trainee",
+        careerStage: "nz_set_trainee",
+        operativeRole: "FA",
+      }),
+    ];
+    const groups = makeGroups([
+      { id: "p1", procedureName: "Carpal tunnel release", snomedCtCode: "1" },
+    ]);
+    const ownerSide = deriveEpaAssessments({
+      self: {
+        linkedUserId: OWNER_USER_ID,
+        careerStage: "nz_consultant",
+        displayName: "Dr Owner",
+      },
+      teamMembers: team,
+      units: buildEpaUnitsFromDiagnosisGroups(groups, "SURGEON"),
+    });
+    const recipientSide = deriveEpaFromSharedBlob({
+      blob: makeBlob({ diagnosisGroups: groups, operativeTeam: team }),
+      viewerUserId: "u-c-trainee",
+      ownerUserId: OWNER_USER_ID,
+    });
+    expect(ownerSide.targets).toEqual([]);
+    expect(ownerSide.exposures).toHaveLength(1);
+    expect(recipientSide.exposures).toEqual(ownerSide.exposures);
+    expect(recipientSide.myTarget).toBeNull();
+    expect(recipientSide.myExposure?.participantLinkedUserId).toBe(
+      "u-c-trainee",
+    );
+    expect(recipientSide.reason).toBe("viewer-exposure-only");
   });
 });
 
@@ -167,6 +203,70 @@ describe("deriveEpaFromSharedBlob — viewer role", () => {
     });
     expect(view.myRole).toBe("trainee");
     expect(view.myTarget?.supervisorLinkedUserId).toBe(OWNER_USER_ID);
+  });
+
+  it("prefers the pair with the given counterpart when several involve the viewer", () => {
+    // Fellow-owner operated as PS under a consultant (SS) while a trainee
+    // operated as PS under the fellow on another procedure: two pairs
+    // involve the owner. Each share row's counterpart decides which one
+    // the viewer is looking at.
+    const groups = makeGroups([
+      { id: "p1", procedureName: "Flap", snomedCtCode: "1" },
+      {
+        id: "p2",
+        procedureName: "Debridement",
+        snomedCtCode: "2",
+        operativeRoleOverride: "SUPERVISOR",
+      },
+    ]);
+    const blob = makeBlob({
+      diagnosisGroups: groups,
+      ownerParticipant: {
+        userId: OWNER_USER_ID,
+        displayName: "Dr Fellow-Owner",
+        careerStage: "nz_fellow",
+      },
+      operativeTeam: [
+        makeMember({
+          contactId: "c-boss",
+          careerStage: "nz_consultant",
+          operativeRole: "SS",
+          presentForProcedures: [0],
+        }),
+        makeMember({
+          contactId: "c-trainee",
+          careerStage: "nz_set_trainee",
+          operativeRole: "PS",
+          presentForProcedures: [1],
+        }),
+      ],
+    });
+    const asTrainee = deriveEpaFromSharedBlob({
+      blob,
+      viewerUserId: OWNER_USER_ID,
+      ownerUserId: OWNER_USER_ID,
+      counterpartUserId: "u-c-boss",
+    });
+    expect(asTrainee.myRole).toBe("trainee");
+    expect(asTrainee.myTarget?.supervisorLinkedUserId).toBe("u-c-boss");
+
+    const asSupervisor = deriveEpaFromSharedBlob({
+      blob,
+      viewerUserId: OWNER_USER_ID,
+      ownerUserId: OWNER_USER_ID,
+      counterpartUserId: "u-c-trainee",
+    });
+    expect(asSupervisor.myRole).toBe("supervisor");
+    expect(asSupervisor.myTarget?.traineeLinkedUserId).toBe("u-c-trainee");
+
+    // An unknown counterpart falls back to the first viewer pair.
+    const fallback = deriveEpaFromSharedBlob({
+      blob,
+      viewerUserId: OWNER_USER_ID,
+      ownerUserId: OWNER_USER_ID,
+      counterpartUserId: "u-nobody",
+    });
+    expect(fallback.myTarget).not.toBeNull();
   });
 
   it("same-tier participants derive no target for the viewer", () => {

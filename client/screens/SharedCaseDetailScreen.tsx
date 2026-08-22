@@ -65,6 +65,7 @@ import {
   type AssessmentStatusResponse,
 } from "@/lib/assessmentApi";
 import { deriveEpaFromSharedBlob } from "@/lib/epaFromBlob";
+import { resolveEpaEntryState } from "@/lib/epaGate";
 import { useAuth } from "@/contexts/AuthContext";
 
 type RouteProps = RouteProp<RootStackParamList, "SharedCaseDetail">;
@@ -372,15 +373,34 @@ export default function SharedCaseDetailScreen() {
   // and the suggested assessor role.
   const epaView = useMemo(() => {
     if (!caseData || !user) return null;
+    const ownerUserId =
+      assessmentStatus?.ownerUserId ?? caseData.ownerParticipant?.userId ?? "";
+    // The other party on THIS share row: owner when the viewer is the
+    // recipient; the recipient when an owner is deep-linked here.
+    const counterpartUserId =
+      user.id === ownerUserId
+        ? assessmentStatus?.recipientUserId
+        : ownerUserId || undefined;
     return deriveEpaFromSharedBlob({
       blob: caseData,
       viewerUserId: user.id,
-      ownerUserId:
-        assessmentStatus?.ownerUserId ??
-        caseData.ownerParticipant?.userId ??
-        "",
+      ownerUserId,
+      counterpartUserId,
     });
-  }, [caseData, user, assessmentStatus?.ownerUserId]);
+  }, [
+    caseData,
+    user,
+    assessmentStatus?.ownerUserId,
+    assessmentStatus?.recipientUserId,
+  ]);
+
+  // Which EPA entry surface to show (shared with the inbox badge + the
+  // Assessment screen so the three can never disagree).
+  const epaEntryState = resolveEpaEntryState({
+    view: epaView,
+    counterpartCommitted: assessmentStatus?.otherAssessment != null,
+    myCommitted: assessmentStatus?.myAssessment != null,
+  });
 
   const handleVerify = async () => {
     setSubmitting(true);
@@ -899,7 +919,9 @@ export default function SharedCaseDetailScreen() {
                 {/* Pre-verification EPA hint — discoverability must not
                   depend on having verified. The assessment itself stays
                   gated behind verification. */}
-                {epaView?.myTarget && !assessmentStatus?.myAssessment ? (
+                {epaEntryState === "assess" &&
+                epaView?.myTarget &&
+                !assessmentStatus?.myAssessment ? (
                   <View
                     testID="sharedCaseDetail.epa-locked"
                     style={[
@@ -1085,7 +1107,47 @@ export default function SharedCaseDetailScreen() {
                 );
               }
 
-              // Not started — show "Begin Assessment" CTA
+              // Not started. PS role gate: a viewer who only ASSISTED on
+              // this case gets an informational note, not an entrustment
+              // instrument ("none" = derivable pairs exist but none involve
+              // the viewer — nothing to show).
+              if (epaEntryState === "none") return null;
+              if (epaEntryState === "exposure-only") {
+                const role = epaView?.myExposure?.units[0]?.role ?? "FA";
+                return (
+                  <View
+                    testID="sharedCaseDetail.epa-exposure"
+                    style={[
+                      styles.assessmentCard,
+                      {
+                        backgroundColor: theme.backgroundElevated,
+                        borderColor: theme.border,
+                      },
+                      Shadows.card,
+                    ]}
+                  >
+                    <Feather name="eye" size={20} color={theme.textSecondary} />
+                    <View style={styles.assessmentCardText}>
+                      <ThemedText
+                        style={[styles.assessmentTitle, { color: theme.text }]}
+                      >
+                        Assisted — no entrustment assessment
+                      </ThemedText>
+                      <ThemedText
+                        style={[
+                          styles.assessmentSubtitle,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
+                        You were {TEAM_MEMBER_ROLE_LABELS[role]} on this case;
+                        it&apos;s logged as operative exposure. Entrustment
+                        assessments fire only when the trainee is Primary
+                        Surgeon.
+                      </ThemedText>
+                    </View>
+                  </View>
+                );
+              }
               return (
                 <Pressable
                   onPress={() =>
@@ -1116,7 +1178,7 @@ export default function SharedCaseDetailScreen() {
                         { color: theme.textSecondary },
                       ]}
                     >
-                      Rate entrustment and teaching quality
+                      Rate entrustment, autonomy and teaching
                     </ThemedText>
                   </View>
                   <Feather

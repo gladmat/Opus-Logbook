@@ -48,6 +48,9 @@ export interface ShareRecipient {
   displayName: string;
   role: string;
   publicKeys: { deviceId: string; publicKey: string }[];
+  /** Stamped at share time from the derived EPA targets (PS role gate);
+   *  undefined when derivation didn't run — server falls back to tiers. */
+  epaEligible?: boolean;
 }
 
 export interface TofuMismatch {
@@ -307,6 +310,9 @@ export async function encryptAndShareCase(
       userId: member.userId,
       role: prepared.role,
       keyEnvelopes: prepared.keyEnvelopes,
+      ...(member.epaEligible != null
+        ? { epaEligible: member.epaEligible }
+        : {}),
     };
   });
 
@@ -347,6 +353,14 @@ export interface ShareCaseWithTeamParams {
   owner?: OwnerParticipant;
   /** Legacy email-tagged members that already carry public keys. */
   preResolved?: ShareRecipient[];
+  /**
+   * Recipients for whom the PS-gated derivation produced an assessable EPA
+   * pair with the owner (pendingEpa.epaEligibleRecipientIds). When given,
+   * every recipient payload carries `epaEligible` so the server's
+   * share-time "EPA Assessment" push respects the role gate; omit to let
+   * the server fall back to its tier heuristic.
+   */
+  epaEligibleUserIds?: ReadonlySet<string>;
 }
 
 /**
@@ -366,8 +380,20 @@ export interface ShareCaseWithTeamParams {
 export async function shareCaseWithTeam(
   params: ShareCaseWithTeamParams,
 ): Promise<TeamShareOutcome> {
-  const { savedCase, operativeTeam, isEdit, preResolved, owner } = params;
+  const {
+    savedCase,
+    operativeTeam,
+    isEdit,
+    preResolved,
+    owner,
+    epaEligibleUserIds,
+  } = params;
   const collect = await collectShareRecipients(operativeTeam, preResolved);
+  if (epaEligibleUserIds) {
+    for (const r of collect.recipients) {
+      r.epaEligible = epaEligibleUserIds.has(r.userId);
+    }
+  }
   const outcome: TeamShareOutcome = {
     shared: [],
     resharedOnEdit: [],
@@ -504,6 +530,7 @@ export async function shareCaseWithTeam(
           userId: r.userId,
           role: prepared.role,
           keyEnvelopes: prepared.keyEnvelopes,
+          ...(r.epaEligible != null ? { epaEligible: r.epaEligible } : {}),
         };
       });
       const result = await shareCase({

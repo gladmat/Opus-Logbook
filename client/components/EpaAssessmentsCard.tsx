@@ -17,13 +17,17 @@ import { Feather } from "@/components/FeatherIcon";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
-import { getEpaTargets } from "@/lib/assessmentStorage";
+import { getEpaTargetsRecord } from "@/lib/assessmentStorage";
 import { getSharedOutbox } from "@/lib/sharingApi";
 import {
   getAssessmentStatus,
   type AssessmentStatusResponse,
 } from "@/lib/assessmentApi";
-import type { EpaAssessmentTarget } from "@/lib/epaDerivation";
+import type {
+  EpaAssessmentTarget,
+  EpaExposureRecord,
+} from "@/lib/epaDerivation";
+import { TEAM_MEMBER_ROLE_LABELS } from "@/types/teamContacts";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -46,11 +50,14 @@ export function EpaAssessmentsCard({ caseId }: EpaAssessmentsCardProps) {
   const { theme } = useTheme();
   const navigation = useNavigation<Nav>();
   const [rows, setRows] = useState<TargetRow[]>([]);
+  const [exposures, setExposures] = useState<EpaExposureRecord[]>([]);
   const [outboxUnavailable, setOutboxUnavailable] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const targets = await getEpaTargets(caseId);
+      const record = await getEpaTargetsRecord(caseId);
+      const targets = record.targets;
+      setExposures(record.exposures);
       if (targets.length === 0) {
         setRows([]);
         return;
@@ -106,7 +113,7 @@ export function EpaAssessmentsCard({ caseId }: EpaAssessmentsCardProps) {
     }, [load]),
   );
 
-  if (rows.length === 0) return null;
+  if (rows.length === 0 && exposures.length === 0) return null;
 
   return (
     <>
@@ -117,6 +124,53 @@ export function EpaAssessmentsCard({ caseId }: EpaAssessmentsCardProps) {
         style={[styles.card, { backgroundColor: theme.backgroundDefault }]}
         testID="caseDetail.epa.card"
       >
+        {/* Exposure rows — juniors who assisted rather than operated as
+            PS. Informational only: no entrustment instrument fires. */}
+        {exposures.map((exposure) => {
+          const isSelf = exposure.participantContactId === "self";
+          const unitLabels = Array.from(
+            new Set(
+              exposure.units.map((u) => u.stepLabel ?? u.procedureDisplayName),
+            ),
+          );
+          const scope =
+            unitLabels.length <= 2
+              ? unitLabels.join(" · ")
+              : `${unitLabels.slice(0, 2).join(" · ")} +${unitLabels.length - 2} more`;
+          const roleLabel =
+            TEAM_MEMBER_ROLE_LABELS[exposure.units[0]?.role ?? "FA"];
+          const seniors = Array.from(
+            new Set(exposure.units.flatMap((u) => u.seniorDisplayNames)),
+          );
+          return (
+            <View
+              key={`exposure-${exposure.participantLinkedUserId}`}
+              style={[styles.row, { borderBottomColor: theme.border }]}
+              testID={`caseDetail.epa.exposure-${exposure.participantLinkedUserId}`}
+            >
+              <View style={styles.rowText}>
+                <ThemedText style={[styles.direction, { color: theme.text }]}>
+                  {isSelf
+                    ? `You assisted ${seniors.join(" · ") || "a senior"} (${roleLabel})`
+                    : `${exposure.participantDisplayName} assisted (${roleLabel})`}
+                </ThemedText>
+                <ThemedText
+                  style={[styles.scope, { color: theme.textSecondary }]}
+                  numberOfLines={1}
+                >
+                  {scope}
+                </ThemedText>
+                <ThemedText
+                  style={[styles.status, { color: theme.textTertiary }]}
+                >
+                  Exposure logged — no entrustment assessment (fires only when
+                  the trainee is Primary Surgeon).
+                </ThemedText>
+              </View>
+              <Feather name="eye" size={16} color={theme.textTertiary} />
+            </View>
+          );
+        })}
         {rows.map((row) => {
           const unitLabels = Array.from(
             new Set(

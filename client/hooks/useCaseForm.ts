@@ -126,6 +126,7 @@ import {
 } from "@/lib/epaDerivation";
 import { saveEpaTargets } from "@/lib/assessmentStorage";
 import { planEpaTargetPersistence } from "@/lib/epaTargetPersistence";
+import { epaEligibleRecipientIds } from "@/lib/pendingEpa";
 import { captureClientException } from "@/lib/sentry";
 
 // ─── Default Donor Vessels ──────────────────────────────────────────────────
@@ -2532,6 +2533,90 @@ export function useCaseForm({
 
         // Share with tagged team members + linked operative team
         // (non-blocking). The pipeline — device-key fetch, TOFU pinning,
+        // Derive EPA assessment targets + exposure records (non-blocking).
+        // Runs BEFORE sharing so the share POST can carry the PS-gated
+        // `epaEligible` hint per recipient. Uses the rehydrated team so a
+        // careerStage filled from the live contact improves the derived
+        // targets. Units come from steps when a procedure carries them
+        // (authoritative), else the whole procedure with the owner's
+        // RESOLVED role — and team-only pairs derive even when the logger's
+        // own stage is unset. Runs on every edit-save even with an empty
+        // team so stale targets clear (saveEpaTargets removes the key when
+        // both lists are empty). Pure + own try/catch: derivation failure
+        // never blocks sharing or the save.
+        let epaDiagnostics: EpaDerivationDiagnostics | null = null;
+        let epaEligibleUserIds: Set<string> | undefined;
+        if (operativeTeamForSave.length > 0 || (isEditMode && existingCase)) {
+          try {
+            let derived: {
+              targets: import("@/lib/epaDerivation").EpaAssessmentTarget[];
+              exposures: import("@/lib/epaDerivation").EpaExposureRecord[];
+            } | null = null;
+            if (operativeTeamForSave.length > 0 && profile) {
+              // Shared with the recipient side (epaFromBlob) so both sides
+              // derive identical targets from the same snapshot.
+              const units = buildEpaUnitsFromDiagnosisGroups(
+                savedCase.diagnosisGroups,
+                savedCase.defaultOperativeRole,
+              );
+              const derivation = deriveEpaAssessments({
+                self: {
+                  linkedUserId: profile.userId,
+                  careerStage: profile.careerStage,
+                },
+                teamMembers: operativeTeamForSave,
+                units,
+              });
+              derived = {
+                targets: derivation.targets,
+                exposures: derivation.exposures,
+              };
+              epaDiagnostics = derivation.diagnostics;
+              epaEligibleUserIds = epaEligibleRecipientIds(
+                derivation.targets,
+                profile.userId,
+              );
+            }
+            // Persist decision is pure + tested: a transient profile gap must
+            // never wipe stored targets (saveEpaTargets([]) removes the key).
+            const persistAction = planEpaTargetPersistence({
+              hasTeam: operativeTeamForSave.length > 0,
+              isEdit: isEditMode && Boolean(existingCase),
+              profileAvailable: profile != null,
+              derived,
+            });
+            if (persistAction.kind === "save") {
+              // Awaited so the CaseDetail Assessments card (loaded on focus
+              // right after nav-back) never races the write.
+              try {
+                await saveEpaTargets(
+                  savedCase.id,
+                  persistAction.targets,
+                  persistAction.exposures,
+                );
+              } catch (err) {
+                // Non-critical — EPA storage failure doesn't block save
+                if (__DEV__) console.warn("[opus:epa] target save failed", err);
+                captureClientException(err, { context: "epaTargetSave" });
+              }
+            } else if (persistAction.reason === "no-profile") {
+              if (__DEV__)
+                console.warn(
+                  "[opus:epa] persistence skipped — profile unavailable at save",
+                );
+              captureClientException(
+                new Error("EPA target persistence skipped: profile null"),
+                { context: "epaTargetSave" },
+              );
+            }
+          } catch (err) {
+            // Non-critical — EPA derivation failure doesn't block save,
+            // but it must not vanish silently either.
+            if (__DEV__) console.warn("[opus:epa] derivation failed", err);
+            captureClientException(err, { context: "epaDerivation" });
+          }
+        }
+
         // edit-mode revoke/re-share, encrypt + POST — lives in
         // client/lib/caseSharing.ts; only the Alerts stay in this hook.
         let shareOutcome: TeamShareOutcome | null = null;
@@ -2546,6 +2631,7 @@ export function useCaseForm({
               operativeTeam: operativeTeamForSave,
               isEdit: isEditMode && !!existingCase,
               preResolved: state.teamMembers,
+              epaEligibleUserIds,
               // Owner snapshot rides inside the encrypted blob so recipients
               // can tier-compare against the logger + re-derive EPA targets.
               owner: profile
@@ -2589,74 +2675,6 @@ export function useCaseForm({
               },
             ],
           );
-        }
-
-        // Derive EPA assessment targets (non-blocking). Uses the rehydrated
-        // team so a careerStage filled from the live contact improves the
-        // derived targets. Units come from steps when a procedure carries
-        // them (authoritative), else the whole procedure with the owner's
-        // RESOLVED role — and team-only pairs derive even when the
-        // logger's own stage is unset. Runs on every edit-save even with
-        // an empty team so stale targets clear (saveEpaTargets removes
-        // the key when the list is empty).
-        let epaDiagnostics: EpaDerivationDiagnostics | null = null;
-        if (operativeTeamForSave.length > 0 || (isEditMode && existingCase)) {
-          try {
-            let derivedTargets:
-              | import("@/lib/epaDerivation").EpaAssessmentTarget[]
-              | null = null;
-            if (operativeTeamForSave.length > 0 && profile) {
-              // Shared with the recipient side (epaFromBlob) so both sides
-              // derive identical targets from the same snapshot.
-              const units = buildEpaUnitsFromDiagnosisGroups(
-                savedCase.diagnosisGroups,
-                savedCase.defaultOperativeRole,
-              );
-              const derivation = deriveEpaAssessments({
-                self: {
-                  linkedUserId: profile.userId,
-                  careerStage: profile.careerStage,
-                },
-                teamMembers: operativeTeamForSave,
-                units,
-              });
-              derivedTargets = derivation.targets;
-              epaDiagnostics = derivation.diagnostics;
-            }
-            // Persist decision is pure + tested: a transient profile gap must
-            // never wipe stored targets (saveEpaTargets([]) removes the key).
-            const persistAction = planEpaTargetPersistence({
-              hasTeam: operativeTeamForSave.length > 0,
-              isEdit: isEditMode && Boolean(existingCase),
-              profileAvailable: profile != null,
-              derivedTargets,
-            });
-            if (persistAction.kind === "save") {
-              // Awaited so the CaseDetail Assessments card (loaded on focus
-              // right after nav-back) never races the write.
-              try {
-                await saveEpaTargets(savedCase.id, persistAction.targets);
-              } catch (err) {
-                // Non-critical — EPA storage failure doesn't block save
-                if (__DEV__) console.warn("[opus:epa] target save failed", err);
-                captureClientException(err, { context: "epaTargetSave" });
-              }
-            } else if (persistAction.reason === "no-profile") {
-              if (__DEV__)
-                console.warn(
-                  "[opus:epa] persistence skipped — profile unavailable at save",
-                );
-              captureClientException(
-                new Error("EPA target persistence skipped: profile null"),
-                { context: "epaTargetSave" },
-              );
-            }
-          } catch (err) {
-            // Non-critical — EPA derivation failure doesn't block save,
-            // but it must not vanish silently either.
-            if (__DEV__) console.warn("[opus:epa] derivation failed", err);
-            captureClientException(err, { context: "epaDerivation" });
-          }
         }
 
         // Surface silent team-sharing / EPA limitations. Sharing and EPA both
@@ -2718,6 +2736,13 @@ export function useCaseForm({
           if (epaDiagnostics?.allSameTier) {
             issues.push(
               "• Everyone on this case is at the same seniority level, so there is no supervisor–trainee pair to assess.",
+            );
+          }
+          // PS role gate: juniors who assisted rather than operated produce
+          // exposure records, not entrustment pairs — say so.
+          if (epaDiagnostics?.exposureOnly) {
+            issues.push(
+              "• Tagged colleagues assisted rather than operated as Primary Surgeon on this case, so it's logged as exposure — entrustment assessments are generated only when the trainee is Primary Surgeon.",
             );
           }
           // Fire-and-forget (matches the old non-blocking Alert): when

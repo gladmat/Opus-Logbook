@@ -14,14 +14,19 @@ import { DotPlotChart } from "./DotPlotChart";
 import {
   ENTRUSTMENT_LABELS,
   TEACHING_QUALITY_LABELS,
+  BID_ITEM_KEYS,
+  BID_ITEM_TITLES,
   type EntrustmentLevel,
   type TeachingQualityLevel,
 } from "@/types/sharing";
-import type {
-  ProcedureLearningCurve,
-  TeachingAggregate,
-  CalibrationScore,
-  TrainingOverviewStats,
+import {
+  SUPERVISOR_AGGREGATE_MIN_ASSESSMENTS,
+  SUPERVISOR_AGGREGATE_MIN_UNIQUE_CASES,
+  type ProcedureLearningCurve,
+  type TeachingAggregate,
+  type CalibrationScore,
+  type TrainingOverviewStats,
+  type AutonomyGapStats,
 } from "@/lib/assessmentAnalytics";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
 
@@ -30,11 +35,33 @@ interface TrainingContentProps {
   learningCurves: ProcedureLearningCurve[];
   teachingAggregate: TeachingAggregate | null;
   calibrationScore: CalibrationScore | null;
+  /** Trainee-facing granted-autonomy gap (instrument v2 pairs). */
+  autonomyGap?: AutonomyGapStats | null;
   trainingOverview: TrainingOverviewStats | null;
   entrustmentDistribution: { level: number; count: number }[];
   isEmpty: boolean;
   /** Derived-but-unrevealed EPA targets — keeps the pending list reachable before the first reveal. */
   pendingCount?: number;
+  /** Cases where the viewer assisted under a senior (exposure logged, no entrustment). */
+  exposureCaseCount?: number;
+}
+
+const AUTONOMY_DIRECTION_LABELS: Record<AutonomyGapStats["direction"], string> =
+  {
+    matched: "Well matched",
+    held_back: "Often given less than you could handle",
+    over_extended: "Often stretched beyond comfort",
+  };
+
+const AUTONOMY_DIRECTION_HINTS: Record<AutonomyGapStats["direction"], string> =
+  {
+    matched: "You're usually given the autonomy you can handle",
+    held_back: "You're often held back — worth raising with supervisors",
+    over_extended: "You're sometimes stretched beyond your comfort",
+  };
+
+function formatRate(rate: number): string {
+  return `${Math.round(rate * 100)}%`;
 }
 
 type NavProp = NativeStackNavigationProp<RootStackParamList>;
@@ -78,7 +105,13 @@ function SectionHeader({ title }: { title: string }) {
 
 // ── Empty State ──────────────────────────────────────────────────────────────
 
-function EmptyTraining({ pendingCount = 0 }: { pendingCount?: number }) {
+function EmptyTraining({
+  pendingCount = 0,
+  exposureCaseCount = 0,
+}: {
+  pendingCount?: number;
+  exposureCaseCount?: number;
+}) {
   const { theme } = useTheme();
   const navigation = useNavigation<NavProp>();
   return (
@@ -93,6 +126,17 @@ function EmptyTraining({ pendingCount = 0 }: { pendingCount?: number }) {
         When you complete EPA assessments on shared cases, your training
         analytics will appear here.
       </ThemedText>
+      {exposureCaseCount > 0 ? (
+        <ThemedText
+          style={[styles.emptySubtitle, { color: theme.textTertiary }]}
+          testID="statistics.training.exposure-empty"
+        >
+          You&apos;ve assisted on {exposureCaseCount}{" "}
+          {exposureCaseCount === 1 ? "case" : "cases"} (exposure logged).
+          Entrustment assessments are generated when you operate as Primary
+          Surgeon.
+        </ThemedText>
+      ) : null}
       {pendingCount > 0 ? (
         <Pressable
           onPress={() => navigation.navigate("AssessmentHistory")}
@@ -118,11 +162,15 @@ function EmptyTraining({ pendingCount = 0 }: { pendingCount?: number }) {
 function TraineeView({
   learningCurves,
   calibrationScore,
+  autonomyGap,
   trainingOverview,
+  exposureCaseCount,
 }: {
   learningCurves: ProcedureLearningCurve[];
   calibrationScore: CalibrationScore | null;
+  autonomyGap: AutonomyGapStats | null;
   trainingOverview: TrainingOverviewStats | null;
+  exposureCaseCount: number;
 }) {
   const { theme } = useTheme();
   const navigation = useNavigation<NavProp>();
@@ -151,6 +199,76 @@ function TraineeView({
             size="small"
           />
         </View>
+      )}
+      {exposureCaseCount > 0 ? (
+        <View style={styles.metricRow}>
+          <StatCard
+            label="Assisted (exposure)"
+            value={exposureCaseCount}
+            subtitle="Logged, not assessed"
+            size="small"
+          />
+        </View>
+      ) : null}
+
+      {/* Granted-autonomy match (instrument v2) */}
+      {autonomyGap && (
+        <>
+          <SectionHeader title="Autonomy Match" />
+          <View
+            testID="statistics.training.autonomy"
+            style={[
+              styles.card,
+              {
+                backgroundColor: theme.backgroundElevated,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <View style={styles.calibrationRow}>
+              <ThemedText
+                style={[
+                  styles.calibrationValue,
+                  {
+                    color:
+                      autonomyGap.direction === "matched"
+                        ? theme.success
+                        : theme.warning,
+                  },
+                ]}
+              >
+                {autonomyGap.meanSignedGap > 0 ? "+" : ""}
+                {autonomyGap.meanSignedGap.toFixed(1)}
+              </ThemedText>
+              <View style={styles.calibrationMeta}>
+                <ThemedText
+                  style={[styles.calibrationLabel, { color: theme.text }]}
+                >
+                  {AUTONOMY_DIRECTION_LABELS[autonomyGap.direction]}
+                </ThemedText>
+                <ThemedText
+                  style={[
+                    styles.calibrationHint,
+                    { color: theme.textSecondary },
+                  ]}
+                >
+                  {AUTONOMY_DIRECTION_HINTS[autonomyGap.direction]}
+                </ThemedText>
+              </View>
+            </View>
+            <ThemedText
+              style={[
+                styles.calibrationFootnote,
+                { color: theme.textTertiary },
+              ]}
+            >
+              Held back in {formatRate(autonomyGap.heldBackRate)} · Well matched
+              in {formatRate(autonomyGap.matchedRate)} · Over-extended in{" "}
+              {formatRate(autonomyGap.overExtendedRate)} · 0 = granted autonomy
+              matched what you could handle
+            </ThemedText>
+          </View>
+        </>
       )}
 
       {/* Calibration score */}
@@ -321,6 +439,16 @@ function SupervisorView({
             {teachingAggregate.uniqueTrainees} trainees
           </ThemedText>
 
+          {teachingAggregate.legacyScaleCount > 0 &&
+          teachingAggregate.legacyScaleCount <
+            teachingAggregate.totalAssessments ? (
+            <ThemedText
+              style={[styles.teachingSubtitle, { color: theme.textTertiary }]}
+            >
+              {teachingAggregate.legacyScaleCount} rated on the pre-2.23 scale
+            </ThemedText>
+          ) : null}
+
           {teachingAggregate.trend.length > 1 && (
             <View style={styles.trendChart}>
               <BarChart
@@ -333,6 +461,44 @@ function SupervisorView({
               />
             </View>
           )}
+
+          {/* BID teaching behaviours — share rated "Yes, clearly" */}
+          {teachingAggregate.behaviours ? (
+            <View style={styles.trendChart} testID="statistics.training.bid">
+              <ThemedText
+                style={[
+                  styles.teachingSubtitle,
+                  { color: theme.textSecondary },
+                ]}
+              >
+                Teaching behaviours — rated &quot;Yes, clearly&quot; (
+                {teachingAggregate.behaviours.total} assessments)
+              </ThemedText>
+              <HorizontalBarChart
+                data={BID_ITEM_KEYS.map((key) => ({
+                  label: BID_ITEM_TITLES[key],
+                  value: Math.round(
+                    teachingAggregate.behaviours!.items[key].clearRate * 100,
+                  ),
+                }))}
+                maxBars={3}
+              />
+            </View>
+          ) : null}
+
+          {/* Granted autonomy as trainees experienced it */}
+          {teachingAggregate.autonomy ? (
+            <ThemedText
+              style={[styles.teachingSubtitle, { color: theme.textSecondary }]}
+              testID="statistics.training.autonomy-granted"
+            >
+              Autonomy you granted: held back{" "}
+              {formatRate(teachingAggregate.autonomy.heldBackRate)} · well
+              matched {formatRate(teachingAggregate.autonomy.matchedRate)} ·
+              over-extended{" "}
+              {formatRate(teachingAggregate.autonomy.overExtendedRate)}
+            </ThemedText>
+          ) : null}
         </View>
       ) : (
         <View
@@ -347,16 +513,17 @@ function SupervisorView({
           <ThemedText
             style={[styles.thresholdText, { color: theme.textSecondary }]}
           >
-            {totalAssessmentCount < 5
-              ? `Need ${5 - totalAssessmentCount} more assessment${5 - totalAssessmentCount === 1 ? "" : "s"} to see your teaching score`
-              : uniqueTraineeCount < 3
-                ? `Need assessments from ${3 - uniqueTraineeCount} more trainee${3 - uniqueTraineeCount === 1 ? "" : "s"} to see your teaching score`
+            {totalAssessmentCount < SUPERVISOR_AGGREGATE_MIN_ASSESSMENTS
+              ? `Need ${SUPERVISOR_AGGREGATE_MIN_ASSESSMENTS - totalAssessmentCount} more assessment${SUPERVISOR_AGGREGATE_MIN_ASSESSMENTS - totalAssessmentCount === 1 ? "" : "s"} to see your teaching score`
+              : uniqueTraineeCount < SUPERVISOR_AGGREGATE_MIN_UNIQUE_CASES
+                ? `Need assessments from ${SUPERVISOR_AGGREGATE_MIN_UNIQUE_CASES - uniqueTraineeCount} more trainee${SUPERVISOR_AGGREGATE_MIN_UNIQUE_CASES - uniqueTraineeCount === 1 ? "" : "s"} to see your teaching score`
                 : "Not enough data yet"}
           </ThemedText>
           <ThemedText
             style={[styles.thresholdFootnote, { color: theme.textTertiary }]}
           >
-            Requires at least 5 assessments from 3 different trainees
+            Requires at least {SUPERVISOR_AGGREGATE_MIN_ASSESSMENTS} assessments
+            from {SUPERVISOR_AGGREGATE_MIN_UNIQUE_CASES} different trainees
           </ThemedText>
         </View>
       )}
@@ -427,9 +594,16 @@ export const TrainingContent = React.memo(function TrainingContent({
   entrustmentDistribution,
   isEmpty,
   pendingCount = 0,
+  autonomyGap = null,
+  exposureCaseCount = 0,
 }: TrainingContentProps) {
   if (isEmpty) {
-    return <EmptyTraining pendingCount={pendingCount} />;
+    return (
+      <EmptyTraining
+        pendingCount={pendingCount}
+        exposureCaseCount={exposureCaseCount}
+      />
+    );
   }
 
   return (
@@ -444,7 +618,9 @@ export const TrainingContent = React.memo(function TrainingContent({
         <TraineeView
           learningCurves={learningCurves}
           calibrationScore={calibrationScore}
+          autonomyGap={autonomyGap}
           trainingOverview={trainingOverview}
+          exposureCaseCount={exposureCaseCount}
         />
       )}
     </View>

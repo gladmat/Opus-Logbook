@@ -9,7 +9,7 @@ import type {
   StayType,
   AdmissionUrgency,
 } from "./case";
-import type { CaseTeamMember } from "./teamContacts";
+import type { CaseTeamMember, TeamMemberOperativeRole } from "./teamContacts";
 
 // ── Shared case inbox ────────────────────────────────────────────────────────
 
@@ -114,25 +114,152 @@ export const ENTRUSTMENT_LABELS: Record<EntrustmentLevel, string> = {
   5: "I did not need to be there",
 };
 
+/**
+ * Part C of the trainee instrument (v2): a per-case global with PER-CASE
+ * ATTAINABLE anchors. The field name `teachingQualityRating` is kept across
+ * versions so legacy readers keep working; only the anchors changed (the v1
+ * top anchor "changed my practice" was an aspirational lifetime event, not
+ * a per-case outcome, and ceiling-compressed the scale).
+ */
 export const TEACHING_QUALITY_LABELS: Record<TeachingQualityLevel, string> = {
-  1: "Took over / minimal teaching",
-  2: "Instructed but didn't explain why",
-  3: "Guided with explanations",
-  4: "Excellent — adjusted to my level",
-  5: "Outstanding — changed my practice",
+  1: "Poor",
+  2: "Adequate",
+  3: "Good",
+  4: "Very good",
+  5: "Outstanding",
 };
+
+/** v1 anchors — display-only for records committed before 2.23.0. */
+export const TEACHING_QUALITY_LABELS_V1: Record<TeachingQualityLevel, string> =
+  {
+    1: "Took over / minimal teaching",
+    2: "Instructed but didn't explain why",
+    3: "Guided with explanations",
+    4: "Excellent — adjusted to my level",
+    5: "Outstanding — changed my practice",
+  };
+
+export function teachingQualityLabel(
+  level: TeachingQualityLevel,
+  instrumentVersion?: 1 | 2,
+): string {
+  return instrumentVersion === 2
+    ? TEACHING_QUALITY_LABELS[level]
+    : TEACHING_QUALITY_LABELS_V1[level];
+}
+
+/**
+ * Part A of the trainee instrument (v2): granted-autonomy MATCH. How the
+ * autonomy the supervisor granted compared with what the trainee could have
+ * handled THIS case. A calibration construct, not a quality construct — the
+ * ideal is the CENTRE (3), not the top, so it has no ceiling asymmetry and
+ * is the true mirror of the supervisor's entrustment rating. Signed: both
+ * tails are informative (under-entrustment / equity analysis).
+ */
+export type AutonomyMatchLevel = 1 | 2 | 3 | 4 | 5;
+
+export const AUTONOMY_MATCH_LABELS: Record<AutonomyMatchLevel, string> = {
+  1: "Held back",
+  2: "Slightly under",
+  3: "Well matched",
+  4: "Slightly over",
+  5: "Beyond me",
+};
+
+export const AUTONOMY_MATCH_DESCRIPTIONS: Record<AutonomyMatchLevel, string> = {
+  1: "I was ready for more responsibility than I was given this case",
+  2: "I could have done a little more",
+  3: "The autonomy I was given fit what I could handle",
+  4: "I was given a bit more than I was ready for",
+  5: "I was given more responsibility than I could handle this case",
+};
+
+/**
+ * Part B of the trainee instrument (v2): three BID (Briefing /
+ * Intraoperative teaching / Debriefing) behaviour-frequency items, each
+ * per-case attainable.
+ */
+export type BidItemKey = "briefing" | "intraop" | "debrief";
+export const BID_ITEM_KEYS: readonly BidItemKey[] = [
+  "briefing",
+  "intraop",
+  "debrief",
+];
+export type BidItemLevel = 0 | 1 | 2;
+export type BidBehaviours = Record<BidItemKey, BidItemLevel>;
+
+export const BID_ITEM_TITLES: Record<BidItemKey, string> = {
+  briefing: "Set-up",
+  intraop: "In-case teaching",
+  debrief: "Debrief",
+};
+
+export const BID_ITEM_PROMPTS: Record<BidItemKey, string> = {
+  briefing: "Before or early in the case, we agreed what I would focus on",
+  intraop:
+    "During the case I got useful guidance or feedback at the right moments",
+  debrief: "After the case we discussed how I did and how to improve",
+};
+
+export const BID_ITEM_LABELS: Record<BidItemLevel, string> = {
+  0: "Not this case",
+  1: "Somewhat",
+  2: "Yes, clearly",
+};
+
+/**
+ * Procedure attribution carried INSIDE the committed payload (first PS unit
+ * of the derived target) so the reveal no longer guesses
+ * `diagnosisGroups[0].procedures[0]`.
+ */
+export interface AssessmentProcedureRef {
+  procedureSnomedCode: string;
+  procedureDisplayName: string;
+  procedureId?: string;
+}
 
 export interface SupervisorAssessment {
   entrustmentRating: EntrustmentLevel;
   caseComplexity?: "routine" | "moderate" | "complex";
   narrativeFeedback?: string;
+  /** 2.23.0+ */
+  procedure?: AssessmentProcedureRef;
+  /** The trainee's role on the assessed unit — "PS" when target-derived. */
+  traineeOperativeRole?: TeamMemberOperativeRole;
 }
 
-export interface TraineeAssessment {
+/** Pre-2.23.0 trainee payload (self-entrustment + old teaching global). */
+export interface TraineeAssessmentV1 {
+  instrumentVersion?: undefined;
   selfEntrustmentRating: EntrustmentLevel;
   teachingQualityRating: TeachingQualityLevel;
   teachingNarrative?: string;
   reflectiveNotes?: string;
+}
+
+/** 2.23.0+ trainee payload: self-entrustment + Part A + Part B + Part C. */
+export interface TraineeAssessmentV2 {
+  instrumentVersion: 2;
+  selfEntrustmentRating: EntrustmentLevel;
+  /** Part A — granted-autonomy match (required). */
+  autonomyMatch: AutonomyMatchLevel;
+  /** Part B — BID behaviour items (required). */
+  bid: BidBehaviours;
+  /** Part C — per-case global (required; per-case anchors). */
+  teachingQualityRating: TeachingQualityLevel;
+  teachingNarrative?: string;
+  /** Never leaves the device — stripped before the shareable JSON is built. */
+  reflectiveNotes?: string;
+  procedure?: AssessmentProcedureRef;
+  traineeOperativeRole?: TeamMemberOperativeRole;
+}
+
+export type TraineeAssessment = TraineeAssessmentV1 | TraineeAssessmentV2;
+
+export function isTraineeAssessmentV2(
+  a: TraineeAssessment,
+): a is TraineeAssessmentV2 {
+  return a.instrumentVersion === 2;
 }
 
 export interface RevealedAssessmentPair {
@@ -144,4 +271,15 @@ export interface RevealedAssessmentPair {
   revealedAt: string;
   procedureCode: string;
   procedureDisplayName: string;
+  /** Phase C: true when only one side responded (72h timeout). Absent on
+   *  legacy records — treated as full unless a rating is 0. */
+  partial?: boolean;
+  /** Phase C: the trainee's narrative feedback on the teaching. */
+  teachingNarrative?: string;
+  /** Which trainee instrument produced `teachingQuality` (anchors differ). */
+  instrumentVersion?: 1 | 2;
+  autonomyMatch?: AutonomyMatchLevel;
+  bid?: BidBehaviours;
+  /** "PS" on every target-derived record (2.23.0+). */
+  traineeOperativeRole?: TeamMemberOperativeRole;
 }

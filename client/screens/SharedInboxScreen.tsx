@@ -22,6 +22,7 @@ import {
 } from "@/lib/sharingStorage";
 import { getMyAssessment, getRevealedPair } from "@/lib/assessmentStorage";
 import { deriveEpaFromSharedBlob } from "@/lib/epaFromBlob";
+import { resolveEpaEntryState } from "@/lib/epaGate";
 import { ensurePushPermissionsWithPrompt } from "@/lib/pushPermissions";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -246,8 +247,19 @@ export default function SharedInboxScreen() {
                     blob,
                     viewerUserId: user.id,
                     ownerUserId: entry.ownerUserId,
+                    counterpartUserId: entry.ownerUserId,
                   });
-                  if (view.myTarget) return { id: entry.id, status: "due" };
+                  // PS role gate: exposure-only viewers get no badge.
+                  if (
+                    resolveEpaEntryState({
+                      view,
+                      counterpartCommitted: false,
+                      myCommitted: false,
+                    }) === "assess" &&
+                    view.myTarget
+                  ) {
+                    return { id: entry.id, status: "due" };
+                  }
                 }
               } catch {
                 // Cache unreadable — treat as no badge.

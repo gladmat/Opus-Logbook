@@ -27,11 +27,35 @@ import type { RootStackParamList } from "@/navigation/RootStackNavigator";
 import type {
   EntrustmentLevel,
   TeachingQualityLevel,
+  AutonomyMatchLevel,
+  BidItemKey,
+  BidItemLevel,
+  BidBehaviours,
+  AssessmentProcedureRef,
   SupervisorAssessment,
   TraineeAssessment,
-  SharedCaseData,
+  TraineeAssessmentV2,
 } from "@/types/sharing";
-import { ENTRUSTMENT_LABELS, TEACHING_QUALITY_LABELS } from "@/types/sharing";
+import {
+  ENTRUSTMENT_LABELS,
+  TEACHING_QUALITY_LABELS,
+  AUTONOMY_MATCH_LABELS,
+  AUTONOMY_MATCH_DESCRIPTIONS,
+  BID_ITEM_KEYS,
+  BID_ITEM_TITLES,
+  BID_ITEM_PROMPTS,
+  BID_ITEM_LABELS,
+} from "@/types/sharing";
+import { TEAM_MEMBER_ROLE_LABELS } from "@/types/teamContacts";
+import {
+  deriveEpaFromSharedBlob,
+  type RecipientEpaView,
+} from "@/lib/epaFromBlob";
+import { resolveEpaEntryState, type EpaEntryState } from "@/lib/epaGate";
+import {
+  resolveAssessmentProcedure,
+  UNKNOWN_PROCEDURE_REF,
+} from "@/lib/assessmentProcedure";
 import {
   getAssessmentStatus,
   commitAssessment,
@@ -63,12 +87,14 @@ const ENTRUSTMENT_DESCRIPTIONS: Record<EntrustmentLevel, string> = {
   5: "Could have been absent — fully independent",
 };
 
+// Part C — per-case-attainable anchors (v2). The top anchor describes an
+// outstanding SINGLE case, not a career-changing event.
 const TEACHING_DESCRIPTIONS: Record<TeachingQualityLevel, string> = {
-  1: "Limited opportunity to learn or practice",
-  2: "Told what to do without rationale",
-  3: "Clear guidance with reasoning explained",
-  4: "Teaching adapted to skill level with feedback",
-  5: "Transformative — new insight or technique gained",
+  1: "Little or no useful teaching this case",
+  2: "Some teaching, with clear gaps",
+  3: "Solid, useful teaching",
+  4: "Well-judged teaching that clearly helped",
+  5: "Exceptional teaching for a single case",
 };
 
 // ── Sub-components ───────────────────────────────────────────────────────────
@@ -202,7 +228,6 @@ export default function AssessmentScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<AssessmentStatusResponse | null>(null);
-  const [caseData, setCaseData] = useState<SharedCaseData | null>(null);
   const [ownerDisplayName, setOwnerDisplayName] = useState("");
 
   // Form state
@@ -210,6 +235,18 @@ export default function AssessmentScreen() {
   const [entrustment, setEntrustment] = useState<EntrustmentLevel | null>(null);
   const [teachingQuality, setTeachingQuality] =
     useState<TeachingQualityLevel | null>(null);
+  const [autonomyMatch, setAutonomyMatch] = useState<AutonomyMatchLevel | null>(
+    null,
+  );
+  const [bid, setBid] = useState<Partial<BidBehaviours>>({});
+  // PS-gated derivation over the decrypted blob — drives the procedure the
+  // assessment is ABOUT, the default role, and the exposure-only notice.
+  const [epaView, setEpaView] = useState<RecipientEpaView | null>(null);
+  const [epaEntryState, setEpaEntryState] =
+    useState<EpaEntryState>("legacy-fallback");
+  const [procedureRef, setProcedureRef] = useState<AssessmentProcedureRef>(
+    UNKNOWN_PROCEDURE_REF,
+  );
   const [complexity, setComplexity] = useState<
     "routine" | "moderate" | "complex" | null
   >(null);
@@ -220,11 +257,9 @@ export default function AssessmentScreen() {
   const [showComplexity, setShowComplexity] = useState(false);
   const [showNarrative, setShowNarrative] = useState(false);
 
-  // Derive procedure name from shared case data
-  const procedureName =
-    caseData?.diagnosisGroups?.[0]?.procedures?.[0]?.procedureName ??
-    caseData?.diagnosisGroups?.[0]?.diagnosis?.displayName ??
-    "Procedure";
+  // The procedure this assessment is ABOUT (first PS unit of the derived
+  // target; legacy fallback = first procedure in the blob).
+  const procedureName = procedureRef.procedureDisplayName;
 
   // ── Load data ────────────────────────────────────────────────────────────
 
@@ -241,17 +276,47 @@ export default function AssessmentScreen() {
       ]);
 
       setStatus(assessmentStatus);
-      setCaseData(sharedCase);
 
       // Get owner display name from inbox index
       const entry = inboxIndex.find((e) => e.id === sharedCaseId);
       if (entry) setOwnerDisplayName(entry.ownerDisplayName || "");
 
+      // PS-gated derivation from the blob (same engine as the owner's
+      // save-time derivation): the pair with THIS counterpart decides the
+      // procedure attribution, the default role, and whether the viewer is
+      // exposure-only on this case.
+      const counterpartUserId =
+        user.id === assessmentStatus.ownerUserId
+          ? assessmentStatus.recipientUserId
+          : assessmentStatus.ownerUserId;
+      const view = sharedCase
+        ? deriveEpaFromSharedBlob({
+            blob: sharedCase,
+            viewerUserId: user.id,
+            ownerUserId: assessmentStatus.ownerUserId,
+            counterpartUserId,
+          })
+        : null;
+      setEpaView(view);
+      setEpaEntryState(
+        resolveEpaEntryState({
+          view,
+          counterpartCommitted: assessmentStatus.otherAssessment != null,
+          myCommitted: assessmentStatus.myAssessment != null,
+        }),
+      );
+      setProcedureRef(
+        resolveAssessmentProcedure(view?.myTarget ?? null, sharedCase),
+      );
+
       // Role: an explicit suggestion from the owner's EPA card (derived
-      // from who actually supervised whom) beats the blob heuristics.
+      // from who actually supervised whom) beats the blob derivation,
+      // which beats the legacy heuristics.
       const suggestedRole = route.params.suggestedRole;
       if (suggestedRole) {
         setRole(suggestedRole);
+      } else if (view?.myRole) {
+        setRole(view.myRole);
       } else {
         const detectedRole = determineAssessorRole(
           user.id,
@@ -276,7 +341,7 @@ export default function AssessmentScreen() {
     } finally {
       setLoading(false);
     }
-  }, [sharedCaseId, user, navigation]);
+  }, [sharedCaseId, user, navigation, route.params.suggestedRole]);
 
   useEffect(() => {
     loadData();
@@ -322,27 +387,47 @@ export default function AssessmentScreen() {
 
   const handleSubmit = useCallback(async () => {
     if (!user || !status || !entrustment) return;
-    if (role === "trainee" && !teachingQuality) return;
+    const bidComplete =
+      bid.briefing != null && bid.intraop != null && bid.debrief != null;
+    if (
+      role === "trainee" &&
+      (!teachingQuality || !autonomyMatch || !bidComplete)
+    ) {
+      return;
+    }
 
     setSubmitting(true);
     try {
-      // 1. Build assessment
+      // 1. Build assessment. Procedure attribution (first PS unit of the
+      // derived target) rides INSIDE the committed payload on both sides.
+      const attribution = {
+        procedure: procedureRef,
+        ...(epaView?.myTarget ? { traineeOperativeRole: "PS" as const } : {}),
+      };
       let assessment: SupervisorAssessment | TraineeAssessment;
       let shareable:
         | SupervisorAssessment
-        | Omit<TraineeAssessment, "reflectiveNotes">;
+        | Omit<TraineeAssessmentV2, "reflectiveNotes">;
 
       if (role === "supervisor") {
         const sup: SupervisorAssessment = {
           entrustmentRating: entrustment,
           ...(complexity ? { caseComplexity: complexity } : {}),
           ...(narrative.trim() ? { narrativeFeedback: narrative.trim() } : {}),
+          ...attribution,
         };
         assessment = sup;
         shareable = sup;
       } else {
-        const traineeAssessment: TraineeAssessment = {
+        const traineeAssessment: TraineeAssessmentV2 = {
+          instrumentVersion: 2,
           selfEntrustmentRating: entrustment,
+          autonomyMatch: autonomyMatch!,
+          bid: {
+            briefing: bid.briefing!,
+            intraop: bid.intraop!,
+            debrief: bid.debrief!,
+          },
           teachingQualityRating: teachingQuality!,
           ...(teachingNarrative.trim()
             ? { teachingNarrative: teachingNarrative.trim() }
@@ -350,6 +435,7 @@ export default function AssessmentScreen() {
           ...(reflectiveNotes.trim()
             ? { reflectiveNotes: reflectiveNotes.trim() }
             : {}),
+          ...attribution,
         };
         assessment = traineeAssessment;
         // Strip reflective notes from shareable — they NEVER leave device
@@ -418,6 +504,10 @@ export default function AssessmentScreen() {
     role,
     entrustment,
     teachingQuality,
+    autonomyMatch,
+    bid,
+    procedureRef,
+    epaView,
     complexity,
     narrative,
     teachingNarrative,
@@ -513,8 +603,58 @@ export default function AssessmentScreen() {
     );
   }
 
+  // PS role gate: the viewer only ASSISTED on this case — no entrustment
+  // instrument; show the exposure notice instead of the form.
+  if (epaEntryState === "exposure-only") {
+    const role = epaView?.myExposure?.units[0]?.role ?? "FA";
+    return (
+      <View
+        testID="screen-assessment"
+        style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
+      >
+        <View style={styles.waitingContainer}>
+          <View
+            testID="assessment.exposure-only"
+            style={[
+              styles.waitingCard,
+              {
+                backgroundColor: theme.backgroundElevated,
+                borderColor: theme.border,
+              },
+              Shadows.card,
+            ]}
+          >
+            <View style={styles.waitingIconRow}>
+              <Feather name="eye" size={32} color={theme.textSecondary} />
+            </View>
+            <ThemedText style={[styles.waitingTitle, { color: theme.text }]}>
+              No entrustment assessment for this case
+            </ThemedText>
+            <ThemedText
+              style={[styles.waitingSubtitle, { color: theme.textSecondary }]}
+            >
+              You assisted as {TEAM_MEMBER_ROLE_LABELS[role]} rather than
+              operating as Primary Surgeon, so this case is logged as operative
+              exposure.
+            </ThemedText>
+            <ThemedText
+              style={[styles.waitingHint, { color: theme.textTertiary }]}
+            >
+              Entrustment assessments are generated only for cases where the
+              trainee is Primary Surgeon.
+            </ThemedText>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  const bidComplete =
+    bid.briefing != null && bid.intraop != null && bid.debrief != null;
   const isValid =
-    entrustment !== null && (role === "supervisor" || teachingQuality !== null);
+    entrustment !== null &&
+    (role === "supervisor" ||
+      (teachingQuality !== null && autonomyMatch !== null && bidComplete));
 
   return (
     <View
@@ -560,6 +700,8 @@ export default function AssessmentScreen() {
               onPress={() => {
                 setRole("supervisor");
                 setTeachingQuality(null);
+                setAutonomyMatch(null);
+                setBid({});
               }}
               testID="assessment.chip-role-supervisor"
             />
@@ -596,11 +738,74 @@ export default function AssessmentScreen() {
           ))}
         </View>
 
-        {/* Teaching quality (trainee only) */}
+        {/* Part A — granted-autonomy match (trainee only). Centre = ideal. */}
         {role === "trainee" ? (
           <View style={styles.scaleSection}>
             <ThemedText style={[styles.scaleTitle, { color: theme.text }]}>
-              How was the teaching?
+              Did the autonomy you were given match what you could handle?
+            </ThemedText>
+            {([1, 2, 3, 4, 5] as AutonomyMatchLevel[]).map((level) => (
+              <LevelCard
+                key={`autonomy-${level}`}
+                level={level}
+                label={AUTONOMY_MATCH_LABELS[level]}
+                description={AUTONOMY_MATCH_DESCRIPTIONS[level]}
+                selected={autonomyMatch === level}
+                onPress={() => setAutonomyMatch(level)}
+                testID={`assessment.card-autonomy-${level}`}
+              />
+            ))}
+          </View>
+        ) : null}
+
+        {/* Part B — BID teaching behaviours this case (trainee only) */}
+        {role === "trainee" ? (
+          <View style={styles.scaleSection}>
+            <ThemedText style={[styles.scaleTitle, { color: theme.text }]}>
+              Teaching this case
+            </ThemedText>
+            {BID_ITEM_KEYS.map((key: BidItemKey) => (
+              <View
+                key={`bid-${key}`}
+                style={[
+                  styles.bidCard,
+                  {
+                    backgroundColor: theme.backgroundElevated,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
+                <ThemedText style={[styles.bidTitle, { color: theme.text }]}>
+                  {BID_ITEM_TITLES[key]}
+                </ThemedText>
+                <ThemedText
+                  style={[styles.bidPrompt, { color: theme.textSecondary }]}
+                >
+                  {BID_ITEM_PROMPTS[key]}
+                </ThemedText>
+                <View style={styles.bidChipRow}>
+                  {([0, 1, 2] as BidItemLevel[]).map((level) => (
+                    <RoleChip
+                      key={`bid-${key}-${level}`}
+                      label={BID_ITEM_LABELS[level]}
+                      selected={bid[key] === level}
+                      onPress={() =>
+                        setBid((prev) => ({ ...prev, [key]: level }))
+                      }
+                      testID={`assessment.chip-bid-${key}-${level}`}
+                    />
+                  ))}
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {/* Part C — overall teaching this case (trainee only) */}
+        {role === "trainee" ? (
+          <View style={styles.scaleSection}>
+            <ThemedText style={[styles.scaleTitle, { color: theme.text }]}>
+              Overall teaching this case
             </ThemedText>
             {([1, 2, 3, 4, 5] as TeachingQualityLevel[]).map((level) => (
               <LevelCard
@@ -898,6 +1103,29 @@ const styles = StyleSheet.create({
   levelDescription: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  // BID behaviour cards
+  bidCard: {
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  bidTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  bidPrompt: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 2,
+    marginBottom: Spacing.sm,
+  },
+  bidChipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
   },
   // Optional sections
   optionalSection: {

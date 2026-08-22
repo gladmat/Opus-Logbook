@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { planEpaTargetPersistence } from "../epaTargetPersistence";
-import type { EpaAssessmentTarget } from "../epaDerivation";
+import type { EpaAssessmentTarget, EpaExposureRecord } from "../epaDerivation";
 
 const TARGET: EpaAssessmentTarget = {
-  version: 2,
+  version: 3,
   supervisorContactId: "self",
   supervisorDisplayName: "You",
   supervisorLinkedUserId: "user-owner",
@@ -17,8 +17,25 @@ const TARGET: EpaAssessmentTarget = {
       procedureId: "proc-1",
       procedureSnomedCode: "123",
       procedureDisplayName: "Debridement",
-      supervisorRole: "PS",
-      traineeRole: "FA",
+      supervisorRole: "SS",
+      traineeRole: "PS",
+    },
+  ],
+};
+
+const EXPOSURE: EpaExposureRecord = {
+  version: 3,
+  participantContactId: "contact-2",
+  participantDisplayName: "Assistant A",
+  participantLinkedUserId: "user-assistant",
+  participantTier: 2,
+  units: [
+    {
+      procedureId: "proc-1",
+      procedureSnomedCode: "123",
+      procedureDisplayName: "Debridement",
+      role: "FA",
+      seniorDisplayNames: ["You"],
     },
   ],
 };
@@ -30,31 +47,42 @@ describe("planEpaTargetPersistence", () => {
         hasTeam: true,
         isEdit: true,
         profileAvailable: false,
-        derivedTargets: null,
+        derived: null,
       }),
     ).toEqual({ kind: "skip", reason: "no-profile" });
   });
 
-  it("saves derived targets when team + profile are present", () => {
+  it("saves derived targets AND exposures when team + profile are present", () => {
     expect(
       planEpaTargetPersistence({
         hasTeam: true,
         isEdit: false,
         profileAvailable: true,
-        derivedTargets: [TARGET],
+        derived: { targets: [TARGET], exposures: [EXPOSURE] },
       }),
-    ).toEqual({ kind: "save", targets: [TARGET] });
+    ).toEqual({ kind: "save", targets: [TARGET], exposures: [EXPOSURE] });
   });
 
-  it("a genuine zero-target derivation still clears (save [])", () => {
+  it("exposure-only derivation saves exposures with empty targets", () => {
+    expect(
+      planEpaTargetPersistence({
+        hasTeam: true,
+        isEdit: false,
+        profileAvailable: true,
+        derived: { targets: [], exposures: [EXPOSURE] },
+      }),
+    ).toEqual({ kind: "save", targets: [], exposures: [EXPOSURE] });
+  });
+
+  it("a genuine zero derivation still clears (save [], [])", () => {
     expect(
       planEpaTargetPersistence({
         hasTeam: true,
         isEdit: true,
         profileAvailable: true,
-        derivedTargets: [],
+        derived: { targets: [], exposures: [] },
       }),
-    ).toEqual({ kind: "save", targets: [] });
+    ).toEqual({ kind: "save", targets: [], exposures: [] });
   });
 
   it("edit-save with the team removed clears stored targets", () => {
@@ -63,9 +91,9 @@ describe("planEpaTargetPersistence", () => {
         hasTeam: false,
         isEdit: true,
         profileAvailable: true,
-        derivedTargets: null,
+        derived: null,
       }),
-    ).toEqual({ kind: "save", targets: [] });
+    ).toEqual({ kind: "save", targets: [], exposures: [] });
   });
 
   it("new case without a team is a no-op", () => {
@@ -74,7 +102,7 @@ describe("planEpaTargetPersistence", () => {
         hasTeam: false,
         isEdit: false,
         profileAvailable: true,
-        derivedTargets: null,
+        derived: null,
       }),
     ).toEqual({ kind: "skip", reason: "not-applicable" });
   });
@@ -87,8 +115,8 @@ describe("planEpaTargetPersistence", () => {
         hasTeam: false,
         isEdit: true,
         profileAvailable: false,
-        derivedTargets: null,
+        derived: null,
       }),
-    ).toEqual({ kind: "save", targets: [] });
+    ).toEqual({ kind: "save", targets: [], exposures: [] });
   });
 });
