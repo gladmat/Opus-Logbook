@@ -267,6 +267,26 @@ describe("buildShareableBlob — exclusion list", () => {
   });
 });
 
+describe("buildShareableBlob — ownerParticipant (additive, 2.22.0+)", () => {
+  it("includes ownerParticipant when an owner snapshot is passed", () => {
+    const blob = buildShareableBlob(minimalCase(), [], {
+      userId: "user-owner",
+      displayName: "Dr Owner",
+      careerStage: "nz_consultant",
+    });
+    expect(blob.ownerParticipant).toEqual({
+      userId: "user-owner",
+      displayName: "Dr Owner",
+      careerStage: "nz_consultant",
+    });
+  });
+
+  it("omits the key entirely when no owner is passed (legacy shape)", () => {
+    const blob = buildShareableBlob(minimalCase(), []);
+    expect("ownerParticipant" in blob).toBe(false);
+  });
+});
+
 describe("buildShareableBlob — output shape stability", () => {
   it("returns exactly the documented set of top-level keys (no extras leak in)", () => {
     const c = minimalCase({

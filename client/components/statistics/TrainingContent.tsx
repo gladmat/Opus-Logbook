@@ -33,6 +33,8 @@ interface TrainingContentProps {
   trainingOverview: TrainingOverviewStats | null;
   entrustmentDistribution: { level: number; count: number }[];
   isEmpty: boolean;
+  /** Derived-but-unrevealed EPA targets — keeps the pending list reachable before the first reveal. */
+  pendingCount?: number;
 }
 
 type NavProp = NativeStackNavigationProp<RootStackParamList>;
@@ -76,8 +78,9 @@ function SectionHeader({ title }: { title: string }) {
 
 // ── Empty State ──────────────────────────────────────────────────────────────
 
-function EmptyTraining() {
+function EmptyTraining({ pendingCount = 0 }: { pendingCount?: number }) {
   const { theme } = useTheme();
+  const navigation = useNavigation<NavProp>();
   return (
     <View style={styles.emptyContainer}>
       <Feather name="award" size={48} color={theme.textTertiary} />
@@ -90,6 +93,22 @@ function EmptyTraining() {
         When you complete EPA assessments on shared cases, your training
         analytics will appear here.
       </ThemedText>
+      {pendingCount > 0 ? (
+        <Pressable
+          onPress={() => navigation.navigate("AssessmentHistory")}
+          style={styles.seeAllLink}
+          accessibilityRole="button"
+          accessibilityLabel={`View ${pendingCount} pending assessments`}
+          testID="statistics.training.btn-pendingAssessments"
+        >
+          <ThemedText style={[styles.seeAllText, { color: theme.link }]}>
+            {pendingCount === 1
+              ? "View 1 pending assessment"
+              : `View ${pendingCount} pending assessments`}
+          </ThemedText>
+          <Feather name="chevron-right" size={16} color={theme.link} />
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -407,9 +426,10 @@ export const TrainingContent = React.memo(function TrainingContent({
   trainingOverview,
   entrustmentDistribution,
   isEmpty,
+  pendingCount = 0,
 }: TrainingContentProps) {
   if (isEmpty) {
-    return <EmptyTraining />;
+    return <EmptyTraining pendingCount={pendingCount} />;
   }
 
   return (

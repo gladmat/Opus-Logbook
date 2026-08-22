@@ -16,8 +16,14 @@ import { Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
 import type { SharedCaseInboxEntry } from "@/types/sharing";
 import { getSharedInbox } from "@/lib/sharingApi";
-import { updateSharedInboxIndex } from "@/lib/sharingStorage";
+import {
+  updateSharedInboxIndex,
+  getDecryptedSharedCase,
+} from "@/lib/sharingStorage";
 import { getMyAssessment, getRevealedPair } from "@/lib/assessmentStorage";
+import { deriveEpaFromSharedBlob } from "@/lib/epaFromBlob";
+import { ensurePushPermissionsWithPrompt } from "@/lib/pushPermissions";
+import { useAuth } from "@/contexts/AuthContext";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -73,7 +79,7 @@ function VerificationBadge({
   );
 }
 
-type AssessmentBadgeStatus = "submitted" | "revealed" | null;
+type AssessmentBadgeStatus = "due" | "submitted" | "revealed" | null;
 
 function AssessmentBadge({
   status,
@@ -85,6 +91,12 @@ function AssessmentBadge({
   if (!status) return null;
 
   const config = {
+    due: {
+      label: "Assessment due",
+      icon: "edit-3" as const,
+      bg: theme.accentSurface,
+      color: theme.accent,
+    },
     submitted: {
       label: "Assessed",
       icon: "clock" as const,
@@ -174,6 +186,7 @@ const SharedCaseCard = React.memo(function SharedCaseCard({
 export default function SharedInboxScreen() {
   const { theme } = useTheme();
   const navigation = useNavigation<NavigationProp>();
+  const { user } = useAuth();
 
   const [entries, setEntries] = useState<SharedCaseInboxEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -192,6 +205,11 @@ export default function SharedInboxScreen() {
       );
       setEntries(data);
       await updateSharedInboxIndex(data);
+      // Colleagues are sharing with this user — the moment push value is
+      // self-evident. One-shot contextual permission pre-prompt.
+      if (data.length > 0) {
+        void ensurePushPermissionsWithPrompt("shared-inbox");
+      }
     } catch (error) {
       console.error("Error loading shared inbox:", error);
     } finally {
@@ -205,13 +223,39 @@ export default function SharedInboxScreen() {
 
     const loadBadges = async () => {
       const results = await Promise.allSettled(
-        entries.map(async (entry) => {
-          const revealed = await getRevealedPair(entry.id);
-          if (revealed) return { id: entry.id, status: "revealed" as const };
-          const mine = await getMyAssessment(entry.id);
-          if (mine) return { id: entry.id, status: "submitted" as const };
-          return { id: entry.id, status: null };
-        }),
+        entries.map(
+          async (
+            entry,
+          ): Promise<{
+            id: string;
+            status: AssessmentBadgeStatus;
+          }> => {
+            const revealed = await getRevealedPair(entry.id);
+            if (revealed) return { id: entry.id, status: "revealed" };
+            const mine = await getMyAssessment(entry.id);
+            if (mine) return { id: entry.id, status: "submitted" };
+            // Nothing submitted yet — check the CACHED decrypted blob (local
+            // only, no network) for a derivable EPA pair involving the
+            // viewer. Never-opened cases have no cache → no badge; the push
+            // + verification badge cover first touch.
+            if (user) {
+              try {
+                const blob = await getDecryptedSharedCase(entry.id);
+                if (blob) {
+                  const view = deriveEpaFromSharedBlob({
+                    blob,
+                    viewerUserId: user.id,
+                    ownerUserId: entry.ownerUserId,
+                  });
+                  if (view.myTarget) return { id: entry.id, status: "due" };
+                }
+              } catch {
+                // Cache unreadable — treat as no badge.
+              }
+            }
+            return { id: entry.id, status: null };
+          },
+        ),
       );
 
       const map = new Map<string, AssessmentBadgeStatus>();
@@ -224,7 +268,7 @@ export default function SharedInboxScreen() {
     };
 
     loadBadges();
-  }, [entries]);
+  }, [entries, user]);
 
   useFocusEffect(
     useCallback(() => {

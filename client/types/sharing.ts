@@ -67,6 +67,22 @@ export interface SharedCaseData {
   operativeTeam?: CaseTeamMember[];
   operativeRole?: OperativeRole;
   supervisionLevel?: string;
+  /**
+   * The case OWNER's identity snapshot (additive, 2.22.0+). operativeTeam
+   * only carries TAGGED contacts, so without this the recipient side can
+   * neither tier-compare against the owner (assessor role detection) nor
+   * re-derive owner-involving EPA targets from the blob. careerStage is a
+   * share-time snapshot, same semantics as team-member snapshots. Legacy
+   * blobs simply lack the field — readers must fall back gracefully.
+   */
+  ownerParticipant?: OwnerParticipant;
+}
+
+/** The case owner's snapshot inside the shared blob. */
+export interface OwnerParticipant {
+  userId: string;
+  displayName?: string;
+  careerStage?: string | null;
 }
 
 // ── Team members ─────────────────────────────────────────────────────────────

@@ -79,10 +79,7 @@ import {
   type ValidationError,
 } from "@/lib/caseFormDateChecks";
 import type { OperativeRole, SupervisionLevel } from "@/types/operativeRole";
-import {
-  toNearestLegacyRole,
-  resolveOperativeRole,
-} from "@/types/operativeRole";
+import { toNearestLegacyRole } from "@/types/operativeRole";
 import { suggestRoleDefaults, isConsultantLevel } from "@/lib/roleDefaults";
 import type {
   CaseTeamMember,
@@ -90,10 +87,7 @@ import type {
   TeamContact,
 } from "@/types/teamContacts";
 import { abbreviateName } from "@/types/teamContacts";
-import {
-  stripParticipantsFromGroups,
-  ownerOperativeRoleToTeamRole,
-} from "@/types/operativeSteps";
+import { stripParticipantsFromGroups } from "@/types/operativeSteps";
 import {
   restoreDraftDateOnlyValue,
   restoreDraftOperativeMedia,
@@ -123,12 +117,15 @@ import {
   type TeamShareOutcome,
 } from "@/lib/caseSharing";
 import { runPostSaveTeamPrompt } from "@/lib/linkingPrompts";
+import { ensurePushPermissionsWithPrompt } from "@/lib/pushPermissions";
 import { getTeamContacts } from "@/lib/teamContactsApi";
 import {
   deriveEpaAssessments,
+  buildEpaUnitsFromDiagnosisGroups,
   type EpaDerivationDiagnostics,
 } from "@/lib/epaDerivation";
 import { saveEpaTargets } from "@/lib/assessmentStorage";
+import { planEpaTargetPersistence } from "@/lib/epaTargetPersistence";
 import { captureClientException } from "@/lib/sentry";
 
 // ─── Default Donor Vessels ──────────────────────────────────────────────────
@@ -2549,6 +2546,20 @@ export function useCaseForm({
               operativeTeam: operativeTeamForSave,
               isEdit: isEditMode && !!existingCase,
               preResolved: state.teamMembers,
+              // Owner snapshot rides inside the encrypted blob so recipients
+              // can tier-compare against the logger + re-derive EPA targets.
+              owner: profile
+                ? {
+                    userId: profile.userId,
+                    displayName:
+                      profile.fullName ??
+                      ([profile.firstName, profile.lastName]
+                        .filter(Boolean)
+                        .join(" ") ||
+                        undefined),
+                    careerStage: profile.careerStage,
+                  }
+                : undefined,
             });
           } catch (sharingError) {
             // shareCaseWithTeam is designed not to throw — belt and braces.
@@ -2591,25 +2602,15 @@ export function useCaseForm({
         let epaDiagnostics: EpaDerivationDiagnostics | null = null;
         if (operativeTeamForSave.length > 0 || (isEditMode && existingCase)) {
           try {
-            let targets: import("@/lib/epaDerivation").EpaAssessmentTarget[] =
-              [];
+            let derivedTargets:
+              | import("@/lib/epaDerivation").EpaAssessmentTarget[]
+              | null = null;
             if (operativeTeamForSave.length > 0 && profile) {
-              let flatIndex = 0;
-              const units = savedCase.diagnosisGroups.flatMap(
-                (g: DiagnosisGroup) =>
-                  (g.procedures ?? []).map((p) => ({
-                    procedureId: p.id,
-                    procedureName: p.procedureName,
-                    snomedCtCode: p.snomedCtCode,
-                    flatIndex: flatIndex++,
-                    steps: p.operativeSteps,
-                    ownerRole: ownerOperativeRoleToTeamRole(
-                      resolveOperativeRole(
-                        p.operativeRoleOverride,
-                        savedCase.defaultOperativeRole,
-                      ),
-                    ),
-                  })),
+              // Shared with the recipient side (epaFromBlob) so both sides
+              // derive identical targets from the same snapshot.
+              const units = buildEpaUnitsFromDiagnosisGroups(
+                savedCase.diagnosisGroups,
+                savedCase.defaultOperativeRole,
               );
               const derivation = deriveEpaAssessments({
                 self: {
@@ -2619,14 +2620,37 @@ export function useCaseForm({
                 teamMembers: operativeTeamForSave,
                 units,
               });
-              targets = derivation.targets;
+              derivedTargets = derivation.targets;
               epaDiagnostics = derivation.diagnostics;
             }
-            saveEpaTargets(savedCase.id, targets).catch((err) => {
-              // Non-critical — EPA storage failure doesn't block save
-              if (__DEV__) console.warn("[opus:epa] target save failed", err);
-              captureClientException(err, { context: "epaTargetSave" });
+            // Persist decision is pure + tested: a transient profile gap must
+            // never wipe stored targets (saveEpaTargets([]) removes the key).
+            const persistAction = planEpaTargetPersistence({
+              hasTeam: operativeTeamForSave.length > 0,
+              isEdit: isEditMode && Boolean(existingCase),
+              profileAvailable: profile != null,
+              derivedTargets,
             });
+            if (persistAction.kind === "save") {
+              // Awaited so the CaseDetail Assessments card (loaded on focus
+              // right after nav-back) never races the write.
+              try {
+                await saveEpaTargets(savedCase.id, persistAction.targets);
+              } catch (err) {
+                // Non-critical — EPA storage failure doesn't block save
+                if (__DEV__) console.warn("[opus:epa] target save failed", err);
+                captureClientException(err, { context: "epaTargetSave" });
+              }
+            } else if (persistAction.reason === "no-profile") {
+              if (__DEV__)
+                console.warn(
+                  "[opus:epa] persistence skipped — profile unavailable at save",
+                );
+              captureClientException(
+                new Error("EPA target persistence skipped: profile null"),
+                { context: "epaTargetSave" },
+              );
+            }
           } catch (err) {
             // Non-critical — EPA derivation failure doesn't block save,
             // but it must not vanish silently either.
@@ -2710,6 +2734,13 @@ export function useCaseForm({
             liveContacts,
             ownUserId: profile?.userId,
           });
+        }
+
+        // First successful share to a colleague is the moment push value is
+        // self-evident — contextual one-shot permission pre-prompt. Without
+        // a token every "case shared" / "assessment waiting" push no-ops.
+        if (shareOutcome && shareOutcome.shared.length > 0) {
+          void ensurePushPermissionsWithPrompt("first-share");
         }
 
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

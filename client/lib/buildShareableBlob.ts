@@ -1,17 +1,26 @@
 import type { Case } from "@/types/case";
-import type { SharedCaseData, TeamMemberEntry } from "@/types/sharing";
+import type {
+  SharedCaseData,
+  TeamMemberEntry,
+  OwnerParticipant,
+} from "@/types/sharing";
 
 /**
  * Extracts the shareable subset from a full Case object.
  *
- * Includes: patient identity, clinical record, team roles, operative role.
+ * Includes: patient identity, clinical record, team roles, operative role,
+ * and (when provided) the owner's own participant snapshot — operativeTeam
+ * carries tagged contacts only, so recipient-side assessor-role detection
+ * and EPA re-derivation need the owner's identity/careerStage separately.
  * Excludes: personalNotes, episodeId, operativeMedia, draft state, tracking metadata.
  */
 export function buildShareableBlob(
   caseData: Case,
   teamRoles: TeamMemberEntry[],
+  owner?: OwnerParticipant,
 ): SharedCaseData {
   return {
+    ...(owner ? { ownerParticipant: owner } : {}),
     patientFirstName: caseData.patientFirstName,
     patientLastName: caseData.patientLastName,
     patientDateOfBirth: caseData.patientDateOfBirth,

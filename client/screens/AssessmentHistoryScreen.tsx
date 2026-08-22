@@ -20,6 +20,7 @@ import {
   type EpaTargetsWithCase,
 } from "@/lib/assessmentStorage";
 import { getSharedOutbox } from "@/lib/sharingApi";
+import { filterPendingEpaTargets } from "@/lib/pendingEpa";
 import { ENTRUSTMENT_LABELS, TEACHING_QUALITY_LABELS } from "@/types/sharing";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
 
@@ -180,30 +181,14 @@ export default function AssessmentHistoryScreen() {
               new Date(a.revealedAt).getTime(),
           );
           setPairs(data);
-          // Pending = derived targets whose counterpart's share row has no
-          // revealed pair yet. Revealed pairs are keyed by sharedCaseId,
-          // targets by local caseId — the outbox joins the two id spaces
-          // per counterpart. Per-target commit status lives on the case's
-          // own Assessments card — this list is the aggregate entry point.
-          const revealedShareIds = new Set(data.map((p) => p.sharedCaseId));
+          // Per-target commit status lives on the case's own Assessments
+          // card — this list is the aggregate entry point.
           setPending(
-            pendingTargets
-              .map((e) => ({
-                ...e,
-                targets: e.targets.filter((t) => {
-                  const counterpartUserId =
-                    t.supervisorContactId === "self"
-                      ? t.traineeLinkedUserId
-                      : t.supervisorLinkedUserId;
-                  return !outbox.some(
-                    (s) =>
-                      s.caseId === e.caseId &&
-                      s.recipientUserId === counterpartUserId &&
-                      revealedShareIds.has(s.id),
-                  );
-                }),
-              }))
-              .filter((e) => e.targets.length > 0),
+            filterPendingEpaTargets({
+              targetsByCase: pendingTargets,
+              outbox,
+              revealedSharedCaseIds: new Set(data.map((p) => p.sharedCaseId)),
+            }),
           );
         } catch (error) {
           console.error("Error loading assessment history:", error);
