@@ -451,6 +451,7 @@ export default function StatisticsScreen() {
           trainingOverview={trainingStats.trainingOverview}
           entrustmentDistribution={trainingStats.entrustmentDistribution}
           isEmpty={trainingStats.isEmpty}
+          pendingCount={trainingStats.pendingCount}
         />
       ) : (
         <>

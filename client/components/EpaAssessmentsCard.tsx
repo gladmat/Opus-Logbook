@@ -46,6 +46,7 @@ export function EpaAssessmentsCard({ caseId }: EpaAssessmentsCardProps) {
   const { theme } = useTheme();
   const navigation = useNavigation<Nav>();
   const [rows, setRows] = useState<TargetRow[]>([]);
+  const [outboxUnavailable, setOutboxUnavailable] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -55,11 +56,14 @@ export function EpaAssessmentsCard({ caseId }: EpaAssessmentsCardProps) {
         return;
       }
       let outbox: Awaited<ReturnType<typeof getSharedOutbox>> = [];
+      let outboxFailed = false;
       try {
         outbox = await getSharedOutbox();
       } catch {
         // Offline — render targets without share status.
+        outboxFailed = true;
       }
+      setOutboxUnavailable(outboxFailed);
       const built = await Promise.all(
         targets.map(async (target): Promise<TargetRow> => {
           const iAmSupervisor = target.supervisorContactId === "self";
@@ -133,9 +137,28 @@ export function EpaAssessmentsCard({ caseId }: EpaAssessmentsCardProps) {
           const theirsDone = row.status?.otherAssessment != null;
 
           let statusText: string;
-          let cta: { label: string; onPress: () => void } | null = null;
+          let cta: {
+            label: string;
+            onPress: () => void;
+            testID?: string;
+          } | null = null;
           if (!row.sharedCaseId) {
-            statusText = `Not shared with ${row.counterpartName} yet — re-save the case to share it.`;
+            if (outboxUnavailable) {
+              // The outbox fetch failed — we don't actually know whether the
+              // case reached the counterpart. Don't claim it wasn't shared.
+              statusText = "Share status unavailable — check your connection.";
+            } else {
+              statusText = `Not shared with ${row.counterpartName} yet.`;
+              cta = {
+                label: "Share",
+                onPress: () => navigation.navigate("CaseForm", { caseId }),
+                testID: `caseDetail.epa.btn-share-${
+                  row.iAmSupervisor
+                    ? row.target.traineeLinkedUserId
+                    : row.target.supervisorLinkedUserId
+                }`,
+              };
+            }
           } else if (revealed) {
             statusText = "Both assessments revealed.";
             cta = {
@@ -199,7 +222,9 @@ export function EpaAssessmentsCard({ caseId }: EpaAssessmentsCardProps) {
                   onPress={cta.onPress}
                   accessibilityRole="button"
                   accessibilityLabel={`${cta.label} assessment with ${row.counterpartName}`}
-                  testID={`caseDetail.epa.btn-${row.sharedCaseId}`}
+                  testID={
+                    cta.testID ?? `caseDetail.epa.btn-${row.sharedCaseId}`
+                  }
                 >
                   <ThemedText
                     style={[styles.ctaText, { color: theme.buttonText }]}

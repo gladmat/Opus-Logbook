@@ -129,6 +129,7 @@ import {
   type EpaDerivationDiagnostics,
 } from "@/lib/epaDerivation";
 import { saveEpaTargets } from "@/lib/assessmentStorage";
+import { planEpaTargetPersistence } from "@/lib/epaTargetPersistence";
 import { captureClientException } from "@/lib/sentry";
 
 // ─── Default Donor Vessels ──────────────────────────────────────────────────
@@ -2591,8 +2592,9 @@ export function useCaseForm({
         let epaDiagnostics: EpaDerivationDiagnostics | null = null;
         if (operativeTeamForSave.length > 0 || (isEditMode && existingCase)) {
           try {
-            let targets: import("@/lib/epaDerivation").EpaAssessmentTarget[] =
-              [];
+            let derivedTargets:
+              | import("@/lib/epaDerivation").EpaAssessmentTarget[]
+              | null = null;
             if (operativeTeamForSave.length > 0 && profile) {
               let flatIndex = 0;
               const units = savedCase.diagnosisGroups.flatMap(
@@ -2619,14 +2621,37 @@ export function useCaseForm({
                 teamMembers: operativeTeamForSave,
                 units,
               });
-              targets = derivation.targets;
+              derivedTargets = derivation.targets;
               epaDiagnostics = derivation.diagnostics;
             }
-            saveEpaTargets(savedCase.id, targets).catch((err) => {
-              // Non-critical — EPA storage failure doesn't block save
-              if (__DEV__) console.warn("[opus:epa] target save failed", err);
-              captureClientException(err, { context: "epaTargetSave" });
+            // Persist decision is pure + tested: a transient profile gap must
+            // never wipe stored targets (saveEpaTargets([]) removes the key).
+            const persistAction = planEpaTargetPersistence({
+              hasTeam: operativeTeamForSave.length > 0,
+              isEdit: isEditMode && Boolean(existingCase),
+              profileAvailable: profile != null,
+              derivedTargets,
             });
+            if (persistAction.kind === "save") {
+              // Awaited so the CaseDetail Assessments card (loaded on focus
+              // right after nav-back) never races the write.
+              try {
+                await saveEpaTargets(savedCase.id, persistAction.targets);
+              } catch (err) {
+                // Non-critical — EPA storage failure doesn't block save
+                if (__DEV__) console.warn("[opus:epa] target save failed", err);
+                captureClientException(err, { context: "epaTargetSave" });
+              }
+            } else if (persistAction.reason === "no-profile") {
+              if (__DEV__)
+                console.warn(
+                  "[opus:epa] persistence skipped — profile unavailable at save",
+                );
+              captureClientException(
+                new Error("EPA target persistence skipped: profile null"),
+                { context: "epaTargetSave" },
+              );
+            }
           } catch (err) {
             // Non-critical — EPA derivation failure doesn't block save,
             // but it must not vanish silently either.

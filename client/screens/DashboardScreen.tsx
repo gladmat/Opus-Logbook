@@ -65,7 +65,12 @@ import {
   getSharedInboxIndex,
   updateSharedInboxIndex,
 } from "@/lib/sharingStorage";
-import { getSharedInbox } from "@/lib/sharingApi";
+import { getSharedInbox, getSharedOutbox } from "@/lib/sharingApi";
+import { getAllEpaTargets, getAllRevealedPairs } from "@/lib/assessmentStorage";
+import {
+  filterPendingEpaTargets,
+  countPendingEpaTargets,
+} from "@/lib/pendingEpa";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -83,6 +88,7 @@ export default function DashboardScreen() {
     null,
   );
   const [sharedPendingCount, setSharedPendingCount] = useState(0);
+  const [pendingEpaCount, setPendingEpaCount] = useState(0);
   const [isFilterSticky, setIsFilterSticky] = useState(false);
 
   const { episodes: activeEpisodes, refresh: refreshEpisodes } =
@@ -122,14 +128,40 @@ export default function DashboardScreen() {
     }
   }, []);
 
+  const loadPendingEpaCount = useCallback(async () => {
+    try {
+      const [targetsByCase, revealed, outbox] = await Promise.all([
+        getAllEpaTargets().catch(() => []),
+        getAllRevealedPairs().catch(() => []),
+        // Offline → empty outbox → revealed targets don't drain this
+        // round; the next online focus reconciles (same as History).
+        getSharedOutbox().catch(
+          () => [] as Awaited<ReturnType<typeof getSharedOutbox>>,
+        ),
+      ]);
+      setPendingEpaCount(
+        countPendingEpaTargets(
+          filterPendingEpaTargets({
+            targetsByCase,
+            outbox,
+            revealedSharedCaseIds: new Set(revealed.map((p) => p.sharedCaseId)),
+          }),
+        ),
+      );
+    } catch {
+      // Non-critical — row simply stays hidden
+    }
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       const task = InteractionManager.runAfterInteractions(() => {
         loadCases();
         loadSharedInboxCounts();
+        loadPendingEpaCount();
       });
       return () => task.cancel();
-    }, [loadCases, loadSharedInboxCounts]),
+    }, [loadCases, loadSharedInboxCounts, loadPendingEpaCount]),
   );
 
   const refreshSharedInbox = useCallback(async () => {
@@ -146,7 +178,12 @@ export default function DashboardScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([loadCases(), refreshEpisodes(), refreshSharedInbox()]);
+    await Promise.all([
+      loadCases(),
+      refreshEpisodes(),
+      refreshSharedInbox(),
+      loadPendingEpaCount(),
+    ]);
     setRefreshing(false);
   };
 
@@ -469,6 +506,49 @@ export default function DashboardScreen() {
                 >
                   {sharedPendingCount} shared case
                   {sharedPendingCount !== 1 ? "s" : ""} awaiting verification
+                </ThemedText>
+              </View>
+              <Feather
+                name="chevron-right"
+                size={18}
+                color={theme.textTertiary}
+              />
+            </View>
+          </Pressable>
+        ) : null}
+
+        {/* Zone 2.6 — Pending EPA assessments. Same presence/absence rule
+            as the verification row: exists only while an assessment
+            actually awaits action. */}
+        {pendingEpaCount > 0 ? (
+          <Pressable
+            testID="dashboard.btn-pendingAssessments"
+            onPress={() => navigation.navigate("AssessmentHistory")}
+            style={({ pressed }) => [
+              styles.sharedCasesCard,
+              {
+                backgroundColor: theme.backgroundElevated,
+                borderColor: theme.accent,
+                opacity: pressed ? 0.7 : 1,
+              },
+              Shadows.card,
+            ]}
+          >
+            <View style={styles.sharedCasesRow}>
+              <View
+                style={[
+                  styles.sharedCasesIcon,
+                  { backgroundColor: theme.accentSurface },
+                ]}
+              >
+                <Feather name="award" size={18} color={theme.accent} />
+              </View>
+              <View style={styles.sharedCasesText}>
+                <ThemedText
+                  style={[styles.sharedCasesTitle, { color: theme.text }]}
+                >
+                  {pendingEpaCount} EPA assessment
+                  {pendingEpaCount !== 1 ? "s" : ""} pending
                 </ThemedText>
               </View>
               <Feather
