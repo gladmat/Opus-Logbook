@@ -19,7 +19,7 @@
 
 import type { Case } from "@/types/case";
 import type { CaseTeamMember, TeamContact } from "@/types/teamContacts";
-import type { UserSearchResult } from "@/types/sharing";
+import type { UserSearchResult, OwnerParticipant } from "@/types/sharing";
 import { buildShareableBlob } from "./buildShareableBlob";
 import {
   generateCaseKeyHex,
@@ -261,6 +261,7 @@ interface PreparedShareMaterial {
 async function prepareShareMaterial(
   caseData: Case,
   recipients: ShareRecipient[],
+  owner?: OwnerParticipant,
 ): Promise<PreparedShareMaterial> {
   const caseKeyHex = await generateCaseKeyHex();
   const teamRoles = recipients.map((m) => ({
@@ -268,7 +269,7 @@ async function prepareShareMaterial(
     displayName: m.displayName,
     role: m.role,
   }));
-  const blob = buildShareableBlob(caseData, teamRoles);
+  const blob = buildShareableBlob(caseData, teamRoles, owner);
   const encryptedBlob = await encryptPayloadWithCaseKey(
     JSON.stringify(blob),
     caseKeyHex,
@@ -337,6 +338,13 @@ export interface ShareCaseWithTeamParams {
   /** Pass the ALREADY-rehydrated team (see rehydrateTeamSnapshots). */
   operativeTeam: CaseTeamMember[];
   isEdit: boolean;
+  /**
+   * The logger's own participant snapshot — rides inside the encrypted
+   * blob (SharedCaseData.ownerParticipant) so recipients can tier-compare
+   * against the owner and re-derive EPA targets. Omit when the profile
+   * isn't hydrated; the blob then stays legacy-shaped.
+   */
+  owner?: OwnerParticipant;
   /** Legacy email-tagged members that already carry public keys. */
   preResolved?: ShareRecipient[];
 }
@@ -358,7 +366,7 @@ export interface ShareCaseWithTeamParams {
 export async function shareCaseWithTeam(
   params: ShareCaseWithTeamParams,
 ): Promise<TeamShareOutcome> {
-  const { savedCase, operativeTeam, isEdit, preResolved } = params;
+  const { savedCase, operativeTeam, isEdit, preResolved, owner } = params;
   const collect = await collectShareRecipients(operativeTeam, preResolved);
   const outcome: TeamShareOutcome = {
     shared: [],
@@ -442,7 +450,7 @@ export async function shareCaseWithTeam(
   // whether their row is updated or freshly created.
   let material: PreparedShareMaterial;
   try {
-    material = await prepareShareMaterial(savedCase, recipients);
+    material = await prepareShareMaterial(savedCase, recipients, owner);
   } catch (prepError) {
     outcome.errors.push({ stage: "share", message: errorMessage(prepError) });
     return outcome;

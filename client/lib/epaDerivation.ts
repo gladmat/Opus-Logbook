@@ -28,8 +28,14 @@ import type {
 } from "@/types/teamContacts";
 import {
   SELF_PARTICIPANT_ID,
+  ownerOperativeRoleToTeamRole,
   type OperativeStep,
 } from "@/types/operativeSteps";
+import {
+  resolveOperativeRole,
+  type OperativeRole,
+} from "@/types/operativeRole";
+import type { DiagnosisGroup } from "@/types/case";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -92,6 +98,34 @@ export interface EpaDerivationDiagnostics {
 export interface EpaDerivationResult {
   targets: EpaAssessmentTarget[];
   diagnostics: EpaDerivationDiagnostics;
+}
+
+// ── Unit builder ─────────────────────────────────────────────────────────────
+
+/**
+ * Flatten a case's diagnosis groups into EpaUnitInput[]. The SINGLE source
+ * of the flat-index space and owner-role resolution, shared by the owner
+ * side (useCaseForm at save time) and the recipient side (epaFromBlob over
+ * the decrypted SharedCaseData) — both sides must derive identical targets
+ * from the same snapshot, so the unit construction must never diverge.
+ */
+export function buildEpaUnitsFromDiagnosisGroups(
+  groups: DiagnosisGroup[],
+  defaultOperativeRole: OperativeRole | undefined,
+): EpaUnitInput[] {
+  let flatIndex = 0;
+  return groups.flatMap((g) =>
+    (g.procedures ?? []).map((p) => ({
+      procedureId: p.id,
+      procedureName: p.procedureName,
+      snomedCtCode: p.snomedCtCode,
+      flatIndex: flatIndex++,
+      steps: p.operativeSteps,
+      ownerRole: ownerOperativeRoleToTeamRole(
+        resolveOperativeRole(p.operativeRoleOverride, defaultOperativeRole),
+      ),
+    })),
+  );
 }
 
 // ── Internal participant type ────────────────────────────────────────────────

@@ -79,10 +79,7 @@ import {
   type ValidationError,
 } from "@/lib/caseFormDateChecks";
 import type { OperativeRole, SupervisionLevel } from "@/types/operativeRole";
-import {
-  toNearestLegacyRole,
-  resolveOperativeRole,
-} from "@/types/operativeRole";
+import { toNearestLegacyRole } from "@/types/operativeRole";
 import { suggestRoleDefaults, isConsultantLevel } from "@/lib/roleDefaults";
 import type {
   CaseTeamMember,
@@ -90,10 +87,7 @@ import type {
   TeamContact,
 } from "@/types/teamContacts";
 import { abbreviateName } from "@/types/teamContacts";
-import {
-  stripParticipantsFromGroups,
-  ownerOperativeRoleToTeamRole,
-} from "@/types/operativeSteps";
+import { stripParticipantsFromGroups } from "@/types/operativeSteps";
 import {
   restoreDraftDateOnlyValue,
   restoreDraftOperativeMedia,
@@ -126,6 +120,7 @@ import { runPostSaveTeamPrompt } from "@/lib/linkingPrompts";
 import { getTeamContacts } from "@/lib/teamContactsApi";
 import {
   deriveEpaAssessments,
+  buildEpaUnitsFromDiagnosisGroups,
   type EpaDerivationDiagnostics,
 } from "@/lib/epaDerivation";
 import { saveEpaTargets } from "@/lib/assessmentStorage";
@@ -2550,6 +2545,20 @@ export function useCaseForm({
               operativeTeam: operativeTeamForSave,
               isEdit: isEditMode && !!existingCase,
               preResolved: state.teamMembers,
+              // Owner snapshot rides inside the encrypted blob so recipients
+              // can tier-compare against the logger + re-derive EPA targets.
+              owner: profile
+                ? {
+                    userId: profile.userId,
+                    displayName:
+                      profile.fullName ??
+                      ([profile.firstName, profile.lastName]
+                        .filter(Boolean)
+                        .join(" ") ||
+                        undefined),
+                    careerStage: profile.careerStage,
+                  }
+                : undefined,
             });
           } catch (sharingError) {
             // shareCaseWithTeam is designed not to throw — belt and braces.
@@ -2596,22 +2605,11 @@ export function useCaseForm({
               | import("@/lib/epaDerivation").EpaAssessmentTarget[]
               | null = null;
             if (operativeTeamForSave.length > 0 && profile) {
-              let flatIndex = 0;
-              const units = savedCase.diagnosisGroups.flatMap(
-                (g: DiagnosisGroup) =>
-                  (g.procedures ?? []).map((p) => ({
-                    procedureId: p.id,
-                    procedureName: p.procedureName,
-                    snomedCtCode: p.snomedCtCode,
-                    flatIndex: flatIndex++,
-                    steps: p.operativeSteps,
-                    ownerRole: ownerOperativeRoleToTeamRole(
-                      resolveOperativeRole(
-                        p.operativeRoleOverride,
-                        savedCase.defaultOperativeRole,
-                      ),
-                    ),
-                  })),
+              // Shared with the recipient side (epaFromBlob) so both sides
+              // derive identical targets from the same snapshot.
+              const units = buildEpaUnitsFromDiagnosisGroups(
+                savedCase.diagnosisGroups,
+                savedCase.defaultOperativeRole,
               );
               const derivation = deriveEpaAssessments({
                 self: {

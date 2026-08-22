@@ -204,6 +204,97 @@ describe("determineAssessorRole", () => {
       ),
     ).toBe("supervisor");
   });
+
+  // ownerParticipant-sourced tiers (2.22.0+ blobs). In production the owner
+  // is NEVER in operativeTeam (tagged contacts only), so before
+  // ownerParticipant the tier path could not fire for owner↔recipient
+  // pairs and the recipient consultant was defaulted to "trainee".
+  it("ownerParticipant: recipient consultant over trainee owner → supervisor", () => {
+    const caseData: SharedCaseData = {
+      ...baseCaseData,
+      operativeRole: "SURGEON", // owner logged as SURGEON — old heuristic said "trainee"
+      ownerParticipant: {
+        userId: ownerUserId,
+        displayName: "Trainee Owner",
+        careerStage: "nz_set_trainee",
+      },
+      operativeTeam: [
+        {
+          contactId: "c2",
+          linkedUserId: recipientUserId,
+          displayName: "Consultant Recipient",
+          abbreviatedName: "C.R.",
+          careerStage: "nz_consultant",
+          operativeRole: "SA",
+        },
+      ],
+    };
+    expect(
+      determineAssessorRole(
+        recipientUserId,
+        ownerUserId,
+        recipientUserId,
+        caseData,
+      ),
+    ).toBe("supervisor");
+  });
+
+  it("ownerParticipant: consultant owner viewing against fellow recipient → supervisor", () => {
+    const caseData: SharedCaseData = {
+      ...baseCaseData,
+      ownerParticipant: {
+        userId: ownerUserId,
+        displayName: "Consultant Owner",
+        careerStage: "nz_consultant",
+      },
+      operativeTeam: [
+        {
+          contactId: "c2",
+          linkedUserId: recipientUserId,
+          displayName: "Fellow Recipient",
+          abbreviatedName: "F.R.",
+          careerStage: "nz_fellow",
+          operativeRole: "PS",
+        },
+      ],
+    };
+    expect(
+      determineAssessorRole(
+        ownerUserId,
+        ownerUserId,
+        recipientUserId,
+        caseData,
+      ),
+    ).toBe("supervisor");
+  });
+
+  it("legacy blob without ownerParticipant keeps the old fallback behaviour", () => {
+    const caseData: SharedCaseData = {
+      ...baseCaseData,
+      operativeRole: "SURGEON",
+      operativeTeam: [
+        {
+          contactId: "c2",
+          linkedUserId: recipientUserId,
+          displayName: "Consultant Recipient",
+          abbreviatedName: "C.R.",
+          careerStage: "nz_consultant",
+          operativeRole: "SA",
+        },
+      ],
+    };
+    // Owner tier unresolvable → heuristic: recipient + owner-logged-SURGEON
+    // → "trainee" (the documented legacy misdetection; the UI toggle and
+    // suggestedRole from epaFromBlob are the corrective paths).
+    expect(
+      determineAssessorRole(
+        recipientUserId,
+        ownerUserId,
+        recipientUserId,
+        caseData,
+      ),
+    ).toBe("trainee");
+  });
 });
 
 // ─── Reflective notes stripping ────────────────────────────────────────────────
