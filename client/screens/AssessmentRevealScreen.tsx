@@ -984,6 +984,9 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     fontVariant: ["tabular-nums"],
     textAlign: "center",
+    // Explicit line height: ThemedText's default body lineHeight (24) clips
+    // 36pt glyphs at the top.
+    lineHeight: 44,
   },
   teachingDescription: {
     fontSize: 15,
