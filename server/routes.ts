@@ -310,6 +310,10 @@ const shareSchema = z.object({
             }),
           )
           .min(1),
+        // 2.23.0+ clients: an assessable EPA pair (trainee as Primary
+        // Surgeon) exists between owner and this recipient. Drives the
+        // share-time "EPA Assessment" push; absent → tier heuristic.
+        epaEligible: z.boolean().optional(),
       }),
     )
     .min(1),
@@ -1922,8 +1926,12 @@ export async function registerRoutes(app: Express): Promise<void> {
             recipientUserId: recipient.userId,
           });
 
+          // The client's PS-gated derivation is authoritative when it sent a
+          // hint (2.23.0+); older clients fall back to the tier heuristic.
           let epaEligible = false;
-          if (ownerTier !== null) {
+          if (typeof recipient.epaEligible === "boolean") {
+            epaEligible = recipient.epaEligible;
+          } else if (ownerTier !== null) {
             const recipientProfile = await storage.getProfile(recipient.userId);
             const recipientTier = getSeniorityTierForStage(
               recipientProfile?.careerStage,

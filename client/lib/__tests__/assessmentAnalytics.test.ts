@@ -7,6 +7,12 @@ import {
   computeTrainingOverview,
   computeEntrustmentDistribution,
   getProceduresWithAssessments,
+  computeAutonomyGap,
+  computeBidFrequencies,
+  fullPairsOnly,
+  SUPERVISOR_AGGREGATE_MIN_ASSESSMENTS,
+  SUPERVISOR_AGGREGATE_MIN_UNIQUE_CASES,
+  CALIBRATION_MIN_PAIRS,
 } from "@/lib/assessmentAnalytics";
 import type { RevealedPairWithContext } from "@/lib/assessmentStorage";
 import type { EntrustmentLevel, TeachingQualityLevel } from "@/types/sharing";
@@ -702,5 +708,260 @@ describe("getProceduresWithAssessments", () => {
     ];
     const result = getProceduresWithAssessments(pairs);
     expect(result).toHaveLength(1);
+  });
+});
+
+// ── Phase C: partial pairs are excluded from every analytic ──────────────────
+
+describe("partial pair exclusion (Phase C)", () => {
+  const full = (i: number) =>
+    makePair({
+      sharedCaseId: `full-${i}`,
+      revealedAt: `2026-04-${String(i + 1).padStart(2, "0")}T10:00:00Z`,
+      supervisorEntrustment: 4 as EntrustmentLevel,
+      traineeSelfEntrustment: 2 as EntrustmentLevel,
+      partial: false,
+    });
+  const partialFlagged = makePair({
+    sharedCaseId: "partial-flag",
+    supervisorEntrustment: 1 as EntrustmentLevel,
+    traineeSelfEntrustment: 0 as EntrustmentLevel,
+    teachingQuality: 0 as TeachingQualityLevel,
+    partial: true,
+  });
+  // Legacy zero-filled partial (pre-flag records): retro-detected.
+  const partialLegacy = makePair({
+    sharedCaseId: "partial-legacy",
+    supervisorEntrustment: 0 as EntrustmentLevel,
+    traineeSelfEntrustment: 5 as EntrustmentLevel,
+  });
+
+  it("fullPairsOnly keeps flagged-full, unflagged-nonzero; drops flagged + zero-filled partials", () => {
+    const kept = fullPairsOnly([
+      full(0),
+      partialFlagged,
+      partialLegacy,
+      makePair(),
+    ]);
+    expect(kept.map((p) => p.sharedCaseId)).toEqual(["full-0", "case-1"]);
+  });
+
+  it("learning curves ignore partials", () => {
+    const curves = computeLearningCurves([
+      full(0),
+      full(1),
+      partialFlagged,
+      partialLegacy,
+    ]);
+    expect(curves[0]!.totalCases).toBe(2);
+    expect(curves[0]!.points.every((p) => p.supervisorRating > 0)).toBe(true);
+  });
+
+  it("calibration ignores partials (the zero-filled side would fake a gap)", () => {
+    const score = computeCalibrationScore([
+      full(0),
+      full(1),
+      full(2),
+      partialFlagged,
+      partialLegacy,
+    ]);
+    expect(score?.totalPairs).toBe(3);
+    expect(score?.overallMeanGap).toBe(2);
+  });
+
+  it("overview, distribution and procedure list ignore partials", () => {
+    const pairs = [full(0), partialFlagged, partialLegacy];
+    expect(computeTrainingOverview(pairs).totalAssessments).toBe(1);
+    expect(
+      computeEntrustmentDistribution(pairs).reduce((s, d) => s + d.count, 0),
+    ).toBe(1);
+    expect(getProceduresWithAssessments(pairs)[0]?.count).toBe(1);
+  });
+
+  it("teaching aggregate ignores partials when counting toward the threshold", () => {
+    const pairs = [
+      ...Array.from({ length: 4 }, (_, i) => full(i)),
+      partialFlagged,
+      partialLegacy,
+    ];
+    // 4 full pairs < SUPERVISOR_AGGREGATE_MIN_ASSESSMENTS → null even though 6 rows.
+    expect(computeTeachingAggregate(pairs)).toBeNull();
+  });
+});
+
+// ── PS-only learning curves ──────────────────────────────────────────────────
+
+describe("learning curves — Primary Surgeon entrustment only", () => {
+  it("drops pairs whose traineeOperativeRole is present and not PS; keeps legacy + PS", () => {
+    const curves = computeLearningCurves([
+      makePair({ sharedCaseId: "legacy" }),
+      makePair({
+        sharedCaseId: "ps",
+        revealedAt: "2026-03-21T10:00:00Z",
+        traineeOperativeRole: "PS",
+      }),
+      makePair({
+        sharedCaseId: "fa",
+        revealedAt: "2026-03-22T10:00:00Z",
+        traineeOperativeRole: "FA",
+      }),
+    ]);
+    expect(curves[0]!.totalCases).toBe(2);
+    expect(curves[0]!.points.map((p) => p.sharedCaseId)).toEqual([
+      "legacy",
+      "ps",
+    ]);
+  });
+});
+
+// ── Thresholds are named constants ───────────────────────────────────────────
+
+describe("threshold constants", () => {
+  it("pins the published values", () => {
+    expect(SUPERVISOR_AGGREGATE_MIN_ASSESSMENTS).toBe(5);
+    expect(SUPERVISOR_AGGREGATE_MIN_UNIQUE_CASES).toBe(3);
+    expect(CALIBRATION_MIN_PAIRS).toBe(3);
+  });
+});
+
+// ── computeAutonomyGap (instrument v2, Part A) ───────────────────────────────
+
+describe("computeAutonomyGap", () => {
+  const v2 = (
+    i: number,
+    autonomyMatch: 1 | 2 | 3 | 4 | 5,
+    sup: EntrustmentLevel = 3,
+  ) =>
+    makePair({
+      sharedCaseId: `c-${i}`,
+      revealedAt: `2026-05-${String(i + 1).padStart(2, "0")}T10:00:00Z`,
+      supervisorEntrustment: sup,
+      instrumentVersion: 2,
+      autonomyMatch,
+      bid: { briefing: 2, intraop: 2, debrief: 2 },
+    });
+
+  it("returns null with no v2 pairs (legacy records carry no autonomy match)", () => {
+    expect(computeAutonomyGap(makePairs(5), "trainee")).toBeNull();
+  });
+
+  it("trainee audience needs CALIBRATION_MIN_PAIRS v2 pairs", () => {
+    expect(computeAutonomyGap([v2(0, 3), v2(1, 3)], "trainee")).toBeNull();
+    expect(
+      computeAutonomyGap([v2(0, 3), v2(1, 3), v2(2, 3)], "trainee"),
+    ).not.toBeNull();
+  });
+
+  it("supervisor audience needs the 5/3 identification threshold", () => {
+    const fourPairs = [v2(0, 3), v2(1, 3), v2(2, 3), v2(3, 3)];
+    expect(computeAutonomyGap(fourPairs, "supervisor")).toBeNull();
+    const fivePairsThreeCases = [
+      v2(0, 3),
+      v2(1, 3),
+      v2(2, 3),
+      { ...v2(3, 3), sharedCaseId: "c-0" },
+      { ...v2(4, 3), sharedCaseId: "c-1" },
+    ];
+    expect(
+      computeAutonomyGap(fivePairsThreeCases, "supervisor"),
+    ).not.toBeNull();
+  });
+
+  it("signed mean, rates, distribution, direction and byEntrustment", () => {
+    const stats = computeAutonomyGap(
+      [v2(0, 1, 2), v2(1, 2, 3), v2(2, 3, 4), v2(3, 3, 4)],
+      "trainee",
+    )!;
+    // (−2 −1 0 0) / 4 = −0.75
+    expect(stats.meanSignedGap).toBe(-0.75);
+    expect(stats.heldBackRate).toBe(0.5);
+    expect(stats.matchedRate).toBe(0.5);
+    expect(stats.overExtendedRate).toBe(0);
+    expect(stats.direction).toBe("held_back");
+    expect(stats.totalRated).toBe(4);
+    expect(stats.distribution.map((d) => d.count)).toEqual([1, 1, 2, 0, 0]);
+    expect(stats.byEntrustment).toEqual([
+      { level: 2, meanMatch: 1, count: 1 },
+      { level: 3, meanMatch: 2, count: 1 },
+      { level: 4, meanMatch: 3, count: 2 },
+    ]);
+  });
+
+  it("direction is matched within ±0.25 and over_extended above", () => {
+    expect(
+      computeAutonomyGap([v2(0, 3), v2(1, 3), v2(2, 4)], "trainee")?.direction,
+    ).toBe("over_extended");
+    expect(
+      computeAutonomyGap(
+        [v2(0, 3), v2(1, 3), v2(2, 3), v2(3, 3), v2(4, 4)],
+        "trainee",
+      )?.direction,
+    ).toBe("matched");
+  });
+
+  it("excludes partial pairs", () => {
+    const stats = computeAutonomyGap(
+      [v2(0, 3), v2(1, 3), v2(2, 3), { ...v2(3, 1), partial: true }],
+      "trainee",
+    )!;
+    expect(stats.totalRated).toBe(3);
+    expect(stats.meanSignedGap).toBe(0);
+  });
+});
+
+// ── computeBidFrequencies (instrument v2, Part B) ────────────────────────────
+
+describe("computeBidFrequencies", () => {
+  const v2 = (
+    i: number,
+    bid: { briefing: 0 | 1 | 2; intraop: 0 | 1 | 2; debrief: 0 | 1 | 2 },
+  ) =>
+    makePair({
+      sharedCaseId: `c-${i}`,
+      instrumentVersion: 2,
+      autonomyMatch: 3,
+      bid,
+    });
+
+  it("returns null without v2 pairs or below the 5/3 threshold", () => {
+    expect(computeBidFrequencies(makePairs(6))).toBeNull();
+    expect(
+      computeBidFrequencies([
+        v2(0, { briefing: 2, intraop: 2, debrief: 2 }),
+        v2(1, { briefing: 2, intraop: 2, debrief: 2 }),
+      ]),
+    ).toBeNull();
+  });
+
+  it("counts per item, clear-rate and mean", () => {
+    const pairs = [
+      v2(0, { briefing: 2, intraop: 1, debrief: 0 }),
+      v2(1, { briefing: 2, intraop: 1, debrief: 0 }),
+      v2(2, { briefing: 2, intraop: 2, debrief: 1 }),
+      v2(3, { briefing: 0, intraop: 2, debrief: 2 }),
+      v2(4, { briefing: 2, intraop: 2, debrief: 2 }),
+    ];
+    const f = computeBidFrequencies(pairs)!;
+    expect(f.total).toBe(5);
+    expect(f.items.briefing.counts).toEqual([1, 0, 4]);
+    expect(f.items.briefing.clearRate).toBe(0.8);
+    expect(f.items.intraop.mean).toBe(1.6);
+    expect(f.items.debrief.counts).toEqual([2, 1, 2]);
+  });
+
+  it("teaching aggregate carries behaviours + autonomy + legacyScaleCount", () => {
+    const pairs = [
+      ...Array.from({ length: 3 }, (_, i) =>
+        makePair({ sharedCaseId: `legacy-${i}` }),
+      ),
+      v2(10, { briefing: 2, intraop: 2, debrief: 2 }),
+      v2(11, { briefing: 2, intraop: 2, debrief: 2 }),
+    ];
+    const agg = computeTeachingAggregate(pairs)!;
+    expect(agg.totalAssessments).toBe(5);
+    expect(agg.legacyScaleCount).toBe(3);
+    // Only 2 v2 pairs → below the per-item threshold → null, not garbage.
+    expect(agg.behaviours).toBeNull();
+    expect(agg.autonomy).toBeNull();
   });
 });

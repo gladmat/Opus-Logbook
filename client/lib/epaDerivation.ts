@@ -1,7 +1,9 @@
 /**
- * EPA assessment-pair derivation — v2: pairs come from who actually worked
+ * EPA assessment-pair derivation — v3: pairs come from who actually worked
  * together on a UNIT (an operative step when the procedure has steps, else
- * the whole procedure), not from a case-wide seniority ladder.
+ * the whole procedure), not from a case-wide seniority ladder — and the
+ * entrustment instrument fires ONLY when the trainee operated as Primary
+ * Surgeon on that unit.
  *
  * Rules:
  * - Unit expansion: a procedure with operativeSteps yields one unit per
@@ -14,11 +16,25 @@
  *   supervisor(s). Ties at the top tier produce one pair per senior
  *   (two consultants scrubbed together both legitimately supervised).
  *   Same-tier-only units produce nothing (peers don't assess peers).
+ * - ROLE GATE (v3): the entrustment anchors ("I had to do it" → "I did not
+ *   need to be there") are only valid when the trainee PERFORMED. A junior
+ *   whose role on the unit is PS yields an entrustment TARGET; a junior who
+ *   was First Assistant / Surgical Assistant / (un)scrubbed supervisor on
+ *   the unit yields an EXPOSURE record instead — logged participation with
+ *   no entrustment instrument (no validated entrustment scale exists for
+ *   the assisting role). The SUPERVISOR's own role is never gated:
+ *   seniority, not scrub role, defines the teaching axis — a consultant
+ *   holding a retractor as First Assistant still supervises the fellow who
+ *   is Primary Surgeon.
  * - Eligibility: linkedUserId + a known seniority tier. The logger is
  *   identified by linkedUserId and the "self" contactId sentinel.
  * - Aggregation: one target per supervisor–trainee USER pair per case
  *   (keyed by linkedUserId so two roster contacts linked to one account
  *   collapse), listing every contributing unit with the roles held on it.
+ *   Exposures aggregate per participant USER.
+ *
+ * Exposure records are derived + local: they never enter the commit-reveal
+ * channel and never count as "pending" assessments.
  */
 
 import { getSeniorityTier, type SeniorityTier } from "./seniorityTier";
@@ -36,6 +52,30 @@ import {
   type OperativeRole,
 } from "@/types/operativeRole";
 import type { DiagnosisGroup } from "@/types/case";
+
+// ── Role gate ────────────────────────────────────────────────────────────────
+
+export type TraineeParticipationKind = "entrustment" | "assist" | "exposure";
+
+/**
+ * Classify a junior participant's unit role for the instrument trigger.
+ * PS → the full entrustment pair fires. FA → assist participation (logged,
+ * no entrustment). SA / SS / US → exposure only. The owner's SECOND_ASST /
+ * OBSERVER already collapse to SA / US via ownerOperativeRoleToTeamRole, so
+ * both land in "exposure" as intended.
+ */
+export function classifyTraineeParticipation(
+  role: TeamMemberOperativeRole,
+): TraineeParticipationKind {
+  switch (role) {
+    case "PS":
+      return "entrustment";
+    case "FA":
+      return "assist";
+    default:
+      return "exposure";
+  }
+}
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -63,12 +103,14 @@ export interface EpaUnitRef {
   stepId?: string;
   stepLabel?: string;
   supervisorRole: TeamMemberOperativeRole;
+  /** Always "PS" on v3 targets (role gate). */
   traineeRole: TeamMemberOperativeRole;
 }
 
-/** v2 target — aggregated per supervisor–trainee pair per case. */
+/** v3 target — aggregated per supervisor–trainee pair per case. Units are
+ *  restricted to those where the trainee operated as Primary Surgeon. */
 export interface EpaAssessmentTarget {
-  version: 2;
+  version: 3;
   /** "self" when the logger is the supervisor. */
   supervisorContactId: string;
   supervisorDisplayName: string;
@@ -79,8 +121,33 @@ export interface EpaAssessmentTarget {
   traineeDisplayName: string;
   traineeLinkedUserId: string;
   traineeTier: SeniorityTier;
-  /** Every step/procedure this pair shared. */
+  /** Every step/procedure this pair shared with the trainee as PS. */
   units: EpaUnitRef[];
+}
+
+/** A unit a junior took part in under a senior WITHOUT operating as PS. */
+export interface EpaExposureUnitRef {
+  procedureId: string;
+  procedureSnomedCode: string;
+  procedureDisplayName: string;
+  stepId?: string;
+  stepLabel?: string;
+  /** The role held on the unit — never "PS". */
+  role: Exclude<TeamMemberOperativeRole, "PS">;
+  /** The most-senior other participant(s) on the unit (display only). */
+  seniorDisplayNames: string[];
+}
+
+/** Exposure record — aggregated per participant USER per case. Local and
+ *  informational: never enters commit-reveal, never counts as pending. */
+export interface EpaExposureRecord {
+  version: 3;
+  /** "self" when the logger is the participant. */
+  participantContactId: string;
+  participantDisplayName: string;
+  participantLinkedUserId: string;
+  participantTier: SeniorityTier;
+  units: EpaExposureUnitRef[];
 }
 
 export interface EpaDerivationDiagnostics {
@@ -93,10 +160,17 @@ export interface EpaDerivationDiagnostics {
   /** ≥2 eligible participants, all one tier, zero targets — the silent
    *  "peers don't assess peers" case the alert should explain. */
   allSameTier: boolean;
+  /** Junior-with-senior unit instances dropped by the PS role gate
+   *  (recorded as exposure instead of an entrustment pair). */
+  roleGatedUnits: number;
+  /** ≥1 unit was gated and zero targets derived — every junior on this
+   *  case assisted rather than operated; the alert should say so. */
+  exposureOnly: boolean;
 }
 
 export interface EpaDerivationResult {
   targets: EpaAssessmentTarget[];
+  exposures: EpaExposureRecord[];
   diagnostics: EpaDerivationDiagnostics;
 }
 
@@ -189,6 +263,9 @@ export function deriveEpaAssessments(params: {
 
   // Pair accumulation keyed by USER pair (not contact pair)
   const targetsByPair = new Map<string, EpaAssessmentTarget>();
+  // Exposure accumulation keyed by participant USER
+  const exposuresByUser = new Map<string, EpaExposureRecord>();
+  let roleGatedUnits = 0;
 
   const recordPair = (
     supervisor: UnitParticipant,
@@ -200,7 +277,7 @@ export function deriveEpaAssessments(params: {
     let target = targetsByPair.get(key);
     if (!target) {
       target = {
-        version: 2,
+        version: 3,
         supervisorContactId: supervisor.contactId,
         supervisorDisplayName: supervisor.displayName,
         supervisorLinkedUserId: supervisor.linkedUserId,
@@ -224,6 +301,36 @@ export function deriveEpaAssessments(params: {
     });
   };
 
+  const recordExposure = (
+    junior: UnitParticipant,
+    seniors: UnitParticipant[],
+    unit: EpaUnitInput,
+    step?: OperativeStep,
+  ) => {
+    if (junior.role === "PS") return; // defensive — gate decides upstream
+    let record = exposuresByUser.get(junior.linkedUserId);
+    if (!record) {
+      record = {
+        version: 3,
+        participantContactId: junior.contactId,
+        participantDisplayName: junior.displayName,
+        participantLinkedUserId: junior.linkedUserId,
+        participantTier: junior.tier,
+        units: [],
+      };
+      exposuresByUser.set(junior.linkedUserId, record);
+    }
+    record.units.push({
+      procedureId: unit.procedureId,
+      procedureSnomedCode: unit.snomedCtCode ?? "",
+      procedureDisplayName: unit.procedureName,
+      stepId: step?.id,
+      stepLabel: step?.label,
+      role: junior.role,
+      seniorDisplayNames: seniors.map((s) => s.displayName),
+    });
+  };
+
   const pairUnit = (
     participants: UnitParticipant[],
     unit: EpaUnitInput,
@@ -237,10 +344,15 @@ export function deriveEpaAssessments(params: {
       );
       if (seniors.length === 0) continue;
       const maxTier = Math.max(...seniors.map((p) => p.tier)) as SeniorityTier;
-      for (const senior of seniors) {
-        if (senior.tier === maxTier) {
+      const topSeniors = seniors.filter((p) => p.tier === maxTier);
+      // ROLE GATE: entrustment only when the junior operated as PS.
+      if (classifyTraineeParticipation(junior.role) === "entrustment") {
+        for (const senior of topSeniors) {
           recordPair(senior, junior, unit, step);
         }
+      } else {
+        roleGatedUnits += 1;
+        recordExposure(junior, topSeniors, unit, step);
       }
     }
   };
@@ -303,11 +415,14 @@ export function deriveEpaAssessments(params: {
 
   return {
     targets: Array.from(targetsByPair.values()),
+    exposures: Array.from(exposuresByUser.values()),
     diagnostics: {
       participantsConsidered: teamMembers.length + 1,
       unlinkedSkipped,
       missingStageSkipped,
       allSameTier,
+      roleGatedUnits,
+      exposureOnly: targetsByPair.size === 0 && roleGatedUnits > 0,
     },
   };
 }

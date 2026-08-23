@@ -16,13 +16,21 @@ import { Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
 import type {
   EntrustmentLevel,
-  TeachingQualityLevel,
   RevealedAssessmentPair,
   SupervisorAssessment,
   TraineeAssessment,
   SharedCaseData,
 } from "@/types/sharing";
-import { ENTRUSTMENT_LABELS, TEACHING_QUALITY_LABELS } from "@/types/sharing";
+import {
+  ENTRUSTMENT_LABELS,
+  AUTONOMY_MATCH_LABELS,
+  AUTONOMY_MATCH_DESCRIPTIONS,
+  BID_ITEM_KEYS,
+  BID_ITEM_TITLES,
+  BID_ITEM_PROMPTS,
+  BID_ITEM_LABELS,
+  teachingQualityLabel,
+} from "@/types/sharing";
 import { getAssessmentStatus } from "@/lib/assessmentApi";
 import {
   getRevealedPair,
@@ -30,6 +38,9 @@ import {
   getMyAssessment,
 } from "@/lib/assessmentStorage";
 import { getDecryptedSharedCase } from "@/lib/sharingStorage";
+import { buildRevealedPair, isFullRevealedPair } from "@/lib/revealedPair";
+import { resolveAssessmentProcedure } from "@/lib/assessmentProcedure";
+import { deriveEpaFromSharedBlob } from "@/lib/epaFromBlob";
 import {
   getOrCreateDeviceIdentity,
   unwrapCaseKeyEnvelope,
@@ -120,17 +131,51 @@ export default function AssessmentRevealScreen() {
       const sharedCase = await getDecryptedSharedCase(sharedCaseId);
       setCaseData(sharedCase);
 
-      // 1. Check local cache first
+      // 1. Check local cache first. A cached PARTIAL pair (72h path) is
+      // upgraded when the counterpart has since revealed — fall through to
+      // the full path and overwrite it.
       const cached = await getRevealedPair(sharedCaseId);
+      let status: Awaited<ReturnType<typeof getAssessmentStatus>> | null = null;
       if (cached) {
-        setPair(cached);
-        setLoading(false);
-        return;
+        if (isFullRevealedPair(cached)) {
+          setPair(cached);
+          setLoading(false);
+          return;
+        }
+        try {
+          status = await getAssessmentStatus(sharedCaseId);
+        } catch {
+          // Offline — keep showing the cached partial pair.
+        }
+        if (!status?.otherAssessment?.revealedAt) {
+          setIsPartialReveal(true);
+          setPair(cached);
+          setLoading(false);
+          return;
+        }
       }
 
       // 2. Fetch from server
-      const status = await getAssessmentStatus(sharedCaseId);
+      if (!status) status = await getAssessmentStatus(sharedCaseId);
       const myLocalAssessment = await getMyAssessment(sharedCaseId);
+
+      // Procedure attribution: committed payloads carry it (2.23.0+);
+      // the derived target / first procedure is the legacy fallback.
+      const epaView = sharedCase
+        ? deriveEpaFromSharedBlob({
+            blob: sharedCase,
+            viewerUserId: user.id,
+            ownerUserId: status.ownerUserId,
+            counterpartUserId:
+              user.id === status.ownerUserId
+                ? status.recipientUserId
+                : status.ownerUserId,
+          })
+        : null;
+      const fallbackProcedure = resolveAssessmentProcedure(
+        epaView?.myTarget ?? null,
+        sharedCase,
+      );
 
       // Handle partial reveal (72h timeout — other party didn't submit)
       if (!status.otherAssessment) {
@@ -138,36 +183,19 @@ export default function AssessmentRevealScreen() {
 
         if (myLocalAssessment) {
           // Build a partial pair from our own assessment only
-          const procedureName =
-            sharedCase?.diagnosisGroups?.[0]?.procedures?.[0]?.procedureName ??
-            "Unknown";
-          const procedureCode =
-            sharedCase?.diagnosisGroups?.[0]?.procedures?.[0]?.snomedCtCode ??
-            "";
-
           const isSupervisor =
             status.myAssessment?.assessorRole === "supervisor";
-          const partialPair: RevealedAssessmentPair = {
-            supervisorEntrustment: isSupervisor
-              ? (myLocalAssessment as SupervisorAssessment).entrustmentRating
-              : (0 as EntrustmentLevel),
-            traineeSelfEntrustment: !isSupervisor
-              ? (myLocalAssessment as TraineeAssessment).selfEntrustmentRating
-              : (0 as EntrustmentLevel),
-            teachingQuality: !isSupervisor
-              ? (myLocalAssessment as TraineeAssessment).teachingQualityRating
-              : (0 as TeachingQualityLevel),
-            supervisorNarrative: isSupervisor
-              ? (myLocalAssessment as SupervisorAssessment).narrativeFeedback
-              : undefined,
-            caseComplexity: isSupervisor
-              ? (myLocalAssessment as SupervisorAssessment).caseComplexity
-              : undefined,
+          const partialPair = buildRevealedPair({
+            supervisor: isSupervisor
+              ? (myLocalAssessment as SupervisorAssessment)
+              : null,
+            trainee: isSupervisor
+              ? null
+              : (myLocalAssessment as TraineeAssessment),
             revealedAt:
               status.myAssessment?.revealedAt ?? new Date().toISOString(),
-            procedureCode,
-            procedureDisplayName: procedureName,
-          };
+            fallbackProcedure,
+          });
           setPair(partialPair);
           await saveRevealedPair(sharedCaseId, partialPair);
         }
@@ -234,23 +262,14 @@ export default function AssessmentRevealScreen() {
         ? (otherAssessment as TraineeAssessment)
         : (myLocalAssessment as TraineeAssessment);
 
-      const procedureName =
-        sharedCase?.diagnosisGroups?.[0]?.procedures?.[0]?.procedureName ??
-        "Unknown";
-      const procedureCode =
-        sharedCase?.diagnosisGroups?.[0]?.procedures?.[0]?.snomedCtCode ?? "";
-
-      const revealedPair: RevealedAssessmentPair = {
-        supervisorEntrustment: supervisorAssessment.entrustmentRating,
-        traineeSelfEntrustment: traineeAssessment.selfEntrustmentRating,
-        teachingQuality: traineeAssessment.teachingQualityRating,
-        supervisorNarrative: supervisorAssessment.narrativeFeedback,
-        caseComplexity: supervisorAssessment.caseComplexity,
+      const revealedPair = buildRevealedPair({
+        supervisor: supervisorAssessment,
+        trainee: traineeAssessment,
         revealedAt: status.myAssessment?.revealedAt ?? new Date().toISOString(),
-        procedureCode,
-        procedureDisplayName: procedureName,
-      };
+        fallbackProcedure,
+      });
 
+      setIsPartialReveal(false);
       setPair(revealedPair);
       await saveRevealedPair(sharedCaseId, revealedPair);
     } catch (err) {
@@ -294,13 +313,15 @@ export default function AssessmentRevealScreen() {
     );
   }
 
-  const hasFullPair =
-    !isPartialReveal &&
-    pair.supervisorEntrustment > 0 &&
-    pair.traineeSelfEntrustment > 0;
+  const hasFullPair = !isPartialReveal && isFullRevealedPair(pair);
   const gapInfo = hasFullPair
     ? getGapInfo(pair.supervisorEntrustment, pair.traineeSelfEntrustment)
     : null;
+  const missingSide = !(pair.supervisorEntrustment > 0)
+    ? "Supervisor"
+    : !(pair.traineeSelfEntrustment > 0)
+      ? "Trainee"
+      : null;
 
   return (
     <View
@@ -355,6 +376,26 @@ export default function AssessmentRevealScreen() {
             </View>
           ) : null}
         </View>
+
+        {/* Partial reveal banner (Phase C) */}
+        {!hasFullPair && missingSide ? (
+          <View
+            testID="assessmentReveal.partial"
+            style={[
+              styles.partialBanner,
+              {
+                backgroundColor: theme.warningSurface,
+                borderColor: theme.warningBorder,
+              },
+            ]}
+          >
+            <Feather name="clock" size={16} color={theme.warning} />
+            <ThemedText style={[styles.partialText, { color: theme.warning }]}>
+              Partial reveal — {missingSide.toLowerCase()} did not respond
+              within 72 hours. Excluded from learning curves and calibration.
+            </ThemedText>
+          </View>
+        ) : null}
 
         {/* Entrustment comparison */}
         <View
@@ -514,7 +555,122 @@ export default function AssessmentRevealScreen() {
           ) : null}
         </View>
 
-        {/* Teaching quality */}
+        {/* Autonomy match (trainee instrument v2, Part A) */}
+        {pair.autonomyMatch ? (
+          <View
+            style={[
+              styles.comparisonCard,
+              {
+                backgroundColor: theme.backgroundElevated,
+                borderColor: theme.border,
+              },
+              Shadows.card,
+            ]}
+          >
+            <ThemedText
+              style={[styles.cardSectionTitle, { color: theme.textSecondary }]}
+            >
+              AUTONOMY MATCH
+            </ThemedText>
+            <ThemedText
+              testID="assessmentReveal.autonomy"
+              style={[styles.teachingNumber, { color: theme.text }]}
+            >
+              {pair.autonomyMatch}
+            </ThemedText>
+            <ThemedText
+              style={[styles.teachingDescription, { color: theme.text }]}
+            >
+              {AUTONOMY_MATCH_LABELS[pair.autonomyMatch]}
+            </ThemedText>
+            <ThemedText
+              style={[styles.autonomyHint, { color: theme.textSecondary }]}
+            >
+              {AUTONOMY_MATCH_DESCRIPTIONS[pair.autonomyMatch]}
+            </ThemedText>
+            <ThemedText
+              style={[styles.autonomyCaption, { color: theme.textTertiary }]}
+            >
+              How the autonomy granted this case matched what the trainee could
+              handle — 3 is the ideal.
+            </ThemedText>
+          </View>
+        ) : null}
+
+        {/* Teaching behaviours (trainee instrument v2, Part B) */}
+        {pair.bid ? (
+          <View
+            style={[
+              styles.comparisonCard,
+              {
+                backgroundColor: theme.backgroundElevated,
+                borderColor: theme.border,
+              },
+              Shadows.card,
+            ]}
+          >
+            <ThemedText
+              style={[styles.cardSectionTitle, { color: theme.textSecondary }]}
+            >
+              TEACHING THIS CASE
+            </ThemedText>
+            {BID_ITEM_KEYS.map((key) => {
+              const level = pair.bid![key];
+              return (
+                <View
+                  key={key}
+                  testID={`assessmentReveal.bid-${key}`}
+                  style={[styles.bidRow, { borderBottomColor: theme.border }]}
+                >
+                  <View style={styles.bidRowText}>
+                    <ThemedText
+                      style={[styles.bidTitle, { color: theme.text }]}
+                    >
+                      {BID_ITEM_TITLES[key]}
+                    </ThemedText>
+                    <ThemedText
+                      style={[styles.bidPrompt, { color: theme.textTertiary }]}
+                      numberOfLines={2}
+                    >
+                      {BID_ITEM_PROMPTS[key]}
+                    </ThemedText>
+                  </View>
+                  <View
+                    style={[
+                      styles.bidBadge,
+                      {
+                        backgroundColor:
+                          level === 2
+                            ? theme.successSurface
+                            : level === 1
+                              ? theme.warningSurface
+                              : theme.backgroundSecondary,
+                      },
+                    ]}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.bidBadgeText,
+                        {
+                          color:
+                            level === 2
+                              ? theme.success
+                              : level === 1
+                                ? theme.warning
+                                : theme.textSecondary,
+                        },
+                      ]}
+                    >
+                      {BID_ITEM_LABELS[level]}
+                    </ThemedText>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        ) : null}
+
+        {/* Teaching quality (global) */}
         {pair.teachingQuality > 0 ? (
           <View
             style={[
@@ -529,7 +685,9 @@ export default function AssessmentRevealScreen() {
             <ThemedText
               style={[styles.cardSectionTitle, { color: theme.textSecondary }]}
             >
-              TEACHING QUALITY
+              {pair.instrumentVersion === 2
+                ? "OVERALL TEACHING THIS CASE"
+                : "TEACHING QUALITY"}
             </ThemedText>
             <ThemedText
               testID="assessmentReveal.teaching-quality"
@@ -543,8 +701,44 @@ export default function AssessmentRevealScreen() {
                 { color: theme.textSecondary },
               ]}
             >
-              {TEACHING_QUALITY_LABELS[pair.teachingQuality]}
+              {teachingQualityLabel(
+                pair.teachingQuality,
+                pair.instrumentVersion,
+              )}
             </ThemedText>
+          </View>
+        ) : null}
+
+        {/* Trainee narrative on the teaching (Phase C — was dropped before) */}
+        {pair.teachingNarrative ? (
+          <View
+            style={[
+              styles.narrativeCard,
+              {
+                backgroundColor: theme.backgroundElevated,
+                borderColor: theme.border,
+              },
+              Shadows.card,
+            ]}
+          >
+            <ThemedText
+              style={[styles.cardSectionTitle, { color: theme.textSecondary }]}
+            >
+              TRAINEE FEEDBACK ON TEACHING
+            </ThemedText>
+            <View
+              style={[
+                styles.narrativeBlock,
+                { backgroundColor: theme.backgroundSecondary },
+              ]}
+            >
+              <ThemedText
+                testID="assessmentReveal.teachingNarrative"
+                style={[styles.narrativeText, { color: theme.text }]}
+              >
+                {pair.teachingNarrative}
+              </ThemedText>
+            </View>
           </View>
         ) : null}
 
@@ -726,12 +920,73 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     flex: 1,
   },
+  // Partial banner
+  partialBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    marginBottom: Spacing.md,
+  },
+  partialText: {
+    fontSize: 13,
+    lineHeight: 18,
+    flex: 1,
+  },
+  // Autonomy match
+  autonomyHint: {
+    fontSize: 13,
+    textAlign: "center",
+    marginTop: 4,
+    lineHeight: 18,
+  },
+  autonomyCaption: {
+    fontSize: 12,
+    textAlign: "center",
+    marginTop: Spacing.sm,
+    lineHeight: 16,
+  },
+  // BID rows
+  bidRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  bidRowText: {
+    flex: 1,
+  },
+  bidTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  bidPrompt: {
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  bidBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.xs,
+  },
+  bidBadgeText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
   // Teaching quality
   teachingNumber: {
     fontSize: 36,
     fontWeight: "800",
     fontVariant: ["tabular-nums"],
     textAlign: "center",
+    // Explicit line height: ThemedText's default body lineHeight (24) clips
+    // 36pt glyphs at the top.
+    lineHeight: 44,
   },
   teachingDescription: {
     fontSize: 15,

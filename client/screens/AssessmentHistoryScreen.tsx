@@ -21,7 +21,12 @@ import {
 } from "@/lib/assessmentStorage";
 import { getSharedOutbox } from "@/lib/sharingApi";
 import { filterPendingEpaTargets } from "@/lib/pendingEpa";
-import { ENTRUSTMENT_LABELS, TEACHING_QUALITY_LABELS } from "@/types/sharing";
+import {
+  ENTRUSTMENT_LABELS,
+  AUTONOMY_MATCH_LABELS,
+  teachingQualityLabel,
+} from "@/types/sharing";
+import { isFullRevealedPair } from "@/lib/revealedPair";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -76,10 +81,26 @@ const AssessmentRow = React.memo(function AssessmentRow({
         {pair.procedureDisplayName || pair.procedureCode}
       </ThemedText>
 
-      {/* Date */}
-      <ThemedText style={[styles.date, { color: theme.textTertiary }]}>
-        {formatRevealDate(pair.revealedAt)}
-      </ThemedText>
+      {/* Date + partial pill */}
+      <View style={styles.dateRow}>
+        <ThemedText style={[styles.date, { color: theme.textTertiary }]}>
+          {formatRevealDate(pair.revealedAt)}
+        </ThemedText>
+        {!isFullRevealedPair(pair) ? (
+          <View
+            style={[
+              styles.partialPill,
+              { backgroundColor: theme.warningSurface },
+            ]}
+          >
+            <ThemedText
+              style={[styles.partialPillText, { color: theme.warning }]}
+            >
+              Partial
+            </ThemedText>
+          </View>
+        ) : null}
+      </View>
 
       {/* Ratings row */}
       <View style={styles.ratingsRow}>
@@ -143,9 +164,29 @@ const AssessmentRow = React.memo(function AssessmentRow({
           style={[styles.teachingDesc, { color: theme.textSecondary }]}
           numberOfLines={1}
         >
-          {TEACHING_QUALITY_LABELS[pair.teachingQuality]}
+          {teachingQualityLabel(pair.teachingQuality, pair.instrumentVersion)}
         </ThemedText>
       </View>
+
+      {/* Autonomy match (instrument v2) */}
+      {pair.autonomyMatch ? (
+        <View style={styles.teachingRow}>
+          <ThemedText
+            style={[styles.teachingLabel, { color: theme.textTertiary }]}
+          >
+            Autonomy
+          </ThemedText>
+          <ThemedText style={[styles.teachingValue, { color: theme.info }]}>
+            {pair.autonomyMatch}/5
+          </ThemedText>
+          <ThemedText
+            style={[styles.teachingDesc, { color: theme.textSecondary }]}
+            numberOfLines={1}
+          >
+            {AUTONOMY_MATCH_LABELS[pair.autonomyMatch]}
+          </ThemedText>
+        </View>
+      ) : null}
     </View>
   );
 });
@@ -413,6 +454,20 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
   },
   gapText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  dateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  partialPill: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.xs,
+  },
+  partialPillText: {
     fontSize: 11,
     fontWeight: "600",
   },

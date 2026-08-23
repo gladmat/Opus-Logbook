@@ -9,7 +9,8 @@
  * diagnosisGroups (with per-procedure overrides + operative steps), the
  * owner's roles, and (2.22.0+) the owner's identity/careerStage snapshot
  * (`ownerParticipant`). Running the SAME engine over the SAME snapshot on
- * both sides yields identical targets with zero new transport.
+ * both sides yields identical targets AND exposures with zero new
+ * transport.
  *
  * Legacy blobs lack `ownerParticipant`: the owner then has no tier and
  * drops from eligibility — team↔team pairs still derive, and the caller
@@ -21,17 +22,27 @@ import {
   deriveEpaAssessments,
   buildEpaUnitsFromDiagnosisGroups,
   type EpaAssessmentTarget,
+  type EpaExposureRecord,
 } from "./epaDerivation";
 import type { SharedCaseData } from "@/types/sharing";
 
 export interface RecipientEpaView {
   /** Every target derivable from the blob (any pair, viewer or not). */
   targets: EpaAssessmentTarget[];
+  /** Every exposure record derivable from the blob. */
+  exposures: EpaExposureRecord[];
   /** The pair involving the viewer, if any. */
   myTarget: EpaAssessmentTarget | null;
   /** The viewer's side of that pair. */
   myRole: "supervisor" | "trainee" | null;
-  reason?: "no-owner-participant" | "viewer-not-paired" | "no-procedures";
+  /** The viewer's exposure record (assisted under a senior without
+   *  operating as PS on ≥1 unit), if any. */
+  myExposure: EpaExposureRecord | null;
+  reason?:
+    | "no-owner-participant"
+    | "viewer-not-paired"
+    | "viewer-exposure-only"
+    | "no-procedures";
 }
 
 export function deriveEpaFromSharedBlob(params: {
@@ -39,8 +50,12 @@ export function deriveEpaFromSharedBlob(params: {
   viewerUserId: string;
   /** From the share row / assessment status — NOT inside legacy blobs. */
   ownerUserId: string;
+  /** The other party on THIS share row. When given, the viewer's target
+   *  is the pair with that user (a case with 2+ counterparts can derive
+   *  several pairs involving the viewer). */
+  counterpartUserId?: string;
 }): RecipientEpaView {
-  const { blob, viewerUserId, ownerUserId } = params;
+  const { blob, viewerUserId, ownerUserId, counterpartUserId } = params;
 
   const units = buildEpaUnitsFromDiagnosisGroups(
     blob.diagnosisGroups ?? [],
@@ -49,13 +64,15 @@ export function deriveEpaFromSharedBlob(params: {
   if (units.length === 0) {
     return {
       targets: [],
+      exposures: [],
       myTarget: null,
       myRole: null,
+      myExposure: null,
       reason: "no-procedures",
     };
   }
 
-  const { targets } = deriveEpaAssessments({
+  const { targets, exposures } = deriveEpaAssessments({
     self: {
       linkedUserId: blob.ownerParticipant?.userId ?? ownerUserId,
       careerStage: blob.ownerParticipant?.careerStage,
@@ -65,24 +82,39 @@ export function deriveEpaFromSharedBlob(params: {
     units,
   });
 
+  const involvesViewer = (t: EpaAssessmentTarget) =>
+    t.supervisorLinkedUserId === viewerUserId ||
+    t.traineeLinkedUserId === viewerUserId;
+  const involvesCounterpart = (t: EpaAssessmentTarget) =>
+    counterpartUserId != null &&
+    (t.supervisorLinkedUserId === counterpartUserId ||
+      t.traineeLinkedUserId === counterpartUserId);
+
   const myTarget =
-    targets.find(
-      (t) =>
-        t.supervisorLinkedUserId === viewerUserId ||
-        t.traineeLinkedUserId === viewerUserId,
-    ) ?? null;
+    (counterpartUserId
+      ? targets.find((t) => involvesViewer(t) && involvesCounterpart(t))
+      : undefined) ??
+    targets.find(involvesViewer) ??
+    null;
   const myRole = myTarget
     ? myTarget.supervisorLinkedUserId === viewerUserId
       ? "supervisor"
       : "trainee"
     : null;
 
+  const myExposure =
+    exposures.find((e) => e.participantLinkedUserId === viewerUserId) ?? null;
+
   let reason: RecipientEpaView["reason"];
   if (!myTarget) {
-    reason = blob.ownerParticipant
-      ? "viewer-not-paired"
-      : "no-owner-participant";
+    if (myExposure) {
+      reason = "viewer-exposure-only";
+    } else {
+      reason = blob.ownerParticipant
+        ? "viewer-not-paired"
+        : "no-owner-participant";
+    }
   }
 
-  return { targets, myTarget, myRole, reason };
+  return { targets, exposures, myTarget, myRole, myExposure, reason };
 }

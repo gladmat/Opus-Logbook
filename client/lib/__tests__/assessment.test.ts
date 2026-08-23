@@ -1,6 +1,18 @@
 import { describe, it, expect } from "vitest";
 import { determineAssessorRole } from "@/lib/assessmentRoles";
-import type { SharedCaseData } from "@/types/sharing";
+import type { SharedCaseData, TraineeAssessmentV2 } from "@/types/sharing";
+import {
+  AUTONOMY_MATCH_LABELS,
+  AUTONOMY_MATCH_DESCRIPTIONS,
+  BID_ITEM_KEYS,
+  BID_ITEM_LABELS,
+  BID_ITEM_PROMPTS,
+  BID_ITEM_TITLES,
+  TEACHING_QUALITY_LABELS,
+  TEACHING_QUALITY_LABELS_V1,
+  teachingQualityLabel,
+  isTraineeAssessmentV2,
+} from "@/types/sharing";
 
 // ─── determineAssessorRole ────────────────────────────────────────────────────
 
@@ -442,5 +454,66 @@ describe("assessment type structure", () => {
     expect(pair.traineeSelfEntrustment).toBe(3);
     expect(pair.teachingQuality).toBe(4);
     expect(pair.procedureDisplayName).toBe("Carpal tunnel release");
+  });
+});
+
+// ─── Instrument v2 (granted-autonomy match + BID + per-case global) ──────────
+
+describe("trainee instrument v2", () => {
+  it("autonomy match labels + descriptions cover 1–5 with the centre as ideal", () => {
+    for (const level of [1, 2, 3, 4, 5] as const) {
+      expect(AUTONOMY_MATCH_LABELS[level]).toBeTruthy();
+      expect(AUTONOMY_MATCH_DESCRIPTIONS[level]).toBeTruthy();
+    }
+    expect(AUTONOMY_MATCH_LABELS[3]).toBe("Well matched");
+    expect(AUTONOMY_MATCH_LABELS[1]).toBe("Held back");
+    expect(AUTONOMY_MATCH_LABELS[5]).toBe("Beyond me");
+  });
+
+  it("BID items: three keys, each with title + prompt, levels 0–2 labelled", () => {
+    expect(BID_ITEM_KEYS).toEqual(["briefing", "intraop", "debrief"]);
+    for (const key of BID_ITEM_KEYS) {
+      expect(BID_ITEM_TITLES[key]).toBeTruthy();
+      expect(BID_ITEM_PROMPTS[key]).toBeTruthy();
+    }
+    expect(BID_ITEM_LABELS[0]).toBe("Not this case");
+    expect(BID_ITEM_LABELS[2]).toBe("Yes, clearly");
+  });
+
+  it("Part C anchors are per-case attainable; v1 anchors kept for legacy display", () => {
+    expect(TEACHING_QUALITY_LABELS[5]).toBe("Outstanding");
+    expect(TEACHING_QUALITY_LABELS[5]).not.toMatch(/changed my practice/);
+    expect(TEACHING_QUALITY_LABELS_V1[5]).toMatch(/changed my practice/);
+    expect(teachingQualityLabel(5, 2)).toBe("Outstanding");
+    expect(teachingQualityLabel(5, 1)).toMatch(/changed my practice/);
+    // Unversioned (legacy) records render on the v1 scale.
+    expect(teachingQualityLabel(3)).toBe(TEACHING_QUALITY_LABELS_V1[3]);
+  });
+
+  it("v2 shareable strip keeps reflective notes private and carries the new fields", () => {
+    const full: TraineeAssessmentV2 = {
+      instrumentVersion: 2,
+      selfEntrustmentRating: 3,
+      autonomyMatch: 2,
+      bid: { briefing: 2, intraop: 1, debrief: 0 },
+      teachingQualityRating: 4,
+      teachingNarrative: "Good debrief",
+      reflectiveNotes: "PRIVATE",
+      procedure: { procedureSnomedCode: "1", procedureDisplayName: "CTR" },
+      traineeOperativeRole: "PS",
+    };
+    expect(isTraineeAssessmentV2(full)).toBe(true);
+    const { reflectiveNotes: _stripped, ...shareable } = full;
+    const json = JSON.stringify(shareable);
+    expect(json).not.toContain("PRIVATE");
+    expect(json).toContain('"instrumentVersion":2');
+    expect(json).toContain('"autonomyMatch":2');
+    expect(json).toContain('"traineeOperativeRole":"PS"');
+    expect(
+      isTraineeAssessmentV2({
+        selfEntrustmentRating: 3,
+        teachingQualityRating: 4,
+      }),
+    ).toBe(false);
   });
 });

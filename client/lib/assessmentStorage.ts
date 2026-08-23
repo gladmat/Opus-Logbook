@@ -6,7 +6,8 @@ import type {
   TraineeAssessment,
   RevealedAssessmentPair,
 } from "@/types/sharing";
-import type { EpaAssessmentTarget } from "./epaDerivation";
+import type { EpaAssessmentTarget, EpaExposureRecord } from "./epaDerivation";
+import { migrateLegacyEpaTargets } from "./epaTargetMigration";
 
 // ── Storage keys (user-scoped at runtime) ────────────────────────────────────
 
@@ -217,28 +218,44 @@ async function updateEpaTargetsIndex(
   }
 }
 
+/** v3 on-disk envelope: targets + exposures under ONE key. */
+interface EpaTargetsEnvelopeV3 {
+  v: 3;
+  targets: EpaAssessmentTarget[];
+  exposures: EpaExposureRecord[];
+}
+
+/** What a stored record resolves to after migrate-on-read. */
+export interface EpaTargetsRecord {
+  targets: EpaAssessmentTarget[];
+  exposures: EpaExposureRecord[];
+}
+
 /**
- * Save derived EPA assessment targets for a case (encrypted with K_user,
- * like every other blob in this module — targets carry display names and
- * linked user IDs). An empty list REMOVES the stored key so stale targets
- * from a previous derivation don't linger after an edit-save that drops
- * the team. Maintains the case-id index for getAllEpaTargets.
+ * Save derived EPA assessment targets + exposure records for a case
+ * (encrypted with K_user, like every other blob in this module — both
+ * carry display names and linked user IDs). Empty targets AND exposures
+ * REMOVE the stored key so stale records from a previous derivation don't
+ * linger after an edit-save that drops the team. Maintains the case-id
+ * index for getAllEpaTargets / getAllEpaExposures.
  */
 export async function saveEpaTargets(
   caseId: string,
   targets: EpaAssessmentTarget[],
+  exposures: EpaExposureRecord[] = [],
 ): Promise<void> {
-  if (targets.length === 0) {
+  if (targets.length === 0 && exposures.length === 0) {
     await AsyncStorage.removeItem(epaTargetsKey(caseId));
     await updateEpaTargetsIndex(caseId, false);
     return;
   }
-  const encrypted = await encryptData(JSON.stringify(targets));
+  const envelope: EpaTargetsEnvelopeV3 = { v: 3, targets, exposures };
+  const encrypted = await encryptData(JSON.stringify(envelope));
   await AsyncStorage.setItem(epaTargetsKey(caseId), encrypted);
   await updateEpaTargetsIndex(caseId, true);
 }
 
-/** Remove stored EPA targets for a case. Best-effort. */
+/** Remove stored EPA targets + exposures for a case. Best-effort. */
 export async function clearEpaTargets(caseId: string): Promise<void> {
   try {
     await AsyncStorage.removeItem(epaTargetsKey(caseId));
@@ -249,33 +266,72 @@ export async function clearEpaTargets(caseId: string): Promise<void> {
 }
 
 /**
- * Load EPA assessment targets for a case. Only version-2 records are
- * returned: v1 records (pre-rewrite, per-procedure cartesian pairs) and
- * legacy plaintext both drop and regenerate on the next save.
+ * Load the stored EPA record for a case.
+ * - v3 envelope → returned as-is.
+ * - Legacy bare array (v2 targets, pre role-gate) → migrated on read:
+ *   units filtered to PS-trainee units, empty targets dropped, stamped
+ *   v3, and written back so the next read is cheap. A record that
+ *   collapses to nothing is cleared. (Migrate-on-read keeps old cases'
+ *   CaseDetail cards populated without a re-save.)
+ * - v1 / plaintext / undecryptable → cleared; regenerates on next save.
  */
+export async function getEpaTargetsRecord(
+  caseId: string,
+): Promise<EpaTargetsRecord> {
+  const raw = await AsyncStorage.getItem(epaTargetsKey(caseId));
+  if (!raw) return { targets: [], exposures: [] };
+  try {
+    const plaintext = await decryptData(raw);
+    const parsed: unknown = JSON.parse(plaintext);
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      !Array.isArray(parsed) &&
+      (parsed as { v?: unknown }).v === 3
+    ) {
+      const env = parsed as EpaTargetsEnvelopeV3;
+      return {
+        targets: Array.isArray(env.targets) ? env.targets : [],
+        exposures: Array.isArray(env.exposures) ? env.exposures : [],
+      };
+    }
+    const migrated = migrateLegacyEpaTargets(parsed);
+    if (migrated.changed) {
+      // Best-effort write-back; a concurrent save overwrites with a fresh
+      // derivation anyway.
+      void saveEpaTargets(caseId, migrated.targets, []).catch(() => {});
+    }
+    return { targets: migrated.targets, exposures: [] };
+  } catch {
+    void clearEpaTargets(caseId);
+    return { targets: [], exposures: [] };
+  }
+}
+
+/** Load EPA assessment targets for a case (see getEpaTargetsRecord). */
 export async function getEpaTargets(
   caseId: string,
 ): Promise<EpaAssessmentTarget[]> {
-  const raw = await AsyncStorage.getItem(epaTargetsKey(caseId));
-  if (!raw) return [];
-  try {
-    const plaintext = await decryptData(raw);
-    const parsed = JSON.parse(plaintext) as EpaAssessmentTarget[];
-    if (!Array.isArray(parsed) || parsed.some((t) => t.version !== 2)) {
-      void clearEpaTargets(caseId);
-      return [];
-    }
-    return parsed;
-  } catch {
-    void clearEpaTargets(caseId);
-    return [];
-  }
+  return (await getEpaTargetsRecord(caseId)).targets;
+}
+
+/** Load EPA exposure records for a case (see getEpaTargetsRecord). */
+export async function getEpaExposures(
+  caseId: string,
+): Promise<EpaExposureRecord[]> {
+  return (await getEpaTargetsRecord(caseId)).exposures;
 }
 
 /** Targets for a case, with the caseId attached. */
 export interface EpaTargetsWithCase {
   caseId: string;
   targets: EpaAssessmentTarget[];
+}
+
+/** Exposures for a case, with the caseId attached. */
+export interface EpaExposuresWithCase {
+  caseId: string;
+  exposures: EpaExposureRecord[];
 }
 
 /** Batch-load every stored EPA target set (pending-assessments surfaces). */
@@ -295,4 +351,23 @@ export async function getAllEpaTargets(): Promise<EpaTargetsWithCase[]> {
     )
     .map((r) => r.value)
     .filter((v): v is EpaTargetsWithCase => v != null);
+}
+
+/** Batch-load every stored EPA exposure set (Training-tab exposure count). */
+export async function getAllEpaExposures(): Promise<EpaExposuresWithCase[]> {
+  const ids = await getEpaTargetCaseIds();
+  if (ids.length === 0) return [];
+  const results = await Promise.allSettled(
+    ids.map(async (caseId) => {
+      const exposures = await getEpaExposures(caseId);
+      return exposures.length > 0 ? { caseId, exposures } : null;
+    }),
+  );
+  return results
+    .filter(
+      (r): r is PromiseFulfilledResult<EpaExposuresWithCase | null> =>
+        r.status === "fulfilled",
+    )
+    .map((r) => r.value)
+    .filter((v): v is EpaExposuresWithCase => v != null);
 }

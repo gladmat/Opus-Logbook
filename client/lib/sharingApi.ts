@@ -48,6 +48,10 @@ export interface ShareCaseParams {
     userId: string;
     role: string;
     keyEnvelopes: { deviceId: string; envelopeJson: string }[];
+    /** Client-derived: an assessable EPA pair (trainee as Primary Surgeon)
+     *  exists between the owner and this recipient. Drives the server's
+     *  share-time "EPA Assessment" push; absent → server tier heuristic. */
+    epaEligible?: boolean;
   }[];
 }
 

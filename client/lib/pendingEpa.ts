@@ -57,3 +57,30 @@ export function filterPendingEpaTargets(params: {
 export function countPendingEpaTargets(entries: EpaTargetsWithCase[]): number {
   return entries.reduce((sum, entry) => sum + entry.targets.length, 0);
 }
+
+/**
+ * Recipients for whom an assessable EPA pair exists on THIS case, seen from
+ * the owner side: the other party of every target that involves the owner.
+ * (Only owner↔recipient channels exist today — recipient↔recipient pairs
+ * have nowhere to commit.) Sent as the `epaEligible` hint on the share POST
+ * so the server's share-time "EPA Assessment" push respects the PS role
+ * gate instead of firing on tier difference alone. Exposure-only
+ * participants are never eligible.
+ */
+export function epaEligibleRecipientIds(
+  targets: {
+    supervisorLinkedUserId: string;
+    traineeLinkedUserId: string;
+  }[],
+  ownerUserId: string,
+): Set<string> {
+  const out = new Set<string>();
+  for (const t of targets) {
+    if (t.supervisorLinkedUserId === ownerUserId) {
+      out.add(t.traineeLinkedUserId);
+    } else if (t.traineeLinkedUserId === ownerUserId) {
+      out.add(t.supervisorLinkedUserId);
+    }
+  }
+  return out;
+}
