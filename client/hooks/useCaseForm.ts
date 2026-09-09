@@ -78,6 +78,7 @@ import {
   procedureBeforeDobMessage,
   type ValidationError,
 } from "@/lib/caseFormDateChecks";
+import { getFlapWarnings } from "@/lib/caseFormFlapChecks";
 import type { OperativeRole, SupervisionLevel } from "@/types/operativeRole";
 import { toNearestLegacyRole } from "@/types/operativeRole";
 import { suggestRoleDefaults, isConsultantLevel } from "@/lib/roleDefaults";
@@ -903,6 +904,15 @@ export function validateRequiredFields(state: CaseFormState): {
 export function collectDateWarnings(state: CaseFormState): ValidationError[] {
   if (state.isPlanMode) return [];
   return getDateWarnings(state);
+}
+
+/**
+ * Soft, non-blocking free-flap completeness warnings (e.g. harvest side not
+ * chosen). Never prevent a save. Skipped entirely in plan mode.
+ */
+export function collectFlapWarnings(state: CaseFormState): ValidationError[] {
+  if (state.isPlanMode) return [];
+  return getFlapWarnings(state.diagnosisGroups);
 }
 
 // ─── Team ↔ procedure index remap ─────────────────────────────────────────
@@ -2305,7 +2315,6 @@ export function useCaseForm({
               const currentDetails = (procedure.clinicalDetails as
                 | FreeFlapDetails
                 | undefined) || {
-                harvestSide: "left",
                 anastomoses: [],
               };
 

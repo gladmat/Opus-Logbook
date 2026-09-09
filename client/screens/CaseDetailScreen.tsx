@@ -39,6 +39,7 @@ import {
   buildPerProcedureTeamRows,
 } from "@/lib/teamAttribution";
 import { EpaAssessmentsCard } from "@/components/EpaAssessmentsCard";
+import { describeCoupling } from "@/lib/anastomosisHelpers";
 import {
   Case,
   TimelineEvent,
@@ -47,7 +48,6 @@ import {
   ClavienDindoGrade,
   SPECIALTY_LABELS,
   INDICATION_LABELS,
-  ANASTOMOSIS_LABELS,
   FreeFlapDetails,
   HandSurgeryDetails,
   BodyContouringDetails,
@@ -1041,8 +1041,8 @@ export default function CaseDetailScreen() {
                                         : "\uD83D\uDCA7 "}
                                       {a.recipientVesselName ||
                                         "Unknown vessel"}
-                                      {a.couplingMethod
-                                        ? ` (${ANASTOMOSIS_LABELS[a.couplingMethod as keyof typeof ANASTOMOSIS_LABELS] || a.couplingMethod})`
+                                      {describeCoupling(a)
+                                        ? ` (${describeCoupling(a)})`
                                         : ""}
                                     </ThemedText>
                                   ))}

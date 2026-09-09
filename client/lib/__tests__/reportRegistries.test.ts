@@ -194,10 +194,15 @@ describe("free flap audit report", () => {
     recipientSiteRegion: "lower_leg",
     ischemiaTimeMinutes: 74,
     anastomoses: [
-      { id: "a1" } as FreeFlapDetails["anastomoses"][number],
-      { id: "a2" } as FreeFlapDetails["anastomoses"][number],
+      { id: "a1", vesselType: "artery", recipientVesselName: "ATA" },
+      {
+        id: "a2",
+        vesselType: "vein",
+        recipientVesselName: "ATV",
+        couplingMethod: "coupler",
+        couplerSizeMm: 2,
+      },
     ],
-    couplerSizeMm: 2.5,
     veinGraftUsed: true,
     veinGraftSource: "great_saphenous",
     anticoagulationProtocol: "aspirin_only",
@@ -261,6 +266,8 @@ describe("free flap audit report", () => {
     expect(cell(result, "indication")).toBe("Trauma");
     expect(cell(result, "ischaemia_minutes")).toBe(74);
     expect(cell(result, "anastomosis_count")).toBe(2);
+    // Derived from the vein entry (2 → "2.0"); legacy case-level field unused.
+    expect(cell(result, "coupler_size_mm")).toBe("2.0");
     expect(cell(result, "vein_graft")).toBe("Yes");
     expect(cell(result, "anticoagulation_protocol")).toBe("Aspirin Only");
     expect(cell(result, "monitoring_protocol")).toBe(

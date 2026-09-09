@@ -13,6 +13,7 @@ import {
 } from "@/types/case";
 import { OPERATIVE_ROLE_LABELS } from "@/types/operativeRole";
 import { formatRecipientRegions } from "@/lib/recipientRegions";
+import { collectCouplerSizes } from "@/lib/anastomosisHelpers";
 import {
   ANTICOAGULATION_PROTOCOLS,
   FLAP_MONITORING_PROTOCOLS,
@@ -118,7 +119,9 @@ export const freeFlapAuditReport: ProcedureReportDefinition = {
       "Anastomoses",
       (d) => d.anastomoses?.length ?? 0,
     ),
-    flapColumn("coupler_size_mm", "Coupler (mm)", (d) => d.couplerSizeMm),
+    flapColumn("coupler_size_mm", "Coupler (mm)", (d) =>
+      collectCouplerSizes(d.anastomoses, d.couplerSizeMm),
+    ),
     flapColumn("vein_graft", "Vein Graft", (d) => yesNo(d.veinGraftUsed)),
     flapColumn("vein_graft_source", "Vein Graft Source", (d) =>
       d.veinGraftSource

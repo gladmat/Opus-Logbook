@@ -1533,7 +1533,8 @@ export const RECIPIENT_SITE_COMPLICATION_LABELS: Record<
 // ═══════════════════════════════════════════════════════════════════════════
 
 export interface FreeFlapDetails {
-  harvestSide: HarvestSide;
+  /** Donor side. Deliberately NOT pre-seeded — surgeon must choose (Review warns when unset). */
+  harvestSide?: HarvestSide;
   indication?: Indication;
   flapType?: FreeFlap;
   flapSnomedCode?: string;

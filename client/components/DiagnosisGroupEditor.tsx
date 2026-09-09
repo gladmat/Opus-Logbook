@@ -899,7 +899,6 @@ function DiagnosisGroupEditorInner({
         flapType: mappedFlapType,
         flapSnomedCode: snomedEntry?.code,
         flapSnomedDisplay: snomedEntry?.display,
-        harvestSide: "left",
         anastomoses,
         ...(indication ? { indication } : {}),
         recipientSiteRegion: recipientSite,
@@ -1839,8 +1838,12 @@ function DiagnosisGroupEditorInner({
 
         hasChanges = true;
         const updatedDetails: FreeFlapDetails = {
-          ...(details || { harvestSide: "left", anastomoses: [] }),
-          harvestSide: details?.harvestSide || "left",
+          ...(details || { anastomoses: [] }),
+          harvestSide:
+            details?.harvestSide ??
+            (procedure.laterality === "left" || procedure.laterality === "right"
+              ? procedure.laterality
+              : undefined),
           anastomoses: details?.anastomoses || [],
           flapType: "diep",
           flapSpecificDetails: {
@@ -5006,7 +5009,6 @@ function DiagnosisGroupEditorInner({
             initialDetails={
               (activeFlapSheetProcedure.clinicalDetails as FreeFlapDetails) || {
                 flapType: "",
-                harvestSide: "left",
                 anastomoses: [],
               }
             }
