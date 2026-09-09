@@ -190,7 +190,7 @@ function ProcedureEntryCardInner({
                   vesselType: "artery" as const,
                   recipientVesselName:
                     BREAST_RECON_DEFAULT_RECIPIENT_VESSELS.artery,
-                  anastomosisConfiguration: "end_to_end" as const,
+                  configuration: "end_to_end" as const,
                   couplingMethod: "hand_sewn" as const,
                 },
                 {
@@ -198,7 +198,9 @@ function ProcedureEntryCardInner({
                   vesselType: "vein" as const,
                   recipientVesselName:
                     BREAST_RECON_DEFAULT_RECIPIENT_VESSELS.vein,
+                  configuration: "end_to_end" as const,
                   couplingMethod: "coupler" as const,
+                  couplerSizeMm: 2.5,
                 },
               ]
             : [];
@@ -207,7 +209,6 @@ function ProcedureEntryCardInner({
           flapType: mappedFlapType,
           flapSnomedCode: snomedEntry?.code,
           flapSnomedDisplay: snomedEntry?.display,
-          harvestSide: "left",
           anastomoses,
           recipientSiteRegion,
           recipientSiteSnomedCode: recipientSiteSnomed?.code,

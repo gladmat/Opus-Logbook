@@ -422,6 +422,20 @@ export function FreeFlapClinicalFields({
         />
       )}
 
+      <SelectField
+        label="Harvest Side"
+        value={clinicalDetails.harvestSide || ""}
+        options={[
+          { value: "left", label: "Left" },
+          { value: "right", label: "Right" },
+        ]}
+        onSelect={(v) =>
+          onUpdate({ ...clinicalDetails, harvestSide: v as HarvestSide })
+        }
+        required
+        testID="caseForm.freeFlap.select-harvestSide"
+      />
+
       {showSkinIsland ? (
         <SelectField
           label="Skin Island"
@@ -542,19 +556,6 @@ export function FreeFlapClinicalFields({
           </ThemedText>
         </Pressable>
       </View>
-
-      <SelectField
-        label="Harvest Side"
-        value={clinicalDetails.harvestSide || ""}
-        options={[
-          { value: "left", label: "Left" },
-          { value: "right", label: "Right" },
-        ]}
-        onSelect={(v) =>
-          onUpdate({ ...clinicalDetails, harvestSide: v as HarvestSide })
-        }
-        required
-      />
 
       <SelectField
         label="Indication"
@@ -861,6 +862,8 @@ interface SelectFieldProps {
   options: { value: string; label: string }[];
   onSelect: (value: string) => void;
   required?: boolean;
+  /** Per-option testIDs render as `${testID}-${option.value}`. */
+  testID?: string;
 }
 
 function SelectField({
@@ -869,6 +872,7 @@ function SelectField({
   options,
   onSelect,
   required,
+  testID,
 }: SelectFieldProps) {
   const { theme } = useTheme();
 
@@ -882,6 +886,10 @@ function SelectField({
         {options.map((option) => (
           <Pressable
             key={option.value}
+            testID={testID ? `${testID}-${option.value}` : undefined}
+            accessibilityRole="button"
+            accessibilityLabel={`${label}: ${option.label}`}
+            accessibilityState={{ selected: value === option.value }}
             style={[
               styles.selectOption,
               {

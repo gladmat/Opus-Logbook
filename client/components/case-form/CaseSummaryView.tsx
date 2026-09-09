@@ -35,6 +35,7 @@ import { Button } from "@/components/Button";
 import {
   validateRequiredFields,
   collectDateWarnings,
+  collectFlapWarnings,
   type ValidationError,
 } from "@/hooks/useCaseForm";
 
@@ -304,6 +305,7 @@ export function CaseSummaryView({
   // hard errors, but deliberately NOT folded into `hasWarnings` so they don't
   // disable Save.
   const dateWarnings = useMemo(() => collectDateWarnings(state), [state]);
+  const flapWarnings = useMemo(() => collectFlapWarnings(state), [state]);
 
   const hasWarnings = errors.length > 0;
   const patientWarnings = useMemo(
@@ -311,8 +313,8 @@ export function CaseSummaryView({
     [errors, dateWarnings],
   );
   const caseWarnings = useMemo(
-    () => errors.filter((e) => e.sectionId === "case"),
-    [errors],
+    () => [...errors, ...flapWarnings].filter((e) => e.sectionId === "case"),
+    [errors, flapWarnings],
   );
   const operativeWarnings = useMemo(
     () =>

@@ -24,6 +24,11 @@ import {
   type RegionVesselOption,
 } from "@/lib/recipientRegions";
 import { REGION_ARTERIAL_CONFIGURATION } from "@/data/autoFillMappings";
+import {
+  COUPLER_SIZES,
+  formatCouplerSize,
+  parseCouplerSize,
+} from "@/lib/anastomosisHelpers";
 
 interface AnastomosisEntryCardProps {
   entry: AnastomosisEntry;
@@ -36,8 +41,6 @@ interface AnastomosisEntryCardProps {
   /** Fired when an artery vessel is selected — parent uses this to auto-populate vein entry */
   onArterySelected?: (payload: ArterySelectionPayload) => void;
 }
-
-const COUPLER_SIZES = ["1.5", "2.0", "2.5", "3.0", "3.5", "4.0"];
 
 export interface ArterySelectionPayload {
   entryId: string;
@@ -409,11 +412,12 @@ export function AnastomosisEntryCard({
       {entry.vesselType === "vein" && entry.couplingMethod === "coupler" ? (
         <PickerField
           label="Coupler Size (mm)"
-          value={entry.couplerSizeMm?.toString() || ""}
+          value={formatCouplerSize(entry.couplerSizeMm)}
           options={COUPLER_SIZES.map((size) => ({ value: size, label: size }))}
           onSelect={(value) =>
-            onUpdate({ ...entry, couplerSizeMm: parseFloat(value) })
+            onUpdate({ ...entry, couplerSizeMm: parseCouplerSize(value) })
           }
+          testID="caseForm.freeFlap.picker-couplerSize"
         />
       ) : null}
 

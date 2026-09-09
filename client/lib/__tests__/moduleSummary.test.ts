@@ -38,6 +38,12 @@ describe("generateFlapSummary", () => {
     expect(generateFlapSummary({ flapType: "diep" })).toBe("DIEP");
   });
 
+  it("omits the side entirely when harvestSide is unset (no silent Left default)", () => {
+    expect(
+      generateFlapSummary({ flapType: "alt", ischemiaTimeMinutes: 30 }),
+    ).toBe("ALT (Anterolateral Thigh), ischaemia 30 min");
+  });
+
   it("includes side (Left/Right) when harvestSide is set", () => {
     expect(
       generateFlapSummary({ flapType: "alt", harvestSide: "left" }),
