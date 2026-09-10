@@ -1,8 +1,7 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   FlatList,
-  Pressable,
   StyleSheet,
   RefreshControl,
   ActivityIndicator,
@@ -12,291 +11,81 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@/components/FeatherIcon";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
-import { Spacing, BorderRadius, Shadows } from "@/constants/theme";
+import { Spacing } from "@/constants/theme";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
-import type { SharedCaseInboxEntry } from "@/types/sharing";
-import { getSharedInbox } from "@/lib/sharingApi";
-import {
-  updateSharedInboxIndex,
-  getDecryptedSharedCase,
-} from "@/lib/sharingStorage";
-import { getMyAssessment, getRevealedPair } from "@/lib/assessmentStorage";
-import { deriveEpaFromSharedBlob } from "@/lib/epaFromBlob";
-import { resolveEpaEntryState } from "@/lib/epaGate";
+import { DashboardCaseCard } from "@/components/dashboard/CaseCard";
+import { getSharedCaseSummaries, syncSharedCases } from "@/lib/sharedCaseSync";
+import type { SharedCaseSummary } from "@/lib/sharedCaseSummary";
+import { sortCasesByProcedureDateDesc } from "@/lib/dashboardSelectors";
 import { ensurePushPermissionsWithPrompt } from "@/lib/pushPermissions";
-import { useAuth } from "@/contexts/AuthContext";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-const ROLE_LABELS: Record<string, string> = {
-  surgeon: "Surgeon",
-  supervisor: "Supervisor",
-  trainee: "Trainee",
-};
-
-function formatSharedDate(iso: string): string {
-  const d = new Date(iso);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return `${diffDays} days ago`;
-
-  return d.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-function VerificationBadge({
-  status,
-  theme,
-}: {
-  status: SharedCaseInboxEntry["verificationStatus"];
-  theme: ReturnType<typeof useTheme>["theme"];
-}) {
-  const config = {
-    pending: {
-      label: "Pending",
-      bg: theme.warningSurface,
-      color: theme.warning,
-    },
-    verified: {
-      label: "Verified",
-      bg: theme.successSurface,
-      color: theme.success,
-    },
-    disputed: { label: "Disputed", bg: theme.errorSurface, color: theme.error },
-  };
-  const { label, bg, color } = config[status];
-
-  return (
-    <View style={[styles.badge, { backgroundColor: bg }]}>
-      <ThemedText style={[styles.badgeText, { color }]}>{label}</ThemedText>
-    </View>
-  );
-}
-
-type AssessmentBadgeStatus = "due" | "submitted" | "revealed" | null;
-
-function AssessmentBadge({
-  status,
-  theme,
-}: {
-  status: AssessmentBadgeStatus;
-  theme: ReturnType<typeof useTheme>["theme"];
-}) {
-  if (!status) return null;
-
-  const config = {
-    due: {
-      label: "Assessment due",
-      icon: "edit-3" as const,
-      bg: theme.accentSurface,
-      color: theme.accent,
-    },
-    submitted: {
-      label: "Assessed",
-      icon: "clock" as const,
-      bg: theme.warningSurface,
-      color: theme.warning,
-    },
-    revealed: {
-      label: "Assessed",
-      icon: "check-circle" as const,
-      bg: theme.successSurface,
-      color: theme.success,
-    },
-  };
-  const { label, icon, bg, color } = config[status];
-
-  return (
-    <View
-      style={[styles.badge, { backgroundColor: bg, marginRight: Spacing.xs }]}
-    >
-      <Feather name={icon} size={10} color={color} style={{ marginRight: 3 }} />
-      <ThemedText style={[styles.badgeText, { color }]}>{label}</ThemedText>
-    </View>
-  );
-}
-
-const SharedCaseCard = React.memo(function SharedCaseCard({
-  entry,
-  assessmentStatus,
-  onPress,
-}: {
-  entry: SharedCaseInboxEntry;
-  assessmentStatus: AssessmentBadgeStatus;
-  onPress: () => void;
-}) {
-  const { theme } = useTheme();
-
-  return (
-    <Pressable
-      testID={`sharedInbox.card-${entry.id}`}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.card,
-        {
-          backgroundColor: theme.backgroundElevated,
-          borderColor: theme.border,
-          opacity: pressed ? 0.7 : 1,
-        },
-        Shadows.card,
-      ]}
-    >
-      <View style={styles.cardHeader}>
-        <View style={styles.cardHeaderLeft}>
-          <View
-            style={[
-              styles.avatarCircle,
-              { backgroundColor: theme.accentSurface },
-            ]}
-          >
-            <Feather name="user" size={16} color={theme.accent} />
-          </View>
-          <View style={styles.cardHeaderText}>
-            <ThemedText
-              style={[styles.ownerName, { color: theme.text }]}
-              numberOfLines={1}
-            >
-              {entry.ownerDisplayName || "Unknown"}
-            </ThemedText>
-            <ThemedText
-              style={[styles.cardMeta, { color: theme.textSecondary }]}
-              numberOfLines={1}
-            >
-              {formatSharedDate(entry.createdAt)}
-              {"  ·  "}
-              {ROLE_LABELS[entry.recipientRole] || entry.recipientRole}
-            </ThemedText>
-          </View>
-        </View>
-        <View style={styles.badgeRow}>
-          <AssessmentBadge status={assessmentStatus} theme={theme} />
-          <VerificationBadge status={entry.verificationStatus} theme={theme} />
-        </View>
-      </View>
-    </Pressable>
-  );
-});
-
+/**
+ * "See all" for cases shared WITH the viewer, and the landing screen for
+ * verification pushes. Since 2.25.0 shared cases live on the dashboard
+ * (merged into Recent Cases with a "Shared with me" filter); this screen
+ * renders the same cards over the full list.
+ */
 export default function SharedInboxScreen() {
   const { theme } = useTheme();
   const navigation = useNavigation<NavigationProp>();
-  const { user } = useAuth();
 
-  const [entries, setEntries] = useState<SharedCaseInboxEntry[]>([]);
+  const [summaries, setSummaries] = useState<SharedCaseSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [assessmentBadges, setAssessmentBadges] = useState<
-    Map<string, AssessmentBadgeStatus>
-  >(new Map());
 
-  const loadInbox = useCallback(async () => {
+  const loadOffline = useCallback(async () => {
     try {
-      const data = await getSharedInbox();
-      // Sort by createdAt DESC
-      data.sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
-      setEntries(data);
-      await updateSharedInboxIndex(data);
-      // Colleagues are sharing with this user — the moment push value is
-      // self-evident. One-shot contextual permission pre-prompt.
-      if (data.length > 0) {
-        void ensurePushPermissionsWithPrompt("shared-inbox");
-      }
+      const local = await getSharedCaseSummaries();
+      setSummaries(sortCasesByProcedureDateDesc(local));
     } catch (error) {
-      console.error("Error loading shared inbox:", error);
+      console.error("Error loading shared cases:", error);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Load assessment badge status for all entries
-  useEffect(() => {
-    if (entries.length === 0) return;
-
-    const loadBadges = async () => {
-      const results = await Promise.allSettled(
-        entries.map(
-          async (
-            entry,
-          ): Promise<{
-            id: string;
-            status: AssessmentBadgeStatus;
-          }> => {
-            const revealed = await getRevealedPair(entry.id);
-            if (revealed) return { id: entry.id, status: "revealed" };
-            const mine = await getMyAssessment(entry.id);
-            if (mine) return { id: entry.id, status: "submitted" };
-            // Nothing submitted yet — check the CACHED decrypted blob (local
-            // only, no network) for a derivable EPA pair involving the
-            // viewer. Never-opened cases have no cache → no badge; the push
-            // + verification badge cover first touch.
-            if (user) {
-              try {
-                const blob = await getDecryptedSharedCase(entry.id);
-                if (blob) {
-                  const view = deriveEpaFromSharedBlob({
-                    blob,
-                    viewerUserId: user.id,
-                    ownerUserId: entry.ownerUserId,
-                    counterpartUserId: entry.ownerUserId,
-                  });
-                  // PS role gate: exposure-only viewers get no badge.
-                  if (
-                    resolveEpaEntryState({
-                      view,
-                      counterpartCommitted: false,
-                      myCommitted: false,
-                    }) === "assess" &&
-                    view.myTarget
-                  ) {
-                    return { id: entry.id, status: "due" };
-                  }
-                }
-              } catch {
-                // Cache unreadable — treat as no badge.
-              }
-            }
-            return { id: entry.id, status: null };
-          },
-        ),
-      );
-
-      const map = new Map<string, AssessmentBadgeStatus>();
-      for (const r of results) {
-        if (r.status === "fulfilled" && r.value) {
-          map.set(r.value.id, r.value.status);
-        }
+  const sync = useCallback(async () => {
+    try {
+      const result = await syncSharedCases();
+      setSummaries(sortCasesByProcedureDateDesc(result.summaries));
+      // Colleagues are sharing with this user — the moment push value is
+      // self-evident. One-shot contextual permission pre-prompt.
+      if (result.summaries.length > 0) {
+        void ensurePushPermissionsWithPrompt("shared-inbox");
       }
-      setAssessmentBadges(map);
-    };
-
-    loadBadges();
-  }, [entries, user]);
+    } catch {
+      // Offline — the cached list stays.
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
-      loadInbox();
-    }, [loadInbox]),
+      let cancelled = false;
+      (async () => {
+        await loadOffline();
+        if (!cancelled) await sync();
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [loadOffline, sync]),
   );
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadInbox();
+    await sync();
     setRefreshing(false);
   };
 
   const handleCardPress = useCallback(
-    (entry: SharedCaseInboxEntry) => {
-      navigation.navigate("SharedCaseDetail", { sharedCaseId: entry.id });
+    (summary: SharedCaseSummary) => {
+      navigation.navigate("SharedCaseDetail", {
+        sharedCaseId: summary.shared.sharedCaseId,
+      });
     },
     [navigation],
   );
@@ -312,7 +101,7 @@ export default function SharedInboxScreen() {
     );
   }
 
-  if (entries.length === 0) {
+  if (summaries.length === 0) {
     return (
       <View
         testID="screen-sharedInbox"
@@ -330,7 +119,8 @@ export default function SharedInboxScreen() {
         <ThemedText
           style={[styles.emptySubtitle, { color: theme.textSecondary }]}
         >
-          When a colleague shares a case with you, it will appear here.
+          When a colleague tags you on a case, it appears on your dashboard and
+          here.
         </ThemedText>
       </View>
     );
@@ -342,14 +132,20 @@ export default function SharedInboxScreen() {
       style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
     >
       <FlatList
-        data={entries}
+        data={summaries}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <SharedCaseCard
-            entry={item}
-            assessmentStatus={assessmentBadges.get(item.id) ?? null}
-            onPress={() => handleCardPress(item)}
-          />
+        renderItem={({ item, index }) => (
+          <View>
+            <DashboardCaseCard
+              caseData={item}
+              onPress={() => handleCardPress(item)}
+            />
+            {index < summaries.length - 1 ? (
+              <View
+                style={[styles.divider, { backgroundColor: theme.border }]}
+              />
+            ) : null}
+          </View>
         )}
         contentContainerStyle={styles.listContent}
         refreshControl={
@@ -375,60 +171,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   listContent: {
-    paddingHorizontal: Spacing.md,
     paddingTop: Spacing.sm,
     paddingBottom: Spacing.xl,
   },
-  card: {
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  cardHeaderLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-    marginRight: Spacing.sm,
-  },
-  avatarCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: Spacing.sm,
-  },
-  cardHeaderText: {
-    flex: 1,
-  },
-  ownerName: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  cardMeta: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  badgeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  badge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.full,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: "600",
+  divider: {
+    height: 1,
+    marginLeft: 80,
+    marginRight: Spacing.lg,
   },
   emptyIcon: {
     marginBottom: Spacing.md,

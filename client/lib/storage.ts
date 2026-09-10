@@ -5,20 +5,20 @@ import {
   TimelineEvent,
   CountryCode,
   ComplicationEntry,
-  getAllProcedures,
   getCaseSpecialties,
   getPatientDisplayName,
-  getPrimarySiteLabel,
   UnplannedReadmissionReason,
   UnplannedICUReason,
 } from "@/types/case";
 import type { CaseSummary } from "@/types/caseSummary";
 import type { OperativeRole } from "@/types/operativeRole";
-import { getCasePrimaryTitle } from "@/lib/caseDiagnosisSummary";
+import {
+  buildSearchableText,
+  deriveCaseSummaryFields,
+} from "@/lib/caseSummaryFields";
 import {
   caseCanAddHistology,
   caseNeedsHistology,
-  getSkinCancerCaseBadge,
 } from "@/lib/skinCancerConfig";
 import { INFECTION_SYNDROME_LABELS } from "@/types/infection";
 import { encryptData, decryptData } from "./encryption";
@@ -146,69 +146,14 @@ function resolveCaseOperativeRole(caseData: Case): OperativeRole | undefined {
   return caseData.defaultOperativeRole;
 }
 
-function resolveSkinCancerBadge(caseData: Case): {
-  label: string;
-  colorKey: "error" | "warning" | "info" | "success";
-} | null {
-  let best: {
-    label: string;
-    colorKey: "error" | "warning" | "info" | "success";
-  } | null = null;
-  let bestPriority = Infinity;
-  const badgePriority: Record<string, number> = {
-    error: 0,
-    warning: 1,
-    info: 2,
-    success: 3,
-  };
-
-  for (const group of caseData.diagnosisGroups ?? []) {
-    if (group.skinCancerAssessment) {
-      const badge = getSkinCancerCaseBadge(group.skinCancerAssessment);
-      if (badge && (badgePriority[badge.colorKey] ?? 99) < bestPriority) {
-        best = badge;
-        bestPriority = badgePriority[badge.colorKey] ?? 99;
-      }
-    }
-
-    for (const lesion of group.lesionInstances ?? []) {
-      if (!lesion.skinCancerAssessment) {
-        continue;
-      }
-
-      const badge = getSkinCancerCaseBadge(lesion.skinCancerAssessment);
-      if (badge && (badgePriority[badge.colorKey] ?? 99) < bestPriority) {
-        best = badge;
-        bestPriority = badgePriority[badge.colorKey] ?? 99;
-      }
-    }
-  }
-
-  return best;
-}
-
 function buildCaseSummary(caseData: Case): CaseSummary {
-  const primaryProcedureName =
-    getAllProcedures(caseData)[0]?.procedureName || caseData.procedureType;
-  const procedureNames = getAllProcedures(caseData)
-    .map((procedure) => procedure.procedureName)
-    .filter((name): name is string => Boolean(name));
-  const diagnosisTitle =
-    getCasePrimaryTitle(caseData) || caseData.procedureType;
+  const fields = deriveCaseSummaryFields(caseData);
+  const { diagnosisTitle, primaryProcedureName, procedureNames } = fields;
   const patientDisplayName = getPatientDisplayName(caseData);
-  const skinCancerBadge = resolveSkinCancerBadge(caseData);
   const infectionSyndrome = caseData.infectionOverlay?.syndromePrimary
     ? (INFECTION_SYNDROME_LABELS[caseData.infectionOverlay.syndromePrimary] ??
       caseData.infectionOverlay.syndromePrimary)
     : undefined;
-  const hasSevereHandInfection =
-    caseData.diagnosisGroups?.some(
-      (group) =>
-        group.handInfectionDetails &&
-        !group.handInfectionDetails.escalatedToFullModule &&
-        (group.handInfectionDetails.severity === "spreading" ||
-          group.handInfectionDetails.severity === "systemic"),
-    ) ?? false;
 
   return {
     id: caseData.id,
@@ -242,12 +187,12 @@ function buildCaseSummary(caseData: Case): CaseSummary {
     needsHistology: caseNeedsHistology(caseData),
     infectionStatus: caseData.infectionOverlay?.status,
     infectionSyndrome,
-    hasSevereHandInfection,
+    hasSevereHandInfection: fields.hasSevereHandInfection,
     operativeRole: resolveCaseOperativeRole(caseData),
-    skinCancerBadgeLabel: skinCancerBadge?.label,
-    skinCancerBadgeColorKey: skinCancerBadge?.colorKey,
-    siteLabel: getPrimarySiteLabel(caseData) ?? undefined,
-    searchableText: [
+    skinCancerBadgeLabel: fields.skinCancerBadgeLabel,
+    skinCancerBadgeColorKey: fields.skinCancerBadgeColorKey,
+    siteLabel: fields.siteLabel,
+    searchableText: buildSearchableText([
       caseData.patientIdentifier,
       caseData.patientFirstName,
       caseData.patientLastName,
@@ -257,10 +202,7 @@ function buildCaseSummary(caseData: Case): CaseSummary {
       primaryProcedureName,
       ...procedureNames,
       caseData.facility,
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase(),
+    ]),
   };
 }
 

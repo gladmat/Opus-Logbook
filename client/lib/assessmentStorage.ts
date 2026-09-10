@@ -8,6 +8,7 @@ import type {
 } from "@/types/sharing";
 import type { EpaAssessmentTarget, EpaExposureRecord } from "./epaDerivation";
 import { migrateLegacyEpaTargets } from "./epaTargetMigration";
+import { inferViewerRoleFromOwnAssessment } from "./revealedPair";
 
 // ── Storage keys (user-scoped at runtime) ────────────────────────────────────
 
@@ -135,6 +136,30 @@ export async function getRevealedPair(
   }
 }
 
+/**
+ * 2.25.0: pairs written before `viewerRole` existed are upgraded on read
+ * from the locally stored own assessment (see
+ * `inferViewerRoleFromOwnAssessment`) and written back once. Pairs with no
+ * local own record stay role-less — the analytics layer keeps them out of
+ * both role-specific views rather than guessing.
+ */
+export async function backfillViewerRole(
+  sharedCaseId: string,
+  pair: RevealedAssessmentPair,
+): Promise<RevealedAssessmentPair> {
+  if (pair.viewerRole) return pair;
+  const own = await getMyAssessment(sharedCaseId);
+  const inferred = inferViewerRoleFromOwnAssessment(own);
+  if (!inferred) return pair;
+  const upgraded: RevealedAssessmentPair = { ...pair, viewerRole: inferred };
+  try {
+    await saveRevealedPair(sharedCaseId, upgraded);
+  } catch {
+    // Best-effort persistence — the in-memory upgrade still applies.
+  }
+  return upgraded;
+}
+
 // ── Revealed index (for Phase 5 analytics) ───────────────────────────────────
 
 export async function getAllRevealedPairIds(): Promise<string[]> {
@@ -168,7 +193,8 @@ export async function getAllRevealedPairs(): Promise<
     ids.map(async (id) => {
       const pair = await getRevealedPair(id);
       if (!pair) return null;
-      return { ...pair, sharedCaseId: id };
+      const upgraded = await backfillViewerRole(id, pair);
+      return { ...upgraded, sharedCaseId: id };
     }),
   );
 

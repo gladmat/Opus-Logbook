@@ -41,6 +41,13 @@ export const envSchema = z
     SEED_TOKEN: z.string().optional(),
     EXPO_ACCESS_TOKEN: z.string().optional(),
     SENTRY_DSN: z.string().url().optional(),
+    /**
+     * Root for server-side file storage (avatars, encrypted shared-case
+     * media). Relative paths resolve against the process cwd. On Railway
+     * point this at the persistent volume mount (e.g. `/data/uploads`) —
+     * the container filesystem is wiped on every redeploy.
+     */
+    UPLOADS_DIR: z.string().min(1).optional(),
   })
   .superRefine((parsed, ctx) => {
     if (parsed.NODE_ENV === "production") {

@@ -1,6 +1,7 @@
 import type { Case } from "@/types/case";
 import type {
   SharedCaseData,
+  SharedMediaDescriptor,
   TeamMemberEntry,
   OwnerParticipant,
 } from "@/types/sharing";
@@ -12,15 +13,20 @@ import type {
  * and (when provided) the owner's own participant snapshot — operativeTeam
  * carries tagged contacts only, so recipient-side assessor-role detection
  * and EPA re-derivation need the owner's identity/careerStage separately.
- * Excludes: personalNotes, episodeId, operativeMedia, draft state, tracking metadata.
+ * Operative photos travel as `media` descriptors (2.25.0) — the per-image
+ * key plus cipher metadata, built by `buildSharedMediaDescriptors`; the
+ * ciphertext itself is uploaded separately and never enters the blob.
+ * Excludes: personalNotes, episodeId, draft state, tracking metadata.
  */
 export function buildShareableBlob(
   caseData: Case,
   teamRoles: TeamMemberEntry[],
   owner?: OwnerParticipant,
+  media?: SharedMediaDescriptor[],
 ): SharedCaseData {
   return {
     ...(owner ? { ownerParticipant: owner } : {}),
+    ...(media && media.length > 0 ? { media } : {}),
     patientFirstName: caseData.patientFirstName,
     patientLastName: caseData.patientLastName,
     patientDateOfBirth: caseData.patientDateOfBirth,

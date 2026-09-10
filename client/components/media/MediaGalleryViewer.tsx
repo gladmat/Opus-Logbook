@@ -64,6 +64,9 @@ interface MediaGalleryViewerProps {
   items: GalleryMediaItem[];
   initialIndex?: number;
   onClose: () => void;
+  /** Hide the share button — photos on a case shared WITH the viewer stay
+   *  inside Opus. Defaults to true. */
+  allowShare?: boolean;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -86,6 +89,7 @@ export function MediaGalleryViewer({
   items,
   initialIndex = 0,
   onClose,
+  allowShare = true,
 }: MediaGalleryViewerProps) {
   const insets = useSafeAreaInsets();
   const [dims, setDims] = useState(() => Dimensions.get("window"));
@@ -258,16 +262,20 @@ export function MediaGalleryViewer({
                   </ThemedText>
                 </View>
 
-                <Pressable
-                  onPress={handleShare}
-                  style={styles.chromeButton}
-                  hitSlop={12}
-                  testID="mediaGallery.btn-share"
-                  accessibilityLabel="Share"
-                  accessibilityRole="button"
-                >
-                  <Feather name="share" size={22} color={CHROME_TEXT} />
-                </Pressable>
+                {allowShare ? (
+                  <Pressable
+                    onPress={handleShare}
+                    style={styles.chromeButton}
+                    hitSlop={12}
+                    testID="mediaGallery.btn-share"
+                    accessibilityLabel="Share"
+                    accessibilityRole="button"
+                  >
+                    <Feather name="share" size={22} color={CHROME_TEXT} />
+                  </Pressable>
+                ) : (
+                  <View style={styles.chromeButton} />
+                )}
               </View>
 
               {current?.caption || current?.tag || captionDate ? (

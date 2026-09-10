@@ -72,6 +72,31 @@ vi.mock("../sharingStorage", () => ({
     removeDecryptedSharedCase(...args),
 }));
 
+// 2.25.0 photo transport — lazy-imported by caseSharing; stubbed here so
+// the pipeline tests stay deterministic and file-system free.
+vi.mock("../encryption", () => ({
+  getMasterKeyBytes: async () => new Uint8Array(32),
+}));
+const buildSharedMediaDescriptors = vi.fn(async () => ({
+  descriptors: [],
+  skippedUnencrypted: 0,
+  skippedUnreadable: 0,
+}));
+vi.mock("../sharedMediaDescriptors", () => ({
+  buildSharedMediaDescriptors: (...args: unknown[]) =>
+    buildSharedMediaDescriptors(...(args as [])),
+}));
+const uploadCaseMediaForShare = vi.fn(async () => ({
+  uploaded: 0,
+  alreadyPresent: 0,
+  failed: [],
+  deleted: 0,
+}));
+vi.mock("../sharedMediaUpload", () => ({
+  uploadCaseMediaForShare: (...args: unknown[]) =>
+    uploadCaseMediaForShare(...(args as [])),
+}));
+
 const {
   rehydrateTeamSnapshots,
   listUnlinkedTaggedMembers,
@@ -750,5 +775,131 @@ describe("shareCaseWithTeam — epaEligible hint", () => {
       recipients: Record<string, unknown>[];
     };
     expect("epaEligible" in payload.recipients[0]!).toBe(false);
+  });
+});
+
+// ── Photos ride with the share (2.25.0) ─────────────────────────────────────
+
+describe("shareCaseWithTeam — encrypted photos", () => {
+  const DESCRIPTOR = {
+    mediaId: "m1",
+    dekHex: "ab".repeat(32),
+    mimeType: "image/jpeg",
+    width: 1,
+    height: 1,
+    image: { nonce: "n", tag: "t", size: 1, ciphertextSize: 1 },
+    thumb: null,
+    createdAt: "2026-09-01T00:00:00.000Z",
+  };
+  const caseWithPhoto = () =>
+    makeCase({
+      operativeMedia: [
+        {
+          id: "om1",
+          localUri: "opus-media:m1",
+          mimeType: "image/jpeg",
+          createdAt: "x",
+        },
+      ],
+    } as Partial<Case>);
+
+  it("embeds descriptors in the blob and uploads ciphertext only after a share row exists", async () => {
+    getUserDeviceKeys.mockResolvedValue(DEVICE_KEYS);
+    buildSharedMediaDescriptors.mockResolvedValueOnce({
+      descriptors: [DESCRIPTOR],
+      skippedUnencrypted: 0,
+      skippedUnreadable: 0,
+    });
+    uploadCaseMediaForShare.mockResolvedValueOnce({
+      uploaded: 1,
+      alreadyPresent: 0,
+      failed: [],
+      deleted: 0,
+    });
+    const outcome = await shareCaseWithTeam({
+      savedCase: caseWithPhoto(),
+      operativeTeam: [makeMember({ linkedUserId: "user-9" })],
+      isEdit: false,
+    });
+    const blobJson = encryptPayloadWithCaseKey.mock.calls[0]?.[0] as string;
+    expect(JSON.parse(blobJson).media).toEqual([DESCRIPTOR]);
+    expect(uploadCaseMediaForShare).toHaveBeenCalledWith({
+      caseId: "case-1",
+      descriptors: [DESCRIPTOR],
+    });
+    expect(outcome.mediaUploaded).toBe(1);
+    expect(outcome.mediaErrors).toEqual([]);
+    expect(outcome.mediaSkipped).toBe(0);
+  });
+
+  it("does not upload when the share POST failed", async () => {
+    getUserDeviceKeys.mockResolvedValue(DEVICE_KEYS);
+    buildSharedMediaDescriptors.mockResolvedValueOnce({
+      descriptors: [DESCRIPTOR],
+      skippedUnencrypted: 0,
+      skippedUnreadable: 0,
+    });
+    shareCase.mockRejectedValueOnce(new Error("500"));
+    const outcome = await shareCaseWithTeam({
+      savedCase: caseWithPhoto(),
+      operativeTeam: [makeMember({ linkedUserId: "user-9" })],
+      isEdit: false,
+    });
+    expect(uploadCaseMediaForShare).not.toHaveBeenCalled();
+    expect(outcome.errors.map((e) => e.stage)).toEqual(["share"]);
+  });
+
+  it("upload failures land on mediaErrors; skipped photos are counted; the share itself still succeeds", async () => {
+    getUserDeviceKeys.mockResolvedValue(DEVICE_KEYS);
+    buildSharedMediaDescriptors.mockResolvedValueOnce({
+      descriptors: [DESCRIPTOR],
+      skippedUnencrypted: 2,
+      skippedUnreadable: 1,
+    });
+    uploadCaseMediaForShare.mockResolvedValueOnce({
+      uploaded: 0,
+      alreadyPresent: 0,
+      failed: [{ mediaId: "m1", variant: "image", message: "413" }],
+      deleted: 0,
+    });
+    const outcome = await shareCaseWithTeam({
+      savedCase: caseWithPhoto(),
+      operativeTeam: [makeMember({ linkedUserId: "user-9" })],
+      isEdit: false,
+    });
+    expect(outcome.shared).toHaveLength(1);
+    expect(outcome.mediaSkipped).toBe(3);
+    expect(outcome.mediaErrors).toEqual([
+      { stage: "media", message: "image m1: 413" },
+    ]);
+    expect(outcome.errors).toEqual([]);
+  });
+
+  it("a descriptor-build failure never blocks the clinical share", async () => {
+    getUserDeviceKeys.mockResolvedValue(DEVICE_KEYS);
+    buildSharedMediaDescriptors.mockRejectedValueOnce(new Error("no key"));
+    const outcome = await shareCaseWithTeam({
+      savedCase: caseWithPhoto(),
+      operativeTeam: [makeMember({ linkedUserId: "user-9" })],
+      isEdit: false,
+    });
+    expect(shareCase).toHaveBeenCalledTimes(1);
+    expect(outcome.shared).toHaveLength(1);
+    expect(outcome.mediaErrors).toEqual([
+      { stage: "media", message: "no key" },
+    ]);
+    expect(outcome.mediaSkipped).toBe(1);
+    expect(uploadCaseMediaForShare).not.toHaveBeenCalled();
+  });
+
+  it("cases without photos never touch the media pipeline", async () => {
+    getUserDeviceKeys.mockResolvedValue(DEVICE_KEYS);
+    await shareCaseWithTeam({
+      savedCase: makeCase(),
+      operativeTeam: [makeMember({ linkedUserId: "user-9" })],
+      isEdit: false,
+    });
+    expect(buildSharedMediaDescriptors).not.toHaveBeenCalled();
+    expect(uploadCaseMediaForShare).not.toHaveBeenCalled();
   });
 });

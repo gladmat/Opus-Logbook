@@ -13,6 +13,7 @@ import {
   teachingQualityLabel,
   isTraineeAssessmentV2,
 } from "@/types/sharing";
+import { getEntrustmentGapInfo } from "@/lib/entrustmentGap";
 
 // ─── determineAssessorRole ────────────────────────────────────────────────────
 
@@ -343,82 +344,19 @@ describe("reflective notes privacy", () => {
 });
 
 // ─── Calibration gap ────────────────────────────────────────────────────────────
+// The gap wording lives in `client/lib/entrustmentGap.ts` and is covered by
+// `entrustmentGap.test.ts` for BOTH audiences. A smoke check here keeps the
+// trainee-facing colour bands stable.
 
 describe("calibration gap logic", () => {
-  // Inline the gap logic for testing (from AssessmentRevealScreen)
-  function getGapInfo(
-    supervisorRating: number,
-    traineeRating: number,
-  ): { message: string; color: "success" | "warning" | "error" } {
-    const gap = supervisorRating - traineeRating;
-    const absGap = Math.abs(gap);
-
-    if (absGap === 0) return { message: "Aligned", color: "success" };
-    if (absGap === 1) {
-      return gap > 0
-        ? { message: "You may be underestimating yourself", color: "success" }
-        : { message: "Close alignment — minor difference", color: "success" };
-    }
-    if (absGap === 2) {
-      return gap > 0
-        ? {
-            message: "Your supervisor sees more independence than you do",
-            color: "warning",
-          }
-        : {
-            message: "Your supervisor sees room for growth here",
-            color: "warning",
-          };
-    }
-    return gap > 0
-      ? {
-          message: "Significant gap — you may be too self-critical",
-          color: "error",
-        }
-      : {
-          message: "Significant gap — worth discussing together",
-          color: "error",
-        };
-  }
-
-  it("gap = 0 → Aligned (success)", () => {
-    const result = getGapInfo(3, 3);
-    expect(result.message).toBe("Aligned");
-    expect(result.color).toBe("success");
-  });
-
-  it("gap = +1 (supervisor higher) → underestimating (success)", () => {
-    const result = getGapInfo(4, 3);
-    expect(result.message).toContain("underestimating");
-    expect(result.color).toBe("success");
-  });
-
-  it("gap = -1 (trainee higher) → minor difference (success)", () => {
-    const result = getGapInfo(3, 4);
-    expect(result.message).toContain("minor difference");
-    expect(result.color).toBe("success");
-  });
-
-  it("gap = +2 → warning", () => {
-    const result = getGapInfo(5, 3);
-    expect(result.color).toBe("warning");
-  });
-
-  it("gap = -2 → warning", () => {
-    const result = getGapInfo(2, 4);
-    expect(result.color).toBe("warning");
-  });
-
-  it("gap = +3 → error (too self-critical)", () => {
-    const result = getGapInfo(5, 2);
-    expect(result.message).toContain("too self-critical");
-    expect(result.color).toBe("error");
-  });
-
-  it("gap = -3 → error (discuss)", () => {
-    const result = getGapInfo(1, 4);
-    expect(result.message).toContain("discussing together");
-    expect(result.color).toBe("error");
+  it("colour bands: 0/±1 success, ±2 warning, ≥3 error", () => {
+    expect(getEntrustmentGapInfo(3, 3, "trainee").color).toBe("success");
+    expect(getEntrustmentGapInfo(4, 3, "trainee").color).toBe("success");
+    expect(getEntrustmentGapInfo(3, 4, "trainee").color).toBe("success");
+    expect(getEntrustmentGapInfo(5, 3, "trainee").color).toBe("warning");
+    expect(getEntrustmentGapInfo(2, 4, "trainee").color).toBe("warning");
+    expect(getEntrustmentGapInfo(5, 2, "trainee").color).toBe("error");
+    expect(getEntrustmentGapInfo(1, 4, "trainee").color).toBe("error");
   });
 });
 

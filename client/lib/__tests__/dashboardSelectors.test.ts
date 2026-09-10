@@ -7,7 +7,11 @@ import {
   buildDashboardSummary,
   calculatePracticePulse,
   filterDashboardCases,
+  SHARED_FILTER_ID,
+  buildSharedAttentionItems,
 } from "@/lib/dashboardSelectors";
+import { buildSharedCaseSummary } from "@/lib/sharedCaseSummary";
+import type { SharedCaseData, SharedCaseInboxEntry } from "@/types/sharing";
 
 function makeDiagnosisGroup(
   specialty: Case["specialty"],
@@ -409,5 +413,102 @@ describe("dashboard selectors", () => {
       expect(items[0]!.type).toBe("episode");
       expect(items[0]!.pendingAction).toBe("Awaiting MDT discussion");
     });
+  });
+});
+
+// ── Shared cases on the dashboard (2.25.0) ──────────────────────────────────
+
+function makeSharedSummary(
+  id: string,
+  verificationStatus: SharedCaseInboxEntry["verificationStatus"],
+  specialty: Case["specialty"] = "hand_wrist",
+) {
+  const entry: SharedCaseInboxEntry = {
+    id,
+    caseId: `owner-case-${id}`,
+    ownerUserId: "owner",
+    ownerDisplayName: "Dr Owner",
+    recipientRole: "PS",
+    verificationStatus,
+    blobVersion: 1,
+    createdAt: "2026-09-01T00:00:00.000Z",
+    updatedAt: "2026-09-01T00:00:00.000Z",
+  };
+  const blob = {
+    procedureDate: "2026-09-02",
+    facility: "F",
+    diagnosisGroups: [makeDiagnosisGroup(specialty)],
+    outcomes: {},
+    teamRoles: [],
+    stayType: "inpatient",
+    patientNhi: "NHI1",
+  } as unknown as SharedCaseData;
+  return buildSharedCaseSummary(entry, blob);
+}
+
+describe("shared cases in dashboard selectors", () => {
+  it("SHARED_FILTER_ID keeps only shared summaries; specialty chips still match them", () => {
+    const own = makeCase({
+      id: "own",
+      specialty: "hand_wrist",
+      procedureDate: "2026-09-05",
+    });
+    const shared = makeSharedSummary("s1", "pending");
+    const merged = [own, shared];
+    const sharedOnly = filterDashboardCases(
+      merged,
+      SHARED_FILTER_ID,
+      () => false,
+    );
+    expect(sharedOnly.map((c) => c.id)).toEqual(["s1"]);
+    const hand = filterDashboardCases(merged, "hand_wrist", () => false);
+    expect(hand.map((c) => c.id)).toEqual(["own", "s1"]);
+    const all = filterDashboardCases(merged, null, () => false);
+    expect(all.map((c) => c.id)).toEqual(["own", "s1"]);
+  });
+
+  it("buildSharedAttentionItems: pending verification + EPA due, keyed on the share id, specialty-filtered", () => {
+    const pending = makeSharedSummary("s1", "pending");
+    const verified = makeSharedSummary("s2", "verified", "breast");
+    const items = buildSharedAttentionItems(
+      [pending, verified],
+      new Map([
+        ["s1", "due"],
+        ["s2", "due"],
+      ]),
+      null,
+    );
+    expect(items.map((i) => [i.type, i.sharedCaseId])).toEqual([
+      ["shared_verification", "s1"],
+      ["epa_due", "s1"],
+      ["epa_due", "s2"],
+    ]);
+    expect(items[0]!.ownerDisplayName).toBe("Dr Owner");
+    expect(items[0]!.patientIdentifier).toBe("NHI1");
+
+    const handOnly = buildSharedAttentionItems(
+      [pending, verified],
+      new Map([["s2", "due"]]),
+      "hand_wrist",
+    );
+    expect(handOnly.map((i) => i.id)).toEqual(["shared-verify-s1"]);
+    // The shared chip itself shows everything.
+    expect(
+      buildSharedAttentionItems(
+        [pending, verified],
+        new Map(),
+        SHARED_FILTER_ID,
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("shared summaries never become inpatient cards and never seed a case form", () => {
+    // A shared blob carries stayType but no dischargeDate — fed into the
+    // inpatient builder it WOULD look like an admission. The dashboard
+    // keeps them out; the attention builder must return null for them.
+    const shared = makeSharedSummary("s1", "pending");
+    const items = buildSharedAttentionItems([shared], new Map(), null);
+    expect(items).toHaveLength(1);
+    expect(buildAttentionCaseFormParams(items[0]!, [], null)).toBeNull();
   });
 });

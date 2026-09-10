@@ -18,6 +18,9 @@ import {
   sharedCases,
   type SharedCase,
   type InsertSharedCase,
+  sharedCaseMedia,
+  type SharedCaseMedia,
+  type InsertSharedCaseMedia,
   caseKeyEnvelopes,
   type CaseKeyEnvelope,
   type InsertCaseKeyEnvelope,
@@ -116,7 +119,24 @@ export interface IStorage {
     version: number,
     keyEnvelopes: { deviceId: string; envelopeJson: string }[],
   ): Promise<SharedCase | undefined>;
-  deleteSharedCase(id: string, ownerUserId: string): Promise<boolean>;
+  /** Returns the deleted row so the caller can run last-share cleanup. */
+  deleteSharedCase(
+    id: string,
+    ownerUserId: string,
+  ): Promise<SharedCase | undefined>;
+  countSharesForCase(ownerUserId: string, caseId: string): Promise<number>;
+
+  // Shared case media (encrypted ciphertext ledger)
+  upsertSharedCaseMedia(data: InsertSharedCaseMedia): Promise<SharedCaseMedia>;
+  listSharedCaseMedia(
+    ownerUserId: string,
+    caseId: string,
+  ): Promise<SharedCaseMedia[]>;
+  deleteSharedCaseMedia(
+    ownerUserId: string,
+    caseId: string,
+    mediaId?: string,
+  ): Promise<number>;
 
   // Case key envelopes
   createCaseKeyEnvelopes(
@@ -656,14 +676,90 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async deleteSharedCase(id: string, ownerUserId: string): Promise<boolean> {
-    const result = await db
+  async deleteSharedCase(
+    id: string,
+    ownerUserId: string,
+  ): Promise<SharedCase | undefined> {
+    const [deleted] = await db
       .delete(sharedCases)
       .where(
         and(eq(sharedCases.id, id), eq(sharedCases.ownerUserId, ownerUserId)),
       )
       .returning();
-    return result.length > 0;
+    return deleted || undefined;
+  }
+
+  async countSharesForCase(
+    ownerUserId: string,
+    caseId: string,
+  ): Promise<number> {
+    const [row] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(sharedCases)
+      .where(
+        and(
+          eq(sharedCases.ownerUserId, ownerUserId),
+          eq(sharedCases.caseId, caseId),
+        ),
+      );
+    return row?.count ?? 0;
+  }
+
+  // ── Shared case media ───────────────────────────────────────────────────────
+
+  async upsertSharedCaseMedia(
+    data: InsertSharedCaseMedia,
+  ): Promise<SharedCaseMedia> {
+    const [row] = await db
+      .insert(sharedCaseMedia)
+      .values(data)
+      .onConflictDoUpdate({
+        target: [
+          sharedCaseMedia.ownerUserId,
+          sharedCaseMedia.caseId,
+          sharedCaseMedia.mediaId,
+          sharedCaseMedia.variant,
+        ],
+        set: {
+          byteSize: data.byteSize,
+          authTag: data.authTag ?? null,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return row!;
+  }
+
+  async listSharedCaseMedia(
+    ownerUserId: string,
+    caseId: string,
+  ): Promise<SharedCaseMedia[]> {
+    return db
+      .select()
+      .from(sharedCaseMedia)
+      .where(
+        and(
+          eq(sharedCaseMedia.ownerUserId, ownerUserId),
+          eq(sharedCaseMedia.caseId, caseId),
+        ),
+      );
+  }
+
+  async deleteSharedCaseMedia(
+    ownerUserId: string,
+    caseId: string,
+    mediaId?: string,
+  ): Promise<number> {
+    const conditions = [
+      eq(sharedCaseMedia.ownerUserId, ownerUserId),
+      eq(sharedCaseMedia.caseId, caseId),
+    ];
+    if (mediaId) conditions.push(eq(sharedCaseMedia.mediaId, mediaId));
+    const rows = await db
+      .delete(sharedCaseMedia)
+      .where(and(...conditions))
+      .returning({ mediaId: sharedCaseMedia.mediaId });
+    return rows.length;
   }
 
   // ── Case key envelopes ──────────────────────────────────────────────────────

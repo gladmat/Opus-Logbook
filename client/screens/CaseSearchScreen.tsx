@@ -21,6 +21,8 @@ import { DashboardCaseCard } from "@/components/dashboard/CaseCard";
 import { Feather } from "@/components/FeatherIcon";
 import { useTheme } from "@/hooks/useTheme";
 import { getCaseSummaries } from "@/lib/storage";
+import { getSharedCaseSummaries } from "@/lib/sharedCaseSync";
+import { isSharedCaseSummary } from "@/lib/sharedCaseSummary";
 import type { CaseSummary } from "@/types/caseSummary";
 import { Spacing, BorderRadius } from "@/constants/theme";
 
@@ -48,8 +50,13 @@ export default function CaseSearchScreen() {
   }, []);
 
   useEffect(() => {
-    getCaseSummaries()
-      .then(setCases)
+    // Owned cases + cases colleagues shared with the viewer (2.25.0), one
+    // list — the search haystack for shared cases includes the owner's name.
+    Promise.all([
+      getCaseSummaries(),
+      getSharedCaseSummaries().catch(() => [] as CaseSummary[]),
+    ])
+      .then(([own, shared]) => setCases([...own, ...shared]))
       .finally(() => setLoading(false));
   }, []);
 
@@ -71,6 +78,12 @@ export default function CaseSearchScreen() {
 
   const handleCasePress = useCallback(
     (c: CaseSummary) => {
+      if (isSharedCaseSummary(c)) {
+        navigation.navigate("SharedCaseDetail", {
+          sharedCaseId: c.shared.sharedCaseId,
+        });
+        return;
+      }
       navigation.navigate("CaseDetail", { caseId: c.id });
     },
     [navigation],

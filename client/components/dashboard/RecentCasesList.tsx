@@ -8,7 +8,11 @@ import type { CaseSummary } from "@/types/caseSummary";
 import { SkeletonCard } from "@/components/LoadingState";
 import { DashboardCaseCard } from "@/components/dashboard/CaseCard";
 import { InfoButton } from "@/components/dashboard/InfoButton";
-import { HISTOLOGY_FILTER_ID } from "@/lib/dashboardSelectors";
+import {
+  HISTOLOGY_FILTER_ID,
+  SHARED_FILTER_ID,
+} from "@/lib/dashboardSelectors";
+import { isSharedCaseSummary } from "@/lib/sharedCaseSummary";
 
 interface RecentCasesListProps {
   cases: CaseSummary[];
@@ -17,6 +21,9 @@ interface RecentCasesListProps {
   onCasePress: (c: CaseSummary) => void;
   loading: boolean;
   onSeeAll?: () => void;
+  /** Show the See All link regardless of counts (e.g. the shared filter,
+   *  whose full list lives on its own screen). */
+  forceSeeAll?: boolean;
   onAddEvent?: (c: CaseSummary) => void;
   onAddHistology?: (c: CaseSummary) => void;
 }
@@ -28,19 +35,23 @@ function RecentCasesListInner({
   onCasePress,
   loading,
   onSeeAll,
+  forceSeeAll = false,
   onAddEvent,
   onAddHistology,
 }: RecentCasesListProps) {
   const { theme } = useTheme();
 
-  const headerText = selectedSpecialty
-    ? `${
-        selectedSpecialty === HISTOLOGY_FILTER_ID
-          ? "Histology"
-          : (SPECIALTY_LABELS[selectedSpecialty as Specialty] ??
-            selectedSpecialty)
-      } Cases`
-    : "Recent Cases";
+  const headerText =
+    selectedSpecialty === SHARED_FILTER_ID
+      ? "Shared with me"
+      : selectedSpecialty
+        ? `${
+            selectedSpecialty === HISTOLOGY_FILTER_ID
+              ? "Histology"
+              : (SPECIALTY_LABELS[selectedSpecialty as Specialty] ??
+                selectedSpecialty)
+          } Cases`
+        : "Recent Cases";
 
   if (loading) {
     return (
@@ -54,7 +65,7 @@ function RecentCasesListInner({
             </ThemedText>
             <InfoButton
               title="Recent Cases"
-              content="Your most recent surgical cases, sorted by procedure date. Use the specialty filter above to narrow the list."
+              content="Your most recent surgical cases and cases colleagues shared with you, sorted by procedure date. Use the filter above to narrow the list."
             />
           </View>
         </View>
@@ -79,16 +90,16 @@ function RecentCasesListInner({
           </ThemedText>
           <InfoButton
             title="Recent Cases"
-            content="Your most recent surgical cases, sorted by procedure date. Use the specialty filter above to narrow the list."
+            content="Your most recent surgical cases and cases colleagues shared with you, sorted by procedure date. Use the filter above to narrow the list."
           />
         </View>
-        {totalCount > cases.length && onSeeAll ? (
+        {(forceSeeAll || totalCount > cases.length) && onSeeAll ? (
           <Pressable
             onPress={onSeeAll}
             testID="dashboard.recentCases.btn-seeAll"
           >
             <ThemedText style={[styles.seeAllText, { color: theme.link }]}>
-              See All ({totalCount})
+              {forceSeeAll ? "See All" : `See All (${totalCount})`}
             </ThemedText>
           </Pressable>
         ) : null}
@@ -99,9 +110,17 @@ function RecentCasesListInner({
           <DashboardCaseCard
             caseData={item}
             onPress={() => onCasePress(item)}
-            onAddEvent={onAddEvent ? () => onAddEvent(item) : undefined}
+            // Owner-only quick actions: a colleague's shared case can't
+            // take events or histology from the viewer.
+            onAddEvent={
+              onAddEvent && !isSharedCaseSummary(item)
+                ? () => onAddEvent(item)
+                : undefined
+            }
             onAddHistology={
-              onAddHistology ? () => onAddHistology(item) : undefined
+              onAddHistology && !isSharedCaseSummary(item)
+                ? () => onAddHistology(item)
+                : undefined
             }
           />
           {index < cases.length - 1 ? (

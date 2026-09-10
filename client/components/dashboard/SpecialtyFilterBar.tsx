@@ -6,7 +6,10 @@ import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { PROCEDURE_CATEGORIES } from "@/constants/categories";
 import { SPECIALTY_LABELS, Specialty } from "@/types/case";
-import { HISTOLOGY_FILTER_ID } from "@/lib/dashboardSelectors";
+import {
+  HISTOLOGY_FILTER_ID,
+  SHARED_FILTER_ID,
+} from "@/lib/dashboardSelectors";
 
 interface SpecialtyFilterBarProps {
   selectedSpecialty: string | null;
@@ -16,6 +19,8 @@ interface SpecialtyFilterBarProps {
   isSticky?: boolean;
   /** Number of cases awaiting histology. Chip hidden when 0. */
   awaitingHistologyCount?: number;
+  /** Cases shared WITH the viewer (2.25.0). Chip hidden when 0. */
+  sharedCount?: number;
 }
 
 function SpecialtyFilterBarInner({
@@ -25,6 +30,7 @@ function SpecialtyFilterBarInner({
   totalCaseCount,
   isSticky,
   awaitingHistologyCount = 0,
+  sharedCount = 0,
 }: SpecialtyFilterBarProps) {
   const { theme } = useTheme();
 
@@ -34,6 +40,7 @@ function SpecialtyFilterBarInner({
       label: string;
       count: number;
       isSpecial?: boolean;
+      icon?: "file-text" | "users";
     }[] = [{ id: null, label: "All", count: totalCaseCount }];
     for (const cat of PROCEDURE_CATEGORIES) {
       const count = caseCounts[cat.id] ?? 0;
@@ -51,10 +58,20 @@ function SpecialtyFilterBarInner({
         label: "Histology",
         count: awaitingHistologyCount,
         isSpecial: true,
+        icon: "file-text",
+      });
+    }
+    if (sharedCount > 0) {
+      chips.push({
+        id: SHARED_FILTER_ID,
+        label: "Shared with me",
+        count: sharedCount,
+        isSpecial: true,
+        icon: "users",
       });
     }
     return chips;
-  }, [awaitingHistologyCount, caseCounts, totalCaseCount]);
+  }, [awaitingHistologyCount, caseCounts, sharedCount, totalCaseCount]);
 
   const handlePress = (id: string | null) => {
     Haptics.selectionAsync();
@@ -76,7 +93,7 @@ function SpecialtyFilterBarInner({
       >
         {visibleChips.map((chip) => {
           const isSelected = chip.id === selectedSpecialty;
-          const isHistology = chip.id === HISTOLOGY_FILTER_ID;
+          const isSpecial = !!chip.isSpecial;
           return (
             <Pressable
               key={chip.id ?? "all"}
@@ -85,7 +102,11 @@ function SpecialtyFilterBarInner({
               accessibilityRole="button"
               accessibilityState={{ selected: isSelected }}
               accessibilityLabel={`${chip.label} filter, ${chip.count} cases`}
-              accessibilityHint="Filters dashboard content by specialty"
+              accessibilityHint={
+                chip.id === SHARED_FILTER_ID
+                  ? "Shows only cases colleagues shared with you"
+                  : "Filters dashboard content by specialty"
+              }
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               style={[
                 styles.chip,
@@ -93,17 +114,17 @@ function SpecialtyFilterBarInner({
                   ? { backgroundColor: theme.accent }
                   : {
                       backgroundColor: theme.backgroundElevated,
-                      borderColor: isHistology
+                      borderColor: isSpecial
                         ? theme.accent + "50"
                         : theme.border,
                       borderWidth: 1,
                     },
               ]}
             >
-              {isHistology ? (
+              {isSpecial ? (
                 <View style={styles.chipContent}>
                   <Feather
-                    name="file-text"
+                    name={chip.icon ?? "file-text"}
                     size={12}
                     color={isSelected ? theme.accentContrast : theme.accent}
                   />

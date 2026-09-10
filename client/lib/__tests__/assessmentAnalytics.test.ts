@@ -10,6 +10,9 @@ import {
   computeAutonomyGap,
   computeBidFrequencies,
   fullPairsOnly,
+  splitPairsByViewerRole,
+  pairsAsTrainee,
+  pairsAsSupervisor,
   SUPERVISOR_AGGREGATE_MIN_ASSESSMENTS,
   SUPERVISOR_AGGREGATE_MIN_UNIQUE_CASES,
   CALIBRATION_MIN_PAIRS,
@@ -963,5 +966,56 @@ describe("computeBidFrequencies", () => {
     // Only 2 v2 pairs → below the per-item threshold → null, not garbage.
     expect(agg.behaviours).toBeNull();
     expect(agg.autonomy).toBeNull();
+  });
+});
+
+// ── Viewer-role split (2.25.0) ──────────────────────────────────────────────
+
+describe("splitPairsByViewerRole", () => {
+  const mixed: RevealedPairWithContext[] = [
+    ...makePairs(3, { viewerRole: "supervisor", teachingQuality: 5 }),
+    ...makePairs(2, { viewerRole: "trainee", teachingQuality: 1 }).map(
+      (p, i) => ({ ...p, sharedCaseId: `trainee-${i}` }),
+    ),
+    makePair({ sharedCaseId: "legacy-1" }),
+  ];
+
+  it("partitions by the persisted viewer role; role-less records go to neither", () => {
+    const split = splitPairsByViewerRole(mixed);
+    expect(split.asSupervisor).toHaveLength(3);
+    expect(split.asTrainee).toHaveLength(2);
+    expect(split.unattributed).toHaveLength(1);
+    expect(split.unattributed[0]!.sharedCaseId).toBe("legacy-1");
+    expect(pairsAsTrainee(mixed)).toEqual(split.asTrainee);
+    expect(pairsAsSupervisor(mixed)).toEqual(split.asSupervisor);
+  });
+
+  it("teaching aggregate over the supervisor side ignores the trainee-side ratings", () => {
+    // 5 supervisor-side pairs across 5 cases clears the 5/3 threshold; the
+    // trainee-side pairs rated teaching 1 must not drag the average down.
+    const sup = makePairs(5, { viewerRole: "supervisor", teachingQuality: 5 });
+    const trn = makePairs(4, { viewerRole: "trainee", teachingQuality: 1 }).map(
+      (p, i) => ({ ...p, sharedCaseId: `t-${i}` }),
+    );
+    const agg = computeTeachingAggregate(pairsAsSupervisor([...sup, ...trn]));
+    expect(agg).not.toBeNull();
+    expect(agg!.overallAverage).toBe(5);
+  });
+
+  it("calibration over the trainee side ignores the supervisor-side gaps", () => {
+    const sup = makePairs(4, {
+      viewerRole: "supervisor",
+      supervisorEntrustment: 5 as EntrustmentLevel,
+      traineeSelfEntrustment: 1 as EntrustmentLevel,
+    });
+    const trn = makePairs(3, {
+      viewerRole: "trainee",
+      supervisorEntrustment: 3 as EntrustmentLevel,
+      traineeSelfEntrustment: 3 as EntrustmentLevel,
+    }).map((p, i) => ({ ...p, sharedCaseId: `t-${i}` }));
+    const cal = computeCalibrationScore(pairsAsTrainee([...sup, ...trn]));
+    expect(cal).not.toBeNull();
+    expect(cal!.overallMeanGap).toBe(0);
+    expect(cal!.direction).toBe("balanced");
   });
 });

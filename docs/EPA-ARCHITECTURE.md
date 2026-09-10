@@ -108,6 +108,15 @@ A fully assessed shared case therefore consists of three ciphertext blobs the se
 
 The commitment hashes the exact serialized string, so the instrument redesign needed no change to `assessmentCommitment.ts`, the reveal payload, or the (content-blind) server.
 
+### 3.7 What each party sees at reveal (2.25.0)
+
+Both parties open the same `AssessmentRevealScreen`, so the screen must know which side the viewer is on. `RevealedAssessmentPair.viewerRole` (`"supervisor" | "trainee"`) is written by `buildRevealedPair` from the server-persisted `case_assessments.assessorRole` of the viewer's own row; records written before 2.25.0 are backfilled on read (`assessmentStorage.backfillViewerRole`) from the locally stored own assessment (`inferViewerRoleFromOwnAssessment` — a supervisor payload carries `entrustmentRating`, a trainee payload `selfEntrustmentRating`). Records that cannot be backfilled render with neutral labels and are excluded from role-specific analytics.
+
+- **Supervisor view** leads with *their teaching as the trainee rated it*: autonomy match (Part A, re-voiced in the third person via `AUTONOMY_MATCH_DESCRIPTIONS_FOR_SUPERVISOR`), BID behaviours (Part B, `BID_ITEM_PROMPTS_FOR_SUPERVISOR`), the per-case global (Part C) and the trainee's narrative ("Trainee feedback on your teaching"); then the entrustment comparison with columns **You** / **Trainee (self)** and supervisor-addressed gap copy; then their own written feedback.
+- **Trainee view** leads with the entrustment comparison (**Supervisor** / **You (self)**, trainee-addressed gap copy — unchanged from pre-2.25.0), then the supervisor's feedback, then a read-back of their own rating of the teaching.
+- The gap sentences live in `client/lib/entrustmentGap.ts` (`getEntrustmentGapInfo(supervisor, self, audience)`), tested for both audiences. Before 2.25.0 the trainee wording was shown to everyone, so a supervisor who rated 4 against a self-rating of 3 was told "You may be underestimating yourself".
+- Training analytics split by the same field (`splitPairsByViewerRole`): learning curves / calibration / autonomy gap run over pairs where the viewer was the trainee, teaching aggregate / entrustment-given over pairs where the viewer supervised. The Statistics Training tab renders whichever views have data (both for a fellow), ordered by career stage.
+
 ## 4. The double-blind protocol (verified end-to-end)
 
 Domain-separated commitment: `sha256("opus-assessment-commit-v1:<nonce>:<shareableJson>")` over the **exact serialized string** — hashing the string rather than re-serializing at verify time removes JSON canonicalization pitfalls entirely (`assessmentCommitment.ts`).
@@ -144,6 +153,8 @@ These are findings from the 2026-07-24 code verification, ordered by architectur
 5. ~~**Partial (72h) reveals pollute analytics.**~~ **CLOSED 2.23.0 (Phase C)** — `RevealedAssessmentPair.partial` is set by `buildRevealedPair`; `fullPairsOnly` gates every analytic; legacy zero-filled records are retro-detected by `isFullRevealedPair`; a cached partial upgrades to full on the reveal screen once the counterpart reveals.
 6. **The assessor role is self-declared at commit.** The server stores whatever `assessorRole` the client sends (party membership is checked; role plausibility is not). The tier logic that *should* decide who is the teacher lives client-side in `determineAssessorRole()` + the unread EPA targets. Acceptable at current scale between colleagues who know each other; it becomes a data-quality question for the papers.
 7. ~~**`teachingNarrative` is collected but dropped at reveal.**~~ **CLOSED 2.23.0 (Phase C)** — carried on `RevealedAssessmentPair.teachingNarrative` and rendered as "Trainee feedback on teaching" on the reveal screen.
+
+9. ~~**The reveal screen and training analytics were audience-blind.**~~ **CLOSED 2.25.0** — `viewerRole` persisted on the pair (backfilled for older records), audience-aware reveal copy and card order (§3.7), analytics split by side. (Original finding: `getGapInfo` rendered trainee second-person copy to the supervisor; `useTrainingStatistics` pooled supervised and supervising pairs and switched views on a profile flag.)
 
 8. **Version skew across the role gate (transitional, 2.23.0).** An older counterpart app still derives pre-gate (e.g. FA-trainee) pairs and may commit under one. The new side shows the exposure-only notice unless the counterpart has already committed (`resolveEpaEntryState` rescue → "assess"), and any such revealed pair carries a non-PS `traineeOperativeRole` so learning curves exclude it. Not solved — resolves as clients update.
 

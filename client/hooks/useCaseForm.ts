@@ -2726,6 +2726,19 @@ export function useCaseForm({
                 : "• Sharing failed — check your connection and re-save to retry.",
             );
           }
+          // Photos ride with the share (2.25.0); a failed ciphertext
+          // upload is retried on the next save, but say so now.
+          const mediaErrorCount = shareOutcome?.mediaErrors.length ?? 0;
+          if (mediaErrorCount > 0) {
+            issues.push(
+              `• ${mediaErrorCount} photo${mediaErrorCount === 1 ? "" : "s"} couldn't be uploaded for your team — check your connection and re-save to retry.`,
+            );
+          }
+          if (shareOutcome && shareOutcome.mediaSkipped > 0) {
+            issues.push(
+              `• ${shareOutcome.mediaSkipped} photo${shareOutcome.mediaSkipped === 1 ? "" : "s"} on this case can't be shared (stored before encrypted media) — re-add ${shareOutcome.mediaSkipped === 1 ? "it" : "them"} to share.`,
+            );
+          }
           // Independent (NOT else-if): both can apply at once, and hiding
           // the member bullet behind the logger bullet meant fixing your
           // own profile revealed a second surprise on the next save.

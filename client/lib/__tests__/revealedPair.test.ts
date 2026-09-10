@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { buildRevealedPair, isFullRevealedPair } from "../revealedPair";
+import {
+  buildRevealedPair,
+  isFullRevealedPair,
+  inferViewerRoleFromOwnAssessment,
+} from "../revealedPair";
 import type {
   SupervisorAssessment,
   TraineeAssessmentV1,
@@ -44,6 +48,7 @@ describe("buildRevealedPair", () => {
       trainee: TRN_V2,
       revealedAt: "2026-08-23T00:00:00.000Z",
       fallbackProcedure: FALLBACK,
+      viewerRole: "supervisor",
     });
     expect(pair.partial).toBe(false);
     expect(pair.supervisorEntrustment).toBe(4);
@@ -56,7 +61,19 @@ describe("buildRevealedPair", () => {
     expect(pair.supervisorNarrative).toBe("Nice flap");
     expect(pair.caseComplexity).toBe("moderate");
     expect(pair.traineeOperativeRole).toBe("PS");
+    expect(pair.viewerRole).toBe("supervisor");
     expect(isFullRevealedPair(pair)).toBe(true);
+  });
+
+  it("persists the viewer's side on the pair (trainee)", () => {
+    const pair = buildRevealedPair({
+      supervisor: SUP,
+      trainee: TRN_V2,
+      revealedAt: "x",
+      fallbackProcedure: FALLBACK,
+      viewerRole: "trainee",
+    });
+    expect(pair.viewerRole).toBe("trainee");
   });
 
   it("attribution precedence: supervisor payload → trainee payload → fallback", () => {
@@ -66,6 +83,7 @@ describe("buildRevealedPair", () => {
         trainee: TRN_V2,
         revealedAt: "x",
         fallbackProcedure: FALLBACK,
+        viewerRole: "trainee",
       }).procedureCode,
     ).toBe("SUP-CODE");
     expect(
@@ -74,6 +92,7 @@ describe("buildRevealedPair", () => {
         trainee: TRN_V2,
         revealedAt: "x",
         fallbackProcedure: FALLBACK,
+        viewerRole: "trainee",
       }).procedureCode,
     ).toBe("TRN-CODE");
     const legacy = buildRevealedPair({
@@ -81,6 +100,7 @@ describe("buildRevealedPair", () => {
       trainee: TRN_V1,
       revealedAt: "x",
       fallbackProcedure: FALLBACK,
+      viewerRole: "supervisor",
     });
     expect(legacy.procedureCode).toBe("FALLBACK");
     expect(legacy.procedureDisplayName).toBe("Fallback proc");
@@ -92,6 +112,7 @@ describe("buildRevealedPair", () => {
       trainee: TRN_V1,
       revealedAt: "x",
       fallbackProcedure: FALLBACK,
+      viewerRole: "supervisor",
     });
     expect(pair.instrumentVersion).toBe(1);
     expect(pair.autonomyMatch).toBeUndefined();
@@ -106,6 +127,7 @@ describe("buildRevealedPair", () => {
       trainee: null,
       revealedAt: "x",
       fallbackProcedure: FALLBACK,
+      viewerRole: "supervisor",
     });
     expect(pair.partial).toBe(true);
     expect(pair.supervisorEntrustment).toBe(4);
@@ -121,6 +143,7 @@ describe("buildRevealedPair", () => {
       trainee: TRN_V2,
       revealedAt: "x",
       fallbackProcedure: FALLBACK,
+      viewerRole: "supervisor",
     });
     expect(pair.partial).toBe(true);
     expect(pair.supervisorEntrustment).toBe(0);
@@ -159,5 +182,22 @@ describe("isFullRevealedPair — legacy retro-detection", () => {
         supervisorEntrustment: 0 as 1,
       }),
     ).toBe(true);
+  });
+});
+
+describe("inferViewerRoleFromOwnAssessment — legacy backfill", () => {
+  it("a supervisor payload → supervisor", () => {
+    expect(inferViewerRoleFromOwnAssessment(SUP)).toBe("supervisor");
+  });
+  it("a trainee payload (v1 or v2) → trainee", () => {
+    expect(inferViewerRoleFromOwnAssessment(TRN_V1)).toBe("trainee");
+    expect(inferViewerRoleFromOwnAssessment(TRN_V2)).toBe("trainee");
+  });
+  it("no local record → null (never guesses)", () => {
+    expect(inferViewerRoleFromOwnAssessment(null)).toBeNull();
+    expect(inferViewerRoleFromOwnAssessment(undefined)).toBeNull();
+    expect(
+      inferViewerRoleFromOwnAssessment({} as unknown as SupervisorAssessment),
+    ).toBeNull();
   });
 });

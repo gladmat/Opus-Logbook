@@ -1,7 +1,7 @@
-import type { SharedCaseData } from "@/types/sharing";
+import type { AssessorRole, SharedCaseData } from "@/types/sharing";
 import { getSeniorityTier } from "./seniorityTier";
 
-export type AssessorRole = "supervisor" | "trainee";
+export type { AssessorRole } from "@/types/sharing";
 
 /**
  * Career-stage tier for a user, looking in BOTH places a stage can live in

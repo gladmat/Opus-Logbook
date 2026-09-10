@@ -19,7 +19,11 @@
 
 import type { Case } from "@/types/case";
 import type { CaseTeamMember, TeamContact } from "@/types/teamContacts";
-import type { UserSearchResult, OwnerParticipant } from "@/types/sharing";
+import type {
+  UserSearchResult,
+  OwnerParticipant,
+  SharedMediaDescriptor,
+} from "@/types/sharing";
 import { buildShareableBlob } from "./buildShareableBlob";
 import {
   generateCaseKeyHex,
@@ -69,7 +73,7 @@ export interface NamedUser {
 }
 
 export interface ShareFlowError {
-  stage: "collect" | "revoke" | "share" | "update";
+  stage: "collect" | "revoke" | "share" | "update" | "media";
   userId?: string;
   message: string;
 }
@@ -93,6 +97,13 @@ export interface TeamShareOutcome {
   revokedShareIds: string[];
   /** Everything that previously vanished into bare catches. */
   errors: ShareFlowError[];
+  /** Encrypted photo variants uploaded this save (2.25.0). */
+  mediaUploaded: number;
+  /** Photo upload / delete failures — the next save retries them. */
+  mediaErrors: ShareFlowError[];
+  /** Photos that could not be shared (pre-encryption `file://` items or
+   *  unreadable metadata). */
+  mediaSkipped: number;
 }
 
 export interface UnlinkedTaggedMember {
@@ -254,6 +265,77 @@ interface PreparedShareMaterial {
       keyEnvelopes: { deviceId: string; envelopeJson: string }[];
     }
   >;
+  /** Photo descriptors embedded in the blob (2.25.0); ciphertext uploads
+   *  run AFTER the share rows exist. */
+  media: SharedMediaDescriptor[];
+  mediaSkipped: number;
+  mediaErrors: ShareFlowError[];
+}
+
+/**
+ * Photo descriptors for the blob: per-image DEK + cipher metadata read from
+ * the owner's `opus-media` store. Best-effort — a media failure must never
+ * block sharing the clinical record. Lazy imports keep the crypto/file
+ * modules out of this module's static graph (vitest, Expo Go).
+ */
+async function collectShareMedia(caseData: Case): Promise<{
+  media: SharedMediaDescriptor[];
+  mediaSkipped: number;
+  mediaErrors: ShareFlowError[];
+}> {
+  if (!caseData.operativeMedia?.length) {
+    return { media: [], mediaSkipped: 0, mediaErrors: [] };
+  }
+  try {
+    const [{ getMasterKeyBytes }, { buildSharedMediaDescriptors }] =
+      await Promise.all([
+        import("./encryption"),
+        import("./sharedMediaDescriptors"),
+      ]);
+    const result = await buildSharedMediaDescriptors(
+      caseData.operativeMedia,
+      await getMasterKeyBytes(),
+    );
+    return {
+      media: result.descriptors,
+      mediaSkipped: result.skippedUnencrypted + result.skippedUnreadable,
+      mediaErrors: [],
+    };
+  } catch (error) {
+    return {
+      media: [],
+      mediaSkipped: caseData.operativeMedia.length,
+      mediaErrors: [{ stage: "media", message: errorMessage(error) }],
+    };
+  }
+}
+
+/**
+ * Upload the ciphertext behind `material.media` once the share rows exist.
+ * Best-effort; failures are reported on the outcome and retried next save.
+ */
+async function uploadShareMedia(
+  caseId: string,
+  material: PreparedShareMaterial,
+  outcome: Pick<TeamShareOutcome, "mediaUploaded" | "mediaErrors">,
+): Promise<void> {
+  if (material.media.length === 0) return;
+  try {
+    const { uploadCaseMediaForShare } = await import("./sharedMediaUpload");
+    const result = await uploadCaseMediaForShare({
+      caseId,
+      descriptors: material.media,
+    });
+    outcome.mediaUploaded += result.uploaded;
+    for (const f of result.failed) {
+      outcome.mediaErrors.push({
+        stage: "media",
+        message: `${f.variant} ${f.mediaId}: ${f.message}`,
+      });
+    }
+  } catch (error) {
+    outcome.mediaErrors.push({ stage: "media", message: errorMessage(error) });
+  }
 }
 
 /**
@@ -272,7 +354,8 @@ async function prepareShareMaterial(
     displayName: m.displayName,
     role: m.role,
   }));
-  const blob = buildShareableBlob(caseData, teamRoles, owner);
+  const shareMedia = await collectShareMedia(caseData);
+  const blob = buildShareableBlob(caseData, teamRoles, owner, shareMedia.media);
   const encryptedBlob = await encryptPayloadWithCaseKey(
     JSON.stringify(blob),
     caseKeyHex,
@@ -291,7 +374,14 @@ async function prepareShareMaterial(
     perRecipient.set(member.userId, { role: member.role, keyEnvelopes });
   }
 
-  return { blob, encryptedBlob, perRecipient };
+  return {
+    blob,
+    encryptedBlob,
+    perRecipient,
+    media: shareMedia.media,
+    mediaSkipped: shareMedia.mediaSkipped,
+    mediaErrors: shareMedia.mediaErrors,
+  };
 }
 
 /**
@@ -333,6 +423,13 @@ export async function encryptAndShareCase(
       saveDecryptedSharedCase(row.id, material.blob, 1),
     ),
   );
+
+  // Photos: best-effort, recorded nowhere on this legacy path (rescue /
+  // retro-share callers have no outcome to surface them on).
+  await uploadShareMedia(caseData.id, material, {
+    mediaUploaded: 0,
+    mediaErrors: [],
+  });
 
   return result;
 }
@@ -401,6 +498,9 @@ export async function shareCaseWithTeam(
     zeroKeyRecipients: collect.zeroKeyRecipients,
     revokedShareIds: [],
     errors: [...collect.errors],
+    mediaUploaded: 0,
+    mediaErrors: [],
+    mediaSkipped: 0,
   };
 
   const recipients = collect.recipients;
@@ -481,6 +581,8 @@ export async function shareCaseWithTeam(
     outcome.errors.push({ stage: "share", message: errorMessage(prepError) });
     return outcome;
   }
+  outcome.mediaSkipped = material.mediaSkipped;
+  outcome.mediaErrors.push(...material.mediaErrors);
 
   for (const target of updateTargets) {
     const prepared = material.perRecipient.get(target.recipient.userId);
@@ -559,6 +661,11 @@ export async function shareCaseWithTeam(
         message: errorMessage(shareError),
       });
     }
+  }
+
+  // Ciphertext uploads once at least one share row carries the descriptors.
+  if (outcome.shared.length > 0) {
+    await uploadShareMedia(savedCase.id, material, outcome);
   }
 
   return outcome;

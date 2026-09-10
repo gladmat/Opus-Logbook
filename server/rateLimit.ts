@@ -79,3 +79,23 @@ export const invitationRateLimiter = rateLimit({
       "Daily invitation limit reached. Try again in 24 hours or contact support.",
   },
 });
+
+/**
+ * Per-user limiter for encrypted shared-media uploads/deletes. A case with
+ * the 50-photo cap uploads 100 variants in one save, and a busy list may
+ * save several cases back to back; 200 per 10 minutes absorbs that while
+ * capping an authenticated client that loops. Same key fallback as
+ * `userSearchRateLimiter`.
+ */
+export const sharedMediaRateLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  limit: 200,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  keyGenerator: (req: Request) =>
+    (req as AuthenticatedRequest).userId ??
+    (req.ip ? ipKeyGenerator(req.ip) : "unknown"),
+  message: {
+    error: "Too many photo uploads. Please wait a few minutes and try again.",
+  },
+});

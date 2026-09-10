@@ -91,6 +91,8 @@ export function getDiagnosisGroupSubtitle(
   return generateHandInfectionSummary(group.handInfectionDetails);
 }
 
-export function getCasePrimaryTitle(caseData: Case): string | undefined {
+export function getCasePrimaryTitle(
+  caseData: Pick<Case, "diagnosisGroups">,
+): string | undefined {
   return getDiagnosisGroupTitle(caseData.diagnosisGroups?.[0]);
 }

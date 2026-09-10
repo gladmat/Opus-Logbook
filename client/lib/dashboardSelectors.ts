@@ -7,14 +7,31 @@ import type { Case, QuickCasePrefillData, Specialty } from "@/types/case";
 import { getCaseSpecialties, getPatientDisplayName } from "@/types/case";
 import type { CaseSummary } from "@/types/caseSummary";
 import { isPlannedCaseSummary } from "@/types/caseSummary";
+import {
+  isSharedCaseSummary,
+  type SharedCaseSummary,
+} from "@/lib/sharedCaseSummary";
+import type { SharedCaseEpaState } from "@/lib/sharedCaseBadges";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
 export const HISTOLOGY_FILTER_ID = "__histology__";
+/** Filter chip: cases shared WITH the viewer (2.25.0). */
+export const SHARED_FILTER_ID = "__shared__";
+
+export type AttentionItemType =
+  | "inpatient"
+  | "episode"
+  | "infection"
+  | "inbox_photos"
+  /** A colleague's shared case awaiting the viewer's verification. */
+  | "shared_verification"
+  /** An EPA assessment the viewer owes on a shared case. */
+  | "epa_due";
 
 export interface AttentionItem {
   id: string;
-  type: "inpatient" | "episode" | "infection" | "inbox_photos";
+  type: AttentionItemType;
   patientIdentifier: string;
   diagnosisTitle: string;
   specialty: Specialty;
@@ -34,6 +51,9 @@ export interface AttentionItem {
   infectionSyndrome?: string;
   canAddHistology?: boolean;
   inboxCount?: number;
+  /** Shared-case items: the share row id (what SharedCaseDetail is keyed on). */
+  sharedCaseId?: string;
+  ownerDisplayName?: string;
 }
 
 export interface DashboardEpisodeWithCases {
@@ -194,6 +214,10 @@ export function filterDashboardCases<T extends Case | CaseSummary>(
 
   if (selectedFilter === HISTOLOGY_FILTER_ID) {
     return sortedCases.filter(needsHistology);
+  }
+
+  if (selectedFilter === SHARED_FILTER_ID) {
+    return sortedCases.filter((caseData) => isSharedCaseSummary(caseData));
   }
 
   return sortedCases.filter((caseData) =>
@@ -417,6 +441,50 @@ export function buildAttentionItems<T extends Case | CaseSummary>(
   return [...inpatientItems, ...infectionItems, ...episodeItems];
 }
 
+/**
+ * Attention items for cases shared WITH the viewer (2.25.0): a pending
+ * verification, or an EPA assessment the viewer owes. Shared cases are
+ * deliberately NOT fed into the inpatient / infection builders above — a
+ * colleague's admission is not the viewer's to discharge.
+ */
+export function buildSharedAttentionItems(
+  shared: SharedCaseSummary[],
+  epaStates: ReadonlyMap<string, SharedCaseEpaState>,
+  selectedSpecialty: string | null,
+): AttentionItem[] {
+  const items: AttentionItem[] = [];
+  for (const summary of shared) {
+    if (
+      selectedSpecialty &&
+      selectedSpecialty !== SHARED_FILTER_ID &&
+      !summary.specialties.some((specialty) =>
+        isSelectedSpecialty(selectedSpecialty, specialty),
+      )
+    ) {
+      continue;
+    }
+    const base = {
+      patientIdentifier: getCaseLikePatientIdentifier(summary),
+      diagnosisTitle: getCaseLikeDiagnosisTitle(summary),
+      specialty: summary.specialty,
+      facility: summary.facility,
+      sharedCaseId: summary.shared.sharedCaseId,
+      ownerDisplayName: summary.shared.ownerDisplayName,
+    };
+    if (summary.shared.verificationStatus === "pending") {
+      items.push({
+        id: `shared-verify-${summary.id}`,
+        type: "shared_verification",
+        ...base,
+      });
+    }
+    if (epaStates.get(summary.id) === "due") {
+      items.push({ id: `shared-epa-${summary.id}`, type: "epa_due", ...base });
+    }
+  }
+  return items;
+}
+
 export function calculatePracticePulse(
   cases: (Case | CaseSummary)[],
   now: Date = new Date(),
@@ -551,6 +619,8 @@ export function buildAttentionCaseFormParams(
     }
   }
 
+  // Shared-case items never seed a new case form — the case belongs to a
+  // colleague.
   if (item.type !== "inpatient") {
     return null;
   }

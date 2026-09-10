@@ -76,6 +76,51 @@ export interface SharedCaseData {
    * blobs simply lack the field — readers must fall back gracefully.
    */
   ownerParticipant?: OwnerParticipant;
+
+  /**
+   * Operative photos (2.25.0+), keys included — see `SharedMediaDescriptor`.
+   * Absent on blobs from older clients and on cases with no photos.
+   */
+  media?: SharedMediaDescriptor[];
+}
+
+/**
+ * One shared photo (2.25.0). The owner's on-device `MediaMeta` with the
+ * per-image DEK UNWRAPPED (`dekHex`) instead of wrapped under their master
+ * key, plus the `OperativeMediaItem` display fields. Lives INSIDE the
+ * end-to-end-encrypted share blob — the blob already carries the patient's
+ * name, so a 32-byte key per photo is no more sensitive — and the server
+ * only ever stores the opaque ciphertext files. The per-case share key
+ * rotates on every save, which is why the DEK cannot be wrapped under it:
+ * the ciphertext on the server is immutable for a given mediaId, and
+ * edit-saves only re-send these descriptors.
+ */
+export interface SharedMediaVariantMeta {
+  /** 12-byte AES-GCM nonce, lowercase hex. */
+  nonce: string;
+  /** 16-byte AES-GCM auth tag, lowercase hex. */
+  tag: string;
+  /** Plaintext byte length. */
+  size: number;
+  /** Ciphertext byte length (= `.enc` file size). */
+  ciphertextSize: number;
+}
+
+export interface SharedMediaDescriptor {
+  mediaId: string;
+  /** 32-byte AES-256 DEK, lowercase hex. */
+  dekHex: string;
+  mimeType: string;
+  width: number;
+  height: number;
+  image: SharedMediaVariantMeta;
+  thumb: SharedMediaVariantMeta | null;
+  tag?: string;
+  caption?: string;
+  timestamp?: string;
+  /** Day-rounded, as stored in the owner's plaintext meta.json. */
+  createdAt: string;
+  enhanced?: boolean;
 }
 
 /** The case owner's snapshot inside the shared blob. */
@@ -102,6 +147,12 @@ export interface UserSearchResult {
 }
 
 // ── EPA / Assessment types ───────────────────────────────────────────────────
+
+/** Which side of the double-blind pair a party is on. Persisted server-side
+ *  on `case_assessments.assessorRole` and, since 2.25.0, on the local
+ *  `RevealedAssessmentPair.viewerRole` so every reveal / analytics surface
+ *  can address the viewer correctly. */
+export type AssessorRole = "supervisor" | "trainee";
 
 export type EntrustmentLevel = 1 | 2 | 3 | 4 | 5;
 export type TeachingQualityLevel = 1 | 2 | 3 | 4 | 5;
@@ -175,6 +226,23 @@ export const AUTONOMY_MATCH_DESCRIPTIONS: Record<AutonomyMatchLevel, string> = {
 };
 
 /**
+ * The same anchors re-voiced for the SUPERVISOR reading the trainee's answer
+ * at reveal. The first-person map above is what the trainee ticked; showing
+ * it verbatim to the supervisor reads as if the supervisor were describing
+ * themselves.
+ */
+export const AUTONOMY_MATCH_DESCRIPTIONS_FOR_SUPERVISOR: Record<
+  AutonomyMatchLevel,
+  string
+> = {
+  1: "They were ready for more responsibility than they were given this case",
+  2: "They felt they could have done a little more",
+  3: "The autonomy you gave fit what they could handle",
+  4: "They were given a bit more than they were ready for",
+  5: "They were given more responsibility than they could handle this case",
+};
+
+/**
  * Part B of the trainee instrument (v2): three BID (Briefing /
  * Intraoperative teaching / Debriefing) behaviour-frequency items, each
  * per-case attainable.
@@ -199,6 +267,15 @@ export const BID_ITEM_PROMPTS: Record<BidItemKey, string> = {
   intraop:
     "During the case I got useful guidance or feedback at the right moments",
   debrief: "After the case we discussed how I did and how to improve",
+};
+
+/** Supervisor-facing wording of the BID prompts (see
+ *  `AUTONOMY_MATCH_DESCRIPTIONS_FOR_SUPERVISOR`). */
+export const BID_ITEM_PROMPTS_FOR_SUPERVISOR: Record<BidItemKey, string> = {
+  briefing: "Before or early in the case, you agreed what they would focus on",
+  intraop:
+    "During the case they got useful guidance or feedback at the right moments",
+  debrief: "After the case you discussed how they did and how to improve",
 };
 
 export const BID_ITEM_LABELS: Record<BidItemLevel, string> = {
@@ -282,4 +359,11 @@ export interface RevealedAssessmentPair {
   bid?: BidBehaviours;
   /** "PS" on every target-derived record (2.23.0+). */
   traineeOperativeRole?: TeamMemberOperativeRole;
+  /**
+   * Which side the LOCAL user was on when this pair was revealed (2.25.0+).
+   * Drives audience-aware copy on the reveal screen and the role split in
+   * training analytics. Absent on records written before 2.25.0 — readers
+   * backfill it from the locally stored own assessment where possible.
+   */
+  viewerRole?: AssessorRole;
 }

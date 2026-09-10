@@ -13,6 +13,7 @@ import {
   getPrimarySiteLabel,
 } from "@/types/case";
 import type { CaseSummary } from "@/types/caseSummary";
+import { isSharedCaseSummary } from "@/lib/sharedCaseSummary";
 import { getCasePrimaryTitle } from "@/lib/caseDiagnosisSummary";
 import {
   getSkinCancerCaseBadge,
@@ -218,13 +219,26 @@ function DashboardCaseCardInner({
       ? caseData.needsHistology
       : caseNeedsHistology(caseData));
 
+  // Cases shared WITH the viewer (2.25.0): owner-only actions are hidden,
+  // and the card shows who shared it plus the verification state.
+  const shared = isSharedCaseSummary(caseData) ? caseData.shared : null;
+  const sharedChip = shared
+    ? shared.verificationStatus === "pending"
+      ? { label: "Verify", colorKey: "accent" as const }
+      : shared.verificationStatus === "disputed"
+        ? { label: "Disputed", colorKey: "error" as const }
+        : null
+    : null;
+
   const showHistologyAction =
+    !shared &&
     onAddHistology &&
     (isCaseSummary(caseData)
       ? caseData.canAddHistology
       : caseCanAddHistology(caseData));
-  const hasActions = showHistologyAction || onAddEvent;
-  const hasMeta = showRoleBadge || !!skinCancerBadge || !!hasHistologyPending;
+  const hasActions = showHistologyAction || (!shared && onAddEvent);
+  const hasMeta =
+    showRoleBadge || !!skinCancerBadge || !!hasHistologyPending || !!sharedChip;
   const patientLabel = isCaseSummary(caseData)
     ? caseData.patientDisplayName || caseData.patientIdentifier
     : [caseData.patientFirstName, caseData.patientLastName]
@@ -236,7 +250,11 @@ function DashboardCaseCardInner({
       testID={`dashboard.cases.card-${caseData.id}`}
       onPress={handlePress}
       accessibilityRole="button"
-      accessibilityLabel={`${caseData.patientIdentifier}, ${caseTitle}, ${formattedDate}`}
+      accessibilityLabel={
+        shared
+          ? `${caseData.patientIdentifier}, ${caseTitle}, ${formattedDate}, shared by ${shared.ownerDisplayName}`
+          : `${caseData.patientIdentifier}, ${caseTitle}, ${formattedDate}`
+      }
       style={({ pressed }) => [
         styles.card,
         pressed && { backgroundColor: theme.backgroundElevated },
@@ -249,6 +267,34 @@ function DashboardCaseCardInner({
             <View style={styles.metaRow}>
               {showRoleBadge && resolvedRole ? (
                 <RoleBadge role={resolvedRole} size="small" />
+              ) : null}
+              {sharedChip ? (
+                <View
+                  testID={`dashboard.cases.chip-shared-${sharedChip.label.toLowerCase()}`}
+                  style={[
+                    chipStyles.chip,
+                    {
+                      backgroundColor:
+                        sharedChip.colorKey === "accent"
+                          ? theme.accentSurface
+                          : theme.errorSurface,
+                    },
+                  ]}
+                >
+                  <ThemedText
+                    style={[
+                      chipStyles.chipText,
+                      {
+                        color:
+                          sharedChip.colorKey === "accent"
+                            ? theme.accent
+                            : theme.error,
+                      },
+                    ]}
+                  >
+                    {sharedChip.label}
+                  </ThemedText>
+                </View>
               ) : null}
               {skinCancerBadge ? (
                 <View
@@ -305,6 +351,20 @@ function DashboardCaseCardInner({
               {patientLabel}
             </ThemedText>
           </View>
+          {shared ? (
+            <View
+              style={styles.sharedRow}
+              testID={`dashboard.cases.sharedBy-${caseData.id}`}
+            >
+              <Feather name="users" size={11} color={theme.textTertiary} />
+              <ThemedText
+                style={[styles.sharedText, { color: theme.textTertiary }]}
+                numberOfLines={1}
+              >
+                Shared by {shared.ownerDisplayName}
+              </ThemedText>
+            </View>
+          ) : null}
           {hasActions ? (
             <View style={styles.actionRow}>
               {showHistologyAction ? (
@@ -440,6 +500,15 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     flexWrap: "wrap",
     marginBottom: 4,
+  },
+  sharedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 2,
+  },
+  sharedText: {
+    fontSize: 12,
   },
   identityRow: {
     flexDirection: "row",

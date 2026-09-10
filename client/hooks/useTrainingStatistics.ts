@@ -22,6 +22,7 @@ import {
   computeEntrustmentDistribution,
   computeAutonomyGap,
   fullPairsOnly,
+  splitPairsByViewerRole,
   type ProcedureLearningCurve,
   type TeachingAggregate,
   type CalibrationScore,
@@ -33,6 +34,12 @@ export interface UseTrainingStatisticsReturn {
   isLoading: boolean;
   isEmpty: boolean;
   isConsultant: boolean;
+  /** Any full pair where the viewer was the SUPERVISOR — drives the teaching view. */
+  hasSupervisorPairs: boolean;
+  /** Any full pair where the viewer was the TRAINEE — drives the learner view. */
+  hasTraineePairs: boolean;
+  /** Pre-2.25.0 pairs whose side could not be recovered; shown in neither view. */
+  unattributedCount: number;
   /** Derived EPA targets not yet revealed — drives the pending-assessments entry link. */
   pendingCount: number;
   /** Cases the viewer logged where they ASSISTED under a tagged senior
@@ -100,40 +107,70 @@ export function useTrainingStatistics(): UseTrainingStatisticsReturn {
 
   const isEmpty = pairs.length === 0;
 
+  // Split ONCE by which side the viewer was on. Trainee-facing analytics
+  // read `asTrainee`, supervisor-facing ones read `asSupervisor`. A store
+  // that is ENTIRELY role-less (every record predates 2.25.0 and none could
+  // be backfilled) falls back to the pre-2.25.0 behaviour — the profile's
+  // career stage decides which side the whole set belongs to — so nobody
+  // loses their history overnight.
+  const split = useMemo(() => {
+    const s = splitPairsByViewerRole(pairs);
+    if (
+      s.asTrainee.length === 0 &&
+      s.asSupervisor.length === 0 &&
+      s.unattributed.length > 0
+    ) {
+      return isConsultant
+        ? { asTrainee: [], asSupervisor: s.unattributed, unattributed: [] }
+        : { asTrainee: s.unattributed, asSupervisor: [], unattributed: [] };
+    }
+    return s;
+  }, [pairs, isConsultant]);
+  const traineePairs = split.asTrainee;
+  const supervisorPairs = split.asSupervisor;
+
   const learningCurves = useMemo(
-    () => (isEmpty ? [] : computeLearningCurves(pairs)),
-    [pairs, isEmpty],
+    () => (traineePairs.length ? computeLearningCurves(traineePairs) : []),
+    [traineePairs],
   );
 
   const teachingAggregate = useMemo<TeachingAggregate | null>(
-    () => (isEmpty ? null : computeTeachingAggregate(pairs)),
-    [pairs, isEmpty],
+    () =>
+      supervisorPairs.length ? computeTeachingAggregate(supervisorPairs) : null,
+    [supervisorPairs],
   );
 
   const calibrationScore = useMemo<CalibrationScore | null>(
-    () => (isEmpty ? null : computeCalibrationScore(pairs)),
-    [pairs, isEmpty],
+    () => (traineePairs.length ? computeCalibrationScore(traineePairs) : null),
+    [traineePairs],
   );
 
   const autonomyGap = useMemo<AutonomyGapStats | null>(
-    () => (isEmpty ? null : computeAutonomyGap(pairs, "trainee")),
-    [pairs, isEmpty],
+    () =>
+      traineePairs.length ? computeAutonomyGap(traineePairs, "trainee") : null,
+    [traineePairs],
   );
 
   const trainingOverview = useMemo<TrainingOverviewStats | null>(
-    () => (isEmpty ? null : computeTrainingOverview(pairs)),
-    [pairs, isEmpty],
+    () => (traineePairs.length ? computeTrainingOverview(traineePairs) : null),
+    [traineePairs],
   );
 
   const entrustmentDistribution = useMemo(
-    () => (isEmpty ? [] : computeEntrustmentDistribution(pairs)),
-    [pairs, isEmpty],
+    () =>
+      supervisorPairs.length
+        ? computeEntrustmentDistribution(supervisorPairs)
+        : [],
+    [supervisorPairs],
   );
 
   return {
     isLoading,
     isEmpty,
     isConsultant,
+    hasSupervisorPairs: supervisorPairs.length > 0,
+    hasTraineePairs: traineePairs.length > 0,
+    unattributedCount: split.unattributed.length,
     pendingCount,
     exposureCaseCount,
     learningCurves,

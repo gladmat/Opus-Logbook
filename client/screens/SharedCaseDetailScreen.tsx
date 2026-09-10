@@ -21,7 +21,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, Shadows, palette } from "@/constants/theme";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
-import type { SharedCaseData } from "@/types/sharing";
+import type { SharedCaseData, SharedMediaDescriptor } from "@/types/sharing";
 import {
   OPERATIVE_ROLE_LABELS,
   type OperativeRole,
@@ -49,17 +49,20 @@ import {
 } from "@/types/case";
 import { getDiagnosisGroupTitle } from "@/lib/caseDiagnosisSummary";
 import { getSharedCaseDetail, verifySharedCase } from "@/lib/sharingApi";
+import { getDecryptedSharedCaseWithVersion } from "@/lib/sharingStorage";
+import { hydrateSharedCase } from "@/lib/sharedCaseSync";
 import {
-  getDecryptedSharedCaseWithVersion,
-  saveDecryptedSharedCase,
-  saveCaseKey,
-} from "@/lib/sharingStorage";
+  ensureSharedMediaVariant,
+  importSharedThumbs,
+} from "@/lib/sharedMediaImport";
+import { EncryptedImage } from "@/components/EncryptedImage";
 import {
-  getOrCreateDeviceIdentity,
-  unwrapCaseKeyEnvelope,
-  decryptPayloadWithCaseKey,
-  type CaseKeyEnvelope,
-} from "@/lib/e2ee";
+  MediaGalleryViewer,
+  MediaTagBadge,
+  type GalleryMediaItem,
+} from "@/components/media";
+import { resolveMediaTag } from "@/lib/mediaTagHelpers";
+import type { MediaTag } from "@/types/media";
 import {
   getAssessmentStatus,
   type AssessmentStatusResponse,
@@ -215,6 +218,28 @@ export default function SharedCaseDetailScreen() {
   const [disputeNote, setDisputeNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // Photos (2.25.0): thumbnails are imported into the local encrypted media
+  // store on first open; `mediaRevision` remounts the grid once they land.
+  const [mediaRevision, setMediaRevision] = useState(0);
+  const [fetchingFullFor, setFetchingFullFor] = useState<string | null>(null);
+  const [galleryState, setGalleryState] = useState<{
+    items: GalleryMediaItem[];
+    index: number;
+  } | null>(null);
+
+  const importThumbs = useCallback(
+    async (data: SharedCaseData) => {
+      if (!data.media?.length) return;
+      try {
+        const result = await importSharedThumbs(sharedCaseId, data.media);
+        if (result.imported > 0) setMediaRevision((r) => r + 1);
+      } catch {
+        // Thumbnails are best-effort; the grid shows placeholders.
+      }
+    },
+    [sharedCaseId],
+  );
+
   const loadCase = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -262,6 +287,7 @@ export default function SharedCaseDetailScreen() {
         if (cacheIsCurrent) {
           setCaseData(cached.data);
           setLoading(false);
+          void importThumbs(cached.data);
           return;
         }
       }
@@ -272,48 +298,68 @@ export default function SharedCaseDetailScreen() {
         return;
       }
 
-      // 3. Get device identity to find matching envelope
-      const { deviceId } = await getOrCreateDeviceIdentity();
-
-      // 4. Find matching key envelope
-      const envelope = detail.keyEnvelopes.find(
-        (e) => e.recipientDeviceId === deviceId,
-      );
-      if (!envelope) {
-        setError(
-          "No decryption key found for this device. The case may have been shared before you registered this device.",
-        );
-        setLoading(false);
-        return;
-      }
-
-      // 5. Unwrap case key
-      const parsedEnvelope: CaseKeyEnvelope = JSON.parse(envelope.envelopeJson);
-      const caseKeyHex = await unwrapCaseKeyEnvelope(parsedEnvelope);
-
-      // 6. Decrypt blob
-      const plaintext = decryptPayloadWithCaseKey(
-        detail.encryptedShareableBlob,
-        caseKeyHex,
-      );
-      const decrypted: SharedCaseData = JSON.parse(plaintext);
-
-      // 7. Cache locally (version-stamped so in-place updates invalidate)
-      await saveCaseKey(sharedCaseId, caseKeyHex);
-      await saveDecryptedSharedCase(
-        sharedCaseId,
-        decrypted,
-        detail.blobVersion,
-      );
-
-      setCaseData(decrypted);
+      // 3. Fetch + decrypt + cache (shared with the dashboard sync).
+      const hydrated = await hydrateSharedCase(sharedCaseId);
+      setCaseData(hydrated.data);
+      void importThumbs(hydrated.data);
     } catch (err) {
       console.error("Error loading shared case:", err);
-      setError("Failed to decrypt this case. Please try again.");
+      setError(
+        err instanceof Error && err.name === "SharedCaseHydrationError"
+          ? err.message
+          : "Failed to decrypt this case. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
-  }, [sharedCaseId]);
+  }, [sharedCaseId, importThumbs]);
+
+  // Full-screen viewer: fetch the tapped photo's full-resolution ciphertext
+  // first (the viewer falls back to the thumbnail until it lands), open,
+  // then pull the rest in the background for subsequent swipes.
+  const openGallery = useCallback(
+    async (mediaId: string) => {
+      const media = caseData?.media ?? [];
+      if (media.length === 0) return;
+      const toGalleryItem = (m: SharedMediaDescriptor): GalleryMediaItem => ({
+        id: m.mediaId,
+        localUri: `opus-media:${m.mediaId}`,
+        mimeType: m.mimeType,
+        caption: m.caption,
+        tag: resolveMediaTag({ tag: m.tag as MediaTag | undefined }),
+        timestamp: m.timestamp,
+        createdAt: m.createdAt,
+      });
+      const items = media.map(toGalleryItem);
+      const index = Math.max(
+        0,
+        media.findIndex((m) => m.mediaId === mediaId),
+      );
+      const tapped = media[index];
+      if (tapped) {
+        setFetchingFullFor(mediaId);
+        try {
+          await ensureSharedMediaVariant(sharedCaseId, tapped, "image");
+        } catch {
+          // Offline / not uploaded yet — the viewer shows the thumbnail.
+        } finally {
+          setFetchingFullFor(null);
+        }
+      }
+      setGalleryState({ items, index });
+      void (async () => {
+        for (const m of media) {
+          if (m.mediaId === mediaId) continue;
+          try {
+            await ensureSharedMediaVariant(sharedCaseId, m, "image");
+          } catch {
+            // Best-effort prefetch.
+          }
+        }
+      })();
+    },
+    [caseData?.media, sharedCaseId],
+  );
 
   useEffect(() => {
     loadCase();
@@ -608,6 +654,61 @@ export default function SharedCaseDetailScreen() {
           />
           <DetailRow label="Supervision" value={caseData.supervisionLevel} />
         </DetailCard>
+
+        {/* Photos card (2.25.0) — the owner's operative photos, delivered
+            as ciphertext and re-keyed to this device. */}
+        {(caseData.media?.length ?? 0) > 0 ? (
+          <DetailCard title="Photos" icon="image">
+            <ScrollView
+              key={`media-${mediaRevision}`}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.mediaGalleryContainer}
+            >
+              {caseData.media!.map((m) => (
+                <Pressable
+                  key={m.mediaId}
+                  onPress={() => void openGallery(m.mediaId)}
+                  style={[
+                    styles.mediaItem,
+                    { backgroundColor: theme.backgroundSecondary },
+                  ]}
+                  accessibilityRole="imagebutton"
+                  accessibilityLabel={
+                    m.caption ?? "Open photo in full-screen viewer"
+                  }
+                  testID={`sharedCaseDetail.media.item-${m.mediaId}`}
+                >
+                  <EncryptedImage
+                    uri={`opus-media:${m.mediaId}`}
+                    style={styles.mediaImage}
+                    resizeMode="cover"
+                    thumbnail
+                  />
+                  <View style={styles.mediaTypeBadge}>
+                    <MediaTagBadge
+                      tag={resolveMediaTag({
+                        tag: m.tag as MediaTag | undefined,
+                      })}
+                      size="small"
+                    />
+                  </View>
+                  {fetchingFullFor === m.mediaId ? (
+                    <View style={styles.mediaLoadingOverlay}>
+                      <ActivityIndicator color={palette.white} />
+                    </View>
+                  ) : null}
+                </Pressable>
+              ))}
+            </ScrollView>
+            <ThemedText style={[styles.noData, { color: theme.textTertiary }]}>
+              {caseData.media!.length === 1
+                ? "1 operative photo"
+                : `${caseData.media!.length} operative photos`}{" "}
+              · encrypted end-to-end
+            </ThemedText>
+          </DetailCard>
+        ) : null}
 
         {/* Outcomes card */}
         <DetailCard title="Outcomes" icon="check-circle">
@@ -1191,6 +1292,14 @@ export default function SharedCaseDetailScreen() {
             })()
           : null}
       </ScrollView>
+
+      <MediaGalleryViewer
+        visible={!!galleryState}
+        items={galleryState?.items ?? []}
+        initialIndex={galleryState?.index ?? 0}
+        onClose={() => setGalleryState(null)}
+        allowShare={false}
+      />
     </View>
   );
 }
@@ -1281,6 +1390,34 @@ const styles = StyleSheet.create({
   },
   rowValue: {
     fontSize: 15,
+  },
+
+  // Photos (mirrors CaseDetailScreen's operative media grid)
+  mediaGalleryContainer: {
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  mediaItem: {
+    width: 140,
+    height: 140,
+    borderRadius: BorderRadius.md,
+    overflow: "hidden",
+    position: "relative",
+  },
+  mediaImage: {
+    width: "100%",
+    height: "100%",
+  },
+  mediaTypeBadge: {
+    position: "absolute",
+    top: 6,
+    left: 6,
+  },
+  mediaLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.35)",
   },
 
   // Diagnosis groups
