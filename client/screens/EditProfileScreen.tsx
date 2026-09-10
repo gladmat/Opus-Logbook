@@ -33,6 +33,11 @@ import {
   type ProfessionalRegistrations,
   normalizeProfessionalRegistrations,
 } from "@shared/professionalRegistrations";
+import {
+  formatPhoneForDisplay,
+  getDefaultPhoneRegion,
+  normalizePhoneE164,
+} from "@shared/phone";
 import { getCareerStagesForCountry } from "@shared/careerStages";
 
 const SEX_OPTIONS = [
@@ -85,6 +90,9 @@ export default function EditProfileScreen() {
     profile?.countryOfPractice || "",
   );
   const [careerStage, setCareerStage] = useState(profile?.careerStage || "");
+  const [phone, setPhone] = useState(() =>
+    profile?.phone ? formatPhoneForDisplay(profile.phone) : "",
+  );
   const [professionalRegistrations, setProfessionalRegistrations] =
     useState<ProfessionalRegistrations>(
       () =>
@@ -284,6 +292,24 @@ export default function EditProfileScreen() {
       return;
     }
 
+    // E.164 with this profile's own country as the default region. A
+    // non-blank number that can't be parsed blocks the save — an unmatched
+    // phone would silently make you unfindable by phone.
+    const phoneRaw = phone.trim();
+    const phoneE164 = phoneRaw
+      ? normalizePhoneE164(
+          phoneRaw,
+          getDefaultPhoneRegion(countryOfPractice || null),
+        )
+      : null;
+    if (phoneRaw && !phoneE164) {
+      Alert.alert(
+        "Check phone number",
+        "Include the country code, e.g. +64 21 123 4567.",
+      );
+      return;
+    }
+
     setIsSaving(true);
     try {
       const normalizedProfessionalRegistrations =
@@ -297,6 +323,7 @@ export default function EditProfileScreen() {
         sex,
         countryOfPractice: countryOfPractice || null,
         careerStage: careerStage || null,
+        phone: phoneE164,
         professionalRegistrations: normalizedProfessionalRegistrations ?? {},
         medicalCouncilNumber: getLegacyMedicalCouncilNumber(
           normalizedProfessionalRegistrations,
@@ -458,6 +485,36 @@ export default function EditProfileScreen() {
               placeholderTextColor={theme.textTertiary}
               autoCapitalize="words"
               testID="settings.profile.input-lastName"
+            />
+          </View>
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+
+          {/* Phone — colleagues can add you to their team by this number */}
+          <View style={styles.fieldRow}>
+            <ThemedText
+              style={[styles.fieldLabel, { color: theme.textSecondary }]}
+            >
+              Phone
+            </ThemedText>
+            <TextInput
+              style={[
+                styles.fieldInput,
+                {
+                  color: theme.text,
+                  backgroundColor: theme.backgroundSecondary,
+                  borderColor: theme.border,
+                },
+              ]}
+              value={phone}
+              onChangeText={(value) => {
+                setHasLocalEdits(true);
+                setPhone(value);
+              }}
+              placeholder="+64 21 123 4567"
+              placeholderTextColor={theme.textTertiary}
+              keyboardType="phone-pad"
+              autoCorrect={false}
+              testID="settings.profile.input-phone"
             />
           </View>
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
@@ -776,6 +833,8 @@ export default function EditProfileScreen() {
                         }
                         placeholder={option.placeholder}
                         placeholderTextColor={theme.textTertiary}
+                        autoCapitalize="characters"
+                        autoCorrect={false}
                         testID={`settings.profile.input-registration-${option.id}`}
                       />
                     </View>

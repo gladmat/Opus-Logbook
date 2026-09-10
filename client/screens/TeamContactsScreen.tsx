@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useRef } from "react";
 import {
   View,
   StyleSheet,
@@ -17,7 +17,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { getDefaultPhoneRegion } from "@shared/phone";
 import { Spacing, BorderRadius, palette } from "@/constants/theme";
-import { getTeamContacts, linkContact } from "@/lib/teamContactsApi";
+import { getTeamContacts } from "@/lib/teamContactsApi";
 import { getCareerStageLabel } from "@shared/careerStages";
 import {
   TEAM_MEMBER_ROLE_SHORT,
@@ -27,10 +27,9 @@ import {
 import {
   discoverUnlinkedContacts,
   getDiscoveryMatches,
-  removeDiscoveryMatch,
 } from "@/lib/discoveryService";
-import { offerRetroShareForContact } from "@/lib/linkingPrompts";
-import { searchUserByEmail } from "@/lib/sharingApi";
+import { alertAsync, linkContactWithFeedback } from "@/lib/linkingPrompts";
+import { searchUserForContact } from "@/lib/sharingApi";
 import type { DiscoverMatch } from "@/lib/teamContactsApi";
 
 type Section = { title: string; data: TeamContact[] };
@@ -45,6 +44,9 @@ export default function TeamContactsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [discoveryMatches, setDiscoveryMatches] = useState<DiscoverMatch[]>([]);
+  const hasLoadedRef = useRef(false);
+  const hadMatchesRef = useRef(false);
+  const phoneRegion = getDefaultPhoneRegion(profile?.countryOfPractice);
 
   const loadContacts = useCallback(async () => {
     try {
@@ -54,6 +56,8 @@ export default function TeamContactsScreen() {
       ]);
       setContacts(data);
       setDiscoveryMatches(matches);
+      hasLoadedRef.current = true;
+      hadMatchesRef.current = matches.length > 0;
     } catch {
       // Silently fail — empty list shown
     } finally {
@@ -62,68 +66,71 @@ export default function TeamContactsScreen() {
     }
   }, []);
 
-  /** Map contactId → DiscoverMatch for quick lookup */
+  /**
+   * contactId → DiscoverMatch. A match whose account is already linked to
+   * ANOTHER contact is dropped — the server would 409 it anyway, and a dead
+   * Link button is worse than none.
+   */
   const matchByContactId = useMemo(() => {
+    const linkedUserIds = new Set(
+      contacts.map((c) => c.linkedUserId).filter((id): id is string => !!id),
+    );
     const map = new Map<string, DiscoverMatch>();
     for (const m of discoveryMatches) {
+      if (linkedUserIds.has(m.userId)) continue;
       map.set(m.contactId, m);
     }
     return map;
-  }, [discoveryMatches]);
+  }, [discoveryMatches, contacts]);
 
-  const handleLinkContact = useCallback(
-    async (contact: TeamContact, match: DiscoverMatch) => {
-      try {
-        await linkContact(contact.id, match.userId);
-        await removeDiscoveryMatch(contact.id);
-        // Refresh list to show updated linked state
-        loadContacts();
-        await offerRetroShareForContact(
-          {
-            contactId: contact.id,
-            linkedUserId: match.userId,
-            displayName: contact.displayName,
-          },
-          {
-            successTitle: "Contact Linked",
-            successMessage: `${contact.displayName} will now receive cases you tag them on.`,
-          },
-        );
-      } catch (error) {
-        Alert.alert(
-          "Link Failed",
-          error instanceof Error ? error.message : "Failed to link contact.",
-        );
-      }
+  const linkWithConfirm = useCallback(
+    async (
+      contact: TeamContact,
+      user: { id: string; displayName: string | null },
+    ) => {
+      const who = user.displayName ?? "this Opus account";
+      const choice = await alertAsync(
+        `Link ${contact.displayName}?`,
+        `${contact.displayName} will be linked to ${who} on Opus and receive cases you tag them on.`,
+        [
+          { text: "Cancel", style: "cancel", value: "cancel" },
+          { text: "Link", value: "link" },
+        ],
+      );
+      if (choice !== "link") return;
+      await linkContactWithFeedback(contact, user, {
+        ownUserId: profile?.userId,
+        successTitle: "Contact Linked",
+        successMessage: `${contact.displayName} will now receive cases you tag them on.`,
+      });
+      await loadContacts();
     },
-    [loadContacts],
+    [loadContacts, profile?.userId],
   );
 
+  /** Discovery match → confirm → server-verified link. */
+  const handleLinkContact = useCallback(
+    (contact: TeamContact, match: DiscoverMatch) =>
+      linkWithConfirm(contact, {
+        id: match.userId,
+        displayName: match.displayName,
+      }),
+    [linkWithConfirm],
+  );
+
+  /** Invitee who accepted → live lookup by their identifiers → confirm → link. */
   const handleLinkInvited = useCallback(
     async (contact: TeamContact) => {
-      if (!contact.email) return;
       try {
-        const user = await searchUserByEmail(contact.email);
+        const user = await searchUserForContact(contact, phoneRegion);
         if (!user) {
           Alert.alert(
             "Can't link yet",
-            "No Opus account matches this contact's email right now. They may have signed up with a different address, or turned off Discoverable in their Settings.",
+            "No Opus account matches this contact's details right now. They may have signed up with a different email, or turned off Discoverable in their Settings.",
           );
           return;
         }
-        await linkContact(contact.id, user.id);
-        loadContacts();
-        await offerRetroShareForContact(
-          {
-            contactId: contact.id,
-            linkedUserId: user.id,
-            displayName: contact.displayName,
-          },
-          {
-            successTitle: "Contact Linked",
-            successMessage: `${contact.displayName} will now receive cases you tag them on.`,
-          },
-        );
+        await linkWithConfirm(contact, user);
       } catch (error) {
         Alert.alert(
           "Link Failed",
@@ -131,22 +138,22 @@ export default function TeamContactsScreen() {
         );
       }
     },
-    [loadContacts],
+    [linkWithConfirm, phoneRegion],
   );
 
   useFocusEffect(
     useCallback(() => {
-      setLoading(true);
+      // Full-screen spinner only on the very first load — returning from a
+      // contact edit used to flash it every time.
+      if (!hasLoadedRef.current) setLoading(true);
       loadContacts();
       // Actually run discovery on focus (still 24h-throttled unless a
       // contact edit marked it stale) instead of only reading yesterday's
-      // cached matches — then refresh so new Link buttons appear.
-      void discoverUnlinkedContacts({
-        phoneRegion: getDefaultPhoneRegion(profile?.countryOfPractice),
-      }).then((found) => {
-        if (found > 0) loadContacts();
+      // cached matches — then refresh so Link buttons appear or disappear.
+      void discoverUnlinkedContacts({ phoneRegion }).then((found) => {
+        if (found > 0 || hadMatchesRef.current) loadContacts();
       });
-    }, [loadContacts, profile?.countryOfPractice]),
+    }, [loadContacts, phoneRegion]),
   );
 
   const handleRefresh = useCallback(() => {
@@ -212,7 +219,7 @@ export default function TeamContactsScreen() {
       testID="screen-teamContacts"
     >
       {/* Discovery badge */}
-      {discoveryMatches.length > 0 && (
+      {matchByContactId.size > 0 && (
         <View
           style={[
             styles.discoveryBanner,
@@ -224,8 +231,8 @@ export default function TeamContactsScreen() {
         >
           <Feather name="user-plus" size={16} color={theme.link} />
           <ThemedText style={[styles.discoveryText, { color: theme.link }]}>
-            {discoveryMatches.length} colleague
-            {discoveryMatches.length !== 1 ? "s" : ""} found on Opus
+            {matchByContactId.size} colleague
+            {matchByContactId.size !== 1 ? "s" : ""} found on Opus
           </ThemedText>
         </View>
       )}
@@ -344,8 +351,7 @@ export default function TeamContactsScreen() {
               {!item.linkedUserId &&
                 !matchByContactId.has(item.id) &&
                 !!item.invitationSentAt &&
-                !!item.invitationAcceptedAt &&
-                !!item.email && (
+                !!item.invitationAcceptedAt && (
                   <Pressable
                     style={[styles.linkButton, { backgroundColor: theme.link }]}
                     onPress={(e) => {

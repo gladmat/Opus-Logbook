@@ -139,6 +139,8 @@ const COUNTRY_OF_PRACTICE_LABELS: Record<string, string> = {
   united_kingdom: "United Kingdom",
   united_states: "United States",
   poland: "Poland",
+  germany: "Germany",
+  switzerland: "Switzerland",
   other: "Other",
 };
 
@@ -672,7 +674,8 @@ export default function SettingsScreen() {
                 <ThemedText
                   style={[styles.itemSubtitle, { color: theme.textSecondary }]}
                 >
-                  Let colleagues find and link you by email or phone
+                  Let colleagues find and link you by email, phone or
+                  registration number
                 </ThemedText>
               </View>
               <Switch
