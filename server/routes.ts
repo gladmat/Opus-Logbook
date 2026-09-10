@@ -32,7 +32,23 @@ import {
   userSearchRateLimiter,
   invitationRateLimiter,
   pushTokenRateLimiter,
+  sharedMediaRateLimiter,
 } from "./rateLimit";
+import { avatarsDir, sharedMediaRoot } from "./uploadsDir";
+import {
+  AUTH_TAG_RE,
+  BodyTooLargeError,
+  SHARED_MEDIA_ID_RE,
+  SHARED_MEDIA_MAX_BYTES,
+  SHARED_MEDIA_VARIANTS,
+  isSharedMediaVariant,
+  removeCaseMediaDir,
+  removeMediaFiles,
+  removeOwnerMediaDir,
+  resolveSharedMediaAccess,
+  sharedMediaPath,
+  streamBodyToFile,
+} from "./sharedMedia";
 import {
   insertProfileSchema,
   insertUserFacilitySchema,
@@ -169,9 +185,9 @@ const profileUpdateSchema = insertProfileSchema
   })
   .partial();
 
-// Profile picture upload config
-const uploadsDir = path.resolve(process.cwd(), "uploads", "avatars");
-fs.mkdirSync(uploadsDir, { recursive: true });
+// Profile picture upload config — lives under UPLOADS_DIR (persistent
+// volume in prod) since 2.25.0; see server/uploadsDir.ts.
+const uploadsDir = avatarsDir;
 
 const avatarStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadsDir),
@@ -1101,6 +1117,15 @@ export async function registerRoutes(app: Express): Promise<void> {
           return;
         }
 
+        // Shared-media ciphertext lives on disk, outside the FK cascade.
+        try {
+          await removeOwnerMediaDir(sharedMediaRoot, req.userId!);
+        } catch (mediaErr) {
+          log.warn(
+            { err: mediaErr },
+            "shared media cleanup failed during account deletion",
+          );
+        }
         await storage.deleteUserAccount(req.userId!);
         res.json({ success: true, message: "Account deleted successfully" });
       } catch (error) {
@@ -2153,6 +2178,31 @@ export async function registerRoutes(app: Express): Promise<void> {
         }
 
         res.json({ success: true });
+
+        // Last share for this case gone → its ciphertext has no reader
+        // left; drop files + ledger rows. Best-effort, after the response.
+        try {
+          const remaining = await storage.countSharesForCase(
+            deleted.ownerUserId,
+            deleted.caseId,
+          );
+          if (remaining === 0) {
+            await removeCaseMediaDir(
+              sharedMediaRoot,
+              deleted.ownerUserId,
+              deleted.caseId,
+            );
+            await storage.deleteSharedCaseMedia(
+              deleted.ownerUserId,
+              deleted.caseId,
+            );
+          }
+        } catch (cleanupErr) {
+          log.warn(
+            { err: cleanupErr },
+            "shared media cleanup failed after revoke",
+          );
+        }
       } catch (error) {
         log.error(
           { err: error instanceof Error ? error.message : "Unknown error" },
@@ -2217,6 +2267,235 @@ export async function registerRoutes(app: Express): Promise<void> {
           "error updating shared case blob",
         );
         res.status(500).json({ error: "Failed to update shared case" });
+      }
+    },
+  );
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Shared Case Media Routes (2.25.0)
+  // Consumer: Mobile client — owner uploads existing AES-GCM ciphertext
+  // (image.enc / thumb.enc) once per case; recipients download it and
+  // re-wrap the per-image key (carried inside the E2EE blob) under their
+  // own master key. The server holds opaque bytes only.
+  // Ownership: owner routes are scoped to req.userId; the download route
+  // resolves the share row and admits owner OR named recipient.
+  // ──────────────────────────────────────────────────────────────────────────
+
+  const sharedMediaParamsSchema = z.object({
+    caseId: z.string().regex(SHARED_MEDIA_ID_RE),
+    mediaId: z.string().regex(SHARED_MEDIA_ID_RE),
+    variant: z.enum(SHARED_MEDIA_VARIANTS),
+  });
+
+  // Upload (idempotent overwrite) one ciphertext variant. Raw
+  // application/octet-stream body streamed to disk under a per-variant cap.
+  app.put(
+    "/api/share-media/:caseId/:mediaId/:variant",
+    authenticateToken,
+    sharedMediaRateLimiter,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      const params = sharedMediaParamsSchema.safeParse(req.params);
+      if (!params.success) {
+        req.resume();
+        res.status(400).json({ error: "Invalid media reference" });
+        return;
+      }
+      const { caseId, mediaId, variant } = params.data;
+
+      const contentType = req.headers["content-type"] ?? "";
+      if (!contentType.startsWith("application/octet-stream")) {
+        req.resume();
+        res.status(415).json({
+          error: "Media uploads must be application/octet-stream",
+        });
+        return;
+      }
+
+      const authTagHeader = req.header("x-opus-auth-tag");
+      const authTag = authTagHeader ? authTagHeader.toLowerCase() : null;
+      if (authTag && !AUTH_TAG_RE.test(authTag)) {
+        req.resume();
+        res.status(400).json({ error: "Invalid auth tag" });
+        return;
+      }
+
+      const dest = sharedMediaPath(
+        sharedMediaRoot,
+        req.userId!,
+        caseId,
+        mediaId,
+        variant,
+      );
+      if (!dest) {
+        req.resume();
+        res.status(400).json({ error: "Invalid media reference" });
+        return;
+      }
+
+      let byteSize: number;
+      try {
+        byteSize = await streamBodyToFile(
+          req,
+          dest,
+          SHARED_MEDIA_MAX_BYTES[variant],
+        );
+      } catch (error) {
+        if (error instanceof BodyTooLargeError) {
+          res.status(413).json({
+            error: `Photo exceeds the ${Math.round(error.maxBytes / (1024 * 1024))} MB limit`,
+          });
+          return;
+        }
+        respondInternalError(
+          res,
+          "shared media upload error",
+          error,
+          "Failed to store photo",
+        );
+        return;
+      }
+
+      if (byteSize === 0) {
+        await fs.promises.rm(dest, { force: true });
+        res.status(400).json({ error: "Empty upload" });
+        return;
+      }
+
+      try {
+        await storage.upsertSharedCaseMedia({
+          ownerUserId: req.userId!,
+          caseId,
+          mediaId,
+          variant,
+          byteSize,
+          authTag,
+        });
+        res.status(201).json({ mediaId, variant, byteSize });
+      } catch (error) {
+        await fs.promises.rm(dest, { force: true });
+        respondInternalError(
+          res,
+          "shared media ledger error",
+          error,
+          "Failed to record photo",
+        );
+      }
+    },
+  );
+
+  // What the server holds for one of the owner's cases — the reconciliation
+  // source of truth (survives app reinstall, unlike any local upload set).
+  app.get(
+    "/api/share-media/:caseId",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      const caseId = req.params.caseId ?? "";
+      if (!SHARED_MEDIA_ID_RE.test(caseId)) {
+        res.status(400).json({ error: "Invalid case reference" });
+        return;
+      }
+      try {
+        const rows = await storage.listSharedCaseMedia(req.userId!, caseId);
+        res.json({
+          media: rows.map((r) => ({
+            mediaId: r.mediaId,
+            variant: r.variant,
+            byteSize: r.byteSize,
+            authTag: r.authTag,
+          })),
+        });
+      } catch (error) {
+        respondInternalError(
+          res,
+          "shared media list error",
+          error,
+          "Failed to list photos",
+        );
+      }
+    },
+  );
+
+  // Owner removed a photo from the case — drop both variants.
+  app.delete(
+    "/api/share-media/:caseId/:mediaId",
+    authenticateToken,
+    sharedMediaRateLimiter,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      const caseId = req.params.caseId ?? "";
+      const mediaId = req.params.mediaId ?? "";
+      if (
+        !SHARED_MEDIA_ID_RE.test(caseId) ||
+        !SHARED_MEDIA_ID_RE.test(mediaId)
+      ) {
+        res.status(400).json({ error: "Invalid media reference" });
+        return;
+      }
+      try {
+        await removeMediaFiles(sharedMediaRoot, req.userId!, caseId, mediaId);
+        const removed = await storage.deleteSharedCaseMedia(
+          req.userId!,
+          caseId,
+          mediaId,
+        );
+        res.json({ success: true, removed });
+      } catch (error) {
+        respondInternalError(
+          res,
+          "shared media delete error",
+          error,
+          "Failed to delete photo",
+        );
+      }
+    },
+  );
+
+  // Recipient (or owner) downloads one ciphertext variant. Keyed by the
+  // share row, not by (owner, caseId): case ids are client-minted and only
+  // unique per owner, and the row is what grants access.
+  app.get(
+    "/api/shared/:sharedCaseId/media/:mediaId/:variant",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      const mediaId = req.params.mediaId ?? "";
+      const variant = req.params.variant ?? "";
+      if (!SHARED_MEDIA_ID_RE.test(mediaId) || !isSharedMediaVariant(variant)) {
+        res.status(400).json({ error: "Invalid media reference" });
+        return;
+      }
+      try {
+        const row = await storage.getSharedCaseById(req.params.sharedCaseId!);
+        if (!row) {
+          res.status(404).json({ error: "Shared case not found" });
+          return;
+        }
+        if (!resolveSharedMediaAccess(row, req.userId!)) {
+          res.status(403).json({ error: "Access denied" });
+          return;
+        }
+        const file = sharedMediaPath(
+          sharedMediaRoot,
+          row.ownerUserId,
+          row.caseId,
+          mediaId,
+          variant,
+        );
+        if (!file || !fs.existsSync(file)) {
+          res.status(404).json({ error: "Photo not uploaded yet" });
+          return;
+        }
+        res.sendFile(file, {
+          headers: {
+            "Content-Type": "application/octet-stream",
+            "Cache-Control": "private, no-store",
+          },
+        });
+      } catch (error) {
+        respondInternalError(
+          res,
+          "shared media download error",
+          error,
+          "Failed to fetch photo",
+        );
       }
     },
   );

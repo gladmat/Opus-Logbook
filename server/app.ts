@@ -7,6 +7,7 @@ import helmet from "helmet";
 import { env } from "./env";
 import { registerRoutes, authenticateToken } from "./routes";
 import { authRateLimiter } from "./rateLimit";
+import { resolvedUploadsDir } from "./uploadsDir";
 import { Sentry } from "./sentry";
 import { logger } from "./logger";
 
@@ -70,12 +71,29 @@ function setupBodyParsing(app: Express) {
     limit: "5mb",
   });
 
+  // Share blobs carry the full diagnosis-group tree plus (2.25.0) one
+  // descriptor per shared photo, then double through the hex `case:v1:`
+  // envelope — a 50-photo hand-trauma case can brush the 256kb API tier.
+  // Media BYTES never come through JSON: the `/api/share-media` PUT streams
+  // an octet-stream body straight to disk, which `express.json` ignores
+  // by content-type.
+  const shareJsonParser = express.json({ limit: "1mb" });
+  const shareUrlencodedParser = express.urlencoded({
+    extended: false,
+    limit: "1mb",
+  });
+
   // Auth endpoints get the per-IP rate limiter mounted before the body
   // parser so a flood of requests doesn't trigger expensive JSON parsing
   // before being rejected.
   app.use("/api/auth", authRateLimiter, authJsonParser, authUrlencodedParser);
   app.use("/api/profile/picture", bulkJsonParser, bulkUrlencodedParser);
   app.use("/api/seed-snomed-ref", bulkJsonParser, bulkUrlencodedParser);
+  app.use(
+    ["/api/share", "/api/shared"],
+    shareJsonParser,
+    shareUrlencodedParser,
+  );
   app.use("/api", apiJsonParser, apiUrlencodedParser);
   app.use(express.json({ limit: "256kb" }));
   app.use(express.urlencoded({ extended: false, limit: "256kb" }));
@@ -307,7 +325,7 @@ function configureExpoAndLanding(app: Express) {
       // otherwise a thrown verify would leave the request hanging forever.
       authenticateToken(req, res, next).catch(next);
     },
-    express.static(path.resolve(process.cwd(), "uploads")),
+    express.static(resolvedUploadsDir),
   );
   app.use("/assets", express.static(path.resolve(process.cwd(), "assets")));
   app.use(express.static(path.resolve(process.cwd(), "static-build")));

@@ -10,6 +10,8 @@ import {
   serial,
   uniqueIndex,
   index,
+  primaryKey,
+  check,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -356,6 +358,56 @@ export const insertCaseKeyEnvelopeSchema = createInsertSchema(
 
 export type CaseKeyEnvelope = typeof caseKeyEnvelopes.$inferSelect;
 export type InsertCaseKeyEnvelope = z.infer<typeof insertCaseKeyEnvelopeSchema>;
+
+/**
+ * Ledger of encrypted shared-case media ciphertext held on the uploads
+ * volume at `{UPLOADS_DIR}/shared-media/{owner}/{case}/{media}.{variant}.enc`.
+ * The server never sees the per-image key (it rides inside the E2EE share
+ * blob); this table only records existence, size and the AES-GCM auth tag
+ * so owners can reconcile uploads and revoke/delete can clean up. Keyed on
+ * (owner, case, media, variant) — `case_id` is a client-side id that is
+ * only unique per owner, and one ciphertext serves every recipient.
+ */
+export const sharedCaseMedia = pgTable(
+  "shared_case_media",
+  {
+    ownerUserId: varchar("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    caseId: varchar("case_id", { length: 64 }).notNull(),
+    mediaId: varchar("media_id", { length: 64 }).notNull(),
+    variant: varchar("variant", { length: 8 }).notNull(),
+    byteSize: integer("byte_size").notNull(),
+    authTag: varchar("auth_tag", { length: 32 }),
+    createdAt: timestamp("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: timestamp("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => [
+    primaryKey({
+      name: "shared_case_media_pkey",
+      columns: [t.ownerUserId, t.caseId, t.mediaId, t.variant],
+    }),
+    index("shared_case_media_owner_case_idx").on(t.ownerUserId, t.caseId),
+    check(
+      "shared_case_media_variant_check",
+      sql`${t.variant} in ('thumb', 'image')`,
+    ),
+  ],
+);
+
+export const insertSharedCaseMediaSchema = createInsertSchema(
+  sharedCaseMedia,
+).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type SharedCaseMedia = typeof sharedCaseMedia.$inferSelect;
+export type InsertSharedCaseMedia = z.infer<typeof insertSharedCaseMediaSchema>;
 
 export const caseAssessments = pgTable(
   "case_assessments",
