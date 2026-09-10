@@ -37,8 +37,10 @@ const downloadSharedMediaVariant = vi.fn(
     const bytes = serverFiles.get(`${mediaId}:${variant}`);
     if (!bytes) throw new Error("UnableToDownload 404");
     writeMockFile(destination.uri, bytes);
-    const { File } = await import("expo-file-system");
-    return new File(destination.uri);
+    // Return the SAME object the caller passed (as the real transport
+    // does) — `File.move` later mutates its `uri`, which is exactly the
+    // trap a temp-cleanup step must not fall into.
+    return destination;
   },
 );
 vi.mock("../sharedMediaApi", () => ({
@@ -129,6 +131,8 @@ describe("recipient import", () => {
     expect(meta!.thumbTag).toBe(d.thumb!.tag);
     // Re-wrapped under OUR master key, not the owner's.
     expect(await hasMediaVariantV2(d.mediaId, "thumb")).toBe(true);
+    // The moved ciphertext must survive temp cleanup.
+    expect(getMediaPaths(d.mediaId).thumb.exists).toBe(true);
     expect(await hasMediaVariantV2(d.mediaId, "full")).toBe(false);
     expect(await hasMediaV2(d.mediaId)).toBe(false);
     expect(await decryptLocal(d.mediaId, "thumb")).toEqual(THUMB);
@@ -218,5 +222,75 @@ describe("recipient import", () => {
         sources: {},
       }),
     ).rejects.toThrow(/Invalid shared media descriptor/);
+  });
+});
+
+describe("shared device / stale meta (2.25.0 hardening)", () => {
+  const OTHER_ACCOUNT = new Uint8Array(32).fill(99);
+
+  beforeEach(() => {
+    resetMockExpoFileSystem();
+    serverFiles.clear();
+    downloadSharedMediaVariant.mockClear();
+  });
+
+  it("another account's OWNED copy on the same device is never re-keyed; the thumb is not offered for cards", async () => {
+    // Owner saves the photo on this device (has image.enc) under a
+    // different master key, then shares it — the recipient account signs
+    // in on the SAME device.
+    writeMockFile("file:///cache/src.jpg", PLAIN);
+    writeMockFile("file:///cache/thumb.jpg", THUMB);
+    const uri = await saveMediaV2(
+      "file:///cache/src.jpg",
+      "file:///cache/thumb.jpg",
+      "image/jpeg",
+      OTHER_ACCOUNT,
+      100,
+      80,
+    );
+    const mediaId = uri.slice("opus-media:".length);
+    const { descriptors } = await buildSharedMediaDescriptors(
+      [{ id: "x", localUri: uri, mimeType: "image/jpeg", createdAt: "x" }],
+      OTHER_ACCOUNT,
+    );
+    const d = descriptors[0]!;
+    serverFiles.set(
+      `${mediaId}:thumb`,
+      readMockFileBytes(getMediaPaths(mediaId).thumb.uri),
+    );
+    const before = (await readMeta(mediaId))!.wrappedDEK;
+
+    await expect(
+      ensureSharedMediaVariant("share-1", d, "thumb"),
+    ).rejects.toThrow(/another account/);
+    expect((await readMeta(mediaId))!.wrappedDEK).toBe(before);
+    expect(await listLocalSharedThumbIds([d])).toEqual(new Set());
+  });
+
+  it("a stale partial import keyed to the wrong key is re-keyed from the descriptor", async () => {
+    const d = await publishFromOwner();
+    // Simulate a bad earlier import: thumb present, meta wrapped under a key
+    // this account does not hold.
+    await importEncryptedMediaV2({
+      mediaId: d.mediaId,
+      masterKey: OTHER_ACCOUNT,
+      dekHex: d.dekHex,
+      mimeType: d.mimeType,
+      width: d.width,
+      height: d.height,
+      image: d.image,
+      thumb: d.thumb,
+      createdAt: d.createdAt,
+      sources: {},
+    });
+    writeMockFile(
+      getMediaPaths(d.mediaId).thumb.uri,
+      serverFiles.get(`${d.mediaId}:thumb`)!,
+    );
+    expect(await listLocalSharedThumbIds([d])).toEqual(new Set());
+
+    expect(await ensureSharedMediaVariant("share-1", d, "thumb")).toBe(true);
+    expect(await listLocalSharedThumbIds([d])).toEqual(new Set([d.mediaId]));
+    expect(await decryptLocal(d.mediaId, "thumb")).toEqual(THUMB);
   });
 });

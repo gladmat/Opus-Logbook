@@ -15,6 +15,7 @@ import { Directory, File, Paths } from "expo-file-system";
 import type { SharedMediaDescriptor } from "@/types/sharing";
 import { getMasterKeyBytes } from "./encryption";
 import {
+  canUnwrapMediaKey,
   deleteMultipleMediaV2,
   hasMediaVariantV2,
   importEncryptedMediaV2,
@@ -45,10 +46,23 @@ export async function ensureSharedMediaVariant(
 ): Promise<boolean> {
   if (variant === "thumb" && !descriptor.thumb) return false;
   const local = variant === "thumb" ? "thumb" : "full";
-  if (await hasMediaVariantV2(descriptor.mediaId, local)) return false;
+  const masterKey = await getMasterKeyBytes();
+  // Present AND readable under our key → nothing to do. Present but keyed
+  // to another account (shared device) or a stale partial import → fall
+  // through; the import decides whether re-keying is safe.
+  if (
+    (await hasMediaVariantV2(descriptor.mediaId, local)) &&
+    (await canUnwrapMediaKey(descriptor.mediaId, masterKey))
+  ) {
+    return false;
+  }
 
   const temp = new File(downloadDir(), `${descriptor.mediaId}.${variant}.enc`);
   if (temp.exists) temp.delete();
+  // `File.move` (used by the import) rewrites the SAME object's `uri` to
+  // the destination, so cleanup must go by the original temp path — not
+  // via `temp.exists`, which would then point at the imported file.
+  const tempUri = temp.uri;
 
   try {
     const downloaded = await downloadSharedMediaVariant(
@@ -68,7 +82,7 @@ export async function ensureSharedMediaVariant(
     }
     await importEncryptedMediaV2({
       mediaId: descriptor.mediaId,
-      masterKey: await getMasterKeyBytes(),
+      masterKey,
       dekHex: descriptor.dekHex,
       mimeType: descriptor.mimeType,
       width: descriptor.width,
@@ -81,9 +95,10 @@ export async function ensureSharedMediaVariant(
     });
     return true;
   } finally {
-    if (temp.exists) {
+    const leftover = new File(tempUri);
+    if (leftover.exists) {
       try {
-        temp.delete();
+        leftover.delete();
       } catch {
         // Best-effort temp cleanup.
       }
@@ -125,13 +140,25 @@ export async function importSharedThumbs(
   return result;
 }
 
-/** Which of a case's shared photos already have a local thumbnail. */
+/**
+ * Which of a case's shared photos already have a local thumbnail THAT THIS
+ * ACCOUNT CAN OPEN. On a device shared by owner and recipient the owner's
+ * copy exists but is keyed to them — offering it as a card thumbnail would
+ * render an error tile, so it is excluded.
+ */
 export async function listLocalSharedThumbIds(
   descriptors: SharedMediaDescriptor[] | undefined,
 ): Promise<Set<string>> {
   const ids = new Set<string>();
-  for (const d of descriptors ?? []) {
-    if (await hasMediaVariantV2(d.mediaId, "thumb")) ids.add(d.mediaId);
+  if (!descriptors?.length) return ids;
+  const masterKey = await getMasterKeyBytes();
+  for (const d of descriptors) {
+    if (
+      (await hasMediaVariantV2(d.mediaId, "thumb")) &&
+      (await canUnwrapMediaKey(d.mediaId, masterKey))
+    ) {
+      ids.add(d.mediaId);
+    }
   }
   return ids;
 }

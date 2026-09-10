@@ -336,11 +336,27 @@ export async function importEncryptedMediaV2(
 
   // Reuse an existing wrapped key for this id when present (second variant
   // arriving), otherwise wrap the shared DEK under our own master key.
+  // Reuse the existing wrapped key for this id only when OUR master key
+  // can open it (second variant arriving). A meta that doesn't unwrap is
+  // either another account's item on a shared device — never touched when
+  // it carries a full image we didn't bring — or a stale partial import,
+  // which is safe to re-key from the descriptor's DEK.
   const existing = await readMeta(mediaId);
-  let wrappedDEK: string;
+  let wrappedDEK: string | null = null;
   if (existing) {
-    wrappedDEK = existing.wrappedDEK;
-  } else {
+    try {
+      const probe = await unwrapDek(hexToBytes(existing.wrappedDEK), masterKey);
+      probe.fill(0);
+      wrappedDEK = existing.wrappedDEK;
+    } catch {
+      if (paths.image.exists && !sources.image) {
+        throw new Error(
+          `Media ${mediaId} belongs to another account on this device`,
+        );
+      }
+    }
+  }
+  if (!wrappedDEK) {
     const dek = hexToBytes(dekHex);
     try {
       wrappedDEK = bytesToHex(await wrapDek(dek, masterKey));
@@ -397,6 +413,27 @@ async function unwrapMediaDek(
   masterKey: Uint8Array,
 ): Promise<Uint8Array> {
   return unwrapDek(hexToBytes(meta.wrappedDEK), masterKey);
+}
+
+/**
+ * Can THIS master key open the item's wrapped DEK? False for media that
+ * belongs to another account on the same device (the store is device-
+ * global, keys are per-user) and for a meta left behind by a failed
+ * import. Never throws.
+ */
+export async function canUnwrapMediaKey(
+  mediaId: string,
+  masterKey: Uint8Array,
+): Promise<boolean> {
+  const meta = await readMeta(mediaId);
+  if (!meta) return false;
+  try {
+    const dek = await unwrapMediaDek(meta, masterKey);
+    dek.fill(0);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
