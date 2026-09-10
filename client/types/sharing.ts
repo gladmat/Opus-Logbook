@@ -103,6 +103,12 @@ export interface UserSearchResult {
 
 // ── EPA / Assessment types ───────────────────────────────────────────────────
 
+/** Which side of the double-blind pair a party is on. Persisted server-side
+ *  on `case_assessments.assessorRole` and, since 2.25.0, on the local
+ *  `RevealedAssessmentPair.viewerRole` so every reveal / analytics surface
+ *  can address the viewer correctly. */
+export type AssessorRole = "supervisor" | "trainee";
+
 export type EntrustmentLevel = 1 | 2 | 3 | 4 | 5;
 export type TeachingQualityLevel = 1 | 2 | 3 | 4 | 5;
 
@@ -175,6 +181,23 @@ export const AUTONOMY_MATCH_DESCRIPTIONS: Record<AutonomyMatchLevel, string> = {
 };
 
 /**
+ * The same anchors re-voiced for the SUPERVISOR reading the trainee's answer
+ * at reveal. The first-person map above is what the trainee ticked; showing
+ * it verbatim to the supervisor reads as if the supervisor were describing
+ * themselves.
+ */
+export const AUTONOMY_MATCH_DESCRIPTIONS_FOR_SUPERVISOR: Record<
+  AutonomyMatchLevel,
+  string
+> = {
+  1: "They were ready for more responsibility than they were given this case",
+  2: "They felt they could have done a little more",
+  3: "The autonomy you gave fit what they could handle",
+  4: "They were given a bit more than they were ready for",
+  5: "They were given more responsibility than they could handle this case",
+};
+
+/**
  * Part B of the trainee instrument (v2): three BID (Briefing /
  * Intraoperative teaching / Debriefing) behaviour-frequency items, each
  * per-case attainable.
@@ -199,6 +222,15 @@ export const BID_ITEM_PROMPTS: Record<BidItemKey, string> = {
   intraop:
     "During the case I got useful guidance or feedback at the right moments",
   debrief: "After the case we discussed how I did and how to improve",
+};
+
+/** Supervisor-facing wording of the BID prompts (see
+ *  `AUTONOMY_MATCH_DESCRIPTIONS_FOR_SUPERVISOR`). */
+export const BID_ITEM_PROMPTS_FOR_SUPERVISOR: Record<BidItemKey, string> = {
+  briefing: "Before or early in the case, you agreed what they would focus on",
+  intraop:
+    "During the case they got useful guidance or feedback at the right moments",
+  debrief: "After the case you discussed how they did and how to improve",
 };
 
 export const BID_ITEM_LABELS: Record<BidItemLevel, string> = {
@@ -282,4 +314,11 @@ export interface RevealedAssessmentPair {
   bid?: BidBehaviours;
   /** "PS" on every target-derived record (2.23.0+). */
   traineeOperativeRole?: TeamMemberOperativeRole;
+  /**
+   * Which side the LOCAL user was on when this pair was revealed (2.25.0+).
+   * Drives audience-aware copy on the reveal screen and the role split in
+   * training analytics. Absent on records written before 2.25.0 — readers
+   * backfill it from the locally stored own assessment where possible.
+   */
+  viewerRole?: AssessorRole;
 }

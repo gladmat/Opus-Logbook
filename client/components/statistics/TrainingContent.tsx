@@ -31,7 +31,14 @@ import {
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
 
 interface TrainingContentProps {
+  /** Orders the two views when both render; no longer gates either. */
   isConsultant: boolean;
+  /** Full pairs where the viewer supervised — renders the teaching view. */
+  hasSupervisorPairs?: boolean;
+  /** Full pairs where the viewer was assessed — renders the learner view. */
+  hasTraineePairs?: boolean;
+  /** Pre-2.25.0 pairs whose side is unknown — shown as a footnote only. */
+  unattributedCount?: number;
   learningCurves: ProcedureLearningCurve[];
   teachingAggregate: TeachingAggregate | null;
   calibrationScore: CalibrationScore | null;
@@ -173,7 +180,6 @@ function TraineeView({
   exposureCaseCount: number;
 }) {
   const { theme } = useTheme();
-  const navigation = useNavigation<NavProp>();
 
   return (
     <>
@@ -366,18 +372,6 @@ function TraineeView({
             ))}
         </>
       )}
-
-      {/* See all assessments link */}
-      <Pressable
-        onPress={() => navigation.navigate("AssessmentHistory")}
-        style={styles.seeAllLink}
-        accessibilityRole="button"
-      >
-        <ThemedText style={[styles.seeAllText, { color: theme.link }]}>
-          See all assessments
-        </ThemedText>
-        <Feather name="chevron-right" size={16} color={theme.link} />
-      </Pressable>
     </>
   );
 }
@@ -387,14 +381,11 @@ function TraineeView({
 function SupervisorView({
   teachingAggregate,
   entrustmentDistribution,
-  learningCurves,
 }: {
   teachingAggregate: TeachingAggregate | null;
   entrustmentDistribution: { level: number; count: number }[];
-  learningCurves: ProcedureLearningCurve[];
 }) {
   const { theme } = useTheme();
-  const navigation = useNavigation<NavProp>();
 
   const totalAssessmentCount = entrustmentDistribution.reduce(
     (s, d) => s + d.count,
@@ -541,45 +532,26 @@ function SupervisorView({
           />
         </>
       )}
-
-      {/* Own learning curves (supervisor is also a learner) */}
-      {learningCurves.length > 0 && (
-        <>
-          <SectionHeader title="Your Learning Curves" />
-          {learningCurves
-            .filter((c) => c.points.length >= 2)
-            .map((curve) => (
-              <View key={curve.procedureCode} style={styles.cardGap}>
-                <SpecialtyDeepDiveCard
-                  label={curve.procedureDisplayName}
-                  caseCount={curve.totalCases}
-                  color={theme.info}
-                  heroMetric={{
-                    label: "Latest",
-                    value: `Level ${curve.latestRating}`,
-                  }}
-                  minCasesForDetail={2}
-                  testID={`statistics.training.curve-${curve.procedureCode}`}
-                >
-                  <DotPlotChart points={curve.points} />
-                </SpecialtyDeepDiveCard>
-              </View>
-            ))}
-        </>
-      )}
-
-      {/* See all assessments link */}
-      <Pressable
-        onPress={() => navigation.navigate("AssessmentHistory")}
-        style={styles.seeAllLink}
-        accessibilityRole="button"
-      >
-        <ThemedText style={[styles.seeAllText, { color: theme.link }]}>
-          See all assessments
-        </ThemedText>
-        <Feather name="chevron-right" size={16} color={theme.link} />
-      </Pressable>
     </>
+  );
+}
+
+// ── See-all link ─────────────────────────────────────────────────────────────
+
+function SeeAllAssessmentsLink() {
+  const { theme } = useTheme();
+  const navigation = useNavigation<NavProp>();
+  return (
+    <Pressable
+      onPress={() => navigation.navigate("AssessmentHistory")}
+      style={styles.seeAllLink}
+      accessibilityRole="button"
+    >
+      <ThemedText style={[styles.seeAllText, { color: theme.link }]}>
+        See all assessments
+      </ThemedText>
+      <Feather name="chevron-right" size={16} color={theme.link} />
+    </Pressable>
   );
 }
 
@@ -587,6 +559,9 @@ function SupervisorView({
 
 export const TrainingContent = React.memo(function TrainingContent({
   isConsultant,
+  hasSupervisorPairs,
+  hasTraineePairs,
+  unattributedCount = 0,
   learningCurves,
   teachingAggregate,
   calibrationScore,
@@ -597,6 +572,7 @@ export const TrainingContent = React.memo(function TrainingContent({
   autonomyGap = null,
   exposureCaseCount = 0,
 }: TrainingContentProps) {
+  const { theme } = useTheme();
   if (isEmpty) {
     return (
       <EmptyTraining
@@ -606,23 +582,62 @@ export const TrainingContent = React.memo(function TrainingContent({
     );
   }
 
+  // 2.25.0: the two views are DATA-driven, not profile-driven. A fellow who
+  // supervises juniors and is supervised by consultants sees both; the
+  // career stage only decides which comes first. Callers that predate the
+  // split (no flags passed) fall back to the old profile switch.
+  const showSupervisor =
+    hasSupervisorPairs ??
+    (hasTraineePairs === undefined ? isConsultant : false);
+  const showTrainee =
+    hasTraineePairs ??
+    (hasSupervisorPairs === undefined ? !isConsultant : false);
+
+  const supervisorView = showSupervisor ? (
+    <View testID="statistics.training.view-supervisor">
+      <SupervisorView
+        teachingAggregate={teachingAggregate}
+        entrustmentDistribution={entrustmentDistribution}
+      />
+    </View>
+  ) : null;
+  const traineeView = showTrainee ? (
+    <View testID="statistics.training.view-trainee">
+      <TraineeView
+        learningCurves={learningCurves}
+        calibrationScore={calibrationScore}
+        autonomyGap={autonomyGap}
+        trainingOverview={trainingOverview}
+        exposureCaseCount={exposureCaseCount}
+      />
+    </View>
+  ) : null;
+
   return (
     <View style={styles.content}>
       {isConsultant ? (
-        <SupervisorView
-          teachingAggregate={teachingAggregate}
-          entrustmentDistribution={entrustmentDistribution}
-          learningCurves={learningCurves}
-        />
+        <>
+          {supervisorView}
+          {traineeView}
+        </>
       ) : (
-        <TraineeView
-          learningCurves={learningCurves}
-          calibrationScore={calibrationScore}
-          autonomyGap={autonomyGap}
-          trainingOverview={trainingOverview}
-          exposureCaseCount={exposureCaseCount}
-        />
+        <>
+          {traineeView}
+          {supervisorView}
+        </>
       )}
+      {unattributedCount > 0 ? (
+        <ThemedText
+          style={[styles.unattributedNote, { color: theme.textTertiary }]}
+          testID="statistics.training.unattributed"
+        >
+          {unattributedCount === 1
+            ? "1 older assessment"
+            : `${unattributedCount} older assessments`}{" "}
+          could not be attributed to a side and {"aren't"} counted here.
+        </ThemedText>
+      ) : null}
+      <SeeAllAssessmentsLink />
     </View>
   );
 });
@@ -735,6 +750,13 @@ const styles = StyleSheet.create({
   },
 
   // See all link
+  unattributedNote: {
+    fontSize: 12,
+    lineHeight: 16,
+    textAlign: "center",
+    marginTop: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+  },
   seeAllLink: {
     flexDirection: "row",
     alignItems: "center",

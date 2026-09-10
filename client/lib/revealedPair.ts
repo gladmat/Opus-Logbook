@@ -15,6 +15,7 @@
 
 import type {
   AssessmentProcedureRef,
+  AssessorRole,
   EntrustmentLevel,
   RevealedAssessmentPair,
   SupervisorAssessment,
@@ -29,8 +30,12 @@ export function buildRevealedPair(params: {
   revealedAt: string;
   /** Used only when neither payload carries attribution (legacy). */
   fallbackProcedure: AssessmentProcedureRef;
+  /** Which side the LOCAL user is on — persisted so the reveal screen and
+   *  analytics can address the viewer without a network round-trip. */
+  viewerRole: AssessorRole;
 }): RevealedAssessmentPair {
-  const { supervisor, trainee, revealedAt, fallbackProcedure } = params;
+  const { supervisor, trainee, revealedAt, fallbackProcedure, viewerRole } =
+    params;
   const partial = !supervisor || !trainee;
   const procedure =
     supervisor?.procedure ??
@@ -51,6 +56,7 @@ export function buildRevealedPair(params: {
     procedureDisplayName: procedure.procedureDisplayName,
     partial,
     instrumentVersion: trainee ? (isTraineeAssessmentV2(trainee) ? 2 : 1) : 1,
+    viewerRole,
   };
   if (supervisor?.narrativeFeedback) {
     pair.supervisorNarrative = supervisor.narrativeFeedback;
@@ -82,4 +88,20 @@ export function isFullRevealedPair(pair: RevealedAssessmentPair): boolean {
   if (pair.partial === true) return false;
   if (pair.partial === false) return true;
   return pair.supervisorEntrustment > 0 && pair.traineeSelfEntrustment > 0;
+}
+
+/**
+ * Backfill for pairs written before `viewerRole` existed: the locally
+ * stored OWN assessment tells us which form the viewer filled in. A
+ * supervisor payload carries `entrustmentRating`; a trainee payload carries
+ * `selfEntrustmentRating`. Null when there is no local record (e.g. the
+ * pair was cached on a device that never authored the assessment).
+ */
+export function inferViewerRoleFromOwnAssessment(
+  own: SupervisorAssessment | TraineeAssessment | null | undefined,
+): AssessorRole | null {
+  if (!own || typeof own !== "object") return null;
+  if ("entrustmentRating" in own) return "supervisor";
+  if ("selfEntrustmentRating" in own) return "trainee";
+  return null;
 }

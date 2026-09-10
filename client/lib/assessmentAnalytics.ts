@@ -41,6 +41,52 @@ export function fullPairsOnly(
   return pairs.filter(isFullRevealedPair);
 }
 
+// ── Viewer-role split (2.25.0) ───────────────────────────────────────────────
+
+/**
+ * A fellow both supervises juniors and is supervised by consultants, so the
+ * local revealed-pair store mixes "pairs where I taught" with "pairs where
+ * I was assessed". Every trainee-facing analytic (learning curves,
+ * calibration, autonomy gap) must run over the latter only, and every
+ * supervisor-facing analytic (teaching aggregate, entrustment given) over
+ * the former only. Records without `viewerRole` (pre-2.25.0, no local own
+ * assessment to backfill from) are reported separately and excluded from
+ * BOTH sides rather than guessed.
+ */
+export interface ViewerRoleSplit {
+  asTrainee: RevealedPairWithContext[];
+  asSupervisor: RevealedPairWithContext[];
+  unattributed: RevealedPairWithContext[];
+}
+
+export function splitPairsByViewerRole(
+  pairs: RevealedPairWithContext[],
+): ViewerRoleSplit {
+  const split: ViewerRoleSplit = {
+    asTrainee: [],
+    asSupervisor: [],
+    unattributed: [],
+  };
+  for (const pair of pairs) {
+    if (pair.viewerRole === "trainee") split.asTrainee.push(pair);
+    else if (pair.viewerRole === "supervisor") split.asSupervisor.push(pair);
+    else split.unattributed.push(pair);
+  }
+  return split;
+}
+
+export function pairsAsTrainee(
+  pairs: RevealedPairWithContext[],
+): RevealedPairWithContext[] {
+  return splitPairsByViewerRole(pairs).asTrainee;
+}
+
+export function pairsAsSupervisor(
+  pairs: RevealedPairWithContext[],
+): RevealedPairWithContext[] {
+  return splitPairsByViewerRole(pairs).asSupervisor;
+}
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export interface LearningCurvePoint {

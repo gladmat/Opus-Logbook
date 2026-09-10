@@ -445,6 +445,9 @@ export default function StatisticsScreen() {
       {activeTab === "training" ? (
         <TrainingContent
           isConsultant={trainingStats.isConsultant}
+          hasSupervisorPairs={trainingStats.hasSupervisorPairs}
+          hasTraineePairs={trainingStats.hasTraineePairs}
+          unattributedCount={trainingStats.unattributedCount}
           learningCurves={trainingStats.learningCurves}
           teachingAggregate={trainingStats.teachingAggregate}
           calibrationScore={trainingStats.calibrationScore}

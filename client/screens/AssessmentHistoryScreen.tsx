@@ -61,6 +61,16 @@ const AssessmentRow = React.memo(function AssessmentRow({
     pair.supervisorEntrustment - pair.traineeSelfEntrustment,
   );
   const gapColor = calibrationGapColor(gap, theme);
+  // 2.25.0: label the two columns for the viewer. Role-less legacy rows
+  // keep the neutral "Supervisor" / "Self" pair.
+  const supervisorLabel =
+    pair.viewerRole === "supervisor" ? "You" : "Supervisor";
+  const selfLabel =
+    pair.viewerRole === "supervisor"
+      ? "Trainee"
+      : pair.viewerRole === "trainee"
+        ? "You"
+        : "Self";
 
   return (
     <View
@@ -109,7 +119,7 @@ const AssessmentRow = React.memo(function AssessmentRow({
           <ThemedText
             style={[styles.ratingLabel, { color: theme.textTertiary }]}
           >
-            Supervisor
+            {supervisorLabel}
           </ThemedText>
           <ThemedText style={[styles.ratingValue, { color: theme.success }]}>
             {pair.supervisorEntrustment}
@@ -136,7 +146,7 @@ const AssessmentRow = React.memo(function AssessmentRow({
           <ThemedText
             style={[styles.ratingLabel, { color: theme.textTertiary }]}
           >
-            Self
+            {selfLabel}
           </ThemedText>
           <ThemedText style={[styles.ratingValue, { color: theme.info }]}>
             {pair.traineeSelfEntrustment}

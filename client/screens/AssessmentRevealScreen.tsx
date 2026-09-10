@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
 import type {
+  AssessorRole,
   EntrustmentLevel,
   RevealedAssessmentPair,
   SupervisorAssessment,
@@ -25,9 +26,11 @@ import {
   ENTRUSTMENT_LABELS,
   AUTONOMY_MATCH_LABELS,
   AUTONOMY_MATCH_DESCRIPTIONS,
+  AUTONOMY_MATCH_DESCRIPTIONS_FOR_SUPERVISOR,
   BID_ITEM_KEYS,
   BID_ITEM_TITLES,
   BID_ITEM_PROMPTS,
+  BID_ITEM_PROMPTS_FOR_SUPERVISOR,
   BID_ITEM_LABELS,
   teachingQualityLabel,
 } from "@/types/sharing";
@@ -36,9 +39,15 @@ import {
   getRevealedPair,
   saveRevealedPair,
   getMyAssessment,
+  backfillViewerRole,
 } from "@/lib/assessmentStorage";
 import { getDecryptedSharedCase } from "@/lib/sharingStorage";
-import { buildRevealedPair, isFullRevealedPair } from "@/lib/revealedPair";
+import {
+  buildRevealedPair,
+  isFullRevealedPair,
+  inferViewerRoleFromOwnAssessment,
+} from "@/lib/revealedPair";
+import { getEntrustmentGapInfo } from "@/lib/entrustmentGap";
 import { resolveAssessmentProcedure } from "@/lib/assessmentProcedure";
 import { deriveEpaFromSharedBlob } from "@/lib/epaFromBlob";
 import {
@@ -54,57 +63,15 @@ import {
 
 type RouteProps = RouteProp<RootStackParamList, "AssessmentReveal">;
 
-// ── Calibration gap helpers ──────────────────────────────────────────────────
-
-function getGapInfo(
-  supervisorRating: EntrustmentLevel,
-  traineeRating: EntrustmentLevel,
-): { message: string; color: "success" | "warning" | "error" } {
-  const gap = supervisorRating - traineeRating;
-  const absGap = Math.abs(gap);
-
-  if (absGap === 0) {
-    return { message: "Aligned", color: "success" };
-  }
-  if (absGap === 1) {
-    if (gap > 0) {
-      return {
-        message: "You may be underestimating yourself",
-        color: "success",
-      };
-    }
-    return {
-      message: "Close alignment — minor difference",
-      color: "success",
-    };
-  }
-  if (absGap === 2) {
-    if (gap > 0) {
-      return {
-        message: "Your supervisor sees more independence than you do",
-        color: "warning",
-      };
-    }
-    return {
-      message: "Your supervisor sees room for growth here",
-      color: "warning",
-    };
-  }
-  // absGap >= 3
-  if (gap > 0) {
-    return {
-      message: "Significant gap — you may be too self-critical",
-      color: "error",
-    };
-  }
-  return {
-    message: "Significant gap — worth discussing together",
-    color: "error",
-  };
-}
-
 // ── Main screen ──────────────────────────────────────────────────────────────
 
+/**
+ * Both parties open this screen. Every card is rendered for both, but the
+ * ORDER and the VOICE follow the viewer's side of the pair: a supervisor
+ * leads with how their teaching landed, a trainee leads with the
+ * entrustment comparison. `pair.viewerRole` is persisted at reveal time and
+ * backfilled for older records from the locally stored own assessment.
+ */
 export default function AssessmentRevealScreen() {
   const { theme } = useTheme();
   const route = useRoute<RouteProps>();
@@ -134,7 +101,10 @@ export default function AssessmentRevealScreen() {
       // 1. Check local cache first. A cached PARTIAL pair (72h path) is
       // upgraded when the counterpart has since revealed — fall through to
       // the full path and overwrite it.
-      const cached = await getRevealedPair(sharedCaseId);
+      const cachedRaw = await getRevealedPair(sharedCaseId);
+      const cached = cachedRaw
+        ? await backfillViewerRole(sharedCaseId, cachedRaw)
+        : null;
       let status: Awaited<ReturnType<typeof getAssessmentStatus>> | null = null;
       if (cached) {
         if (isFullRevealedPair(cached)) {
@@ -158,6 +128,14 @@ export default function AssessmentRevealScreen() {
       // 2. Fetch from server
       if (!status) status = await getAssessmentStatus(sharedCaseId);
       const myLocalAssessment = await getMyAssessment(sharedCaseId);
+      const myRole: AssessorRole =
+        status.myAssessment?.assessorRole === "supervisor"
+          ? "supervisor"
+          : status.myAssessment?.assessorRole === "trainee"
+            ? "trainee"
+            : (inferViewerRoleFromOwnAssessment(myLocalAssessment) ??
+              "trainee");
+      const iAmSupervisor = myRole === "supervisor";
 
       // Procedure attribution: committed payloads carry it (2.23.0+);
       // the derived target / first procedure is the legacy fallback.
@@ -183,18 +161,17 @@ export default function AssessmentRevealScreen() {
 
         if (myLocalAssessment) {
           // Build a partial pair from our own assessment only
-          const isSupervisor =
-            status.myAssessment?.assessorRole === "supervisor";
           const partialPair = buildRevealedPair({
-            supervisor: isSupervisor
+            supervisor: iAmSupervisor
               ? (myLocalAssessment as SupervisorAssessment)
               : null,
-            trainee: isSupervisor
+            trainee: iAmSupervisor
               ? null
               : (myLocalAssessment as TraineeAssessment),
             revealedAt:
               status.myAssessment?.revealedAt ?? new Date().toISOString(),
             fallbackProcedure,
+            viewerRole: myRole,
           });
           setPair(partialPair);
           await saveRevealedPair(sharedCaseId, partialPair);
@@ -252,9 +229,6 @@ export default function AssessmentRevealScreen() {
         | TraineeAssessment;
 
       // 4. Build revealed pair
-      const myRole = status.myAssessment?.assessorRole;
-      const iAmSupervisor = myRole === "supervisor";
-
       const supervisorAssessment = iAmSupervisor
         ? (myLocalAssessment as SupervisorAssessment)
         : (otherAssessment as SupervisorAssessment);
@@ -267,6 +241,7 @@ export default function AssessmentRevealScreen() {
         trainee: traineeAssessment,
         revealedAt: status.myAssessment?.revealedAt ?? new Date().toISOString(),
         fallbackProcedure,
+        viewerRole: myRole,
       });
 
       setIsPartialReveal(false);
@@ -313,19 +288,355 @@ export default function AssessmentRevealScreen() {
     );
   }
 
+  // Audience. A role-less legacy record (no local own assessment to infer
+  // from) falls back to neutral column labels and the trainee wording —
+  // exactly what every viewer saw before 2.25.0.
+  const audience: AssessorRole | null = pair.viewerRole ?? null;
+  const isSupervisorView = audience === "supervisor";
+
   const hasFullPair = !isPartialReveal && isFullRevealedPair(pair);
   const gapInfo = hasFullPair
-    ? getGapInfo(pair.supervisorEntrustment, pair.traineeSelfEntrustment)
+    ? getEntrustmentGapInfo(
+        pair.supervisorEntrustment,
+        pair.traineeSelfEntrustment,
+        audience ?? "trainee",
+      )
     : null;
   const missingSide = !(pair.supervisorEntrustment > 0)
-    ? "Supervisor"
+    ? "supervisor"
     : !(pair.traineeSelfEntrustment > 0)
-      ? "Trainee"
+      ? "trainee"
       : null;
+  const missingSideLabel =
+    missingSide === "supervisor"
+      ? isSupervisorView
+        ? "you"
+        : audience === "trainee"
+          ? "your supervisor"
+          : "the supervisor"
+      : missingSide === "trainee"
+        ? isSupervisorView
+          ? "your trainee"
+          : audience === "trainee"
+            ? "you"
+            : "the trainee"
+        : null;
+
+  const supervisorColumnLabel = isSupervisorView
+    ? "You"
+    : audience === "trainee"
+      ? "Supervisor"
+      : "Supervisor";
+  const traineeColumnLabel = isSupervisorView
+    ? "Trainee (self)"
+    : audience === "trainee"
+      ? "You (self)"
+      : "Self";
+
+  const autonomyDescriptions = isSupervisorView
+    ? AUTONOMY_MATCH_DESCRIPTIONS_FOR_SUPERVISOR
+    : AUTONOMY_MATCH_DESCRIPTIONS;
+  const bidPrompts = isSupervisorView
+    ? BID_ITEM_PROMPTS_FOR_SUPERVISOR
+    : BID_ITEM_PROMPTS;
+
+  const cardStyle = [
+    styles.comparisonCard,
+    {
+      backgroundColor: theme.backgroundElevated,
+      borderColor: theme.border,
+    },
+    Shadows.card,
+  ];
+  const narrativeCardStyle = [
+    styles.narrativeCard,
+    {
+      backgroundColor: theme.backgroundElevated,
+      borderColor: theme.border,
+    },
+    Shadows.card,
+  ];
+
+  const renderRatingColumn = (
+    value: EntrustmentLevel,
+    label: string,
+    testID: string,
+  ) => (
+    <View style={styles.ratingColumn}>
+      {value > 0 ? (
+        <>
+          <ThemedText
+            testID={testID}
+            style={[styles.bigNumber, { color: theme.text }]}
+          >
+            {value}
+          </ThemedText>
+          <ThemedText
+            style={[styles.ratingRoleLabel, { color: theme.textSecondary }]}
+          >
+            {label}
+          </ThemedText>
+          <ThemedText
+            style={[styles.ratingDescription, { color: theme.textTertiary }]}
+            numberOfLines={2}
+          >
+            {ENTRUSTMENT_LABELS[value]}
+          </ThemedText>
+        </>
+      ) : (
+        <>
+          <ThemedText style={[styles.bigNumber, { color: theme.textTertiary }]}>
+            —
+          </ThemedText>
+          <ThemedText
+            style={[styles.ratingRoleLabel, { color: theme.textTertiary }]}
+          >
+            {label}
+          </ThemedText>
+          <ThemedText
+            style={[styles.ratingDescription, { color: theme.textTertiary }]}
+          >
+            Did not respond
+          </ThemedText>
+        </>
+      )}
+    </View>
+  );
+
+  const entrustmentCard = (
+    <View style={cardStyle} testID="assessmentReveal.card-entrustment">
+      <ThemedText
+        style={[styles.cardSectionTitle, { color: theme.textSecondary }]}
+      >
+        OPERATIVE ENTRUSTMENT
+      </ThemedText>
+
+      <View style={styles.numbersRow}>
+        {renderRatingColumn(
+          pair.supervisorEntrustment,
+          supervisorColumnLabel,
+          "assessmentReveal.entrustment-supervisor",
+        )}
+        {renderRatingColumn(
+          pair.traineeSelfEntrustment,
+          traineeColumnLabel,
+          "assessmentReveal.entrustment-trainee",
+        )}
+      </View>
+
+      {/* Calibration gap badge — voiced for the viewer */}
+      {gapInfo ? (
+        <View
+          testID="assessmentReveal.badge-calibrationGap"
+          style={[
+            styles.gapBadge,
+            { backgroundColor: `${theme[gapInfo.color]}18` },
+          ]}
+        >
+          <Feather
+            name={
+              gapInfo.color === "success"
+                ? "check-circle"
+                : gapInfo.color === "warning"
+                  ? "alert-circle"
+                  : "alert-triangle"
+            }
+            size={16}
+            color={theme[gapInfo.color]}
+          />
+          <ThemedText style={[styles.gapText, { color: theme[gapInfo.color] }]}>
+            {gapInfo.message}
+          </ThemedText>
+        </View>
+      ) : null}
+    </View>
+  );
+
+  // The trainee's rating of the teaching: autonomy match (Part A), BID
+  // behaviours (Part B), per-case global (Part C), narrative. For the
+  // supervisor this IS the feedback on their teaching; for the trainee it
+  // is a read-back of what they submitted.
+  const teachingBlock = (
+    <>
+      {pair.autonomyMatch ? (
+        <View style={cardStyle}>
+          <ThemedText
+            style={[styles.cardSectionTitle, { color: theme.textSecondary }]}
+          >
+            AUTONOMY MATCH
+          </ThemedText>
+          <ThemedText
+            testID="assessmentReveal.autonomy"
+            style={[styles.teachingNumber, { color: theme.text }]}
+          >
+            {pair.autonomyMatch}
+          </ThemedText>
+          <ThemedText
+            style={[styles.teachingDescription, { color: theme.text }]}
+          >
+            {AUTONOMY_MATCH_LABELS[pair.autonomyMatch]}
+          </ThemedText>
+          <ThemedText
+            style={[styles.autonomyHint, { color: theme.textSecondary }]}
+          >
+            {autonomyDescriptions[pair.autonomyMatch]}
+          </ThemedText>
+          <ThemedText
+            style={[styles.autonomyCaption, { color: theme.textTertiary }]}
+          >
+            {isSupervisorView
+              ? "How the autonomy you granted matched what your trainee could handle — 3 is the ideal."
+              : "How the autonomy granted this case matched what you could handle — 3 is the ideal."}
+          </ThemedText>
+        </View>
+      ) : null}
+
+      {pair.bid ? (
+        <View style={cardStyle}>
+          <ThemedText
+            style={[styles.cardSectionTitle, { color: theme.textSecondary }]}
+          >
+            TEACHING THIS CASE
+          </ThemedText>
+          {BID_ITEM_KEYS.map((key) => {
+            const level = pair.bid![key];
+            return (
+              <View
+                key={key}
+                testID={`assessmentReveal.bid-${key}`}
+                style={[styles.bidRow, { borderBottomColor: theme.border }]}
+              >
+                <View style={styles.bidRowText}>
+                  <ThemedText style={[styles.bidTitle, { color: theme.text }]}>
+                    {BID_ITEM_TITLES[key]}
+                  </ThemedText>
+                  <ThemedText
+                    style={[styles.bidPrompt, { color: theme.textTertiary }]}
+                    numberOfLines={2}
+                  >
+                    {bidPrompts[key]}
+                  </ThemedText>
+                </View>
+                <View
+                  style={[
+                    styles.bidBadge,
+                    {
+                      backgroundColor:
+                        level === 2
+                          ? theme.successSurface
+                          : level === 1
+                            ? theme.warningSurface
+                            : theme.backgroundSecondary,
+                    },
+                  ]}
+                >
+                  <ThemedText
+                    style={[
+                      styles.bidBadgeText,
+                      {
+                        color:
+                          level === 2
+                            ? theme.success
+                            : level === 1
+                              ? theme.warning
+                              : theme.textSecondary,
+                      },
+                    ]}
+                  >
+                    {BID_ITEM_LABELS[level]}
+                  </ThemedText>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      ) : null}
+
+      {pair.teachingQuality > 0 ? (
+        <View style={cardStyle}>
+          <ThemedText
+            style={[styles.cardSectionTitle, { color: theme.textSecondary }]}
+          >
+            {pair.instrumentVersion === 2
+              ? "OVERALL TEACHING THIS CASE"
+              : "TEACHING QUALITY"}
+          </ThemedText>
+          <ThemedText
+            testID="assessmentReveal.teaching-quality"
+            style={[styles.teachingNumber, { color: theme.text }]}
+          >
+            {pair.teachingQuality}
+          </ThemedText>
+          <ThemedText
+            style={[styles.teachingDescription, { color: theme.textSecondary }]}
+          >
+            {teachingQualityLabel(pair.teachingQuality, pair.instrumentVersion)}
+          </ThemedText>
+        </View>
+      ) : null}
+
+      {pair.teachingNarrative ? (
+        <View style={narrativeCardStyle}>
+          <ThemedText
+            style={[styles.cardSectionTitle, { color: theme.textSecondary }]}
+          >
+            {isSupervisorView
+              ? "TRAINEE FEEDBACK ON YOUR TEACHING"
+              : audience === "trainee"
+                ? "YOUR FEEDBACK ON TEACHING"
+                : "TRAINEE FEEDBACK ON TEACHING"}
+          </ThemedText>
+          <View
+            style={[
+              styles.narrativeBlock,
+              { backgroundColor: theme.backgroundSecondary },
+            ]}
+          >
+            <ThemedText
+              testID="assessmentReveal.teachingNarrative"
+              style={[styles.narrativeText, { color: theme.text }]}
+            >
+              {pair.teachingNarrative}
+            </ThemedText>
+          </View>
+        </View>
+      ) : null}
+    </>
+  );
+
+  const supervisorNarrativeCard = pair.supervisorNarrative ? (
+    <View style={narrativeCardStyle}>
+      <ThemedText
+        style={[styles.cardSectionTitle, { color: theme.textSecondary }]}
+      >
+        {isSupervisorView ? "YOUR FEEDBACK" : "SUPERVISOR FEEDBACK"}
+      </ThemedText>
+      <View
+        style={[
+          styles.narrativeBlock,
+          { backgroundColor: theme.backgroundSecondary },
+        ]}
+      >
+        <ThemedText
+          testID="assessmentReveal.supervisorNarrative"
+          style={[styles.narrativeText, { color: theme.text }]}
+        >
+          {pair.supervisorNarrative}
+        </ThemedText>
+      </View>
+    </View>
+  ) : null;
+
+  const hasTeachingContent =
+    !!pair.autonomyMatch ||
+    !!pair.bid ||
+    pair.teachingQuality > 0 ||
+    !!pair.teachingNarrative;
 
   return (
     <View
       testID="screen-assessmentReveal"
+      accessibilityValue={{ text: audience ?? "unknown" }}
       style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -348,6 +659,16 @@ export default function AssessmentRevealScreen() {
               style={[styles.contextDetail, { color: theme.textSecondary }]}
             >
               {caseData.procedureDate} · {caseData.facility}
+            </ThemedText>
+          ) : null}
+          {audience ? (
+            <ThemedText
+              testID="assessmentReveal.audience"
+              style={[styles.contextDetail, { color: theme.textTertiary }]}
+            >
+              {isSupervisorView
+                ? "You supervised this case"
+                : "You were assessed on this case"}
             </ThemedText>
           ) : null}
           {integrity !== null ? (
@@ -378,7 +699,7 @@ export default function AssessmentRevealScreen() {
         </View>
 
         {/* Partial reveal banner (Phase C) */}
-        {!hasFullPair && missingSide ? (
+        {!hasFullPair && missingSideLabel ? (
           <View
             testID="assessmentReveal.partial"
             style={[
@@ -391,386 +712,43 @@ export default function AssessmentRevealScreen() {
           >
             <Feather name="clock" size={16} color={theme.warning} />
             <ThemedText style={[styles.partialText, { color: theme.warning }]}>
-              Partial reveal — {missingSide.toLowerCase()} did not respond
-              within 72 hours. Excluded from learning curves and calibration.
+              Partial reveal — {missingSideLabel} did not respond within 72
+              hours. Excluded from learning curves and calibration.
             </ThemedText>
           </View>
         ) : null}
 
-        {/* Entrustment comparison */}
-        <View
-          style={[
-            styles.comparisonCard,
-            {
-              backgroundColor: theme.backgroundElevated,
-              borderColor: theme.border,
-            },
-            Shadows.card,
-          ]}
-        >
-          <ThemedText
-            style={[styles.cardSectionTitle, { color: theme.textSecondary }]}
-          >
-            OPERATIVE ENTRUSTMENT
-          </ThemedText>
-
-          <View style={styles.numbersRow}>
-            {/* Supervisor rating */}
-            <View style={styles.ratingColumn}>
-              {pair.supervisorEntrustment > 0 ? (
-                <>
-                  <ThemedText
-                    testID="assessmentReveal.entrustment-supervisor"
-                    style={[styles.bigNumber, { color: theme.text }]}
-                  >
-                    {pair.supervisorEntrustment}
-                  </ThemedText>
-                  <ThemedText
-                    style={[
-                      styles.ratingRoleLabel,
-                      { color: theme.textSecondary },
-                    ]}
-                  >
-                    Supervisor
-                  </ThemedText>
-                  <ThemedText
-                    style={[
-                      styles.ratingDescription,
-                      { color: theme.textTertiary },
-                    ]}
-                    numberOfLines={2}
-                  >
-                    {ENTRUSTMENT_LABELS[pair.supervisorEntrustment]}
-                  </ThemedText>
-                </>
-              ) : (
-                <>
-                  <ThemedText
-                    style={[styles.bigNumber, { color: theme.textTertiary }]}
-                  >
-                    —
-                  </ThemedText>
-                  <ThemedText
-                    style={[
-                      styles.ratingRoleLabel,
-                      { color: theme.textTertiary },
-                    ]}
-                  >
-                    Supervisor
-                  </ThemedText>
-                  <ThemedText
-                    style={[
-                      styles.ratingDescription,
-                      { color: theme.textTertiary },
-                    ]}
-                  >
-                    Did not respond
-                  </ThemedText>
-                </>
-              )}
-            </View>
-
-            {/* Trainee self-assessment */}
-            <View style={styles.ratingColumn}>
-              {pair.traineeSelfEntrustment > 0 ? (
-                <>
-                  <ThemedText
-                    testID="assessmentReveal.entrustment-trainee"
-                    style={[styles.bigNumber, { color: theme.text }]}
-                  >
-                    {pair.traineeSelfEntrustment}
-                  </ThemedText>
-                  <ThemedText
-                    style={[
-                      styles.ratingRoleLabel,
-                      { color: theme.textSecondary },
-                    ]}
-                  >
-                    Self
-                  </ThemedText>
-                  <ThemedText
-                    style={[
-                      styles.ratingDescription,
-                      { color: theme.textTertiary },
-                    ]}
-                    numberOfLines={2}
-                  >
-                    {ENTRUSTMENT_LABELS[pair.traineeSelfEntrustment]}
-                  </ThemedText>
-                </>
-              ) : (
-                <>
-                  <ThemedText
-                    style={[styles.bigNumber, { color: theme.textTertiary }]}
-                  >
-                    —
-                  </ThemedText>
-                  <ThemedText
-                    style={[
-                      styles.ratingRoleLabel,
-                      { color: theme.textTertiary },
-                    ]}
-                  >
-                    Self
-                  </ThemedText>
-                  <ThemedText
-                    style={[
-                      styles.ratingDescription,
-                      { color: theme.textTertiary },
-                    ]}
-                  >
-                    Did not respond
-                  </ThemedText>
-                </>
-              )}
-            </View>
-          </View>
-
-          {/* Calibration gap badge */}
-          {gapInfo ? (
-            <View
-              testID="assessmentReveal.badge-calibrationGap"
-              style={[
-                styles.gapBadge,
-                { backgroundColor: `${theme[gapInfo.color]}18` },
-              ]}
-            >
-              <Feather
-                name={
-                  gapInfo.color === "success"
-                    ? "check-circle"
-                    : gapInfo.color === "warning"
-                      ? "alert-circle"
-                      : "alert-triangle"
-                }
-                size={16}
-                color={theme[gapInfo.color]}
-              />
+        {isSupervisorView ? (
+          <>
+            {hasTeachingContent ? (
               <ThemedText
-                style={[styles.gapText, { color: theme[gapInfo.color] }]}
+                style={[styles.blockHeading, { color: theme.textTertiary }]}
+                testID="assessmentReveal.heading-teaching"
               >
-                {gapInfo.message}
+                YOUR TEACHING THIS CASE
               </ThemedText>
-            </View>
-          ) : null}
-        </View>
-
-        {/* Autonomy match (trainee instrument v2, Part A) */}
-        {pair.autonomyMatch ? (
-          <View
-            style={[
-              styles.comparisonCard,
-              {
-                backgroundColor: theme.backgroundElevated,
-                borderColor: theme.border,
-              },
-              Shadows.card,
-            ]}
-          >
-            <ThemedText
-              style={[styles.cardSectionTitle, { color: theme.textSecondary }]}
-            >
-              AUTONOMY MATCH
-            </ThemedText>
-            <ThemedText
-              testID="assessmentReveal.autonomy"
-              style={[styles.teachingNumber, { color: theme.text }]}
-            >
-              {pair.autonomyMatch}
-            </ThemedText>
-            <ThemedText
-              style={[styles.teachingDescription, { color: theme.text }]}
-            >
-              {AUTONOMY_MATCH_LABELS[pair.autonomyMatch]}
-            </ThemedText>
-            <ThemedText
-              style={[styles.autonomyHint, { color: theme.textSecondary }]}
-            >
-              {AUTONOMY_MATCH_DESCRIPTIONS[pair.autonomyMatch]}
-            </ThemedText>
-            <ThemedText
-              style={[styles.autonomyCaption, { color: theme.textTertiary }]}
-            >
-              How the autonomy granted this case matched what the trainee could
-              handle — 3 is the ideal.
-            </ThemedText>
-          </View>
-        ) : null}
-
-        {/* Teaching behaviours (trainee instrument v2, Part B) */}
-        {pair.bid ? (
-          <View
-            style={[
-              styles.comparisonCard,
-              {
-                backgroundColor: theme.backgroundElevated,
-                borderColor: theme.border,
-              },
-              Shadows.card,
-            ]}
-          >
-            <ThemedText
-              style={[styles.cardSectionTitle, { color: theme.textSecondary }]}
-            >
-              TEACHING THIS CASE
-            </ThemedText>
-            {BID_ITEM_KEYS.map((key) => {
-              const level = pair.bid![key];
-              return (
-                <View
-                  key={key}
-                  testID={`assessmentReveal.bid-${key}`}
-                  style={[styles.bidRow, { borderBottomColor: theme.border }]}
-                >
-                  <View style={styles.bidRowText}>
-                    <ThemedText
-                      style={[styles.bidTitle, { color: theme.text }]}
-                    >
-                      {BID_ITEM_TITLES[key]}
-                    </ThemedText>
-                    <ThemedText
-                      style={[styles.bidPrompt, { color: theme.textTertiary }]}
-                      numberOfLines={2}
-                    >
-                      {BID_ITEM_PROMPTS[key]}
-                    </ThemedText>
-                  </View>
-                  <View
-                    style={[
-                      styles.bidBadge,
-                      {
-                        backgroundColor:
-                          level === 2
-                            ? theme.successSurface
-                            : level === 1
-                              ? theme.warningSurface
-                              : theme.backgroundSecondary,
-                      },
-                    ]}
-                  >
-                    <ThemedText
-                      style={[
-                        styles.bidBadgeText,
-                        {
-                          color:
-                            level === 2
-                              ? theme.success
-                              : level === 1
-                                ? theme.warning
-                                : theme.textSecondary,
-                        },
-                      ]}
-                    >
-                      {BID_ITEM_LABELS[level]}
-                    </ThemedText>
-                  </View>
-                </View>
-              );
-            })}
-          </View>
-        ) : null}
-
-        {/* Teaching quality (global) */}
-        {pair.teachingQuality > 0 ? (
-          <View
-            style={[
-              styles.comparisonCard,
-              {
-                backgroundColor: theme.backgroundElevated,
-                borderColor: theme.border,
-              },
-              Shadows.card,
-            ]}
-          >
-            <ThemedText
-              style={[styles.cardSectionTitle, { color: theme.textSecondary }]}
-            >
-              {pair.instrumentVersion === 2
-                ? "OVERALL TEACHING THIS CASE"
-                : "TEACHING QUALITY"}
-            </ThemedText>
-            <ThemedText
-              testID="assessmentReveal.teaching-quality"
-              style={[styles.teachingNumber, { color: theme.text }]}
-            >
-              {pair.teachingQuality}
-            </ThemedText>
-            <ThemedText
-              style={[
-                styles.teachingDescription,
-                { color: theme.textSecondary },
-              ]}
-            >
-              {teachingQualityLabel(
-                pair.teachingQuality,
-                pair.instrumentVersion,
-              )}
-            </ThemedText>
-          </View>
-        ) : null}
-
-        {/* Trainee narrative on the teaching (Phase C — was dropped before) */}
-        {pair.teachingNarrative ? (
-          <View
-            style={[
-              styles.narrativeCard,
-              {
-                backgroundColor: theme.backgroundElevated,
-                borderColor: theme.border,
-              },
-              Shadows.card,
-            ]}
-          >
-            <ThemedText
-              style={[styles.cardSectionTitle, { color: theme.textSecondary }]}
-            >
-              TRAINEE FEEDBACK ON TEACHING
-            </ThemedText>
-            <View
-              style={[
-                styles.narrativeBlock,
-                { backgroundColor: theme.backgroundSecondary },
-              ]}
-            >
+            ) : null}
+            {teachingBlock}
+            {entrustmentCard}
+            {supervisorNarrativeCard}
+          </>
+        ) : (
+          <>
+            {entrustmentCard}
+            {supervisorNarrativeCard}
+            {hasTeachingContent ? (
               <ThemedText
-                testID="assessmentReveal.teachingNarrative"
-                style={[styles.narrativeText, { color: theme.text }]}
+                style={[styles.blockHeading, { color: theme.textTertiary }]}
+                testID="assessmentReveal.heading-teaching"
               >
-                {pair.teachingNarrative}
+                {audience === "trainee"
+                  ? "YOUR RATING OF THE TEACHING"
+                  : "TEACHING"}
               </ThemedText>
-            </View>
-          </View>
-        ) : null}
-
-        {/* Supervisor narrative */}
-        {pair.supervisorNarrative ? (
-          <View
-            style={[
-              styles.narrativeCard,
-              {
-                backgroundColor: theme.backgroundElevated,
-                borderColor: theme.border,
-              },
-              Shadows.card,
-            ]}
-          >
-            <ThemedText
-              style={[styles.cardSectionTitle, { color: theme.textSecondary }]}
-            >
-              SUPERVISOR FEEDBACK
-            </ThemedText>
-            <View
-              style={[
-                styles.narrativeBlock,
-                { backgroundColor: theme.backgroundSecondary },
-              ]}
-            >
-              <ThemedText style={[styles.narrativeText, { color: theme.text }]}>
-                {pair.supervisorNarrative}
-              </ThemedText>
-            </View>
-          </View>
-        ) : null}
+            ) : null}
+            {teachingBlock}
+          </>
+        )}
 
         {/* Case complexity */}
         {pair.caseComplexity ? (
@@ -865,6 +843,15 @@ const styles = StyleSheet.create({
   integrityText: {
     fontSize: 12,
     flexShrink: 1,
+  },
+  // Audience block heading (sits above a run of cards)
+  blockHeading: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.xs,
   },
   // Comparison card
   comparisonCard: {
