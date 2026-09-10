@@ -16,6 +16,9 @@ export const profileUpdateSchema = insertProfileSchema
     medicalCouncilNumber: true,
     professionalRegistrations: true,
     careerStage: true,
+    // Stored as E.164 (normalised in the handler with the profile's region).
+    // This is what colleagues match on when they add you by phone.
+    phone: true,
     onboardingComplete: true,
     surgicalPreferences: true,
     // Privacy: lets users opt out of colleague search/discovery/linking.

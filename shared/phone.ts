@@ -12,7 +12,17 @@
  * from the OWNER's `countryOfPractice` — the person typing the number — not
  * the contact's, because the contact has no country of their own.
  */
-import { parsePhoneNumberFromString } from "libphonenumber-js/min";
+// `libphonenumber-js/core` + explicit metadata instead of the bundled
+// `libphonenumber-js/min` entry: the min entry loads its metadata through a
+// JSON `import`, which tsx (the dev server loader) wraps as `{ default }`
+// and the library then rejects ("not a valid metadata"). Passing the JS
+// metadata wrapper ourselves works identically under tsx, esbuild
+// (Railway), Metro and vitest.
+import {
+  parsePhoneNumberFromString,
+  type CountryCode,
+} from "libphonenumber-js/core";
+import metadata from "libphonenumber-js/metadata.min";
 
 export type PhoneRegion =
   | "NZ"
@@ -71,8 +81,16 @@ export function normalizePhoneE164(
   // is supplied, so rewrite it up front (the SQL backfill does the same).
   const candidate = trimmed.startsWith("00") ? `+${trimmed.slice(2)}` : trimmed;
   try {
-    const parsed = parsePhoneNumberFromString(candidate, region);
-    if (!parsed || !parsed.isValid()) return null;
+    const parsed = parsePhoneNumberFromString(
+      candidate,
+      { defaultCountry: region as CountryCode | undefined },
+      metadata,
+    );
+    // isPossible() (length rules) rather than isValid() (per-range
+    // patterns): bundled metadata lags real allocations, and a surgeon
+    // must never be blocked from saving a colleague's genuine number. A
+    // wrong-but-plausible number simply never matches anyone.
+    if (!parsed || !parsed.isPossible()) return null;
     return isE164(parsed.number) ? parsed.number : null;
   } catch {
     return null;
@@ -82,7 +100,7 @@ export function normalizePhoneE164(
 /** "+64211234567" → "+64 21 123 4567". Falls back to the input verbatim. */
 export function formatPhoneForDisplay(e164: string): string {
   try {
-    const parsed = parsePhoneNumberFromString(e164);
+    const parsed = parsePhoneNumberFromString(e164, metadata);
     return parsed ? parsed.formatInternational() : e164;
   } catch {
     return e164;

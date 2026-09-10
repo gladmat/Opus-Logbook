@@ -51,6 +51,7 @@ describe("normalizePhoneE164", () => {
 
   it("returns null for invalid numbers instead of throwing", () => {
     expect(normalizePhoneE164("12", "NZ")).toBeNull();
+    expect(normalizePhoneE164("021 555 0100", "NZ")).toBe("+64215550100");
     expect(normalizePhoneE164("not a phone", "NZ")).toBeNull();
     expect(normalizePhoneE164("+999 1", "NZ")).toBeNull();
   });
