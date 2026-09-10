@@ -1,5 +1,5 @@
 import rateLimit, { ipKeyGenerator } from "express-rate-limit";
-import type { Request } from "express";
+import type { NextFunction, Request, Response } from "express";
 
 /**
  * Per-IP limiter for authentication endpoints (login, signup, refresh,
@@ -98,4 +98,85 @@ export const sharedMediaRateLimiter = rateLimit({
   message: {
     error: "Too many photo uploads. Please wait a few minutes and try again.",
   },
+});
+
+/**
+ * Per-user limiter for GET /api/users/:id/keys — the only colleague-lookup
+ * endpoint that had none. Share-on-save fetches keys once per recipient,
+ * so 60/min is generous for real use. Same key fallback as above.
+ */
+export const userKeysRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 60,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  keyGenerator: (req: Request) =>
+    (req as AuthenticatedRequest).userId ??
+    (req.ip ? ipKeyGenerator(req.ip) : "unknown"),
+  message: {
+    error: "Too many key lookups. Please wait a moment and try again.",
+  },
+});
+
+interface IdentifierBudgetOptions {
+  windowMs: number;
+  /** Identifiers (not requests) allowed per user per window. */
+  budget: number;
+  /** How many identifiers this request spends. */
+  weigh: (req: Request) => number;
+  message: string;
+  /** Injectable clock for tests. */
+  now?: () => number;
+}
+
+/**
+ * Weighted per-user fixed-window limiter. `express-rate-limit` counts
+ * requests, which is the wrong unit for a batch endpoint: sharing the
+ * 10 req/min bucket with /api/users/search still let `/discover` probe
+ * 10 × 50 = 500 identifiers a minute — 50× the enumeration throughput the
+ * shared bucket was meant to cap. This counts identifiers instead.
+ */
+export function createIdentifierBudget(opts: IdentifierBudgetOptions) {
+  const now = opts.now ?? Date.now;
+  const buckets = new Map<string, { spent: number; resetAt: number }>();
+
+  const sweep = (t: number) => {
+    if (buckets.size < 5000) return;
+    for (const [key, b] of buckets) if (b.resetAt <= t) buckets.delete(key);
+  };
+
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const key =
+      (req as AuthenticatedRequest).userId ??
+      (req.ip ? ipKeyGenerator(req.ip) : "unknown");
+    const t = now();
+    sweep(t);
+    let bucket = buckets.get(key);
+    if (!bucket || bucket.resetAt <= t) {
+      bucket = { spent: 0, resetAt: t + opts.windowMs };
+      buckets.set(key, bucket);
+    }
+    const cost = Math.max(1, opts.weigh(req));
+    if (bucket.spent + cost > opts.budget) {
+      res.setHeader(
+        "Retry-After",
+        String(Math.max(1, Math.ceil((bucket.resetAt - t) / 1000))),
+      );
+      res.status(429).json({ error: opts.message });
+      return;
+    }
+    bucket.spent += cost;
+    next();
+  };
+}
+
+/** 100 contact identifiers per user per 10 minutes on POST /api/users/discover. */
+export const discoverIdentifierBudget = createIdentifierBudget({
+  windowMs: 10 * 60 * 1000,
+  budget: 100,
+  weigh: (req) => {
+    const contacts = (req.body as { contacts?: unknown } | undefined)?.contacts;
+    return Array.isArray(contacts) ? contacts.length : 1;
+  },
+  message: "Too many contact lookups. Please wait a few minutes and try again.",
 });

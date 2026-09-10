@@ -1,57 +1,36 @@
+/**
+ * Validation schemas for the team-contact + colleague-lookup routes — the
+ * REAL ones from server/validation (the previous local re-declarations
+ * had drifted from routes.ts).
+ */
 import { describe, it, expect } from "vitest";
-import { z } from "zod";
-import { insertProfileSchema } from "@shared/schema";
-
-// Inline the schemas here to test validation logic without importing from routes
-// (routes.ts doesn't export schemas)
-
-const teamContactCreateSchema = z.object({
-  firstName: z.string().min(1).max(50),
-  lastName: z.string().min(1).max(50),
-  email: z.string().email().max(255).nullable().optional(),
-  phone: z.string().max(20).nullable().optional(),
-  registrationNumber: z.string().max(50).nullable().optional(),
-  registrationJurisdiction: z.string().max(20).nullable().optional(),
-  careerStage: z.string().max(50).nullable().optional(),
-  defaultRole: z.enum(["PS", "FA", "SS", "US", "SA"]).nullable().optional(),
-  notes: z.string().max(500).nullable().optional(),
-  facilityIds: z.array(z.string()).optional(),
-});
-
-const teamContactLinkSchema = z.object({
-  linkedUserId: z.string().min(1),
-});
-
-const discoverContactsSchema = z.object({
-  contacts: z
-    .array(
-      z.object({
-        contactId: z.string().min(1),
-        email: z.string().email().optional(),
-        phone: z.string().optional(),
-        registrationNumber: z.string().optional(),
-        registrationJurisdiction: z.string().optional(),
-      }),
-    )
-    .min(1)
-    .max(50),
-});
+import {
+  discoverContactsSchema,
+  teamContactCreateSchema,
+  teamContactLinkSchema,
+  teamContactUpdateSchema,
+  userSearchQuerySchema,
+} from "../validation/teamContacts";
+import { profileUpdateSchema } from "../validation/profile";
 
 describe("teamContactCreateSchema", () => {
   it("accepts valid minimal contact", () => {
-    const result = teamContactCreateSchema.safeParse({
-      firstName: "Charlotte",
-      lastName: "Lozen",
-    });
-    expect(result.success).toBe(true);
+    expect(
+      teamContactCreateSchema.safeParse({
+        firstName: "Charlotte",
+        lastName: "Lozen",
+      }).success,
+    ).toBe(true);
   });
 
-  it("accepts valid full contact", () => {
+  it("accepts valid full contact incl. registration pair", () => {
     const result = teamContactCreateSchema.safeParse({
       firstName: "Charlotte",
       lastName: "Lozen",
       email: "charlotte@example.com",
-      phone: "+64211234567",
+      phone: "+64 21 123 4567",
+      registrationNumber: "12 345-ab",
+      registrationJurisdiction: "new_zealand",
       careerStage: "nz_fellow",
       defaultRole: "FA",
       notes: "Fellow in hand surgery",
@@ -60,160 +39,238 @@ describe("teamContactCreateSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("rejects missing firstName", () => {
-    const result = teamContactCreateSchema.safeParse({
-      lastName: "Lozen",
-    });
-    expect(result.success).toBe(false);
+  it("rejects missing firstName / lastName", () => {
+    expect(
+      teamContactCreateSchema.safeParse({ lastName: "Lozen" }).success,
+    ).toBe(false);
+    expect(
+      teamContactCreateSchema.safeParse({ firstName: "Charlotte" }).success,
+    ).toBe(false);
   });
 
-  it("rejects missing lastName", () => {
-    const result = teamContactCreateSchema.safeParse({
-      firstName: "Charlotte",
-    });
-    expect(result.success).toBe(false);
+  it("rejects invalid email format and invalid defaultRole", () => {
+    expect(
+      teamContactCreateSchema.safeParse({
+        firstName: "C",
+        lastName: "L",
+        email: "not-an-email",
+      }).success,
+    ).toBe(false);
+    expect(
+      teamContactCreateSchema.safeParse({
+        firstName: "C",
+        lastName: "L",
+        defaultRole: "INVALID",
+      }).success,
+    ).toBe(false);
   });
 
-  it("rejects invalid email format", () => {
-    const result = teamContactCreateSchema.safeParse({
-      firstName: "Charlotte",
-      lastName: "Lozen",
-      email: "not-an-email",
-    });
-    expect(result.success).toBe(false);
+  it("accepts null email / defaultRole", () => {
+    expect(
+      teamContactCreateSchema.safeParse({
+        firstName: "C",
+        lastName: "L",
+        email: null,
+        defaultRole: null,
+      }).success,
+    ).toBe(true);
   });
 
-  it("rejects invalid defaultRole", () => {
-    const result = teamContactCreateSchema.safeParse({
-      firstName: "Charlotte",
-      lastName: "Lozen",
-      defaultRole: "INVALID",
-    });
-    expect(result.success).toBe(false);
+  it("rejects an unknown registration jurisdiction", () => {
+    expect(
+      teamContactCreateSchema.safeParse({
+        firstName: "C",
+        lastName: "L",
+        registrationNumber: "1",
+        registrationJurisdiction: "mars",
+      }).success,
+    ).toBe(false);
   });
 
-  it("accepts null email", () => {
-    const result = teamContactCreateSchema.safeParse({
-      firstName: "Charlotte",
-      lastName: "Lozen",
-      email: null,
-    });
-    expect(result.success).toBe(true);
+  it("rejects a registration number without a jurisdiction and vice versa", () => {
+    expect(
+      teamContactCreateSchema.safeParse({
+        firstName: "C",
+        lastName: "L",
+        registrationNumber: "123",
+      }).success,
+    ).toBe(false);
+    expect(
+      teamContactCreateSchema.safeParse({
+        firstName: "C",
+        lastName: "L",
+        registrationJurisdiction: "new_zealand",
+      }).success,
+    ).toBe(false);
+    // Blank number counts as absent.
+    expect(
+      teamContactCreateSchema.safeParse({
+        firstName: "C",
+        lastName: "L",
+        registrationNumber: "  ",
+        registrationJurisdiction: "new_zealand",
+      }).success,
+    ).toBe(false);
+    expect(
+      teamContactCreateSchema.safeParse({
+        firstName: "C",
+        lastName: "L",
+        registrationNumber: null,
+        registrationJurisdiction: null,
+      }).success,
+    ).toBe(true);
   });
 
-  it("accepts null defaultRole", () => {
-    const result = teamContactCreateSchema.safeParse({
-      firstName: "Charlotte",
-      lastName: "Lozen",
-      defaultRole: null,
-    });
-    expect(result.success).toBe(true);
+  it("allows spaced phone input up to 32 chars (normalised later)", () => {
+    expect(
+      teamContactCreateSchema.safeParse({
+        firstName: "C",
+        lastName: "L",
+        phone: "+64 (21) 123-4567",
+      }).success,
+    ).toBe(true);
+    expect(
+      teamContactCreateSchema.safeParse({
+        firstName: "C",
+        lastName: "L",
+        phone: "1".repeat(33),
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe("teamContactUpdateSchema", () => {
+  it("accepts partial patches that don't touch registration", () => {
+    expect(teamContactUpdateSchema.safeParse({ notes: "x" }).success).toBe(
+      true,
+    );
+    expect(teamContactUpdateSchema.safeParse({}).success).toBe(true);
+  });
+
+  it("still enforces the registration pair when touched", () => {
+    expect(
+      teamContactUpdateSchema.safeParse({ registrationNumber: "1" }).success,
+    ).toBe(false);
+    expect(
+      teamContactUpdateSchema.safeParse({
+        registrationNumber: "1",
+        registrationJurisdiction: "poland",
+      }).success,
+    ).toBe(true);
+    expect(
+      teamContactUpdateSchema.safeParse({
+        registrationNumber: null,
+        registrationJurisdiction: null,
+      }).success,
+    ).toBe(true);
   });
 });
 
 describe("teamContactLinkSchema", () => {
-  it("accepts valid linkedUserId", () => {
-    const result = teamContactLinkSchema.safeParse({
-      linkedUserId: "user-uuid-123",
-    });
-    expect(result.success).toBe(true);
-  });
-
-  it("rejects empty linkedUserId", () => {
-    const result = teamContactLinkSchema.safeParse({
-      linkedUserId: "",
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects missing linkedUserId", () => {
-    const result = teamContactLinkSchema.safeParse({});
-    expect(result.success).toBe(false);
+  it("requires a non-empty linkedUserId", () => {
+    expect(
+      teamContactLinkSchema.safeParse({ linkedUserId: "user-uuid-123" })
+        .success,
+    ).toBe(true);
+    expect(teamContactLinkSchema.safeParse({ linkedUserId: "" }).success).toBe(
+      false,
+    );
+    expect(teamContactLinkSchema.safeParse({}).success).toBe(false);
   });
 });
 
 describe("discoverContactsSchema", () => {
-  it("accepts valid contacts array", () => {
-    const result = discoverContactsSchema.safeParse({
-      contacts: [
-        { contactId: "c1", email: "test@example.com" },
-        { contactId: "c2", phone: "+64211234567" },
-      ],
-    });
-    expect(result.success).toBe(true);
+  it("accepts valid contacts array incl. registration", () => {
+    expect(
+      discoverContactsSchema.safeParse({
+        contacts: [
+          { contactId: "c1", email: "test@example.com" },
+          { contactId: "c2", phone: "+64211234567" },
+          {
+            contactId: "c3",
+            registrationNumber: "123",
+            registrationJurisdiction: "australia",
+          },
+        ],
+      }).success,
+    ).toBe(true);
   });
 
-  it("rejects empty contacts array", () => {
-    const result = discoverContactsSchema.safeParse({
-      contacts: [],
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects more than 50 contacts", () => {
-    const contacts = Array.from({ length: 51 }, (_, i) => ({
-      contactId: `c${i}`,
-    }));
-    const result = discoverContactsSchema.safeParse({ contacts });
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects contact with invalid email", () => {
-    const result = discoverContactsSchema.safeParse({
-      contacts: [{ contactId: "c1", email: "not-email" }],
-    });
-    expect(result.success).toBe(false);
+  it("rejects empty, >50, invalid email, unknown jurisdiction", () => {
+    expect(discoverContactsSchema.safeParse({ contacts: [] }).success).toBe(
+      false,
+    );
+    expect(
+      discoverContactsSchema.safeParse({
+        contacts: Array.from({ length: 51 }, (_, i) => ({
+          contactId: `c${i}`,
+        })),
+      }).success,
+    ).toBe(false);
+    expect(
+      discoverContactsSchema.safeParse({
+        contacts: [{ contactId: "c1", email: "not-email" }],
+      }).success,
+    ).toBe(false);
+    expect(
+      discoverContactsSchema.safeParse({
+        contacts: [
+          {
+            contactId: "c1",
+            registrationNumber: "1",
+            registrationJurisdiction: "mars",
+          },
+        ],
+      }).success,
+    ).toBe(false);
   });
 });
 
-describe("displayName derivation", () => {
-  it("derives displayName from firstName + lastName", () => {
-    const firstName = "Charlotte";
-    const lastName = "Lozen";
-    const displayName = `${firstName} ${lastName}`;
-    expect(displayName).toBe("Charlotte Lozen");
+describe("userSearchQuerySchema", () => {
+  it("accepts exactly one mode", () => {
+    expect(userSearchQuerySchema.safeParse({ email: "a@x.com" }).success).toBe(
+      true,
+    );
+    expect(
+      userSearchQuerySchema.safeParse({ phone: "+64211234567" }).success,
+    ).toBe(true);
+    expect(
+      userSearchQuerySchema.safeParse({
+        registration: "123",
+        jurisdiction: "new_zealand",
+      }).success,
+    ).toBe(true);
   });
 
-  it("handles single-word names", () => {
-    const displayName = `${"Madonna"} ${""}`.trim();
-    expect(displayName).toBe("Madonna");
+  it("rejects none, two modes, half a registration pair, bad jurisdiction", () => {
+    expect(userSearchQuerySchema.safeParse({}).success).toBe(false);
+    expect(
+      userSearchQuerySchema.safeParse({
+        email: "a@x.com",
+        phone: "+64211234567",
+      }).success,
+    ).toBe(false);
+    expect(
+      userSearchQuerySchema.safeParse({ registration: "123" }).success,
+    ).toBe(false);
+    expect(
+      userSearchQuerySchema.safeParse({ jurisdiction: "new_zealand" }).success,
+    ).toBe(false);
+    expect(
+      userSearchQuerySchema.safeParse({
+        registration: "123",
+        jurisdiction: "mars",
+      }).success,
+    ).toBe(false);
   });
 });
 
 describe("profileUpdateSchema (discoverable privacy opt-out)", () => {
-  // Mirrors the pick list in server/routes.ts (routes doesn't export its
-  // schemas) but is built from the REAL insertProfileSchema, so the
-  // drizzle-zod field type is exercised. Keep the pick list in sync.
-  const profileUpdateSchema = insertProfileSchema
-    .pick({
-      fullName: true,
-      firstName: true,
-      lastName: true,
-      dateOfBirth: true,
-      sex: true,
-      countryOfPractice: true,
-      medicalCouncilNumber: true,
-      professionalRegistrations: true,
-      careerStage: true,
-      onboardingComplete: true,
-      surgicalPreferences: true,
-      discoverable: true,
-    })
-    .partial();
-
-  it("accepts discoverable=false and preserves it", () => {
-    const result = profileUpdateSchema.safeParse({ discoverable: false });
-    expect(result.success).toBe(true);
-    if (result.success) expect(result.data.discoverable).toBe(false);
-  });
-
-  it("accepts discoverable=true", () => {
-    const result = profileUpdateSchema.safeParse({ discoverable: true });
-    expect(result.success).toBe(true);
-    if (result.success) expect(result.data.discoverable).toBe(true);
-  });
-
-  it("rejects a non-boolean discoverable", () => {
+  it("accepts discoverable=false/true and rejects non-boolean", () => {
+    const off = profileUpdateSchema.safeParse({ discoverable: false });
+    expect(off.success && off.data.discoverable).toBe(false);
+    const on = profileUpdateSchema.safeParse({ discoverable: true });
+    expect(on.success && on.data.discoverable).toBe(true);
     expect(profileUpdateSchema.safeParse({ discoverable: "yes" }).success).toBe(
       false,
     );

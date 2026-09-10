@@ -34,6 +34,15 @@ import {
   pushTokenRateLimiter,
   sharedMediaRateLimiter,
 } from "./rateLimit";
+import { profileUpdateSchema } from "./validation/profile";
+import {
+  discoverContactsSchema,
+  discoverPsiSchema,
+  invitationSchema,
+  teamContactCreateSchema,
+  teamContactLinkSchema,
+  teamContactUpdateSchema,
+} from "./validation/teamContacts";
 import { avatarsDir, sharedMediaRoot } from "./uploadsDir";
 import {
   AUTH_TAG_RE,
@@ -49,11 +58,7 @@ import {
   sharedMediaPath,
   streamBodyToFile,
 } from "./sharedMedia";
-import {
-  insertProfileSchema,
-  insertUserFacilitySchema,
-  type Profile,
-} from "@shared/schema";
+import { insertUserFacilitySchema, type Profile } from "@shared/schema";
 import {
   getLegacyMedicalCouncilNumber,
   getProfessionalRegistrations,
@@ -165,26 +170,6 @@ const resetPasswordSchema = z.object({
 
 // ── Profile validation schemas ───────────────────────────────────────────────
 
-const profileUpdateSchema = insertProfileSchema
-  .pick({
-    fullName: true,
-    firstName: true,
-    lastName: true,
-    dateOfBirth: true,
-    sex: true,
-    countryOfPractice: true,
-    medicalCouncilNumber: true,
-    professionalRegistrations: true,
-    careerStage: true,
-    onboardingComplete: true,
-    surgicalPreferences: true,
-    // Privacy: lets users opt out of colleague search/discovery/linking.
-    // The search, discover, discover-psi and team-contact link endpoints
-    // all gate on profiles.discoverable === false.
-    discoverable: true,
-  })
-  .partial();
-
 // Profile picture upload config — lives under UPLOADS_DIR (persistent
 // volume in prod) since 2.25.0; see server/uploadsDir.ts.
 const uploadsDir = avatarsDir;
@@ -257,55 +242,6 @@ const deviceKeySchema = z.object({
 
 const revokeDeviceKeySchema = z.object({
   deviceId: z.string().min(1).max(64),
-});
-
-// ── Team contacts validation schemas ────────────────────────────────────────
-
-const teamContactCreateSchema = z.object({
-  firstName: z.string().min(1).max(50),
-  lastName: z.string().min(1).max(50),
-  email: z.string().email().max(255).nullable().optional(),
-  phone: z.string().max(20).nullable().optional(),
-  registrationNumber: z.string().max(50).nullable().optional(),
-  registrationJurisdiction: z.string().max(20).nullable().optional(),
-  careerStage: z.string().max(50).nullable().optional(),
-  defaultRole: z.enum(["PS", "FA", "SS", "US", "SA"]).nullable().optional(),
-  notes: z.string().max(500).nullable().optional(),
-  facilityIds: z.array(z.string()).optional(),
-});
-
-const teamContactUpdateSchema = teamContactCreateSchema.partial();
-
-const teamContactLinkSchema = z.object({
-  linkedUserId: z.string().min(1),
-});
-
-const discoverContactsSchema = z.object({
-  contacts: z
-    .array(
-      z.object({
-        contactId: z.string().min(1),
-        email: z.string().email().optional(),
-        phone: z.string().optional(),
-        registrationNumber: z.string().optional(),
-        registrationJurisdiction: z.string().optional(),
-      }),
-    )
-    .min(1)
-    .max(50),
-});
-
-const discoverPsiSchema = z.object({
-  blinded: z
-    .array(
-      z.object({
-        ref: z.string().min(1).max(120),
-        // Hex-encoded ristretto255 element (32 bytes).
-        point: z.string().regex(/^[0-9a-f]{64}$/),
-      }),
-    )
-    .min(1)
-    .max(100),
 });
 
 // ── Sharing validation schemas ──────────────────────────────────────────────
@@ -395,11 +331,6 @@ const pushTokenSchema = z.object({
   expoPushToken: z.string().min(1),
   deviceId: z.string().min(1).max(64),
   platform: z.string().max(10).optional(),
-});
-
-const invitationSchema = z.object({
-  contactId: z.string().min(1),
-  email: z.string().email(),
 });
 
 function parseJsonObject(
