@@ -836,28 +836,6 @@ export default function SettingsScreen() {
           <ThemedText
             style={[styles.sectionTitle, { color: theme.textSecondary }]}
           >
-            COLLABORATION
-          </ThemedText>
-          <View
-            style={[
-              styles.sectionCard,
-              { backgroundColor: theme.backgroundDefault },
-            ]}
-          >
-            <SettingsItem
-              icon="users"
-              label="Shared Cases"
-              subtitle="Cases shared with you by colleagues"
-              onPress={() => navigation.navigate("SharedInbox")}
-              testID="settings.row-sharedCases"
-            />
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <ThemedText
-            style={[styles.sectionTitle, { color: theme.textSecondary }]}
-          >
             DATA
           </ThemedText>
           <View

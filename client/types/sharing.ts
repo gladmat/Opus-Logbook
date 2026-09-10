@@ -76,6 +76,51 @@ export interface SharedCaseData {
    * blobs simply lack the field — readers must fall back gracefully.
    */
   ownerParticipant?: OwnerParticipant;
+
+  /**
+   * Operative photos (2.25.0+), keys included — see `SharedMediaDescriptor`.
+   * Absent on blobs from older clients and on cases with no photos.
+   */
+  media?: SharedMediaDescriptor[];
+}
+
+/**
+ * One shared photo (2.25.0). The owner's on-device `MediaMeta` with the
+ * per-image DEK UNWRAPPED (`dekHex`) instead of wrapped under their master
+ * key, plus the `OperativeMediaItem` display fields. Lives INSIDE the
+ * end-to-end-encrypted share blob — the blob already carries the patient's
+ * name, so a 32-byte key per photo is no more sensitive — and the server
+ * only ever stores the opaque ciphertext files. The per-case share key
+ * rotates on every save, which is why the DEK cannot be wrapped under it:
+ * the ciphertext on the server is immutable for a given mediaId, and
+ * edit-saves only re-send these descriptors.
+ */
+export interface SharedMediaVariantMeta {
+  /** 12-byte AES-GCM nonce, lowercase hex. */
+  nonce: string;
+  /** 16-byte AES-GCM auth tag, lowercase hex. */
+  tag: string;
+  /** Plaintext byte length. */
+  size: number;
+  /** Ciphertext byte length (= `.enc` file size). */
+  ciphertextSize: number;
+}
+
+export interface SharedMediaDescriptor {
+  mediaId: string;
+  /** 32-byte AES-256 DEK, lowercase hex. */
+  dekHex: string;
+  mimeType: string;
+  width: number;
+  height: number;
+  image: SharedMediaVariantMeta;
+  thumb: SharedMediaVariantMeta | null;
+  tag?: string;
+  caption?: string;
+  timestamp?: string;
+  /** Day-rounded, as stored in the owner's plaintext meta.json. */
+  createdAt: string;
+  enhanced?: boolean;
 }
 
 /** The case owner's snapshot inside the shared blob. */

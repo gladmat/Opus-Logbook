@@ -132,7 +132,21 @@ function selectVariantSource(
 ): { source: File; nonce: string; tag: string; mimeType: string } {
   const paths = getMediaPaths(mediaId);
 
-  if (variant === "thumb" && meta.hasThumb && paths.thumb.exists) {
+  const thumbAvailable = meta.hasThumb && paths.thumb.exists;
+
+  if (variant === "thumb" && thumbAvailable) {
+    return {
+      source: paths.thumb,
+      nonce: meta.thumbNonce!,
+      tag: meta.thumbTag!,
+      mimeType: "image/jpeg",
+    };
+  }
+
+  // A shared photo is imported thumb-first (2.25.0); the full-resolution
+  // ciphertext arrives on demand. Until it does, the full-screen viewer
+  // shows the thumbnail rather than an error tile.
+  if (variant === "full" && !paths.image.exists && thumbAvailable) {
     return {
       source: paths.thumb,
       nonce: meta.thumbNonce!,
@@ -252,6 +266,120 @@ export async function readMeta(mediaId: string): Promise<MediaMeta | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * Per-variant presence check. `hasMediaV2` demands `image.enc`, so it is
+ * the wrong predicate for a thumb-only shared import.
+ */
+export async function hasMediaVariantV2(
+  mediaId: string,
+  variant: DecryptVariant,
+): Promise<boolean> {
+  const meta = await readMeta(mediaId);
+  if (!meta) return false;
+  const paths = getMediaPaths(mediaId);
+  if (variant === "thumb") return meta.hasThumb && paths.thumb.exists;
+  return paths.image.exists;
+}
+
+/**
+ * Import ALREADY-ENCRYPTED media received from a share (2.25.0). The
+ * `.enc` files are the owner's ciphertext, moved into place verbatim; the
+ * DEK (carried inside the E2EE blob) is re-wrapped under THIS user's
+ * master key so the item becomes an ordinary `opus-media:{id}` that
+ * `EncryptedImage` renders unchanged. Either variant may arrive first —
+ * a later call adds the missing file and preserves the meta. The plaintext
+ * meta.json keeps only the owner's day-rounded `createdAt` (never the
+ * capture instant — see `saveMediaV2`).
+ */
+export interface ImportEncryptedMediaParams {
+  mediaId: string;
+  masterKey: Uint8Array;
+  /** 32-byte DEK, hex. */
+  dekHex: string;
+  mimeType: string;
+  width: number;
+  height: number;
+  image: { nonce: string; tag: string; size: number; ciphertextSize: number };
+  thumb: {
+    nonce: string;
+    tag: string;
+    size: number;
+    ciphertextSize: number;
+  } | null;
+  /** Day-rounded ISO timestamp from the owner's meta.json. */
+  createdAt: string;
+  /** Ciphertext files to move into place (already downloaded). */
+  sources: { thumb?: File; image?: File };
+}
+
+export async function importEncryptedMediaV2(
+  params: ImportEncryptedMediaParams,
+): Promise<string> {
+  const { mediaId, masterKey, dekHex, sources } = params;
+  const paths = getMediaPaths(mediaId);
+
+  ensureMediaRoot();
+  if (!paths.dir.exists) {
+    paths.dir.create({ idempotent: true, intermediates: true });
+  }
+
+  if (sources.thumb) {
+    if (paths.thumb.exists) paths.thumb.delete();
+    sources.thumb.move(paths.thumb);
+  }
+  if (sources.image) {
+    if (paths.image.exists) paths.image.delete();
+    sources.image.move(paths.image);
+  }
+
+  // Reuse an existing wrapped key for this id when present (second variant
+  // arriving), otherwise wrap the shared DEK under our own master key.
+  const existing = await readMeta(mediaId);
+  let wrappedDEK: string;
+  if (existing) {
+    wrappedDEK = existing.wrappedDEK;
+  } else {
+    const dek = hexToBytes(dekHex);
+    try {
+      wrappedDEK = bytesToHex(await wrapDek(dek, masterKey));
+    } finally {
+      dek.fill(0);
+    }
+  }
+
+  const createdDay = new Date(params.createdAt);
+  createdDay.setHours(0, 0, 0, 0);
+  const meta: MediaMeta = {
+    version: 2,
+    mediaId,
+    wrappedDEK,
+    mimeType: params.mimeType,
+    width: params.width,
+    height: params.height,
+    hasThumb: params.thumb !== null,
+    originalNonce: params.image.nonce,
+    originalTag: params.image.tag,
+    originalSize: params.image.size,
+    originalCiphertextSize: params.image.ciphertextSize,
+    thumbNonce: params.thumb?.nonce,
+    thumbTag: params.thumb?.tag,
+    thumbSize: params.thumb?.size,
+    thumbCiphertextSize: params.thumb?.ciphertextSize,
+    createdAt: Number.isNaN(createdDay.getTime())
+      ? new Date(new Date().setHours(0, 0, 0, 0)).toISOString()
+      : createdDay.toISOString(),
+  };
+  if (!isValidMediaMeta(meta)) {
+    throw new Error(`Invalid shared media descriptor for ${mediaId}`);
+  }
+
+  writeTextFile(paths.meta, JSON.stringify(meta));
+  // Any cached decrypt of the thumb-as-full placeholder must be dropped so
+  // the next full-screen open reads the real image.
+  decryptCache.invalidate(mediaId);
+  return `${OPUS_MEDIA_PREFIX}${mediaId}`;
 }
 
 export async function hasMediaV2(mediaId: string): Promise<boolean> {

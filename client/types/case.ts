@@ -2520,11 +2520,20 @@ export const ASA_GRADE_LABELS: Record<ASAScore, string> = {
   6: "VI - Brain-Dead Organ Donor",
 };
 
-export function getAllProcedures(c: Case): CaseProcedure[] {
+/**
+ * Minimal shape for the diagnosis-group helpers below. Widened (2.25.0) so
+ * a decrypted `SharedCaseData` blob — which carries `diagnosisGroups` but
+ * no `Case` envelope — can reuse the same derivations as a local case.
+ */
+export type DiagnosisGroupsSource = Pick<Case, "diagnosisGroups">;
+
+export function getAllProcedures(c: DiagnosisGroupsSource): CaseProcedure[] {
   return (c.diagnosisGroups ?? []).flatMap((g) => g.procedures ?? []);
 }
 
-export function getCaseSpecialties(c: Case): Specialty[] {
+export function getCaseSpecialties(
+  c: DiagnosisGroupsSource & { specialty: Specialty },
+): Specialty[] {
   const specialties = new Set<Specialty>([c.specialty]);
   for (const group of c.diagnosisGroups ?? []) {
     specialties.add(group.specialty);
@@ -2565,7 +2574,7 @@ export function getPrimaryLaterality(c: Case): Laterality | undefined {
   return (c.diagnosisGroups ?? [])[0]?.diagnosisClinicalDetails?.laterality;
 }
 
-export function getPrimarySiteLabel(c: Case): string | null {
+export function getPrimarySiteLabel(c: DiagnosisGroupsSource): string | null {
   const group = (c.diagnosisGroups ?? [])[0];
   if (!group) return null;
   const laterality = group.diagnosisClinicalDetails?.laterality;

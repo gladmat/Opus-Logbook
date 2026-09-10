@@ -44,8 +44,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getVisibleSpecialties } from "@/lib/personalization";
 import {
   buildAttentionCaseFormParams,
+  buildSharedAttentionItems,
   filterCasesByVisibleSpecialties,
 } from "@/lib/dashboardSelectors";
+import { getSharedCaseSummaries } from "@/lib/sharedCaseSync";
+import type { SharedCaseSummary } from "@/lib/sharedCaseSummary";
+import {
+  resolveSharedCaseEpaState,
+  type SharedCaseEpaState,
+} from "@/lib/sharedCaseBadges";
+import { getDecryptedSharedCase } from "@/lib/sharingStorage";
 import { buildMediaContextFromCase } from "@/lib/mediaContext";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -61,10 +69,14 @@ export default function NeedsAttentionListScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteParams>();
   const insets = useSafeAreaInsets();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const selectedSpecialty = route.params?.selectedSpecialty ?? null;
 
   const [cases, setCases] = useState<CaseSummary[]>([]);
+  const [sharedCases, setSharedCases] = useState<SharedCaseSummary[]>([]);
+  const [sharedEpaStates, setSharedEpaStates] = useState<
+    Map<string, SharedCaseEpaState>
+  >(() => new Map());
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -91,16 +103,41 @@ export default function NeedsAttentionListScreen() {
     });
   }, [navigation, selectedSpecialty]);
 
+  const viewerUserId = user?.id;
   const loadCases = useCallback(async () => {
     try {
       const data = await getCaseSummaries();
       setCases(data);
+      // Shared cases (2.25.0): verification / EPA-due items join the list.
+      const shared = await getSharedCaseSummaries().catch(
+        () => [] as SharedCaseSummary[],
+      );
+      setSharedCases(shared);
+      const states = new Map<string, SharedCaseEpaState>();
+      await Promise.all(
+        shared.map(async (summary) => {
+          try {
+            const blob = await getDecryptedSharedCase(summary.id);
+            states.set(
+              summary.id,
+              await resolveSharedCaseEpaState(
+                { id: summary.id, ownerUserId: summary.shared.ownerUserId },
+                blob,
+                viewerUserId,
+              ),
+            );
+          } catch {
+            states.set(summary.id, null);
+          }
+        }),
+      );
+      setSharedEpaStates(states);
     } catch (error) {
       console.error("Error loading cases:", error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [viewerUserId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -120,10 +157,21 @@ export default function NeedsAttentionListScreen() {
       ),
     [activeEpisodes, visibleSpecialties],
   );
-  const attentionItems = useAttentionItems(
+  const ownAttentionItems = useAttentionItems(
     personalizedCases,
     visibleEpisodes,
     selectedSpecialty,
+  );
+  const attentionItems = useMemo(
+    () => [
+      ...ownAttentionItems,
+      ...buildSharedAttentionItems(
+        sharedCases,
+        sharedEpaStates,
+        selectedSpecialty,
+      ),
+    ],
+    [ownAttentionItems, sharedCases, sharedEpaStates, selectedSpecialty],
   );
 
   // Filter by search
@@ -143,6 +191,9 @@ export default function NeedsAttentionListScreen() {
     const inpatients = filtered.filter((i) => i.type === "inpatient");
     const infections = filtered.filter((i) => i.type === "infection");
     const episodes = filtered.filter((i) => i.type === "episode");
+    const shared = filtered.filter(
+      (i) => i.type === "shared_verification" || i.type === "epa_due",
+    );
 
     if (inpatients.length > 0)
       result.push({ title: "Inpatients", data: inpatients });
@@ -150,6 +201,8 @@ export default function NeedsAttentionListScreen() {
       result.push({ title: "Active Infections", data: infections });
     if (episodes.length > 0)
       result.push({ title: "Active Episodes", data: episodes });
+    if (shared.length > 0)
+      result.push({ title: "Shared with you", data: shared });
 
     return result;
   }, [filtered]);
@@ -165,6 +218,13 @@ export default function NeedsAttentionListScreen() {
         navigation.navigate("CaseDetail", { caseId: item.caseId });
       } else if (item.type === "episode" && item.episodeId) {
         navigation.navigate("EpisodeDetail", { episodeId: item.episodeId });
+      } else if (
+        (item.type === "shared_verification" || item.type === "epa_due") &&
+        item.sharedCaseId
+      ) {
+        navigation.navigate("SharedCaseDetail", {
+          sharedCaseId: item.sharedCaseId,
+        });
       }
     },
     [navigation],
@@ -281,6 +341,12 @@ export default function NeedsAttentionListScreen() {
           text: theme.accent,
           label: "Inpatient",
         };
+      }
+      if (item.type === "shared_verification") {
+        return { bg: theme.accentSurface, text: theme.accent, label: "Verify" };
+      }
+      if (item.type === "epa_due") {
+        return { bg: theme.infoSurface, text: theme.info, label: "EPA due" };
       }
       switch (item.episodeStatus) {
         case "active":

@@ -32,6 +32,12 @@ function getStatusBadge(
   if (item.type === "inpatient") {
     return { bg: accentColor + "20", text: accentColor, label: "Inpatient" };
   }
+  if (item.type === "shared_verification") {
+    return { bg: accentColor + "20", text: accentColor, label: "Verify" };
+  }
+  if (item.type === "epa_due") {
+    return { bg: infoColor + "20", text: infoColor, label: "EPA due" };
+  }
   switch (item.episodeStatus) {
     case "active":
       return { bg: successColor + "20", text: successColor, label: "Active" };
@@ -74,8 +80,11 @@ function AttentionCardInner({
     item.type === "episode" && item.lastProcedureSummary
       ? item.lastProcedureSummary
       : undefined;
+  const isSharedItem =
+    item.type === "shared_verification" || item.type === "epa_due";
   const canLogCase =
-    item.type === "inpatient" || item.type === "episode" || !!item.episodeId;
+    !isSharedItem &&
+    (item.type === "inpatient" || item.type === "episode" || !!item.episodeId);
   const logCaseLabel =
     item.type === "episode" || item.episodeId ? "Next Episode" : "Log Case";
 
@@ -113,6 +122,13 @@ function AttentionCardInner({
             numberOfLines={1}
           >
             {item.infectionSyndrome}
+          </ThemedText>
+        ) : isSharedItem ? (
+          <ThemedText
+            style={[styles.metaText, { color: theme.textSecondary }]}
+            numberOfLines={1}
+          >
+            {item.ownerDisplayName ? `From ${item.ownerDisplayName}` : "Shared"}
           </ThemedText>
         ) : (
           <ThemedText style={[styles.metaText, { color: theme.textSecondary }]}>
@@ -254,6 +270,29 @@ function AttentionCardInner({
               style={[styles.dischargeChipText, { color: theme.accent }]}
             >
               Discharge
+            </ThemedText>
+          </Pressable>
+        ) : null}
+        {isSharedItem ? (
+          <Pressable
+            style={[styles.logCaseButton, { backgroundColor: theme.accent }]}
+            onPress={(e) => {
+              e.stopPropagation();
+              onCardPress(item);
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={
+              item.type === "epa_due"
+                ? `Open assessment for ${item.patientIdentifier}`
+                : `Verify shared case for ${item.patientIdentifier}`
+            }
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            testID={testID ? `${testID}.btn-open` : undefined}
+          >
+            <ThemedText
+              style={[styles.logCaseText, { color: theme.accentContrast }]}
+            >
+              {item.type === "epa_due" ? "Assess" : "Verify"}
             </ThemedText>
           </Pressable>
         ) : null}

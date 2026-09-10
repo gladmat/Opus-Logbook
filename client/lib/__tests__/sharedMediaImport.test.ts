@@ -1,0 +1,222 @@
+/**
+ * sharedMediaImport / importEncryptedMediaV2 — the recipient side. The
+ * owner's ciphertext + the DEK from the blob must become a normal local
+ * media item that decrypts under the RECIPIENT's master key, thumb-first.
+ */
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import {
+  createExpoFileSystemMock,
+  resetMockExpoFileSystem,
+  writeMockFile,
+  readMockFileBytes,
+  mockFileExists,
+} from "./helpers/mockExpoFileSystem";
+
+vi.mock("expo-file-system", () => createExpoFileSystemMock());
+vi.mock("expo-crypto", () => ({
+  getRandomBytes: (n: number) =>
+    globalThis.crypto.getRandomValues(new Uint8Array(n)),
+  getRandomBytesAsync: async (n: number) =>
+    globalThis.crypto.getRandomValues(new Uint8Array(n)),
+}));
+
+const RECIPIENT_MASTER = new Uint8Array(32).fill(42);
+vi.mock("../encryption", () => ({
+  getMasterKeyBytes: async () => RECIPIENT_MASTER,
+}));
+
+// Download = copy a pre-seeded "server" file into the destination.
+const serverFiles = new Map<string, Uint8Array>();
+const downloadSharedMediaVariant = vi.fn(
+  async (
+    _sharedCaseId: string,
+    mediaId: string,
+    variant: string,
+    destination: { uri: string },
+  ) => {
+    const bytes = serverFiles.get(`${mediaId}:${variant}`);
+    if (!bytes) throw new Error("UnableToDownload 404");
+    writeMockFile(destination.uri, bytes);
+    const { File } = await import("expo-file-system");
+    return new File(destination.uri);
+  },
+);
+vi.mock("../sharedMediaApi", () => ({
+  downloadSharedMediaVariant: (...args: unknown[]) =>
+    (downloadSharedMediaVariant as unknown as (...a: unknown[]) => unknown)(
+      ...args,
+    ),
+}));
+
+const { File, Paths } = await import("expo-file-system");
+const {
+  saveMediaV2,
+  readMeta,
+  hasMediaVariantV2,
+  hasMediaV2,
+  decryptMediaVariantToFile,
+  getMediaPaths,
+  importEncryptedMediaV2,
+} = await import("../mediaFileStorage");
+const { buildSharedMediaDescriptors } = await import(
+  "../sharedMediaDescriptors"
+);
+const {
+  ensureSharedMediaVariant,
+  importSharedThumbs,
+  listLocalSharedThumbIds,
+} = await import("../sharedMediaImport");
+
+const OWNER_MASTER = new Uint8Array(32).fill(7);
+const PLAIN = new Uint8Array([10, 20, 30, 40, 50, 60]);
+const THUMB = new Uint8Array([1, 2, 3]);
+
+/** Owner encrypts a photo, publishes ciphertext to the fake server, and we
+ *  return the descriptor that would ride in the blob. */
+async function publishFromOwner() {
+  writeMockFile("file:///cache/src.jpg", PLAIN);
+  writeMockFile("file:///cache/thumb.jpg", THUMB);
+  const uri = await saveMediaV2(
+    "file:///cache/src.jpg",
+    "file:///cache/thumb.jpg",
+    "image/jpeg",
+    OWNER_MASTER,
+    100,
+    80,
+  );
+  const mediaId = uri.slice("opus-media:".length);
+  const paths = getMediaPaths(mediaId);
+  serverFiles.set(`${mediaId}:image`, readMockFileBytes(paths.image.uri));
+  serverFiles.set(`${mediaId}:thumb`, readMockFileBytes(paths.thumb.uri));
+  const { descriptors } = await buildSharedMediaDescriptors(
+    [
+      {
+        id: "x",
+        localUri: uri,
+        mimeType: "image/jpeg",
+        createdAt: "x",
+        tag: "preop",
+      },
+    ],
+    OWNER_MASTER,
+  );
+  // Simulate a different device: wipe the owner's local store.
+  paths.dir.delete();
+  return descriptors[0]!;
+}
+
+async function decryptLocal(mediaId: string, variant: "thumb" | "full") {
+  const out = new File(Paths.cache, `out-${variant}.jpg`);
+  await decryptMediaVariantToFile(mediaId, RECIPIENT_MASTER, variant, out.uri);
+  return readMockFileBytes(out.uri);
+}
+
+describe("recipient import", () => {
+  beforeEach(() => {
+    resetMockExpoFileSystem();
+    serverFiles.clear();
+    downloadSharedMediaVariant.mockClear();
+  });
+
+  it("thumb-first import writes a valid meta, decrypts the thumb under the recipient key, and serves the thumb for the full variant until the image arrives", async () => {
+    const d = await publishFromOwner();
+    expect(await ensureSharedMediaVariant("share-1", d, "thumb")).toBe(true);
+
+    const meta = await readMeta(d.mediaId);
+    expect(meta).not.toBeNull();
+    expect(meta!.hasThumb).toBe(true);
+    expect(meta!.originalNonce).toBe(d.image.nonce);
+    expect(meta!.thumbTag).toBe(d.thumb!.tag);
+    // Re-wrapped under OUR master key, not the owner's.
+    expect(await hasMediaVariantV2(d.mediaId, "thumb")).toBe(true);
+    expect(await hasMediaVariantV2(d.mediaId, "full")).toBe(false);
+    expect(await hasMediaV2(d.mediaId)).toBe(false);
+    expect(await decryptLocal(d.mediaId, "thumb")).toEqual(THUMB);
+    // full → thumb fallback (viewer shows the thumb instead of an error).
+    expect(await decryptLocal(d.mediaId, "full")).toEqual(THUMB);
+    // Temp download removed.
+    expect(
+      mockFileExists(`file:///cache/opus-shared-dl/${d.mediaId}.thumb.enc`),
+    ).toBe(false);
+  });
+
+  it("image import after thumb keeps the wrapped key and now decrypts full-res", async () => {
+    const d = await publishFromOwner();
+    await ensureSharedMediaVariant("share-1", d, "thumb");
+    const before = (await readMeta(d.mediaId))!.wrappedDEK;
+    expect(await ensureSharedMediaVariant("share-1", d, "image")).toBe(true);
+    expect((await readMeta(d.mediaId))!.wrappedDEK).toBe(before);
+    expect(await hasMediaVariantV2(d.mediaId, "full")).toBe(true);
+    expect(await decryptLocal(d.mediaId, "full")).toEqual(PLAIN);
+    expect(await decryptLocal(d.mediaId, "thumb")).toEqual(THUMB);
+  });
+
+  it("is idempotent — a present variant is not downloaded again", async () => {
+    const d = await publishFromOwner();
+    await ensureSharedMediaVariant("share-1", d, "thumb");
+    downloadSharedMediaVariant.mockClear();
+    expect(await ensureSharedMediaVariant("share-1", d, "thumb")).toBe(false);
+    expect(downloadSharedMediaVariant).not.toHaveBeenCalled();
+  });
+
+  it("createdAt on the recipient's plaintext meta is day-rounded from the descriptor", async () => {
+    const d = await publishFromOwner();
+    await ensureSharedMediaVariant("share-1", d, "thumb");
+    const created = new Date((await readMeta(d.mediaId))!.createdAt);
+    expect(created.getHours()).toBe(0);
+    expect(created.getMinutes()).toBe(0);
+  });
+
+  it("tampered ciphertext fails to decrypt (auth tag) — never silently renders", async () => {
+    const d = await publishFromOwner();
+    const bytes = serverFiles.get(`${d.mediaId}:thumb`)!;
+    const tampered = new Uint8Array(bytes);
+    tampered[0] ^= 0xff;
+    serverFiles.set(`${d.mediaId}:thumb`, tampered);
+    await ensureSharedMediaVariant("share-1", d, "thumb");
+    await expect(decryptLocal(d.mediaId, "thumb")).rejects.toThrow();
+  });
+
+  it("size mismatch against the descriptor is rejected and leaves nothing behind", async () => {
+    const d = await publishFromOwner();
+    serverFiles.set(`${d.mediaId}:thumb`, new Uint8Array([1]));
+    await expect(
+      ensureSharedMediaVariant("share-1", d, "thumb"),
+    ).rejects.toThrow(/size mismatch/);
+    expect(await readMeta(d.mediaId)).toBeNull();
+  });
+
+  it("importSharedThumbs imports every thumb, reports per-item failures, listLocalSharedThumbIds reflects it", async () => {
+    const a = await publishFromOwner();
+    const b = await publishFromOwner();
+    serverFiles.delete(`${b.mediaId}:thumb`);
+    const result = await importSharedThumbs("share-1", [a, b]);
+    expect(result.imported).toBe(1);
+    expect(result.failed.map((f) => f.mediaId)).toEqual([b.mediaId]);
+    const local = await listLocalSharedThumbIds([a, b]);
+    expect([...local]).toEqual([a.mediaId]);
+  });
+
+  it("importEncryptedMediaV2 rejects a malformed descriptor", async () => {
+    await expect(
+      importEncryptedMediaV2({
+        mediaId: "bad",
+        masterKey: RECIPIENT_MASTER,
+        dekHex: "00".repeat(32),
+        mimeType: "image/jpeg",
+        width: 1,
+        height: 1,
+        image: { nonce: "aa", tag: "bb", size: 1, ciphertextSize: 1 },
+        // hasThumb true but no thumb fields → invalid meta
+        thumb: {
+          nonce: undefined as unknown as string,
+          tag: "x",
+          size: 1,
+          ciphertextSize: 1,
+        },
+        createdAt: "2026-01-01",
+        sources: {},
+      }),
+    ).rejects.toThrow(/Invalid shared media descriptor/);
+  });
+});

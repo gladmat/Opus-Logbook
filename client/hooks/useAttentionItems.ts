@@ -8,9 +8,17 @@ import { getCasePrimaryTitle } from "@/lib/caseDiagnosisSummary";
 import { INFECTION_SYNDROME_LABELS } from "@/types/infection";
 import { caseCanAddHistology } from "@/lib/skinCancerConfig";
 
+export type AttentionItemType =
+  | "inpatient"
+  | "episode"
+  | "infection"
+  | "inbox_photos"
+  | "shared_verification"
+  | "epa_due";
+
 export interface AttentionItem {
   id: string;
-  type: "inpatient" | "episode" | "infection" | "inbox_photos";
+  type: AttentionItemType;
   patientIdentifier: string;
   diagnosisTitle: string;
   specialty: Specialty;
@@ -30,6 +38,9 @@ export interface AttentionItem {
   infectionSyndrome?: string;
   canAddHistology?: boolean;
   inboxCount?: number;
+  /** Shared-case items (2.25.0): the share row id + who shared it. */
+  sharedCaseId?: string;
+  ownerDisplayName?: string;
 }
 
 const DAY_MS = 1000 * 60 * 60 * 24;

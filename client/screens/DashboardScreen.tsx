@@ -59,13 +59,21 @@ import {
   filterCasesByVisibleSpecialties,
   filterDashboardCases,
   filterOutPlannedCases,
+  buildSharedAttentionItems,
+  SHARED_FILTER_ID,
 } from "@/lib/dashboardSelectors";
 import { buildMediaContextFromCase } from "@/lib/mediaContext";
+import { getDecryptedSharedCase } from "@/lib/sharingStorage";
+import { getSharedOutbox } from "@/lib/sharingApi";
+import { getSharedCaseSummaries, syncSharedCases } from "@/lib/sharedCaseSync";
 import {
-  getSharedInboxIndex,
-  updateSharedInboxIndex,
-} from "@/lib/sharingStorage";
-import { getSharedInbox, getSharedOutbox } from "@/lib/sharingApi";
+  isSharedCaseSummary,
+  type SharedCaseSummary,
+} from "@/lib/sharedCaseSummary";
+import {
+  resolveSharedCaseEpaState,
+  type SharedCaseEpaState,
+} from "@/lib/sharedCaseBadges";
 import { getAllEpaTargets, getAllRevealedPairs } from "@/lib/assessmentStorage";
 import {
   filterPendingEpaTargets,
@@ -76,7 +84,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function DashboardScreen() {
   const { theme } = useTheme();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
@@ -87,7 +95,12 @@ export default function DashboardScreen() {
   const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(
     null,
   );
-  const [sharedPendingCount, setSharedPendingCount] = useState(0);
+  // Cases colleagues shared WITH the viewer (2.25.0) — merged into the
+  // Recent Cases list, with their own filter chip and attention items.
+  const [sharedCases, setSharedCases] = useState<SharedCaseSummary[]>([]);
+  const [sharedEpaStates, setSharedEpaStates] = useState<
+    Map<string, SharedCaseEpaState>
+  >(() => new Map());
   const [pendingEpaCount, setPendingEpaCount] = useState(0);
   const [isFilterSticky, setIsFilterSticky] = useState(false);
 
@@ -117,16 +130,52 @@ export default function DashboardScreen() {
     }
   }, []);
 
-  const loadSharedInboxCounts = useCallback(async () => {
-    try {
-      const index = await getSharedInboxIndex();
-      setSharedPendingCount(
-        index.filter((e) => e.verificationStatus === "pending").length,
+  const viewerUserId = user?.id;
+  const applySharedSummaries = useCallback(
+    async (summaries: SharedCaseSummary[]) => {
+      setSharedCases(summaries);
+      const states = new Map<string, SharedCaseEpaState>();
+      await Promise.all(
+        summaries.map(async (summary) => {
+          try {
+            const blob = await getDecryptedSharedCase(summary.id);
+            states.set(
+              summary.id,
+              await resolveSharedCaseEpaState(
+                { id: summary.id, ownerUserId: summary.shared.ownerUserId },
+                blob,
+                viewerUserId,
+              ),
+            );
+          } catch {
+            states.set(summary.id, null);
+          }
+        }),
       );
+      setSharedEpaStates(states);
+    },
+    [viewerUserId],
+  );
+
+  // Offline read on every focus: inbox index + decrypted caches.
+  const loadSharedCases = useCallback(async () => {
+    try {
+      await applySharedSummaries(await getSharedCaseSummaries());
     } catch {
       // Non-critical — local index may not exist yet
     }
-  }, []);
+  }, [applySharedSummaries]);
+
+  // Online reconcile: new / updated shares get decrypted and their photo
+  // thumbnails imported; revoked ones drop out.
+  const syncShared = useCallback(async () => {
+    try {
+      const result = await syncSharedCases();
+      await applySharedSummaries(result.summaries);
+    } catch {
+      // Network unavailable — the cached list stays
+    }
+  }, [applySharedSummaries]);
 
   const loadPendingEpaCount = useCallback(async () => {
     try {
@@ -157,31 +206,20 @@ export default function DashboardScreen() {
     useCallback(() => {
       const task = InteractionManager.runAfterInteractions(() => {
         loadCases();
-        loadSharedInboxCounts();
+        loadSharedCases();
         loadPendingEpaCount();
+        void syncShared();
       });
       return () => task.cancel();
-    }, [loadCases, loadSharedInboxCounts, loadPendingEpaCount]),
+    }, [loadCases, loadSharedCases, loadPendingEpaCount, syncShared]),
   );
-
-  const refreshSharedInbox = useCallback(async () => {
-    try {
-      const data = await getSharedInbox();
-      await updateSharedInboxIndex(data);
-      setSharedPendingCount(
-        data.filter((e) => e.verificationStatus === "pending").length,
-      );
-    } catch {
-      // Network unavailable — keep local counts
-    }
-  }, []);
 
   const handleRefresh = async () => {
     setRefreshing(true);
     await Promise.all([
       loadCases(),
       refreshEpisodes(),
-      refreshSharedInbox(),
+      syncShared(),
       loadPendingEpaCount(),
     ]);
     setRefreshing(false);
@@ -197,13 +235,18 @@ export default function DashboardScreen() {
     [cases, visibleSpecialties],
   );
 
+  // Own cases + shared cases form ONE list for the filter bar and Recent
+  // Cases. Shared cases skip the visible-specialty personalisation (the
+  // viewer was on the team) but still respect the specialty chip.
+  const mergedCases = useMemo<CaseSummary[]>(
+    () => [...personalizedCases, ...sharedCases],
+    [personalizedCases, sharedCases],
+  );
+
   const dashboardSummary = useMemo(
     () =>
-      buildDashboardSummary(
-        personalizedCases,
-        (caseData) => caseData.needsHistology,
-      ),
-    [personalizedCases],
+      buildDashboardSummary(mergedCases, (caseData) => caseData.needsHistology),
+    [mergedCases],
   );
 
   const visibleEpisodes = useMemo(
@@ -216,28 +259,57 @@ export default function DashboardScreen() {
 
   const filteredCases = useMemo(() => {
     return filterDashboardCases(
-      personalizedCases,
+      mergedCases,
       selectedSpecialty,
       (caseData) => caseData.needsHistology,
     );
-  }, [personalizedCases, selectedSpecialty]);
+  }, [mergedCases, selectedSpecialty]);
+
+  // Practice Pulse counts the viewer's OWN operating, never colleagues'.
+  const filteredOwnCases = useMemo(
+    () =>
+      selectedSpecialty === SHARED_FILTER_ID
+        ? personalizedCases
+        : filterDashboardCases(
+            personalizedCases,
+            selectedSpecialty,
+            (caseData) => caseData.needsHistology,
+          ),
+    [personalizedCases, selectedSpecialty],
+  );
 
   const selectedDashboardSpecialty = useMemo(
     () =>
-      selectedSpecialty && selectedSpecialty !== HISTOLOGY_FILTER_ID
+      selectedSpecialty &&
+      selectedSpecialty !== HISTOLOGY_FILTER_ID &&
+      selectedSpecialty !== SHARED_FILTER_ID
         ? (selectedSpecialty as Specialty)
         : null,
     [selectedSpecialty],
   );
-  const pulseData = usePracticePulse(filteredCases);
+  const pulseData = usePracticePulse(filteredOwnCases);
+  // Inpatient / infection / episode cards come from OWN cases only — a
+  // colleague's admission is not the viewer's to discharge.
   const caseAttentionItems = useAttentionItems(
     personalizedCases,
     visibleEpisodes,
     selectedSpecialty,
   );
+  const sharedAttentionItems = useMemo(
+    () =>
+      buildSharedAttentionItems(
+        sharedCases,
+        sharedEpaStates,
+        selectedSpecialty,
+      ),
+    [sharedCases, sharedEpaStates, selectedSpecialty],
+  );
 
   // Inbox moved to header icon — attention carousel is clinical-only
-  const attentionItems = caseAttentionItems;
+  const attentionItems = useMemo(
+    () => [...caseAttentionItems, ...sharedAttentionItems],
+    [caseAttentionItems, sharedAttentionItems],
+  );
 
   // --- Handlers ---
 
@@ -293,13 +365,23 @@ export default function DashboardScreen() {
 
   const handleCasePress = useCallback(
     (caseData: CaseSummary) => {
+      if (isSharedCaseSummary(caseData)) {
+        navigation.navigate("SharedCaseDetail", {
+          sharedCaseId: caseData.shared.sharedCaseId,
+        });
+        return;
+      }
       navigation.navigate("CaseDetail", { caseId: caseData.id });
     },
     [navigation],
   );
 
   const handleAddCase = useCallback(() => {
-    if (selectedSpecialty && selectedSpecialty !== HISTOLOGY_FILTER_ID) {
+    if (
+      selectedSpecialty &&
+      selectedSpecialty !== HISTOLOGY_FILTER_ID &&
+      selectedSpecialty !== SHARED_FILTER_ID
+    ) {
       navigation.navigate("CaseForm", {
         specialty: selectedSpecialty as Specialty,
       });
@@ -352,6 +434,13 @@ export default function DashboardScreen() {
         navigation.navigate("CaseDetail", { caseId: item.caseId });
       } else if (item.type === "episode" && item.episodeId) {
         navigation.navigate("EpisodeDetail", { episodeId: item.episodeId });
+      } else if (
+        (item.type === "shared_verification" || item.type === "epa_due") &&
+        item.sharedCaseId
+      ) {
+        navigation.navigate("SharedCaseDetail", {
+          sharedCaseId: item.sharedCaseId,
+        });
       }
     },
     [navigation],
@@ -452,6 +541,7 @@ export default function DashboardScreen() {
           totalCaseCount={dashboardSummary.totalCaseCount}
           isSticky={isFilterSticky}
           awaitingHistologyCount={dashboardSummary.awaitingHistologyCount}
+          sharedCount={sharedCases.length}
         />
 
         {/* Zone 1 — Needs Attention */}
@@ -471,51 +561,6 @@ export default function DashboardScreen() {
           pulseData={pulseData}
           totalCaseCount={personalizedCases.length}
         />
-
-        {/* Zone 2.5 — Shared-case verifications. Most cases in a team are
-            shared, so a standing "N shared cases" row would be permanent
-            chrome; the row exists ONLY while something needs action
-            (presence/absence IS the notification). Browsing lives in
-            Settings → Shared with me. */}
-        {sharedPendingCount > 0 ? (
-          <Pressable
-            testID="dashboard.btn-sharedCases"
-            onPress={() => navigation.navigate("SharedInbox")}
-            style={({ pressed }) => [
-              styles.sharedCasesCard,
-              {
-                backgroundColor: theme.backgroundElevated,
-                borderColor: theme.accent,
-                opacity: pressed ? 0.7 : 1,
-              },
-              Shadows.card,
-            ]}
-          >
-            <View style={styles.sharedCasesRow}>
-              <View
-                style={[
-                  styles.sharedCasesIcon,
-                  { backgroundColor: theme.accentSurface },
-                ]}
-              >
-                <Feather name="users" size={18} color={theme.accent} />
-              </View>
-              <View style={styles.sharedCasesText}>
-                <ThemedText
-                  style={[styles.sharedCasesTitle, { color: theme.text }]}
-                >
-                  {sharedPendingCount} shared case
-                  {sharedPendingCount !== 1 ? "s" : ""} awaiting verification
-                </ThemedText>
-              </View>
-              <Feather
-                name="chevron-right"
-                size={18}
-                color={theme.textTertiary}
-              />
-            </View>
-          </Pressable>
-        ) : null}
 
         {/* Zone 2.6 — Pending EPA assessments. Same presence/absence rule
             as the verification row: exists only while an assessment
@@ -560,10 +605,10 @@ export default function DashboardScreen() {
           </Pressable>
         ) : null}
 
-        {/* Zone 3 — Recent Cases */}
-        {!loading &&
-        filteredCases.length === 0 &&
-        personalizedCases.length === 0 ? (
+        {/* Zone 3 — Recent Cases (own + shared with me). Shared cases
+            surface here with a "Shared by …" line and a Verify chip while
+            verification is pending — presence IS the notification. */}
+        {!loading && filteredCases.length === 0 && mergedCases.length === 0 ? (
           <DashboardEmptyState />
         ) : (
           <RecentCasesList
@@ -574,6 +619,12 @@ export default function DashboardScreen() {
             loading={loading}
             onAddEvent={handleAddEventFromCase}
             onAddHistology={handleAddHistologyFromCase}
+            forceSeeAll={selectedSpecialty === SHARED_FILTER_ID}
+            onSeeAll={
+              selectedSpecialty === SHARED_FILTER_ID
+                ? () => navigation.navigate("SharedInbox")
+                : undefined
+            }
           />
         )}
       </ScrollView>

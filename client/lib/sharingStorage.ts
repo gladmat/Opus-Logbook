@@ -9,11 +9,15 @@ import { getSecureItem, setSecureItem } from "./secureStorage";
 export const SHARING_BASE_KEYS = {
   INBOX_INDEX: "@opus_shared_inbox_index",
   CASE_PREFIX: "@opus_shared_case_",
+  CASE_INDEX: "@opus_shared_case_index",
   CASE_KEY_PREFIX: "opus_case_key_",
 } as const;
 
 function sharedInboxIndexKey(): string {
   return userScopedAsyncKey(SHARING_BASE_KEYS.INBOX_INDEX);
+}
+function sharedCaseIndexKey(): string {
+  return userScopedAsyncKey(SHARING_BASE_KEYS.CASE_INDEX);
 }
 function sharedCaseDataKey(id: string): string {
   return userScopedAsyncKey(`${SHARING_BASE_KEYS.CASE_PREFIX}${id}`);
@@ -73,6 +77,39 @@ export async function saveDecryptedSharedCase(
   const plaintext = JSON.stringify(record);
   const encrypted = await encryptData(plaintext);
   await AsyncStorage.setItem(sharedCaseDataKey(id), encrypted);
+  await addToDecryptedSharedCaseIndex(id);
+}
+
+// ── Decrypted-cache index (2.25.0) ──────────────────────────────────────────
+// Mirrors the EPA-targets index: a plain id list so the dashboard sync can
+// enumerate cached shares (incl. owner-seeded ones) without scanning keys.
+
+export async function listDecryptedSharedCaseIds(): Promise<string[]> {
+  const raw = await AsyncStorage.getItem(sharedCaseIndexKey());
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? (parsed as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+async function writeDecryptedSharedCaseIndex(ids: string[]): Promise<void> {
+  await AsyncStorage.setItem(sharedCaseIndexKey(), JSON.stringify(ids));
+}
+
+async function addToDecryptedSharedCaseIndex(id: string): Promise<void> {
+  const ids = await listDecryptedSharedCaseIds();
+  if (ids.includes(id)) return;
+  ids.push(id);
+  await writeDecryptedSharedCaseIndex(ids);
+}
+
+async function removeFromDecryptedSharedCaseIndex(id: string): Promise<void> {
+  const ids = await listDecryptedSharedCaseIds();
+  if (!ids.includes(id)) return;
+  await writeDecryptedSharedCaseIndex(ids.filter((x) => x !== id));
 }
 
 export async function getDecryptedSharedCaseWithVersion(id: string): Promise<{
@@ -104,6 +141,7 @@ export async function getDecryptedSharedCase(
 export async function removeDecryptedSharedCase(id: string): Promise<void> {
   try {
     await AsyncStorage.removeItem(sharedCaseDataKey(id));
+    await removeFromDecryptedSharedCaseIndex(id);
   } catch {
     // Best-effort.
   }
