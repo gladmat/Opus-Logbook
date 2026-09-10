@@ -15,6 +15,7 @@ import { Feather } from "@/components/FeatherIcon";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
+import { getDefaultPhoneRegion } from "@shared/phone";
 import { Spacing, BorderRadius, palette } from "@/constants/theme";
 import { getTeamContacts, linkContact } from "@/lib/teamContactsApi";
 import { getCareerStageLabel } from "@shared/careerStages";
@@ -38,7 +39,7 @@ export default function TeamContactsScreen() {
   const { theme } = useTheme();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { facilities } = useAuth();
+  const { facilities, profile } = useAuth();
 
   const [contacts, setContacts] = useState<TeamContact[]>([]);
   const [loading, setLoading] = useState(true);
@@ -140,10 +141,12 @@ export default function TeamContactsScreen() {
       // Actually run discovery on focus (still 24h-throttled unless a
       // contact edit marked it stale) instead of only reading yesterday's
       // cached matches — then refresh so new Link buttons appear.
-      void discoverUnlinkedContacts().then((found) => {
+      void discoverUnlinkedContacts({
+        phoneRegion: getDefaultPhoneRegion(profile?.countryOfPractice),
+      }).then((found) => {
         if (found > 0) loadContacts();
       });
-    }, [loadContacts]),
+    }, [loadContacts, profile?.countryOfPractice]),
   );
 
   const handleRefresh = useCallback(() => {

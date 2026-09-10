@@ -27,6 +27,7 @@
 
 import { ristretto255_oprf } from "@noble/curves/ed25519.js";
 import { bytesToHex, hexToBytes, utf8ToBytes } from "@noble/hashes/utils.js";
+import { normalizePhoneE164, type PhoneRegion } from "@shared/phone";
 
 const oprf = ristretto255_oprf.oprf;
 
@@ -36,17 +37,21 @@ export function normalizeDiscoveryEmail(email: string): string {
 }
 
 /**
- * Phone parity with the legacy exact-match semantics (profiles.phone is
- * compared as an exact string) — trim only, no reformatting.
+ * E.164, matching how `profiles.phone` is stored since 2.26.0. `null` when
+ * the number can't be parsed (national format without a region, junk) —
+ * such a contact simply has no phone identifier to match on.
  */
-export function normalizeDiscoveryPhone(phone: string): string {
-  return phone.trim();
+export function normalizeDiscoveryPhone(
+  phone: string,
+  region?: PhoneRegion,
+): string | null {
+  return normalizePhoneE164(phone, region);
 }
 
 export interface IdentifierInput {
   /** Caller-chosen reference, echoed back per blinded element. */
   ref: string;
-  /** Normalized identifier string (email or phone). */
+  /** Normalized identifier string (email, E.164 phone, or `reg:` key). */
   value: string;
 }
 

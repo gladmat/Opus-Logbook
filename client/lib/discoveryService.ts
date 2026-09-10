@@ -27,6 +27,8 @@ import {
   normalizeDiscoveryPhone,
   type IdentifierInput,
 } from "./psiDiscovery";
+import { buildRegistrationLookupKey } from "@shared/professionalRegistrations";
+import type { PhoneRegion } from "@shared/phone";
 import type { TeamContact } from "@/types/teamContacts";
 
 const LAST_RUN_BASE_KEY = "@opus_discovery_last_run";
@@ -40,11 +42,63 @@ function matchesKey(): string {
   return userScopedAsyncKey(MATCHES_BASE_KEY);
 }
 
+export interface DiscoveryOptions {
+  /** Owner's default region for national-format contact phones. */
+  phoneRegion?: PhoneRegion;
+}
+
+/** A contact's matchable identifiers in the exact forms the server matches on. */
+export interface ContactIdentifiers {
+  email?: string;
+  /** E.164 */
+  phone?: string;
+  /** `reg:<jurisdiction>:<NORM>` — PSI member-set form. */
+  registrationKey?: string;
+  registrationNumber?: string;
+  registrationJurisdiction?: string;
+}
+
+/**
+ * Single source of truth for BOTH the PSI pre-filter and the /discover
+ * payload, so the two hops can never disagree (they used to: PSI trimmed
+ * phones, /discover sent them raw).
+ */
+export function buildContactIdentifiers(
+  contact: Pick<
+    TeamContact,
+    "email" | "phone" | "registrationNumber" | "registrationJurisdiction"
+  >,
+  region?: PhoneRegion,
+): ContactIdentifiers {
+  const ids: ContactIdentifiers = {};
+  if (contact.email?.trim()) ids.email = normalizeDiscoveryEmail(contact.email);
+  if (contact.phone) {
+    const e164 = normalizeDiscoveryPhone(contact.phone, region);
+    if (e164) ids.phone = e164;
+  }
+  const key = buildRegistrationLookupKey(
+    contact.registrationJurisdiction,
+    contact.registrationNumber,
+  );
+  if (key && contact.registrationNumber && contact.registrationJurisdiction) {
+    ids.registrationKey = key;
+    ids.registrationNumber = contact.registrationNumber;
+    ids.registrationJurisdiction = contact.registrationJurisdiction;
+  }
+  return ids;
+}
+
+export function hasContactIdentifier(ids: ContactIdentifiers): boolean {
+  return !!(ids.email || ids.phone || ids.registrationKey);
+}
+
 /**
  * Run background discovery for unlinked contacts.
  * Returns the number of new matches found, or 0 if throttled/skipped.
  */
-export async function discoverUnlinkedContacts(): Promise<number> {
+export async function discoverUnlinkedContacts(
+  opts: DiscoveryOptions = {},
+): Promise<number> {
   try {
     // Throttle: skip if last run was within 24h
     const lastRun = await AsyncStorage.getItem(lastRunKey());
@@ -55,12 +109,18 @@ export async function discoverUnlinkedContacts(): Promise<number> {
     // Fetch all team contacts
     const contacts = await getTeamContacts();
 
-    // Filter to unlinked contacts with at least one identifier
-    const unlinked = contacts.filter(
-      (c) => !c.linkedUserId && (c.email || c.phone || c.registrationNumber),
-    );
+    // Unlinked contacts that carry at least one MATCHABLE identifier (a
+    // phone that can't be normalised, or a registration without a
+    // jurisdiction, is not one).
+    const unlinked = contacts
+      .filter((c) => !c.linkedUserId)
+      .map((contact) => ({
+        contact,
+        ids: buildContactIdentifiers(contact, opts.phoneRegion),
+      }))
+      .filter((entry) => hasContactIdentifier(entry.ids));
 
-    // Deliberately NOT stamping lastRun here: a zero-unlinked round costs
+    // Deliberately NOT stamping lastRun here: a zero-candidate round costs
     // one contacts fetch and nothing else, and stamping it used to consume
     // the 24h window right before the user added an email to a contact.
     // Cost-bearing rounds (PSI ran) stamp below.
@@ -77,7 +137,7 @@ export async function discoverUnlinkedContacts(): Promise<number> {
     const candidates =
       psiMatched === null
         ? unlinked
-        : unlinked.filter((c) => psiMatched.has(c.id));
+        : unlinked.filter((entry) => psiMatched.has(entry.contact.id));
 
     if (candidates.length === 0) {
       await AsyncStorage.setItem(matchesKey(), JSON.stringify([]));
@@ -85,18 +145,20 @@ export async function discoverUnlinkedContacts(): Promise<number> {
       return 0;
     }
 
-    // Build discovery input
-    const input: DiscoverContactInput[] = candidates.map((c) => ({
-      contactId: c.id,
-      ...(c.email ? { email: c.email } : {}),
-      ...(c.phone ? { phone: c.phone } : {}),
-      ...(c.registrationNumber
-        ? {
-            registrationNumber: c.registrationNumber,
-            registrationJurisdiction: c.registrationJurisdiction ?? undefined,
-          }
-        : {}),
-    }));
+    // Build discovery input from the SAME normalised identifiers.
+    const input: DiscoverContactInput[] = candidates.map(
+      ({ contact, ids }) => ({
+        contactId: contact.id,
+        ...(ids.email ? { email: ids.email } : {}),
+        ...(ids.phone ? { phone: ids.phone } : {}),
+        ...(ids.registrationNumber && ids.registrationJurisdiction
+          ? {
+              registrationNumber: ids.registrationNumber,
+              registrationJurisdiction: ids.registrationJurisdiction,
+            }
+          : {}),
+      }),
+    );
 
     // Batch discover (max 50 per request)
     const allMatches: DiscoverMatch[] = [];
@@ -125,25 +187,21 @@ export async function discoverUnlinkedContacts(): Promise<number> {
  * plaintext path, so a flaky PSI never silently leaks the address book.
  */
 async function psiPreFilter(
-  unlinked: TeamContact[],
+  unlinked: { contact: TeamContact; ids: ContactIdentifiers }[],
 ): Promise<Set<string> | null> {
   const identifiers: IdentifierInput[] = [];
-  for (const contact of unlinked) {
-    if (contact.email) {
+  for (const { contact, ids } of unlinked) {
+    if (ids.email)
+      identifiers.push({ ref: `${contact.id}|email`, value: ids.email });
+    if (ids.phone)
+      identifiers.push({ ref: `${contact.id}|phone`, value: ids.phone });
+    if (ids.registrationKey) {
       identifiers.push({
-        ref: `${contact.id}|email`,
-        value: normalizeDiscoveryEmail(contact.email),
-      });
-    }
-    if (contact.phone) {
-      identifiers.push({
-        ref: `${contact.id}|phone`,
-        value: normalizeDiscoveryPhone(contact.phone),
+        ref: `${contact.id}|reg`,
+        value: ids.registrationKey,
       });
     }
   }
-  // Registration-number-only contacts have no PSI-matchable identifier;
-  // the legacy endpoint defers registration lookups too, so parity holds.
   if (identifiers.length === 0) return new Set();
 
   const matched = new Set<string>();
@@ -195,9 +253,14 @@ export async function getDiscoveryMatches(): Promise<DiscoverMatch[]> {
  * Remove a match after it has been acted on (linked or dismissed).
  */
 export async function removeDiscoveryMatch(contactId: string): Promise<void> {
-  const matches = await getDiscoveryMatches();
-  const updated = matches.filter((m) => m.contactId !== contactId);
-  await AsyncStorage.setItem(matchesKey(), JSON.stringify(updated));
+  try {
+    const matches = await getDiscoveryMatches();
+    const updated = matches.filter((m) => m.contactId !== contactId);
+    await AsyncStorage.setItem(matchesKey(), JSON.stringify(updated));
+  } catch {
+    // Cosmetic cache — must never turn a successful link into "Link Failed"
+    // (matchesKey() throws when no active user is set).
+  }
 }
 
 /**

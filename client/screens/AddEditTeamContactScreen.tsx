@@ -24,7 +24,8 @@ import {
   deleteTeamContact,
   sendInvitation,
 } from "@/lib/teamContactsApi";
-import { promptLinkContactByEmail } from "@/lib/linkingPrompts";
+import { promptLinkContact } from "@/lib/linkingPrompts";
+import { getDefaultPhoneRegion } from "@shared/phone";
 import { markDiscoveryStale } from "@/lib/discoveryService";
 import { getCareerStagesForCountry } from "@shared/careerStages";
 import {
@@ -139,7 +140,11 @@ export default function AddEditTeamContactScreen() {
       }
       if (newEmail && !saved.linkedUserId && (emailChanged || !isEdit)) {
         try {
-          await promptLinkContactByEmail(saved, profile?.userId);
+          await promptLinkContact(
+            saved,
+            profile?.userId,
+            getDefaultPhoneRegion(profile?.countryOfPractice),
+          );
         } catch {
           // The link prompt must never block leaving the screen.
         }
@@ -168,6 +173,7 @@ export default function AddEditTeamContactScreen() {
     initialEmail,
     initialPhone,
     profile?.userId,
+    profile?.countryOfPractice,
   ]);
 
   const handleDelete = useCallback(() => {

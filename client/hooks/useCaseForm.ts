@@ -118,6 +118,7 @@ import {
   type TeamShareOutcome,
 } from "@/lib/caseSharing";
 import { runPostSaveTeamPrompt } from "@/lib/linkingPrompts";
+import { getDefaultPhoneRegion } from "@shared/phone";
 import { ensurePushPermissionsWithPrompt } from "@/lib/pushPermissions";
 import { getTeamContacts } from "@/lib/teamContactsApi";
 import {
@@ -2780,6 +2781,7 @@ export function useCaseForm({
             ),
             liveContacts,
             ownUserId: profile?.userId,
+            phoneRegion: getDefaultPhoneRegion(profile?.countryOfPractice),
           });
         }
 

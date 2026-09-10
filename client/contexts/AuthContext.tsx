@@ -60,6 +60,7 @@ import {
   clearDiscoveryState,
 } from "@/lib/discoveryService";
 import { clearAllPins } from "@/lib/keyPinningStore";
+import { getDefaultPhoneRegion } from "@shared/phone";
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -226,7 +227,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         void authRefreshToken();
 
         // Background discovery: check if unlinked contacts have joined Opus
-        void discoverUnlinkedContacts();
+        void discoverUnlinkedContacts({
+          phoneRegion: getDefaultPhoneRegion(data.profile?.countryOfPractice),
+        });
       } else {
         // getCurrentUser returned null — could be offline or token cleared
         // Only clear state if token was actually cleared (auth failure)
