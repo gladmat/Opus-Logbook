@@ -1,137 +1,93 @@
 # Opus — State Snapshot
 
-Generated 2026-07-24 · regenerate with `/state-snapshot`
+Generated 2026-09-10 · regenerate with /state-snapshot
 
-> Generated sections below are machine-derived from live repo sources. Do not
-> hand-edit them — rerun `/state-snapshot`. Only the **Manually-maintained facts**
-> section (bottom) is edited by hand and preserved across runs.
-
----
-
-## App identity
-
-Source: `app.json` (no `app.config.*` exists).
+## App identity (`app.json`)
 
 | Field | Value |
 | --- | --- |
-| Name | Opus |
-| Slug | surgical-logbook |
-| Version | 2.13.0 |
-| iOS bundle ID | com.drgladysz.opus |
-| iOS buildNumber | 11 *(documentation-only — see note)* |
-| Android package | com.drgladysz.opus |
-| Android versionCode | 1 *(documentation-only — see note)* |
-| Apple Team ID | 8CQ38RR2W4 |
-| EAS project ID | 0bc1b91c-c240-4f4e-b030-31d16389cd1e |
-| Expo owner | gladmat |
+| Name / slug | Opus / `surgical-logbook` |
+| Version | `2.25.0` |
+| iOS bundle | `com.drgladysz.opus` |
+| iOS buildNumber (app.json) | `11` — documentation only: `eas.json` sets `appVersionSource: "remote"`, so EAS overwrites it at build time (latest remote build number recorded in CLAUDE.md → Deployment → Version) |
+| Android package / versionCode | `com.drgladysz.opus` / `1` (documentation only, same reason) |
+| Apple Team ID | `8CQ38RR2W4` |
+| EAS project ID | `0bc1b91c-c240-4f4e-b030-31d16389cd1e` |
+| Expo owner | `gladmat` |
 
-> `eas.json` sets `appVersionSource: "remote"`, so `buildNumber` / `versionCode`
-> in `app.json` are documentation-only — EAS overwrites them from its own counter
-> at build time.
+## EAS build profiles (`eas.json`)
 
-## EAS build profiles
+- `appVersionSource`: `remote`
+- `development` — `{"developmentClient": true, "distribution": "internal"}`
+- `preview` — `{"distribution": "internal"}`
+- `production` — `{"autoIncrement": true, "env": {"SENTRY_DISABLE_AUTO_UPLOAD": "true"}}`
+- `submit.production.ios.ascAppId`: `6759992788`
 
-Source: `eas.json`.
+## Repository
 
-- **development** — `developmentClient: true`, `distribution: internal`
-- **preview** — `distribution: internal`
-- **production** — `autoIncrement: true`, env `SENTRY_DISABLE_AUTO_UPLOAD=true`
-- **submit → production → ios** — `ascAppId: 6759992788`
+- Remote: `git@github.com:gladmat/Opus-Logbook.git`
 
-## Repo remote
+## Dependency versions (`package.json`)
 
-Source: `git remote -v`.
-
-- `git@github.com:gladmat/Opus-Logbook.git` (HTTPS: `https://github.com/gladmat/Opus-Logbook`)
-
-## Dependency versions
-
-Source: `package.json`.
-
-| Package | Version |
+| Package | Range |
 | --- | --- |
-| expo | ^54.0.23 |
-| react-native | 0.81.5 |
-| react | 19.1.0 |
-| drizzle-orm | ^0.45.2 |
-| drizzle-kit | ^0.31.4 |
-| typescript | ~5.9.2 |
-| vitest | ^4.0.18 |
+| expo | `^54.0.23` |
+| react-native | `0.81.5` |
+| react | `19.1.0` |
+| drizzle-orm | `^0.45.2` |
+| drizzle-kit | `^0.31.4` |
+| typescript | `~5.9.2` |
+| vitest | `^4.0.18` |
 
-## Procedure categories
+## Procedure categories (`client/constants/categories.ts`)
 
-Source: `client/constants/categories.ts`.
+- Count: **11** — `breast, hand_wrist, head_neck, cleft_cranio, skin_cancer, orthoplastic, burns, lymphoedema, aesthetics, peripheral_nerve, general`
+- **DEFECT (comment only):** the file comment claims 12 procedure categories but the array has 11 (Body Contouring merged into Aesthetics). Code intentional, comment stale.
 
-- **Count: 11**
-- `breast, hand_wrist, head_neck, cleft_cranio, skin_cancer, orthoplastic, burns, lymphoedema, aesthetics, peripheral_nerve, general`
+## Specialty assessment modules (`client/components/**/*Assessment.tsx`)
 
-> 🚩 **DEFECT — stale comment.** The file header comment reads "12 procedure
-> categories — locked taxonomy" but the array has **11** entries. `body_contouring`
-> was intentionally merged into `aesthetics` (per CLAUDE.md Aesthetics decisions),
-> so the array is correct and the **comment is stale**. Not auto-fixed by this
-> command (read-only w.r.t. source).
+```
+client/components/acute-hand/AcuteHandAssessment.tsx
+client/components/aesthetics/AestheticAssessment.tsx
+client/components/breast/BreastAssessment.tsx
+client/components/breast/BreastProgressiveAssessment.tsx
+client/components/burns/BurnsAssessment.tsx
+client/components/craniofacial/CraniofacialAssessment.tsx
+client/components/dupuytren/DupuytrenAssessment.tsx
+client/components/hand-elective/HandElectiveAssessment.tsx
+client/components/hand-trauma/HandTraumaAssessment.tsx
+client/components/lymphatic/LymphaticAssessment.tsx
+client/components/peripheral-nerve/BrachialPlexusAssessment.tsx
+client/components/peripheral-nerve/NeuromaAssessment.tsx
+client/components/peripheral-nerve/PeripheralNerveAssessment.tsx
+client/components/skin-cancer/SkinCancerAssessment.tsx
+```
 
-## Specialty assessment modules
+## Phase status (from `CLAUDE.md` → "v2.0 overhaul status")
 
-Source: `client/components/**/*Assessment.tsx` (14 files).
+Latest shipped: **2.25.0 (2026-09-10)** — Shared cases on the dashboard + E2EE photo transport + EPA audience fix (TestFlight build `1.2.89`; server changed → Railway redeployed with a new persistent `/data` volume, `UPLOADS_DIR=/data/uploads`, migration `20260910_shared_case_media.sql`).
 
-`AcuteHandAssessment`, `AestheticAssessment`, `BreastAssessment`,
-`BreastProgressiveAssessment`, `BurnsAssessment`, `CraniofacialAssessment`,
-`DupuytrenAssessment`, `HandElectiveAssessment`, `HandTraumaAssessment`,
-`LymphaticAssessment`, `BrachialPlexusAssessment`, `NeuromaAssessment`,
-`PeripheralNerveAssessment`, `SkinCancerAssessment`.
+COMPLETE milestones, in CLAUDE.md order: Phase 1 (form state refactor) · Phase 2 (Charcoal+Amber theme, card-based diagnosis groups) · Acute Hand Category · Phase 3 (inline validation, keyboard, haptics, duplicate, favourites) · Phase 4 (CSV/FHIR/PDF export, analytics) · Elective Hand + Joint Implant · Skin Cancer Terminology Repair · Media Overhaul · Capture Pipeline A–H · Media Encryption Remediation · Case Category Repair · Patient Identity · Operative Role & Supervision · UX Polish · Head & Neck Progressive Disclosure · Hand Elective UX + Dupuytren · Team Sharing Phases 1–8 · Facial & Peripheral Nerve Remediation 1–2 · Code Audit & Remediation · Per-Procedure Team Roles + EPA Targets · Build Health · Phase 5 (2.5.0 TestFlight) · Media Gallery Viewer · Forearm Tumour Diagnoses · JWT Auto-Refresh + Sharing Guardrails · Phase 6 / Security Remediation (2.6.0) · Phase 7 / Case Form UX Overhaul (2.7.0) · Phase 7.1 clusters 1+3+4 · 2026-06-10 Audit Remediation + 2.8.0 Security Hardening · 2026-07-13 Security Verification + Field/Time-Picker + UX Remediation · Media Crypto Speedup · DOB Typed Entry + Scalp Friction Burn + Staging Gate (2.9.0) · Multi-Format Report System · Enchondroma fixes · Onboarding Overhaul + App-Lock Hardening · Hand Laceration pathway (2.11.0) · Fixation Hardware + Bony Mallet · Carpal CRIF + CCS (2.12.0) · Hook of Hamate + Dermal Matrix · Team Sharing Linking Overhaul (2.13.0) · Per-Procedure Team + EPA Phases 1–3 (2.14.0) · Edit-Reshare Update-In-Place (2.15.0) · Follow-up Interval + Gallery Cleanup (2.16.0) · Multi-Region Recipient Site + X-ray Enhancement (2.17.0) · CTS + Cubital Tunnel Restoration (2.18.0) · Compartment Syndrome pathway (2.19.0) · Tenolysis + Photo Cap 50 + Multi-Lesion repair (2.20.0) · Media Date Integrity (2.21.0) · EPA Audit keyboard + supervisor visibility (2.22.0) · EPA Role-Gated Trigger + Instrument v2 + Phase C (2.23.0) · Free Flap Sheet harvest side + coupler fix (2.24.0) · Shared Cases on Dashboard + E2EE Photos + EPA Audience Fix (2.25.0).
 
-## Phase status
+## Duplicate SNOMED codes (`snomedCtCode:` fields, tests excluded)
 
-Source: `CLAUDE.md` "v2.0 overhaul status".
+- Codes reused across **≥ 2 non-test files: 65** (scan of `client/lib/` + `client/constants/`).
+- `35646002`: **no cross-file collision** — appears in `client/lib/procedurePicklist.ts` only.
+- Note: the raw duplicate scan is dominated by same-file reuse of generic codes (e.g. `122465003` Reconstruction procedure) and by the deliberate mirrors between `handTraumaMapping.ts` ↔ `handSurgeryDiagnoses.ts` and `skinCancerConfig.ts` ↔ `skinCancerDiagnoses.ts` — mostly legitimate; the actionable class is a code meaning two different things in two picklists.
 
-- **Head: v2.13.0 shipped 2026-07-23** — Team Sharing Linking Overhaul (full 9-item
-  plan, Phases 1–3) + Discoverable privacy toggle; also carried the held Hook of
-  Hamate + Dermal Matrix pathways and the ORIF+CCS fix.
-- Recent completed milestones: Carpal CRIF+CCS / **2.12.0** (2026-07-19), Fixation
-  Hardware + Bony Mallet (2026-07-18), Hand Laceration pathway / **2.11.0**,
-  Onboarding Overhaul + App-Lock Hardening, Multi-Format Report System / **2.10.0**,
-  DOB Typed Entry + Staging Gate / **2.9.0**.
-- All of Phases 1–7.1 COMPLETE; Security Remediation (**2.6.0**) + Security
-  Hardening (**2.8.0**, PSI / commit-reveal / safety numbers / backup exclusion)
-  COMPLETE; Media Crypto native speedup COMPLETE.
+## `// VERIFY` markers
 
-## Duplicate SNOMED report
+```
+11  client/lib/procedurePicklist.ts
+10  client/lib/diagnosisPicklists/breastDiagnoses.ts
+2   client/lib/diagnosisPicklists/orthoplasticDiagnoses.ts
+total: 23
+```
 
-Source: `snomedCtCode:` fields in `client/lib/` + `client/constants/` (tests excluded).
+## Schema
 
-- **`35646002` collision: CONFIRMED.** Appears 10× within `procedurePicklist.ts`
-  (generic "Excision of lesion of skin"); several are annotated `// VERIFY` or
-  `// POST-COORDINATED: excision + scar`. Generic-code reuse, not necessarily a
-  data-integrity bug.
-- **60** distinct codes are reused across **≥2 non-test files** (the actionable
-  cross-file class — same code in two specialty diagnosis lists, e.g. `105616000`
-  orthoplastic+general, `189948006` peripheral_nerve+handSurgery, `254651007`
-  skinCancer+headNeck).
-- The raw scan is dominated by **legitimate same-file generic-code reuse** inside
-  `procedurePicklist.ts` (e.g. `122465003` "Reconstruction procedure" ×26,
-  `771225007` ×26, `286553006` ×19, `1202018003` ×18) and code↔test-file pairs —
-  most duplicates are not defects.
-
-## `// VERIFY` outstanding codes — 23 total
-
-| Count | File |
-| --- | --- |
-| 11 | client/lib/procedurePicklist.ts |
-| 10 | client/lib/diagnosisPicklists/breastDiagnoses.ts |
-| 2 | client/lib/diagnosisPicklists/orthoplasticDiagnoses.ts |
-
-## Database schema
-
-Source: `shared/schema.ts` + `migrations/`.
-
-- **Tables: 12** — `users`, `userDeviceKeys`, `passwordResetTokens`, `profiles`,
-  `userFacilities`, `snomedRef`, `sharedCases`, `caseKeyEnvelopes`,
-  `caseAssessments`, `assessmentKeyEnvelopes`, `pushTokens`, `teamContacts`.
-- No explicit schema-version constant. **Latest migration:**
-  `20260611_assessment_commit_reveal.sql` (9 SQL migrations total).
-
----
+- `pgTable(` definitions in `shared/schema.ts`: **13** (2.25.0 added `shared_case_media`).
+- `ls migrations/*.sql | sort | tail -1` → `migrations/add_team_sharing_tables.sql` (alphabetical; un-dated legacy file). Latest **dated** migration: `migrations/20260910_shared_case_media.sql`.
 
 <!-- BEGIN MANUAL SECTION — do not overwrite; edit by hand -->
 ### Manually-maintained facts
@@ -172,7 +128,5 @@ live external system before relying on them. Values resolved from code on
 - 23 `// VERIFY` SNOMED codes still outstanding (procedurePicklist ×11, breast ×10,
   orthoplastic ×2).
 <!-- END MANUAL SECTION -->
-
----
 
 > ⚠️ Upload docs/STATE.md to the Claude.ai project knowledge, replacing the old copy.
