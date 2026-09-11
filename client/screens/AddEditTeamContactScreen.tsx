@@ -23,9 +23,23 @@ import {
   updateTeamContact,
   deleteTeamContact,
   sendInvitation,
+  unlinkContact,
 } from "@/lib/teamContactsApi";
-import { promptLinkContactByEmail } from "@/lib/linkingPrompts";
-import { markDiscoveryStale } from "@/lib/discoveryService";
+import { promptLinkContact } from "@/lib/linkingPrompts";
+import { formatPhoneForDisplay, getDefaultPhoneRegion } from "@shared/phone";
+import {
+  PROFESSIONAL_REGISTRATION_OPTIONS,
+  getRegistrationJurisdictionForCountry,
+} from "@shared/professionalRegistrations";
+import {
+  markDiscoveryStale,
+  removeDiscoveryMatch,
+} from "@/lib/discoveryService";
+import { hasLinkIdentifier } from "@/lib/contactIdentifiers";
+import {
+  buildContactSavePayload,
+  contactIdentifierKey,
+} from "@/lib/teamContactForm";
 import { getCareerStagesForCountry } from "@shared/careerStages";
 import {
   TEAM_MEMBER_ROLE_LABELS,
@@ -56,17 +70,37 @@ export default function AddEditTeamContactScreen() {
     useState<TeamMemberOperativeRole | null>(null);
   const [notes, setNotes] = useState("");
   const [selectedFacilityIds, setSelectedFacilityIds] = useState<string[]>([]);
+  const [registrationNumber, setRegistrationNumber] = useState("");
+  const [registrationJurisdiction, setRegistrationJurisdiction] = useState<
+    string | null
+  >(null);
   const [linkedUserId, setLinkedUserId] = useState<string | null>(null);
+  const [linkedDisplayName, setLinkedDisplayName] = useState<string | null>(
+    null,
+  );
+  const [unlinking, setUnlinking] = useState(false);
   const [invitationSentAt, setInvitationSentAt] = useState<string | null>(null);
   const [sendingInvite, setSendingInvite] = useState(false);
-  /** Email as originally loaded — the link prompt re-offers only when it changes. */
-  const [initialEmail, setInitialEmail] = useState("");
-  /** Phone as originally loaded — identifier changes reset the discovery throttle. */
-  const [initialPhone, setInitialPhone] = useState("");
+  /**
+   * Fingerprint of the identifiers as originally loaded — the link prompt
+   * re-offers (and the discovery throttle resets) only when it changes.
+   */
+  const [initialIdentifierKey, setInitialIdentifierKey] = useState("||");
+
+  const phoneRegion = getDefaultPhoneRegion(profile?.countryOfPractice);
+  const isLinked = !!linkedUserId;
 
   const careerStages = useMemo(
     () => getCareerStagesForCountry(profile?.countryOfPractice ?? null),
     [profile?.countryOfPractice],
+  );
+
+  const selectedJurisdiction = useMemo(
+    () =>
+      PROFESSIONAL_REGISTRATION_OPTIONS.find(
+        (o) => o.id === registrationJurisdiction,
+      ),
+    [registrationJurisdiction],
   );
 
   // Load existing contact in edit mode
@@ -80,9 +114,12 @@ export default function AddEditTeamContactScreen() {
         setFirstName(contact.firstName);
         setLastName(contact.lastName);
         setEmail(contact.email ?? "");
-        setInitialEmail(contact.email ?? "");
-        setPhone(contact.phone ?? "");
-        setInitialPhone(contact.phone ?? "");
+        // Stored E.164 → "+64 21 555 0100" for reading; re-normalised on save.
+        setPhone(contact.phone ? formatPhoneForDisplay(contact.phone) : "");
+        setRegistrationNumber(contact.registrationNumber ?? "");
+        setRegistrationJurisdiction(contact.registrationJurisdiction ?? null);
+        setInitialIdentifierKey(contactIdentifierKey(contact));
+        setLinkedDisplayName(contact.linkedDisplayName ?? null);
         setCareerStage(contact.careerStage ?? null);
         setDefaultRole(
           (contact.defaultRole as TeamMemberOperativeRole) ?? null,
@@ -108,67 +145,154 @@ export default function AddEditTeamContactScreen() {
       Alert.alert("Required", "First name and last name are required.");
       return;
     }
-    setSaving(true);
-    try {
-      const data = {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        email: email.trim() || null,
-        phone: phone.trim() || null,
+    const plan = buildContactSavePayload(
+      {
+        firstName,
+        lastName,
+        email,
+        phone,
+        registrationNumber,
+        registrationJurisdiction,
         careerStage,
         defaultRole,
-        notes: notes.trim() || null,
+        notes,
         facilityIds: selectedFacilityIds,
-      };
-      const saved =
+      },
+      { linked: isLinked, region: phoneRegion },
+    );
+    if (!plan.ok) {
+      if (plan.problem === "phone") {
+        Alert.alert(
+          "Check phone number",
+          "Include the country code, e.g. +64 21 123 4567.",
+        );
+      } else {
+        Alert.alert(
+          "Registration jurisdiction",
+          "Choose the jurisdiction that issued this registration number.",
+        );
+      }
+      return;
+    }
+
+    setSaving(true);
+    let saved;
+    try {
+      saved =
         isEdit && contactId
-          ? await updateTeamContact(contactId, data)
-          : await createTeamContact(data);
+          ? await updateTeamContact(contactId, plan.data)
+          : await createTeamContact(plan.data);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      // The user just typed a colleague's email — look them up on Opus and
-      // offer a one-tap link. Only on create or when the email changed, so
-      // a declined offer isn't re-nagged on unrelated edits.
-      const newEmail = (saved.email ?? "").trim().toLowerCase();
-      const emailChanged = newEmail !== initialEmail.trim().toLowerCase();
-      const phoneChanged = (saved.phone ?? "").trim() !== initialPhone.trim();
-      // Backstop for the background discovery job: a new/changed identifier
-      // on an unlinked contact resets the 24h throttle — even when the link
-      // prompt below is declined or never fires.
-      if (!saved.linkedUserId && (emailChanged || phoneChanged)) {
-        void markDiscoveryStale();
-      }
-      if (newEmail && !saved.linkedUserId && (emailChanged || !isEdit)) {
-        try {
-          await promptLinkContactByEmail(saved, profile?.userId);
-        } catch {
-          // The link prompt must never block leaving the screen.
-        }
-      }
-      navigation.goBack();
     } catch (err) {
       Alert.alert(
         "Error",
         err instanceof Error ? err.message : "Failed to save contact",
       );
-    } finally {
       setSaving(false);
+      return;
     }
+    // Spinner off BEFORE the prompt chain — the alerts used to sit on top
+    // of a still-spinning Save button.
+    setSaving(false);
+
+    // The user just typed a colleague's identifiers — look them up on Opus
+    // and offer a one-tap link. Only on create or when an identifier
+    // changed, so a declined offer isn't re-nagged on unrelated edits.
+    const identifiersChanged =
+      contactIdentifierKey(saved, phoneRegion) !== initialIdentifierKey;
+    if (!saved.linkedUserId && identifiersChanged) {
+      // Backstop for the background discovery job: a new/changed identifier
+      // on an unlinked contact resets the 24h throttle, and any cached match
+      // for the OLD identifiers is void.
+      void markDiscoveryStale();
+      if (isEdit) void removeDiscoveryMatch(saved.id);
+    }
+    if (
+      !saved.linkedUserId &&
+      hasLinkIdentifier(saved) &&
+      (identifiersChanged || !isEdit)
+    ) {
+      try {
+        await promptLinkContact(saved, profile?.userId, phoneRegion);
+      } catch {
+        // The link prompt must never block leaving the screen.
+      }
+    }
+    navigation.goBack();
   }, [
     firstName,
     lastName,
     email,
     phone,
+    registrationNumber,
+    registrationJurisdiction,
     careerStage,
     defaultRole,
     notes,
     selectedFacilityIds,
     isEdit,
+    isLinked,
     contactId,
     navigation,
-    initialEmail,
-    initialPhone,
+    initialIdentifierKey,
+    phoneRegion,
     profile?.userId,
   ]);
+
+  const handleUnlink = useCallback(() => {
+    if (!contactId || !linkedUserId) return;
+    const who = linkedDisplayName ?? "this Opus account";
+    Alert.alert(
+      `Unlink from ${who}?`,
+      "They'll stop receiving cases you tag them on from your next save. Already-shared cases stay shared. You can link again later.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Unlink",
+          style: "destructive",
+          onPress: async () => {
+            setUnlinking(true);
+            try {
+              const updated = await unlinkContact(contactId);
+              setLinkedUserId(null);
+              setLinkedDisplayName(null);
+              setInitialIdentifierKey(
+                contactIdentifierKey(updated, phoneRegion),
+              );
+              // The contact is unlinked again — let the next Team Contacts
+              // focus re-run discovery instead of waiting out the 24h window.
+              void markDiscoveryStale();
+              Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success,
+              );
+            } catch (err) {
+              Alert.alert(
+                "Unlink failed",
+                err instanceof Error ? err.message : "Please try again.",
+              );
+            } finally {
+              setUnlinking(false);
+            }
+          },
+        },
+      ],
+    );
+  }, [contactId, linkedUserId, linkedDisplayName, phoneRegion]);
+
+  const handleRegistrationNumberChange = useCallback(
+    (value: string) => {
+      setRegistrationNumber(value);
+      // First keystroke with no jurisdiction chosen → default to the
+      // owner's own country (most colleagues share it), else "other".
+      if (value.trim() && !registrationJurisdiction) {
+        setRegistrationJurisdiction(
+          getRegistrationJurisdictionForCountry(profile?.countryOfPractice) ??
+            "other",
+        );
+      }
+    },
+    [registrationJurisdiction, profile?.countryOfPractice],
+  );
 
   const handleDelete = useCallback(() => {
     if (!contactId) return;
@@ -222,6 +346,54 @@ export default function AddEditTeamContactScreen() {
       <KeyboardAwareScrollViewCompat
         contentContainerStyle={styles.scrollContent}
       >
+        {/* Linked state — identifiers are locked while linked */}
+        {isLinked && (
+          <View
+            style={[
+              styles.linkedCard,
+              {
+                backgroundColor: theme.successSurface,
+                borderColor: theme.successBorder,
+              },
+            ]}
+            testID="teamContact.card-linked"
+          >
+            <View style={styles.linkedCardHeader}>
+              <Feather name="link" size={16} color={theme.success} />
+              <ThemedText
+                style={[styles.linkedCardTitle, { color: theme.text }]}
+                numberOfLines={1}
+              >
+                Linked to {linkedDisplayName ?? "an Opus account"}
+              </ThemedText>
+            </View>
+            <ThemedText
+              style={[styles.linkedCardBody, { color: theme.textSecondary }]}
+            >
+              Cases you tag them on are shared securely. Email, phone and
+              registration are locked while linked.
+            </ThemedText>
+            <Pressable
+              style={styles.unlinkButton}
+              onPress={handleUnlink}
+              disabled={unlinking}
+              accessibilityRole="button"
+              accessibilityLabel="Unlink contact"
+              testID="teamContact.btn-unlink"
+            >
+              {unlinking ? (
+                <ActivityIndicator size="small" color={theme.error} />
+              ) : (
+                <ThemedText
+                  style={[styles.unlinkButtonText, { color: theme.error }]}
+                >
+                  Unlink
+                </ThemedText>
+              )}
+            </Pressable>
+          </View>
+        )}
+
         {/* Name */}
         <ThemedText style={[styles.label, { color: theme.textSecondary }]}>
           First Name *
@@ -261,47 +433,140 @@ export default function AddEditTeamContactScreen() {
           testID="teamContact.input-lastName"
         />
 
-        {/* Contact info */}
-        <ThemedText style={[styles.label, { color: theme.textSecondary }]}>
-          Email
-        </ThemedText>
+        {/* Contact info — matched against Opus accounts */}
+        <View style={styles.labelRow}>
+          <ThemedText style={[styles.label, { color: theme.textSecondary }]}>
+            Email
+          </ThemedText>
+          {isLinked && (
+            <Feather name="lock" size={12} color={theme.textTertiary} />
+          )}
+        </View>
         <TextInput
           style={[
             styles.input,
             {
-              backgroundColor: theme.backgroundElevated,
+              backgroundColor: isLinked
+                ? theme.backgroundSecondary
+                : theme.backgroundElevated,
               borderColor: theme.border,
-              color: theme.text,
+              color: isLinked ? theme.textTertiary : theme.text,
             },
           ]}
           value={email}
           onChangeText={setEmail}
+          editable={!isLinked}
           placeholder="email@example.com"
           placeholderTextColor={theme.textTertiary}
           keyboardType="email-address"
           autoCapitalize="none"
+          autoCorrect={false}
           testID="teamContact.input-email"
         />
 
-        <ThemedText style={[styles.label, { color: theme.textSecondary }]}>
-          Phone
-        </ThemedText>
+        <View style={styles.labelRow}>
+          <ThemedText style={[styles.label, { color: theme.textSecondary }]}>
+            Phone
+          </ThemedText>
+          {isLinked && (
+            <Feather name="lock" size={12} color={theme.textTertiary} />
+          )}
+        </View>
         <TextInput
           style={[
             styles.input,
             {
-              backgroundColor: theme.backgroundElevated,
+              backgroundColor: isLinked
+                ? theme.backgroundSecondary
+                : theme.backgroundElevated,
               borderColor: theme.border,
-              color: theme.text,
+              color: isLinked ? theme.textTertiary : theme.text,
             },
           ]}
           value={phone}
           onChangeText={setPhone}
+          editable={!isLinked}
           placeholder="+64 21 123 4567"
           placeholderTextColor={theme.textTertiary}
           keyboardType="phone-pad"
           testID="teamContact.input-phone"
         />
+
+        <View style={styles.labelRow}>
+          <ThemedText style={[styles.label, { color: theme.textSecondary }]}>
+            Registration
+          </ThemedText>
+          {isLinked && (
+            <Feather name="lock" size={12} color={theme.textTertiary} />
+          )}
+        </View>
+        <View style={styles.stageList}>
+          {PROFESSIONAL_REGISTRATION_OPTIONS.map((option) => {
+            const isSelected = registrationJurisdiction === option.id;
+            return (
+              <Pressable
+                key={option.id}
+                style={[
+                  styles.stageChip,
+                  {
+                    backgroundColor: isSelected
+                      ? theme.accentSurface
+                      : theme.backgroundElevated,
+                    borderColor: isSelected ? theme.link : theme.border,
+                    opacity: isLinked ? 0.6 : 1,
+                  },
+                ]}
+                disabled={isLinked}
+                onPress={() => {
+                  setRegistrationJurisdiction(isSelected ? null : option.id);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isSelected }}
+                accessibilityLabel={`${option.label} registration`}
+                testID={`teamContact.chip-jurisdiction-${option.id}`}
+              >
+                <ThemedText
+                  style={[
+                    styles.stageChipText,
+                    { color: isSelected ? theme.link : theme.text },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {option.id === "other" ? "Other" : option.authority}
+                </ThemedText>
+              </Pressable>
+            );
+          })}
+        </View>
+        <TextInput
+          style={[
+            styles.input,
+            {
+              marginTop: Spacing.sm,
+              backgroundColor: isLinked
+                ? theme.backgroundSecondary
+                : theme.backgroundElevated,
+              borderColor: theme.border,
+              color: isLinked ? theme.textTertiary : theme.text,
+            },
+          ]}
+          value={registrationNumber}
+          onChangeText={handleRegistrationNumberChange}
+          editable={!isLinked}
+          placeholder={
+            selectedJurisdiction?.placeholder ?? "Registration number"
+          }
+          placeholderTextColor={theme.textTertiary}
+          autoCapitalize="characters"
+          autoCorrect={false}
+          testID="teamContact.input-registration"
+        />
+        {!isLinked && (
+          <ThemedText style={[styles.hint, { color: theme.textTertiary }]}>
+            Colleagues on Opus are matched by email, phone or registration.
+          </ThemedText>
+        )}
 
         {/* Default Role */}
         <ThemedText style={[styles.label, { color: theme.textSecondary }]}>
@@ -575,6 +840,46 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
     marginBottom: Spacing.xs,
     marginTop: Spacing.md,
+  },
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+  },
+  hint: {
+    fontSize: 12,
+    marginTop: Spacing.xs,
+  },
+  linkedCard: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  linkedCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  linkedCardTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    flex: 1,
+  },
+  linkedCardBody: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: Spacing.xs,
+  },
+  unlinkButton: {
+    alignSelf: "flex-start",
+    minHeight: 44,
+    justifyContent: "center",
+    marginTop: Spacing.xs,
+  },
+  unlinkButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
   },
   input: {
     height: 48,

@@ -34,11 +34,14 @@ import { verifyAndPinRecipientKeys } from "./keyPinningStore";
 import {
   getSharedOutbox,
   revokeSharedCase,
-  searchUserByEmail,
+  searchUserForContact,
   shareCase,
   updateSharedCaseBlobApi,
 } from "./sharingApi";
 import { getUserDeviceKeys, linkContact } from "./teamContactsApi";
+import { removeDiscoveryMatch } from "./discoveryService";
+import { hasLinkIdentifier } from "./contactIdentifiers";
+import type { PhoneRegion } from "@shared/phone";
 import { getCase, updateCase } from "./storage";
 import {
   saveDecryptedSharedCase,
@@ -110,12 +113,18 @@ export interface UnlinkedTaggedMember {
   contactId: string;
   displayName: string;
   email: string | null;
+  phone?: string | null;
+  registrationNumber?: string | null;
+  registrationJurisdiction?: string | null;
 }
+
+export { hasLinkIdentifier } from "./contactIdentifiers";
 
 export interface RescueHit {
   contactId: string;
   displayName: string;
-  email: string;
+  /** null for phone/registration-only contacts. */
+  email: string | null;
   user: UserSearchResult;
 }
 
@@ -183,15 +192,29 @@ export function rehydrateTeamSnapshots(
  */
 export function listUnlinkedTaggedMembers(
   team: CaseTeamMember[],
-  contacts: Pick<TeamContact, "id" | "email">[] | null,
+  contacts:
+    | (Pick<TeamContact, "id" | "email"> &
+        Partial<
+          Pick<
+            TeamContact,
+            "phone" | "registrationNumber" | "registrationJurisdiction"
+          >
+        >)[]
+    | null,
 ): UnlinkedTaggedMember[] {
   return team
     .filter((member) => !member.linkedUserId)
-    .map((member) => ({
-      contactId: member.contactId,
-      displayName: member.displayName,
-      email: contacts?.find((c) => c.id === member.contactId)?.email ?? null,
-    }));
+    .map((member) => {
+      const contact = contacts?.find((c) => c.id === member.contactId);
+      return {
+        contactId: member.contactId,
+        displayName: member.displayName,
+        email: contact?.email ?? null,
+        phone: contact?.phone ?? null,
+        registrationNumber: contact?.registrationNumber ?? null,
+        registrationJurisdiction: contact?.registrationJurisdiction ?? null,
+      };
+    });
 }
 
 // ── Key resolution ───────────────────────────────────────────────────────────
@@ -674,14 +697,17 @@ export async function shareCaseWithTeam(
 // ── 1C save-time rescue ──────────────────────────────────────────────────────
 
 /**
- * Bounded lookup of unlinked tagged members on Opus. Members without an
- * email or beyond the cap are skipped (never searched); hits resolving to
- * the owner themselves are skipped too (the server rejects self-shares).
+ * Bounded lookup of unlinked tagged members on Opus by email, phone or
+ * registration. Members without any identifier or beyond the cap are
+ * skipped (never searched); hits resolving to the owner themselves are
+ * skipped too (the server rejects self-shares). The cap counts MEMBERS —
+ * a member may cost up to three requests against the shared search bucket.
  */
 export async function searchUnlinkedMembersOnOpus(
   unlinked: UnlinkedTaggedMember[],
   ownUserId: string | undefined,
   cap: number = RESCUE_SEARCH_CAP,
+  region?: PhoneRegion,
 ): Promise<RescueSearchResult> {
   const hits: RescueHit[] = [];
   const misses: UnlinkedTaggedMember[] = [];
@@ -689,7 +715,7 @@ export async function searchUnlinkedMembersOnOpus(
   let searches = 0;
 
   for (const member of unlinked) {
-    if (!member.email) {
+    if (!hasLinkIdentifier(member)) {
       skipped.push(member);
       continue;
     }
@@ -699,7 +725,7 @@ export async function searchUnlinkedMembersOnOpus(
     }
     searches += 1;
     try {
-      const user = await searchUserByEmail(member.email);
+      const user = await searchUserForContact(member, region);
       if (!user) {
         misses.push(member);
         continue;
@@ -711,7 +737,7 @@ export async function searchUnlinkedMembersOnOpus(
       hits.push({
         contactId: member.contactId,
         displayName: member.displayName,
-        email: member.email,
+        email: member.email ?? null,
         user,
       });
     } catch {
@@ -753,6 +779,9 @@ export async function linkAndShareCaseWithHit(params: {
       error: errorMessage(error),
     };
   }
+  // The cached discovery match for this contact is now stale — dropping it
+  // stops Team Contacts from counting an already-linked contact as "found".
+  await removeDiscoveryMatch(hit.contactId);
 
   const member = savedCase.operativeTeam?.find(
     (m) => m.contactId === hit.contactId,

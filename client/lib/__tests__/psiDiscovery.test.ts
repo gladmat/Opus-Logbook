@@ -111,9 +111,11 @@ describe("identifier normalization", () => {
     );
   });
 
-  it("trims phones without reformatting (legacy exact-match parity)", () => {
-    expect(normalizeDiscoveryPhone(" +64 21 123 4567 ")).toBe(
-      "+64 21 123 4567",
-    );
+  it("canonicalises phones to E.164 (parity with profiles.phone storage)", () => {
+    expect(normalizeDiscoveryPhone(" +64 21 123 4567 ")).toBe("+64211234567");
+    expect(normalizeDiscoveryPhone("021 123 4567", "NZ")).toBe("+64211234567");
+    // National format with no region can't be resolved → no identifier.
+    expect(normalizeDiscoveryPhone("021 123 4567")).toBeNull();
+    expect(normalizeDiscoveryPhone("junk")).toBeNull();
   });
 });

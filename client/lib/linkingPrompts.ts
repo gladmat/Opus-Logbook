@@ -11,15 +11,18 @@
 import { Alert } from "react-native";
 import type { Case } from "@/types/case";
 import type { TeamContact } from "@/types/teamContacts";
-import { searchUserByEmail } from "./sharingApi";
+import { searchUserForContact } from "./sharingApi";
 import { linkContact, sendInvitation } from "./teamContactsApi";
+import { TeamContactApiError } from "./teamContactErrors";
 import { removeDiscoveryMatch } from "./discoveryService";
+import { hasLinkIdentifier } from "./contactIdentifiers";
 import {
   linkAndShareCaseWithHit,
   searchUnlinkedMembersOnOpus,
   type RescueHit,
   type UnlinkedTaggedMember,
 } from "./caseSharing";
+import type { PhoneRegion } from "@shared/phone";
 import {
   findRetroShareCandidates,
   retroShareCasesForContact,
@@ -57,19 +60,96 @@ export function alertAsync<T extends string>(
 }
 
 /**
- * 1A: after saving a contact with an email and no link, look them up on
- * Opus and offer a one-tap link. Silent on 404 / errors / self-hits.
- * A confirmed link chains straight into the retro-share offer.
+ * Link a contact to an Opus account with user-facing feedback. Shared by
+ * every link path (contact save, Team Contacts, invitee link). Guards
+ * self-link before any request, maps the server's typed 4xx codes to named
+ * alerts, drops the cached discovery match, and — on success — chains the
+ * retro-share offer. Resolves true only when the link was made.
  */
-export async function promptLinkContactByEmail(
+export async function linkContactWithFeedback(
+  contact: Pick<TeamContact, "id" | "displayName">,
+  user: { id: string },
+  opts: {
+    ownUserId?: string;
+    successTitle?: string;
+    successMessage?: string;
+    silentWhenNoCandidates?: boolean;
+  } = {},
+): Promise<boolean> {
+  if (opts.ownUserId && user.id === opts.ownUserId) {
+    Alert.alert(
+      "That's your own account",
+      `${contact.displayName} matches the account you're signed in with. A contact can't be linked to yourself.`,
+    );
+    return false;
+  }
+
+  try {
+    await linkContact(contact.id, user.id);
+  } catch (error) {
+    const err = error instanceof TeamContactApiError ? error : null;
+    if (err?.code === "DUPLICATE_LINK") {
+      Alert.alert(
+        "Already linked",
+        `${err.conflictingDisplayName ?? "Another contact"} is already linked to this Opus account. Unlink that contact first if ${contact.displayName} is the right entry.`,
+      );
+    } else if (err?.code === "NO_IDENTIFIER_MATCH") {
+      Alert.alert(
+        "Details don't match",
+        `${contact.displayName}'s email, phone or registration doesn't match that Opus account. Check the contact's details and try again.`,
+      );
+    } else if (err?.code === "CONTACT_ALREADY_LINKED") {
+      Alert.alert(
+        "Already linked",
+        `${contact.displayName} is linked to a different Opus account. Unlink them first.`,
+      );
+    } else if (err?.code === "SELF_LINK") {
+      Alert.alert(
+        "That's your own account",
+        "A contact can't be linked to yourself.",
+      );
+    } else {
+      Alert.alert(
+        "Link Failed",
+        error instanceof Error ? error.message : "Failed to link contact.",
+      );
+    }
+    return false;
+  }
+
+  await removeDiscoveryMatch(contact.id);
+
+  await offerRetroShareForContact(
+    {
+      contactId: contact.id,
+      linkedUserId: user.id,
+      displayName: contact.displayName,
+    },
+    {
+      successTitle: opts.successTitle,
+      successMessage: opts.successMessage,
+      silentWhenNoCandidates: opts.silentWhenNoCandidates,
+    },
+  );
+  return true;
+}
+
+/**
+ * 1A: after saving an unlinked contact with any identifier, look them up on
+ * Opus (email → phone → registration) and offer a one-tap link. Silent on
+ * 404 / errors / self-hits. A confirmed link chains straight into the
+ * retro-share offer.
+ */
+export async function promptLinkContact(
   contact: TeamContact,
   ownUserId: string | undefined,
+  region?: PhoneRegion,
 ): Promise<"linked" | "declined" | "not-found" | "error"> {
-  if (!contact.email || contact.linkedUserId) return "not-found";
+  if (contact.linkedUserId || !hasLinkIdentifier(contact)) return "not-found";
 
   let user;
   try {
-    user = await searchUserByEmail(contact.email);
+    user = await searchUserForContact(contact, region);
   } catch {
     return "error";
   }
@@ -86,27 +166,8 @@ export async function promptLinkContactByEmail(
   );
   if (choice !== "link") return "declined";
 
-  try {
-    await linkContact(contact.id, user.id);
-  } catch (error) {
-    Alert.alert(
-      "Link Failed",
-      error instanceof Error ? error.message : "Failed to link contact.",
-    );
-    return "error";
-  }
-  try {
-    await removeDiscoveryMatch(contact.id);
-  } catch {
-    // Cosmetic — a stale cached match just re-renders a Link button.
-  }
-
-  await offerRetroShareForContact({
-    contactId: contact.id,
-    linkedUserId: user.id,
-    displayName: contact.displayName,
-  });
-  return "linked";
+  const linked = await linkContactWithFeedback(contact, user, { ownUserId });
+  return linked ? "linked" : "error";
 }
 
 /**
@@ -206,6 +267,8 @@ export interface PostSaveTeamPromptParams {
   /** null → contacts couldn't be fetched (offline); no rescue search runs. */
   liveContacts: TeamContact[] | null;
   ownUserId: string | undefined;
+  /** Owner's default region for national-format contact phones. */
+  phoneRegion?: PhoneRegion;
 }
 
 const INVITE_COOLDOWN_MS = 24 * 60 * 60 * 1000;
@@ -272,12 +335,14 @@ export async function runPostSaveTeamPrompt(
       hits: RescueHit[];
       misses: UnlinkedTaggedMember[];
     } | null = null;
-    const unlinkedWithEmail = unlinked.filter((m) => m.email);
-    if (liveContacts && unlinkedWithEmail.length > 0) {
+    const searchable = unlinked.filter(hasLinkIdentifier);
+    if (liveContacts && searchable.length > 0) {
       try {
         rescue = await searchUnlinkedMembersOnOpus(
-          unlinkedWithEmail,
+          searchable,
           ownUserId,
+          undefined,
+          params.phoneRegion,
         );
       } catch {
         rescue = null;

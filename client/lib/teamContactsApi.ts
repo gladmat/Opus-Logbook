@@ -5,6 +5,8 @@
 import { getAuthToken } from "@/lib/auth";
 import { getApiUrl } from "@/lib/query-client";
 import type { TeamContact } from "@/types/teamContacts";
+import { teamContactErrorFromResponse } from "./teamContactErrors";
+export { TeamContactApiError } from "./teamContactErrors";
 
 async function authFetch(
   path: string,
@@ -29,8 +31,10 @@ export async function getTeamContacts(
   const query = facilityId ? `?facilityId=${facilityId}` : "";
   const res = await authFetch(`/api/team-contacts${query}`);
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.error || "Failed to load team contacts");
+    throw await teamContactErrorFromResponse(
+      res,
+      "Failed to load team contacts",
+    );
   }
   return res.json();
 }
@@ -38,8 +42,10 @@ export async function getTeamContacts(
 export async function getTeamContact(id: string): Promise<TeamContact> {
   const res = await authFetch(`/api/team-contacts/${id}`);
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.error || "Failed to load team contact");
+    throw await teamContactErrorFromResponse(
+      res,
+      "Failed to load team contact",
+    );
   }
   return res.json();
 }
@@ -65,8 +71,10 @@ export async function createTeamContact(
     body: JSON.stringify(data),
   });
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.error || "Failed to create team contact");
+    throw await teamContactErrorFromResponse(
+      res,
+      "Failed to create team contact",
+    );
   }
   return res.json();
 }
@@ -80,8 +88,10 @@ export async function updateTeamContact(
     body: JSON.stringify(data),
   });
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.error || "Failed to update team contact");
+    throw await teamContactErrorFromResponse(
+      res,
+      "Failed to update team contact",
+    );
   }
   return res.json();
 }
@@ -91,8 +101,10 @@ export async function deleteTeamContact(id: string): Promise<void> {
     method: "DELETE",
   });
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.error || "Failed to delete team contact");
+    throw await teamContactErrorFromResponse(
+      res,
+      "Failed to delete team contact",
+    );
   }
 }
 
@@ -105,8 +117,7 @@ export async function linkContact(
     body: JSON.stringify({ linkedUserId }),
   });
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.error || "Failed to link contact");
+    throw await teamContactErrorFromResponse(res, "Failed to link contact");
   }
   return res.json();
 }
@@ -116,8 +127,7 @@ export async function unlinkContact(id: string): Promise<TeamContact> {
     method: "PUT",
   });
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.error || "Failed to unlink contact");
+    throw await teamContactErrorFromResponse(res, "Failed to unlink contact");
   }
   return res.json();
 }
@@ -145,8 +155,10 @@ export async function discoverContacts(
     body: JSON.stringify({ contacts }),
   });
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.error || "Failed to discover contacts");
+    throw await teamContactErrorFromResponse(
+      res,
+      "Failed to discover contacts",
+    );
   }
   const data = await res.json();
   return data.matches;
@@ -189,8 +201,7 @@ export async function sendInvitation(
     body: JSON.stringify({ contactId, email }),
   });
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.error || "Failed to send invitation");
+    throw await teamContactErrorFromResponse(res, "Failed to send invitation");
   }
   return res.json();
 }
@@ -203,8 +214,10 @@ export async function getUserDeviceKeys(
 ): Promise<{ deviceId: string; publicKey: string }[]> {
   const res = await authFetch(`/api/users/${userId}/keys`);
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.error || "Failed to get user device keys");
+    throw await teamContactErrorFromResponse(
+      res,
+      "Failed to get user device keys",
+    );
   }
   const data = await res.json();
   return data.publicKeys ?? [];

@@ -1,6 +1,8 @@
 import { getApiUrl } from "./query-client";
 import { getAuthToken } from "./auth";
 import type { SharedCaseInboxEntry, UserSearchResult } from "@/types/sharing";
+import { normalizePhoneE164, type PhoneRegion } from "@shared/phone";
+import { buildRegistrationLookupKey } from "@shared/professionalRegistrations";
 
 // ── Internal fetch helper ────────────────────────────────────────────────────
 
@@ -23,12 +25,8 @@ async function sharingFetch(
 
 // ── User search ──────────────────────────────────────────────────────────────
 
-export async function searchUserByEmail(
-  email: string,
-): Promise<UserSearchResult | null> {
-  const res = await sharingFetch(
-    `/api/users/search?email=${encodeURIComponent(email)}`,
-  );
+async function searchUser(query: string): Promise<UserSearchResult | null> {
+  const res = await sharingFetch(`/api/users/search?${query}`);
   if (res.status === 404) return null;
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -37,6 +35,71 @@ export async function searchUserByEmail(
     );
   }
   return res.json();
+}
+
+export async function searchUserByEmail(
+  email: string,
+): Promise<UserSearchResult | null> {
+  return searchUser(`email=${encodeURIComponent(email)}`);
+}
+
+/** `phone` should already be E.164 (the server re-normalises with the caller's region). */
+export async function searchUserByPhone(
+  phone: string,
+): Promise<UserSearchResult | null> {
+  return searchUser(`phone=${encodeURIComponent(phone)}`);
+}
+
+export async function searchUserByRegistration(
+  jurisdiction: string,
+  registrationNumber: string,
+): Promise<UserSearchResult | null> {
+  return searchUser(
+    `registration=${encodeURIComponent(registrationNumber)}&jurisdiction=${encodeURIComponent(jurisdiction)}`,
+  );
+}
+
+export interface ContactSearchIdentifiers {
+  email?: string | null;
+  phone?: string | null;
+  registrationNumber?: string | null;
+  registrationJurisdiction?: string | null;
+}
+
+/**
+ * Look a contact up on Opus by whatever identifiers it carries, in the
+ * server's own priority (email → phone → registration); first hit wins.
+ * Skips identifiers that can't be normalised. Resolves null when nothing
+ * matches — and without any request when there is nothing to search on.
+ */
+export async function searchUserForContact(
+  contact: ContactSearchIdentifiers,
+  region?: PhoneRegion,
+): Promise<UserSearchResult | null> {
+  const email = contact.email?.trim();
+  if (email) {
+    const hit = await searchUserByEmail(email);
+    if (hit) return hit;
+  }
+  const e164 = contact.phone ? normalizePhoneE164(contact.phone, region) : null;
+  if (e164) {
+    const hit = await searchUserByPhone(e164);
+    if (hit) return hit;
+  }
+  if (
+    contact.registrationNumber &&
+    contact.registrationJurisdiction &&
+    buildRegistrationLookupKey(
+      contact.registrationJurisdiction,
+      contact.registrationNumber,
+    )
+  ) {
+    return searchUserByRegistration(
+      contact.registrationJurisdiction,
+      contact.registrationNumber,
+    );
+  }
+  return null;
 }
 
 // ── Case sharing ─────────────────────────────────────────────────────────────

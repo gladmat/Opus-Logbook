@@ -145,42 +145,72 @@ export const sexEnum = [
 ] as const;
 export type Sex = (typeof sexEnum)[number];
 
-export const profiles = pgTable("profiles", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  userId: varchar("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" })
-    .unique(),
-  fullName: text("full_name"),
-  firstName: text("first_name"),
-  lastName: text("last_name"),
-  dateOfBirth: varchar("date_of_birth", { length: 10 }), // ISO date string YYYY-MM-DD
-  sex: varchar("sex", { length: 20 }),
-  profilePictureUrl: text("profile_picture_url"),
-  countryOfPractice: varchar("country_of_practice", { length: 50 }),
-  medicalCouncilNumber: varchar("medical_council_number", { length: 50 }),
-  professionalRegistrations: jsonb("professional_registrations")
-    .$type<ProfessionalRegistrations>()
-    .default(sql`'{}'::jsonb`),
-  verificationStatus: varchar("verification_status", { length: 20 })
-    .default("unverified")
-    .notNull(),
-  careerStage: varchar("career_stage", { length: 50 }),
-  phone: varchar("phone", { length: 20 }),
-  discoverable: boolean("discoverable").default(true).notNull(),
-  surgicalPreferences: jsonb("surgical_preferences")
-    .$type<Record<string, unknown>>()
-    .default(sql`'{}'::jsonb`),
-  onboardingComplete: boolean("onboarding_complete").default(false).notNull(),
-  createdAt: timestamp("created_at")
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull(),
-  updatedAt: timestamp("updated_at")
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull(),
-});
+export const profiles = pgTable(
+  "profiles",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" })
+      .unique(),
+    fullName: text("full_name"),
+    firstName: text("first_name"),
+    lastName: text("last_name"),
+    dateOfBirth: varchar("date_of_birth", { length: 10 }), // ISO date string YYYY-MM-DD
+    sex: varchar("sex", { length: 20 }),
+    profilePictureUrl: text("profile_picture_url"),
+    countryOfPractice: varchar("country_of_practice", { length: 50 }),
+    medicalCouncilNumber: varchar("medical_council_number", { length: 50 }),
+    professionalRegistrations: jsonb("professional_registrations")
+      .$type<ProfessionalRegistrations>()
+      .default(sql`'{}'::jsonb`),
+    verificationStatus: varchar("verification_status", { length: 20 })
+      .default("unverified")
+      .notNull(),
+    careerStage: varchar("career_stage", { length: 50 }),
+    // E.164 (`+64211234567`) — the only form that participates in colleague
+    // matching. Normalised by shared/phone.ts on every write; the CHECK below
+    // is defence in depth. Written by PUT /api/profile since 2.26.0 (before
+    // that the column was unreachable and phone discovery could never match).
+    phone: varchar("phone", { length: 20 }),
+    discoverable: boolean("discoverable").default(true).notNull(),
+    // Denormalised `reg:<jurisdiction>:<UPPERALNUM>` keys derived from
+    // professionalRegistrations (+ legacy medicalCouncilNumber) on every
+    // profile write — see shared/professionalRegistrations.ts
+    // buildRegistrationLookupKeys. A set-returning JSONB lookup can't be
+    // indexed, so this array IS the expression index; it also feeds the PSI
+    // member set directly.
+    registrationLookupKeys: text("registration_lookup_keys")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    surgicalPreferences: jsonb("surgical_preferences")
+      .$type<Record<string, unknown>>()
+      .default(sql`'{}'::jsonb`),
+    onboardingComplete: boolean("onboarding_complete").default(false).notNull(),
+    createdAt: timestamp("created_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: timestamp("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (t) => [
+    index("profiles_registration_lookup_keys_gin_idx").using(
+      "gin",
+      t.registrationLookupKeys,
+    ),
+    index("profiles_phone_idx")
+      .on(t.phone)
+      .where(sql`phone IS NOT NULL`),
+    check(
+      "profiles_phone_is_e164",
+      sql`${t.phone} IS NULL OR ${t.phone} ~ '^\\+[1-9][0-9]{1,14}$'`,
+    ),
+  ],
+);
 
 export const profilesRelations = relations(profiles, ({ one, many }) => ({
   user: one(users, {
@@ -574,6 +604,24 @@ export const teamContacts = pgTable(
   (t) => [
     index("team_contacts_owner_idx").on(t.ownerUserId),
     index("team_contacts_linked_idx").on(t.linkedUserId),
+    // One roster contact per linked account per owner: two contacts linked
+    // to the same user would produce two share rows for one recipient and
+    // a double-counted "N of M will receive this case" footer.
+    uniqueIndex("team_contacts_owner_linked_uniq")
+      .on(t.ownerUserId, t.linkedUserId)
+      .where(sql`linked_user_id IS NOT NULL`),
+    // A contact can never be the owner's own account (the share pipeline
+    // would try to share with self and fail on every save).
+    check(
+      "team_contacts_not_self_linked",
+      sql`${t.linkedUserId} IS NULL OR ${t.linkedUserId} <> ${t.ownerUserId}`,
+    ),
+    // Registration number + jurisdiction travel together — a number without
+    // a jurisdiction has no lookup key and can never match.
+    check(
+      "team_contacts_registration_pair",
+      sql`(${t.registrationNumber} IS NULL) = (${t.registrationJurisdiction} IS NULL)`,
+    ),
   ],
 );
 

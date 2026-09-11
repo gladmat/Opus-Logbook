@@ -25,15 +25,21 @@ vi.mock("../teamContactsApi", () => ({
 const shareCase = vi.fn();
 const getSharedOutbox = vi.fn();
 const revokeSharedCase = vi.fn();
-const searchUserByEmail = vi.fn();
+const searchUserForContact = vi.fn();
 const updateSharedCaseBlobApi = vi.fn();
 vi.mock("../sharingApi", () => ({
   shareCase: (...args: unknown[]) => shareCase(...args),
   getSharedOutbox: (...args: unknown[]) => getSharedOutbox(...args),
   revokeSharedCase: (...args: unknown[]) => revokeSharedCase(...args),
-  searchUserByEmail: (...args: unknown[]) => searchUserByEmail(...args),
+  searchUserForContact: (...args: unknown[]) => searchUserForContact(...args),
   updateSharedCaseBlobApi: (...args: unknown[]) =>
     updateSharedCaseBlobApi(...args),
+}));
+
+const removeDiscoveryMatch = vi.fn(async () => undefined);
+vi.mock("../discoveryService", () => ({
+  removeDiscoveryMatch: (...args: unknown[]) =>
+    removeDiscoveryMatch(...(args as [])),
 }));
 
 const verifyAndPinRecipientKeys = vi.fn();
@@ -221,11 +227,31 @@ describe("listUnlinkedTaggedMembers", () => {
     ];
     const result = listUnlinkedTaggedMembers(team, [
       { id: "contact-1", email: "jane@x.com" },
-      { id: "contact-3", email: null },
+      {
+        id: "contact-3",
+        email: null,
+        phone: "+64211234567",
+        registrationNumber: "123",
+        registrationJurisdiction: "new_zealand",
+      },
     ]);
     expect(result).toEqual([
-      { contactId: "contact-1", displayName: "Jane Doe", email: "jane@x.com" },
-      { contactId: "contact-3", displayName: "Cy", email: null },
+      {
+        contactId: "contact-1",
+        displayName: "Jane Doe",
+        email: "jane@x.com",
+        phone: null,
+        registrationNumber: null,
+        registrationJurisdiction: null,
+      },
+      {
+        contactId: "contact-3",
+        displayName: "Cy",
+        email: null,
+        phone: "+64211234567",
+        registrationNumber: "123",
+        registrationJurisdiction: "new_zealand",
+      },
     ]);
   });
 
@@ -529,8 +555,8 @@ describe("searchUnlinkedMembersOnOpus", () => {
     email,
   });
 
-  it("caps searches, skips email-less members, and buckets misses", async () => {
-    searchUserByEmail
+  it("caps searches, skips identifier-less members, and buckets misses", async () => {
+    searchUserForContact
       .mockResolvedValueOnce({ id: "u1", displayName: "A", publicKeys: [] })
       .mockResolvedValueOnce(null)
       .mockRejectedValueOnce(new Error("rate limited"));
@@ -544,7 +570,7 @@ describe("searchUnlinkedMembersOnOpus", () => {
       ],
       "owner-id",
     );
-    expect(searchUserByEmail).toHaveBeenCalledTimes(RESCUE_SEARCH_CAP);
+    expect(searchUserForContact).toHaveBeenCalledTimes(RESCUE_SEARCH_CAP);
     expect(result.hits.map((h) => h.contactId)).toEqual(["contact-1"]);
     expect(result.misses.map((m) => m.contactId)).toEqual([
       "contact-2",
@@ -556,8 +582,40 @@ describe("searchUnlinkedMembersOnOpus", () => {
     ]);
   });
 
+  it("searches phone-only and registration-only members (no email needed)", async () => {
+    searchUserForContact.mockResolvedValue({
+      id: "u1",
+      displayName: "A",
+      publicKeys: [],
+    });
+    const result = await searchUnlinkedMembersOnOpus(
+      [
+        { ...unlinkedMember(1, null), phone: "021 123 4567" },
+        {
+          ...unlinkedMember(2, null),
+          registrationNumber: "123",
+          registrationJurisdiction: "new_zealand",
+        },
+      ],
+      "owner-id",
+      RESCUE_SEARCH_CAP,
+      "NZ",
+    );
+    expect(searchUserForContact).toHaveBeenCalledTimes(2);
+    expect(searchUserForContact).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ phone: "021 123 4567" }),
+      "NZ",
+    );
+    expect(result.hits.map((h) => h.contactId)).toEqual([
+      "contact-1",
+      "contact-2",
+    ]);
+    expect(result.hits[0]?.email).toBeNull();
+  });
+
   it("drops hits that resolve to the owner themselves", async () => {
-    searchUserByEmail.mockResolvedValue({
+    searchUserForContact.mockResolvedValue({
       id: "owner-id",
       displayName: "Me",
       publicKeys: [],
@@ -592,6 +650,8 @@ describe("linkAndShareCaseWithHit", () => {
     const result = await linkAndShareCaseWithHit({ savedCase, hit });
 
     expect(linkContact).toHaveBeenCalledWith("contact-1", "user-9");
+    // The cached discovery match is stale the moment the link exists.
+    expect(removeDiscoveryMatch).toHaveBeenCalledWith("contact-1");
     expect(shareCase).toHaveBeenCalledTimes(1);
     expect(result).toEqual({
       linked: true,

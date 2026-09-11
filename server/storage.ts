@@ -37,6 +37,8 @@ import {
   type InsertTeamContact,
 } from "@shared/schema";
 import { db } from "./db";
+import { buildRegistrationLookupKeys } from "@shared/professionalRegistrations";
+import { buildDiscoverableIdentifiers } from "./discoverableIdentifiers";
 import { eq, and, ne, sql, lt, isNull, isNotNull, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -220,6 +222,11 @@ export interface IStorage {
 
   // Discovery helpers
   getUserByPhone(phone: string): Promise<User | undefined>;
+  getUserByRegistrationKey(key: string): Promise<User | undefined>;
+  findContactLinkedTo(
+    ownerUserId: string,
+    linkedUserId: string,
+  ): Promise<Pick<TeamContactRow, "id" | "displayName"> | undefined>;
   getDiscoverableIdentifiers(): Promise<string[]>;
 
   // Invitations
@@ -338,7 +345,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProfile(profile: InsertProfile): Promise<Profile> {
-    const [created] = await db.insert(profiles).values(profile).returning();
+    const [created] = await db
+      .insert(profiles)
+      .values({
+        ...profile,
+        registrationLookupKeys: buildRegistrationLookupKeys(
+          profile.professionalRegistrations,
+          profile.medicalCouncilNumber,
+          profile.countryOfPractice,
+        ),
+      })
+      .returning();
     return created!;
   }
 
@@ -346,9 +363,28 @@ export class DatabaseStorage implements IStorage {
     userId: string,
     profile: Partial<InsertProfile>,
   ): Promise<Profile | undefined> {
+    // registration_lookup_keys is derived state — recompute whenever any of
+    // its inputs change so colleague matching by registration stays in step
+    // with what the profile displays.
+    const touchesRegistration =
+      "professionalRegistrations" in profile ||
+      "medicalCouncilNumber" in profile ||
+      "countryOfPractice" in profile;
+    let derived: { registrationLookupKeys?: string[] } = {};
+    if (touchesRegistration) {
+      const existing = await this.getProfile(userId);
+      const merged = { ...existing, ...profile };
+      derived = {
+        registrationLookupKeys: buildRegistrationLookupKeys(
+          merged.professionalRegistrations,
+          merged.medicalCouncilNumber,
+          merged.countryOfPractice,
+        ),
+      };
+    }
     const [updated] = await db
       .update(profiles)
-      .set({ ...profile, updatedAt: new Date() })
+      .set({ ...profile, ...derived, updatedAt: new Date() })
       .where(eq(profiles.userId, userId))
       .returning();
     return updated || undefined;
@@ -1092,6 +1128,7 @@ export class DatabaseStorage implements IStorage {
     return updated || undefined;
   }
 
+  /** `phone` must already be E.164 — callers normalise with shared/phone.ts. */
   async getUserByPhone(phone: string): Promise<User | undefined> {
     const [profile] = await db
       .select()
@@ -1101,12 +1138,40 @@ export class DatabaseStorage implements IStorage {
     return this.getUser(profile.userId);
   }
 
+  /** `key` is a `reg:<jurisdiction>:<NORM>` lookup key (GIN-indexed). */
+  async getUserByRegistrationKey(key: string): Promise<User | undefined> {
+    const [profile] = await db
+      .select()
+      .from(profiles)
+      .where(sql`${profiles.registrationLookupKeys} @> ARRAY[${key}]::text[]`)
+      .limit(1);
+    if (!profile) return undefined;
+    return this.getUser(profile.userId);
+  }
+
+  async findContactLinkedTo(
+    ownerUserId: string,
+    linkedUserId: string,
+  ): Promise<Pick<TeamContactRow, "id" | "displayName"> | undefined> {
+    const [row] = await db
+      .select({ id: teamContacts.id, displayName: teamContacts.displayName })
+      .from(teamContacts)
+      .where(
+        and(
+          eq(teamContacts.ownerUserId, ownerUserId),
+          eq(teamContacts.linkedUserId, linkedUserId),
+        ),
+      )
+      .limit(1);
+    return row || undefined;
+  }
+
   /**
-   * Every discoverable user's matchable identifiers (email + phone) for the
-   * PSI member set. Emails are stored normalized (lowercase, enforced by
-   * the 20260425 migration); phones use the same exact-string semantics as
-   * getUserByPhone. Users with `discoverable === false` are excluded —
-   * mirrors the legacy /discover opt-out.
+   * Every discoverable user's matchable identifiers (email, E.164 phone,
+   * `reg:` registration keys) for the PSI member set. Emails are stored
+   * normalized (lowercase, enforced by the 20260425 migration). Opt-outs
+   * and synthetic Apple-relay emails are excluded — see
+   * buildDiscoverableIdentifiers.
    */
   async getDiscoverableIdentifiers(): Promise<string[]> {
     const rows = await db
@@ -1114,17 +1179,11 @@ export class DatabaseStorage implements IStorage {
         email: users.email,
         phone: profiles.phone,
         discoverable: profiles.discoverable,
+        registrationLookupKeys: profiles.registrationLookupKeys,
       })
       .from(users)
       .leftJoin(profiles, eq(profiles.userId, users.id));
-
-    const identifiers: string[] = [];
-    for (const row of rows) {
-      if (row.discoverable === false) continue;
-      if (row.email) identifiers.push(row.email);
-      if (row.phone) identifiers.push(row.phone.trim());
-    }
-    return identifiers;
+    return buildDiscoverableIdentifiers(rows);
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -1142,6 +1201,13 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
+  /**
+   * Stamp `invitationAcceptedAt` on rows whose owner actually INVITED this
+   * email. Without the `invitationSentAt IS NOT NULL` predicate every roster
+   * row carrying the address was stamped, which disclosed "X just joined
+   * Opus" to anyone who had ever typed their email — including for users
+   * who opt out of discovery.
+   */
   async matchInvitationsByEmail(email: string): Promise<number> {
     const result = await db
       .update(teamContacts)
@@ -1149,6 +1215,7 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(teamContacts.email, email),
+          isNotNull(teamContacts.invitationSentAt),
           isNull(teamContacts.invitationAcceptedAt),
         ),
       )

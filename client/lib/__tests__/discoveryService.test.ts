@@ -44,7 +44,13 @@ const {
   getDiscoveryMatches,
   markDiscoveryStale,
   removeDiscoveryMatch,
+  buildContactIdentifiers,
 } = await import("../discoveryService");
+const { blindIdentifiers, finalizeAndIntersect } = await import(
+  "../psiDiscovery"
+);
+const { generateEphemeralOprfKey, evaluateBlindedPoint, evaluateIdentifier } =
+  await import("../../../server/psi");
 
 const UNLINKED_CONTACT = {
   id: "contact-1",
@@ -108,6 +114,113 @@ describe("discoverUnlinkedContacts", () => {
     expect(await discoverUnlinkedContacts()).toBe(1);
     await setActiveUserId("00000000-0000-0000-0000-000000000002");
     expect(await discoverUnlinkedContacts()).toBe(1);
+  });
+});
+
+describe("identifier handling (2.26.0)", () => {
+  const REG_CONTACT = {
+    id: "contact-reg",
+    linkedUserId: null,
+    email: null,
+    phone: null,
+    registrationNumber: "12 345-ab",
+    registrationJurisdiction: "new_zealand",
+  };
+  const PHONE_CONTACT = {
+    id: "contact-phone",
+    linkedUserId: null,
+    email: null,
+    phone: "021 123 4567",
+    registrationNumber: null,
+    registrationJurisdiction: null,
+  };
+
+  it("buildContactIdentifiers emits the exact server-side forms", () => {
+    expect(
+      buildContactIdentifiers(
+        {
+          email: " Jane@X.com ",
+          phone: "021 123 4567",
+          registrationNumber: "12 345-ab",
+          registrationJurisdiction: "new_zealand",
+        },
+        "NZ",
+      ),
+    ).toEqual({
+      email: "jane@x.com",
+      phone: "+64211234567",
+      registrationKey: "reg:new_zealand:12345AB",
+      registrationNumber: "12 345-ab",
+      registrationJurisdiction: "new_zealand",
+    });
+    // Unresolvable phone (no region) and half a registration pair → nothing.
+    expect(
+      buildContactIdentifiers({
+        email: null,
+        phone: "021 123 4567",
+        registrationNumber: "123",
+        registrationJurisdiction: null,
+      }),
+    ).toEqual({});
+  });
+
+  it("sends E.164 phones to /discover using the owner's region (legacy path)", async () => {
+    getTeamContacts.mockResolvedValue([PHONE_CONTACT]);
+    expect(await discoverUnlinkedContacts({ phoneRegion: "NZ" })).toBe(1);
+    expect(discoverContacts).toHaveBeenCalledWith([
+      { contactId: "contact-phone", phone: "+64211234567" },
+    ]);
+  });
+
+  it("a contact with no resolvable identifier neither hits the API nor burns the throttle", async () => {
+    getTeamContacts.mockResolvedValue([PHONE_CONTACT]); // no region → no E.164
+    expect(await discoverUnlinkedContacts()).toBe(0);
+    expect(discoverContacts).not.toHaveBeenCalled();
+    expect(discoverContactsPsi).not.toHaveBeenCalled();
+    // Not throttled — the next round still runs.
+    getTeamContacts.mockResolvedValue([UNLINKED_CONTACT]);
+    expect(await discoverUnlinkedContacts()).toBe(1);
+  });
+
+  it("registration-only contacts match through a real PSI round and reach /discover", async () => {
+    // Simulate the server: evaluate the blinded points and publish the PRF
+    // of a member set that contains ONLY the registration key.
+    discoverContactsPsi.mockImplementation(
+      async (blinded: { ref: string; point: string }[]) => {
+        const key = generateEphemeralOprfKey();
+        return {
+          evaluated: blinded.map((b) => ({
+            ref: b.ref,
+            point: evaluateBlindedPoint(key, b.point),
+          })),
+          members: [evaluateIdentifier(key, "reg:new_zealand:12345AB")].sort(),
+        };
+      },
+    );
+    getTeamContacts.mockResolvedValue([REG_CONTACT, UNLINKED_CONTACT]);
+    expect(await discoverUnlinkedContacts()).toBe(1);
+    // Only the PSI-matched contact is disclosed to the plaintext endpoint.
+    expect(discoverContacts).toHaveBeenCalledWith([
+      {
+        contactId: "contact-reg",
+        registrationNumber: "12 345-ab",
+        registrationJurisdiction: "new_zealand",
+      },
+    ]);
+    // Sanity: the client-side PSI primitives agree with the server ones.
+    const { payload, contexts } = blindIdentifiers([
+      { ref: "x|reg", value: "reg:new_zealand:12345AB" },
+    ]);
+    const key = generateEphemeralOprfKey();
+    const evaluated = payload.map((b) => ({
+      ref: b.ref,
+      point: evaluateBlindedPoint(key, b.point),
+    }));
+    expect(
+      finalizeAndIntersect(contexts, evaluated, [
+        evaluateIdentifier(key, "reg:new_zealand:12345AB"),
+      ]),
+    ).toEqual(new Set(["x|reg"]));
   });
 });
 

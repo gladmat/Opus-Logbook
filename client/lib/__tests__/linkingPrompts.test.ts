@@ -8,9 +8,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Alert } from "react-native";
 import type { TeamContact } from "@/types/teamContacts";
 
-const searchUserByEmail = vi.fn();
+const searchUserForContact = vi.fn();
 vi.mock("../sharingApi", () => ({
-  searchUserByEmail: (...args: unknown[]) => searchUserByEmail(...args),
+  searchUserForContact: (...args: unknown[]) => searchUserForContact(...args),
 }));
 
 const linkContact = vi.fn();
@@ -46,10 +46,12 @@ vi.mock("../retroShare", () => ({
 
 const {
   alertAsync,
-  promptLinkContactByEmail,
+  promptLinkContact,
+  linkContactWithFeedback,
   offerRetroShareForContact,
   runPostSaveTeamPrompt,
 } = await import("../linkingPrompts");
+const { TeamContactApiError } = await import("../teamContactErrors");
 
 const alertSpy = vi.spyOn(Alert, "alert");
 
@@ -119,10 +121,10 @@ describe("alertAsync", () => {
   });
 });
 
-describe("promptLinkContactByEmail", () => {
+describe("promptLinkContact", () => {
   it("links on accept, clears the cached match, and chains the retro-share offer", async () => {
-    searchUserByEmail.mockResolvedValue(OPUS_USER);
-    const promise = promptLinkContactByEmail(makeContact(), "owner-id");
+    searchUserForContact.mockResolvedValue(OPUS_USER);
+    const promise = promptLinkContact(makeContact(), "owner-id");
 
     await vi.waitFor(() => expect(alertSpy).toHaveBeenCalledTimes(1));
     expect(alertSpy.mock.calls[0]?.[0]).toBe("Jane Doe is on Opus");
@@ -138,8 +140,8 @@ describe("promptLinkContactByEmail", () => {
   });
 
   it("declining leaves the contact unlinked", async () => {
-    searchUserByEmail.mockResolvedValue(OPUS_USER);
-    const promise = promptLinkContactByEmail(makeContact(), "owner-id");
+    searchUserForContact.mockResolvedValue(OPUS_USER);
+    const promise = promptLinkContact(makeContact(), "owner-id");
 
     await vi.waitFor(() => expect(alertSpy).toHaveBeenCalledTimes(1));
     pressButton("Not Now");
@@ -149,29 +151,104 @@ describe("promptLinkContactByEmail", () => {
   });
 
   it("stays silent on a 404 (not on Opus / not discoverable)", async () => {
-    searchUserByEmail.mockResolvedValue(null);
-    await expect(
-      promptLinkContactByEmail(makeContact(), "owner-id"),
-    ).resolves.toBe("not-found");
+    searchUserForContact.mockResolvedValue(null);
+    await expect(promptLinkContact(makeContact(), "owner-id")).resolves.toBe(
+      "not-found",
+    );
     expect(alertSpy).not.toHaveBeenCalled();
   });
 
-  it("stays silent when the email resolves to the owner themselves", async () => {
-    searchUserByEmail.mockResolvedValue({ ...OPUS_USER, id: "owner-id" });
+  it("searches phone-only contacts too (no email required)", async () => {
+    searchUserForContact.mockResolvedValue(null);
     await expect(
-      promptLinkContactByEmail(makeContact(), "owner-id"),
+      promptLinkContact(
+        makeContact({ email: null, phone: "+64211234567" }),
+        "owner-id",
+        "NZ",
+      ),
     ).resolves.toBe("not-found");
+    expect(searchUserForContact).toHaveBeenCalledWith(
+      expect.objectContaining({ phone: "+64211234567" }),
+      "NZ",
+    );
+  });
+
+  it("skips contacts with no identifier at all without searching", async () => {
+    await expect(
+      promptLinkContact(makeContact({ email: null }), "owner-id"),
+    ).resolves.toBe("not-found");
+    expect(searchUserForContact).not.toHaveBeenCalled();
+  });
+
+  it("stays silent when the email resolves to the owner themselves", async () => {
+    searchUserForContact.mockResolvedValue({ ...OPUS_USER, id: "owner-id" });
+    await expect(promptLinkContact(makeContact(), "owner-id")).resolves.toBe(
+      "not-found",
+    );
     expect(alertSpy).not.toHaveBeenCalled();
   });
 
   it("skips already-linked contacts without searching", async () => {
     await expect(
-      promptLinkContactByEmail(
-        makeContact({ linkedUserId: "user-9" }),
-        "owner-id",
-      ),
+      promptLinkContact(makeContact({ linkedUserId: "user-9" }), "owner-id"),
     ).resolves.toBe("not-found");
-    expect(searchUserByEmail).not.toHaveBeenCalled();
+    expect(searchUserForContact).not.toHaveBeenCalled();
+  });
+});
+
+describe("linkContactWithFeedback", () => {
+  it("refuses a self-link before any request", async () => {
+    const ok = await linkContactWithFeedback(
+      makeContact(),
+      { id: "owner-id" },
+      { ownUserId: "owner-id" },
+    );
+    expect(ok).toBe(false);
+    expect(linkContact).not.toHaveBeenCalled();
+    expect(alertSpy.mock.calls[0]?.[0]).toBe("That's your own account");
+  });
+
+  it("names the conflicting contact on DUPLICATE_LINK and skips retro-share", async () => {
+    linkContact.mockRejectedValue(
+      new TeamContactApiError("dup", 409, {
+        code: "DUPLICATE_LINK",
+        conflictingContactId: "contact-0",
+        conflictingDisplayName: "J. Doe (old)",
+      }),
+    );
+    const ok = await linkContactWithFeedback(makeContact(), OPUS_USER, {
+      ownUserId: "owner-id",
+    });
+    expect(ok).toBe(false);
+    expect(alertSpy.mock.calls[0]?.[0]).toBe("Already linked");
+    expect(alertSpy.mock.calls[0]?.[1]).toContain("J. Doe (old)");
+    expect(findRetroShareCandidates).not.toHaveBeenCalled();
+    expect(removeDiscoveryMatch).not.toHaveBeenCalled();
+  });
+
+  it("explains NO_IDENTIFIER_MATCH in the contact's terms", async () => {
+    linkContact.mockRejectedValue(
+      new TeamContactApiError("no", 409, { code: "NO_IDENTIFIER_MATCH" }),
+    );
+    expect(await linkContactWithFeedback(makeContact(), OPUS_USER)).toBe(false);
+    expect(alertSpy.mock.calls[0]?.[0]).toBe("Details don't match");
+  });
+
+  it("falls back to the generic alert for untyped errors", async () => {
+    linkContact.mockRejectedValue(new Error("network down"));
+    expect(await linkContactWithFeedback(makeContact(), OPUS_USER)).toBe(false);
+    expect(alertSpy.mock.calls[0]).toEqual(["Link Failed", "network down"]);
+  });
+
+  it("on success clears the cached match and chains retro-share with custom copy", async () => {
+    linkContact.mockResolvedValue({});
+    const ok = await linkContactWithFeedback(makeContact(), OPUS_USER, {
+      successTitle: "Contact Linked",
+      successMessage: "Jane Doe will now receive cases you tag them on.",
+    });
+    expect(ok).toBe(true);
+    expect(removeDiscoveryMatch).toHaveBeenCalledWith("contact-1");
+    expect(alertSpy.mock.calls[0]?.[0]).toBe("Contact Linked");
   });
 });
 

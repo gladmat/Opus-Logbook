@@ -33,7 +33,19 @@ import {
   invitationRateLimiter,
   pushTokenRateLimiter,
   sharedMediaRateLimiter,
+  discoverIdentifierBudget,
+  userKeysRateLimiter,
 } from "./rateLimit";
+import { profileUpdateSchema } from "./validation/profile";
+import {
+  discoverContactsSchema,
+  discoverPsiSchema,
+  invitationSchema,
+  teamContactCreateSchema,
+  teamContactLinkSchema,
+  teamContactUpdateSchema,
+  userSearchQuerySchema,
+} from "./validation/teamContacts";
 import { avatarsDir, sharedMediaRoot } from "./uploadsDir";
 import {
   AUTH_TAG_RE,
@@ -49,16 +61,24 @@ import {
   sharedMediaPath,
   streamBodyToFile,
 } from "./sharedMedia";
+import { insertUserFacilitySchema, type Profile } from "@shared/schema";
 import {
-  insertProfileSchema,
-  insertUserFacilitySchema,
-  type Profile,
-} from "@shared/schema";
-import {
+  buildRegistrationLookupKey,
   getLegacyMedicalCouncilNumber,
   getProfessionalRegistrations,
   professionalRegistrationsSchema,
 } from "@shared/professionalRegistrations";
+import {
+  getDefaultPhoneRegion,
+  normalizePhoneE164,
+  type PhoneRegion,
+} from "@shared/phone";
+import {
+  isDiscoverable,
+  lockedIdentifierChanges,
+  verifyLinkRequest,
+} from "./linkResolution";
+import { padMemberSet } from "./discoverableIdentifiers";
 import { getSeniorityTierForStage } from "@shared/careerStages";
 import { sendPushNotification } from "./push";
 import { env } from "./env";
@@ -85,6 +105,78 @@ function respondInternalError(
 ): void {
   log.error({ err }, context);
   res.status(500).json({ error: publicMessage });
+}
+
+// ── Team-contact linking helpers ─────────────────────────────────────────────
+
+const INVITE_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+const PHONE_INVALID_DETAILS = {
+  fieldErrors: {
+    phone: [
+      "Enter a valid phone number including the country code, e.g. +64 21 123 4567",
+    ],
+  },
+};
+
+/** The caller's default phone region (from their countryOfPractice). */
+async function requesterPhoneRegion(
+  userId: string,
+): Promise<PhoneRegion | undefined> {
+  const profile = await storage.getProfile(userId);
+  return getDefaultPhoneRegion(profile?.countryOfPractice);
+}
+
+/** blank/null → null; valid → E.164; anything else → not ok. */
+function normalizeInputPhone(
+  raw: string | null | undefined,
+  region: PhoneRegion | undefined,
+): { ok: true; value: string | null } | { ok: false } {
+  if (raw === null || raw === undefined || raw.trim() === "") {
+    return { ok: true, value: null };
+  }
+  const e164 = normalizePhoneE164(raw, region);
+  return e164 ? { ok: true, value: e164 } : { ok: false };
+}
+
+/** Postgres unique_violation — the partial UNIQUE (owner, linked_user) index. */
+function isUniqueViolation(err: unknown): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    (err as { code?: unknown }).code === "23505"
+  );
+}
+
+/**
+ * A profile's name for colleague-facing surfaces. `fullName` is derived on
+ * the client and can be null for accounts that only set first/last name.
+ */
+function profileDisplayName(
+  profile:
+    | {
+        fullName?: string | null;
+        firstName?: string | null;
+        lastName?: string | null;
+      }
+    | undefined
+    | null,
+): string | null {
+  if (!profile) return null;
+  if (profile.fullName?.trim()) return profile.fullName.trim();
+  const parts = [profile.firstName, profile.lastName]
+    .map((p) => p?.trim())
+    .filter((p): p is string => !!p);
+  return parts.length > 0 ? parts.join(" ") : null;
+}
+
+/** Single-row contact responses carry the linked account's display name. */
+async function withLinkedDisplayName<T extends { linkedUserId: string | null }>(
+  row: T,
+): Promise<T & { linkedDisplayName: string | null }> {
+  if (!row.linkedUserId) return { ...row, linkedDisplayName: null };
+  const profile = await storage.getProfile(row.linkedUserId);
+  return { ...row, linkedDisplayName: profileDisplayName(profile) };
 }
 
 /**
@@ -165,26 +257,6 @@ const resetPasswordSchema = z.object({
 
 // ── Profile validation schemas ───────────────────────────────────────────────
 
-const profileUpdateSchema = insertProfileSchema
-  .pick({
-    fullName: true,
-    firstName: true,
-    lastName: true,
-    dateOfBirth: true,
-    sex: true,
-    countryOfPractice: true,
-    medicalCouncilNumber: true,
-    professionalRegistrations: true,
-    careerStage: true,
-    onboardingComplete: true,
-    surgicalPreferences: true,
-    // Privacy: lets users opt out of colleague search/discovery/linking.
-    // The search, discover, discover-psi and team-contact link endpoints
-    // all gate on profiles.discoverable === false.
-    discoverable: true,
-  })
-  .partial();
-
 // Profile picture upload config — lives under UPLOADS_DIR (persistent
 // volume in prod) since 2.25.0; see server/uploadsDir.ts.
 const uploadsDir = avatarsDir;
@@ -257,55 +329,6 @@ const deviceKeySchema = z.object({
 
 const revokeDeviceKeySchema = z.object({
   deviceId: z.string().min(1).max(64),
-});
-
-// ── Team contacts validation schemas ────────────────────────────────────────
-
-const teamContactCreateSchema = z.object({
-  firstName: z.string().min(1).max(50),
-  lastName: z.string().min(1).max(50),
-  email: z.string().email().max(255).nullable().optional(),
-  phone: z.string().max(20).nullable().optional(),
-  registrationNumber: z.string().max(50).nullable().optional(),
-  registrationJurisdiction: z.string().max(20).nullable().optional(),
-  careerStage: z.string().max(50).nullable().optional(),
-  defaultRole: z.enum(["PS", "FA", "SS", "US", "SA"]).nullable().optional(),
-  notes: z.string().max(500).nullable().optional(),
-  facilityIds: z.array(z.string()).optional(),
-});
-
-const teamContactUpdateSchema = teamContactCreateSchema.partial();
-
-const teamContactLinkSchema = z.object({
-  linkedUserId: z.string().min(1),
-});
-
-const discoverContactsSchema = z.object({
-  contacts: z
-    .array(
-      z.object({
-        contactId: z.string().min(1),
-        email: z.string().email().optional(),
-        phone: z.string().optional(),
-        registrationNumber: z.string().optional(),
-        registrationJurisdiction: z.string().optional(),
-      }),
-    )
-    .min(1)
-    .max(50),
-});
-
-const discoverPsiSchema = z.object({
-  blinded: z
-    .array(
-      z.object({
-        ref: z.string().min(1).max(120),
-        // Hex-encoded ristretto255 element (32 bytes).
-        point: z.string().regex(/^[0-9a-f]{64}$/),
-      }),
-    )
-    .min(1)
-    .max(100),
 });
 
 // ── Sharing validation schemas ──────────────────────────────────────────────
@@ -395,11 +418,6 @@ const pushTokenSchema = z.object({
   expoPushToken: z.string().min(1),
   deviceId: z.string().min(1).max(64),
   platform: z.string().max(10).optional(),
-});
-
-const invitationSchema = z.object({
-  contactId: z.string().min(1),
-  email: z.string().email(),
 });
 
 function parseJsonObject(
@@ -1218,6 +1236,23 @@ export async function registerRoutes(app: Express): Promise<void> {
 
         const existingProfile = await storage.getProfile(req.userId!);
         const profileData = { ...parseResult.data };
+        if ("phone" in profileData) {
+          const normalized = normalizeInputPhone(
+            profileData.phone,
+            getDefaultPhoneRegion(
+              profileData.countryOfPractice ??
+                existingProfile?.countryOfPractice,
+            ),
+          );
+          if (!normalized.ok) {
+            res.status(400).json({
+              error: "Invalid profile data",
+              details: PHONE_INVALID_DETAILS,
+            });
+            return;
+          }
+          profileData.phone = normalized.value;
+        }
         if ("professionalRegistrations" in profileData) {
           profileData.medicalCouncilNumber = getLegacyMedicalCouncilNumber(
             profileData.professionalRegistrations,
@@ -2547,7 +2582,7 @@ export async function registerRoutes(app: Express): Promise<void> {
           res.status(404).json({ error: "Contact not found" });
           return;
         }
-        res.json(contact);
+        res.json(await withLinkedDisplayName(contact));
       } catch (error) {
         log.error(
           { err: error instanceof Error ? error.message : "Unknown error" },
@@ -2578,6 +2613,18 @@ export async function registerRoutes(app: Express): Promise<void> {
         const normalizedEmail = rest.email
           ? normalizeEmail(rest.email)
           : rest.email;
+        const phone = normalizeInputPhone(
+          rest.phone,
+          await requesterPhoneRegion(req.userId!),
+        );
+        if (!phone.ok) {
+          res.status(400).json({
+            error: "Invalid contact data",
+            details: PHONE_INVALID_DETAILS,
+          });
+          return;
+        }
+        const registrationNumber = rest.registrationNumber?.trim() || null;
 
         const contact = await storage.createTeamContact({
           ownerUserId: req.userId!,
@@ -2586,6 +2633,11 @@ export async function registerRoutes(app: Express): Promise<void> {
           displayName,
           ...rest,
           email: normalizedEmail ?? null,
+          phone: phone.value,
+          registrationNumber,
+          registrationJurisdiction: registrationNumber
+            ? (rest.registrationJurisdiction ?? null)
+            : null,
           facilityIds: rest.facilityIds ?? [],
         });
         res.json(contact);
@@ -2619,16 +2671,61 @@ export async function registerRoutes(app: Express): Promise<void> {
           data.email = normalizeEmail(data.email);
         }
 
-        // Auto-update displayName if name fields changed
-        if (data.firstName || data.lastName) {
-          const existing = await storage.getTeamContact(
-            req.params.id!,
-            req.userId!,
-          );
-          if (!existing) {
-            res.status(404).json({ error: "Contact not found" });
+        const existing = await storage.getTeamContact(
+          req.params.id!,
+          req.userId!,
+        );
+        if (!existing) {
+          res.status(404).json({ error: "Contact not found" });
+          return;
+        }
+        const region = await requesterPhoneRegion(req.userId!);
+
+        // Identifiers are locked while linked: linkedUserId is the E2EE
+        // share recipient, so a changed email/phone/registration would
+        // silently route future cases to the previously linked account.
+        if (existing.linkedUserId) {
+          const changed = lockedIdentifierChanges(existing, data, region);
+          if (changed.length > 0) {
+            res.status(409).json({
+              error: `Unlink ${existing.displayName} before changing their email, phone or registration.`,
+              code: "LINKED_IDENTIFIERS_LOCKED",
+              lockedFields: changed,
+            });
             return;
           }
+          // Same values resent (or reformatted) — leave the stored,
+          // already-canonical identifiers untouched.
+          delete data.email;
+          delete data.phone;
+          delete data.registrationNumber;
+          delete data.registrationJurisdiction;
+        }
+
+        if ("phone" in data) {
+          const phone = normalizeInputPhone(data.phone, region);
+          if (!phone.ok) {
+            res.status(400).json({
+              error: "Invalid contact data",
+              details: PHONE_INVALID_DETAILS,
+            });
+            return;
+          }
+          data.phone = phone.value;
+        }
+        if (
+          "registrationNumber" in data ||
+          "registrationJurisdiction" in data
+        ) {
+          const registrationNumber = data.registrationNumber?.trim() || null;
+          data.registrationNumber = registrationNumber;
+          data.registrationJurisdiction = registrationNumber
+            ? (data.registrationJurisdiction ?? null)
+            : null;
+        }
+
+        // Auto-update displayName if name fields changed
+        if (data.firstName || data.lastName) {
           const newFirst = data.firstName ?? existing.firstName;
           const newLast = data.lastName ?? existing.lastName;
           (data as Record<string, unknown>).displayName =
@@ -2644,7 +2741,7 @@ export async function registerRoutes(app: Express): Promise<void> {
           res.status(404).json({ error: "Contact not found" });
           return;
         }
-        res.json(updated);
+        res.json(await withLinkedDisplayName(updated));
       } catch (error) {
         log.error(
           { err: error instanceof Error ? error.message : "Unknown error" },
@@ -2695,28 +2792,67 @@ export async function registerRoutes(app: Express): Promise<void> {
           return;
         }
 
-        // Validate target user exists and is discoverable
-        const targetUser = await storage.getUser(parseResult.data.linkedUserId);
-        if (!targetUser) {
-          res.status(404).json({ error: "Target user not found" });
-          return;
-        }
-        const targetProfile = await storage.getProfile(targetUser.id);
-        if (targetProfile && targetProfile.discoverable === false) {
-          res.status(404).json({ error: "Target user not found" });
+        const contact = await storage.getTeamContact(
+          req.params.id!,
+          req.userId!,
+        );
+        if (!contact) {
+          res.status(404).json({ error: "Contact not found" });
           return;
         }
 
-        const updated = await storage.linkTeamContact(
-          req.params.id!,
-          req.userId!,
-          parseResult.data.linkedUserId,
-        );
+        // Server-verified: the requested account must be reachable from the
+        // contact's OWN identifiers (email → phone → registration), not
+        // self, not already held by another contact of this owner.
+        const verdict = await verifyLinkRequest(storage, {
+          contact,
+          requestedUserId: parseResult.data.linkedUserId,
+        });
+        if (!verdict.ok) {
+          res.status(verdict.status).json({
+            error: verdict.message,
+            code: verdict.code,
+            ...(verdict.conflict
+              ? {
+                  conflictingContactId: verdict.conflict.contactId,
+                  conflictingDisplayName: verdict.conflict.displayName,
+                }
+              : {}),
+          });
+          return;
+        }
+
+        let updated;
+        try {
+          updated = await storage.linkTeamContact(
+            req.params.id!,
+            req.userId!,
+            verdict.userId,
+          );
+        } catch (err) {
+          if (!isUniqueViolation(err)) throw err;
+          // Race: another contact took this link between verify and write.
+          const other = await storage.findContactLinkedTo(
+            req.userId!,
+            verdict.userId,
+          );
+          res.status(409).json({
+            error: `${other?.displayName ?? "Another contact"} is already linked to this Opus account.`,
+            code: "DUPLICATE_LINK",
+            ...(other
+              ? {
+                  conflictingContactId: other.id,
+                  conflictingDisplayName: other.displayName,
+                }
+              : {}),
+          });
+          return;
+        }
         if (!updated) {
           res.status(404).json({ error: "Contact not found" });
           return;
         }
-        res.json(updated);
+        res.json(await withLinkedDisplayName(updated));
       } catch (error) {
         log.error(
           { err: error instanceof Error ? error.message : "Unknown error" },
@@ -2781,6 +2917,24 @@ export async function registerRoutes(app: Express): Promise<void> {
           res.status(404).json({ error: "Contact not found" });
           return;
         }
+        if (contact.linkedUserId) {
+          res.status(409).json({
+            error: `${contact.displayName} is already linked to an Opus account.`,
+            code: "CONTACT_ALREADY_LINKED",
+          });
+          return;
+        }
+        // Server twin of the client's 24h cooldown (previously client-only).
+        if (
+          contact.invitationSentAt &&
+          Date.now() - contact.invitationSentAt.getTime() < INVITE_COOLDOWN_MS
+        ) {
+          res.status(429).json({
+            error: `An invitation was already sent to ${contact.displayName} in the last 24 hours.`,
+            code: "INVITE_COOLDOWN",
+          });
+          return;
+        }
 
         // Record the invitation timestamp
         const invitedAt = new Date();
@@ -2818,6 +2972,7 @@ export async function registerRoutes(app: Express): Promise<void> {
   app.get(
     "/api/users/:id/keys",
     authenticateToken,
+    userKeysRateLimiter,
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       try {
         const targetUserId = req.params.id!;
@@ -2828,7 +2983,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         }
 
         const profile = await storage.getProfile(targetUserId);
-        if (profile && profile.discoverable === false) {
+        if (!isDiscoverable(profile)) {
           res.status(404).json({ error: "User not found" });
           return;
         }
@@ -2857,28 +3012,32 @@ export async function registerRoutes(app: Express): Promise<void> {
     userSearchRateLimiter,
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       try {
-        const emailRaw = req.query.email as string | undefined;
-        const phone = req.query.phone as string | undefined;
-        const registration = req.query.registration as string | undefined;
-        const jurisdiction = req.query.jurisdiction as string | undefined;
-
-        let user: Awaited<ReturnType<typeof storage.getUser>> | undefined;
-
-        if (emailRaw) {
-          user = await storage.getUserByEmail(normalizeEmail(emailRaw));
-        } else if (phone) {
-          user = await storage.getUserByPhone(phone);
-        } else if (registration && jurisdiction) {
-          // Search via professional registrations JSONB — handled at profile level
-          // For now, fall through to not found (full JSONB search deferred)
-          user = undefined;
-        } else {
+        const query = userSearchQuerySchema.safeParse(req.query);
+        if (!query.success) {
           res.status(400).json({
             error:
-              "At least one search parameter required: email, phone, or registration+jurisdiction",
+              "Provide exactly one of: email, phone, or registration+jurisdiction",
+            details: query.error.flatten(),
           });
           return;
         }
+        const { email, phone, registration, jurisdiction } = query.data;
+
+        let user: Awaited<ReturnType<typeof storage.getUser>> | undefined;
+        if (email) {
+          user = await storage.getUserByEmail(normalizeEmail(email));
+        } else if (phone) {
+          const e164 = normalizePhoneE164(
+            phone,
+            await requesterPhoneRegion(req.userId!),
+          );
+          user = e164 ? await storage.getUserByPhone(e164) : undefined;
+        } else {
+          const key = buildRegistrationLookupKey(jurisdiction, registration);
+          user = key ? await storage.getUserByRegistrationKey(key) : undefined;
+        }
+        // The caller's own account is never a colleague match.
+        if (user && user.id === req.userId) user = undefined;
 
         if (!user) {
           res.status(404).json({ error: "User not found" });
@@ -2888,7 +3047,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         const profile = await storage.getProfile(user.id);
 
         // Only return discoverable users
-        if (profile && profile.discoverable === false) {
+        if (!isDiscoverable(profile)) {
           res.status(404).json({ error: "User not found" });
           return;
         }
@@ -2897,7 +3056,7 @@ export async function registerRoutes(app: Express): Promise<void> {
 
         res.json({
           id: user.id,
-          displayName: profile?.fullName ?? null,
+          displayName: profileDisplayName(profile),
           publicKeys: deviceKeys.map((dk) => ({
             deviceId: dk.deviceId,
             publicKey: dk.publicKey,
@@ -2917,11 +3076,12 @@ export async function registerRoutes(app: Express): Promise<void> {
   app.post(
     "/api/users/discover",
     authenticateToken,
-    // Discovery is a membership oracle — share the per-user rate limit
-    // with /api/users/search so a single authenticated user can't submit
-    // 50 emails per request at full cadence and enumerate the full Opus
-    // directory.
+    // Discovery is a membership oracle. The request limiter is shared with
+    // /api/users/search, and discoverIdentifierBudget additionally caps the
+    // number of IDENTIFIERS per user per window — a request-count limit
+    // alone let 10 req/min × 50 contacts probe 500 addresses a minute.
     userSearchRateLimiter,
+    discoverIdentifierBudget,
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       try {
         const parseResult = discoverContactsSchema.safeParse(req.body);
@@ -2941,6 +3101,7 @@ export async function registerRoutes(app: Express): Promise<void> {
           publicKeys: { deviceId: string; publicKey: string }[];
         }[] = [];
 
+        const region = await requesterPhoneRegion(req.userId!);
         for (const contact of contacts) {
           let user: Awaited<ReturnType<typeof storage.getUser>> | undefined;
 
@@ -2949,20 +3110,28 @@ export async function registerRoutes(app: Express): Promise<void> {
             user = await storage.getUserByEmail(normalizeEmail(contact.email));
           }
           if (!user && contact.phone) {
-            user = await storage.getUserByPhone(contact.phone);
+            const e164 = normalizePhoneE164(contact.phone, region);
+            if (e164) user = await storage.getUserByPhone(e164);
           }
-          // registration+jurisdiction search deferred
+          if (!user && contact.registrationNumber) {
+            const key = buildRegistrationLookupKey(
+              contact.registrationJurisdiction,
+              contact.registrationNumber,
+            );
+            if (key) user = await storage.getUserByRegistrationKey(key);
+          }
 
-          if (!user) continue;
+          // Never surface the caller's own account as a colleague.
+          if (!user || user.id === req.userId) continue;
 
           const profile = await storage.getProfile(user.id);
-          if (profile && profile.discoverable === false) continue;
+          if (!isDiscoverable(profile)) continue;
 
           const deviceKeys = await storage.getUserDeviceKeys(user.id);
           matches.push({
             contactId: contact.contactId,
             userId: user.id,
-            displayName: profile?.fullName ?? null,
+            displayName: profileDisplayName(profile),
             publicKeys: deviceKeys.map((dk) => ({
               deviceId: dk.deviceId,
               publicKey: dk.publicKey,
@@ -3020,9 +3189,13 @@ export async function registerRoutes(app: Express): Promise<void> {
         // Cross-request correlation is impossible too: the OPRF key is
         // ephemeral per request, so the same member yields a different PRF
         // output (and thus a different sorted position) on every call.
-        const members = identifiers
-          .map((identifier) => evaluateIdentifier(secretKey, identifier))
-          .sort();
+        // Padded to a multiple of 32 so the response length doesn't reveal
+        // the exact discoverable-identifier count.
+        const members = padMemberSet(
+          identifiers.map((identifier) =>
+            evaluateIdentifier(secretKey, identifier),
+          ),
+        );
 
         res.json({ evaluated, members });
       } catch (error) {

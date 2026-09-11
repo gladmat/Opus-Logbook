@@ -49,6 +49,8 @@ export interface TeamContact {
   invitationSentAt?: string | null;
   invitationAcceptedAt?: string | null;
   linkConfirmedAt?: string | null;
+  /** Linked account's profile name — single-row endpoints only (GET/PUT/link). */
+  linkedDisplayName?: string | null;
   createdAt: string;
   updatedAt: string;
 }
