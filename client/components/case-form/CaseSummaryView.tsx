@@ -31,6 +31,7 @@ import { DIGIT_LABELS } from "@/lib/diagnosisPicklists/multiDigitConfig";
 import { getBoneTumourSummary } from "@/types/boneTumour";
 import { getFixationHardwareSummary } from "@/types/fixationHardware";
 import { getTenolysisSummary } from "@/types/tenolysis";
+import { generateImplantSummary } from "@/lib/jointImplant";
 import { Button } from "@/components/Button";
 import {
   validateRequiredFields,
@@ -460,6 +461,13 @@ export function CaseSummaryView({
                   <SummaryRow
                     label="Tenolysis"
                     value={getTenolysisSummary(proc.tenolysisDetails)}
+                  />
+                ) : null}
+                {proc.implantDetails &&
+                generateImplantSummary(proc.implantDetails) ? (
+                  <SummaryRow
+                    label="Implant"
+                    value={generateImplantSummary(proc.implantDetails)}
                   />
                 ) : null}
               </View>

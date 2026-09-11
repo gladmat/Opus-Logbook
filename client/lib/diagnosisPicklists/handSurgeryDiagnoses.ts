@@ -1468,16 +1468,18 @@ const HAND_DX_JOINT: DiagnosisPicklistEntry[] = [
       "Eaton",
       "basal joint arthritis",
     ],
+    // Default flipped 2026-09-11 (user decision): joint prosthesis is the
+    // pre-ticked procedure; trapeziectomy stays offered as the alternative.
     suggestedProcedures: [
       {
-        procedurePicklistId: "hand_joint_trapeziectomy",
-        displayName: "Trapeziectomy ± LRTI",
+        procedurePicklistId: "hand_joint_cmc1_prosthesis",
+        displayName: "CMC1 joint prosthesis",
         isDefault: true,
         sortOrder: 1,
       },
       {
-        procedurePicklistId: "hand_joint_cmc1_prosthesis",
-        displayName: "CMC1 joint prosthesis",
+        procedurePicklistId: "hand_joint_trapeziectomy",
+        displayName: "Trapeziectomy ± LRTI",
         isDefault: false,
         sortOrder: 2,
       },

@@ -1125,7 +1125,7 @@ const HAND_JOINT_PROCEDURES: ProcedurePicklistEntry[] = [
   },
   {
     id: "hand_joint_cmc1_prosthesis",
-    displayName: "CMC1 joint prosthesis (e.g., Ivory / Touch / Ma\u00EFa)",
+    displayName: "CMC1 joint prosthesis (e.g., Touch / Ma\u00EFa / Moovis)",
     snomedCtCode: "16008005",
     snomedCtDisplay:
       "Prosthetic arthroplasty of carpometacarpal joint (procedure)",
