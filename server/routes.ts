@@ -148,13 +148,35 @@ function isUniqueViolation(err: unknown): boolean {
   );
 }
 
+/**
+ * A profile's name for colleague-facing surfaces. `fullName` is derived on
+ * the client and can be null for accounts that only set first/last name.
+ */
+function profileDisplayName(
+  profile:
+    | {
+        fullName?: string | null;
+        firstName?: string | null;
+        lastName?: string | null;
+      }
+    | undefined
+    | null,
+): string | null {
+  if (!profile) return null;
+  if (profile.fullName?.trim()) return profile.fullName.trim();
+  const parts = [profile.firstName, profile.lastName]
+    .map((p) => p?.trim())
+    .filter((p): p is string => !!p);
+  return parts.length > 0 ? parts.join(" ") : null;
+}
+
 /** Single-row contact responses carry the linked account's display name. */
 async function withLinkedDisplayName<T extends { linkedUserId: string | null }>(
   row: T,
 ): Promise<T & { linkedDisplayName: string | null }> {
   if (!row.linkedUserId) return { ...row, linkedDisplayName: null };
   const profile = await storage.getProfile(row.linkedUserId);
-  return { ...row, linkedDisplayName: profile?.fullName ?? null };
+  return { ...row, linkedDisplayName: profileDisplayName(profile) };
 }
 
 /**
@@ -3034,7 +3056,7 @@ export async function registerRoutes(app: Express): Promise<void> {
 
         res.json({
           id: user.id,
-          displayName: profile?.fullName ?? null,
+          displayName: profileDisplayName(profile),
           publicKeys: deviceKeys.map((dk) => ({
             deviceId: dk.deviceId,
             publicKey: dk.publicKey,
@@ -3109,7 +3131,7 @@ export async function registerRoutes(app: Express): Promise<void> {
           matches.push({
             contactId: contact.contactId,
             userId: user.id,
-            displayName: profile?.fullName ?? null,
+            displayName: profileDisplayName(profile),
             publicKeys: deviceKeys.map((dk) => ({
               deviceId: dk.deviceId,
               publicKey: dk.publicKey,

@@ -26,7 +26,7 @@ import {
   unlinkContact,
 } from "@/lib/teamContactsApi";
 import { promptLinkContact } from "@/lib/linkingPrompts";
-import { getDefaultPhoneRegion } from "@shared/phone";
+import { formatPhoneForDisplay, getDefaultPhoneRegion } from "@shared/phone";
 import {
   PROFESSIONAL_REGISTRATION_OPTIONS,
   getRegistrationJurisdictionForCountry,
@@ -114,7 +114,8 @@ export default function AddEditTeamContactScreen() {
         setFirstName(contact.firstName);
         setLastName(contact.lastName);
         setEmail(contact.email ?? "");
-        setPhone(contact.phone ?? "");
+        // Stored E.164 → "+64 21 555 0100" for reading; re-normalised on save.
+        setPhone(contact.phone ? formatPhoneForDisplay(contact.phone) : "");
         setRegistrationNumber(contact.registrationNumber ?? "");
         setRegistrationJurisdiction(contact.registrationJurisdiction ?? null);
         setInitialIdentifierKey(contactIdentifierKey(contact));
@@ -258,6 +259,9 @@ export default function AddEditTeamContactScreen() {
               setInitialIdentifierKey(
                 contactIdentifierKey(updated, phoneRegion),
               );
+              // The contact is unlinked again — let the next Team Contacts
+              // focus re-run discovery instead of waiting out the 24h window.
+              void markDiscoveryStale();
               Haptics.notificationAsync(
                 Haptics.NotificationFeedbackType.Success,
               );
