@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import { HAND_SURGERY_DIAGNOSES } from "@/lib/diagnosisPicklists/handSurgeryDiagnoses";
 import { PERIPHERAL_NERVE_DIAGNOSES } from "@/lib/diagnosisPicklists/peripheralNerveDiagnoses";
 import { PROCEDURE_PICKLIST } from "@/lib/procedurePicklist";
+import { getActiveProcedureIds } from "@/lib/diagnosisPicklists";
+import { procedureHasImplant } from "@/lib/jointImplant";
 import {
   buildElectiveSnomedFallbackState,
   shouldRenderGenericDiagnosisSnomedPicker,
@@ -827,4 +829,51 @@ describe("Post-traumatic Bone procedures", () => {
       expect(proc.specialties).toContain("hand_wrist");
     },
   );
+});
+
+// ═══════════════════════════════════════════════════════════
+// CMC1 OA default — joint prosthesis pre-ticked (2026-09-11)
+// ═══════════════════════════════════════════════════════════
+
+describe("CMC1 OA default procedure", () => {
+  const dx = HAND_SURGERY_DIAGNOSES.find((d) => d.id === "hand_dx_cmc1_oa")!;
+
+  it("defaults to CMC1 joint prosthesis, with trapeziectomy still offered", () => {
+    const defaults = dx.suggestedProcedures.filter((p) => p.isDefault);
+    expect(defaults.map((p) => p.procedurePicklistId)).toEqual([
+      "hand_joint_cmc1_prosthesis",
+    ]);
+    const ids = dx.suggestedProcedures.map((p) => p.procedurePicklistId);
+    expect(ids).toContain("hand_joint_trapeziectomy");
+    expect(ids).toHaveLength(2);
+  });
+
+  it("lists the prosthesis first in sortOrder", () => {
+    const sorted = [...dx.suggestedProcedures].sort(
+      (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
+    );
+    expect(sorted[0]!.procedurePicklistId).toBe("hand_joint_cmc1_prosthesis");
+  });
+
+  it("materialises exactly the prosthesis as the active procedure", () => {
+    expect(getActiveProcedureIds(dx, {})).toEqual([
+      "hand_joint_cmc1_prosthesis",
+    ]);
+  });
+
+  it("the materialised default set activates the joint implant card", () => {
+    const active = getActiveProcedureIds(dx, {}).map((picklistEntryId) => ({
+      picklistEntryId,
+    }));
+    expect(active.some(procedureHasImplant)).toBe(true);
+  });
+
+  it("prosthesis procedure display name no longer advertises discontinued Ivory", () => {
+    const proc = PROCEDURE_PICKLIST.find(
+      (p) => p.id === "hand_joint_cmc1_prosthesis",
+    )!;
+    expect(proc.displayName).not.toMatch(/Ivory/);
+    expect(proc.displayName).toMatch(/Touch/);
+    expect(proc.hasImplant).toBe(true);
+  });
 });

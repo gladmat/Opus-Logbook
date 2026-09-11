@@ -3531,6 +3531,39 @@ function DiagnosisGroupEditorInner({
                     onMultiDigitConfirm={handleMultiDigitConfirm}
                   />
 
+                  {/* Joint implant card — same inline reasoning as the
+                      osteotomy card below. All three hasImplant procedures
+                      (CMC1 / PIP / MCP arthroplasty) are elective-hand-only,
+                      so without this site the registry fields (system, size,
+                      approach, fixation, lot/UDI) were unreachable unless the
+                      surgeon opened the full procedure picker. The section
+                      renders its own completion issues, so the full-list
+                      "incomplete" banner is deliberately not duplicated. */}
+                  {!showAllProcedures
+                    ? procedures
+                        .filter(
+                          (proc) =>
+                            !!proc.picklistEntryId && procedureHasImplant(proc),
+                        )
+                        .map((proc) => (
+                          <JointImplantSection
+                            key={proc.id}
+                            procedurePicklistId={proc.picklistEntryId ?? ""}
+                            diagnosisId={selectedDiagnosis?.id}
+                            diagnosisLaterality={
+                              diagnosisClinicalDetails.laterality
+                            }
+                            value={proc.implantDetails}
+                            onChange={(details) =>
+                              updateProcedure({
+                                ...proc,
+                                implantDetails: details,
+                              })
+                            }
+                          />
+                        ))
+                    : null}
+
                   {/* Corrective osteotomy card — the elective flow hides the
                       full procedure list behind "Browse full procedure
                       picker", so the card must render inline here (the full
