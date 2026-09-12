@@ -11,7 +11,8 @@ import {
   getStateFromPath as defaultGetStateFromPath,
   type LinkingOptions,
 } from "@react-navigation/native";
-import { navigationRef } from "@/navigation/navigationRef";
+import { navigateAboveModals, navigationRef } from "@/navigation/navigationRef";
+import { findCardStackedOnModal } from "@/navigation/modalRoutes";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
   KeyboardProvider,
@@ -53,14 +54,21 @@ function handleNotificationNavigation(data: Record<string, unknown>) {
   if (!navigationRef.isReady()) return;
   const target = resolveNotificationTarget(data);
   if (!target) return;
+  // A push can be tapped while a modal (Add Event, camera, import…) is
+  // open — navigating on top of it would land the target inside a sheet
+  // with no back button, so the guard pops the modals first.
   switch (target.screen) {
     case "SharedInbox":
-      navigationRef.navigate("SharedInbox");
+      navigateAboveModals("SharedInbox");
       break;
     case "SharedCaseDetail":
+      navigateAboveModals("SharedCaseDetail", target.params!);
+      break;
     case "Assessment":
+      navigateAboveModals("Assessment", target.params!);
+      break;
     case "AssessmentReveal":
-      navigationRef.navigate(target.screen, target.params!);
+      navigateAboveModals("AssessmentReveal", target.params!);
       break;
   }
 }
@@ -155,6 +163,18 @@ function ThemedNavigationContainer({
   return (
     <NavigationContainer
       ref={navigationRef}
+      onStateChange={(state) => {
+        // Dev-only regression alarm: a card route pushed above a modal has
+        // no back button on iOS (see navigation/modalRoutes.ts).
+        if (__DEV__ && state) {
+          const stacked = findCardStackedOnModal(state.routes);
+          if (stacked) {
+            console.warn(
+              `[opus:nav] "${stacked.card}" was pushed above modal "${stacked.modal}" — it will render as a sheet with no back button. Modals must only goBack/replace; use navigateAboveModals for imperative navigation.`,
+            );
+          }
+        }
+      }}
       theme={navigationTheme}
       linking={linking}
     >

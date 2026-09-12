@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useLayoutEffect } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   View,
   TextInput,
@@ -32,24 +32,6 @@ export default function GuidedCaptureScreen() {
     () => patientId.trim().length > 0 && selectedTemplateId !== null,
     [patientId, selectedTemplateId],
   );
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerLeft: () => (
-        <Pressable
-          onPress={() => navigation.goBack()}
-          style={{ padding: 8 }}
-          accessibilityRole="button"
-          accessibilityLabel="Cancel"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <ThemedText style={{ color: theme.link, fontSize: 17 }}>
-            Cancel
-          </ThemedText>
-        </Pressable>
-      ),
-    });
-  }, [navigation, theme.link]);
 
   const handleStartCapture = useCallback(() => {
     if (!canStart || !selectedTemplateId) return;
