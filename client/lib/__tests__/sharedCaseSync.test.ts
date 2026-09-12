@@ -93,8 +93,13 @@ vi.mock("../sharedMediaImport", () => ({
   listLocalSharedThumbIds: async () => new Set<string>(),
 }));
 
-const { syncSharedCases, getSharedCaseSummaries, hydrateSharedCase } =
-  await import("../sharedCaseSync");
+const {
+  syncSharedCases,
+  getSharedCaseSummaries,
+  hydrateSharedCase,
+  resetSharedCaseSyncThrottle,
+  SHARED_SYNC_MIN_INTERVAL_MS,
+} = await import("../sharedCaseSync");
 
 function row(
   id: string,
@@ -144,6 +149,7 @@ beforeEach(() => {
   getSharedCaseDetail.mockClear();
   importSharedThumbs.mockClear();
   deleteImportedSharedMedia.mockClear();
+  resetSharedCaseSyncThrottle();
 });
 
 describe("hydrateSharedCase", () => {
@@ -249,5 +255,43 @@ describe("syncSharedCases", () => {
     expect(getSharedInbox).not.toHaveBeenCalled();
     expect(summaries.map((s) => s.shared.hydrated)).toEqual([true, false]);
     expect(summaries[0]!.facility).toBe("F");
+  });
+});
+
+describe("syncSharedCases focus throttle", () => {
+  it("a second focus sync inside the window is served offline (no inbox fetch)", async () => {
+    serverRows = [row("a")];
+    blobs.set("a", blob("a"));
+    const first = await syncSharedCases({ now: 1_000 });
+    expect(first.skipped).toBeUndefined();
+    expect(getSharedInbox).toHaveBeenCalledTimes(1);
+
+    const second = await syncSharedCases({
+      now: 1_000 + SHARED_SYNC_MIN_INTERVAL_MS - 1,
+    });
+    expect(second.skipped).toBe(true);
+    expect(second.summaries.map((s) => s.id)).toEqual(["a"]);
+    expect(getSharedInbox).toHaveBeenCalledTimes(1);
+  });
+
+  it("force (pull-to-refresh) and an elapsed window both sync again", async () => {
+    serverRows = [row("a")];
+    blobs.set("a", blob("a"));
+    await syncSharedCases({ now: 1_000 });
+    await syncSharedCases({ now: 1_001, force: true });
+    expect(getSharedInbox).toHaveBeenCalledTimes(2);
+    await syncSharedCases({ now: 1_001 + SHARED_SYNC_MIN_INTERVAL_MS });
+    expect(getSharedInbox).toHaveBeenCalledTimes(3);
+  });
+
+  it("concurrent callers share one in-flight sync", async () => {
+    serverRows = [row("a")];
+    blobs.set("a", blob("a"));
+    const [x, y] = await Promise.all([
+      syncSharedCases({ force: true }),
+      syncSharedCases({ force: true }),
+    ]);
+    expect(x).toBe(y);
+    expect(getSharedInbox).toHaveBeenCalledTimes(1);
   });
 });

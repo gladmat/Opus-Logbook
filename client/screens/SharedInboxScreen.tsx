@@ -52,9 +52,9 @@ export default function SharedInboxScreen() {
     }
   }, []);
 
-  const sync = useCallback(async () => {
+  const sync = useCallback(async (force = false) => {
     try {
-      const result = await syncSharedCases();
+      const result = await syncSharedCases({ force });
       const signature = sharedSummariesSignature(result.summaries);
       // Nothing changed since the offline read → keep the rendered list.
       if (
@@ -92,7 +92,7 @@ export default function SharedInboxScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await sync();
+    await sync(true);
     setRefreshing(false);
   };
 

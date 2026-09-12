@@ -67,6 +67,8 @@ const {
   ensureSharedMediaVariant,
   importSharedThumbs,
   listLocalSharedThumbIds,
+  deleteImportedSharedMedia,
+  clearLocalSharedThumbCache,
 } = await import("../sharedMediaImport");
 
 const OWNER_MASTER = new Uint8Array(32).fill(7);
@@ -118,6 +120,23 @@ describe("recipient import", () => {
     resetMockExpoFileSystem();
     serverFiles.clear();
     downloadSharedMediaVariant.mockClear();
+    clearLocalSharedThumbCache();
+  });
+
+  it("listLocalSharedThumbIds caches positives only and forgets deleted media", async () => {
+    const a = await publishFromOwner();
+    const b = await publishFromOwner();
+    // Nothing imported yet → nothing cached, nothing listed.
+    expect([...(await listLocalSharedThumbIds([a, b]))]).toEqual([]);
+    await importSharedThumbs("share-1", [a]);
+    // A negative result was not cached: the import is visible immediately.
+    expect([...(await listLocalSharedThumbIds([a, b]))]).toEqual([a.mediaId]);
+    // Positive result survives the file going away (cached) …
+    resetMockExpoFileSystem();
+    expect([...(await listLocalSharedThumbIds([a]))]).toEqual([a.mediaId]);
+    // … until the media is deleted through this module.
+    await deleteImportedSharedMedia([a]);
+    expect([...(await listLocalSharedThumbIds([a]))]).toEqual([]);
   });
 
   it("thumb-first import writes a valid meta, decrypts the thumb under the recipient key, and serves the thumb for the full variant until the image arrives", async () => {

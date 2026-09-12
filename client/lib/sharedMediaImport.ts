@@ -14,6 +14,8 @@
 import { Directory, File, Paths } from "expo-file-system";
 import type { SharedMediaDescriptor } from "@/types/sharing";
 import { getMasterKeyBytes } from "./encryption";
+import { registerUserCache } from "./userCacheRegistry";
+
 import {
   canUnwrapMediaKey,
   deleteMultipleMediaV2,
@@ -24,6 +26,20 @@ import {
   downloadSharedMediaVariant,
   type SharedMediaVariant,
 } from "./sharedMediaApi";
+
+// mediaIds whose thumbnail ciphertext is imported AND unwrappable under the
+// current master key. Only POSITIVE results are cached: a missing thumb may
+// be imported a moment later, but a present + unwrappable one stays so
+// until it is deleted here. Every dashboard focus used to re-run a
+// sequential DEK unwrap + file stat per shared photo.
+const localThumbPresence = new Set<string>();
+
+/** Drop the thumb-presence cache (tests + purge registry). */
+export function clearLocalSharedThumbCache(): void {
+  localThumbPresence.clear();
+}
+
+registerUserCache(clearLocalSharedThumbCache);
 
 const DOWNLOAD_DIR_NAME = "opus-shared-dl";
 const IMPORT_CONCURRENCY = 2;
@@ -151,13 +167,22 @@ export async function listLocalSharedThumbIds(
 ): Promise<Set<string>> {
   const ids = new Set<string>();
   if (!descriptors?.length) return ids;
+  const unknown = descriptors.filter((d) => {
+    if (localThumbPresence.has(d.mediaId)) {
+      ids.add(d.mediaId);
+      return false;
+    }
+    return true;
+  });
+  if (unknown.length === 0) return ids;
   const masterKey = await getMasterKeyBytes();
-  for (const d of descriptors) {
+  for (const d of unknown) {
     if (
       (await hasMediaVariantV2(d.mediaId, "thumb")) &&
       (await canUnwrapMediaKey(d.mediaId, masterKey))
     ) {
       ids.add(d.mediaId);
+      localThumbPresence.add(d.mediaId);
     }
   }
   return ids;
@@ -168,5 +193,6 @@ export async function deleteImportedSharedMedia(
   descriptors: SharedMediaDescriptor[] | undefined,
 ): Promise<void> {
   if (!descriptors?.length) return;
+  for (const d of descriptors) localThumbPresence.delete(d.mediaId);
   await deleteMultipleMediaV2(descriptors.map((d) => d.mediaId));
 }

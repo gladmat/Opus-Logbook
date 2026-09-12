@@ -159,19 +159,22 @@ export default function DashboardScreen() {
 
   // Online reconcile: new / updated shares get decrypted and their photo
   // thumbnails imported; revoked ones drop out.
-  const syncShared = useCallback(async () => {
-    try {
-      const result = await syncSharedCases();
-      const unchanged =
-        result.hydrated === 0 &&
-        result.removed === 0 &&
-        sharedSummariesSignature(result.summaries) ===
-          appliedSharedSignatureRef.current;
-      if (!unchanged) await applySharedSummaries(result.summaries);
-    } catch {
-      // Network unavailable — the cached list stays
-    }
-  }, [applySharedSummaries]);
+  const syncShared = useCallback(
+    async (force = false) => {
+      try {
+        const result = await syncSharedCases({ force });
+        const unchanged =
+          result.hydrated === 0 &&
+          result.removed === 0 &&
+          sharedSummariesSignature(result.summaries) ===
+            appliedSharedSignatureRef.current;
+        if (!unchanged) await applySharedSummaries(result.summaries);
+      } catch {
+        // Network unavailable — the cached list stays
+      }
+    },
+    [applySharedSummaries],
+  );
 
   const loadPendingEpaCount = useCallback(async () => {
     try {
@@ -230,7 +233,7 @@ export default function DashboardScreen() {
     await Promise.all([
       loadCases(),
       refreshEpisodes(),
-      syncShared(),
+      syncShared(true),
       loadPendingEpaCount(),
     ]);
     setRefreshing(false);

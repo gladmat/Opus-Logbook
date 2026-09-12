@@ -43,10 +43,29 @@ import {
 } from "./sharedMediaImport";
 import { mapInBatches } from "./uiYield";
 import { perfSpan } from "./perfTrace";
+import { registerUserCache } from "./userCacheRegistry";
 
 const INBOX_PAGE_SIZE = 100;
 const HYDRATE_CONCURRENCY = 3;
 const SUMMARISE_BATCH_SIZE = 4;
+
+/**
+ * Minimum gap between two focus-driven syncs. The dashboard, Needs
+ * Attention and the shared inbox each sync on focus, so a quick
+ * detail → back round-trip used to hit `/api/shared/inbox` (+ a hydrate
+ * pass) every few seconds. Pull-to-refresh passes `force: true`.
+ */
+export const SHARED_SYNC_MIN_INTERVAL_MS = 20_000;
+
+let lastSyncCompletedAt = 0;
+let syncInFlight: Promise<SyncSharedCasesResult> | null = null;
+
+/** Forget the throttle window (tests + purge registry). */
+export function resetSharedCaseSyncThrottle(): void {
+  lastSyncCompletedAt = 0;
+}
+
+registerUserCache(resetSharedCaseSyncThrottle);
 
 export class SharedCaseHydrationError extends Error {
   readonly reason: "no-envelope" | "decrypt" | "fetch";
@@ -181,6 +200,15 @@ export interface SyncSharedCasesResult {
   thumbsImported: number;
   removed: number;
   errors: { sharedCaseId: string; message: string }[];
+  /** True when the throttle served the offline summaries instead of syncing. */
+  skipped?: boolean;
+}
+
+export interface SyncSharedCasesOptions {
+  /** Bypass the focus throttle (pull-to-refresh). */
+  force?: boolean;
+  /** Injectable clock (tests). */
+  now?: number;
 }
 
 /**
@@ -190,8 +218,35 @@ export interface SyncSharedCasesResult {
  * itself cannot be fetched (offline) so callers can fall back to
  * `getSharedCaseSummaries`.
  */
-export function syncSharedCases(): Promise<SyncSharedCasesResult> {
-  return perfSpan("shared.syncSharedCases", runSyncSharedCases);
+export function syncSharedCases(
+  options: SyncSharedCasesOptions = {},
+): Promise<SyncSharedCasesResult> {
+  const now = options.now ?? Date.now();
+  if (syncInFlight) return syncInFlight;
+  if (
+    !options.force &&
+    lastSyncCompletedAt > 0 &&
+    now - lastSyncCompletedAt < SHARED_SYNC_MIN_INTERVAL_MS
+  ) {
+    return getSharedCaseSummaries().then((summaries) => ({
+      summaries,
+      hydrated: 0,
+      thumbsImported: 0,
+      removed: 0,
+      errors: [],
+      skipped: true,
+    }));
+  }
+  const request = perfSpan("shared.syncSharedCases", runSyncSharedCases)
+    .then((result) => {
+      lastSyncCompletedAt = options.now ?? Date.now();
+      return result;
+    })
+    .finally(() => {
+      if (syncInFlight === request) syncInFlight = null;
+    });
+  syncInFlight = request;
+  return request;
 }
 
 async function runSyncSharedCases(): Promise<SyncSharedCasesResult> {
