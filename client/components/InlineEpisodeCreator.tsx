@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, Switch, StyleSheet, Animated } from "react-native";
+import { View, Switch, StyleSheet } from "react-native";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
+import { useReduceMotion } from "@/hooks/useReduceMotion";
 import * as Crypto from "expo-crypto";
 import { ThemedText } from "@/components/ThemedText";
 import {
@@ -61,7 +68,15 @@ export function InlineEpisodeCreator({
   const [pendingAction, setPendingAction] = useState<PendingAction | "">("");
   const [saving, setSaving] = useState(false);
 
-  const [heightAnim] = useState(new Animated.Value(0));
+  // Expansion runs on the UI thread (Reanimated); the previous JS-thread
+  // Animated.spring on maxHeight wrote a layout prop every frame from JS.
+  const reduceMotion = useReduceMotion();
+  const progress = useSharedValue(enabled ? 1 : 0);
+  const formStyle = useAnimatedStyle(() => ({
+    maxHeight: progress.value * 350,
+    // Opacity ramps in over the second half of the expansion.
+    opacity: Math.max(0, (progress.value - 0.5) * 2),
+  }));
 
   // Auto-suggest when diagnosis changes
   useEffect(() => {
@@ -74,13 +89,14 @@ export function InlineEpisodeCreator({
 
   // Animate height
   useEffect(() => {
-    Animated.spring(heightAnim, {
-      toValue: enabled ? 1 : 0,
-      useNativeDriver: false,
-      tension: 60,
-      friction: 12,
-    }).start();
-  }, [enabled, heightAnim]);
+    const target = enabled ? 1 : 0;
+    progress.value = reduceMotion
+      ? target
+      : withTiming(target, {
+          duration: 250,
+          easing: Easing.out(Easing.cubic),
+        });
+  }, [enabled, progress, reduceMotion]);
 
   const handleCreate = useCallback(async () => {
     if (!title.trim()) return;
@@ -126,16 +142,6 @@ export function InlineEpisodeCreator({
 
   if (!visible) return null;
 
-  const formHeight = heightAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 350],
-  });
-
-  const formOpacity = heightAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0, 0, 1],
-  });
-
   return (
     <View
       style={[
@@ -161,12 +167,7 @@ export function InlineEpisodeCreator({
         />
       </View>
 
-      <Animated.View
-        style={[
-          styles.formContainer,
-          { maxHeight: formHeight, opacity: formOpacity },
-        ]}
-      >
+      <Animated.View style={[styles.formContainer, formStyle]}>
         {enabled ? (
           <View style={styles.formContent}>
             <FormField

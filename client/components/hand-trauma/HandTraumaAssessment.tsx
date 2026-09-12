@@ -21,14 +21,7 @@ import React, {
   useEffect,
   useRef,
 } from "react";
-import {
-  View,
-  StyleSheet,
-  LayoutAnimation,
-  Platform,
-  UIManager,
-  Pressable,
-} from "react-native";
+import { View, StyleSheet, LayoutAnimation, Pressable } from "react-native";
 import { v4 as uuidv4 } from "uuid";
 import { Feather } from "@/components/FeatherIcon";
 import { ThemedText } from "@/components/ThemedText";
@@ -87,13 +80,6 @@ import { ArterySection } from "./ArterySection";
 import { LigamentSection } from "./LigamentSection";
 import { OtherStructuresSection } from "./OtherStructuresSection";
 import { AmputationSection, type AmputationState } from "./AmputationSection";
-
-if (
-  Platform.OS === "android" &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 interface HandTraumaAssessmentProps {
   value: HandTraumaDetails;

@@ -142,7 +142,9 @@ export function useDecryptedImage(
         setLoading(false);
       })
       .catch((e) => {
-        console.error("useDecryptedImage failed:", e);
+        // Fires once per failing image — a purge race across a thumbnail
+        // grid can hit dozens at once, so keep it out of release builds.
+        if (__DEV__) console.error("useDecryptedImage failed:", e);
         if (!mountedRef.current) {
           doUnpin();
           return;

@@ -20,6 +20,7 @@ import {
   type EpaTargetsWithCase,
 } from "@/lib/assessmentStorage";
 import { getSharedOutboxCached } from "@/lib/sharingApi";
+import { devError } from "@/lib/devLog";
 import { filterPendingEpaTargets } from "@/lib/pendingEpa";
 import {
   ENTRUSTMENT_LABELS,
@@ -242,7 +243,7 @@ export default function AssessmentHistoryScreen() {
             }),
           );
         } catch (error) {
-          console.error("Error loading assessment history:", error);
+          devError("Error loading assessment history:", error);
         } finally {
           setLoading(false);
         }

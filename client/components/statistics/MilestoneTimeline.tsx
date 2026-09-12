@@ -1,12 +1,5 @@
 import React, { useState } from "react";
-import {
-  View,
-  Pressable,
-  StyleSheet,
-  LayoutAnimation,
-  Platform,
-  UIManager,
-} from "react-native";
+import { View, Pressable, StyleSheet, LayoutAnimation } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { useReduceMotion } from "@/hooks/useReduceMotion";
@@ -19,13 +12,6 @@ import {
 interface MilestoneTimelineProps {
   milestones: MilestoneEvent[];
   maxVisible?: number;
-}
-
-if (
-  Platform.OS === "android" &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
 export const MilestoneTimeline = React.memo(function MilestoneTimeline({

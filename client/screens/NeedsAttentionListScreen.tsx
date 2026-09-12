@@ -53,6 +53,7 @@ import {
   type SharedCaseEpaState,
   resolveSharedEpaStates,
 } from "@/lib/sharedCaseBadges";
+import { devError } from "@/lib/devLog";
 import { buildMediaContextFromCase } from "@/lib/mediaContext";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -114,7 +115,7 @@ export default function NeedsAttentionListScreen() {
       setSharedCases(shared);
       setSharedEpaStates(await resolveSharedEpaStates(shared, viewerUserId));
     } catch (error) {
-      console.error("Error loading cases:", error);
+      devError("Error loading cases:", error);
     } finally {
       setLoading(false);
     }

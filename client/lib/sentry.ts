@@ -10,6 +10,17 @@ export function initClientSentry(): void {
     dsn,
     sendDefaultPii: false,
     enableAutoSessionTracking: true,
+    // The default Breadcrumbs integration patches `console` and serialises
+    // every argument of every console call into a breadcrumb — a measurable
+    // JS-thread cost on hot paths (per-image decrypt failures, per-focus
+    // loaders). Errors still reach Sentry via captureClientException; only
+    // the console→breadcrumb capture is disabled.
+    integrations: (defaults) =>
+      defaults.map((integration) =>
+        integration.name === "Breadcrumbs"
+          ? Sentry.breadcrumbsIntegration({ console: false })
+          : integration,
+      ),
     tracesSampleRate: __DEV__ ? 0 : 0.1,
     environment: __DEV__ ? "development" : "production",
     beforeSend(event) {

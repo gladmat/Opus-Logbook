@@ -68,6 +68,7 @@ import {
   getSharedOutboxCached,
 } from "@/lib/sharingApi";
 import { perfMark } from "@/lib/perfTrace";
+import { devError } from "@/lib/devLog";
 import { getSharedCaseSummaries, syncSharedCases } from "@/lib/sharedCaseSync";
 import {
   isSharedCaseSummary,
@@ -128,7 +129,7 @@ export default function DashboardScreen() {
       const data = await getCaseSummaries();
       setCases(data);
     } catch (error) {
-      console.error("Error loading cases:", error);
+      devError("Error loading cases:", error);
     } finally {
       setLoading(false);
     }

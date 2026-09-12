@@ -1,12 +1,5 @@
 import React, { useState } from "react";
-import {
-  View,
-  Pressable,
-  StyleSheet,
-  LayoutAnimation,
-  Platform,
-  UIManager,
-} from "react-native";
+import { View, Pressable, StyleSheet, LayoutAnimation } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -25,13 +18,6 @@ interface SpecialtyDeepDiveCardProps {
   minCasesForDetail?: number;
   children: React.ReactNode;
   testID?: string;
-}
-
-if (
-  Platform.OS === "android" &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
 export const SpecialtyDeepDiveCard = React.memo(function SpecialtyDeepDiveCard({

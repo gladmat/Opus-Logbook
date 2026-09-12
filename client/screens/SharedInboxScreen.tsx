@@ -20,6 +20,7 @@ import {
   type SharedCaseSummary,
 } from "@/lib/sharedCaseSummary";
 import { sortCasesByProcedureDateDesc } from "@/lib/dashboardSelectors";
+import { devError } from "@/lib/devLog";
 import { ensurePushPermissionsWithPrompt } from "@/lib/pushPermissions";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -45,7 +46,7 @@ export default function SharedInboxScreen() {
       appliedSignatureRef.current = sharedSummariesSignature(local);
       setSummaries(sortCasesByProcedureDateDesc(local));
     } catch (error) {
-      console.error("Error loading shared cases:", error);
+      devError("Error loading shared cases:", error);
     } finally {
       setLoading(false);
     }
