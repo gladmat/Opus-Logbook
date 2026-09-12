@@ -19,7 +19,7 @@ import {
   type RevealedPairWithContext,
   type EpaTargetsWithCase,
 } from "@/lib/assessmentStorage";
-import { getSharedOutbox } from "@/lib/sharingApi";
+import { getSharedOutboxCached } from "@/lib/sharingApi";
 import { filterPendingEpaTargets } from "@/lib/pendingEpa";
 import {
   ENTRUSTMENT_LABELS,
@@ -221,8 +221,8 @@ export default function AssessmentHistoryScreen() {
             getAllEpaTargets().catch(() => []),
             // Offline → empty outbox → nothing drains this round; the
             // next online focus reconciles.
-            getSharedOutbox().catch(
-              () => [] as Awaited<ReturnType<typeof getSharedOutbox>>,
+            getSharedOutboxCached().catch(
+              () => [] as Awaited<ReturnType<typeof getSharedOutboxCached>>,
             ),
           ]);
           // Sort by revealedAt descending

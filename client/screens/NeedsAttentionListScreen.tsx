@@ -50,10 +50,9 @@ import {
 import { getSharedCaseSummaries } from "@/lib/sharedCaseSync";
 import type { SharedCaseSummary } from "@/lib/sharedCaseSummary";
 import {
-  resolveSharedCaseEpaState,
   type SharedCaseEpaState,
+  resolveSharedEpaStates,
 } from "@/lib/sharedCaseBadges";
-import { getDecryptedSharedCase } from "@/lib/sharingStorage";
 import { buildMediaContextFromCase } from "@/lib/mediaContext";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -113,25 +112,7 @@ export default function NeedsAttentionListScreen() {
         () => [] as SharedCaseSummary[],
       );
       setSharedCases(shared);
-      const states = new Map<string, SharedCaseEpaState>();
-      await Promise.all(
-        shared.map(async (summary) => {
-          try {
-            const blob = await getDecryptedSharedCase(summary.id);
-            states.set(
-              summary.id,
-              await resolveSharedCaseEpaState(
-                { id: summary.id, ownerUserId: summary.shared.ownerUserId },
-                blob,
-                viewerUserId,
-              ),
-            );
-          } catch {
-            states.set(summary.id, null);
-          }
-        }),
-      );
-      setSharedEpaStates(states);
+      setSharedEpaStates(await resolveSharedEpaStates(shared, viewerUserId));
     } catch (error) {
       console.error("Error loading cases:", error);
     } finally {

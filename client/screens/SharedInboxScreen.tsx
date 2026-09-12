@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   FlatList,
@@ -15,7 +15,10 @@ import { Spacing } from "@/constants/theme";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { DashboardCaseCard } from "@/components/dashboard/CaseCard";
 import { getSharedCaseSummaries, syncSharedCases } from "@/lib/sharedCaseSync";
-import type { SharedCaseSummary } from "@/lib/sharedCaseSummary";
+import {
+  sharedSummariesSignature,
+  type SharedCaseSummary,
+} from "@/lib/sharedCaseSummary";
 import { sortCasesByProcedureDateDesc } from "@/lib/dashboardSelectors";
 import { ensurePushPermissionsWithPrompt } from "@/lib/pushPermissions";
 
@@ -32,12 +35,14 @@ export default function SharedInboxScreen() {
   const navigation = useNavigation<NavigationProp>();
 
   const [summaries, setSummaries] = useState<SharedCaseSummary[]>([]);
+  const appliedSignatureRef = useRef<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadOffline = useCallback(async () => {
     try {
       const local = await getSharedCaseSummaries();
+      appliedSignatureRef.current = sharedSummariesSignature(local);
       setSummaries(sortCasesByProcedureDateDesc(local));
     } catch (error) {
       console.error("Error loading shared cases:", error);
@@ -49,7 +54,16 @@ export default function SharedInboxScreen() {
   const sync = useCallback(async () => {
     try {
       const result = await syncSharedCases();
-      setSummaries(sortCasesByProcedureDateDesc(result.summaries));
+      const signature = sharedSummariesSignature(result.summaries);
+      // Nothing changed since the offline read → keep the rendered list.
+      if (
+        result.hydrated > 0 ||
+        result.removed > 0 ||
+        signature !== appliedSignatureRef.current
+      ) {
+        appliedSignatureRef.current = signature;
+        setSummaries(sortCasesByProcedureDateDesc(result.summaries));
+      }
       // Colleagues are sharing with this user — the moment push value is
       // self-evident. One-shot contextual permission pre-prompt.
       if (result.summaries.length > 0) {

@@ -5,11 +5,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { isConsultantLevel } from "@/lib/roleDefaults";
 import {
   getAllRevealedPairs,
-  getAllEpaTargets,
-  getAllEpaExposures,
+  getAllEpaTargetRecords,
   type RevealedPairWithContext,
 } from "@/lib/assessmentStorage";
-import { getSharedOutbox } from "@/lib/sharingApi";
+import { splitEpaRecords } from "@/lib/epaRecords";
+import { getSharedOutboxCached } from "@/lib/sharingApi";
 import {
   filterPendingEpaTargets,
   countPendingEpaTargets,
@@ -70,15 +70,17 @@ export function useTrainingStatistics(): UseTrainingStatisticsReturn {
       const task = InteractionManager.runAfterInteractions(async () => {
         setIsLoading(true);
         try {
-          const [data, pendingTargets, outbox, exposures] = await Promise.all([
+          const [data, records, outbox] = await Promise.all([
             getAllRevealedPairs(),
-            getAllEpaTargets().catch(() => []),
+            // ONE decrypt per EPA record; targets + exposures split below.
+            getAllEpaTargetRecords().catch(() => []),
             // Offline → empty outbox → nothing drains this round.
-            getSharedOutbox().catch(
-              () => [] as Awaited<ReturnType<typeof getSharedOutbox>>,
+            getSharedOutboxCached().catch(
+              () => [] as Awaited<ReturnType<typeof getSharedOutboxCached>>,
             ),
-            getAllEpaExposures().catch(() => []),
           ]);
+          const { targetsByCase: pendingTargets, exposuresByCase: exposures } =
+            splitEpaRecords(records);
           // Phase C: partial (72h) reveals are excluded from every analytic.
           setPairs(fullPairsOnly(data));
           setPendingCount(

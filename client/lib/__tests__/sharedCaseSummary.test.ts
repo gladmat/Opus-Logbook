@@ -8,6 +8,7 @@ import type { SharedCaseData, SharedCaseInboxEntry } from "@/types/sharing";
 import {
   buildSharedCaseSummary,
   isSharedCaseSummary,
+  sharedSummariesSignature,
   UNHYDRATED_DIAGNOSIS_TITLE,
 } from "@/lib/sharedCaseSummary";
 import { deriveCaseSummaryFields } from "@/lib/caseSummaryFields";
@@ -138,5 +139,38 @@ describe("buildSharedCaseSummary", () => {
   it("isSharedCaseSummary rejects plain summaries", () => {
     expect(isSharedCaseSummary({ id: "x", searchableText: "" })).toBe(false);
     expect(isSharedCaseSummary(null)).toBe(false);
+  });
+});
+
+describe("sharedSummariesSignature", () => {
+  const base = () => buildSharedCaseSummary(entry, blob, new Set<string>());
+
+  it("is stable across identical inputs and empty for none", () => {
+    expect(sharedSummariesSignature([])).toBe("");
+    expect(sharedSummariesSignature([base()])).toBe(
+      sharedSummariesSignature([base()]),
+    );
+  });
+
+  it("changes with blob version, verification status, hydration and order", () => {
+    const a = base();
+    const key = sharedSummariesSignature([a]);
+    const bumped = buildSharedCaseSummary(
+      { ...entry, blobVersion: entry.blobVersion + 1 },
+      blob,
+      new Set<string>(),
+    );
+    const verified = buildSharedCaseSummary(
+      { ...entry, verificationStatus: "verified" },
+      blob,
+      new Set<string>(),
+    );
+    const unhydrated = buildSharedCaseSummary(entry, null, new Set<string>());
+    expect(sharedSummariesSignature([bumped])).not.toBe(key);
+    expect(sharedSummariesSignature([verified])).not.toBe(key);
+    expect(sharedSummariesSignature([unhydrated])).not.toBe(key);
+    expect(sharedSummariesSignature([a, bumped])).not.toBe(
+      sharedSummariesSignature([bumped, a]),
+    );
   });
 });

@@ -3,6 +3,29 @@ import { encryptData, decryptData } from "./encryption";
 import type { SharedCaseInboxEntry, SharedCaseData } from "@/types/sharing";
 import { userScopedAsyncKey, userScopedSecureKey } from "./activeUser";
 import { getSecureItem, setSecureItem } from "./secureStorage";
+import { registerUserCache } from "./userCacheRegistry";
+
+// ── In-memory decrypted-share cache ─────────────────────────────────────────
+// The on-disk record is encrypted under K_user, so every reader (dashboard
+// sync, badges, attention items, detail screen) paid an AsyncStorage read +
+// AEAD decrypt for the SAME blob on every focus. Hits are cached here per
+// share id, together with the blobVersion the decrypt was made from; writers
+// update it in place and the purge registry drops it on logout / lock /
+// background. Misses are NOT cached — a hydrate immediately follows them.
+
+interface DecryptedSharedCaseRecord {
+  data: SharedCaseData;
+  blobVersion: number | null;
+}
+
+const decryptedSharedCaseCache = new Map<string, DecryptedSharedCaseRecord>();
+
+/** Drop the in-memory decrypted-share cache (tests + purge registry). */
+export function clearSharingStorageCache(): void {
+  decryptedSharedCaseCache.clear();
+}
+
+registerUserCache(clearSharingStorageCache);
 
 // ── Storage keys (user-scoped at runtime) ────────────────────────────────────
 
@@ -77,6 +100,10 @@ export async function saveDecryptedSharedCase(
   const plaintext = JSON.stringify(record);
   const encrypted = await encryptData(plaintext);
   await AsyncStorage.setItem(sharedCaseDataKey(id), encrypted);
+  decryptedSharedCaseCache.set(id, {
+    data,
+    blobVersion: blobVersion ?? null,
+  });
   await addToDecryptedSharedCaseIndex(id);
 }
 
@@ -112,19 +139,21 @@ async function removeFromDecryptedSharedCaseIndex(id: string): Promise<void> {
   await writeDecryptedSharedCaseIndex(ids.filter((x) => x !== id));
 }
 
-export async function getDecryptedSharedCaseWithVersion(id: string): Promise<{
-  data: SharedCaseData;
-  blobVersion: number | null;
-} | null> {
+export async function getDecryptedSharedCaseWithVersion(
+  id: string,
+): Promise<DecryptedSharedCaseRecord | null> {
+  const cached = decryptedSharedCaseCache.get(id);
+  if (cached) return cached;
   const encrypted = await AsyncStorage.getItem(sharedCaseDataKey(id));
   if (!encrypted) return null;
   try {
     const plaintext = await decryptData(encrypted);
     const parsed = JSON.parse(plaintext) as unknown;
-    if (isVersionedRecord(parsed)) {
-      return { data: parsed.data, blobVersion: parsed.__blobVersion };
-    }
-    return { data: parsed as SharedCaseData, blobVersion: null };
+    const record: DecryptedSharedCaseRecord = isVersionedRecord(parsed)
+      ? { data: parsed.data, blobVersion: parsed.__blobVersion }
+      : { data: parsed as SharedCaseData, blobVersion: null };
+    decryptedSharedCaseCache.set(id, record);
+    return record;
   } catch {
     return null;
   }
@@ -139,6 +168,7 @@ export async function getDecryptedSharedCase(
 
 /** Drop a cached decrypted blob (revoked/stale share rows). Best-effort. */
 export async function removeDecryptedSharedCase(id: string): Promise<void> {
+  decryptedSharedCaseCache.delete(id);
   try {
     await AsyncStorage.removeItem(sharedCaseDataKey(id));
     await removeFromDecryptedSharedCaseIndex(id);

@@ -55,6 +55,7 @@ const {
   getDecryptedSharedCase,
   getDecryptedSharedCaseWithVersion,
   removeDecryptedSharedCase,
+  clearSharingStorageCache,
 } = await import("../sharingStorage");
 
 const SHARE_ID = "share-1";
@@ -66,6 +67,7 @@ function makeBlob(): SharedCaseData {
 
 beforeEach(() => {
   AsyncStorage.__store.clear();
+  clearSharingStorageCache();
   vi.clearAllMocks();
 });
 
@@ -118,5 +120,54 @@ describe("versioned decrypted-share cache", () => {
     await saveDecryptedSharedCase(SHARE_ID, makeBlob(), 1);
     await removeDecryptedSharedCase(SHARE_ID);
     expect(await getDecryptedSharedCase(SHARE_ID)).toBeNull();
+  });
+
+  describe("in-memory layer (2.28.0)", () => {
+    const decryptMock = async () =>
+      (await import("../encryption")).decryptData as unknown as {
+        mock: { calls: unknown[][] };
+        mockClear: () => void;
+      };
+
+    it("a second read of the same share performs no decrypt", async () => {
+      await saveDecryptedSharedCase(SHARE_ID, makeBlob(), 3);
+      clearSharingStorageCache();
+      const decrypt = await decryptMock();
+      decrypt.mockClear();
+      expect(await getDecryptedSharedCaseWithVersion(SHARE_ID)).toEqual({
+        data: makeBlob(),
+        blobVersion: 3,
+      });
+      expect(await getDecryptedSharedCase(SHARE_ID)).toEqual(makeBlob());
+      expect(decrypt.mock.calls).toHaveLength(1);
+    });
+
+    it("save writes through: a higher version replaces the cached record", async () => {
+      await saveDecryptedSharedCase(SHARE_ID, makeBlob(), 1);
+      const decrypt = await decryptMock();
+      decrypt.mockClear();
+      await saveDecryptedSharedCase(
+        SHARE_ID,
+        { caseId: "case-2" } as unknown as SharedCaseData,
+        2,
+      );
+      expect(await getDecryptedSharedCaseWithVersion(SHARE_ID)).toEqual({
+        data: { caseId: "case-2" },
+        blobVersion: 2,
+      });
+      expect(decrypt.mock.calls).toHaveLength(0);
+    });
+
+    it("remove evicts the cached record", async () => {
+      await saveDecryptedSharedCase(SHARE_ID, makeBlob(), 1);
+      await removeDecryptedSharedCase(SHARE_ID);
+      expect(await getDecryptedSharedCaseWithVersion(SHARE_ID)).toBeNull();
+    });
+
+    it("misses are not cached — a later save is visible", async () => {
+      expect(await getDecryptedSharedCase(SHARE_ID)).toBeNull();
+      await saveDecryptedSharedCase(SHARE_ID, makeBlob(), 1);
+      expect(await getDecryptedSharedCase(SHARE_ID)).toEqual(makeBlob());
+    });
   });
 });

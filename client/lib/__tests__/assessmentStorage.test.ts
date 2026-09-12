@@ -47,6 +47,13 @@ const {
   getEpaTargetCaseIds,
   getAllEpaTargets,
   getAllEpaExposures,
+  getAllEpaTargetRecords,
+  getEpaStorageRevision,
+  clearAssessmentStorageCaches,
+  getMyAssessment,
+  saveMyAssessment,
+  getRevealedPair,
+  saveRevealedPair,
 } = await import("../assessmentStorage");
 
 const CASE_ID = "case-1";
@@ -119,6 +126,7 @@ function legacyV2Array(traineeRoles: string[]): string {
 describe("EPA targets storage", () => {
   beforeEach(() => {
     AsyncStorage.__store.clear();
+    clearAssessmentStorageCaches();
   });
 
   it("round-trips v3 targets + exposures as ONE encrypted envelope and maintains the index", async () => {
@@ -226,5 +234,88 @@ describe("EPA targets storage", () => {
 
     const exposures = await getAllEpaExposures();
     expect(exposures.map((e) => e.caseId).sort()).toEqual(["case-1", "case-3"]);
+  });
+
+  describe("in-memory caches (2.28.0)", () => {
+    const decryptMock = async () =>
+      (await import("../encryption")).decryptData as unknown as {
+        mock: { calls: unknown[][] };
+        mockClear: () => void;
+      };
+
+    it("getAllEpaTargetRecords decrypts each record once; a second call hits the cache", async () => {
+      await saveEpaTargets("c1", [makeTarget()], []);
+      await saveEpaTargets("c2", [], [makeExposure()]);
+      clearAssessmentStorageCaches();
+      const decrypt = await decryptMock();
+      decrypt.mockClear();
+
+      const first = await getAllEpaTargetRecords();
+      expect(first.map((r) => r.caseId).sort()).toEqual(["c1", "c2"]);
+      expect(decrypt.mock.calls).toHaveLength(2);
+
+      const targets = await getAllEpaTargets();
+      const exposures = await getAllEpaExposures();
+      expect(targets.map((t) => t.caseId)).toEqual(["c1"]);
+      expect(exposures.map((e) => e.caseId)).toEqual(["c2"]);
+      expect(decrypt.mock.calls).toHaveLength(2);
+    });
+
+    it("saveEpaTargets writes through the cache and clearEpaTargets evicts", async () => {
+      await saveEpaTargets("c1", [makeTarget()], []);
+      const decrypt = await decryptMock();
+      decrypt.mockClear();
+      expect((await getEpaTargetsRecord("c1")).targets).toHaveLength(1);
+      expect(decrypt.mock.calls).toHaveLength(0);
+
+      await clearEpaTargets("c1");
+      expect((await getEpaTargetsRecord("c1")).targets).toHaveLength(0);
+    });
+
+    it("null-sentinel: a missing own assessment / revealed pair is not re-read until written", async () => {
+      const decrypt = await decryptMock();
+      const AS = (await import("@react-native-async-storage/async-storage"))
+        .default as unknown as { getItem: { mock: { calls: unknown[][] } } };
+      expect(await getMyAssessment("s1")).toBeNull();
+      expect(await getRevealedPair("s1")).toBeNull();
+      const reads = AS.getItem.mock.calls.length;
+      expect(await getMyAssessment("s1")).toBeNull();
+      expect(await getRevealedPair("s1")).toBeNull();
+      expect(AS.getItem.mock.calls.length).toBe(reads);
+
+      decrypt.mockClear();
+      await saveMyAssessment("s1", {
+        assessorRole: "supervisor",
+        entrustmentLevel: 4,
+      } as never);
+      expect((await getMyAssessment("s1")) as unknown).toMatchObject({
+        entrustmentLevel: 4,
+      });
+      await saveRevealedPair("s1", { viewerRole: "supervisor" } as never);
+      expect((await getRevealedPair("s1")) as unknown).toMatchObject({
+        viewerRole: "supervisor",
+      });
+      expect(decrypt.mock.calls).toHaveLength(0);
+    });
+
+    it("every write bumps the storage revision; reads do not", async () => {
+      const r0 = getEpaStorageRevision();
+      await getEpaTargetsRecord("nope");
+      expect(getEpaStorageRevision()).toBe(r0);
+      await saveEpaTargets("c1", [makeTarget()], []);
+      const r1 = getEpaStorageRevision();
+      expect(r1).toBeGreaterThan(r0);
+      await saveMyAssessment("s1", { assessorRole: "trainee" } as never);
+      expect(getEpaStorageRevision()).toBeGreaterThan(r1);
+    });
+
+    it("clearAssessmentStorageCaches forces a re-decrypt", async () => {
+      await saveEpaTargets("c1", [makeTarget()], []);
+      const decrypt = await decryptMock();
+      clearAssessmentStorageCaches();
+      decrypt.mockClear();
+      await getEpaTargetsRecord("c1");
+      expect(decrypt.mock.calls).toHaveLength(1);
+    });
   });
 });

@@ -157,3 +157,26 @@ export function buildSharedCaseSummary(
     ...(media.length > 0 ? { mediaDescriptors: media } : {}),
   };
 }
+
+/**
+ * Cheap fingerprint of what a list surface renders for a set of shared
+ * summaries. Two syncs that produce the same signature need no re-apply
+ * (no re-render, no per-share EPA state resolution). Order-sensitive.
+ */
+export function sharedSummariesSignature(
+  summaries: readonly SharedCaseSummary[],
+): string {
+  return summaries
+    .map((s) =>
+      [
+        s.id,
+        s.shared.blobVersion,
+        s.shared.verificationStatus,
+        s.shared.hydrated ? 1 : 0,
+        s.shared.recipientRole,
+        s.operativeMediaCount,
+        s.firstOperativeMediaUri ?? "",
+      ].join(":"),
+    )
+    .join("|");
+}
