@@ -13,6 +13,58 @@ import {
   SHARED_FILTER_ID,
 } from "@/lib/dashboardSelectors";
 import { isSharedCaseSummary } from "@/lib/sharedCaseSummary";
+import { capRecentCases, resolveRecentCasesSeeAll } from "@/lib/recentCases";
+
+interface RecentCaseRowProps {
+  item: CaseSummary;
+  showDivider: boolean;
+  onCasePress: (c: CaseSummary) => void;
+  onAddEvent?: (c: CaseSummary) => void;
+  onAddHistology?: (c: CaseSummary) => void;
+}
+
+/**
+ * One row. Builds the per-item closures HERE so the memoised card only
+ * re-renders when its own item or the shared handlers change — inline
+ * arrows at the list level re-rendered every card on every parent render.
+ */
+const RecentCaseRow = React.memo(function RecentCaseRow({
+  item,
+  showDivider,
+  onCasePress,
+  onAddEvent,
+  onAddHistology,
+}: RecentCaseRowProps) {
+  const { theme } = useTheme();
+  const shared = isSharedCaseSummary(item);
+  const handlePress = React.useCallback(
+    () => onCasePress(item),
+    [onCasePress, item],
+  );
+  // Owner-only quick actions: a colleague's shared case can't take events
+  // or histology from the viewer.
+  const handleAddEvent = React.useMemo(
+    () => (onAddEvent && !shared ? () => onAddEvent(item) : undefined),
+    [onAddEvent, shared, item],
+  );
+  const handleAddHistology = React.useMemo(
+    () => (onAddHistology && !shared ? () => onAddHistology(item) : undefined),
+    [onAddHistology, shared, item],
+  );
+  return (
+    <View>
+      <DashboardCaseCard
+        caseData={item}
+        onPress={handlePress}
+        onAddEvent={handleAddEvent}
+        onAddHistology={handleAddHistology}
+      />
+      {showDivider ? (
+        <View style={[styles.divider, { backgroundColor: theme.border }]} />
+      ) : null}
+    </View>
+  );
+});
 
 interface RecentCasesListProps {
   cases: CaseSummary[];
@@ -40,6 +92,12 @@ function RecentCasesListInner({
   onAddHistology,
 }: RecentCasesListProps) {
   const { theme } = useTheme();
+  const visibleCases = React.useMemo(() => capRecentCases(cases), [cases]);
+  const showSeeAll = resolveRecentCasesSeeAll({
+    total: totalCount,
+    shown: visibleCases.length,
+    forceSeeAll,
+  });
 
   const headerText =
     selectedSpecialty === SHARED_FILTER_ID
@@ -93,7 +151,7 @@ function RecentCasesListInner({
             content="Your most recent surgical cases and cases colleagues shared with you, sorted by procedure date. Use the filter above to narrow the list."
           />
         </View>
-        {(forceSeeAll || totalCount > cases.length) && onSeeAll ? (
+        {showSeeAll && onSeeAll ? (
           <Pressable
             onPress={onSeeAll}
             testID="dashboard.recentCases.btn-seeAll"
@@ -105,28 +163,15 @@ function RecentCasesListInner({
         ) : null}
       </View>
 
-      {cases.map((item, index) => (
-        <View key={item.id}>
-          <DashboardCaseCard
-            caseData={item}
-            onPress={() => onCasePress(item)}
-            // Owner-only quick actions: a colleague's shared case can't
-            // take events or histology from the viewer.
-            onAddEvent={
-              onAddEvent && !isSharedCaseSummary(item)
-                ? () => onAddEvent(item)
-                : undefined
-            }
-            onAddHistology={
-              onAddHistology && !isSharedCaseSummary(item)
-                ? () => onAddHistology(item)
-                : undefined
-            }
-          />
-          {index < cases.length - 1 ? (
-            <View style={[styles.divider, { backgroundColor: theme.border }]} />
-          ) : null}
-        </View>
+      {visibleCases.map((item, index) => (
+        <RecentCaseRow
+          key={item.id}
+          item={item}
+          showDivider={index < visibleCases.length - 1}
+          onCasePress={onCasePress}
+          onAddEvent={onAddEvent}
+          onAddHistology={onAddHistology}
+        />
       ))}
     </View>
   );

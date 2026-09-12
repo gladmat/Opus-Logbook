@@ -5,6 +5,7 @@ import React, {
   useEffect,
   ReactNode,
   useCallback,
+  useMemo,
 } from "react";
 import { Alert, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -285,7 +286,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsubscribe;
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     const data = await authLogin(email, password);
 
     // Set active user BEFORE any storage access
@@ -314,9 +315,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.warn("Device key registration failed:", error);
     }
-  };
+  }, []);
 
-  const signup = async (email: string, password: string) => {
+  const signup = useCallback(async (email: string, password: string) => {
     const data = await authSignup(email, password);
 
     // Set active user BEFORE any storage access
@@ -339,44 +340,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.warn("Device key registration failed:", error);
     }
-  };
+  }, []);
 
-  const appleLogin = async (
-    identityToken: string,
-    fullName?: { givenName?: string; familyName?: string } | null,
-    email?: string | null,
-  ) => {
-    const data = await authAppleSignIn(identityToken, fullName, email);
+  const appleLogin = useCallback(
+    async (
+      identityToken: string,
+      fullName?: { givenName?: string; familyName?: string } | null,
+      email?: string | null,
+    ) => {
+      const data = await authAppleSignIn(identityToken, fullName, email);
 
-    // Set active user BEFORE any storage access
-    setActiveUserId(data.user.id);
-    await setSecureItem(LAST_ACTIVE_USER_KEY, data.user.id);
-    await migrateUnscopedStorage(data.user.id);
-    await initializeInboxStorage();
+      // Set active user BEFORE any storage access
+      setActiveUserId(data.user.id);
+      await setSecureItem(LAST_ACTIVE_USER_KEY, data.user.id);
+      await migrateUnscopedStorage(data.user.id);
+      await initializeInboxStorage();
 
-    setUser(data.user);
-    if (data.profile) {
-      setProfile(data.profile);
-      void cacheProfile(data.profile);
-    } else {
-      const cachedProfile = await loadCachedProfile();
-      if (cachedProfile?.userId === data.user.id) {
-        setProfile(cachedProfile);
+      setUser(data.user);
+      if (data.profile) {
+        setProfile(data.profile);
+        void cacheProfile(data.profile);
       } else {
-        setProfile(null);
-        void cacheProfile(null);
+        const cachedProfile = await loadCachedProfile();
+        if (cachedProfile?.userId === data.user.id) {
+          setProfile(cachedProfile);
+        } else {
+          setProfile(null);
+          void cacheProfile(null);
+        }
       }
-    }
-    setFacilities((data.facilities || []).map(normalizeUserFacility));
+      setFacilities((data.facilities || []).map(normalizeUserFacility));
 
-    try {
-      await registerDeviceAndPushToken();
-    } catch (error) {
-      console.warn("Device key registration failed:", error);
-    }
-  };
+      try {
+        await registerDeviceAndPushToken();
+      } catch (error) {
+        console.warn("Device key registration failed:", error);
+      }
+    },
+    [],
+  );
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     // Clear sensitive data from RAM
     clearEncryptionKeyCache();
     clearDecryptedCache();
@@ -400,81 +404,87 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setProfile(null);
     setFacilities([]);
-  };
+  }, []);
 
-  const deleteAccount = async (
-    credential: { password: string } | { appleIdentityToken: string },
-  ) => {
-    await authDeleteAccount(credential);
+  const deleteAccount = useCallback(
+    async (
+      credential: { password: string } | { appleIdentityToken: string },
+    ) => {
+      await authDeleteAccount(credential);
 
-    // Delete all user-scoped data
-    await clearAllData();
-    await clearAllEpisodes();
-    await clearAllAppLockData();
-    await clearDiscoveryState().catch(() => {});
-    await clearAllPins().catch(() => {});
+      // Delete all user-scoped data
+      await clearAllData();
+      await clearAllEpisodes();
+      await clearAllAppLockData();
+      await clearDiscoveryState().catch(() => {});
+      await clearAllPins().catch(() => {});
 
-    // Zeroise in-memory key caches
-    clearEncryptionKeyCache();
-    clearDecryptedCache();
-    clearUserCaches();
+      // Zeroise in-memory key caches
+      clearEncryptionKeyCache();
+      clearDecryptedCache();
+      clearUserCaches();
 
-    // Wipe keychain-resident secrets for this user so a device seized after
-    // deletion cannot be used to recover anything the user had typed into
-    // the app. Best-effort — swallow per-key errors so a single failing
-    // delete doesn't leave the rest behind.
-    await deleteUserEncryptionKey().catch(() => {});
-    await deleteDeviceIdentity().catch(() => {});
+      // Wipe keychain-resident secrets for this user so a device seized after
+      // deletion cannot be used to recover anything the user had typed into
+      // the app. Best-effort — swallow per-key errors so a single failing
+      // delete doesn't leave the rest behind.
+      await deleteUserEncryptionKey().catch(() => {});
+      await deleteDeviceIdentity().catch(() => {});
 
-    await deleteSecureItem(LAST_ACTIVE_USER_KEY);
-    setActiveUserId(null);
+      await deleteSecureItem(LAST_ACTIVE_USER_KEY);
+      setActiveUserId(null);
 
-    setUser(null);
-    setProfile(null);
-    setFacilities([]);
-  };
+      setUser(null);
+      setProfile(null);
+      setFacilities([]);
+    },
+    [],
+  );
 
-  const updateProfile = async (profileData: Partial<UserProfile>) => {
-    const updated = await authUpdateProfile(profileData);
-    setProfile((prev) => {
-      let nextProfile: UserProfile | null = null;
+  const updateProfile = useCallback(
+    async (profileData: Partial<UserProfile>) => {
+      const updated = await authUpdateProfile(profileData);
+      setProfile((prev) => {
+        let nextProfile: UserProfile | null = null;
 
-      if (updated?.id && updated?.userId) {
-        nextProfile = prev
-          ? mergeDefinedFields(prev, updated)
-          : (updated as UserProfile);
-      } else if (prev) {
-        nextProfile = mergeDefinedFields(prev, profileData);
-      } else if (user?.id) {
-        nextProfile = mergeDefinedFields(
-          {
-            id: `local-${user.id}`,
-            userId: user.id,
-            fullName: null,
-            firstName: null,
-            lastName: null,
-            dateOfBirth: null,
-            sex: null,
-            profilePictureUrl: null,
-            countryOfPractice: null,
-            medicalCouncilNumber: null,
-            verificationStatus: "unverified",
-            careerStage: null,
-            onboardingComplete: false,
-          },
-          profileData,
-        );
-      }
+        if (updated?.id && updated?.userId) {
+          nextProfile = prev
+            ? mergeDefinedFields(prev, updated)
+            : (updated as UserProfile);
+        } else if (prev) {
+          nextProfile = mergeDefinedFields(prev, profileData);
+        } else if (user?.id) {
+          nextProfile = mergeDefinedFields(
+            {
+              id: `local-${user.id}`,
+              userId: user.id,
+              fullName: null,
+              firstName: null,
+              lastName: null,
+              dateOfBirth: null,
+              sex: null,
+              profilePictureUrl: null,
+              countryOfPractice: null,
+              medicalCouncilNumber: null,
+              verificationStatus: "unverified",
+              careerStage: null,
+              onboardingComplete: false,
+            },
+            profileData,
+          );
+        }
 
-      if (nextProfile) {
-        void cacheProfile(nextProfile);
-      }
+        if (nextProfile) {
+          void cacheProfile(nextProfile);
+        }
 
-      return nextProfile ?? prev;
-    });
-  };
+        return nextProfile ?? prev;
+      });
+    },
+    [user?.id],
+  );
 
-  const uploadProfilePicture = async (imageUri: string) => {
+  const uploadProfilePicture = useCallback(async (imageUri: string) => {
     const updated = await authUploadProfilePicture(imageUri);
     setProfile((prev) => {
       const nextProfile = prev
@@ -487,9 +497,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return nextProfile;
     });
-  };
+  }, []);
 
-  const deleteProfilePicture = async () => {
+  const deleteProfilePicture = useCallback(async () => {
     const updated = await authDeleteProfilePicture();
     setProfile((prev) => {
       const nextProfile = prev
@@ -502,58 +512,76 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return nextProfile;
     });
-  };
+  }, []);
 
-  const addFacility = async (
-    name: string,
-    isPrimary: boolean = false,
-    facilityId?: string,
-  ) => {
-    const facility = normalizeUserFacility(
-      await authCreateFacility(name, isPrimary, facilityId),
-    );
-    setFacilities((prev) => [...prev, facility]);
-    return facility;
-  };
+  const addFacility = useCallback(
+    async (name: string, isPrimary: boolean = false, facilityId?: string) => {
+      const facility = normalizeUserFacility(
+        await authCreateFacility(name, isPrimary, facilityId),
+      );
+      setFacilities((prev) => [...prev, facility]);
+      return facility;
+    },
+    [],
+  );
 
-  const removeFacility = async (id: string) => {
+  const removeFacility = useCallback(async (id: string) => {
     await authDeleteFacility(id);
     setFacilities((prev) => prev.filter((f) => f.id !== id));
-  };
+  }, []);
 
-  const setFacilityPrimary = async (id: string) => {
+  const setFacilityPrimary = useCallback(async (id: string) => {
     await authUpdateFacility(id, { isPrimary: true });
     setFacilities((prev) =>
       prev.map((f) => ({ ...f, isPrimary: f.id === id })),
     );
-  };
+  }, []);
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        profile,
-        facilities,
-        isLoading,
-        isAuthenticated: !!user,
-        onboardingComplete: profile?.onboardingComplete ?? false,
-        login,
-        signup,
-        appleLogin,
-        logout,
-        deleteAccount,
-        updateProfile,
-        uploadProfilePicture,
-        deleteProfilePicture,
-        addFacility,
-        removeFacility,
-        setFacilityPrimary,
-        refreshUser,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  // Stable provider value: every useAuth() consumer (navigators, screens,
+  // hooks) re-renders when this object's identity changes, so it changes
+  // only when auth state actually does.
+  const value = useMemo(
+    () => ({
+      user,
+      profile,
+      facilities,
+      isLoading,
+      isAuthenticated: !!user,
+      onboardingComplete: profile?.onboardingComplete ?? false,
+      login,
+      signup,
+      appleLogin,
+      logout,
+      deleteAccount,
+      updateProfile,
+      uploadProfilePicture,
+      deleteProfilePicture,
+      addFacility,
+      removeFacility,
+      setFacilityPrimary,
+      refreshUser,
+    }),
+    [
+      user,
+      profile,
+      facilities,
+      isLoading,
+      login,
+      signup,
+      appleLogin,
+      logout,
+      deleteAccount,
+      updateProfile,
+      uploadProfilePicture,
+      deleteProfilePicture,
+      addFacility,
+      removeFacility,
+      setFacilityPrimary,
+      refreshUser,
+    ],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

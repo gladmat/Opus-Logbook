@@ -212,6 +212,16 @@ export default function DashboardScreen() {
     }, [loadCases, loadSharedCases, loadPendingEpaCount, syncShared]),
   );
 
+  // Recent Cases is capped (RECENT_CASES_LIMIT) — the full list lives in
+  // search (own cases) or the shared inbox (Shared filter).
+  const handleSeeAllCases = useCallback(() => {
+    if (selectedSpecialty === SHARED_FILTER_ID) {
+      navigation.navigate("SharedInbox");
+    } else {
+      navigation.navigate("CaseSearch");
+    }
+  }, [navigation, selectedSpecialty]);
+
   const handleRefresh = async () => {
     setRefreshing(true);
     // Explicit refresh bypasses the outbox TTL cache.
@@ -620,11 +630,7 @@ export default function DashboardScreen() {
             onAddEvent={handleAddEventFromCase}
             onAddHistology={handleAddHistologyFromCase}
             forceSeeAll={selectedSpecialty === SHARED_FILTER_ID}
-            onSeeAll={
-              selectedSpecialty === SHARED_FILTER_ID
-                ? () => navigation.navigate("SharedInbox")
-                : undefined
-            }
+            onSeeAll={handleSeeAllCases}
           />
         )}
       </ScrollView>

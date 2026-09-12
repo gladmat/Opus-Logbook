@@ -1,4 +1,10 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useCallback,
+  useState,
+} from "react";
 import { AppState, AppStateStatus } from "react-native";
 import { Specialty } from "@/types/case";
 import { getCaseDraft, saveCaseDraft, clearCaseDraft } from "@/lib/storage";
@@ -38,9 +44,17 @@ export function useCaseDraft({
   lastSavedAt: number | null;
 } {
   const stateRef = useRef(state);
-  stateRef.current = state;
+  // Committed-state mirror for the AppState flush (written after commit,
+  // never during render, so the React Compiler can memoise this hook).
+  useLayoutEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
-  const prevStateJsonRef = useRef<string>("");
+  // Reference of the last state a draft save was scheduled for. The
+  // reducer returns the SAME object for no-op actions, so reference
+  // inequality is the dirty signal — this replaces a JSON.stringify of the
+  // entire form state on every dispatch (every keystroke).
+  const prevStateRef = useRef<CaseFormState>(state);
   const pendingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Timestamp of the last successful draft write — drives the header
@@ -97,9 +111,8 @@ export function useCaseDraft({
   useEffect(() => {
     if (!draftLoadedRef.current || savedRef.current || isEditMode) return;
 
-    const stateJson = JSON.stringify(state);
-    if (stateJson === prevStateJsonRef.current) return;
-    prevStateJsonRef.current = stateJson;
+    if (state === prevStateRef.current) return;
+    prevStateRef.current = state;
 
     if (pendingTimeoutRef.current) {
       clearTimeout(pendingTimeoutRef.current);
