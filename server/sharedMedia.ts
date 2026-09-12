@@ -126,8 +126,13 @@ export function streamBodyToFile(
       settled = true;
       source.unpipe(out);
       out.destroy();
-      fs.promises.unlink(tempPath).catch(() => {});
-      reject(error);
+      // Reject only once the partial file is gone: callers (and the tests)
+      // treat rejection as "nothing was left on disk", and a fire-and-forget
+      // unlink raced that expectation under load.
+      fs.promises
+        .unlink(tempPath)
+        .catch(() => {})
+        .finally(() => reject(error));
     };
 
     source.on("data", (chunk: Buffer | string) => {
@@ -149,8 +154,10 @@ export function streamBodyToFile(
         .rename(tempPath, destPath)
         .then(() => resolve(received))
         .catch((error: Error) => {
-          fs.promises.unlink(tempPath).catch(() => {});
-          reject(error);
+          fs.promises
+            .unlink(tempPath)
+            .catch(() => {})
+            .finally(() => reject(error));
         });
     });
 
