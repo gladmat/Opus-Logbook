@@ -1,5 +1,6 @@
 import { getApiUrl } from "./query-client";
 import { getAuthToken } from "./auth";
+import { fetchWithTimeout } from "./fetchWithTimeout";
 import type { SharedCaseInboxEntry, UserSearchResult } from "@/types/sharing";
 import { normalizePhoneE164, type PhoneRegion } from "@shared/phone";
 import { buildRegistrationLookupKey } from "@shared/professionalRegistrations";
@@ -13,7 +14,7 @@ async function sharingFetch(
   const baseUrl = getApiUrl();
   const token = await getAuthToken();
 
-  return fetch(new URL(path, baseUrl).href, {
+  return fetchWithTimeout(new URL(path, baseUrl).href, {
     ...options,
     headers: {
       "Content-Type": "application/json",
