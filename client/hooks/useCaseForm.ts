@@ -9,7 +9,7 @@ import {
 } from "react";
 import { Alert } from "react-native";
 import * as Haptics from "expo-haptics";
-import { navigationRef } from "@/navigation/navigationRef";
+import { navigateAboveModals } from "@/navigation/navigationRef";
 import { v4 as uuidv4 } from "uuid";
 import {
   Case,
@@ -2681,12 +2681,10 @@ export function useCaseForm({
               {
                 text: "Review keys",
                 onPress: () => {
-                  if (navigationRef.isReady()) {
-                    navigationRef.navigate("KeyVerification", {
-                      userId: tofuMismatchedRecipients[0]?.userId,
-                      pendingRotations: tofuMismatchedRecipients,
-                    });
-                  }
+                  navigateAboveModals("KeyVerification", {
+                    userId: tofuMismatchedRecipients[0]?.userId,
+                    pendingRotations: tofuMismatchedRecipients,
+                  });
                 },
               },
             ],

@@ -28,6 +28,8 @@ import ManageFacilitiesScreen from "@/screens/ManageFacilitiesScreen";
 import PersonalisationScreen from "@/screens/PersonalisationScreen";
 import ReportsScreen from "@/screens/ReportsScreen";
 import CaseSearchScreen from "@/screens/CaseSearchScreen";
+import { ModalCloseButton } from "@/components/navigation/ModalCloseButton";
+import { MODAL_ROUTE_PRESENTATION } from "@/navigation/modalRoutes";
 import AddHistologyScreen from "@/screens/AddHistologyScreen";
 import NeedsAttentionListScreen from "@/screens/NeedsAttentionListScreen";
 import InboxScreen from "@/screens/InboxScreen";
@@ -780,7 +782,8 @@ export default function RootStackNavigator() {
               component={AddTimelineEventScreen}
               options={{
                 headerTitle: "Add Event",
-                presentation: "modal",
+                presentation: MODAL_ROUTE_PRESENTATION.AddTimelineEvent,
+                headerLeft: () => <ModalCloseButton />,
               }}
             />
             <Stack.Screen
@@ -788,7 +791,7 @@ export default function RootStackNavigator() {
               component={MediaManagementScreen}
               options={{
                 headerShown: false,
-                presentation: "fullScreenModal",
+                presentation: MODAL_ROUTE_PRESENTATION.MediaManagement,
               }}
             />
             <Stack.Screen
@@ -796,7 +799,7 @@ export default function RootStackNavigator() {
               component={AddOperativeMediaScreen}
               options={{
                 headerShown: false,
-                presentation: "fullScreenModal",
+                presentation: MODAL_ROUTE_PRESENTATION.AddOperativeMedia,
               }}
             />
             <Stack.Screen
@@ -873,8 +876,10 @@ export default function RootStackNavigator() {
               name="CaseSearch"
               component={CaseSearchScreen}
               options={{
+                // Plain push on purpose: this screen pushes CaseDetail, and a
+                // route pushed on top of a MODAL renders as a sheet with no
+                // back button (see navigation/modalRoutes.ts).
                 headerTitle: "Search Cases",
-                presentation: "modal",
               }}
             />
             <Stack.Screen
@@ -896,7 +901,8 @@ export default function RootStackNavigator() {
               component={SmartImportScreen}
               options={{
                 headerTitle: "Import Photos",
-                presentation: "fullScreenModal",
+                presentation: MODAL_ROUTE_PRESENTATION.SmartImport,
+                headerLeft: () => <ModalCloseButton />,
               }}
             />
             <Stack.Screen
@@ -904,7 +910,7 @@ export default function RootStackNavigator() {
               component={OpusCameraScreen}
               options={{
                 headerShown: false,
-                presentation: "fullScreenModal",
+                presentation: MODAL_ROUTE_PRESENTATION.OpusCamera,
               }}
             />
             <Stack.Screen
@@ -912,7 +918,8 @@ export default function RootStackNavigator() {
               component={GuidedCaptureScreen}
               options={{
                 headerTitle: "Guided Capture",
-                presentation: "fullScreenModal",
+                presentation: MODAL_ROUTE_PRESENTATION.GuidedCapture,
+                headerLeft: () => <ModalCloseButton label="Cancel" />,
               }}
             />
             <Stack.Screen
@@ -920,7 +927,7 @@ export default function RootStackNavigator() {
               component={CaseMediaOrganiserScreen}
               options={{
                 headerShown: false,
-                presentation: "modal",
+                presentation: MODAL_ROUTE_PRESENTATION.CaseMediaOrganiser,
               }}
             />
             <Stack.Screen
