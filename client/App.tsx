@@ -169,9 +169,11 @@ function ThemedNavigationContainer({
         if (__DEV__ && state) {
           const stacked = findCardStackedOnModal(state.routes);
           if (stacked) {
-            console.warn(
-              `[opus:nav] "${stacked.card}" was pushed above modal "${stacked.modal}" — it will render as a sheet with no back button. Modals must only goBack/replace; use navigateAboveModals for imperative navigation.`,
-            );
+            const message = `[opus:nav] "${stacked.card}" was pushed above modal "${stacked.modal}" — it will render as a sheet with no back button. Modals must only goBack/replace; use navigateAboveModals for imperative navigation.`;
+            // warn → LogBox toast for the developer; log → Metro stdout
+            // (the new architecture routes console.warn to DevTools only).
+            console.warn(message);
+            console.log(message);
           }
         }
       }}
