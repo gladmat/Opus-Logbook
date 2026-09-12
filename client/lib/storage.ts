@@ -1,5 +1,4 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { InteractionManager } from "react-native";
 import {
   Case,
   TimelineEvent,
@@ -34,6 +33,9 @@ import {
 import { hashPatientIdentifierHmac } from "./patientIdentifierHmac";
 import { userScopedAsyncKey } from "./activeUser";
 import { parseIsoDateValue } from "./dateValues";
+import { mapInBatches } from "./uiYield";
+import { clearRegisteredUserCaches } from "./userCacheRegistry";
+import { perfMark, perfSpan } from "./perfTrace";
 
 /**
  * Compare two `YYYY-MM-DD` strings by their local-noon Date value. Used for
@@ -221,12 +223,31 @@ let caseIndexCache: CaseIndexEntry[] | null = null;
 const caseCache = new Map<string, Case>();
 let allCasesCache: Case[] | null = null;
 let caseSummaryCache: CaseSummary[] | null = null;
+/** Decrypted + normalised timeline store (all events, all cases). */
+let timelineCache: TimelineEvent[] | null = null;
+
+/**
+ * Monotonic change token for the case store. Bumped on every write and on
+ * every cache purge, so focus loaders (Statistics) can skip a full re-hydrate
+ * when nothing changed since they last loaded. Never persisted.
+ */
+let casesVersion = 0;
+
+export function getCasesVersion(): number {
+  return casesVersion;
+}
+
+function bumpCasesVersion(): void {
+  casesVersion += 1;
+}
 
 function clearCaseReadCaches(): void {
   caseIndexCache = null;
   allCasesCache = null;
   caseSummaryCache = null;
+  timelineCache = null;
   caseCache.clear();
+  bumpCasesVersion();
 }
 
 function cacheCase(caseData: Case): Case {
@@ -288,6 +309,7 @@ async function rebuildCaseSummariesFromIndex(
 }
 
 export async function getCaseSummaries(): Promise<CaseSummary[]> {
+  const endSpan = perfMark("storage.getCaseSummaries");
   try {
     const index = await getCaseIndex();
     if (index.length === 0) {
@@ -325,17 +347,13 @@ export async function getCaseSummaries(): Promise<CaseSummary[]> {
   } catch (error) {
     if (__DEV__) console.error("Error reading case summaries:", error);
     return [];
+  } finally {
+    endSpan();
   }
 }
 
-// Yield to the UI thread so interactions remain responsive
-function yieldToUI(): Promise<void> {
-  return new Promise((resolve) => {
-    InteractionManager.runAfterInteractions(() => resolve());
-  });
-}
-
 export async function getCases(): Promise<Case[]> {
+  const endSpan = perfMark("storage.getCases");
   try {
     const index = await getCaseIndex();
     if (index.length === 0) return [];
@@ -348,26 +366,17 @@ export async function getCases(): Promise<Case[]> {
       return cachedCases;
     }
 
-    // Decrypt cases in small batches, yielding to UI between batches
-    const BATCH_SIZE = 3;
-    const results: (Case | null)[] = [];
-    for (let i = 0; i < index.length; i += BATCH_SIZE) {
-      const batch = index.slice(i, i + BATCH_SIZE);
-      const batchResults = await Promise.all(
-        batch.map((entry) => getCase(entry.id)),
-      );
-      results.push(...batchResults);
-      // Yield to the UI thread between batches so navigation/touches are processed
-      if (i + BATCH_SIZE < index.length) {
-        await yieldToUI();
-      }
-    }
+    // Decrypt cases in small batches, yielding to the UI thread between
+    // batches so navigation/touches are processed.
+    const results = await mapInBatches(index, 3, (entry) => getCase(entry.id));
     const hydratedCases = results.filter((c): c is Case => c !== null);
     allCasesCache = hydratedCases;
     return hydratedCases;
   } catch (error) {
     if (__DEV__) console.error("Error reading cases:", error);
     return [];
+  } finally {
+    endSpan();
   }
 }
 
@@ -396,20 +405,10 @@ export async function getCasesByIds(ids: string[]): Promise<Case[]> {
     return [];
   }
 
-  const BATCH_SIZE = 4;
-  const results: (Case | null)[] = [];
-
-  for (let i = 0; i < ids.length; i += BATCH_SIZE) {
-    const batch = ids.slice(i, i + BATCH_SIZE);
-    const cases = await Promise.all(batch.map((id) => getCase(id)));
-    results.push(...cases);
-
-    if (i + BATCH_SIZE < ids.length) {
-      await yieldToUI();
-    }
-  }
-
-  return results.filter((caseData): caseData is Case => caseData !== null);
+  return perfSpan("storage.getCasesByIds", async () => {
+    const results = await mapInBatches(ids, 4, (id) => getCase(id));
+    return results.filter((caseData): caseData is Case => caseData !== null);
+  });
 }
 
 export async function saveCase(caseData: Case): Promise<void> {
@@ -490,6 +489,7 @@ export async function saveCase(caseData: Case): Promise<void> {
     // Update in-memory caches after successful write
     caseIndexCache = index;
     caseSummaryCache = nextSummaries;
+    bumpCasesVersion();
   } catch (error) {
     if (__DEV__) console.error("Error saving case:", error);
     throw error;
@@ -715,47 +715,72 @@ export async function deleteCase(id: string): Promise<void> {
     caseSummaryCache = filteredSummaries;
     caseCache.delete(id);
     allCasesCache = null;
+    bumpCasesVersion();
   } catch (error) {
     if (__DEV__) console.error("Error deleting case:", error);
     throw error;
   }
 }
 
+/**
+ * Read the whole timeline store through the in-memory cache. The store is
+ * ONE encrypted blob holding every event for every case, so decrypting it
+ * per CaseDetail focus was a full-store decrypt + parse + normalise each
+ * time. The cached array is treated as immutable — every writer builds a
+ * new array and every reader returns a filtered copy.
+ */
+async function readTimelineEvents(): Promise<TimelineEvent[]> {
+  if (timelineCache) return timelineCache;
+  const data = await AsyncStorage.getItem(timelineKey());
+  if (!data) {
+    timelineCache = [];
+    return timelineCache;
+  }
+  const decrypted = await decryptData(data);
+  const events = (JSON.parse(decrypted) as TimelineEvent[]).map(
+    normalizeTimelineEventDateOnlyFields,
+  );
+  timelineCache = events;
+  return events;
+}
+
+/** Persist the whole timeline store; a failed write never leaves a stale cache. */
+async function writeTimelineEvents(events: TimelineEvent[]): Promise<void> {
+  timelineCache = null;
+  const encrypted = await encryptData(JSON.stringify(events));
+  await AsyncStorage.setItem(timelineKey(), encrypted);
+  timelineCache = events;
+}
+
 export async function getTimelineEvents(
   caseId: string,
 ): Promise<TimelineEvent[]> {
+  const endSpan = perfMark("storage.getTimelineEvents");
   try {
-    const data = await AsyncStorage.getItem(timelineKey());
-    if (!data) return [];
-    const decrypted = await decryptData(data);
-    const allEvents = (JSON.parse(decrypted) as TimelineEvent[]).map(
-      normalizeTimelineEventDateOnlyFields,
-    );
+    const allEvents = await readTimelineEvents();
     return allEvents
       .filter((e) => e.caseId === caseId)
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
+      .map((event) => ({ event, at: new Date(event.createdAt).getTime() }))
+      .sort((a, b) => b.at - a.at)
+      .map(({ event }) => event);
   } catch (error) {
     if (__DEV__) console.error("Error reading timeline events:", error);
     return [];
+  } finally {
+    endSpan();
   }
 }
 
 export async function saveTimelineEvent(event: TimelineEvent): Promise<void> {
   try {
-    const data = await AsyncStorage.getItem(timelineKey());
-    let events: TimelineEvent[] = [];
-    if (data) {
-      const decrypted = await decryptData(data);
-      events = JSON.parse(decrypted);
-    }
+    const events = await readTimelineEvents();
     const canonicalizedEvent = await canonicalizePersistedMediaUris(event);
-    events.unshift(normalizeTimelineEventDateOnlyFields(canonicalizedEvent));
-    const encrypted = await encryptData(JSON.stringify(events));
-    await AsyncStorage.setItem(timelineKey(), encrypted);
+    await writeTimelineEvents([
+      normalizeTimelineEventDateOnlyFields(canonicalizedEvent),
+      ...events,
+    ]);
   } catch (error) {
+    timelineCache = null;
     if (__DEV__) console.error("Error saving timeline event:", error);
     throw error;
   }
@@ -766,10 +791,7 @@ export async function updateTimelineEvent(
   updates: Partial<TimelineEvent>,
 ): Promise<void> {
   try {
-    const data = await AsyncStorage.getItem(timelineKey());
-    if (!data) return;
-    const decrypted = await decryptData(data);
-    const events: TimelineEvent[] = JSON.parse(decrypted);
+    const events = await readTimelineEvents();
     const index = events.findIndex((e) => e.id === id);
     if (index < 0) return;
     const canonicalizedEvent = await canonicalizePersistedMediaUris({
@@ -777,10 +799,11 @@ export async function updateTimelineEvent(
       ...updates,
       updatedAt: new Date().toISOString(),
     });
-    events[index] = normalizeTimelineEventDateOnlyFields(canonicalizedEvent);
-    const encrypted = await encryptData(JSON.stringify(events));
-    await AsyncStorage.setItem(timelineKey(), encrypted);
+    const next = events.slice();
+    next[index] = normalizeTimelineEventDateOnlyFields(canonicalizedEvent);
+    await writeTimelineEvents(next);
   } catch (error) {
+    timelineCache = null;
     if (__DEV__) console.error("Error updating timeline event:", error);
     throw error;
   }
@@ -788,14 +811,11 @@ export async function updateTimelineEvent(
 
 export async function deleteTimelineEvent(id: string): Promise<void> {
   try {
-    const data = await AsyncStorage.getItem(timelineKey());
-    if (!data) return;
-    const decrypted = await decryptData(data);
-    const events: TimelineEvent[] = JSON.parse(decrypted);
-    const filtered = events.filter((e) => e.id !== id);
-    const encrypted = await encryptData(JSON.stringify(filtered));
-    await AsyncStorage.setItem(timelineKey(), encrypted);
+    const events = await readTimelineEvents();
+    if (!events.some((e) => e.id === id)) return;
+    await writeTimelineEvents(events.filter((e) => e.id !== id));
   } catch (error) {
+    timelineCache = null;
     if (__DEV__) console.error("Error deleting timeline event:", error);
     throw error;
   }
@@ -913,9 +933,14 @@ export async function getLatestCaseForEpisode(
   }
 }
 
-/** Clear in-memory read caches. Call on logout / user switch. */
+/**
+ * Clear every in-memory per-user cache — the case read caches here plus any
+ * cache another module registered via `registerUserCache`. Call on logout /
+ * user switch / lock / real backgrounding.
+ */
 export function clearUserCaches(): void {
   clearCaseReadCaches();
+  clearRegisteredUserCaches();
 }
 
 export async function clearAllData(): Promise<void> {
