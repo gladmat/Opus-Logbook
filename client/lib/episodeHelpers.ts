@@ -1,5 +1,7 @@
 import type { Specialty } from "@/types/case";
 import type { EpisodeType, EpisodeLaterality } from "@/types/episode";
+import type { CaseSummary } from "@/types/caseSummary";
+import { parseIsoDateValue } from "./dateValues";
 
 // ── Episode Type Suggestion ─────────────────────────────────────────────────
 
@@ -83,4 +85,33 @@ export function suggestEpisodeTitle(
     lower.includes("repair");
 
   return `${prefix}${shortened}${hasSuffix ? "" : " management"}`.trim();
+}
+
+/**
+ * Group case summaries by their episode, each group in ascending
+ * procedure-date order. One pass over the summaries (the dashboard used to
+ * re-filter + re-sort the whole summary list once PER episode).
+ * Summaries without an episode are omitted.
+ */
+export function groupCaseSummariesByEpisodeId(
+  summaries: readonly CaseSummary[],
+): Map<string, CaseSummary[]> {
+  const decorated = summaries
+    .filter(
+      (summary): summary is CaseSummary & { episodeId: string } =>
+        typeof summary.episodeId === "string" && summary.episodeId.length > 0,
+    )
+    .map((summary) => ({
+      summary,
+      at: parseIsoDateValue(summary.procedureDate)?.getTime() ?? 0,
+    }))
+    .sort((a, b) => a.at - b.at);
+
+  const grouped = new Map<string, CaseSummary[]>();
+  for (const { summary } of decorated) {
+    const list = grouped.get(summary.episodeId);
+    if (list) list.push(summary);
+    else grouped.set(summary.episodeId, [summary]);
+  }
+  return grouped;
 }

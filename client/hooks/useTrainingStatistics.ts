@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { InteractionManager } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,6 +6,7 @@ import { isConsultantLevel } from "@/lib/roleDefaults";
 import {
   getAllRevealedPairs,
   getAllEpaTargetRecords,
+  getEpaStorageRevision,
   type RevealedPairWithContext,
 } from "@/lib/assessmentStorage";
 import { splitEpaRecords } from "@/lib/epaRecords";
@@ -56,19 +57,36 @@ export interface UseTrainingStatisticsReturn {
   allPairs: RevealedPairWithContext[];
 }
 
-export function useTrainingStatistics(): UseTrainingStatisticsReturn {
+export interface UseTrainingStatisticsOptions {
+  /**
+   * Load only while true (e.g. the Training tab is active). The hook is
+   * mounted alongside the practice statistics, so without this every
+   * Statistics focus paid for both pipelines regardless of the tab shown.
+   */
+  enabled?: boolean;
+}
+
+export function useTrainingStatistics({
+  enabled = true,
+}: UseTrainingStatisticsOptions = {}): UseTrainingStatisticsReturn {
   const { profile } = useAuth();
   const [pairs, setPairs] = useState<RevealedPairWithContext[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
   const [exposureCaseCount, setExposureCaseCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  // Assessment-storage revision the current data was loaded against; an
+  // unchanged revision within the outbox TTL skips the reload.
+  const loadedRevisionRef = useRef<number | null>(null);
 
   const isConsultant = isConsultantLevel(profile?.careerStage);
 
   useFocusEffect(
     useCallback(() => {
+      if (!enabled) return;
       const task = InteractionManager.runAfterInteractions(async () => {
-        setIsLoading(true);
+        const revision = getEpaStorageRevision();
+        if (loadedRevisionRef.current === revision) return;
+        if (loadedRevisionRef.current === null) setIsLoading(true);
         try {
           const [data, records, outbox] = await Promise.all([
             getAllRevealedPairs(),
@@ -97,14 +115,15 @@ export function useTrainingStatistics(): UseTrainingStatisticsReturn {
               e.exposures.some((x) => x.participantContactId === "self"),
             ).length,
           );
+          loadedRevisionRef.current = revision;
         } catch (error) {
-          console.error("Error loading assessment pairs:", error);
+          if (__DEV__) console.error("Error loading assessment pairs:", error);
         } finally {
           setIsLoading(false);
         }
       });
       return () => task.cancel();
-    }, []),
+    }, [enabled]),
   );
 
   const isEmpty = pairs.length === 0;

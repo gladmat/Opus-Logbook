@@ -9,7 +9,7 @@
  * Renders null when the case has no EPA targets.
  */
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { View, Pressable, StyleSheet } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -17,8 +17,13 @@ import { Feather } from "@/components/FeatherIcon";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
-import { getEpaTargetsRecord } from "@/lib/assessmentStorage";
-import { getSharedOutbox } from "@/lib/sharingApi";
+import {
+  getEpaStorageRevision,
+  getEpaTargetsRecord,
+} from "@/lib/assessmentStorage";
+import { getSharedOutboxCached } from "@/lib/sharingApi";
+import { shouldRefetchEpaCard } from "@/lib/epaCardRefresh";
+import { perfMark } from "@/lib/perfTrace";
 import {
   getAssessmentStatus,
   type AssessmentStatusResponse,
@@ -52,64 +57,102 @@ export function EpaAssessmentsCard({ caseId }: EpaAssessmentsCardProps) {
   const [rows, setRows] = useState<TargetRow[]>([]);
   const [exposures, setExposures] = useState<EpaExposureRecord[]>([]);
   const [outboxUnavailable, setOutboxUnavailable] = useState(false);
+  const lastFetchedAtRef = useRef<number | null>(null);
+  const lastRevisionRef = useRef<number | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      const record = await getEpaTargetsRecord(caseId);
-      const targets = record.targets;
-      setExposures(record.exposures);
-      if (targets.length === 0) {
-        setRows([]);
+  const load = useCallback(
+    async (isCancelled: () => boolean) => {
+      const revision = getEpaStorageRevision();
+      if (
+        !shouldRefetchEpaCard({
+          lastFetchedAt: lastFetchedAtRef.current,
+          now: Date.now(),
+          lastRevision: lastRevisionRef.current,
+          revision,
+        })
+      ) {
         return;
       }
-      let outbox: Awaited<ReturnType<typeof getSharedOutbox>> = [];
-      let outboxFailed = false;
+      const endSpan = perfMark("focus.EpaCard");
       try {
-        outbox = await getSharedOutbox();
-      } catch {
-        // Offline — render targets without share status.
-        outboxFailed = true;
-      }
-      setOutboxUnavailable(outboxFailed);
-      const built = await Promise.all(
-        targets.map(async (target): Promise<TargetRow> => {
-          const iAmSupervisor = target.supervisorContactId === "self";
-          const counterpartUserId = iAmSupervisor
-            ? target.traineeLinkedUserId
-            : target.supervisorLinkedUserId;
-          const counterpartName = iAmSupervisor
-            ? target.traineeDisplayName
-            : target.supervisorDisplayName;
-          const share = outbox.find(
-            (s) =>
-              s.caseId === caseId && s.recipientUserId === counterpartUserId,
-          );
-          let status: AssessmentStatusResponse | null = null;
-          if (share) {
-            try {
-              status = await getAssessmentStatus(share.id);
-            } catch {
-              // Status unavailable — still show the row with a CTA.
-            }
+        const record = await getEpaTargetsRecord(caseId);
+        if (isCancelled()) return;
+        const targets = record.targets;
+        setExposures(record.exposures);
+        if (targets.length === 0) {
+          setRows([]);
+          lastFetchedAtRef.current = Date.now();
+          lastRevisionRef.current = revision;
+          return;
+        }
+        let outbox: Awaited<ReturnType<typeof getSharedOutboxCached>> = [];
+        let outboxFailed = false;
+        try {
+          outbox = await getSharedOutboxCached();
+        } catch {
+          // Offline — render targets without share status.
+          outboxFailed = true;
+        }
+        if (isCancelled()) return;
+        setOutboxUnavailable(outboxFailed);
+        // One status request per share row, even when several targets
+        // resolve to the same counterpart share.
+        const statusByShare = new Map<
+          string,
+          Promise<AssessmentStatusResponse | null>
+        >();
+        const statusFor = (sharedCaseId: string) => {
+          let pending = statusByShare.get(sharedCaseId);
+          if (!pending) {
+            pending = getAssessmentStatus(sharedCaseId).catch(() => null);
+            statusByShare.set(sharedCaseId, pending);
           }
-          return {
-            target,
-            iAmSupervisor,
-            counterpartName,
-            sharedCaseId: share?.id ?? null,
-            status,
-          };
-        }),
-      );
-      setRows(built);
-    } catch {
-      setRows([]);
-    }
-  }, [caseId]);
+          return pending;
+        };
+        const built = await Promise.all(
+          targets.map(async (target): Promise<TargetRow> => {
+            const iAmSupervisor = target.supervisorContactId === "self";
+            const counterpartUserId = iAmSupervisor
+              ? target.traineeLinkedUserId
+              : target.supervisorLinkedUserId;
+            const counterpartName = iAmSupervisor
+              ? target.traineeDisplayName
+              : target.supervisorDisplayName;
+            const share = outbox.find(
+              (s) =>
+                s.caseId === caseId && s.recipientUserId === counterpartUserId,
+            );
+            // Status unavailable → still show the row with a CTA.
+            const status = share ? await statusFor(share.id) : null;
+            return {
+              target,
+              iAmSupervisor,
+              counterpartName,
+              sharedCaseId: share?.id ?? null,
+              status,
+            };
+          }),
+        );
+        if (isCancelled()) return;
+        setRows(built);
+        lastFetchedAtRef.current = Date.now();
+        lastRevisionRef.current = revision;
+      } catch {
+        if (!isCancelled()) setRows([]);
+      } finally {
+        endSpan();
+      }
+    },
+    [caseId],
+  );
 
   useFocusEffect(
     useCallback(() => {
-      void load();
+      let cancelled = false;
+      void load(() => cancelled);
+      return () => {
+        cancelled = true;
+      };
     }, [load]),
   );
 

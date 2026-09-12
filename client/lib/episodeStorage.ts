@@ -6,6 +6,8 @@ import { getCasesByEpisodeId, hashPatientIdentifier } from "./storage";
 import { normalizeEpisodeDateOnlyFields } from "./dateFieldNormalization";
 import { userScopedAsyncKey } from "./activeUser";
 import { parseIsoDateValue } from "./dateValues";
+import { mapInBatches } from "./uiYield";
+import { perfSpan } from "./perfTrace";
 
 export const EPISODE_BASE_KEYS = {
   INDEX: "@opus_episode_index",
@@ -236,8 +238,8 @@ export async function getVisibleDashboardEpisodes(): Promise<
       return false;
     });
 
-    const results = await Promise.all(
-      visibleEntries.map((entry) => getEpisode(entry.id)),
+    const results = await perfSpan("episodes.getVisibleDashboardEpisodes", () =>
+      mapInBatches(visibleEntries, 4, (entry) => getEpisode(entry.id)),
     );
 
     return results.filter((e): e is TreatmentEpisode => {
