@@ -433,4 +433,37 @@ describe("storage read caching", () => {
       expect(getCasesVersion()).toBeGreaterThan(v2);
     });
   });
+
+  describe("getCaseSummaries single-flight", () => {
+    it("concurrent cold callers share one summary-store read", async () => {
+      const firstCase = makeCase({ id: "case-1" });
+      asyncStorageState.set(CASE_SPECIALTY_REPAIR_KEY, "1");
+      asyncStorageState.set(
+        CASE_INDEX_KEY,
+        JSON.stringify([
+          {
+            id: firstCase.id,
+            procedureDate: firstCase.procedureDate,
+            createdAt: firstCase.createdAt,
+            updatedAt: firstCase.updatedAt,
+            specialty: firstCase.specialty,
+          },
+        ]),
+      );
+      asyncStorageState.set(
+        CASE_SUMMARIES_KEY,
+        JSON.stringify({ version: 1, summaries: [makeSummary()] }),
+      );
+      const { getCaseSummaries } = await loadStorageModule();
+
+      const [a, b] = await Promise.all([
+        getCaseSummaries(),
+        getCaseSummaries(),
+      ]);
+      expect(a).toBe(b);
+      expect(
+        asyncStorageReads.filter((key) => key === CASE_SUMMARIES_KEY),
+      ).toHaveLength(1);
+    });
+  });
 });

@@ -25,6 +25,10 @@ export function useScreenOptions(): NativeStackNavigationOptions {
         fontSize: 17,
       },
       headerBackTitle: "", // Clean chevron-only back button
+      // iOS 26 falls back to the previous ROUTE NAME ("CaseDetail",
+      // "Main") when the back title is empty — "minimal" is the supported
+      // way to get a chevron-only back button on native-stack 7.
+      headerBackButtonDisplayMode: "minimal",
       headerShadowVisible: false,
       headerStyle: {
         backgroundColor: theme.backgroundRoot,

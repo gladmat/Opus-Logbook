@@ -308,7 +308,28 @@ async function rebuildCaseSummariesFromIndex(
   return summaries;
 }
 
-export async function getCaseSummaries(): Promise<CaseSummary[]> {
+/**
+ * Single-flight guard: the dashboard's own loader and the episodes hook
+ * both call getCaseSummaries on the same focus, and on a cold cache each
+ * used to decrypt the whole summary store independently (two spans per
+ * focus in the perf log). Concurrent callers now share one read.
+ */
+let caseSummariesInFlight: Promise<CaseSummary[]> | null = null;
+
+export function getCaseSummaries(): Promise<CaseSummary[]> {
+  if (caseSummaryCache && caseIndexCache) {
+    // Fast path: both caches warm — no need to allocate a shared promise.
+    return readCaseSummaries();
+  }
+  if (caseSummariesInFlight) return caseSummariesInFlight;
+  const request = readCaseSummaries().finally(() => {
+    if (caseSummariesInFlight === request) caseSummariesInFlight = null;
+  });
+  caseSummariesInFlight = request;
+  return request;
+}
+
+async function readCaseSummaries(): Promise<CaseSummary[]> {
   const endSpan = perfMark("storage.getCaseSummaries");
   try {
     const index = await getCaseIndex();
