@@ -1,5 +1,6 @@
 import { getApiUrl } from "./query-client";
 import { getAuthToken } from "./auth";
+import { fetchWithTimeout } from "./fetchWithTimeout";
 
 // ── Internal fetch helper ────────────────────────────────────────────────────
 
@@ -10,7 +11,7 @@ async function assessmentFetch(
   const baseUrl = getApiUrl();
   const token = await getAuthToken();
 
-  return fetch(new URL(path, baseUrl).href, {
+  return fetchWithTimeout(new URL(path, baseUrl).href, {
     ...options,
     headers: {
       "Content-Type": "application/json",

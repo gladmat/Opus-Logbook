@@ -29,6 +29,7 @@ import { MediaCallbackProvider } from "@/contexts/MediaCallbackContext";
 import { ThemeProvider, useTheme } from "@/hooks/useTheme";
 import { palette } from "@/constants/theme";
 import { initClientSentry, captureClientException } from "@/lib/sentry";
+import { devWarn } from "@/lib/devLog";
 import { resolveNotificationTarget } from "@/lib/notificationRouting";
 import { initAnalytics, track } from "@/lib/analytics";
 import type { RootStackParamList } from "@/navigation/RootStackNavigator";
@@ -182,14 +183,14 @@ export default function App() {
       try {
         const inboxStorage = await import("@/lib/inboxStorage");
         await inboxStorage.initializeInboxStorage();
-        void inboxStorage.cleanupOrphanedInboxItems().catch(console.warn);
-        void ingestPendingLockedCameraCaptures().catch(console.warn);
+        void inboxStorage.cleanupOrphanedInboxItems().catch(devWarn);
+        void ingestPendingLockedCameraCaptures().catch(devWarn);
         // Also sweep any extension-produced JPEGs older than 7 days so the
         // plaintext shared-container window stays bounded even if a user
         // captures via the locked camera but never opens the app.
-        void sweepOrphanedLockedCameraFiles().catch(console.warn);
+        void sweepOrphanedLockedCameraFiles().catch(devWarn);
       } catch (error) {
-        console.warn("[App] Inbox initialization failed:", error);
+        devWarn("[App] Inbox initialization failed:", error);
       }
 
       // Mark PHI-bearing directories (opus-media, AsyncStorage, MMKV) as
@@ -226,7 +227,7 @@ export default function App() {
       setIsAppObscured(nextState !== "active");
 
       if (nextState === "active") {
-        void ingestPendingLockedCameraCaptures().catch(console.warn);
+        void ingestPendingLockedCameraCaptures().catch(devWarn);
       }
     });
 

@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { InteractionManager } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import {
@@ -7,7 +7,12 @@ import {
   getCaseSpecialties,
   isPlannedCase,
 } from "@/types/case";
-import { getCasesByIds, getCaseSummaries } from "@/lib/storage";
+import {
+  getCasesByIds,
+  getCaseSummaries,
+  getCasesVersion,
+} from "@/lib/storage";
+import { perfMark } from "@/lib/perfTrace";
 import { isPlannedCaseSummary } from "@/types/caseSummary";
 import {
   calculateBaseStatistics,
@@ -56,11 +61,18 @@ export interface UseStatisticsReturn {
 export function useStatistics(): UseStatisticsReturn {
   const [cases, setCases] = useState<Case[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // Case-store version the current `cases` were hydrated from. A focus
+  // with an unchanged version skips the full re-hydrate (every non-planned
+  // case decrypted) and keeps the rendered data — no spinner flash.
+  const loadedVersionRef = useRef<number | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       const task = InteractionManager.runAfterInteractions(async () => {
-        setIsLoading(true);
+        const version = getCasesVersion();
+        if (loadedVersionRef.current === version) return;
+        const endSpan = perfMark("focus.Statistics");
+        if (loadedVersionRef.current === null) setIsLoading(true);
         try {
           const summaries = await getCaseSummaries();
           const nonPlannedIds = summaries
@@ -69,15 +81,17 @@ export function useStatistics(): UseStatisticsReturn {
 
           if (nonPlannedIds.length === 0) {
             setCases([]);
-            return;
+          } else {
+            const data = await getCasesByIds(nonPlannedIds);
+            setCases(data.filter((c) => !isPlannedCase(c)));
           }
-
-          const data = await getCasesByIds(nonPlannedIds);
-          setCases(data.filter((c) => !isPlannedCase(c)));
+          loadedVersionRef.current = version;
         } catch (error) {
-          console.error("Error loading cases for statistics:", error);
+          if (__DEV__)
+            console.error("Error loading cases for statistics:", error);
         } finally {
           setIsLoading(false);
+          endSpan();
         }
       });
       return () => task.cancel();

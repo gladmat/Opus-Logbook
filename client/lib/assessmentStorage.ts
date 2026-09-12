@@ -9,6 +9,57 @@ import type {
 import type { EpaAssessmentTarget, EpaExposureRecord } from "./epaDerivation";
 import { migrateLegacyEpaTargets } from "./epaTargetMigration";
 import { inferViewerRoleFromOwnAssessment } from "./revealedPair";
+import { mapInBatches } from "./uiYield";
+import { registerUserCache } from "./userCacheRegistry";
+import { perfSpan } from "./perfTrace";
+import {
+  splitEpaRecords,
+  type EpaExposuresWithCase,
+  type EpaTargetsRecordWithCase,
+  type EpaTargetsWithCase,
+} from "./epaRecords";
+
+// ── In-memory caches (per user, dropped by storage.clearUserCaches) ──────────
+//
+// Every read below used to be an AsyncStorage round-trip + a pure-JS AEAD
+// decrypt. The dashboard, Statistics and the CaseDetail EPA card each read
+// the SAME records on every focus, so misses and hits are both cached here
+// (null sentinels included — a share with no local assessment is the common
+// dashboard case). Writers update the cache in place; the registry clearer
+// drops everything on logout / lock / background.
+
+const BATCH_SIZE = 4;
+
+const myAssessmentCache = new Map<
+  string,
+  SupervisorAssessment | TraineeAssessment | null
+>();
+const revealedPairCache = new Map<string, RevealedAssessmentPair | null>();
+const epaRecordCache = new Map<string, EpaTargetsRecord>();
+
+/**
+ * Monotonic token bumped on EVERY write in this module. Focus loaders keep
+ * the value they last loaded against and skip work when it is unchanged.
+ */
+let epaStorageRevision = 0;
+
+export function getEpaStorageRevision(): number {
+  return epaStorageRevision;
+}
+
+function bumpRevision(): void {
+  epaStorageRevision += 1;
+}
+
+/** Drop every in-memory cache in this module (tests + purge registry). */
+export function clearAssessmentStorageCaches(): void {
+  myAssessmentCache.clear();
+  revealedPairCache.clear();
+  epaRecordCache.clear();
+  bumpRevision();
+}
+
+registerUserCache(clearAssessmentStorageCaches);
 
 // ── Storage keys (user-scoped at runtime) ────────────────────────────────────
 
@@ -42,17 +93,29 @@ export async function saveMyAssessment(
   const plaintext = JSON.stringify(assessment);
   const encrypted = await encryptData(plaintext);
   await AsyncStorage.setItem(myAssessmentKey(sharedCaseId), encrypted);
+  myAssessmentCache.set(sharedCaseId, assessment);
+  bumpRevision();
 }
 
 export async function getMyAssessment(
   sharedCaseId: string,
 ): Promise<SupervisorAssessment | TraineeAssessment | null> {
+  const cached = myAssessmentCache.get(sharedCaseId);
+  if (cached !== undefined) return cached;
   const encrypted = await AsyncStorage.getItem(myAssessmentKey(sharedCaseId));
-  if (!encrypted) return null;
+  if (!encrypted) {
+    myAssessmentCache.set(sharedCaseId, null);
+    return null;
+  }
   try {
     const plaintext = await decryptData(encrypted);
-    return JSON.parse(plaintext) as SupervisorAssessment | TraineeAssessment;
+    const parsed = JSON.parse(plaintext) as
+      | SupervisorAssessment
+      | TraineeAssessment;
+    myAssessmentCache.set(sharedCaseId, parsed);
+    return parsed;
   } catch {
+    myAssessmentCache.set(sharedCaseId, null);
     return null;
   }
 }
@@ -83,6 +146,7 @@ function pendingCommitKey(sharedCaseId: string): string {
 export async function savePendingCommit(pending: PendingCommit): Promise<void> {
   const encrypted = await encryptData(JSON.stringify(pending));
   await AsyncStorage.setItem(pendingCommitKey(pending.sharedCaseId), encrypted);
+  bumpRevision();
 }
 
 export async function getPendingCommit(
@@ -100,6 +164,7 @@ export async function getPendingCommit(
 export async function clearPendingCommit(sharedCaseId: string): Promise<void> {
   try {
     await AsyncStorage.removeItem(pendingCommitKey(sharedCaseId));
+    bumpRevision();
   } catch {
     // Best-effort.
   }
@@ -114,6 +179,8 @@ export async function saveRevealedPair(
   const plaintext = JSON.stringify(pair);
   const encrypted = await encryptData(plaintext);
   await AsyncStorage.setItem(revealedPairKey(sharedCaseId), encrypted);
+  revealedPairCache.set(sharedCaseId, pair);
+  bumpRevision();
 
   // Update revealed index
   const index = await getAllRevealedPairIds();
@@ -126,12 +193,20 @@ export async function saveRevealedPair(
 export async function getRevealedPair(
   sharedCaseId: string,
 ): Promise<RevealedAssessmentPair | null> {
+  const cached = revealedPairCache.get(sharedCaseId);
+  if (cached !== undefined) return cached;
   const encrypted = await AsyncStorage.getItem(revealedPairKey(sharedCaseId));
-  if (!encrypted) return null;
+  if (!encrypted) {
+    revealedPairCache.set(sharedCaseId, null);
+    return null;
+  }
   try {
     const plaintext = await decryptData(encrypted);
-    return JSON.parse(plaintext) as RevealedAssessmentPair;
+    const parsed = JSON.parse(plaintext) as RevealedAssessmentPair;
+    revealedPairCache.set(sharedCaseId, parsed);
+    return parsed;
   } catch {
+    revealedPairCache.set(sharedCaseId, null);
     return null;
   }
 }
@@ -189,22 +264,23 @@ export async function getAllRevealedPairs(): Promise<
   const ids = await getAllRevealedPairIds();
   if (ids.length === 0) return [];
 
-  const results = await Promise.allSettled(
-    ids.map(async (id) => {
-      const pair = await getRevealedPair(id);
-      if (!pair) return null;
-      const upgraded = await backfillViewerRole(id, pair);
-      return { ...upgraded, sharedCaseId: id };
-    }),
-  );
-
-  return results
-    .filter(
-      (r): r is PromiseFulfilledResult<RevealedPairWithContext | null> =>
-        r.status === "fulfilled",
-    )
-    .map((r) => r.value)
-    .filter((v): v is RevealedPairWithContext => v != null);
+  return perfSpan("epa.getAllRevealedPairs", async () => {
+    const results = await mapInBatches(
+      ids,
+      BATCH_SIZE,
+      async (id): Promise<RevealedPairWithContext | null> => {
+        try {
+          const pair = await getRevealedPair(id);
+          if (!pair) return null;
+          const upgraded = await backfillViewerRole(id, pair);
+          return { ...upgraded, sharedCaseId: id };
+        } catch {
+          return null;
+        }
+      },
+    );
+    return results.filter((v): v is RevealedPairWithContext => v != null);
+  });
 }
 
 // ── EPA targets (derived per-case after save) ─────────────────────────────────
@@ -273,12 +349,16 @@ export async function saveEpaTargets(
   if (targets.length === 0 && exposures.length === 0) {
     await AsyncStorage.removeItem(epaTargetsKey(caseId));
     await updateEpaTargetsIndex(caseId, false);
+    epaRecordCache.delete(caseId);
+    bumpRevision();
     return;
   }
   const envelope: EpaTargetsEnvelopeV3 = { v: 3, targets, exposures };
   const encrypted = await encryptData(JSON.stringify(envelope));
   await AsyncStorage.setItem(epaTargetsKey(caseId), encrypted);
   await updateEpaTargetsIndex(caseId, true);
+  epaRecordCache.set(caseId, { targets, exposures });
+  bumpRevision();
 }
 
 /** Remove stored EPA targets + exposures for a case. Best-effort. */
@@ -286,6 +366,8 @@ export async function clearEpaTargets(caseId: string): Promise<void> {
   try {
     await AsyncStorage.removeItem(epaTargetsKey(caseId));
     await updateEpaTargetsIndex(caseId, false);
+    epaRecordCache.delete(caseId);
+    bumpRevision();
   } catch {
     // Best-effort.
   }
@@ -304,6 +386,14 @@ export async function clearEpaTargets(caseId: string): Promise<void> {
 export async function getEpaTargetsRecord(
   caseId: string,
 ): Promise<EpaTargetsRecord> {
+  const cached = epaRecordCache.get(caseId);
+  if (cached) return cached;
+  const record = await readEpaTargetsRecord(caseId);
+  epaRecordCache.set(caseId, record);
+  return record;
+}
+
+async function readEpaTargetsRecord(caseId: string): Promise<EpaTargetsRecord> {
   const raw = await AsyncStorage.getItem(epaTargetsKey(caseId));
   if (!raw) return { targets: [], exposures: [] };
   try {
@@ -348,52 +438,44 @@ export async function getEpaExposures(
   return (await getEpaTargetsRecord(caseId)).exposures;
 }
 
-/** Targets for a case, with the caseId attached. */
-export interface EpaTargetsWithCase {
-  caseId: string;
-  targets: EpaAssessmentTarget[];
-}
+export type { EpaExposuresWithCase, EpaTargetsWithCase };
 
-/** Exposures for a case, with the caseId attached. */
-export interface EpaExposuresWithCase {
-  caseId: string;
-  exposures: EpaExposureRecord[];
+/**
+ * Batch-load every stored EPA record — ONE decrypt per case (cached after
+ * the first focus). `getAllEpaTargets` / `getAllEpaExposures` are pure
+ * projections over this; call it directly when you need both.
+ */
+export async function getAllEpaTargetRecords(): Promise<
+  EpaTargetsRecordWithCase[]
+> {
+  const ids = await getEpaTargetCaseIds();
+  if (ids.length === 0) return [];
+  return perfSpan("epa.getAllEpaTargetRecords", async () => {
+    const records = await mapInBatches(
+      ids,
+      BATCH_SIZE,
+      async (caseId): Promise<EpaTargetsRecordWithCase | null> => {
+        try {
+          const record = await getEpaTargetsRecord(caseId);
+          if (record.targets.length === 0 && record.exposures.length === 0) {
+            return null;
+          }
+          return { caseId, ...record };
+        } catch {
+          return null;
+        }
+      },
+    );
+    return records.filter((r): r is EpaTargetsRecordWithCase => r != null);
+  });
 }
 
 /** Batch-load every stored EPA target set (pending-assessments surfaces). */
 export async function getAllEpaTargets(): Promise<EpaTargetsWithCase[]> {
-  const ids = await getEpaTargetCaseIds();
-  if (ids.length === 0) return [];
-  const results = await Promise.allSettled(
-    ids.map(async (caseId) => {
-      const targets = await getEpaTargets(caseId);
-      return targets.length > 0 ? { caseId, targets } : null;
-    }),
-  );
-  return results
-    .filter(
-      (r): r is PromiseFulfilledResult<EpaTargetsWithCase | null> =>
-        r.status === "fulfilled",
-    )
-    .map((r) => r.value)
-    .filter((v): v is EpaTargetsWithCase => v != null);
+  return splitEpaRecords(await getAllEpaTargetRecords()).targetsByCase;
 }
 
 /** Batch-load every stored EPA exposure set (Training-tab exposure count). */
 export async function getAllEpaExposures(): Promise<EpaExposuresWithCase[]> {
-  const ids = await getEpaTargetCaseIds();
-  if (ids.length === 0) return [];
-  const results = await Promise.allSettled(
-    ids.map(async (caseId) => {
-      const exposures = await getEpaExposures(caseId);
-      return exposures.length > 0 ? { caseId, exposures } : null;
-    }),
-  );
-  return results
-    .filter(
-      (r): r is PromiseFulfilledResult<EpaExposuresWithCase | null> =>
-        r.status === "fulfilled",
-    )
-    .map((r) => r.value)
-    .filter((v): v is EpaExposuresWithCase => v != null);
+  return splitEpaRecords(await getAllEpaTargetRecords()).exposuresByCase;
 }

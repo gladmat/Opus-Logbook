@@ -41,9 +41,12 @@ import {
   importSharedThumbs,
   listLocalSharedThumbIds,
 } from "./sharedMediaImport";
+import { mapInBatches } from "./uiYield";
+import { perfSpan } from "./perfTrace";
 
 const INBOX_PAGE_SIZE = 100;
 const HYDRATE_CONCURRENCY = 3;
+const SUMMARISE_BATCH_SIZE = 4;
 
 export class SharedCaseHydrationError extends Error {
   readonly reason: "no-envelope" | "decrypt" | "fetch";
@@ -146,11 +149,19 @@ async function runWithConcurrency<T>(
   );
 }
 
+/**
+ * @param knownBlob  pass the blob when the caller already holds it
+ *                   (`undefined` = look it up; `null` = known to be absent)
+ *                   so a sync never decrypts the same share twice.
+ */
 async function summariseEntry(
   entry: SharedCaseInboxEntry,
+  knownBlob?: SharedCaseData | null,
 ): Promise<SharedCaseSummary> {
-  const cached = await getDecryptedSharedCaseWithVersion(entry.id);
-  const blob = cached?.data ?? null;
+  const blob =
+    knownBlob !== undefined
+      ? knownBlob
+      : ((await getDecryptedSharedCaseWithVersion(entry.id))?.data ?? null);
   const localThumbs = await listLocalSharedThumbIds(blob?.media);
   return buildSharedCaseSummary(entry, blob, localThumbs);
 }
@@ -158,8 +169,10 @@ async function summariseEntry(
 /** Offline read: what the dashboard shows on focus. */
 export async function getSharedCaseSummaries(): Promise<SharedCaseSummary[]> {
   const index = await getSharedInboxIndex();
-  const summaries = await Promise.all(index.map(summariseEntry));
-  return summaries;
+  if (index.length === 0) return [];
+  return perfSpan("shared.getSharedCaseSummaries", () =>
+    mapInBatches(index, SUMMARISE_BATCH_SIZE, (entry) => summariseEntry(entry)),
+  );
 }
 
 export interface SyncSharedCasesResult {
@@ -177,7 +190,11 @@ export interface SyncSharedCasesResult {
  * itself cannot be fetched (offline) so callers can fall back to
  * `getSharedCaseSummaries`.
  */
-export async function syncSharedCases(): Promise<SyncSharedCasesResult> {
+export function syncSharedCases(): Promise<SyncSharedCasesResult> {
+  return perfSpan("shared.syncSharedCases", runSyncSharedCases);
+}
+
+async function runSyncSharedCases(): Promise<SyncSharedCasesResult> {
   const result: SyncSharedCasesResult = {
     summaries: [],
     hydrated: 0,
@@ -208,6 +225,10 @@ export async function syncSharedCases(): Promise<SyncSharedCasesResult> {
     result.removed += 1;
   }
 
+  // Blobs decrypted (or read from cache) during hydration, reused by the
+  // summarise pass below so nothing is decrypted twice per sync.
+  const blobsById = new Map<string, SharedCaseData | null>();
+
   await runWithConcurrency(entries, HYDRATE_CONCURRENCY, async (entry) => {
     try {
       const cached = await getDecryptedSharedCaseWithVersion(entry.id);
@@ -221,6 +242,7 @@ export async function syncSharedCases(): Promise<SyncSharedCasesResult> {
         blob = hydrated.data;
         result.hydrated += 1;
       }
+      blobsById.set(entry.id, blob);
       if (blob?.media?.length) {
         const thumbs = await importSharedThumbs(entry.id, blob.media);
         result.thumbsImported += thumbs.imported;
@@ -239,6 +261,10 @@ export async function syncSharedCases(): Promise<SyncSharedCasesResult> {
     }
   });
 
-  result.summaries = await Promise.all(entries.map(summariseEntry));
+  result.summaries = await mapInBatches(
+    entries,
+    SUMMARISE_BATCH_SIZE,
+    (entry) => summariseEntry(entry, blobsById.get(entry.id)),
+  );
   return result;
 }

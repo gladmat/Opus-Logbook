@@ -8,27 +8,13 @@
  */
 
 import React from "react";
-import {
-  View,
-  Pressable,
-  StyleSheet,
-  LayoutAnimation,
-  Platform,
-  UIManager,
-} from "react-native";
+import { View, Pressable, StyleSheet, LayoutAnimation } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Feather } from "@/components/FeatherIcon";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import type { SkinCancerPathwayStage } from "@/types/skinCancer";
-
-if (
-  Platform.OS === "android" &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 interface StageOption {
   value: SkinCancerPathwayStage;

@@ -1,8 +1,10 @@
 import { getApiUrl } from "./query-client";
 import { getAuthToken } from "./auth";
+import { fetchWithTimeout } from "./fetchWithTimeout";
 import type { SharedCaseInboxEntry, UserSearchResult } from "@/types/sharing";
 import { normalizePhoneE164, type PhoneRegion } from "@shared/phone";
 import { buildRegistrationLookupKey } from "@shared/professionalRegistrations";
+import { registerUserCache } from "./userCacheRegistry";
 
 // ── Internal fetch helper ────────────────────────────────────────────────────
 
@@ -13,7 +15,7 @@ async function sharingFetch(
   const baseUrl = getApiUrl();
   const token = await getAuthToken();
 
-  return fetch(new URL(path, baseUrl).href, {
+  return fetchWithTimeout(new URL(path, baseUrl).href, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -185,6 +187,50 @@ export async function getSharedOutbox(): Promise<SharedCaseInboxEntry[]> {
     );
   }
   return res.json();
+}
+
+// ── Cached outbox ────────────────────────────────────────────────────────────
+// The dashboard, the CaseDetail EPA card, Statistics and the assessment
+// history all read the outbox on focus — often within seconds of each
+// other. One network call per TTL window, single-flight while in flight.
+// Pull-to-refresh paths call `getSharedOutbox()` directly to bypass.
+
+export const SHARED_OUTBOX_CACHE_TTL_MS = 15_000;
+
+interface OutboxCacheState {
+  fetchedAt: number;
+  entries: SharedCaseInboxEntry[];
+}
+
+let outboxCache: OutboxCacheState | null = null;
+let outboxInFlight: Promise<SharedCaseInboxEntry[]> | null = null;
+
+/** Drop the cached outbox (tests + purge registry). */
+export function clearSharedOutboxCache(): void {
+  outboxCache = null;
+  outboxInFlight = null;
+}
+
+registerUserCache(clearSharedOutboxCache);
+
+export function getSharedOutboxCached(
+  maxAgeMs: number = SHARED_OUTBOX_CACHE_TTL_MS,
+  now: number = Date.now(),
+): Promise<SharedCaseInboxEntry[]> {
+  if (outboxCache && now - outboxCache.fetchedAt < maxAgeMs) {
+    return Promise.resolve(outboxCache.entries);
+  }
+  if (outboxInFlight) return outboxInFlight;
+  const request = getSharedOutbox()
+    .then((entries) => {
+      outboxCache = { fetchedAt: Date.now(), entries };
+      return entries;
+    })
+    .finally(() => {
+      if (outboxInFlight === request) outboxInFlight = null;
+    });
+  outboxInFlight = request;
+  return request;
 }
 
 // ── Blob update (edit-reshare) ───────────────────────────────────────────────

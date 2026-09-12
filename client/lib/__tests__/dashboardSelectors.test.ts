@@ -9,6 +9,7 @@ import {
   filterDashboardCases,
   SHARED_FILTER_ID,
   buildSharedAttentionItems,
+  sortCasesByProcedureDateDesc,
 } from "@/lib/dashboardSelectors";
 import { buildSharedCaseSummary } from "@/lib/sharedCaseSummary";
 import type { SharedCaseData, SharedCaseInboxEntry } from "@/types/sharing";
@@ -510,5 +511,20 @@ describe("shared cases in dashboard selectors", () => {
     const items = buildSharedAttentionItems([shared], new Map(), null);
     expect(items).toHaveLength(1);
     expect(buildAttentionCaseFormParams(items[0]!, [], null)).toBeNull();
+  });
+});
+
+describe("sortCasesByProcedureDateDesc", () => {
+  it("orders newest first, keeps input order for equal dates, and does not mutate", () => {
+    const input = [
+      { id: "a", procedureDate: "2026-01-05" },
+      { id: "b", procedureDate: "2026-03-01" },
+      { id: "c", procedureDate: "2026-03-01" },
+      { id: "d", procedureDate: "2025-12-31" },
+    ];
+    const snapshot = input.map((c) => c.id);
+    const sorted = sortCasesByProcedureDateDesc(input);
+    expect(sorted.map((c) => c.id)).toEqual(["b", "c", "a", "d"]);
+    expect(input.map((c) => c.id)).toEqual(snapshot);
   });
 });

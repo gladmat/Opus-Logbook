@@ -19,6 +19,11 @@ vi.mock("@react-native-async-storage/async-storage", () => ({
     removeItem: vi.fn(async (key: string) => {
       asyncStorageState.delete(key);
     }),
+    multiSet: vi.fn(async (pairs: [string, string][]) => {
+      for (const [key, value] of pairs) {
+        asyncStorageState.set(key, value);
+      }
+    }),
     multiRemove: vi.fn(async (keys: string[]) => {
       for (const key of keys) {
         asyncStorageState.delete(key);
@@ -29,6 +34,7 @@ vi.mock("@react-native-async-storage/async-storage", () => ({
 }));
 
 vi.mock("react-native", () => ({
+  Platform: { OS: "ios" },
   InteractionManager: {
     runAfterInteractions: (callback: () => void) => {
       callback();
@@ -85,6 +91,7 @@ const CASE_INDEX_KEY = `@surgical_logbook_case_index::${TEST_USER_ID}`;
 const CASE_PREFIX = `@surgical_logbook_case_`;
 const CASE_SPECIALTY_REPAIR_KEY = "@surgical_logbook_case_specialty_repair_v1";
 const CASE_SUMMARIES_KEY = `@surgical_logbook_case_summaries_v1::${TEST_USER_ID}`;
+const TIMELINE_KEY = `@surgical_logbook_timeline::${TEST_USER_ID}`;
 
 function scopedCaseKey(caseId: string): string {
   return `${CASE_PREFIX}${caseId}::${TEST_USER_ID}`;
@@ -314,5 +321,149 @@ describe("storage read caching", () => {
     expect(asyncStorageReads).toContain(scopedCaseKey(firstCase.id));
     expect(asyncStorageReads).toContain(scopedCaseKey(thirdCase.id));
     expect(asyncStorageReads).not.toContain(scopedCaseKey(secondCase.id));
+  });
+
+  describe("timeline cache", () => {
+    const event = (id: string, caseId: string, createdAt: string) =>
+      ({
+        id,
+        caseId,
+        eventType: "photo",
+        eventDate: "2026-03-11",
+        createdAt,
+        updatedAt: createdAt,
+      }) as unknown as import("@/types/case").TimelineEvent;
+
+    it("decrypts the timeline store once across repeated reads", async () => {
+      asyncStorageState.set(CASE_SPECIALTY_REPAIR_KEY, "1");
+      asyncStorageState.set(
+        TIMELINE_KEY,
+        JSON.stringify([
+          event("e1", "case-1", "2026-03-11T10:00:00Z"),
+          event("e2", "case-2", "2026-03-11T11:00:00Z"),
+          event("e3", "case-1", "2026-03-11T12:00:00Z"),
+        ]),
+      );
+      const { getTimelineEvents } = await loadStorageModule();
+
+      const first = await getTimelineEvents("case-1");
+      const second = await getTimelineEvents("case-1");
+      const other = await getTimelineEvents("case-2");
+
+      expect(first.map((e) => e.id)).toEqual(["e3", "e1"]);
+      expect(second.map((e) => e.id)).toEqual(["e3", "e1"]);
+      expect(other.map((e) => e.id)).toEqual(["e2"]);
+      expect(
+        asyncStorageReads.filter((key) => key === TIMELINE_KEY),
+      ).toHaveLength(1);
+    });
+
+    it("writes through the cache on save without a second decrypt", async () => {
+      asyncStorageState.set(CASE_SPECIALTY_REPAIR_KEY, "1");
+      asyncStorageState.set(
+        TIMELINE_KEY,
+        JSON.stringify([event("e1", "case-1", "2026-03-11T10:00:00Z")]),
+      );
+      const { getTimelineEvents, saveTimelineEvent, deleteTimelineEvent } =
+        await loadStorageModule();
+
+      await getTimelineEvents("case-1");
+      await saveTimelineEvent(event("e9", "case-1", "2026-03-12T10:00:00Z"));
+      expect((await getTimelineEvents("case-1")).map((e) => e.id)).toEqual([
+        "e9",
+        "e1",
+      ]);
+      await deleteTimelineEvent("e1");
+      expect((await getTimelineEvents("case-1")).map((e) => e.id)).toEqual([
+        "e9",
+      ]);
+      expect(
+        asyncStorageReads.filter((key) => key === TIMELINE_KEY),
+      ).toHaveLength(1);
+      // Persisted store reflects both writes.
+      const persisted = JSON.parse(asyncStorageState.get(TIMELINE_KEY)!);
+      expect(persisted.map((e: { id: string }) => e.id)).toEqual(["e9"]);
+    });
+
+    it("re-reads the store after a user-cache purge", async () => {
+      asyncStorageState.set(CASE_SPECIALTY_REPAIR_KEY, "1");
+      asyncStorageState.set(
+        TIMELINE_KEY,
+        JSON.stringify([event("e1", "case-1", "2026-03-11T10:00:00Z")]),
+      );
+      const { getTimelineEvents, clearUserCaches } = await loadStorageModule();
+      await getTimelineEvents("case-1");
+      clearUserCaches();
+      await getTimelineEvents("case-1");
+      expect(
+        asyncStorageReads.filter((key) => key === TIMELINE_KEY),
+      ).toHaveLength(2);
+    });
+  });
+
+  describe("casesVersion change token", () => {
+    it("stays flat on reads and increments on save, delete and purge", async () => {
+      asyncStorageState.set(CASE_SPECIALTY_REPAIR_KEY, "1");
+      const {
+        getCasesVersion,
+        getCaseSummaries,
+        getCases,
+        saveCase,
+        deleteCase,
+        clearUserCaches,
+      } = await loadStorageModule();
+
+      const v0 = getCasesVersion();
+      await getCaseSummaries();
+      await getCases();
+      expect(getCasesVersion()).toBe(v0);
+
+      await saveCase(makeCase({ id: "case-v1" }));
+      const v1 = getCasesVersion();
+      expect(v1).toBeGreaterThan(v0);
+
+      await getCaseSummaries();
+      expect(getCasesVersion()).toBe(v1);
+
+      await deleteCase("case-v1");
+      const v2 = getCasesVersion();
+      expect(v2).toBeGreaterThan(v1);
+
+      clearUserCaches();
+      expect(getCasesVersion()).toBeGreaterThan(v2);
+    });
+  });
+
+  describe("getCaseSummaries single-flight", () => {
+    it("concurrent cold callers share one summary-store read", async () => {
+      const firstCase = makeCase({ id: "case-1" });
+      asyncStorageState.set(CASE_SPECIALTY_REPAIR_KEY, "1");
+      asyncStorageState.set(
+        CASE_INDEX_KEY,
+        JSON.stringify([
+          {
+            id: firstCase.id,
+            procedureDate: firstCase.procedureDate,
+            createdAt: firstCase.createdAt,
+            updatedAt: firstCase.updatedAt,
+            specialty: firstCase.specialty,
+          },
+        ]),
+      );
+      asyncStorageState.set(
+        CASE_SUMMARIES_KEY,
+        JSON.stringify({ version: 1, summaries: [makeSummary()] }),
+      );
+      const { getCaseSummaries } = await loadStorageModule();
+
+      const [a, b] = await Promise.all([
+        getCaseSummaries(),
+        getCaseSummaries(),
+      ]);
+      expect(a).toBe(b);
+      expect(
+        asyncStorageReads.filter((key) => key === CASE_SUMMARIES_KEY),
+      ).toHaveLength(1);
+    });
   });
 });

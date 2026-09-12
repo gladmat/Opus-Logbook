@@ -95,6 +95,7 @@ import {
   markNoComplications,
   deleteTimelineEvent,
 } from "@/lib/storage";
+import { perfMark } from "@/lib/perfTrace";
 import { deleteMultipleEncryptedMedia } from "@/lib/mediaStorage";
 import { SpecialtyBadge } from "@/components/SpecialtyBadge";
 import { RoleBadge } from "@/components/RoleBadge";
@@ -340,6 +341,7 @@ export default function CaseDetailScreen() {
   }, [route.params.showComplicationForm]);
 
   const loadData = useCallback(async () => {
+    const endSpan = perfMark("focus.CaseDetail");
     try {
       const data = await getCase(route.params.caseId);
       setCaseData(data);
@@ -348,9 +350,10 @@ export default function CaseDetailScreen() {
         setTimelineEvents(events);
       }
     } catch (error) {
-      console.error("Error loading case:", error);
+      if (__DEV__) console.error("Error loading case:", error);
     } finally {
       setLoading(false);
+      endSpan();
     }
   }, [route.params.caseId]);
 

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useRef } from "react";
 import {
   View,
   StyleSheet,
@@ -63,16 +63,21 @@ import {
   SHARED_FILTER_ID,
 } from "@/lib/dashboardSelectors";
 import { buildMediaContextFromCase } from "@/lib/mediaContext";
-import { getDecryptedSharedCase } from "@/lib/sharingStorage";
-import { getSharedOutbox } from "@/lib/sharingApi";
+import {
+  clearSharedOutboxCache,
+  getSharedOutboxCached,
+} from "@/lib/sharingApi";
+import { perfMark } from "@/lib/perfTrace";
+import { devError } from "@/lib/devLog";
 import { getSharedCaseSummaries, syncSharedCases } from "@/lib/sharedCaseSync";
 import {
   isSharedCaseSummary,
   type SharedCaseSummary,
+  sharedSummariesSignature,
 } from "@/lib/sharedCaseSummary";
 import {
-  resolveSharedCaseEpaState,
   type SharedCaseEpaState,
+  resolveSharedEpaStates,
 } from "@/lib/sharedCaseBadges";
 import { getAllEpaTargets, getAllRevealedPairs } from "@/lib/assessmentStorage";
 import {
@@ -124,35 +129,21 @@ export default function DashboardScreen() {
       const data = await getCaseSummaries();
       setCases(data);
     } catch (error) {
-      console.error("Error loading cases:", error);
+      devError("Error loading cases:", error);
     } finally {
       setLoading(false);
     }
   }, []);
 
   const viewerUserId = user?.id;
+  // Signature of the shared summaries currently applied — a sync that
+  // changes nothing skips the re-apply (no re-render, no badge resolution).
+  const appliedSharedSignatureRef = useRef<string | null>(null);
   const applySharedSummaries = useCallback(
     async (summaries: SharedCaseSummary[]) => {
+      appliedSharedSignatureRef.current = sharedSummariesSignature(summaries);
       setSharedCases(summaries);
-      const states = new Map<string, SharedCaseEpaState>();
-      await Promise.all(
-        summaries.map(async (summary) => {
-          try {
-            const blob = await getDecryptedSharedCase(summary.id);
-            states.set(
-              summary.id,
-              await resolveSharedCaseEpaState(
-                { id: summary.id, ownerUserId: summary.shared.ownerUserId },
-                blob,
-                viewerUserId,
-              ),
-            );
-          } catch {
-            states.set(summary.id, null);
-          }
-        }),
-      );
-      setSharedEpaStates(states);
+      setSharedEpaStates(await resolveSharedEpaStates(summaries, viewerUserId));
     },
     [viewerUserId],
   );
@@ -171,7 +162,12 @@ export default function DashboardScreen() {
   const syncShared = useCallback(async () => {
     try {
       const result = await syncSharedCases();
-      await applySharedSummaries(result.summaries);
+      const unchanged =
+        result.hydrated === 0 &&
+        result.removed === 0 &&
+        sharedSummariesSignature(result.summaries) ===
+          appliedSharedSignatureRef.current;
+      if (!unchanged) await applySharedSummaries(result.summaries);
     } catch {
       // Network unavailable — the cached list stays
     }
@@ -184,8 +180,8 @@ export default function DashboardScreen() {
         getAllRevealedPairs().catch(() => []),
         // Offline → empty outbox → revealed targets don't drain this
         // round; the next online focus reconciles (same as History).
-        getSharedOutbox().catch(
-          () => [] as Awaited<ReturnType<typeof getSharedOutbox>>,
+        getSharedOutboxCached().catch(
+          () => [] as Awaited<ReturnType<typeof getSharedOutboxCached>>,
         ),
       ]);
       setPendingEpaCount(
@@ -205,17 +201,32 @@ export default function DashboardScreen() {
   useFocusEffect(
     useCallback(() => {
       const task = InteractionManager.runAfterInteractions(() => {
-        loadCases();
-        loadSharedCases();
-        loadPendingEpaCount();
+        const endSpan = perfMark("focus.Dashboard");
+        void Promise.all([
+          loadCases(),
+          loadSharedCases(),
+          loadPendingEpaCount(),
+        ]).finally(endSpan);
         void syncShared();
       });
       return () => task.cancel();
     }, [loadCases, loadSharedCases, loadPendingEpaCount, syncShared]),
   );
 
+  // Recent Cases is capped (RECENT_CASES_LIMIT) — the full list lives in
+  // search (own cases) or the shared inbox (Shared filter).
+  const handleSeeAllCases = useCallback(() => {
+    if (selectedSpecialty === SHARED_FILTER_ID) {
+      navigation.navigate("SharedInbox");
+    } else {
+      navigation.navigate("CaseSearch");
+    }
+  }, [navigation, selectedSpecialty]);
+
   const handleRefresh = async () => {
     setRefreshing(true);
+    // Explicit refresh bypasses the outbox TTL cache.
+    clearSharedOutboxCache();
     await Promise.all([
       loadCases(),
       refreshEpisodes(),
@@ -620,11 +631,7 @@ export default function DashboardScreen() {
             onAddEvent={handleAddEventFromCase}
             onAddHistology={handleAddHistologyFromCase}
             forceSeeAll={selectedSpecialty === SHARED_FILTER_ID}
-            onSeeAll={
-              selectedSpecialty === SHARED_FILTER_ID
-                ? () => navigation.navigate("SharedInbox")
-                : undefined
-            }
+            onSeeAll={handleSeeAllCases}
           />
         )}
       </ScrollView>

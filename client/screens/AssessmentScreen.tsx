@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Pressable,
@@ -67,6 +67,11 @@ import {
   computeCommitment,
 } from "@/lib/assessmentCommitment";
 import { uploadPendingReveal } from "@/lib/assessmentReveal";
+import {
+  assessmentPollKey,
+  isBothRevealed,
+  shouldPollForReveal,
+} from "@/lib/assessmentPolling";
 import {
   getDecryptedSharedCase,
   getSharedInboxIndex,
@@ -350,15 +355,29 @@ export default function AssessmentScreen() {
   // Poll for reveal on focus (when already submitted). For commit-reveal
   // submissions this also performs the phase-2 ciphertext upload as soon as
   // the counterpart has committed.
+  //
+  // The effect depends on PRIMITIVES derived from `status`, never on the
+  // status object itself: every poll returns a fresh object, so an object
+  // dependency re-ran the effect after its own `setStatus` in an unbounded
+  // loop (network + decrypt + re-render per iteration) whenever the viewer
+  // had committed and the counterpart had not — which starved the JS thread
+  // and left the header back button unresponsive.
+  const pollEnabled = shouldPollForReveal(status);
+  const pollKey = assessmentPollKey(status);
+  const pollInFlightRef = useRef(false);
+  const userId = user?.id;
+
   useFocusEffect(
     useCallback(() => {
-      if (!status?.myAssessment || status.myAssessment.revealedAt) return;
+      if (!pollEnabled) return;
+      if (pollInFlightRef.current) return;
 
       let cancelled = false;
+      pollInFlightRef.current = true;
       (async () => {
         try {
-          if (user) {
-            const outcome = await uploadPendingReveal(sharedCaseId, user.id);
+          if (userId) {
+            const outcome = await uploadPendingReveal(sharedCaseId, userId);
             if (!cancelled && outcome === "revealed") {
               navigation.replace("AssessmentReveal", { sharedCaseId });
               return;
@@ -366,21 +385,27 @@ export default function AssessmentScreen() {
           }
           const updated = await getAssessmentStatus(sharedCaseId);
           if (cancelled) return;
-          setStatus(updated);
-          if (
-            updated.myAssessment?.revealedAt &&
-            updated.otherAssessment?.revealedAt
-          ) {
+          // Drop an unchanged server state before it reaches React state —
+          // no re-render, no dependency churn.
+          setStatus((prev) =>
+            assessmentPollKey(prev) === assessmentPollKey(updated)
+              ? prev
+              : updated,
+          );
+          if (isBothRevealed(updated)) {
             navigation.replace("AssessmentReveal", { sharedCaseId });
           }
         } catch {
           // Offline — ignore
+        } finally {
+          pollInFlightRef.current = false;
         }
       })();
       return () => {
         cancelled = true;
       };
-    }, [sharedCaseId, status?.myAssessment, navigation, user]),
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- pollKey is the primitive stand-in for `status`
+    }, [sharedCaseId, pollEnabled, pollKey, navigation, userId]),
   );
 
   // ── Submit handler ───────────────────────────────────────────────────────

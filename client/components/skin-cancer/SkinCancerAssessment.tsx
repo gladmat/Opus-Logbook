@@ -34,8 +34,6 @@ import {
   Pressable,
   Switch,
   LayoutAnimation,
-  Platform,
-  UIManager,
   StyleSheet,
 } from "react-native";
 import * as Haptics from "expo-haptics";
@@ -101,12 +99,6 @@ const DIAGNOSIS_CATEGORIES: {
 ];
 
 // Enable LayoutAnimation on Android
-if (
-  Platform.OS === "android" &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 /** Smooth spring-like animation for multi-section collapse (less jarring than easeInEaseOut) */
 const SMOOTH_LAYOUT_ANIM = LayoutAnimation.create(

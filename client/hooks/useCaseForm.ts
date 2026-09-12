@@ -1,6 +1,7 @@
 import {
   useReducer,
   useCallback,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -1038,7 +1039,7 @@ function applyDayCaseDefaults(state: CaseFormState): CaseFormState {
 
 // ─── Reducer ────────────────────────────────────────────────────────────────
 
-function caseFormReducer(
+export function caseFormReducer(
   state: CaseFormState,
   action: CaseFormAction,
 ): CaseFormState {
@@ -1801,7 +1802,12 @@ export function useCaseForm({
           : getDefaultFormState(specialty, primaryFacility),
   );
   const stateRef = useRef(state);
-  stateRef.current = state;
+  // Mirror of the committed state for handlers that must read the latest
+  // value without re-binding. Written after commit (layout effect) rather
+  // than during render so the React Compiler can memoise this hook.
+  useLayoutEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   // ── Derived values ──────────────────────────────────────────────────────
 

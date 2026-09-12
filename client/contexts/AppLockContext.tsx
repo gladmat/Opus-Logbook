@@ -21,6 +21,7 @@ import { isFaceIdUnsupportedInCurrentRuntime } from "@/lib/biometrics";
 import { clearDecryptedCache } from "@/components/EncryptedImage";
 import { clearEncryptionKeyCache } from "@/lib/encryption";
 import { clearUserCaches } from "@/lib/storage";
+import { resolvePurgeAction } from "@/lib/appStatePurgePolicy";
 import { getActiveUserIdOrNull, onActiveUserChange } from "@/lib/activeUser";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -152,7 +153,10 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
   // Listen to AppState changes
   useEffect(() => {
     const handleAppStateChange = async (nextState: AppStateStatus) => {
-      if (nextState === "background" || nextState === "inactive") {
+      // Purge on REAL backgrounding only. Transient "inactive" blips (share
+      // sheets, Face ID, pickers, Control Centre) keep every cache — see
+      // resolvePurgeAction for the rationale.
+      if (resolvePurgeAction(nextState) === "purge") {
         // Always clear decrypted media from temp files and memory,
         // regardless of app lock configuration — clinical photos should
         // never persist as plaintext in the cache directory.

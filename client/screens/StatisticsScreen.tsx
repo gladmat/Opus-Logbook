@@ -291,7 +291,12 @@ export default function StatisticsScreen() {
     burnsInsights,
     handCaseTypeInsights,
   } = useStatistics();
-  const trainingStats = useTrainingStatistics();
+  // Training analytics load only once the Training tab is active — the
+  // practice pipeline (every case decrypted) is the expensive one and the
+  // two used to run together on every focus regardless of the tab shown.
+  const trainingStats = useTrainingStatistics({
+    enabled: activeTab === "training",
+  });
 
   // Bar chart data for monthly volume
   const monthlyBarData = useMemo(

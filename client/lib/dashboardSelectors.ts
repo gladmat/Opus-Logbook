@@ -158,11 +158,13 @@ function hasCaseLikeRecordedOutcome(caseData: Case | CaseSummary): boolean {
 export function sortCasesByProcedureDateDesc<
   T extends { procedureDate: string },
 >(cases: T[]): T[] {
-  return [...cases].sort(
-    (left, right) =>
-      parseCaseDate(right.procedureDate).getTime() -
-      parseCaseDate(left.procedureDate).getTime(),
-  );
+  // Decorate-sort-undecorate: one date parse per item instead of two per
+  // comparison (this runs twice per dashboard render over every case).
+  // Array.prototype.sort is stable, so equal dates keep input order.
+  return cases
+    .map((item) => ({ item, at: parseCaseDate(item.procedureDate).getTime() }))
+    .sort((left, right) => right.at - left.at)
+    .map(({ item }) => item);
 }
 
 export function filterOutPlannedCases<T extends { caseStatus?: string }>(

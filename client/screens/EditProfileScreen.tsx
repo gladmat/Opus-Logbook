@@ -6,9 +6,7 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
-  Platform,
   LayoutAnimation,
-  UIManager,
 } from "react-native";
 import { AuthenticatedAvatar } from "@/components/AuthenticatedAvatar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -57,13 +55,6 @@ const COUNTRIES = [
   { value: "switzerland", label: "Switzerland" },
   { value: "other", label: "Other" },
 ];
-
-if (
-  Platform.OS === "android" &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 function getFilledRegistrationJurisdictions(
   registrations: ProfessionalRegistrations | undefined,

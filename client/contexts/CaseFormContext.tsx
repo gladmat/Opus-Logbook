@@ -165,18 +165,21 @@ export function CaseFormProvider({
       form.specialty,
     ],
   );
+  // The external-store snapshot source. Written in the layout effect below
+  // — i.e. only for COMMITTED renders — so `useSyncExternalStore`
+  // subscribers can never observe a snapshot from an abandoned render
+  // (tearing), and the provider stays memoisable by the React Compiler
+  // (a ref write during render is a bail-out).
   const snapshotRef = useRef(snapshot);
-  snapshotRef.current = snapshot;
   const storeRef = useRef<CaseFormStore | null>(null);
-  const committedSnapshotRef = useRef(snapshot);
 
   if (!storeRef.current) {
     storeRef.current = createCaseFormStore(snapshotRef);
   }
 
   useLayoutEffect(() => {
-    if (committedSnapshotRef.current !== snapshot) {
-      committedSnapshotRef.current = snapshot;
+    if (snapshotRef.current !== snapshot) {
+      snapshotRef.current = snapshot;
       storeRef.current?.emitChange();
     }
   }, [snapshot]);
